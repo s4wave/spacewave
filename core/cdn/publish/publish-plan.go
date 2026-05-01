@@ -11,29 +11,27 @@ type PublishPlan struct {
 	NeedRootPost   bool
 }
 
-// BuildPublishPlan computes which source packs are absent from the destination
-// and whether the destination root pointer must be updated.
+// BuildPublishPlan computes whether the destination root pointer must be
+// updated. Pack IDs are resource-scoped, so source IDs cannot be compared
+// directly to destination IDs; when the root differs, all source packs are
+// copied and destination-side v1 IDs make retries idempotent.
 func BuildPublishPlan(
 	srcPacks []*packfile.PackfileEntry,
-	dstPacks []*packfile.PackfileEntry,
+	_ []*packfile.PackfileEntry,
 	srcHeadRef *bucket.ObjectRef,
 	dstHeadRef *bucket.ObjectRef,
 ) *PublishPlan {
-	dstPackSet := make(map[string]struct{}, len(dstPacks))
-	for _, entry := range dstPacks {
-		dstPackSet[entry.GetId()] = struct{}{}
-	}
-	missingPackIDs := make([]string, 0)
-	for _, entry := range srcPacks {
-		if _, ok := dstPackSet[entry.GetId()]; !ok {
-			missingPackIDs = append(missingPackIDs, entry.GetId())
-		}
-	}
 	needRootPost := true
 	if srcHeadRef == nil && dstHeadRef == nil {
 		needRootPost = false
 	} else if srcHeadRef != nil && dstHeadRef != nil && srcHeadRef.EqualVT(dstHeadRef) {
 		needRootPost = false
+	}
+	missingPackIDs := make([]string, 0, len(srcPacks))
+	if needRootPost {
+		for _, entry := range srcPacks {
+			missingPackIDs = append(missingPackIDs, entry.GetId())
+		}
 	}
 	return &PublishPlan{
 		MissingPackIDs: missingPackIDs,

@@ -13,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 	spacewave_provider "github.com/s4wave/spacewave/core/provider/spacewave"
 	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
+	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/identity"
 	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/writer"
 	"github.com/s4wave/spacewave/db/block/bloom"
 	"github.com/s4wave/spacewave/net/hash"
@@ -81,19 +82,23 @@ func PushSinglePack(
 	if err != nil {
 		return errors.Wrap(err, "read pack file")
 	}
-	blockCount, computedBloom, err := BuildKVFilePushMetadata(ctx, packBytes)
+	metadata, err := BuildKVFilePushMetadata(ctx, packBytes)
 	if err != nil {
 		return errors.Wrap(err, "build kvfile metadata")
 	}
 	if len(bloomFilter) == 0 {
-		bloomFilter = computedBloom
+		bloomFilter = metadata.BloomFilter
+	}
+	packID, err = identity.BuildPackID(opts.DstSpaceID, metadata.PackResult())
+	if err != nil {
+		return errors.Wrap(err, "build pack id")
 	}
 	packHash := sha256.Sum256(packBytes)
 	if err := opts.Client.SyncPushData(
 		ctx,
 		opts.DstSpaceID,
 		packID,
-		blockCount,
+		metadata.BlockCount,
 		packBytes,
 		packHash[:],
 		bloomFilter,
@@ -105,16 +110,38 @@ func PushSinglePack(
 		opts.output(),
 		"  pushed pack "+packID+
 			" size="+strconv.Itoa(len(packBytes))+
-			" blocks="+strconv.Itoa(blockCount)+"\n",
+			" blocks="+strconv.Itoa(metadata.BlockCount)+"\n",
 	)
 	return err
 }
 
+// KVFilePushMetadata is verified metadata for one kvfile pack.
+type KVFilePushMetadata struct {
+	BlockCount       int
+	BloomFilter      []byte
+	SortedKeyDigest  []byte
+	PackBytesDigest  []byte
+	PolicyTag        string
+	ValueOrderPolicy string
+}
+
+// PackResult returns the metadata needed for v1 pack identity.
+func (m KVFilePushMetadata) PackResult() *writer.PackResult {
+	return &writer.PackResult{
+		BlockCount:       uint64(m.BlockCount),
+		BloomFilter:      m.BloomFilter,
+		SortedKeyDigest:  m.SortedKeyDigest,
+		PackBytesDigest:  m.PackBytesDigest,
+		PolicyTag:        m.PolicyTag,
+		ValueOrderPolicy: m.ValueOrderPolicy,
+	}
+}
+
 // BuildKVFilePushMetadata verifies a kvfile and builds sync/push metadata.
-func BuildKVFilePushMetadata(ctx context.Context, data []byte) (int, []byte, error) {
+func BuildKVFilePushMetadata(ctx context.Context, data []byte) (*KVFilePushMetadata, error) {
 	rdr, err := kvfile.BuildReader(bytesReaderAt(data), uint64(len(data)))
 	if err != nil {
-		return 0, nil, err
+		return nil, err
 	}
 	blockCount := int(rdr.Size())
 	policy := writer.DefaultPolicy()
@@ -122,6 +149,7 @@ func BuildKVFilePushMetadata(ctx context.Context, data []byte) (int, []byte, err
 		policy.BloomExpectedBlocks = uint64(blockCount)
 	}
 	bf := policy.NewBloomFilter()
+	keys := make([][]byte, 0, blockCount)
 	err = rdr.ScanPrefixEntries(nil, func(ie *kvfile.IndexEntry, _ int) error {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -142,14 +170,23 @@ func BuildKVFilePushMetadata(ctx context.Context, data []byte) (int, []byte, err
 			return errors.Wrap(err, "verify indexed block hash")
 		}
 		bf.Add(key)
+		keys = append(keys, append([]byte(nil), key...))
 		return nil
 	})
 	if err != nil {
-		return 0, nil, errors.Wrap(err, "scan kvfile index")
+		return nil, errors.Wrap(err, "scan kvfile index")
 	}
 	bloomBytes, err := bloom.NewBloom(bf).MarshalBlock()
 	if err != nil {
-		return 0, nil, errors.Wrap(err, "marshal bloom filter")
+		return nil, errors.Wrap(err, "marshal bloom filter")
 	}
-	return blockCount, bloomBytes, nil
+	packHash := sha256.Sum256(data)
+	return &KVFilePushMetadata{
+		BlockCount:       blockCount,
+		BloomFilter:      bloomBytes,
+		SortedKeyDigest:  identity.DigestSortedKeys(keys),
+		PackBytesDigest:  packHash[:],
+		PolicyTag:        identity.PolicyTag(policy),
+		ValueOrderPolicy: identity.ValueOrderIterator,
+	}, nil
 }

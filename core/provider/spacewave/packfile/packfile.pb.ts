@@ -15,7 +15,7 @@ export const protobufPackage = 'provider.spacewave.packfile'
  */
 export interface PackfileEntry {
   /**
-   * Id is the packfile identifier (ULID).
+   * Id is the v1 packfile identifier.
    *
    * @generated from field: string id = 1;
    */
@@ -56,8 +56,8 @@ export interface PackfileEntry {
   bloomFormatVersion?: number
   /**
    * Sequence is the monotonic cursor anchor assigned by the cloud DO single
-   * writer at insert time. Pull cursors advance over sequence > since
-   * instead of pack ULID ordering. Local entries not yet pushed carry 0.
+   * writer at insert time. Pull cursors advance over sequence > since. Local
+   * entries not yet pushed carry 0.
    *
    * @generated from field: uint64 sequence = 7;
    */
@@ -101,6 +101,56 @@ export const PackfileEntry: MessageType<PackfileEntry> = createMessageType({
 })
 
 /**
+ * PackReplacementEvent describes one atomic replacement sequence.
+ *
+ * @generated from message provider.spacewave.packfile.PackReplacementEvent
+ */
+export interface PackReplacementEvent {
+  /**
+   * Sequence is the monotonic cursor anchor assigned to the replacement event.
+   *
+   * @generated from field: uint64 sequence = 1;
+   */
+  sequence?: bigint
+  /**
+   * ReplacedPackIds is the set of packs removed from the active manifest.
+   *
+   * @generated from field: repeated string replaced_pack_ids = 2;
+   */
+  replacedPackIds?: string[]
+  /**
+   * ReplacementPackIds is the set of packs added by the same replacement.
+   *
+   * @generated from field: repeated string replacement_pack_ids = 3;
+   */
+  replacementPackIds?: string[]
+}
+
+// PackReplacementEvent contains the message type declaration for PackReplacementEvent.
+export const PackReplacementEvent: MessageType<PackReplacementEvent> =
+  createMessageType({
+    typeName: 'provider.spacewave.packfile.PackReplacementEvent',
+    fields: [
+      { no: 1, name: 'sequence', kind: 'scalar', T: ScalarType.UINT64 },
+      {
+        no: 2,
+        name: 'replaced_pack_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 3,
+        name: 'replacement_pack_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * PullResponse is the response to a pull request.
  *
  * @generated from message provider.spacewave.packfile.PullResponse
@@ -112,6 +162,12 @@ export interface PullResponse {
    * @generated from field: repeated provider.spacewave.packfile.PackfileEntry entries = 1;
    */
   entries?: PackfileEntry[]
+  /**
+   * ReplacementEvents is the list of atomic replacement events.
+   *
+   * @generated from field: repeated provider.spacewave.packfile.PackReplacementEvent replacement_events = 2;
+   */
+  replacementEvents?: PackReplacementEvent[]
 }
 
 // PullResponse contains the message type declaration for PullResponse.
@@ -123,6 +179,13 @@ export const PullResponse: MessageType<PullResponse> = createMessageType({
       name: 'entries',
       kind: 'message',
       T: () => PackfileEntry,
+      repeated: true,
+    },
+    {
+      no: 2,
+      name: 'replacement_events',
+      kind: 'message',
+      T: () => PackReplacementEvent,
       repeated: true,
     },
   ] as readonly PartialFieldInfo[],

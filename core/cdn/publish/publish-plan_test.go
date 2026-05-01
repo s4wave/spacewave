@@ -36,7 +36,7 @@ func TestBuildPublishPlanNoOpWhenDestinationMatches(t *testing.T) {
 	}
 }
 
-func TestBuildPublishPlanPartialRetrySkipsExistingPacks(t *testing.T) {
+func TestBuildPublishPlanCopiesAllSourcePacksWhenRootDiffers(t *testing.T) {
 	srcHeadRef := testPublishHeadRef("src-new")
 	dstHeadRef := testPublishHeadRef("dst-old")
 	plan := BuildPublishPlan(
@@ -45,7 +45,9 @@ func TestBuildPublishPlanPartialRetrySkipsExistingPacks(t *testing.T) {
 		srcHeadRef,
 		dstHeadRef,
 	)
-	if len(plan.MissingPackIDs) != 1 || plan.MissingPackIDs[0] != "01PACKB" {
+	if len(plan.MissingPackIDs) != 2 ||
+		plan.MissingPackIDs[0] != "01PACKA" ||
+		plan.MissingPackIDs[1] != "01PACKB" {
 		t.Fatalf("unexpected missing packs: %v", plan.MissingPackIDs)
 	}
 	if !plan.NeedRootPost {
@@ -53,7 +55,7 @@ func TestBuildPublishPlanPartialRetrySkipsExistingPacks(t *testing.T) {
 	}
 }
 
-func TestBuildPublishPlanRepairsMissingPacksWithoutRootPost(t *testing.T) {
+func TestBuildPublishPlanSkipsPackRepairWhenRootAlreadyMatches(t *testing.T) {
 	srcHeadRef := testPublishHeadRef("src-same")
 	dstHeadRef := testPublishHeadRef("src-same")
 	plan := BuildPublishPlan(
@@ -62,7 +64,7 @@ func TestBuildPublishPlanRepairsMissingPacksWithoutRootPost(t *testing.T) {
 		srcHeadRef,
 		dstHeadRef,
 	)
-	if len(plan.MissingPackIDs) != 1 || plan.MissingPackIDs[0] != "01PACKB" {
+	if len(plan.MissingPackIDs) != 0 {
 		t.Fatalf("unexpected missing packs: %v", plan.MissingPackIDs)
 	}
 	if plan.NeedRootPost {

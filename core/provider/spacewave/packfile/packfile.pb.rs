@@ -3,7 +3,7 @@
 /// PackfileEntry describes a single packfile in the manifest.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct PackfileEntry {
-    /// Id is the packfile identifier (ULID).
+    /// Id is the v1 packfile identifier.
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,
     /// BloomFilter is the serialized bloom filter for the packfile.
@@ -26,8 +26,8 @@ pub struct PackfileEntry {
     #[prost(uint32, tag="6")]
     pub bloom_format_version: u32,
     /// Sequence is the monotonic cursor anchor assigned by the cloud DO single
-    /// writer at insert time. Pull cursors advance over sequence > since
-    /// instead of pack ULID ordering. Local entries not yet pushed carry 0.
+    /// writer at insert time. Pull cursors advance over sequence > since. Local
+    /// entries not yet pushed carry 0.
     #[prost(uint64, tag="7")]
     pub sequence: u64,
     /// SupersededBy is the replacement packfile ID; empty when the row is
@@ -39,12 +39,28 @@ pub struct PackfileEntry {
     #[prost(message, optional, tag="9")]
     pub superseded_at: ::core::option::Option<::prost_types::Timestamp>,
 }
+/// PackReplacementEvent describes one atomic replacement sequence.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PackReplacementEvent {
+    /// Sequence is the monotonic cursor anchor assigned to the replacement event.
+    #[prost(uint64, tag="1")]
+    pub sequence: u64,
+    /// ReplacedPackIds is the set of packs removed from the active manifest.
+    #[prost(string, repeated, tag="2")]
+    pub replaced_pack_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// ReplacementPackIds is the set of packs added by the same replacement.
+    #[prost(string, repeated, tag="3")]
+    pub replacement_pack_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
 /// PullResponse is the response to a pull request.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PullResponse {
     /// Entries is the list of packfile entries.
     #[prost(message, repeated, tag="1")]
     pub entries: ::prost::alloc::vec::Vec<PackfileEntry>,
+    /// ReplacementEvents is the list of atomic replacement events.
+    #[prost(message, repeated, tag="2")]
+    pub replacement_events: ::prost::alloc::vec::Vec<PackReplacementEvent>,
 }
 /// PushResponse is the response to a push request.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

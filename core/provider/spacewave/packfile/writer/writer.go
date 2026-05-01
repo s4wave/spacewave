@@ -2,6 +2,7 @@ package writer
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"io"
 
 	"github.com/aperturerobotics/go-kvfile"
@@ -18,6 +19,14 @@ type PackResult struct {
 	BlockCount uint64
 	// BytesWritten is the total bytes written.
 	BytesWritten uint64
+	// SortedKeyDigest is the v1 digest of the sorted block key set.
+	SortedKeyDigest []byte
+	// PackBytesDigest is the SHA-256 digest of the kvfile bytes.
+	PackBytesDigest []byte
+	// PolicyTag is the pack construction policy tag used for v1 identity.
+	PolicyTag string
+	// ValueOrderPolicy names how physical kvfile values were ordered.
+	ValueOrderPolicy string
 }
 
 // BlockIterator yields hash/data pairs for packing.
@@ -27,11 +36,14 @@ type BlockIterator func() (h *hash.Hash, data []byte, err error)
 // filter. The iterator should return nil hash when exhausted. Returns the pack
 // result or an error.
 func PackBlocks(w io.Writer, iter BlockIterator) (*PackResult, error) {
-	kvw := kvfile.NewWriter(w)
+	packHash := sha256.New()
+	kvw := kvfile.NewWriter(io.MultiWriter(w, packHash))
 
-	bf := DefaultPolicy().NewBloomFilter()
+	policy := DefaultPolicy()
+	bf := policy.NewBloomFilter()
 
 	var count uint64
+	var keys [][]byte
 	for {
 		h, data, err := iter()
 		if err != nil {
@@ -46,6 +58,7 @@ func PackBlocks(w io.Writer, iter BlockIterator) (*PackResult, error) {
 			return nil, errors.Wrap(err, "writing block to kvfile")
 		}
 		bf.Add(key)
+		keys = append(keys, append([]byte(nil), key...))
 		count++
 	}
 
@@ -60,8 +73,12 @@ func PackBlocks(w io.Writer, iter BlockIterator) (*PackResult, error) {
 	}
 
 	return &PackResult{
-		BloomFilter:  bloomBytes,
-		BlockCount:   count,
-		BytesWritten: kvw.GetPos(),
+		BloomFilter:      bloomBytes,
+		BlockCount:       count,
+		BytesWritten:     kvw.GetPos(),
+		SortedKeyDigest:  digestSortedKeys(keys),
+		PackBytesDigest:  packHash.Sum(nil),
+		PolicyTag:        policyTag(policy),
+		ValueOrderPolicy: valueOrderIterator,
 	}, nil
 }

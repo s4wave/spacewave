@@ -157,7 +157,7 @@ func TestDiffBlockStoresEmpty(t *testing.T) {
 	}
 
 	emitCalls := 0
-	emitted, err := EmitDeltaChunks(ctx, iter, DefaultMaxChunkBytes, func(ctx context.Context, idx int, entry *packfile.PackfileEntry, data []byte) error {
+	emitted, err := EmitDeltaChunks(ctx, "test-resource", iter, DefaultMaxChunkBytes, func(ctx context.Context, idx int, entry *packfile.PackfileEntry, data []byte) error {
 		emitCalls++
 		return nil
 	})
@@ -191,7 +191,7 @@ func TestDiffBlockStoresSingleChunk(t *testing.T) {
 
 	var emitted []*packfile.PackfileEntry
 	var chunks [][]byte
-	emitted, err = EmitDeltaChunks(ctx, iter, DefaultMaxChunkBytes, func(ctx context.Context, idx int, entry *packfile.PackfileEntry, data []byte) error {
+	emitted, err = EmitDeltaChunks(ctx, "test-resource", iter, DefaultMaxChunkBytes, func(ctx context.Context, idx int, entry *packfile.PackfileEntry, data []byte) error {
 		if idx != len(chunks) {
 			t.Fatalf("idx=%d len(chunks)=%d", idx, len(chunks))
 		}
@@ -266,7 +266,7 @@ func TestDiffBlockStoresWithRefGraphOrdersPhysicalPack(t *testing.T) {
 	}
 
 	var chunks [][]byte
-	_, err = EmitDeltaChunks(ctx, iter, DefaultMaxChunkBytes, func(ctx context.Context, idx int, entry *packfile.PackfileEntry, data []byte) error {
+	_, err = EmitDeltaChunks(ctx, "test-resource", iter, DefaultMaxChunkBytes, func(ctx context.Context, idx int, entry *packfile.PackfileEntry, data []byte) error {
 		chunks = append(chunks, bytes.Clone(data))
 		return nil
 	})
@@ -309,7 +309,7 @@ func TestDiffBlockStoresMultiChunk(t *testing.T) {
 	maxBytes := int64(blockSize + 256)
 	var emitted []*packfile.PackfileEntry
 	var sizes []uint64
-	emitted, err = EmitDeltaChunks(ctx, iter, maxBytes, func(ctx context.Context, idx int, entry *packfile.PackfileEntry, data []byte) error {
+	emitted, err = EmitDeltaChunks(ctx, "test-resource", iter, maxBytes, func(ctx context.Context, idx int, entry *packfile.PackfileEntry, data []byte) error {
 		sizes = append(sizes, entry.GetSizeBytes())
 		return nil
 	})
@@ -334,12 +334,15 @@ func TestDiffBlockStoresMultiChunk(t *testing.T) {
 		t.Fatal("spec keys collided; check buildTestKvfile determinism")
 	}
 
-	// ULIDs are time-ordered; chunk idx 0 MUST sort lexicographically before
-	// chunk idx 1, which MUST sort before chunk idx 2.
-	for i := 1; i < len(emitted); i++ {
-		if emitted[i-1].GetId() >= emitted[i].GetId() {
-			t.Fatalf("pack ids not monotonically increasing: %q then %q", emitted[i-1].GetId(), emitted[i].GetId())
+	seen := make(map[string]bool, len(emitted))
+	for _, entry := range emitted {
+		if entry.GetId() == "" {
+			t.Fatal("empty pack id")
 		}
+		if seen[entry.GetId()] {
+			t.Fatalf("duplicate pack id %q", entry.GetId())
+		}
+		seen[entry.GetId()] = true
 	}
 }
 
@@ -354,7 +357,7 @@ func TestEmitDeltaChunksBlockCountCeiling(t *testing.T) {
 		t.Fatalf("DiffBlockStores: %v", err)
 	}
 
-	emitted, err := EmitDeltaChunks(ctx, iter, DefaultMaxChunkBytes, func(ctx context.Context, idx int, entry *packfile.PackfileEntry, data []byte) error {
+	emitted, err := EmitDeltaChunks(ctx, "test-resource", iter, DefaultMaxChunkBytes, func(ctx context.Context, idx int, entry *packfile.PackfileEntry, data []byte) error {
 		if len(entry.GetBloomFilter()) == 0 {
 			t.Fatalf("chunk %d missing bloom metadata", idx)
 		}

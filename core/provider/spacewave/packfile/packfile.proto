@@ -5,7 +5,7 @@ import "google/protobuf/timestamp.proto";
 
 // PackfileEntry describes a single packfile in the manifest.
 message PackfileEntry {
-  // Id is the packfile identifier (ULID).
+  // Id is the v1 packfile identifier.
   string id = 1;
   // BloomFilter is the serialized bloom filter for the packfile.
   bytes bloom_filter = 2;
@@ -22,8 +22,8 @@ message PackfileEntry {
   // accepted-versions allowlist.
   uint32 bloom_format_version = 6;
   // Sequence is the monotonic cursor anchor assigned by the cloud DO single
-  // writer at insert time. Pull cursors advance over sequence > since
-  // instead of pack ULID ordering. Local entries not yet pushed carry 0.
+  // writer at insert time. Pull cursors advance over sequence > since. Local
+  // entries not yet pushed carry 0.
   uint64 sequence = 7;
   // SupersededBy is the replacement packfile ID; empty when the row is
   // current.
@@ -33,10 +33,22 @@ message PackfileEntry {
   .google.protobuf.Timestamp superseded_at = 9;
 }
 
+// PackReplacementEvent describes one atomic replacement sequence.
+message PackReplacementEvent {
+  // Sequence is the monotonic cursor anchor assigned to the replacement event.
+  uint64 sequence = 1;
+  // ReplacedPackIds is the set of packs removed from the active manifest.
+  repeated string replaced_pack_ids = 2;
+  // ReplacementPackIds is the set of packs added by the same replacement.
+  repeated string replacement_pack_ids = 3;
+}
+
 // PullResponse is the response to a pull request.
 message PullResponse {
   // Entries is the list of packfile entries.
   repeated PackfileEntry entries = 1;
+  // ReplacementEvents is the list of atomic replacement events.
+  repeated PackReplacementEvent replacement_events = 2;
 }
 
 // PushResponse is the response to a push request.

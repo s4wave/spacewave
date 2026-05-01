@@ -361,6 +361,41 @@ func TestPackfileStoreGetBlockExistsDoesNotFetchPayload(t *testing.T) {
 	}
 }
 
+func TestPackfileStoreUpdateManifestFiltersSupersededAndEvictsEngines(t *testing.T) {
+	store := NewPackfileStore(func(packID string, size int64) (*PackReader, error) {
+		t.Fatalf("unexpected opener call for %s size %d", packID, size)
+		return nil, nil
+	}, nil)
+	store.engines["pack-a"] = nil
+	store.engines["pack-b"] = nil
+	store.engines["pack-gone"] = nil
+
+	store.UpdateManifest([]*packfile.PackfileEntry{
+		{Id: "pack-a", SupersededBy: "pack-b"},
+		{Id: "pack-b"},
+	})
+
+	store.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if len(store.manifest) != 1 {
+			t.Fatalf("manifest len=%d want 1", len(store.manifest))
+		}
+		if store.manifest[0].GetId() != "pack-b" {
+			t.Fatalf("active manifest id=%q want pack-b", store.manifest[0].GetId())
+		}
+	})
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	if _, ok := store.engines["pack-b"]; !ok {
+		t.Fatal("active engine pack-b was evicted")
+	}
+	if _, ok := store.engines["pack-a"]; ok {
+		t.Fatal("superseded engine pack-a was retained")
+	}
+	if _, ok := store.engines["pack-gone"]; ok {
+		t.Fatal("vanished engine pack-gone was retained")
+	}
+}
+
 func TestPackfileStoreGetBlockExistsBatchUsesIndexes(t *testing.T) {
 	ctx := t.Context()
 	filler := bytes.Repeat([]byte("x"), defaultIndexTailInitialWindow+4096)

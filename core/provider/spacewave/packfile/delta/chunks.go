@@ -6,11 +6,11 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	"github.com/aperturerobotics/util/ulid"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/net/hash"
 
 	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
+	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/identity"
 	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/writer"
 )
 
@@ -33,12 +33,13 @@ type ChunkEmitter func(ctx context.Context, idx int, entry *packfile.PackfileEnt
 // =iter= until it is exhausted. A chunk is closed as soon as appending the next
 // block would push the running byte total past =maxBytes=; if =maxBytes= is
 // non-positive, =DefaultMaxChunkBytes= is used. Each closed chunk is emitted
-// via =emit= with a time-ordered ULID id and =created_at=timestamppb.Now()=.
+// via =emit= with a v1 pack id and =created_at=timestamppb.Now()=.
 //
 // Returns the emitted =PackfileEntry= list in chunk order (same order as
 // =emit= was called).
 func EmitDeltaChunks(
 	ctx context.Context,
+	resourceID string,
 	iter writer.BlockIterator,
 	maxBytes int64,
 	emit ChunkEmitter,
@@ -109,9 +110,13 @@ func EmitDeltaChunks(
 		if res.BlockCount == 0 {
 			break
 		}
+		packID, err := identity.BuildPackID(resourceID, res)
+		if err != nil {
+			return nil, errors.Wrap(err, "build delta pack id")
+		}
 
 		entry := &packfile.PackfileEntry{
-			Id:                 ulid.NewULID(),
+			Id:                 packID,
 			BloomFilter:        res.BloomFilter,
 			BloomFormatVersion: packfile.BloomFormatVersionV1,
 			BlockCount:         res.BlockCount,

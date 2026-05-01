@@ -47,7 +47,7 @@ func TestManifest(t *testing.T) {
 		{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAV", BloomFilter: []byte("bf-1"), BloomFormatVersion: packfile.BloomFormatVersionV1, BlockCount: 10, SizeBytes: 1000, Sequence: 1},
 		{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAW", BloomFilter: []byte("bf-2"), BloomFormatVersion: packfile.BloomFormatVersionV1, BlockCount: 20, SizeBytes: 2000, Sequence: 2},
 	}
-	if err := m.ApplyDelta(ctx, entries1); err != nil {
+	if err := m.ApplyDelta(ctx, entries1, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -74,7 +74,7 @@ func TestManifest(t *testing.T) {
 	entries2 := []*packfile.PackfileEntry{
 		{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAX", BloomFilter: []byte("bf-3"), BlockCount: 5, SizeBytes: 500, Sequence: 3},
 	}
-	if err := m.ApplyDelta(ctx, entries2); err != nil {
+	if err := m.ApplyDelta(ctx, entries2, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -92,7 +92,7 @@ func TestManifest(t *testing.T) {
 	}
 
 	// Apply empty delta (no-op).
-	if err := m.ApplyDelta(ctx, nil); err != nil {
+	if err := m.ApplyDelta(ctx, nil, nil); err != nil {
 		t.Fatal(err)
 	}
 	if len(m.GetEntries()) != 3 {
@@ -205,6 +205,71 @@ func TestManifestLoadsLegacyInlineBloomFilter(t *testing.T) {
 	}
 	if string(got[0].GetBloomFilter()) != "legacy-bloom" {
 		t.Fatalf("unexpected legacy bloom filter: %q", got[0].GetBloomFilter())
+	}
+}
+
+func TestManifestApplyDeltaUpdatesByIDAndAppliesReplacementEvents(t *testing.T) {
+	ctx := t.Context()
+	store := newTestStore()
+	m, err := New(ctx, store)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := m.ApplyDelta(ctx, []*packfile.PackfileEntry{
+		{Id: "pack-a", BloomFilter: []byte("bf-a"), BloomFormatVersion: packfile.BloomFormatVersionV1, BlockCount: 1, SizeBytes: 10, Sequence: 1},
+		{Id: "pack-b", BloomFilter: []byte("bf-b"), BloomFormatVersion: packfile.BloomFormatVersionV1, BlockCount: 1, SizeBytes: 20, Sequence: 2},
+	}, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.ApplyDelta(ctx, []*packfile.PackfileEntry{
+		{Id: "pack-b", BloomFilter: []byte("bf-b2"), BloomFormatVersion: packfile.BloomFormatVersionV1, BlockCount: 2, SizeBytes: 30, Sequence: 3},
+		{Id: "pack-c", BloomFilter: []byte("bf-c"), BloomFormatVersion: packfile.BloomFormatVersionV1, BlockCount: 3, SizeBytes: 40, Sequence: 4},
+	}, []*packfile.PackReplacementEvent{{
+		Sequence:           5,
+		ReplacedPackIds:    []string{"pack-a"},
+		ReplacementPackIds: []string{"pack-c"},
+	}}); err != nil {
+		t.Fatal(err)
+	}
+
+	got := m.GetEntries()
+	if len(got) != 2 {
+		t.Fatalf("expected 2 active entries, got %d", len(got))
+	}
+	if got[0].GetId() != "pack-b" || got[0].GetBlockCount() != 2 {
+		t.Fatalf("pack-b was not updated: %+v", got[0])
+	}
+	if got[1].GetId() != "pack-c" {
+		t.Fatalf("pack-c missing: %+v", got[1])
+	}
+	lastSeq, err := m.GetLastPullSequence(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if lastSeq != 5 {
+		t.Fatalf("last sequence=%d want 5", lastSeq)
+	}
+
+	reloaded, err := New(ctx, store)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got = reloaded.GetEntries()
+	if len(got) != 2 || got[0].GetId() != "pack-b" || got[1].GetId() != "pack-c" {
+		t.Fatalf("unexpected reloaded active entries: %+v", got)
+	}
+	tx, err := store.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+	_, found, err := tx.Get(ctx, manifestPackKey("pack-a"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if found {
+		t.Fatal("replaced pack-a still persisted")
 	}
 }
 

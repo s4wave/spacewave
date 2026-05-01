@@ -3,7 +3,6 @@ package manifest
 import (
 	"bytes"
 	"context"
-	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -42,16 +41,9 @@ type Manifest struct {
 	entries []*packfile.PackfileEntry
 }
 
-func persistManifestToStore() bool {
-	return runtime.GOOS != "js"
-}
-
 // New creates a new Manifest, loading existing entries from the store.
 func New(ctx context.Context, store kvtx.Store) (*Manifest, error) {
 	m := &Manifest{store: store}
-	if !persistManifestToStore() {
-		return m, nil
-	}
 	if err := m.loadEntries(ctx); err != nil {
 		return nil, err
 	}
@@ -101,10 +93,6 @@ func (m *Manifest) GetEntries() []*packfile.PackfileEntry {
 // from the store. A fresh client returns 0 so the next pull receives the
 // full pack list.
 func (m *Manifest) GetLastPullSequence(ctx context.Context) (uint64, error) {
-	if !persistManifestToStore() {
-		return 0, nil
-	}
-
 	tx, err := m.store.NewTransaction(ctx, false)
 	if err != nil {
 		return 0, errors.Wrap(err, "creating read transaction")
@@ -125,14 +113,14 @@ func (m *Manifest) GetLastPullSequence(ctx context.Context) (uint64, error) {
 	return parsed, nil
 }
 
-// ApplyDelta appends new entries to the manifest and persists them. The last
-// entry's ID is stored as the last pull marker.
-func (m *Manifest) ApplyDelta(ctx context.Context, entries []*packfile.PackfileEntry) error {
-	if len(entries) == 0 {
-		return nil
-	}
-	if !persistManifestToStore() {
-		m.entries = append(m.entries, entries...)
+// ApplyDelta applies entries and replacement events to the manifest and
+// persists the highest pull sequence cursor.
+func (m *Manifest) ApplyDelta(
+	ctx context.Context,
+	entries []*packfile.PackfileEntry,
+	events []*packfile.PackReplacementEvent,
+) error {
+	if len(entries) == 0 && len(events) == 0 {
 		return nil
 	}
 
@@ -142,7 +130,35 @@ func (m *Manifest) ApplyDelta(ctx context.Context, entries []*packfile.PackfileE
 	}
 	defer tx.Discard()
 
+	next := make(map[string]*packfile.PackfileEntry, len(m.entries)+len(entries))
+	for _, entry := range m.entries {
+		if entry.GetId() == "" || entry.GetSupersededBy() != "" {
+			continue
+		}
+		next[entry.GetId()] = entry.CloneVT()
+	}
+	for _, event := range events {
+		for _, id := range event.GetReplacedPackIds() {
+			delete(next, id)
+			if err := tx.Delete(ctx, manifestPackKey(id)); err != nil {
+				return errors.Wrap(err, "deleting replaced entry")
+			}
+			if err := tx.Delete(ctx, manifestBloomKey(id)); err != nil {
+				return errors.Wrap(err, "deleting replaced bloom filter")
+			}
+		}
+	}
 	for _, entry := range entries {
+		if entry.GetSupersededBy() != "" {
+			delete(next, entry.GetId())
+			if err := tx.Delete(ctx, manifestPackKey(entry.GetId())); err != nil {
+				return errors.Wrap(err, "deleting superseded entry")
+			}
+			if err := tx.Delete(ctx, manifestBloomKey(entry.GetId())); err != nil {
+				return errors.Wrap(err, "deleting superseded bloom filter")
+			}
+			continue
+		}
 		storedEntry := entry.CloneVT()
 		storedEntry.BloomFilter = nil
 
@@ -162,14 +178,20 @@ func (m *Manifest) ApplyDelta(ctx context.Context, entries []*packfile.PackfileE
 				return errors.Wrap(err, "putting bloom filter")
 			}
 		}
+		next[entry.GetId()] = entry.CloneVT()
 	}
 
-	// Persist the maximum sequence across the delta as the new pull cursor.
-	// Cloud returns rows in ascending sequence order; entries authored
-	// locally before push carry sequence 0, which never advances the cursor.
+	// Persist the maximum sequence across entries and replacement events as the
+	// new pull cursor. Locally authored entries carry sequence 0, which never
+	// advances the cursor.
 	var maxSequence uint64
 	for _, entry := range entries {
 		if seq := entry.GetSequence(); seq > maxSequence {
+			maxSequence = seq
+		}
+	}
+	for _, event := range events {
+		if seq := event.GetSequence(); seq > maxSequence {
 			maxSequence = seq
 		}
 	}
@@ -187,8 +209,19 @@ func (m *Manifest) ApplyDelta(ctx context.Context, entries []*packfile.PackfileE
 		return errors.Wrap(err, "applying manifest delta")
 	}
 
-	m.entries = append(m.entries, entries...)
+	m.entries = sortedEntries(next)
 	return nil
+}
+
+func sortedEntries(entries map[string]*packfile.PackfileEntry) []*packfile.PackfileEntry {
+	out := make([]*packfile.PackfileEntry, 0, len(entries))
+	for _, entry := range entries {
+		out = append(out, entry)
+	}
+	slices.SortFunc(out, func(a, b *packfile.PackfileEntry) int {
+		return strings.Compare(a.GetId(), b.GetId())
+	})
+	return out
 }
 
 // IndexCache is a kvtx-backed cache for raw kvfile index-tail bytes.

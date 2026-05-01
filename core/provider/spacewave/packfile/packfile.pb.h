@@ -58,6 +58,10 @@ extern const ::google::protobuf::internal::DescriptorTable descriptor_table_gith
 namespace provider {
 namespace spacewave {
 namespace packfile {
+class PackReplacementEvent;
+struct PackReplacementEventDefaultTypeInternal;
+extern PackReplacementEventDefaultTypeInternal _PackReplacementEvent_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull PackReplacementEvent_class_data_;
 class PackfileEntry;
 struct PackfileEntryDefaultTypeInternal;
 extern PackfileEntryDefaultTypeInternal _PackfileEntry_default_instance_;
@@ -142,7 +146,7 @@ class PushResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const PushResponse*>(
         &_PushResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 2;
+  static constexpr int kIndexInFileMessages = 3;
   friend void swap(PushResponse& a, PushResponse& b) { a.Swap(&b); }
   inline void Swap(PushResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -304,6 +308,244 @@ class PushResponse final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull PushResponse_class_data_;
+// -------------------------------------------------------------------
+
+class PackReplacementEvent final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:provider.spacewave.packfile.PackReplacementEvent) */ {
+ public:
+  inline PackReplacementEvent() : PackReplacementEvent(nullptr) {}
+  ~PackReplacementEvent() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(PackReplacementEvent* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(PackReplacementEvent));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR PackReplacementEvent(::google::protobuf::internal::ConstantInitialized);
+
+  inline PackReplacementEvent(const PackReplacementEvent& from) : PackReplacementEvent(nullptr, from) {}
+  inline PackReplacementEvent(PackReplacementEvent&& from) noexcept
+      : PackReplacementEvent(nullptr, ::std::move(from)) {}
+  inline PackReplacementEvent& operator=(const PackReplacementEvent& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline PackReplacementEvent& operator=(PackReplacementEvent&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const PackReplacementEvent& default_instance() {
+    return *reinterpret_cast<const PackReplacementEvent*>(
+        &_PackReplacementEvent_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 1;
+  friend void swap(PackReplacementEvent& a, PackReplacementEvent& b) { a.Swap(&b); }
+  inline void Swap(PackReplacementEvent* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(PackReplacementEvent* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  PackReplacementEvent* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<PackReplacementEvent>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const PackReplacementEvent& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const PackReplacementEvent& from) { PackReplacementEvent::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(PackReplacementEvent* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "provider.spacewave.packfile.PackReplacementEvent"; }
+
+  explicit PackReplacementEvent(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  PackReplacementEvent(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const PackReplacementEvent& from);
+  PackReplacementEvent(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, PackReplacementEvent&& from) noexcept
+      : PackReplacementEvent(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kReplacedPackIdsFieldNumber = 2,
+    kReplacementPackIdsFieldNumber = 3,
+    kSequenceFieldNumber = 1,
+  };
+  // repeated string replaced_pack_ids = 2;
+  int replaced_pack_ids_size() const;
+  private:
+  int _internal_replaced_pack_ids_size() const;
+
+  public:
+  void clear_replaced_pack_ids() ;
+  const ::std::string& replaced_pack_ids(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_replaced_pack_ids(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_replaced_pack_ids(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_replaced_pack_ids();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_replaced_pack_ids(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& replaced_pack_ids() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_replaced_pack_ids();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_replaced_pack_ids() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_replaced_pack_ids();
+
+  public:
+  // repeated string replacement_pack_ids = 3;
+  int replacement_pack_ids_size() const;
+  private:
+  int _internal_replacement_pack_ids_size() const;
+
+  public:
+  void clear_replacement_pack_ids() ;
+  const ::std::string& replacement_pack_ids(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_replacement_pack_ids(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_replacement_pack_ids(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_replacement_pack_ids();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_replacement_pack_ids(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& replacement_pack_ids() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_replacement_pack_ids();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_replacement_pack_ids() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_replacement_pack_ids();
+
+  public:
+  // uint64 sequence = 1;
+  void clear_sequence() ;
+  ::uint64_t sequence() const;
+  void set_sequence(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_sequence() const;
+  void _internal_set_sequence(::uint64_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:provider.spacewave.packfile.PackReplacementEvent)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   0, 94,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const PackReplacementEvent& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField<::std::string> replaced_pack_ids_;
+    ::google::protobuf::RepeatedPtrField<::std::string> replacement_pack_ids_;
+    ::uint64_t sequence_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2fpackfile_2fpackfile_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull PackReplacementEvent_class_data_;
 // -------------------------------------------------------------------
 
 class PackfileEntry final : public ::google::protobuf::Message
@@ -672,7 +914,7 @@ class PullResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const PullResponse*>(
         &_PullResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 1;
+  static constexpr int kIndexInFileMessages = 2;
   friend void swap(PullResponse& a, PullResponse& b) { a.Swap(&b); }
   inline void Swap(PullResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -760,6 +1002,7 @@ class PullResponse final : public ::google::protobuf::Message
   // accessors -------------------------------------------------------
   enum : int {
     kEntriesFieldNumber = 1,
+    kReplacementEventsFieldNumber = 2,
   };
   // repeated .provider.spacewave.packfile.PackfileEntry entries = 1;
   int entries_size() const;
@@ -778,12 +1021,29 @@ class PullResponse final : public ::google::protobuf::Message
   const ::provider::spacewave::packfile::PackfileEntry& entries(int index) const;
   ::provider::spacewave::packfile::PackfileEntry* PROTOBUF_NONNULL add_entries();
   const ::google::protobuf::RepeatedPtrField<::provider::spacewave::packfile::PackfileEntry>& entries() const;
+  // repeated .provider.spacewave.packfile.PackReplacementEvent replacement_events = 2;
+  int replacement_events_size() const;
+  private:
+  int _internal_replacement_events_size() const;
+
+  public:
+  void clear_replacement_events() ;
+  ::provider::spacewave::packfile::PackReplacementEvent* PROTOBUF_NONNULL mutable_replacement_events(int index);
+  ::google::protobuf::RepeatedPtrField<::provider::spacewave::packfile::PackReplacementEvent>* PROTOBUF_NONNULL mutable_replacement_events();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::provider::spacewave::packfile::PackReplacementEvent>& _internal_replacement_events() const;
+  ::google::protobuf::RepeatedPtrField<::provider::spacewave::packfile::PackReplacementEvent>* PROTOBUF_NONNULL _internal_mutable_replacement_events();
+  public:
+  const ::provider::spacewave::packfile::PackReplacementEvent& replacement_events(int index) const;
+  ::provider::spacewave::packfile::PackReplacementEvent* PROTOBUF_NONNULL add_replacement_events();
+  const ::google::protobuf::RepeatedPtrField<::provider::spacewave::packfile::PackReplacementEvent>& replacement_events() const;
   // @@protoc_insertion_point(class_scope:provider.spacewave.packfile.PullResponse)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<0, 1,
-                                   1, 0,
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   2, 0,
                                    2>
       _table_;
 
@@ -805,6 +1065,7 @@ class PullResponse final : public ::google::protobuf::Message
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::RepeatedPtrField< ::provider::spacewave::packfile::PackfileEntry > entries_;
+    ::google::protobuf::RepeatedPtrField< ::provider::spacewave::packfile::PackReplacementEvent > replacement_events_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -1312,6 +1573,179 @@ inline void PackfileEntry::set_allocated_superseded_at(::google::protobuf::Times
 
 // -------------------------------------------------------------------
 
+// PackReplacementEvent
+
+// uint64 sequence = 1;
+inline void PackReplacementEvent::clear_sequence() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.sequence_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::uint64_t PackReplacementEvent::sequence() const {
+  // @@protoc_insertion_point(field_get:provider.spacewave.packfile.PackReplacementEvent.sequence)
+  return _internal_sequence();
+}
+inline void PackReplacementEvent::set_sequence(::uint64_t value) {
+  _internal_set_sequence(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:provider.spacewave.packfile.PackReplacementEvent.sequence)
+}
+inline ::uint64_t PackReplacementEvent::_internal_sequence() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.sequence_;
+}
+inline void PackReplacementEvent::_internal_set_sequence(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.sequence_ = value;
+}
+
+// repeated string replaced_pack_ids = 2;
+inline int PackReplacementEvent::_internal_replaced_pack_ids_size() const {
+  return _internal_replaced_pack_ids().size();
+}
+inline int PackReplacementEvent::replaced_pack_ids_size() const {
+  return _internal_replaced_pack_ids_size();
+}
+inline void PackReplacementEvent::clear_replaced_pack_ids() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.replaced_pack_ids_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::std::string* PROTOBUF_NONNULL PackReplacementEvent::add_replaced_pack_ids()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_replaced_pack_ids()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add_mutable:provider.spacewave.packfile.PackReplacementEvent.replaced_pack_ids)
+  return _s;
+}
+inline const ::std::string& PackReplacementEvent::replaced_pack_ids(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:provider.spacewave.packfile.PackReplacementEvent.replaced_pack_ids)
+  return _internal_replaced_pack_ids().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL PackReplacementEvent::mutable_replaced_pack_ids(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:provider.spacewave.packfile.PackReplacementEvent.replaced_pack_ids)
+  return _internal_mutable_replaced_pack_ids()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void PackReplacementEvent::set_replaced_pack_ids(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_replaced_pack_ids()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:provider.spacewave.packfile.PackReplacementEvent.replaced_pack_ids)
+}
+template <typename Arg_, typename... Args_>
+inline void PackReplacementEvent::add_replaced_pack_ids(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_replaced_pack_ids(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:provider.spacewave.packfile.PackReplacementEvent.replaced_pack_ids)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& PackReplacementEvent::replaced_pack_ids()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:provider.spacewave.packfile.PackReplacementEvent.replaced_pack_ids)
+  return _internal_replaced_pack_ids();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+PackReplacementEvent::mutable_replaced_pack_ids() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:provider.spacewave.packfile.PackReplacementEvent.replaced_pack_ids)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_replaced_pack_ids();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+PackReplacementEvent::_internal_replaced_pack_ids() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.replaced_pack_ids_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+PackReplacementEvent::_internal_mutable_replaced_pack_ids() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.replaced_pack_ids_;
+}
+
+// repeated string replacement_pack_ids = 3;
+inline int PackReplacementEvent::_internal_replacement_pack_ids_size() const {
+  return _internal_replacement_pack_ids().size();
+}
+inline int PackReplacementEvent::replacement_pack_ids_size() const {
+  return _internal_replacement_pack_ids_size();
+}
+inline void PackReplacementEvent::clear_replacement_pack_ids() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.replacement_pack_ids_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::std::string* PROTOBUF_NONNULL PackReplacementEvent::add_replacement_pack_ids()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_replacement_pack_ids()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_add_mutable:provider.spacewave.packfile.PackReplacementEvent.replacement_pack_ids)
+  return _s;
+}
+inline const ::std::string& PackReplacementEvent::replacement_pack_ids(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:provider.spacewave.packfile.PackReplacementEvent.replacement_pack_ids)
+  return _internal_replacement_pack_ids().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL PackReplacementEvent::mutable_replacement_pack_ids(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:provider.spacewave.packfile.PackReplacementEvent.replacement_pack_ids)
+  return _internal_mutable_replacement_pack_ids()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void PackReplacementEvent::set_replacement_pack_ids(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_replacement_pack_ids()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:provider.spacewave.packfile.PackReplacementEvent.replacement_pack_ids)
+}
+template <typename Arg_, typename... Args_>
+inline void PackReplacementEvent::add_replacement_pack_ids(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_replacement_pack_ids(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_add:provider.spacewave.packfile.PackReplacementEvent.replacement_pack_ids)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& PackReplacementEvent::replacement_pack_ids()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:provider.spacewave.packfile.PackReplacementEvent.replacement_pack_ids)
+  return _internal_replacement_pack_ids();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+PackReplacementEvent::mutable_replacement_pack_ids() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_mutable_list:provider.spacewave.packfile.PackReplacementEvent.replacement_pack_ids)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_replacement_pack_ids();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+PackReplacementEvent::_internal_replacement_pack_ids() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.replacement_pack_ids_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+PackReplacementEvent::_internal_mutable_replacement_pack_ids() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.replacement_pack_ids_;
+}
+
+// -------------------------------------------------------------------
+
 // PullResponse
 
 // repeated .provider.spacewave.packfile.PackfileEntry entries = 1;
@@ -1368,6 +1802,62 @@ inline ::google::protobuf::RepeatedPtrField<::provider::spacewave::packfile::Pac
 PullResponse::_internal_mutable_entries() {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return &_impl_.entries_;
+}
+
+// repeated .provider.spacewave.packfile.PackReplacementEvent replacement_events = 2;
+inline int PullResponse::_internal_replacement_events_size() const {
+  return _internal_replacement_events().size();
+}
+inline int PullResponse::replacement_events_size() const {
+  return _internal_replacement_events_size();
+}
+inline void PullResponse::clear_replacement_events() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.replacement_events_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::provider::spacewave::packfile::PackReplacementEvent* PROTOBUF_NONNULL PullResponse::mutable_replacement_events(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:provider.spacewave.packfile.PullResponse.replacement_events)
+  return _internal_mutable_replacement_events()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::provider::spacewave::packfile::PackReplacementEvent>* PROTOBUF_NONNULL PullResponse::mutable_replacement_events()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_mutable_list:provider.spacewave.packfile.PullResponse.replacement_events)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_replacement_events();
+}
+inline const ::provider::spacewave::packfile::PackReplacementEvent& PullResponse::replacement_events(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:provider.spacewave.packfile.PullResponse.replacement_events)
+  return _internal_replacement_events().Get(index);
+}
+inline ::provider::spacewave::packfile::PackReplacementEvent* PROTOBUF_NONNULL PullResponse::add_replacement_events()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::provider::spacewave::packfile::PackReplacementEvent* _add =
+      _internal_mutable_replacement_events()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_add:provider.spacewave.packfile.PullResponse.replacement_events)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::provider::spacewave::packfile::PackReplacementEvent>& PullResponse::replacement_events() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:provider.spacewave.packfile.PullResponse.replacement_events)
+  return _internal_replacement_events();
+}
+inline const ::google::protobuf::RepeatedPtrField<::provider::spacewave::packfile::PackReplacementEvent>&
+PullResponse::_internal_replacement_events() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.replacement_events_;
+}
+inline ::google::protobuf::RepeatedPtrField<::provider::spacewave::packfile::PackReplacementEvent>* PROTOBUF_NONNULL
+PullResponse::_internal_mutable_replacement_events() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.replacement_events_;
 }
 
 // -------------------------------------------------------------------

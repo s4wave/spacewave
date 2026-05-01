@@ -20,7 +20,7 @@ import (
 // PackfileEntry describes a single packfile in the manifest.
 type PackfileEntry struct {
 	unknownFields []byte
-	// Id is the packfile identifier (ULID).
+	// Id is the v1 packfile identifier.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// BloomFilter is the serialized bloom filter for the packfile.
 	BloomFilter []byte `protobuf:"bytes,2,opt,name=bloom_filter,json=bloomFilter,proto3" json:"bloomFilter,omitempty"`
@@ -37,8 +37,8 @@ type PackfileEntry struct {
 	// accepted-versions allowlist.
 	BloomFormatVersion uint32 `protobuf:"varint,6,opt,name=bloom_format_version,json=bloomFormatVersion,proto3" json:"bloomFormatVersion,omitempty"`
 	// Sequence is the monotonic cursor anchor assigned by the cloud DO single
-	// writer at insert time. Pull cursors advance over sequence > since
-	// instead of pack ULID ordering. Local entries not yet pushed carry 0.
+	// writer at insert time. Pull cursors advance over sequence > since. Local
+	// entries not yet pushed carry 0.
 	Sequence uint64 `protobuf:"varint,7,opt,name=sequence,proto3" json:"sequence,omitempty"`
 	// SupersededBy is the replacement packfile ID; empty when the row is
 	// current.
@@ -117,11 +117,51 @@ func (x *PackfileEntry) GetSupersededAt() *timestamppb.Timestamp {
 	return nil
 }
 
+// PackReplacementEvent describes one atomic replacement sequence.
+type PackReplacementEvent struct {
+	unknownFields []byte
+	// Sequence is the monotonic cursor anchor assigned to the replacement event.
+	Sequence uint64 `protobuf:"varint,1,opt,name=sequence,proto3" json:"sequence,omitempty"`
+	// ReplacedPackIds is the set of packs removed from the active manifest.
+	ReplacedPackIds []string `protobuf:"bytes,2,rep,name=replaced_pack_ids,json=replacedPackIds,proto3" json:"replacedPackIds,omitempty"`
+	// ReplacementPackIds is the set of packs added by the same replacement.
+	ReplacementPackIds []string `protobuf:"bytes,3,rep,name=replacement_pack_ids,json=replacementPackIds,proto3" json:"replacementPackIds,omitempty"`
+}
+
+func (x *PackReplacementEvent) Reset() {
+	*x = PackReplacementEvent{}
+}
+
+func (*PackReplacementEvent) ProtoMessage() {}
+
+func (x *PackReplacementEvent) GetSequence() uint64 {
+	if x != nil {
+		return x.Sequence
+	}
+	return 0
+}
+
+func (x *PackReplacementEvent) GetReplacedPackIds() []string {
+	if x != nil {
+		return x.ReplacedPackIds
+	}
+	return nil
+}
+
+func (x *PackReplacementEvent) GetReplacementPackIds() []string {
+	if x != nil {
+		return x.ReplacementPackIds
+	}
+	return nil
+}
+
 // PullResponse is the response to a pull request.
 type PullResponse struct {
 	unknownFields []byte
 	// Entries is the list of packfile entries.
 	Entries []*PackfileEntry `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	// ReplacementEvents is the list of atomic replacement events.
+	ReplacementEvents []*PackReplacementEvent `protobuf:"bytes,2,rep,name=replacement_events,json=replacementEvents,proto3" json:"replacementEvents,omitempty"`
 }
 
 func (x *PullResponse) Reset() {
@@ -133,6 +173,13 @@ func (*PullResponse) ProtoMessage() {}
 func (x *PullResponse) GetEntries() []*PackfileEntry {
 	if x != nil {
 		return x.Entries
+	}
+	return nil
+}
+
+func (x *PullResponse) GetReplacementEvents() []*PackReplacementEvent {
+	if x != nil {
+		return x.ReplacementEvents
 	}
 	return nil
 }
@@ -205,6 +252,28 @@ func (m *PackfileEntry) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *PackReplacementEvent) CloneVT() *PackReplacementEvent {
+	if m == nil {
+		return (*PackReplacementEvent)(nil)
+	}
+	r := new(PackReplacementEvent)
+	r.Sequence = m.Sequence
+	if rhs := m.ReplacedPackIds; rhs != nil {
+		r.ReplacedPackIds = slices.Clone(rhs)
+	}
+	if rhs := m.ReplacementPackIds; rhs != nil {
+		r.ReplacementPackIds = slices.Clone(rhs)
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *PackReplacementEvent) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *PullResponse) CloneVT() *PullResponse {
 	if m == nil {
 		return (*PullResponse)(nil)
@@ -214,6 +283,12 @@ func (m *PullResponse) CloneVT() *PullResponse {
 		r.Entries = make([]*PackfileEntry, len(rhs))
 		for k, v := range rhs {
 			r.Entries[k] = v.CloneVT()
+		}
+	}
+	if rhs := m.ReplacementEvents; rhs != nil {
+		r.ReplacementEvents = make([]*PackReplacementEvent, len(rhs))
+		for k, v := range rhs {
+			r.ReplacementEvents[k] = v.CloneVT()
 		}
 	}
 	if len(m.unknownFields) > 0 {
@@ -288,6 +363,44 @@ func (this *PackfileEntry) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *PackReplacementEvent) EqualVT(that *PackReplacementEvent) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Sequence != that.Sequence {
+		return false
+	}
+	if len(this.ReplacedPackIds) != len(that.ReplacedPackIds) {
+		return false
+	}
+	for i, vx := range this.ReplacedPackIds {
+		vy := that.ReplacedPackIds[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if len(this.ReplacementPackIds) != len(that.ReplacementPackIds) {
+		return false
+	}
+	for i, vx := range this.ReplacementPackIds {
+		vy := that.ReplacementPackIds[i]
+		if vx != vy {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *PackReplacementEvent) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*PackReplacementEvent)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 func (this *PullResponse) EqualVT(that *PullResponse) bool {
 	if this == that {
 		return true
@@ -305,6 +418,23 @@ func (this *PullResponse) EqualVT(that *PullResponse) bool {
 			}
 			if q == nil {
 				q = &PackfileEntry{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	if len(this.ReplacementEvents) != len(that.ReplacementEvents) {
+		return false
+	}
+	for i, vx := range this.ReplacementEvents {
+		vy := that.ReplacementEvents[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &PackReplacementEvent{}
+			}
+			if q == nil {
+				q = &PackReplacementEvent{}
 			}
 			if !p.EqualVT(q) {
 				return false
@@ -462,6 +592,72 @@ func (x *PackfileEntry) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the PackReplacementEvent message to JSON.
+func (x *PackReplacementEvent) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Sequence != 0 || s.HasField("sequence") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sequence")
+		s.WriteUint64(x.Sequence)
+	}
+	if len(x.ReplacedPackIds) > 0 || s.HasField("replacedPackIds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("replacedPackIds")
+		s.WriteStringArray(x.ReplacedPackIds)
+	}
+	if len(x.ReplacementPackIds) > 0 || s.HasField("replacementPackIds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("replacementPackIds")
+		s.WriteStringArray(x.ReplacementPackIds)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the PackReplacementEvent to JSON.
+func (x *PackReplacementEvent) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PackReplacementEvent message from JSON.
+func (x *PackReplacementEvent) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "sequence":
+			s.AddField("sequence")
+			x.Sequence = s.ReadUint64()
+		case "replaced_pack_ids", "replacedPackIds":
+			s.AddField("replaced_pack_ids")
+			if s.ReadNil() {
+				x.ReplacedPackIds = nil
+				return
+			}
+			x.ReplacedPackIds = s.ReadStringArray()
+		case "replacement_pack_ids", "replacementPackIds":
+			s.AddField("replacement_pack_ids")
+			if s.ReadNil() {
+				x.ReplacementPackIds = nil
+				return
+			}
+			x.ReplacementPackIds = s.ReadStringArray()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the PackReplacementEvent from JSON.
+func (x *PackReplacementEvent) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the PullResponse message to JSON.
 func (x *PullResponse) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -478,6 +674,17 @@ func (x *PullResponse) MarshalProtoJSON(s *json.MarshalState) {
 		for _, element := range x.Entries {
 			s.WriteMoreIf(&wroteElement)
 			element.MarshalProtoJSON(s.WithField("entries"))
+		}
+		s.WriteArrayEnd()
+	}
+	if len(x.ReplacementEvents) > 0 || s.HasField("replacementEvents") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("replacementEvents")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.ReplacementEvents {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("replacementEvents"))
 		}
 		s.WriteArrayEnd()
 	}
@@ -515,6 +722,24 @@ func (x *PullResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 					return
 				}
 				x.Entries = append(x.Entries, v)
+			})
+		case "replacement_events", "replacementEvents":
+			s.AddField("replacement_events")
+			if s.ReadNil() {
+				x.ReplacementEvents = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.ReplacementEvents = append(x.ReplacementEvents, nil)
+					return
+				}
+				v := &PackReplacementEvent{}
+				v.UnmarshalProtoJSON(s.WithField("replacement_events", false))
+				if s.Err() != nil {
+					return
+				}
+				x.ReplacementEvents = append(x.ReplacementEvents, v)
 			})
 		}
 	})
@@ -677,6 +902,62 @@ func (m *PackfileEntry) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *PackReplacementEvent) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PackReplacementEvent) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PackReplacementEvent) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.ReplacementPackIds) > 0 {
+		for iNdEx := len(m.ReplacementPackIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.ReplacementPackIds[iNdEx])
+			copy(dAtA[i:], m.ReplacementPackIds[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ReplacementPackIds[iNdEx])))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if len(m.ReplacedPackIds) > 0 {
+		for iNdEx := len(m.ReplacedPackIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.ReplacedPackIds[iNdEx])
+			copy(dAtA[i:], m.ReplacedPackIds[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ReplacedPackIds[iNdEx])))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if m.Sequence != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Sequence))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *PullResponse) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -706,6 +987,18 @@ func (m *PullResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.ReplacementEvents) > 0 {
+		for iNdEx := len(m.ReplacementEvents) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.ReplacementEvents[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+		}
 	}
 	if len(m.Entries) > 0 {
 		for iNdEx := len(m.Entries) - 1; iNdEx >= 0; iNdEx-- {
@@ -819,6 +1112,31 @@ func (m *PackfileEntry) SizeVT() (n int) {
 	return n
 }
 
+func (m *PackReplacementEvent) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Sequence != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Sequence))
+	}
+	if len(m.ReplacedPackIds) > 0 {
+		for _, s := range m.ReplacedPackIds {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.ReplacementPackIds) > 0 {
+		for _, s := range m.ReplacementPackIds {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *PullResponse) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -827,6 +1145,12 @@ func (m *PullResponse) SizeVT() (n int) {
 	_ = l
 	if len(m.Entries) > 0 {
 		for _, e := range m.Entries {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.ReplacementEvents) > 0 {
+		for _, e := range m.ReplacementEvents {
 			l = e.SizeVT()
 			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
@@ -931,6 +1255,50 @@ func (x *PackfileEntry) String() string {
 	return x.MarshalProtoText()
 }
 
+func (x *PackReplacementEvent) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("PackReplacementEvent {")
+	if x.Sequence != 0 {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("sequence: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.Sequence), 10))
+	}
+	if len(x.ReplacedPackIds) > 0 {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("replaced_pack_ids: [")
+		for i, v := range x.ReplacedPackIds {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	if len(x.ReplacementPackIds) > 0 {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("replacement_pack_ids: [")
+		for i, v := range x.ReplacementPackIds {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *PackReplacementEvent) String() string {
+	return x.MarshalProtoText()
+}
+
 func (x *PullResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("PullResponse {")
@@ -940,6 +1308,19 @@ func (x *PullResponse) MarshalProtoText() string {
 		}
 		sb.WriteString("entries: [")
 		for i, v := range x.Entries {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
+	if len(x.ReplacementEvents) > 0 {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("replacement_events: [")
+		for i, v := range x.ReplacementEvents {
 			if i > 0 {
 				sb.WriteString(", ")
 			}
@@ -1192,6 +1573,102 @@ func (m *PackfileEntry) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
+func (m *PackReplacementEvent) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PackReplacementEvent: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PackReplacementEvent: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Sequence", wireType)
+			}
+			m.Sequence = 0
+			m.Sequence, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReplacedPackIds", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ReplacedPackIds = append(m.ReplacedPackIds, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReplacementPackIds", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ReplacementPackIds = append(m.ReplacementPackIds, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
 func (m *PullResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1235,6 +1712,32 @@ func (m *PullResponse) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Entries = append(m.Entries, &PackfileEntry{})
 			if err := m.Entries[len(m.Entries)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReplacementEvents", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ReplacementEvents = append(m.ReplacementEvents, &PackReplacementEvent{})
+			if err := m.ReplacementEvents[len(m.ReplacementEvents)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

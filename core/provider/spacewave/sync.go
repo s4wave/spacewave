@@ -15,9 +15,9 @@ import (
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	cbackoff "github.com/aperturerobotics/util/backoff/cbackoff"
 	"github.com/aperturerobotics/util/broadcast"
-	"github.com/aperturerobotics/util/ulid"
 	"github.com/pkg/errors"
 	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
+	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/identity"
 	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/manifest"
 	packfile_order "github.com/s4wave/spacewave/core/provider/spacewave/packfile/order"
 	packfile_store "github.com/s4wave/spacewave/core/provider/spacewave/packfile/store"
@@ -543,10 +543,14 @@ func (s *syncController) prepareFlushChunk(blocks []dirtyBlock) (*preparedSyncCh
 	if result.BlockCount == 0 {
 		return nil, nil
 	}
+	packID, err := identity.BuildPackID(s.resourceID, result)
+	if err != nil {
+		return nil, errors.Wrap(err, "build pack id")
+	}
 
 	packData := bytes.Clone(buf.Bytes())
 	entry := &packfile.PackfileEntry{
-		Id:                 ulid.NewULID(),
+		Id:                 packID,
 		BloomFilter:        result.BloomFilter,
 		BloomFormatVersion: packfile.BloomFormatVersionV1,
 		BlockCount:         result.BlockCount,
@@ -772,7 +776,7 @@ func (s *syncController) flush(ctx context.Context, orderBlocks bool) error {
 		flushedBlocks = append(flushedBlocks, chunk.blocks...)
 	}
 	if len(entries) != 0 {
-		if err := s.mfst.ApplyDelta(ctx, entries); err != nil {
+		if err := s.mfst.ApplyDelta(ctx, entries, nil); err != nil {
 			return errors.Wrap(err, "applying push delta")
 		}
 		s.lower.UpdateManifest(s.mergedManifestEntries())
@@ -821,16 +825,19 @@ func (s *syncController) pull(ctx context.Context) error {
 	}
 
 	entries := resp.GetEntries()
-	if len(entries) == 0 {
+	events := resp.GetReplacementEvents()
+	if len(entries) == 0 && len(events) == 0 {
 		return nil
 	}
 
-	if err := s.mfst.ApplyDelta(ctx, entries); err != nil {
+	if err := s.mfst.ApplyDelta(ctx, entries, events); err != nil {
 		return errors.Wrap(err, "applying pull delta")
 	}
 	s.lower.UpdateManifest(s.mergedManifestEntries())
 
-	s.le.WithField("count", len(entries)).Debug("pulled packfile entries")
+	s.le.WithField("entries", len(entries)).
+		WithField("replacement-events", len(events)).
+		Debug("pulled packfile delta")
 	return nil
 }
 

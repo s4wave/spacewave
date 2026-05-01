@@ -456,12 +456,39 @@ func (s *PackfileStore) EndDeferFlush(_ context.Context) error {
 
 // UpdateManifest replaces the manifest and rebuilds the bloom tree.
 func (s *PackfileStore) UpdateManifest(entries []*packfile.PackfileEntry) {
+	active := activeManifestEntries(entries)
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		s.manifest = entries
-		s.tree = buildBloomTree(entries, s.blooms)
+		s.manifest = active
+		s.tree = buildBloomTree(active, s.blooms)
 		broadcast()
 	})
+	s.evictInactiveEngines(active)
 	s.notifyStatsChanged()
+}
+
+func activeManifestEntries(entries []*packfile.PackfileEntry) []*packfile.PackfileEntry {
+	active := make([]*packfile.PackfileEntry, 0, len(entries))
+	for _, entry := range entries {
+		if entry.GetId() == "" || entry.GetSupersededBy() != "" {
+			continue
+		}
+		active = append(active, entry)
+	}
+	return active
+}
+
+func (s *PackfileStore) evictInactiveEngines(entries []*packfile.PackfileEntry) {
+	active := make(map[string]bool, len(entries))
+	for _, entry := range entries {
+		active[entry.GetId()] = true
+	}
+	s.mu.Lock()
+	for id := range s.engines {
+		if !active[id] {
+			delete(s.engines, id)
+		}
+	}
+	s.mu.Unlock()
 }
 
 func (s *PackfileStore) notifyStatsChanged() {
