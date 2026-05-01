@@ -873,6 +873,45 @@ func TestIsBlockedCloudError_NonCloudError(t *testing.T) {
 	}
 }
 
+// TestIsAccountDeletedCloudError verifies that only deletedCodes trigger the
+// account-deletion cascade, not arbitrary non-retryable cloud responses.
+func TestIsAccountDeletedCloudError(t *testing.T) {
+	tests := []struct {
+		name      string
+		code      string
+		retryable bool
+		want      bool
+	}{
+		{"account_not_found", "account_not_found", false, true},
+		{"invalid_peer_id", "invalid_peer_id", false, true},
+		{"unknown_entity", "unknown_entity", false, true},
+		{"unknown_session", "unknown_session", false, false},
+		{"dmca_blocked", "dmca_blocked", false, false},
+		{"duplicate_connection_non_retryable", "duplicate_connection", false, false},
+		{"duplicate_connection_retryable", "duplicate_connection", true, false},
+		{"empty", "", false, false},
+		{"random", "some_other_error", false, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := &cloudError{StatusCode: 409, Code: tt.code, Message: "test", Retryable: tt.retryable}
+			got := isAccountDeletedCloudError(err)
+			if got != tt.want {
+				t.Errorf("isAccountDeletedCloudError(%q, retryable=%v) = %v, want %v", tt.code, tt.retryable, got, tt.want)
+			}
+		})
+	}
+}
+
+// TestIsAccountDeletedCloudError_NonCloudError verifies that
+// isAccountDeletedCloudError returns false for non-cloud errors.
+func TestIsAccountDeletedCloudError_NonCloudError(t *testing.T) {
+	err := errors.New("generic error")
+	if isAccountDeletedCloudError(err) {
+		t.Error("isAccountDeletedCloudError should return false for non-cloud errors")
+	}
+}
+
 // TestSignMultiSig_Success verifies signMultiSig produces valid signatures.
 func TestSignMultiSig_Success(t *testing.T) {
 	priv1, pid1 := generateTestKeypair(t)

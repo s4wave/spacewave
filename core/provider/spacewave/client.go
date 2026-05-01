@@ -194,6 +194,18 @@ func isUnauthCloudError(err error) bool {
 	return false
 }
 
+// isAccountDeletedCloudError checks if an error indicates the account is gone
+// and the deletion cascade (GC sweep, status flip, routine restart) should
+// run. This is strictly narrower than isNonRetryableCloudError: only codes
+// in deletedCodes qualify, not arbitrary non-retryable responses.
+func isAccountDeletedCloudError(err error) bool {
+	var ce *cloudError
+	if errors.As(err, &ce) {
+		return deletedCodes[ce.Code]
+	}
+	return false
+}
+
 // isRefreshableWriteTicketCloudError checks if an error indicates a
 // write-ticket-specific refresh path should run instead of full
 // reauthentication.

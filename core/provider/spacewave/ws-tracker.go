@@ -183,8 +183,8 @@ func (t *wsTracker) Execute(ctx context.Context) error {
 				}
 				return err
 			}
-			if isNonRetryableCloudError(err) {
-				t.le.WithError(err).Warn("permanent cloud error, marking account deleted")
+			if isAccountDeletedCloudError(err) {
+				t.le.WithError(err).Warn("account deleted, tearing down account state")
 				if t.onAccountWasDeleted != nil {
 					t.onAccountWasDeleted()
 				}
