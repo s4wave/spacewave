@@ -252,7 +252,7 @@ describe('SessionSharedObjectContainer', () => {
     expect(screen.getByText('root signature validation failed')).toBeTruthy()
   })
 
-  it('renders body loading health when the object is mounted but the body is still loading', () => {
+  it('renders space loading copy when the object is mounted but the body is still loading', () => {
     setWatchMocks(
       { spacesList: [] },
       {
@@ -282,7 +282,10 @@ describe('SessionSharedObjectContainer', () => {
 
     render(<SessionSharedObjectContainer />)
 
-    expect(screen.getByText('Mounting shared object body')).toBeTruthy()
+    expect(screen.getByText('Loading space')).toBeTruthy()
+    expect(
+      screen.getByText('Almost ready. Loading the space contents.'),
+    ).toBeTruthy()
   })
 
   it('renders a body-layer health card for body mount errors', () => {

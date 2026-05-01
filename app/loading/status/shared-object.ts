@@ -17,8 +17,8 @@ export function toSharedObjectView(
   if (!health || health.status === SharedObjectHealthStatus.UNKNOWN) {
     return {
       state: 'loading',
-      title: 'Preparing shared object',
-      detail: 'Waiting for shared object health.',
+      title: 'Loading space',
+      detail: 'Waiting for the space to come online.',
     }
   }
   const summary = summariseHealth(health)
@@ -54,15 +54,14 @@ function summariseHealth(health: SharedObjectHealth): HealthSummary {
     if (health.layer === SharedObjectHealthLayer.BODY) {
       return {
         state: 'active',
-        title: 'Mounting shared object body',
-        detail:
-          'The shared object is available, and the body content is still loading.',
+        title: 'Loading space',
+        detail: 'Almost ready. Loading the space contents.',
       }
     }
     return {
       state: 'active',
-      title: 'Mounting shared object',
-      detail: 'Checking availability and preparing the shared object for use.',
+      title: 'Loading space',
+      detail: 'Mounting the space.',
     }
   }
   if (health.status === SharedObjectHealthStatus.READY) {

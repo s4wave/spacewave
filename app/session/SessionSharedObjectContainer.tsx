@@ -188,17 +188,15 @@ function getHealthSummary(health: SharedObjectHealth): {
     if (health.layer === SharedObjectHealthLayer.BODY) {
       return {
         badge: 'Loading',
-        title: 'Mounting shared object body',
-        description:
-          'The shared object is available, and the body content is still loading.',
+        title: 'Loading space',
+        description: 'Almost ready. Loading the space contents.',
         hint: '',
       }
     }
     return {
       badge: 'Loading',
-      title: 'Mounting shared object',
-      description:
-        'Checking availability and preparing the shared object for use.',
+      title: 'Loading space',
+      description: 'Mounting the space.',
       hint: '',
     }
   }
@@ -450,8 +448,12 @@ function SharedObjectHealthCard({
     health.remediationHint === SharedObjectHealthRemediationHint.RETRY ||
     isLoading
 
+  // Layer label only appears in error/degraded states. The body vs shared
+  // object distinction is internal and never surfaces on the loading screen.
   const layerLabel =
     health.layer === SharedObjectHealthLayer.BODY ? 'Body' : 'Shared Object'
+  const badgeLabel =
+    isLoading ? summary.badge : `${summary.badge} - ${layerLabel}`
 
   return (
     <div className="relative flex h-full w-full items-start justify-center overflow-auto px-4 py-12">
@@ -483,7 +485,7 @@ function SharedObjectHealthCard({
                 tone.badgeTone,
               )}
             >
-              {summary.badge} - {layerLabel}
+              {badgeLabel}
             </span>
             <h1 className="text-foreground text-base font-semibold tracking-tight">
               {summary.title}
@@ -944,10 +946,7 @@ export function SessionSharedObjectContainer() {
           mutationPending={mutationPending}
           mutationError={mutationError}
         />
-      : <LoadingCard
-          view={{ state: 'loading', title: 'Loading shared object' }}
-        />
-      }
+      : <LoadingCard view={{ state: 'loading', title: 'Loading space' }} />}
       {credentialRepairOpen ?
         <AccountDashboardStateProvider account={accountResource}>
           <AuthConfirmDialog

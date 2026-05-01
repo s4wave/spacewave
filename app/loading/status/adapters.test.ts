@@ -107,7 +107,7 @@ describe('toSharedObjectView', () => {
   it('renders a loading view when health is null', () => {
     const view = toSharedObjectView(null)
     expect(view.state).toBe('loading')
-    expect(view.title).toBe('Preparing shared object')
+    expect(view.title).toBe('Loading space')
   })
 
   it('renders an active view for LOADING status on the SO layer', () => {
@@ -119,7 +119,7 @@ describe('toSharedObjectView', () => {
       error: '',
     })
     expect(view.state).toBe('active')
-    expect(view.title).toBe('Mounting shared object')
+    expect(view.title).toBe('Loading space')
   })
 
   it('renders a synced view for READY status', () => {
