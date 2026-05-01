@@ -1,11 +1,11 @@
 #+TITLE: Spacewave Changelog
 
-* v0.50.0 Public Launch
-<2026-04-18 Fri>
+* v0.51.0 Public Launch
+<2026-05-01 Fri>
 
 Spacewave is open-source, private, self-hosted, multiplayer Spaces (apps) that
 store data wherever you want, work offline through peer-to-peer networking, and
-sync instantly with real-time streaming multiplayer. v0.50 is the public launch:
+sync instantly with real-time streaming multiplayer. v0.51 is the public launch:
 a suite of first-party Spaces, a plugin SDK to build your own, and desktop, web,
 and CLI clients, all Apache-2.0 licensed. Try it at
 [[https://spacewave.app][spacewave.app]] in one click with no account required,
