@@ -14,7 +14,7 @@ import { LegalPageLayout } from './LegalPageLayout.js'
 export const metadata = {
   title: 'Hydra - A database that lives everywhere you do.',
   description:
-    'Open-source P2P data store. Block-DAG, content-addressed, encrypted, multi-backend. The storage layer behind Spacewave.',
+    'Open-source P2P data store. Block-DAG, content-addressed, encrypted, multi-backend. The storage layer behind Spacewave apps.',
   canonicalPath: '/landing/hydra',
   ogImage: 'https://cdn.spacewave.app/og-default.png',
 }

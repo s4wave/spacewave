@@ -16,7 +16,8 @@ import { LegalPageLayout } from './LegalPageLayout.js'
 
 export const metadata = {
   title: 'Open Source Licenses - Spacewave',
-  description: 'Third-party open source software licenses used in Spacewave.',
+  description:
+    'Review the third-party open source software licenses, package notices, SPDX identifiers, and dependency attributions used by Spacewave.',
   canonicalPath: '/licenses',
   ogImage: 'https://cdn.spacewave.app/og-default.png',
 }

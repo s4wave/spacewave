@@ -13,7 +13,7 @@ import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
 import { LegalPageLayout } from './LegalPageLayout.js'
 
 export const metadata = {
-  title: 'Bifrost - Encrypted networking between any two devices on earth.',
+  title: 'Bifrost - Encrypted networking for any device',
   description:
     'Open-source P2P network router. Transport-agnostic, NAT traversal, multiplexed streams, Ed25519 identity. The networking layer behind Spacewave.',
   canonicalPath: '/landing/bifrost',

@@ -4,7 +4,7 @@ import { LegalPageLayout } from './LegalPageLayout.js'
 export const metadata = {
   title: 'DMCA Policy - Spacewave',
   description:
-    'Digital Millennium Copyright Act policy and designated agent information for Spacewave.',
+    'Find Spacewave DMCA policy details, designated agent contact information, takedown notice requirements, and counter-notification steps.',
   canonicalPath: '/dmca',
   ogImage: 'https://cdn.spacewave.app/og-default.png',
 }

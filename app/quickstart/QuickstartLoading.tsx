@@ -72,7 +72,8 @@ function LoadingDots() {
 export function buildQuickstartMetadata(option: QuickstartOption) {
   return {
     title: `${option.name} - Spacewave`,
-    description: option.description,
+    description: option.seoDescription ?? option.description,
     canonicalPath: `/quickstart/${option.id}`,
+    ogImage: 'https://cdn.spacewave.app/og-default.png',
   }
 }

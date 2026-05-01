@@ -32,7 +32,10 @@ describe('buildQuickstartStaticPages', () => {
 
       expect(meta.title).not.toBe('')
       expect(meta.description).not.toBe('')
+      expect(meta.description.length).toBeGreaterThanOrEqual(120)
+      expect(meta.description.length).toBeLessThanOrEqual(160)
       expect(meta.canonicalPath).toBeTruthy()
+      expect(meta.ogImage).toBeTruthy()
     }
   })
 })

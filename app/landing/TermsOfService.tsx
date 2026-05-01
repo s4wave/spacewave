@@ -3,7 +3,8 @@ import { LegalPageLayout } from './LegalPageLayout.js'
 
 export const metadata = {
   title: 'Terms of Service - Spacewave',
-  description: 'Spacewave terms of service and usage agreement.',
+  description:
+    'Review the Spacewave terms of service, including account rules, beta service limits, subscriptions, acceptable use, and dispute terms.',
   canonicalPath: '/tos',
   ogImage: 'https://cdn.spacewave.app/og-default.png',
 }

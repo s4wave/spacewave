@@ -3,7 +3,8 @@ import { LegalPageLayout } from './LegalPageLayout.js'
 
 export const metadata = {
   title: 'Privacy Policy - Spacewave',
-  description: 'Spacewave privacy policy and data handling practices.',
+  description:
+    'Learn how Spacewave handles account, billing, usage, and encrypted content data for its local-first platform and optional cloud services.',
   canonicalPath: '/privacy',
   ogImage: 'https://cdn.spacewave.app/og-default.png',
 }

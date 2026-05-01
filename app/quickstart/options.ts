@@ -21,6 +21,7 @@ export interface QuickstartOption {
   id: string
   name: string
   description: string
+  seoDescription?: string
   category: string
   icon: React.ComponentType<{ className?: string }>
   path?: string
@@ -58,6 +59,8 @@ export const QUICKSTART_OPTIONS = [
     id: 'space',
     name: 'Create an Empty Space',
     description: 'Start with a blank space',
+    seoDescription:
+      'Create a blank Spacewave space in your browser, then add files, notes, canvases, or custom objects as your local-first workspace grows.',
     category: 'storage',
     icon: LuBox,
   },
@@ -65,6 +68,8 @@ export const QUICKSTART_OPTIONS = [
     id: 'drive',
     name: 'Create a Drive',
     description: 'File browser with folders, uploads, and downloads',
+    seoDescription:
+      'Create a Spacewave Drive with folders, uploads, downloads, and local-first file browsing for private device-to-device storage.',
     category: 'storage',
     icon: LuHardDrive,
   },
@@ -72,6 +77,8 @@ export const QUICKSTART_OPTIONS = [
     id: 'git',
     name: 'Create/clone a Git Repository',
     description: 'Start fresh or clone an existing Git repository',
+    seoDescription:
+      'Create or clone a Git repository in Spacewave and manage project files from a local-first workspace that runs in your browser.',
     category: 'storage',
     icon: LuGitBranch,
   },
@@ -87,6 +94,8 @@ export const QUICKSTART_OPTIONS = [
     id: 'canvas',
     name: 'Create a Canvas',
     description: 'Visual workspace with objects on a canvas',
+    seoDescription:
+      'Create a Spacewave Canvas for visual planning, object organization, and local-first collaboration across your own devices.',
     category: 'storage',
     icon: LuLayoutGrid,
   },

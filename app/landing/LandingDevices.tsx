@@ -19,7 +19,7 @@ import {
 import { UseCaseSection } from './UseCaseSection.js'
 
 export const metadata = {
-  title: 'Spacewave Devices - Every device in your swarm. One command away.',
+  title: 'Spacewave Devices - One command to every device',
   description:
     'Remote terminal, direct P2P connections, works behind NAT with no port forwarding. Device health monitoring across your whole swarm.',
   canonicalPath: '/landing/devices',

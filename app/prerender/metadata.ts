@@ -1,4 +1,7 @@
-import { metadata as downloadMetadata } from '@s4wave/app/download/DownloadPage.js'
+import {
+  cliMetadata as downloadCliMetadata,
+  metadata as downloadMetadata,
+} from '@s4wave/app/download/DownloadPage.js'
 import { metadata as communityMetadata } from '@s4wave/app/landing/Community.js'
 import { metadata as dmcaMetadata } from '@s4wave/app/landing/DMCA.js'
 import { metadata as bifrostMetadata } from '@s4wave/app/landing/LandingBifrost.js'
@@ -47,6 +50,7 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
   '/dmca': dmcaMetadata,
   '/licenses': licensesMetadata,
   '/download': downloadMetadata,
+  '/download/cli': downloadCliMetadata,
 }
 
 for (const opt of PUBLIC_QUICKSTART_OPTIONS) {
