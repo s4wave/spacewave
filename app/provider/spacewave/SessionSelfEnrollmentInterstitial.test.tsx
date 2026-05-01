@@ -237,6 +237,34 @@ describe('SessionSelfEnrollmentInterstitial', () => {
     expect(screen.getByText('Retry now')).toBeTruthy()
   })
 
+  it('shows retry controls when enrollment stops with failures', () => {
+    mockState.value = {
+      count: 3,
+      generationKey: 'gen-1',
+      running: false,
+      currentSharedObjectId: '',
+      completedSharedObjectIds: ['space-1'],
+      failures: [
+        {
+          sharedObjectId: 'space-2',
+          category: SharedObjectSelfEnrollmentErrorCategory.REPORT,
+          message: 'recovery envelope not found',
+        },
+      ],
+    }
+    mockAccountState.entityKeypairs.value = {
+      keypairs: [{ keypair: { peerId: 'peer-1' }, unlocked: true }],
+      unlockedCount: 1,
+    }
+
+    render(<SessionSelfEnrollmentInterstitial />)
+
+    expect(screen.queryByText('Connecting to 3 spaces')).toBeNull()
+    expect(screen.getByText('recovery envelope not found')).toBeTruthy()
+    expect(screen.getByText('Unlock and continue')).toBeTruthy()
+    expect(screen.getByText('Skip for now')).toBeTruthy()
+  })
+
   it('keeps the initial total when pending count shrinks during enrollment', () => {
     mockOnboarding.value = {
       sessionSelfEnrollmentCount: 6,

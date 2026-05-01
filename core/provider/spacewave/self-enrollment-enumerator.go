@@ -114,7 +114,11 @@ func (a *ProviderAccount) enumerateSelfEnrollmentCandidates(
 	for _, entry := range list.GetSharedObjects() {
 		ref := entry.GetRef()
 		soID := ref.GetProviderResourceRef().GetId()
-		if soID == "" || isSelfEnrollmentExcludedSharedObject(entry) {
+		excluded, err := a.isSelfEnrollmentExcludedSharedObject(ctx, entry)
+		if err != nil {
+			return nil, err
+		}
+		if soID == "" || excluded {
 			continue
 		}
 		cache, err := a.loadVerifiedSOStateCache(ctx, soID)
@@ -189,8 +193,29 @@ func equalSelfEnrollmentSummary(a, b *SelfEnrollmentSummary) bool {
 		slices.Equal(a.ids, b.ids)
 }
 
-func isSelfEnrollmentExcludedSharedObject(entry *sobject.SharedObjectListEntry) bool {
-	return entry.GetMeta().GetBodyType() == "cdn"
+func (a *ProviderAccount) isSelfEnrollmentExcludedSharedObject(
+	ctx context.Context,
+	entry *sobject.SharedObjectListEntry,
+) (bool, error) {
+	if entry.GetMeta().GetBodyType() == "cdn" {
+		return true, nil
+	}
+	ref := entry.GetRef()
+	if ref == nil || ref.GetProviderResourceRef() == nil {
+		return true, nil
+	}
+	soID := ref.GetProviderResourceRef().GetId()
+	if soID == "" {
+		return true, nil
+	}
+	metadata, err := a.GetSharedObjectMetadata(ctx, soID)
+	if err == ErrSharedObjectMetadataDeleted {
+		return true, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return metadata.GetPublicRead(), nil
 }
 
 func buildSelfEnrollmentGenerationKey(ids []string, sessionPeerID peer.ID) string {

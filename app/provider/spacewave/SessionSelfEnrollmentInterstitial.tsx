@@ -128,7 +128,8 @@ function SessionSelfEnrollmentInterstitialContent({
   const authReady =
     !!accountState && !escalation?.loading && unlockedSigners >= requiredSigners
   const showProgress =
-    !actionError && (state.value?.running || (authReady && !isComplete))
+    !actionError &&
+    (state.value?.running || (authReady && !isComplete && !hasFailures))
   const progressKnown = !!state.value
   useAbortSignalEffect(
     (signal) => {
