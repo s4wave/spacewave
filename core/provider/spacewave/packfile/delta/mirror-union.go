@@ -15,8 +15,6 @@ import (
 	"github.com/s4wave/spacewave/bldr/util/packedmsg"
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
-	block_store_kvfile "github.com/s4wave/spacewave/db/block/store/kvfile"
-	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 
@@ -29,7 +27,7 @@ import (
 // block_store.ErrReadOnly. Callers must Close() the union when done so the
 // backing file descriptors are released.
 type MirrorUnion struct {
-	stores []block.StoreOps
+	stores []*kvfile.Reader
 	files  []*os.File
 	blocks uint64
 }
@@ -65,7 +63,7 @@ func (m *MirrorUnion) PutBlockBackground(_ context.Context, _ []byte, _ *block.P
 // GetBlock returns the first hit across the union of packs.
 func (m *MirrorUnion) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	for _, s := range m.stores {
-		data, found, err := s.GetBlock(ctx, ref)
+		data, found, err := getMirrorBlock(ctx, s, ref)
 		if err != nil {
 			return nil, false, err
 		}
@@ -79,7 +77,7 @@ func (m *MirrorUnion) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte
 // GetBlockExists returns true if any pack contains the block.
 func (m *MirrorUnion) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	for _, s := range m.stores {
-		ok, err := s.GetBlockExists(ctx, ref)
+		ok, err := getMirrorBlockExists(ctx, s, ref)
 		if err != nil {
 			return false, err
 		}
@@ -111,12 +109,12 @@ func (m *MirrorUnion) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 // StatBlock returns metadata for the block if any pack contains it.
 func (m *MirrorUnion) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
 	for _, s := range m.stores {
-		st, err := s.StatBlock(ctx, ref)
+		data, found, err := getMirrorBlock(ctx, s, ref)
 		if err != nil {
 			return nil, err
 		}
-		if st != nil {
-			return st, nil
+		if found {
+			return &block.BlockStat{Ref: ref, Size: int64(len(data))}, nil
 		}
 	}
 	return nil, nil
@@ -199,7 +197,6 @@ func OpenMirrorUnion(
 		return nil, errors.Wrap(err, "stat mirror packs dir")
 	}
 
-	kvkey := store_kvkey.NewDefaultKVKey()
 	u := &MirrorUnion{}
 	success := false
 	defer func() {
@@ -227,7 +224,7 @@ func OpenMirrorUnion(
 			_ = f.Close()
 			return errors.Wrapf(buildErr, "build reader for %s", p)
 		}
-		u.stores = append(u.stores, block_store_kvfile.NewKvfileBlock(ctx, kvkey, rdr))
+		u.stores = append(u.stores, rdr)
 		u.files = append(u.files, f)
 		u.blocks += rdr.Size()
 		return nil
@@ -247,6 +244,36 @@ func OpenMirrorUnion(
 	}
 	success = true
 	return u, nil
+}
+
+func getMirrorBlock(ctx context.Context, rdr *kvfile.Reader, ref *block.BlockRef) ([]byte, bool, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, false, err
+	}
+	key := mirrorBlockKey(ref)
+	if key == nil {
+		return nil, false, nil
+	}
+	return rdr.Get(key)
+}
+
+func getMirrorBlockExists(ctx context.Context, rdr *kvfile.Reader, ref *block.BlockRef) (bool, error) {
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
+	key := mirrorBlockKey(ref)
+	if key == nil {
+		return false, nil
+	}
+	return rdr.Exists(key)
+}
+
+func mirrorBlockKey(ref *block.BlockRef) []byte {
+	h := ref.GetHash()
+	if h == nil {
+		return nil
+	}
+	return []byte(h.MarshalString())
 }
 
 // verifyMirrorRootPointer enforces that a =root.packedmsg= present in the

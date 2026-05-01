@@ -420,6 +420,55 @@ func TestOpenMirrorUnionAbsent(t *testing.T) {
 	}
 }
 
+func TestOpenMirrorUnionReadsRawPackKeys(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+
+	body := []byte("mirror raw pack block")
+	h, err := hash.Sum(hash.HashType_HashType_SHA256, body)
+	if err != nil {
+		t.Fatalf("hash.Sum: %v", err)
+	}
+	emitted := false
+	var pack bytes.Buffer
+	if _, err := writer.PackBlocks(&pack, func() (*hash.Hash, []byte, error) {
+		if emitted {
+			return nil, nil, nil
+		}
+		emitted = true
+		return h, body, nil
+	}); err != nil {
+		t.Fatalf("PackBlocks: %v", err)
+	}
+
+	mirrorDir := t.TempDir()
+	spaceID := "01test000000000000rawkeys"
+	packDir := filepath.Join(mirrorDir, spaceID, "packs", "01")
+	if err := os.MkdirAll(packDir, 0o755); err != nil {
+		t.Fatalf("mkdir pack dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(packDir, "01PACK.kvf"), pack.Bytes(), 0o644); err != nil {
+		t.Fatalf("write pack: %v", err)
+	}
+
+	union, err := OpenMirrorUnion(ctx, nil, mirrorDir, spaceID)
+	if err != nil {
+		t.Fatalf("OpenMirrorUnion: %v", err)
+	}
+	defer union.Close()
+
+	got, found, err := union.GetBlock(ctx, block.NewBlockRef(h))
+	if err != nil {
+		t.Fatalf("GetBlock: %v", err)
+	}
+	if !found {
+		t.Fatal("raw-key mirror pack did not contain block")
+	}
+	if !bytes.Equal(got, body) {
+		t.Fatalf("block body mismatch: got %q want %q", got, body)
+	}
+}
+
 // TestOpenMirrorUnionSpaceIDMismatch verifies that a =root.packedmsg= whose
 // embedded =CdnRootPointer.space_id= does not match =spaceID= is a fatal error
 // before any packs are opened.
