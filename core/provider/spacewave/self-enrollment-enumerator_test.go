@@ -137,6 +137,38 @@ func TestRefreshSelfEnrollmentSummaryLoadsEmptyList(t *testing.T) {
 	}
 }
 
+func TestRefreshSelfEnrollmentSummaryInvalidatesOnUnauthError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/sobject/list" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"code":"unknown_session","message":"Session not found"}`))
+	}))
+	defer srv.Close()
+
+	acc := NewTestProviderAccount(t, srv.URL)
+	acc.syncSharedObjectListAccess(
+		s4wave_provider_spacewave.BillingStatus_BillingStatus_ACTIVE,
+	)
+	if err := acc.setSelfEnrollmentSummary(&SelfEnrollmentSummary{
+		ids:           []string{"stale"},
+		generationKey: "stale-key",
+		count:         1,
+		loaded:        true,
+	}); err != nil {
+		t.Fatalf("prime summary: %v", err)
+	}
+
+	err := acc.RefreshSelfEnrollmentSummary(context.Background())
+	if !isUnauthCloudError(err) {
+		t.Fatalf("RefreshSelfEnrollmentSummary() = %v, want unauth cloud error", err)
+	}
+	if got := acc.GetSelfEnrollmentSummary(); got != nil {
+		t.Fatalf("summary = %+v, want nil after unauth refresh failure", got)
+	}
+}
+
 func TestSelfEnrollmentSummaryRefreshesOnCacheWrite(t *testing.T) {
 	priv, sessionPID, _ := generateEntityKey(t)
 	acc := newSelfEnrollmentSummaryTestAccount(t, priv, sessionPID.String())

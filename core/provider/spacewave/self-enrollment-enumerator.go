@@ -18,7 +18,12 @@ type SelfEnrollmentSummary struct {
 	loaded        bool
 }
 
-func (a *ProviderAccount) RefreshSelfEnrollmentSummary(ctx context.Context) error {
+func (a *ProviderAccount) RefreshSelfEnrollmentSummary(ctx context.Context) (rerr error) {
+	defer func() {
+		if isUnauthCloudError(rerr) {
+			_ = a.setSelfEnrollmentSummary(nil)
+		}
+	}()
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -114,10 +119,7 @@ func (a *ProviderAccount) enumerateSelfEnrollmentCandidates(
 	for _, entry := range list.GetSharedObjects() {
 		ref := entry.GetRef()
 		soID := ref.GetProviderResourceRef().GetId()
-		excluded, err := a.isSelfEnrollmentExcludedSharedObject(ctx, entry)
-		if err != nil {
-			return nil, err
-		}
+		excluded := a.isSelfEnrollmentExcludedSharedObject(entry)
 		if soID == "" || excluded {
 			continue
 		}
@@ -154,7 +156,7 @@ func (a *ProviderAccount) enumerateSelfEnrollmentCandidates(
 func (a *ProviderAccount) refreshSelfEnrollmentSummary(ctx context.Context) {
 	if err := a.RefreshSelfEnrollmentSummary(ctx); err != nil {
 		if a.le != nil {
-			a.le.WithError(err).Debug("failed to refresh self-enrollment summary")
+			a.le.WithError(err).Warn("failed to refresh self-enrollment summary")
 		}
 	}
 }
@@ -194,28 +196,24 @@ func equalSelfEnrollmentSummary(a, b *SelfEnrollmentSummary) bool {
 }
 
 func (a *ProviderAccount) isSelfEnrollmentExcludedSharedObject(
-	ctx context.Context,
 	entry *sobject.SharedObjectListEntry,
-) (bool, error) {
+) bool {
 	if entry.GetMeta().GetBodyType() == "cdn" {
-		return true, nil
+		return true
 	}
 	ref := entry.GetRef()
 	if ref == nil || ref.GetProviderResourceRef() == nil {
-		return true, nil
+		return true
 	}
 	soID := ref.GetProviderResourceRef().GetId()
 	if soID == "" {
-		return true, nil
+		return true
 	}
-	metadata, err := a.GetSharedObjectMetadata(ctx, soID)
-	if err == ErrSharedObjectMetadataDeleted {
-		return true, nil
+	metadata, status := a.getSharedObjectMetadataSnapshot(soID)
+	if status == sharedObjectMetadataDeleted {
+		return true
 	}
-	if err != nil {
-		return false, err
-	}
-	return metadata.GetPublicRead(), nil
+	return status == sharedObjectMetadataValid && metadata.GetPublicRead()
 }
 
 func buildSelfEnrollmentGenerationKey(ids []string, sessionPeerID peer.ID) string {

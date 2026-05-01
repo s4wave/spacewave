@@ -115,6 +115,13 @@ func TestIsTerminalSharedObjectMountErrorCurrentKeyEpochMissing(t *testing.T) {
 	}
 }
 
+func TestIsTerminalSharedObjectMountErrorNotParticipant(t *testing.T) {
+	err := errors.Wrap(sobject.ErrNotParticipant, "sync config chain")
+	if !isTerminalSharedObjectMountError(err) {
+		t.Fatalf("expected not-participant error to match terminal shared object mount error")
+	}
+}
+
 func TestIsTerminalSharedObjectMountErrorCloudAccessGated(t *testing.T) {
 	cases := []string{
 		"account_read_only",

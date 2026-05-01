@@ -1,10 +1,16 @@
 package provider_spacewave
 
 import (
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	provider "github.com/s4wave/spacewave/core/provider"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/db/kvtx/hashmap"
 )
 
 func TestApplyFetchedAccountState_BootstrapDoesNotConsumeFutureServerEpoch(t *testing.T) {
@@ -102,5 +108,89 @@ func TestApplyFetchedAccountState_PreservesDeletedStatus(t *testing.T) {
 
 	if acc.state.status != provider.ProviderAccountStatus_ProviderAccountStatus_DELETED {
 		t.Fatalf("expected deleted status after deleted fetch, got %v", acc.state.status)
+	}
+}
+
+func TestAccountFetcherResumesAfterUnauthStatusClears(t *testing.T) {
+	var stateHits atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/account/state":
+			if stateHits.Add(1) == 1 {
+				w.WriteHeader(http.StatusUnauthorized)
+				_, _ = w.Write([]byte(`{"code":"unknown_session","message":"Session not found"}`))
+				return
+			}
+			_, _ = w.Write(mustMarshalVT(t, &api.AccountStateResponse{
+				Epoch:          1,
+				LifecycleState: api.AccountLifecycleState_ACCOUNT_LIFECYCLE_STATE_ACTIVE,
+			}))
+		case "/api/account/emails":
+			_, _ = w.Write(mustMarshalVT(t, &api.ListAccountEmailsResponse{}))
+		case "/api/account/sessions":
+			_, _ = w.Write(mustMarshalVT(t, &api.ListAccountSessionsResponse{}))
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer srv.Close()
+
+	acc := NewTestProviderAccount(t, srv.URL)
+	acc.objStore = hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]())
+	acc.state.epoch = 1
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan error, 1)
+	go func() {
+		done <- acc.accountFetcher(ctx)
+	}()
+
+	waitCtx, waitCancel := context.WithTimeout(context.Background(), time.Second)
+	defer waitCancel()
+	for {
+		if waitCtx.Err() != nil {
+			t.Fatalf("timed out waiting for unauthenticated status; stateHits=%d", stateHits.Load())
+		}
+		var status provider.ProviderAccountStatus
+		var ch <-chan struct{}
+		acc.accountBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			status = acc.state.status
+			ch = getWaitCh()
+		})
+		if status == provider.ProviderAccountStatus_ProviderAccountStatus_UNAUTHENTICATED {
+			break
+		}
+		select {
+		case <-waitCtx.Done():
+		case <-ch:
+		}
+	}
+
+	acc.SetAccountStatus(provider.ProviderAccountStatus_ProviderAccountStatus_READY)
+	for {
+		if waitCtx.Err() != nil {
+			t.Fatalf("timed out waiting for bootstrap fetch; stateHits=%d", stateHits.Load())
+		}
+		var fetched bool
+		var ch <-chan struct{}
+		acc.accountBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			fetched = acc.state.accountBootstrapFetched
+			ch = getWaitCh()
+		})
+		if fetched {
+			break
+		}
+		select {
+		case <-waitCtx.Done():
+		case <-ch:
+		}
+	}
+
+	cancel()
+	if err := <-done; err != context.Canceled {
+		t.Fatalf("accountFetcher() = %v, want context canceled", err)
+	}
+	if got := stateHits.Load(); got != 2 {
+		t.Fatalf("stateHits = %d, want 2", got)
 	}
 }

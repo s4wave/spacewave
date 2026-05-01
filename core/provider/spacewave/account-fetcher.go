@@ -6,6 +6,7 @@ import (
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	"github.com/pkg/errors"
+	provider "github.com/s4wave/spacewave/core/provider"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/sirupsen/logrus"
@@ -45,6 +46,12 @@ func (a *ProviderAccount) accountFetcher(ctx context.Context) error {
 			state, err := cli.GetAccountState(ctx)
 			if err != nil {
 				if isNonRetryableCloudError(err) {
+					if isUnauthCloudError(err) {
+						if err := a.waitAccountFetcherReauth(ctx, err); err != nil {
+							return err
+						}
+						continue
+					}
 					le.WithError(err).Warn("permanent error fetching account state")
 					return err
 				}
@@ -62,6 +69,12 @@ func (a *ProviderAccount) accountFetcher(ctx context.Context) error {
 			emailResp, err := cli.ListEmails(ctx)
 			if err != nil {
 				if isNonRetryableCloudError(err) {
+					if isUnauthCloudError(err) {
+						if err := a.waitAccountFetcherReauth(ctx, err); err != nil {
+							return err
+						}
+						continue
+					}
 					le.WithError(err).Warn("permanent error fetching emails")
 					return err
 				}
@@ -78,6 +91,12 @@ func (a *ProviderAccount) accountFetcher(ctx context.Context) error {
 			sessionRows, err := cli.ListSessions(ctx)
 			if err != nil {
 				if isNonRetryableCloudError(err) {
+					if isUnauthCloudError(err) {
+						if err := a.waitAccountFetcherReauth(ctx, err); err != nil {
+							return err
+						}
+						continue
+					}
 					le.WithError(err).Warn("permanent error fetching sessions")
 					return err
 				}
@@ -119,6 +138,37 @@ func (a *ProviderAccount) accountFetcher(ctx context.Context) error {
 			}
 		}
 
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ch:
+		}
+	}
+}
+
+func (a *ProviderAccount) waitAccountFetcherReauth(ctx context.Context, err error) error {
+	var rejoinState *selfRejoinSweepState
+	a.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if a.state.status != provider.ProviderAccountStatus_ProviderAccountStatus_UNAUTHENTICATED {
+			a.state.status = unauthenticatedAccountStatus(a.state.info)
+			rejoinState = a.buildSelfRejoinSweepStateLocked()
+			broadcast()
+		}
+	})
+	a.setSelfRejoinSweepState(rejoinState)
+	for {
+		var ch <-chan struct{}
+		var status provider.ProviderAccountStatus
+		a.accountBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			status = a.state.status
+			ch = getWaitCh()
+		})
+		if status == provider.ProviderAccountStatus_ProviderAccountStatus_DELETED {
+			return err
+		}
+		if status != provider.ProviderAccountStatus_ProviderAccountStatus_UNAUTHENTICATED {
+			return nil
+		}
 		select {
 		case <-ctx.Done():
 			return ctx.Err()

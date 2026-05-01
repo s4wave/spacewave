@@ -1,6 +1,9 @@
 package provider_spacewave
 
-import "github.com/pkg/errors"
+import (
+	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/core/sobject"
+)
 
 var errSharedObjectInitialStateRejected = errors.New(
 	"shared object initial state rejected",
@@ -17,6 +20,9 @@ func isTerminalSharedObjectMountError(err error) bool {
 		return true
 	}
 	if errors.Is(err, errSharedObjectCurrentKeyEpochMissing) {
+		return true
+	}
+	if errors.Is(err, sobject.ErrNotParticipant) {
 		return true
 	}
 	return isCloudAccessGatedError(err)
