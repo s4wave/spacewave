@@ -12,6 +12,7 @@ import (
 
 	alpha_cdn "github.com/s4wave/spacewave/core/cdn"
 	cdn_bstore "github.com/s4wave/spacewave/core/cdn/bstore"
+	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
 	"github.com/s4wave/spacewave/core/sobject"
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 )
@@ -147,6 +148,49 @@ func TestSnapshotBeforeAndAfterPointer(t *testing.T) {
 	}
 	if decodedInner == nil {
 		t.Fatal("expected non-nil InnerState")
+	}
+}
+
+func TestEmptyInitializedPointerHasNoHead(t *testing.T) {
+	ctx := context.Background()
+	so := newTestSharedObject(t, &sobject.SORoot{
+		Inner:      []byte("not a plaintext SORootInner"),
+		InnerSeqno: 1,
+	})
+
+	snap, err := so.GetSharedObjectState(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	inner, err := snap.GetRootInner(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if inner != nil {
+		t.Fatalf("root inner = %+v, want nil for empty initialized CDN root", inner)
+	}
+	head, err := so.GetHeadInnerState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if head != nil {
+		t.Fatalf("head inner state = %+v, want nil for empty initialized CDN root", head)
+	}
+}
+
+func TestPackedPointerRejectsUndecodableRoot(t *testing.T) {
+	so := newTestSharedObject(t, nil)
+	so.bs.SetPointer(&alpha_cdn.CdnRootPointer{
+		SpaceId: testSpaceID,
+		Root: &sobject.SORoot{
+			Inner:      []byte("not a plaintext SORootInner"),
+			InnerSeqno: 1,
+		},
+		Packs: []*packfile.PackfileEntry{{Id: "01PACKA"}},
+	})
+
+	if _, err := so.GetHeadInnerState(); err == nil {
+		t.Fatal("expected undecodable packed CDN root to fail")
 	}
 }
 

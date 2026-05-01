@@ -132,6 +132,25 @@ func (s *CdnSharedObject) GetSORoot() *sobject.SORoot {
 	return ptr.GetRoot()
 }
 
+// GetPlainRootInner decodes the CDN-published SORootInner. Initialized empty
+// CDN Spaces can have a normal shared-object root before any world packs are
+// published; treat that as "no CDN world head yet" only while the pointer has
+// no packs.
+func (s *CdnSharedObject) GetPlainRootInner() (*sobject.SORootInner, error) {
+	ptr := s.bs.Pointer()
+	if ptr == nil || ptr.GetRoot() == nil || len(ptr.GetRoot().GetInner()) == 0 {
+		return nil, nil
+	}
+	inner := &sobject.SORootInner{}
+	if err := inner.UnmarshalVT(ptr.GetRoot().GetInner()); err != nil {
+		if len(ptr.GetPacks()) == 0 {
+			return nil, nil
+		}
+		return nil, errors.Wrap(err, "decode SORootInner")
+	}
+	return inner, nil
+}
+
 // RefreshSnapshot forces the CDN block store to re-fetch the root pointer
 // and emits a fresh cdnStateSnapshot on the watch container. Callers that
 // observe cdn-root-changed signals invoke this so downstream consumers
@@ -155,13 +174,12 @@ func (s *CdnSharedObject) RefreshSnapshot(ctx context.Context) error {
 // (runPostRoot) produces the same shape.
 // Returns nil, nil when there is no published root yet.
 func (s *CdnSharedObject) GetHeadInnerState() (*sobject_world_engine.InnerState, error) {
-	root := s.GetSORoot()
-	if root == nil {
-		return nil, nil
+	sori, err := s.GetPlainRootInner()
+	if err != nil {
+		return nil, err
 	}
-	sori := &sobject.SORootInner{}
-	if err := sori.UnmarshalVT(root.GetInner()); err != nil {
-		return nil, errors.Wrap(err, "decode SORootInner")
+	if sori == nil {
+		return nil, nil
 	}
 	inner := &sobject_world_engine.InnerState{}
 	if len(sori.GetStateData()) == 0 {
@@ -276,15 +294,7 @@ func (s *cdnStateSnapshot) GetOpQueue(_ context.Context) ([]*sobject.SOOperation
 // emits for public_read Spaces (see runPostRoot). Returns nil, nil when no
 // root has been published yet.
 func (s *cdnStateSnapshot) GetRootInner(_ context.Context) (*sobject.SORootInner, error) {
-	root := s.so.GetSORoot()
-	if root == nil {
-		return nil, nil
-	}
-	inner := &sobject.SORootInner{}
-	if err := inner.UnmarshalVT(root.GetInner()); err != nil {
-		return nil, errors.Wrap(err, "decode SORootInner")
-	}
-	return inner, nil
+	return s.so.GetPlainRootInner()
 }
 
 // ProcessOperations is not supported on a read-only CDN mount.
