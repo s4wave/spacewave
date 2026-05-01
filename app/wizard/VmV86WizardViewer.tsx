@@ -19,6 +19,7 @@ import {
   useResource,
   useResourceValue,
 } from '@aptre/bldr-sdk/hooks/useResource.js'
+import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { SessionIndexContext } from '@s4wave/web/contexts/contexts.js'
 import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
@@ -31,6 +32,8 @@ import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
 import { listObjectsWithType } from '@s4wave/sdk/world/types/types.js'
 import { keyToIRI, iriToKey } from '@s4wave/sdk/world/graph-utils.js'
 import type { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
+import type { Cdn } from '@s4wave/sdk/cdn/cdn.js'
+import type { Space } from '@s4wave/sdk/space/space.js'
 import { CreateVmV86Op, VmImage, VmV86 } from '@s4wave/sdk/vm/v86.pb.js'
 import {
   V86WizardConfig,
@@ -78,16 +81,43 @@ interface ExistingVmInfo {
 interface CdnVmImageEntry {
   objectKey: string
   image: VmImage
+  metadataError?: string
 }
 
-async function loadCdnVmImages(
+interface CdnImageSpaceHandle {
+  cdn: Cdn
+  space: Space
+  [Symbol.dispose](): void
+}
+
+async function mountCdnImageSpace(
   root: Root,
   cdnId: string,
   signal: AbortSignal,
-): Promise<CdnVmImageEntry[]> {
+): Promise<CdnImageSpaceHandle> {
   const { cdn } = await root.getCdn(cdnId, signal)
-  using cdnHandle = cdn
-  using space = await cdnHandle.mountCdnSpace(signal)
+  let space: Space | undefined
+  try {
+    space = await cdn.mountCdnSpace(signal)
+    return {
+      cdn,
+      space,
+      [Symbol.dispose]() {
+        space?.[Symbol.dispose]()
+        cdn[Symbol.dispose]()
+      },
+    }
+  } catch (err) {
+    space?.[Symbol.dispose]()
+    cdn[Symbol.dispose]()
+    throw err
+  }
+}
+
+async function loadCdnVmImagesFromSpace(
+  space: Space,
+  signal: AbortSignal,
+): Promise<CdnVmImageEntry[]> {
   const world = await space.accessWorldState(false, signal)
   const keys = await listObjectsWithType(world, VmImageTypeID, signal)
   const out: CdnVmImageEntry[] = []
@@ -99,12 +129,31 @@ async function loadCdnVmImages(
     if (!resp.found || !resp.data?.length) continue
     try {
       out.push({ objectKey: key, image: VmImage.fromBinary(resp.data) })
-    } catch {
-      /* skip */
+    } catch (err) {
+      out.push({
+        objectKey: key,
+        image: {
+          name: key,
+          platform: 'v86',
+          description: 'Metadata could not be decoded.',
+          tags: [],
+        },
+        metadataError:
+          err instanceof Error ? err.message : 'metadata decode failed',
+      })
     }
   }
   out.sort(compareVmImageNewestFirst)
   return out
+}
+
+async function loadCdnVmImages(
+  root: Root,
+  cdnId: string,
+  signal: AbortSignal,
+): Promise<CdnVmImageEntry[]> {
+  using handle = await mountCdnImageSpace(root, cdnId, signal)
+  return loadCdnVmImagesFromSpace(handle.space, signal)
 }
 
 async function discoverDefaultCdnVmImage(
@@ -782,32 +831,24 @@ function CdnImagePickerModal({
   onClose,
 }: CdnImagePickerModalProps) {
   const rootResource = useRootResource()
-  const root = useResourceValue(rootResource)
-
-  const [entries, setEntries] = useState<CdnVmImageEntry[] | undefined>(
-    undefined,
+  const cdnSpaceResource = useResource(
+    rootResource,
+    async (root: Root, signal: AbortSignal, cleanup) =>
+      cleanup(await mountCdnImageSpace(root, cdnId, signal)),
+    [cdnId],
   )
-  const [loadError, setLoadError] = useState<string | undefined>(undefined)
-  useEffect(() => {
-    if (!root) return
-    const controller = new AbortController()
-    const signal = controller.signal
-    setEntries(undefined)
-    setLoadError(undefined)
-    void loadCdnVmImages(root, cdnId, signal)
-      .then((out) => {
-        if (!signal.aborted) setEntries(out)
-      })
-      .catch((err) => {
-        if (signal.aborted) return
-        setLoadError(
-          err instanceof Error ? err.message : 'Failed to load CDN images',
-        )
-      })
-    return () => {
-      controller.abort()
-    }
-  }, [root, cdnId])
+  const entriesResource = useStreamingResource(
+    cdnSpaceResource,
+    async function* (handle: CdnImageSpaceHandle, signal: AbortSignal) {
+      yield await loadCdnVmImagesFromSpace(handle.space, signal)
+      for await (const _state of handle.space.watchSpaceState({}, signal)) {
+        yield await loadCdnVmImagesFromSpace(handle.space, signal)
+      }
+    },
+    [],
+  )
+  const entries = entriesResource.value
+  const loadError = cdnSpaceResource.error ?? entriesResource.error
 
   return (
     <div
@@ -836,7 +877,9 @@ function CdnImagePickerModal({
             <LoadingInline label="Loading" tone="muted" size="sm" />
           )}
           {loadError && (
-            <span className="text-destructive text-xs">{loadError}</span>
+            <span className="text-destructive text-xs">
+              {loadError.message}
+            </span>
           )}
           {entries && entries.length === 0 && !loadError && (
             <span className="text-foreground-alt text-xs">
@@ -854,8 +897,10 @@ function CdnImagePickerModal({
                 {formatImageLabel(entry.image)}
               </span>
               <span className="text-foreground-alt/50 text-xs">
-                {entry.image.distro || ''}
-                {entry.image.tags?.length ?
+                {entry.metadataError ?
+                  `Metadata decode failed: ${entry.metadataError}`
+                : entry.image.distro || ''}
+                {!entry.metadataError && entry.image.tags?.length ?
                   `  ·  ${entry.image.tags.join(', ')}`
                 : ''}
               </span>
