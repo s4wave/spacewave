@@ -131,8 +131,8 @@ esac
 # 6. Sign MSIX via Azure Trusted Signing.
 # Shares the same env vars as bldr's Windows signing hook so one export covers
 # both the inner .exe and the MSIX container. Unset profile = skip signing (for
-# local iteration only). CI sets BLDR_WINDOWS_SIGN_MSIX=0 and signs the package
-# with azure/artifact-signing-action after entrypoint-handoff stages outputs.
+# local iteration only). CI sets BLDR_WINDOWS_SIGN_MSIX=0 and signs the staged
+# package after entrypoint-handoff stages outputs.
 if [ "${BLDR_WINDOWS_SIGN_MSIX:-1}" = "0" ]; then
   echo "Built: $MSIX (MSIX signing skipped by BLDR_WINDOWS_SIGN_MSIX=0)"
   exit 0

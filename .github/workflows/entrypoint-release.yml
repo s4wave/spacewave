@@ -385,29 +385,43 @@ jobs:
 
       - name: Sign Windows amd64 MSIX installer
         if: ${{ inputs.sign_artifacts && steps.windows_handoff_cache.outputs.cache-hit != 'true' }}
-        uses: azure/artifact-signing-action@v1
-        with:
-          endpoint: https://wus.codesigning.azure.net/
-          signing-account-name: ${{ vars.BLDR_WINDOWS_SIGN_ACCOUNT }}
-          certificate-profile-name: ${{ vars.BLDR_WINDOWS_SIGN_PROFILE }}
-          files: ${{ steps.windows_msix_paths.outputs.amd64 }}
-          file-digest: SHA256
-          timestamp-rfc3161: http://timestamp.acs.microsoft.com
-          timestamp-digest: SHA256
-          description: Spacewave
+        shell: pwsh
+        env:
+          BLDR_SIGN_ENDPOINT: https://wus.codesigning.azure.net/
+          BLDR_SIGN_ACCOUNT: ${{ vars.BLDR_WINDOWS_SIGN_ACCOUNT }}
+          BLDR_SIGN_PROFILE: ${{ vars.BLDR_WINDOWS_SIGN_PROFILE }}
+          BLDR_SIGN_FILE: ${{ steps.windows_msix_paths.outputs.amd64 }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Invoke-TrustedSigning `
+            -Endpoint $env:BLDR_SIGN_ENDPOINT `
+            -CodeSigningAccountName $env:BLDR_SIGN_ACCOUNT `
+            -CertificateProfileName $env:BLDR_SIGN_PROFILE `
+            -Files $env:BLDR_SIGN_FILE `
+            -Description Spacewave `
+            -FileDigest SHA256 `
+            -TimestampRfc3161 'http://timestamp.acs.microsoft.com' `
+            -TimestampDigest SHA256
 
       - name: Sign Windows arm64 MSIX installer
         if: ${{ inputs.sign_artifacts && steps.windows_handoff_cache.outputs.cache-hit != 'true' }}
-        uses: azure/artifact-signing-action@v1
-        with:
-          endpoint: https://wus.codesigning.azure.net/
-          signing-account-name: ${{ vars.BLDR_WINDOWS_SIGN_ACCOUNT }}
-          certificate-profile-name: ${{ vars.BLDR_WINDOWS_SIGN_PROFILE }}
-          files: ${{ steps.windows_msix_paths.outputs.arm64 }}
-          file-digest: SHA256
-          timestamp-rfc3161: http://timestamp.acs.microsoft.com
-          timestamp-digest: SHA256
-          description: Spacewave
+        shell: pwsh
+        env:
+          BLDR_SIGN_ENDPOINT: https://wus.codesigning.azure.net/
+          BLDR_SIGN_ACCOUNT: ${{ vars.BLDR_WINDOWS_SIGN_ACCOUNT }}
+          BLDR_SIGN_PROFILE: ${{ vars.BLDR_WINDOWS_SIGN_PROFILE }}
+          BLDR_SIGN_FILE: ${{ steps.windows_msix_paths.outputs.arm64 }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Invoke-TrustedSigning `
+            -Endpoint $env:BLDR_SIGN_ENDPOINT `
+            -CodeSigningAccountName $env:BLDR_SIGN_ACCOUNT `
+            -CertificateProfileName $env:BLDR_SIGN_PROFILE `
+            -Files $env:BLDR_SIGN_FILE `
+            -Description Spacewave `
+            -FileDigest SHA256 `
+            -TimestampRfc3161 'http://timestamp.acs.microsoft.com' `
+            -TimestampDigest SHA256
 
       - name: Refresh staged Windows installers after MSIX signing
         if: ${{ inputs.sign_artifacts && steps.windows_handoff_cache.outputs.cache-hit != 'true' }}
