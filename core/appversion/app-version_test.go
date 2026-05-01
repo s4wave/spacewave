@@ -1,9 +1,13 @@
 package appversion
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestGetVersion(t *testing.T) {
-	if got := GetVersion(); got != "0.1.0" {
-		t.Fatalf("expected runtime version 0.1.0, got %q", got)
+	want := strings.TrimSpace(versionText)
+	if got := GetVersion(); got != want {
+		t.Fatalf("expected runtime version %q, got %q", want, got)
 	}
 }
