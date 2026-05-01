@@ -1,4 +1,4 @@
-import type { FC } from 'react'
+import { createElement, type FC } from 'react'
 import { Landing } from '@s4wave/app/landing/Landing.js'
 import { Community } from '@s4wave/app/landing/Community.js'
 import { TermsOfService } from '@s4wave/app/landing/TermsOfService.js'
@@ -41,7 +41,12 @@ export const STATIC_PAGES: Array<{ path: string; component: FC }> = [
   { path: '/dmca', component: DMCA },
   { path: '/licenses', component: Licenses },
   { path: '/download', component: DownloadPage },
+  { path: '/download/cli', component: DownloadCliPage },
 ]
+
+function DownloadCliPage() {
+  return createElement(DownloadPage, { cliOnly: true })
+}
 
 // buildQuickstartStaticPages maps public quickstarts to their static loading
 // pages.

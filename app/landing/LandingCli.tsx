@@ -85,7 +85,7 @@ const TERMINAL_LINES = [
 // LandingCli renders the CLI use-case landing page.
 export function LandingCli() {
   const landingHref = useStaticHref('/landing')
-  const downloadCliHref = useStaticHref('/download#cli')
+  const downloadCliHref = useStaticHref('/download/cli')
 
   return (
     <LegalPageLayout

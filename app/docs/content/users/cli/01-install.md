@@ -28,7 +28,7 @@ The CLI is a single self-contained binary. There are no runtime dependencies.
 ## Pick the Right Build
 
 The CLI ships as a per-platform archive on the
-[download page](/download#cli). Pick the build that matches your operating
+[download page](/download/cli). Pick the build that matches your operating
 system and CPU architecture. Apple Silicon Macs use the macOS arm64 build.
 Intel Macs use macOS amd64. Most Linux desktops use linux amd64. Windows on
 ARM uses the windows arm64 build.
@@ -38,7 +38,7 @@ ARM uses the windows arm64 build.
 The macOS build ships as a signed and notarized zip archive:
 
 1. Download the macOS archive from the
-   [CLI download section](/download#cli) and unzip it.
+   [CLI download section](/download/cli) and unzip it.
 2. Move `spacewave` to a folder that is on your PATH. A common choice is
    `/usr/local/bin`.
 3. Open a new terminal and run `spacewave status` to confirm the install.
@@ -47,7 +47,7 @@ The macOS build ships as a signed and notarized zip archive:
 
 On Linux, install the CLI with a single command. Replace `<archive-url>` with
 the URL for your platform copied from the
-[CLI download section](/download#cli):
+[CLI download section](/download/cli):
 
 ```bash
 curl -fsSL <archive-url> | tar -xz -C /usr/local/bin spacewave
@@ -75,7 +75,7 @@ The Windows build ships as a portable zip. There is no installer yet, so you
 add it to your PATH manually:
 
 1. Download the Windows archive from the
-   [CLI download section](/download#cli) and unzip it.
+   [CLI download section](/download/cli) and unzip it.
 2. Move `spacewave.exe` to a folder that is on your PATH. A common choice is
    to create a folder at `%USERPROFILE%\bin`, drop the binary inside, and add
    that folder to PATH from

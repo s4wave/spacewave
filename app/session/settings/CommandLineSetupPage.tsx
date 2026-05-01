@@ -108,10 +108,10 @@ function WalkthroughSection({ opts }: { opts: CommandOptions }) {
 
 // InstallGuidanceSection renders the install-guidance block shown
 // above the walkthrough's "More commands" panel. Links out to
-// /download#cli for the packaged binary and to the user-facing install
+// /download/cli for the packaged binary and to the user-facing install
 // and quickstart guide.
 function InstallGuidanceSection() {
-  const cliDownloadHref = useStaticHref('/download#cli')
+  const cliDownloadHref = useStaticHref('/download/cli')
   const cliInstallHref = useStaticHref('/docs/users/cli/install')
 
   return (

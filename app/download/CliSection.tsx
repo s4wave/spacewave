@@ -18,11 +18,10 @@ const OS_HEADINGS: Record<DownloadOS, string> = {
   linux: 'Linux',
 }
 
-// CliSection renders the standalone CLI block on the /download page.
-// The wrapping <section id="cli"> makes /download#cli resolve to this
-// region. Layout: heading and intro, platform-aware primary download
-// button, then per-OS sub-sections each containing the install snippet
-// and the per-arch tile grid.
+// CliSection renders the standalone CLI block on the download pages.
+// Layout: heading and intro, platform-aware primary download button,
+// then per-OS sub-sections each containing the install snippet and the
+// per-arch tile grid.
 export function CliSection({ primary, groups }: CliSectionProps) {
   return (
     <section

@@ -80,5 +80,8 @@ export const LandingRoutes = (
     <Route path="/download">
       <DownloadPage />
     </Route>
+    <Route path="/download/cli">
+      <DownloadPage cliOnly />
+    </Route>
   </>
 )

@@ -69,7 +69,7 @@ describe('use-case landing CTAs', () => {
       {
         renderPage: () => renderWithRouter(<LandingCli />),
         label: 'Download the CLI',
-        href: '#/download#cli',
+        href: '#/download/cli',
       },
     ]
 
