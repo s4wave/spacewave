@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/pkg/errors"
@@ -94,16 +96,7 @@ func PushSinglePack(
 		return errors.Wrap(err, "build pack id")
 	}
 	packHash := sha256.Sum256(packBytes)
-	if err := opts.Client.SyncPushData(
-		ctx,
-		opts.DstSpaceID,
-		packID,
-		metadata.BlockCount,
-		packBytes,
-		packHash[:],
-		bloomFilter,
-		packfile.BloomFormatVersionV1,
-	); err != nil {
+	if err := syncPushDataWithRetry(ctx, opts, packID, metadata, packBytes, packHash[:], bloomFilter); err != nil {
 		return errors.Wrap(err, "sync push")
 	}
 	_, err = io.WriteString(
@@ -113,6 +106,54 @@ func PushSinglePack(
 			" blocks="+strconv.Itoa(metadata.BlockCount)+"\n",
 	)
 	return err
+}
+
+func syncPushDataWithRetry(
+	ctx context.Context,
+	opts Options,
+	packID string,
+	metadata *KVFilePushMetadata,
+	packBytes []byte,
+	packHash []byte,
+	bloomFilter []byte,
+) error {
+	var lastErr error
+	for attempt := range 3 {
+		err := opts.Client.SyncPushData(
+			ctx,
+			opts.DstSpaceID,
+			packID,
+			metadata.BlockCount,
+			packBytes,
+			packHash,
+			bloomFilter,
+			packfile.BloomFormatVersionV1,
+		)
+		if err == nil {
+			return nil
+		}
+		if !isRetryableSyncPushError(err) || attempt == 2 {
+			return err
+		}
+		lastErr = err
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(time.Duration(1<<attempt) * time.Second):
+		}
+	}
+	return lastErr
+}
+
+func isRetryableSyncPushError(err error) bool {
+	msg := err.Error()
+	if strings.Contains(msg, "429") {
+		return true
+	}
+	if strings.Contains(msg, "500") || strings.Contains(msg, "502") || strings.Contains(msg, "503") || strings.Contains(msg, "504") {
+		return true
+	}
+	return strings.Contains(msg, "connection") || strings.Contains(msg, "timeout")
 }
 
 // KVFilePushMetadata is verified metadata for one kvfile pack.
