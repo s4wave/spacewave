@@ -5,13 +5,28 @@ import {
   INIT_UNIXFS_OP_ID,
   UNIXFS_OBJECT_KEY,
 } from '@s4wave/core/space/world/ops/init-unixfs.js'
-import { SetSpaceSettingsOp } from '@s4wave/core/space/world/ops/ops.pb.js'
+import {
+  InitCanvasDemoOp,
+  InitUnixFSOp,
+  SetSpaceSettingsOp,
+} from '@s4wave/core/space/world/ops/ops.pb.js'
+import {
+  CANVAS_DEMO_OBJECT_KEY,
+  INIT_CANVAS_DEMO_OP_ID,
+} from '@s4wave/core/space/world/ops/init-canvas-demo.js'
 import {
   V86WizardConfig,
   V86WizardConfig_Source,
 } from '@s4wave/sdk/vm/v86-wizard.pb.js'
 import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { CREATE_WIZARD_OBJECT_OP_ID } from '@s4wave/sdk/world/wizard/create-wizard.js'
+import { InitChatDemoOp } from '@s4wave/sdk/chat/chat.pb.js'
+import {
+  CHAT_DEMO_CHANNEL_KEY,
+  INIT_CHAT_DEMO_OP_ID,
+} from '@s4wave/sdk/chat/init-chat-demo.js'
+import { InitForgeQuickstartOp } from '@s4wave/core/forge/dashboard/dashboard.pb.js'
+import { INIT_FORGE_QUICKSTART_OP_ID } from '@s4wave/sdk/forge/dashboard/init-forge-quickstart.js'
 
 import type { QuickstartSpaceCreateId } from './options.js'
 import {
@@ -21,6 +36,22 @@ import {
   getQuickstartSpaceName,
   populateSpace,
 } from './create.js'
+import { NOTEBOOK_OBJECT_KEY } from '../../plugin/notes/proto/init-notebook.js'
+
+const seedMocks = vi.hoisted(() => ({
+  createBlogClientSide: vi.fn().mockResolvedValue(undefined),
+  createDocsClientSide: vi.fn().mockResolvedValue(undefined),
+  createNotebookClientSide: vi.fn().mockResolvedValue(undefined),
+}))
+
+vi.mock('../../plugin/notes/blog-seed.js', () => ({
+  createBlogClientSide: seedMocks.createBlogClientSide,
+}))
+
+vi.mock('../../plugin/notes/content-seed.js', () => ({
+  createDocsClientSide: seedMocks.createDocsClientSide,
+  createNotebookClientSide: seedMocks.createNotebookClientSide,
+}))
 
 type ApplyWorldOp = (
   opTypeId: string,
@@ -28,6 +59,46 @@ type ApplyWorldOp = (
   sender?: string,
   abortSignal?: AbortSignal,
 ) => Promise<{ seqno: bigint; sysErr: boolean }>
+
+function buildQuickstartWorld() {
+  const applyWorldOp = vi.fn<ApplyWorldOp>().mockResolvedValue({
+    seqno: 1n,
+    sysErr: false,
+  })
+  const releaseCursor = vi.fn()
+  return {
+    world: {
+      applyWorldOp,
+      getObject: vi.fn().mockResolvedValue(null),
+      lookupGraphQuads: vi.fn().mockResolvedValue({ quads: [] }),
+      deleteGraphQuad: vi.fn().mockResolvedValue(undefined),
+      setGraphQuad: vi.fn().mockResolvedValue(undefined),
+      buildStorageCursor: vi.fn(() =>
+        Promise.resolve({
+          putBlock: vi.fn().mockResolvedValue({ ref: {} }),
+          getRef: vi.fn().mockResolvedValue({ ref: {} }),
+          release: releaseCursor,
+          [Symbol.dispose]: releaseCursor,
+        }),
+      ),
+      createObject: vi.fn().mockResolvedValue({}),
+    },
+    applyWorldOp,
+  }
+}
+
+function getSettingsIndexPath(applyWorldOp: ReturnType<typeof vi.fn>) {
+  const call = applyWorldOp.mock.calls.find(
+    (call) => call[0] === SET_SPACE_SETTINGS_OP_ID,
+  )
+  if (!call) {
+    throw new Error('expected settings op call')
+  }
+  return (
+    SetSpaceSettingsOp.fromBinary(call[1] as Uint8Array).settings?.indexPath ??
+    ''
+  )
+}
 
 describe('quickstart create', () => {
   it('maps quickstarts to friendly seeded space names', () => {
@@ -92,6 +163,109 @@ describe('quickstart create', () => {
     expect(settings.indexPath).toBe(UNIXFS_OBJECT_KEY)
   })
 
+  it('indexes every quickstart to the object it creates or seeds', async () => {
+    {
+      const { world, applyWorldOp } = buildQuickstartWorld()
+      await populateSpace('space', { spaceWorld: world } as never)
+      expect(getSettingsIndexPath(applyWorldOp)).toBe('')
+    }
+    {
+      const { world, applyWorldOp } = buildQuickstartWorld()
+      await populateSpace('drive', { spaceWorld: world } as never)
+      expect(getSettingsIndexPath(applyWorldOp)).toBe(UNIXFS_OBJECT_KEY)
+      const unixfsCall = applyWorldOp.mock.calls.find(
+        (call) => call[0] === INIT_UNIXFS_OP_ID,
+      )
+      expect(
+        InitUnixFSOp.fromBinary(unixfsCall?.[1] as Uint8Array).objectKey,
+      ).toBe(UNIXFS_OBJECT_KEY)
+    }
+    {
+      seedMocks.createNotebookClientSide.mockClear()
+      const { world, applyWorldOp } = buildQuickstartWorld()
+      await populateSpace('notebook', { spaceWorld: world } as never)
+      expect(getSettingsIndexPath(applyWorldOp)).toBe(NOTEBOOK_OBJECT_KEY)
+      expect(seedMocks.createNotebookClientSide).toHaveBeenCalledWith(
+        world,
+        NOTEBOOK_OBJECT_KEY,
+        UNIXFS_OBJECT_KEY,
+        'Notes',
+        expect.any(Date),
+        undefined,
+      )
+    }
+    {
+      const { world, applyWorldOp } = buildQuickstartWorld()
+      await populateSpace('canvas', { spaceWorld: world } as never)
+      expect(getSettingsIndexPath(applyWorldOp)).toBe(CANVAS_DEMO_OBJECT_KEY)
+      const canvasCall = applyWorldOp.mock.calls.find(
+        (call) => call[0] === INIT_CANVAS_DEMO_OP_ID,
+      )
+      expect(
+        InitCanvasDemoOp.fromBinary(canvasCall?.[1] as Uint8Array).objectKey,
+      ).toBe(CANVAS_DEMO_OBJECT_KEY)
+    }
+    {
+      const { world, applyWorldOp } = buildQuickstartWorld()
+      await populateSpace('chat', { spaceWorld: world } as never)
+      expect(getSettingsIndexPath(applyWorldOp)).toBe(CHAT_DEMO_CHANNEL_KEY)
+      const chatCall = applyWorldOp.mock.calls.find(
+        (call) => call[0] === INIT_CHAT_DEMO_OP_ID,
+      )
+      expect(
+        InitChatDemoOp.fromBinary(chatCall?.[1] as Uint8Array).channelObjectKey,
+      ).toBe(CHAT_DEMO_CHANNEL_KEY)
+    }
+    {
+      seedMocks.createDocsClientSide.mockClear()
+      const { world, applyWorldOp } = buildQuickstartWorld()
+      await populateSpace('docs', { spaceWorld: world } as never)
+      expect(getSettingsIndexPath(applyWorldOp)).toBe('documentation')
+      expect(seedMocks.createDocsClientSide).toHaveBeenCalledWith(
+        world,
+        'documentation',
+        'Documentation',
+        '',
+        expect.any(Date),
+        undefined,
+      )
+    }
+    {
+      seedMocks.createBlogClientSide.mockClear()
+      const { world, applyWorldOp } = buildQuickstartWorld()
+      await populateSpace('blog', { spaceWorld: world } as never)
+      expect(getSettingsIndexPath(applyWorldOp)).toBe('blog')
+      expect(seedMocks.createBlogClientSide).toHaveBeenCalledWith(
+        world,
+        'blog',
+        'Blog',
+        '',
+        '',
+        expect.any(Date),
+        undefined,
+      )
+    }
+    {
+      const { world, applyWorldOp } = buildQuickstartWorld()
+      await populateSpace('forge', {
+        spaceWorld: world,
+        session: {
+          getSessionInfo: vi
+            .fn()
+            .mockResolvedValue({ peerId: '12D3KooWForgePeer' }),
+        },
+      } as never)
+      expect(getSettingsIndexPath(applyWorldOp)).toBe('forge')
+      const forgeCall = applyWorldOp.mock.calls.find(
+        (call) => call[0] === INIT_FORGE_QUICKSTART_OP_ID,
+      )
+      expect(
+        InitForgeQuickstartOp.fromBinary(forgeCall?.[1] as Uint8Array)
+          .layoutKey,
+      ).toBe('forge')
+    }
+  })
+
   it('overwrites an existing unreadable settings object instead of failing setup', async () => {
     const getBlock = vi.fn(() =>
       Promise.reject(new Error('object must be a block')),
@@ -148,12 +322,9 @@ describe('quickstart create', () => {
       setGraphQuad: vi.fn().mockResolvedValue(undefined),
     }
 
-    await createSpaceSettingsObject(
-      spaceWorld as never,
-      undefined,
-      'blog',
-      ['spacewave-app'],
-    )
+    await createSpaceSettingsObject(spaceWorld as never, undefined, 'blog', [
+      'spacewave-app',
+    ])
 
     expect(getObject).toHaveBeenCalledWith('settings', undefined)
     expect(markDirty).not.toHaveBeenCalled()

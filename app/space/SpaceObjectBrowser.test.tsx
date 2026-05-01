@@ -16,6 +16,7 @@ import { SetSpaceSettingsOp } from '@s4wave/core/space/world/ops/ops.pb.js'
 
 vi.mock('@s4wave/web/ui/toaster.js', () => ({
   toast: {
+    success: vi.fn(),
     error: vi.fn(),
   },
 }))
@@ -237,7 +238,7 @@ describe('SpaceObjectBrowser', () => {
           { objectKey: 'repo-1/worktree', objectType: 'git/worktree' },
         ],
       },
-      settings: { indexPath: 'repo-1' },
+      settings: { indexPath: 'repo-1', pluginIds: ['spacewave-app'] },
     }
     renderBrowser(gitState)
 
@@ -263,6 +264,7 @@ describe('SpaceObjectBrowser', () => {
     expect(settingsData).toBeInstanceOf(Uint8Array)
     const settingsOp = SetSpaceSettingsOp.fromBinary(settingsData as Uint8Array)
     expect(settingsOp.settings?.indexPath).toBe('myrepo')
+    expect(settingsOp.settings?.pluginIds).toEqual(['spacewave-app'])
   })
 
   it('anchors the context menu in document.body at the click position', async () => {

@@ -200,6 +200,52 @@ describe('ObjectViewer', () => {
     expect(screen.queryByText('Loading object')).toBeNull()
   })
 
+  it('leaves loading when a world object lookup transitions to missing', () => {
+    const objectInfo: ObjectInfo = {
+      info: {
+        case: 'worldObjectInfo',
+        value: {
+          objectKey: 'files',
+          objectType: '',
+        },
+      },
+    }
+    const worldState = buildWorldState({} as IWorldState)
+    mockUseObjectViewer.mockReturnValue(
+      buildViewerResult({
+        objectKey: 'files',
+        objectState: {
+          value: null,
+          loading: true,
+          error: null,
+          retry: vi.fn(),
+        },
+      }),
+    )
+
+    const { rerender } = render(
+      <ObjectViewer objectInfo={objectInfo} worldState={worldState} />,
+    )
+
+    expect(screen.getByText('Loading object')).toBeDefined()
+    mockUseObjectViewer.mockReturnValue(
+      buildViewerResult({
+        objectKey: 'files',
+        objectState: {
+          value: null,
+          loading: false,
+          error: null,
+          retry: vi.fn(),
+        },
+      }),
+    )
+
+    rerender(<ObjectViewer objectInfo={objectInfo} worldState={worldState} />)
+
+    expect(screen.getByText('Object not found')).toBeDefined()
+    expect(screen.queryByText('Loading object')).toBeNull()
+  })
+
   it('does not use standalone mode when the selected viewer disables padding', () => {
     mockUseObjectViewer.mockReturnValue(
       buildViewerResult({

@@ -6,15 +6,13 @@ import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { CreateGitRepoWizardOp } from '@s4wave/core/git/git.pb.js'
-import { SetSpaceSettingsOp } from '@s4wave/core/space/world/ops/ops.pb.js'
-import { SET_SPACE_SETTINGS_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
-import { SPACE_SETTINGS_OBJECT_KEY } from '@s4wave/core/space/world/world.js'
 import {
   GitCloneProgressState,
   type GitCloneProgress,
 } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 
 import { buildObjectKey } from '../space/create-op-builders.js'
+import { applySpaceIndexPath } from '../space/space-settings.js'
 import { useWizardState } from './useWizardState.js'
 import { WizardShell } from './WizardShell.js'
 
@@ -192,18 +190,10 @@ async function setSpaceIndex(
   ws: ReturnType<typeof useWizardState>,
   objectKey: string,
 ) {
-  const opData = SetSpaceSettingsOp.toBinary({
-    objectKey: SPACE_SETTINGS_OBJECT_KEY,
-    settings: {
-      ...(ws.spaceSettings ?? {}),
-      indexPath: objectKey,
-    },
-    overwrite: true,
-    timestamp: new Date(),
-  })
-  await ws.spaceWorld.applyWorldOp(
-    SET_SPACE_SETTINGS_OP_ID,
-    opData,
+  await applySpaceIndexPath(
+    ws.spaceWorld,
+    ws.spaceSettings,
+    objectKey,
     ws.sessionPeerId,
   )
 }

@@ -4,13 +4,10 @@ import { LuPencil, LuSettings } from 'react-icons/lu'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { ObjectKeySelector } from '@s4wave/web/ui/ObjectKeySelector.js'
-import { SetSpaceSettingsOp } from '@s4wave/core/space/world/ops/ops.pb.js'
-import { SET_SPACE_SETTINGS_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
-import { SPACE_SETTINGS_OBJECT_KEY } from '@s4wave/core/space/world/world.js'
-import type { SpaceSettings } from '@s4wave/core/space/world/world.pb.js'
 
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { buildObjectTree } from '@s4wave/web/space/object-tree.js'
+import { applySpaceIndexPath } from './space-settings.js'
 
 interface SpaceSettingsEditorProps {
   canEdit: boolean
@@ -40,17 +37,9 @@ export function SpaceSettingsEditor({
   const handleIndexPathChange = useCallback(
     async (newPath: string) => {
       if (!spaceWorld || newPath === indexPath) return
-      const settings: SpaceSettings = { indexPath: newPath }
-      const op: SetSpaceSettingsOp = {
-        objectKey: SPACE_SETTINGS_OBJECT_KEY,
-        settings,
-        overwrite: true,
-        timestamp: new Date(),
-      }
-      const opData = SetSpaceSettingsOp.toBinary(op)
-      await spaceWorld.applyWorldOp(SET_SPACE_SETTINGS_OP_ID, opData, '')
+      await applySpaceIndexPath(spaceWorld, spaceState.settings, newPath)
     },
-    [spaceWorld, indexPath],
+    [spaceWorld, spaceState.settings, indexPath],
   )
 
   const content = (

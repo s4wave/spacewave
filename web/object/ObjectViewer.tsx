@@ -99,9 +99,11 @@ export function ObjectViewer({
     )
   }, [
     viewer.typeID,
+    viewer.objectState.loading,
     viewer.objectState.value,
     viewer.selectedComponent,
     worldState,
+    worldState.value,
     objectInfo,
     routerPath,
     navigateHandler,

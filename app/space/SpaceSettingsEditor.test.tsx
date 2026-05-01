@@ -6,6 +6,7 @@ import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { SpaceSettingsEditor } from './SpaceSettingsEditor.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { SET_SPACE_SETTINGS_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
+import { SetSpaceSettingsOp } from '@s4wave/core/space/world/ops/ops.pb.js'
 import type { SpaceState } from '@s4wave/sdk/space/space.pb.js'
 import type { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
 
@@ -56,7 +57,7 @@ describe('SpaceSettingsEditor', () => {
         { objectKey: 'files', objectType: 'unixfs/fs-node' },
       ],
     },
-    settings: { indexPath: 'object-layout/main' },
+    settings: { indexPath: 'object-layout/main', pluginIds: ['spacewave-app'] },
   }
 
   function renderEditor(
@@ -170,6 +171,10 @@ describe('SpaceSettingsEditor', () => {
       expect.any(Uint8Array),
       '',
     )
+    const opData = vi.mocked(mockSpaceWorld.applyWorldOp).mock.calls[0]?.[1]
+    const op = SetSpaceSettingsOp.fromBinary(opData as Uint8Array)
+    expect(op.settings?.indexPath).toBe('new/path')
+    expect(op.settings?.pluginIds).toEqual(['spacewave-app'])
   })
 
   it('does not call applyWorldOp when new path matches current indexPath', async () => {

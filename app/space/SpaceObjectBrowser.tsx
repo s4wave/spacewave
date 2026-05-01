@@ -12,10 +12,6 @@ import {
   LuX,
 } from 'react-icons/lu'
 
-import { SetSpaceSettingsOp } from '@s4wave/core/space/world/ops/ops.pb.js'
-import { SET_SPACE_SETTINGS_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
-import { SPACE_SETTINGS_OBJECT_KEY } from '@s4wave/core/space/world/world.js'
-import type { SpaceSettings } from '@s4wave/core/space/world/world.pb.js'
 import { useOpenCommand } from '@s4wave/web/command/CommandContext.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import {
@@ -38,6 +34,7 @@ import { Input } from '@s4wave/web/ui/input.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import type { TreeNode } from '@s4wave/web/ui/tree/TreeNode.js'
 import { Tree } from '@s4wave/web/ui/tree/index.js'
+import { applySpaceIndexPath } from './space-settings.js'
 
 export interface SpaceObjectBrowserProps {
   embedded?: boolean
@@ -84,17 +81,10 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
 
   const setAsIndex = useCallback(
     async (objectKey: string) => {
-      const settings: SpaceSettings = { indexPath: objectKey }
-      const op: SetSpaceSettingsOp = {
-        objectKey: SPACE_SETTINGS_OBJECT_KEY,
-        settings,
-        overwrite: true,
-        timestamp: new Date(),
-      }
-      const opData = SetSpaceSettingsOp.toBinary(op)
-      await spaceWorld.applyWorldOp(SET_SPACE_SETTINGS_OP_ID, opData, '')
+      await applySpaceIndexPath(spaceWorld, spaceState.settings, objectKey)
+      toast.success(`Default object set to ${objectKey}`)
     },
-    [spaceWorld],
+    [spaceWorld, spaceState.settings],
   )
 
   const handleSetAsIndexClick = useCallback(
@@ -126,7 +116,10 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
               icon: (
                 <LuHouse className={cn('h-3 w-3', isIndex && 'opacity-30')} />
               ),
-              tooltip: isIndex ? 'Already index' : 'Set as Index',
+              tooltip:
+                isIndex ?
+                  'This object is the default object already'
+                : 'Set as Index',
               onClick: isIndex ? undefined : () => handleSetAsIndexClick(key),
             },
           ]
