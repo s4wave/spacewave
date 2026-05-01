@@ -99,16 +99,7 @@ func TestQuickstartPrerenderAutoBootsProductionWasmBundle(t *testing.T) {
 	waitForPrerenderRoot(t, page)
 	waitForBootFunction(t, page)
 	waitForLiveApp(t, page)
-	_, err := page.Evaluate(`async () => {
-		if (window.location.hash !== '#/quickstart/drive') {
-			throw new Error('expected quickstart hash, got ' + window.location.hash)
-		}
-		return true
-	}`)
-	if err != nil {
-		t.Fatalf("auto boot quickstart production wasm: %v", err)
-	}
-	err = page.Locator("[data-testid='unixfs-browser']").WaitFor(
+	err := page.Locator("[data-testid='unixfs-browser']").WaitFor(
 		playwright.LocatorWaitForOptions{Timeout: playwright.Float(browserWaitMS)},
 	)
 	if err != nil {

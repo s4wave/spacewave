@@ -86,6 +86,8 @@ export const QUICKSTART_OPTIONS = [
     id: 'notebook',
     name: 'Create a Notebook',
     description: 'Markdown notes with folders, tags, and sync',
+    seoDescription:
+      'Create a Spacewave Notebook for markdown notes, folders, tags, and local-first writing that stays private while syncing across your own devices.',
     category: 'storage',
     icon: LuNotebookPen,
     experimental: true,
@@ -103,6 +105,8 @@ export const QUICKSTART_OPTIONS = [
     id: 'chat',
     name: 'Start a Chat',
     description: 'Create a space with a chat channel',
+    seoDescription:
+      'Start a Spacewave Chat with an encrypted channel for local-first group messaging, shared history, and private collaboration across your devices.',
     category: 'social',
     icon: LuMessageSquare,
     experimental: true,
@@ -111,6 +115,8 @@ export const QUICKSTART_OPTIONS = [
     id: 'docs',
     name: 'Create Documentation',
     description: 'Markdown documentation site',
+    seoDescription:
+      'Create Spacewave Documentation as a markdown site with organized pages, local-first editing, and browser-native publishing from your workspace.',
     category: 'content',
     icon: LuBookOpen,
     experimental: true,
@@ -119,6 +125,8 @@ export const QUICKSTART_OPTIONS = [
     id: 'blog',
     name: 'Create a Blog',
     description: 'Date-based markdown blog',
+    seoDescription:
+      'Create a Spacewave Blog with dated markdown posts, tags, local-first editing, and static publishing from a private browser workspace.',
     category: 'content',
     icon: LuPenLine,
     experimental: true,
@@ -127,6 +135,8 @@ export const QUICKSTART_OPTIONS = [
     id: 'v86',
     name: 'Create a V86 VM',
     description: 'x86 virtual machine in the browser',
+    seoDescription:
+      'Create a Spacewave V86 virtual machine workspace that runs x86 environments in the browser for portable experiments and development.',
     category: 'compute',
     icon: LuMonitor,
     experimental: true,
@@ -135,6 +145,8 @@ export const QUICKSTART_OPTIONS = [
     id: 'forge',
     name: 'Create Forge Dashboard',
     description: 'Task orchestration dashboard',
+    seoDescription:
+      'Create a Spacewave Forge dashboard for task orchestration, worker coordination, and local-first project automation from your browser.',
     category: 'tools',
     icon: LuHammer,
     experimental: true,
