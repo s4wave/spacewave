@@ -10,6 +10,7 @@ import type {
 // CanvasMutation represents a pending canvas state change.
 interface CanvasMutation {
   seq: number
+  serverVersion: number
   setNodes?: Map<string, CanvasNodeData>
   removeNodeIds?: string[]
   addEdges?: CanvasEdgeData[]
@@ -126,12 +127,14 @@ export function useCanvasMutationQueue(
   onError?: (err: unknown) => void,
 ): MutationQueueResult {
   const nextSeqRef = useRef(0)
+  const serverVersionRef = useRef(0)
   const queueRef = useRef<CanvasMutation[]>([])
   const confirmedSeqs = useRef(new Set<number>())
   const [version, setVersion] = useState(0)
 
   // When server state updates, drop confirmed mutations.
   useEffect(() => {
+    serverVersionRef.current++
     if (!serverState || confirmedSeqs.current.size === 0) return
 
     const confirmed = confirmedSeqs.current
@@ -149,18 +152,32 @@ export function useCanvasMutationQueue(
   sendRef.current = sendMutation
 
   const enqueue = useCallback(
-    (mutation: Omit<CanvasMutation, 'seq'>) => {
+    (mutation: Omit<CanvasMutation, 'seq' | 'serverVersion'>) => {
       const send = sendRef.current
       if (!send) return
 
       const seq = nextSeqRef.current++
-      const full: CanvasMutation = { ...mutation, seq }
+      const full: CanvasMutation = {
+        ...mutation,
+        seq,
+        serverVersion: serverVersionRef.current,
+      }
       queueRef.current = [...queueRef.current, full]
       setVersion((v) => v + 1)
 
       void send(mutation).then(
         () => {
           confirmedSeqs.current.add(seq)
+          const prev = queueRef.current
+          const next = prev.filter((m) => {
+            if (m.seq !== seq) return true
+            return serverVersionRef.current <= m.serverVersion
+          })
+          if (next.length !== prev.length) {
+            queueRef.current = next
+            confirmedSeqs.current.delete(seq)
+            setVersion((v) => v + 1)
+          }
         },
         (err) => {
           // On failure, remove this mutation from queue.

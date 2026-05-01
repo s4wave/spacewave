@@ -308,6 +308,42 @@ describe('useCanvasMutationQueue', () => {
     expect(result.current.effectiveState.nodes.get('a')?.x).toBe(50)
   })
 
+  it('drops a confirmed mutation when server state already updated', async () => {
+    const state1 = makeState([['a', makeNode({ id: 'a', x: 10 })]])
+    let resolveSend: () => void
+    const send = vi.fn().mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveSend = resolve
+        }),
+    )
+
+    const { result, rerender } = renderHook(
+      ({ serverState }) => useCanvasMutationQueue(serverState, send),
+      { initialProps: { serverState: state1 } },
+    )
+
+    act(() => {
+      result.current.enqueueNodesChange(
+        new Map([['a', makeNode({ id: 'a', x: 50 })]]),
+      )
+    })
+    expect(result.current.pending).toBe(1)
+
+    rerender({
+      serverState: makeState([['a', makeNode({ id: 'a', x: 50 })]]),
+    })
+    expect(result.current.pending).toBe(1)
+
+    await act(async () => {
+      resolveSend!()
+      await Promise.resolve()
+    })
+
+    expect(result.current.pending).toBe(0)
+    expect(result.current.effectiveState.nodes.get('a')?.x).toBe(50)
+  })
+
   it('removes mutation from queue on RPC failure', async () => {
     const state = makeState([['a', makeNode({ id: 'a', x: 10 })]])
     const onError = vi.fn()

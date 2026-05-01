@@ -46,6 +46,11 @@ export const CanvasTypeID = 'canvas'
 
 const graphLinkLookupLimit = 100
 
+function isAbortError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false
+  return err.name === 'AbortError' || err.message === 'ERR_RPC_ABORT'
+}
+
 // protoNodeTypeToCanvas converts proto NodeType to canvas NodeType.
 function protoNodeTypeToCanvas(t: NodeType): CanvasNodeType {
   switch (t) {
@@ -344,7 +349,10 @@ export function CanvasViewer({
             setEphemeralEdges(edges)
           })
         }
-      })()
+      })().catch((err: unknown) => {
+        if (signal.aborted || isAbortError(err)) return
+        throw err
+      })
     },
     [
       worldState.value,
