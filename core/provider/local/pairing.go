@@ -54,12 +54,12 @@ func (a *ProviderAccount) GeneratePairingCode(
 	body, err := (&api.PairingRequest{
 		Code:   code,
 		PeerId: sessionPeerID.String(),
-	}).MarshalJSON()
+	}).MarshalVT()
 	if err != nil {
 		return "", errors.Wrap(err, "marshal pairing request")
 	}
 
-	reqURL, err := url.JoinPath(relayURL, "/pair")
+	reqURL, err := url.JoinPath(relayURL, "/api/pair")
 	if err != nil {
 		return "", errors.Wrap(err, "build pairing URL")
 	}
@@ -68,7 +68,7 @@ func (a *ProviderAccount) GeneratePairingCode(
 	if err != nil {
 		return "", errors.Wrap(err, "create pairing request")
 	}
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", "application/octet-stream")
 
 	if err := transport.SignHTTPRequest(req, body, sessionPriv, sessionPeerID, ""); err != nil {
 		return "", errors.Wrap(err, "sign pairing request")
@@ -106,7 +106,7 @@ func (a *ProviderAccount) CompletePairing(
 		return "", errors.Wrap(err, "start session transport")
 	}
 
-	reqURL, err := url.JoinPath(relayURL, "/pair", code)
+	reqURL, err := url.JoinPath(relayURL, "/api/pair", code)
 	if err != nil {
 		return "", errors.Wrap(err, "build pairing URL")
 	}
@@ -132,7 +132,7 @@ func (a *ProviderAccount) CompletePairing(
 	}
 
 	var pr api.PairingResponse
-	if err := pr.UnmarshalJSON(respBody); err != nil {
+	if err := pr.UnmarshalVT(respBody); err != nil {
 		return "", errors.Wrap(err, "unmarshal pairing response")
 	}
 

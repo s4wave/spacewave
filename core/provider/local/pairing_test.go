@@ -2,6 +2,7 @@ package provider_local_test
 
 import (
 	"crypto/rand"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -13,17 +14,39 @@ import (
 )
 
 // newPairingRelayServer creates a test HTTP server that handles pairing
-// relay requests. POST /pair returns 201. GET /pair/<code> returns the
-// given remotePeerID.
+// relay requests. POST /api/pair returns 201. GET /api/pair/<code> returns
+// the given remotePeerID.
 func newPairingRelayServer(remotePeerID peer.ID) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodPost:
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/pair":
+			if ct := r.Header.Get("Content-Type"); ct != "application/octet-stream" {
+				t := http.StatusUnsupportedMediaType
+				http.Error(w, http.StatusText(t), t)
+				return
+			}
+			var req api.PairingRequest
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				t := http.StatusBadRequest
+				http.Error(w, http.StatusText(t), t)
+				return
+			}
+			if err := req.UnmarshalVT(body); err != nil {
+				t := http.StatusBadRequest
+				http.Error(w, http.StatusText(t), t)
+				return
+			}
+			if req.GetCode() == "" || req.GetPeerId() == "" {
+				t := http.StatusBadRequest
+				http.Error(w, http.StatusText(t), t)
+				return
+			}
 			w.WriteHeader(http.StatusCreated)
-		case http.MethodGet:
+		case r.Method == http.MethodGet && r.URL.Path == "/api/pair/TESTCODE":
 			resp := &api.PairingResponse{PeerId: remotePeerID.String()}
-			data, _ := resp.MarshalJSON()
-			w.Header().Set("Content-Type", "application/json")
+			data, _ := resp.MarshalVT()
+			w.Header().Set("Content-Type", "application/octet-stream")
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write(data)
 		default:
