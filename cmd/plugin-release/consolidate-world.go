@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -51,6 +52,13 @@ func (w *worldFlag) Set(v string) error {
 type mountedWorld struct {
 	vol volume.Volume
 	ws  world.WorldState
+}
+
+type manifestInventoryEntry struct {
+	manifestID string
+	platformID string
+	rev        uint64
+	ref        string
 }
 
 func runConsolidateWorld(args []string) error {
@@ -331,4 +339,95 @@ func copyWorldManifests(
 		}
 	}
 	return nil
+}
+
+func runManifestInventory(args []string) error {
+	fs := flag.NewFlagSet("manifest-inventory", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+
+	var worldPath string
+	var outPath string
+	if err := func() error {
+		fs.StringVar(&worldPath, "world", "", "path to devtool.s4wave")
+		fs.StringVar(&outPath, "out", "", "path to the output JSON inventory")
+		return fs.Parse(args)
+	}(); err != nil {
+		return errors.Wrap(err, "parse flags")
+	}
+	if worldPath == "" || outPath == "" {
+		return errors.New("usage: plugin-release manifest-inventory --world /path/to/devtool.s4wave --out /path/to/manifest-refs.json")
+	}
+
+	log := logrus.New()
+	le := logrus.NewEntry(log)
+	ctx := context.Background()
+	src, err := openDevtoolWorld(ctx, le, worldPath)
+	if err != nil {
+		return err
+	}
+	defer src.vol.Close()
+
+	entries, err := collectManifestInventory(ctx, src.ws)
+	if err != nil {
+		return err
+	}
+	data := marshalManifestInventory(entries)
+	if err := os.MkdirAll(filepath.Dir(outPath), 0o755); err != nil {
+		return errors.Wrap(err, "mkdir inventory dir")
+	}
+	return os.WriteFile(outPath, []byte(data), 0o644)
+}
+
+func collectManifestInventory(ctx context.Context, ws world.WorldState) ([]manifestInventoryEntry, error) {
+	manifests, manifestErrs, err := bldr_manifest_world.CollectManifests(ctx, ws, nil, devtoolPluginHostKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "collect manifests")
+	}
+	if len(manifestErrs) != 0 {
+		return nil, errors.Wrap(manifestErrs[0], "collect manifest")
+	}
+	var out []manifestInventoryEntry
+	for _, list := range manifests {
+		for _, manifest := range list {
+			meta := manifest.Manifest.GetMeta()
+			out = append(out, manifestInventoryEntry{
+				manifestID: meta.GetManifestId(),
+				platformID: meta.GetPlatformId(),
+				rev:        meta.GetRev(),
+				ref:        manifest.ManifestRef.MarshalString(),
+			})
+		}
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].manifestID != out[j].manifestID {
+			return out[i].manifestID < out[j].manifestID
+		}
+		if out[i].platformID != out[j].platformID {
+			return out[i].platformID < out[j].platformID
+		}
+		return out[i].rev < out[j].rev
+	})
+	return out, nil
+}
+
+func marshalManifestInventory(entries []manifestInventoryEntry) string {
+	var sb strings.Builder
+	sb.WriteString("[\n")
+	for i, entry := range entries {
+		if i != 0 {
+			sb.WriteString(",\n")
+		}
+		sb.WriteString("  {")
+		sb.WriteString("\"manifest_id\":")
+		sb.WriteString(strconv.Quote(entry.manifestID))
+		sb.WriteString(",\"platform_id\":")
+		sb.WriteString(strconv.Quote(entry.platformID))
+		sb.WriteString(",\"rev\":")
+		sb.WriteString(strconv.FormatUint(entry.rev, 10))
+		sb.WriteString(",\"ref\":")
+		sb.WriteString(strconv.Quote(entry.ref))
+		sb.WriteString("}")
+	}
+	sb.WriteString("\n]\n")
+	return sb.String()
 }

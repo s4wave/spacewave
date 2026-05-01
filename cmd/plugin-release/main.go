@@ -39,6 +39,8 @@ func run() error {
 		return runExportKVFile(os.Args[2:])
 	case "consolidate-world":
 		return runConsolidateWorld(os.Args[2:])
+	case "manifest-inventory":
+		return runManifestInventory(os.Args[2:])
 	default:
 		return errors.Errorf("unknown command %q", os.Args[1])
 	}

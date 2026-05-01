@@ -15,6 +15,11 @@ on:
         description: immutable plugin channel revision (defaults to commit sha)
         required: false
         type: string
+      selection:
+        description: plugin release selection
+        required: false
+        type: string
+        default: everything
 
 concurrency:
   group: plugin-release-${{ inputs.environment }}
@@ -31,6 +36,11 @@ jobs:
     outputs:
       environment_name: ${{ steps.vars.outputs.environment_name }}
       plugin_rev: ${{ steps.vars.outputs.plugin_rev }}
+      selection: ${{ steps.vars.outputs.selection }}
+      include_browser: ${{ steps.vars.outputs.include_browser }}
+      include_macos: ${{ steps.vars.outputs.include_macos }}
+      include_windows: ${{ steps.vars.outputs.include_windows }}
+      include_linux: ${{ steps.vars.outputs.include_linux }}
     steps:
       - id: vars
         shell: bash
@@ -38,9 +48,14 @@ jobs:
           set -euo pipefail
           requested_environment="${{ inputs.environment }}"
           requested_rev="${{ inputs.plugin_rev }}"
+          requested_selection="${{ inputs.selection }}"
           if [[ -z "${requested_rev}" ]]; then
             requested_rev="${GITHUB_SHA}"
           fi
+          if [[ -z "${requested_selection}" ]]; then
+            requested_selection="everything"
+          fi
+          source <(./scripts/release/check-plugin-selection.sh "${requested_selection}")
           if [[ "${requested_environment}" == "production" ]]; then
             environment_name="plugin-production"
             expected_ref="refs/heads/release"
@@ -54,9 +69,15 @@ jobs:
           fi
           echo "environment_name=${environment_name}" >> "${GITHUB_OUTPUT}"
           echo "plugin_rev=${requested_rev}" >> "${GITHUB_OUTPUT}"
+          echo "selection=${requested_selection}" >> "${GITHUB_OUTPUT}"
+          echo "include_browser=${include_browser}" >> "${GITHUB_OUTPUT}"
+          echo "include_macos=${include_macos}" >> "${GITHUB_OUTPUT}"
+          echo "include_windows=${include_windows}" >> "${GITHUB_OUTPUT}"
+          echo "include_linux=${include_linux}" >> "${GITHUB_OUTPUT}"
 
   browser:
     needs: prep
+    if: needs.prep.outputs.include_browser == 'true'
     runs-on: ubuntu-latest
     environment: ${{ needs.prep.outputs.environment_name }}
     steps:
@@ -94,6 +115,7 @@ jobs:
 
   native-macos:
     needs: prep
+    if: needs.prep.outputs.include_macos == 'true'
     runs-on: macos-15
     environment: ${{ needs.prep.outputs.environment_name }}
     steps:
@@ -185,6 +207,7 @@ jobs:
 
   native-windows:
     needs: prep
+    if: needs.prep.outputs.include_windows == 'true'
     runs-on: windows-2025
     environment: ${{ needs.prep.outputs.environment_name }}
     env:
@@ -352,6 +375,7 @@ jobs:
 
   native-linux:
     needs: prep
+    if: needs.prep.outputs.include_linux == 'true'
     runs-on: ubuntu-latest
     environment: ${{ needs.prep.outputs.environment_name }}
     steps:
@@ -410,6 +434,7 @@ jobs:
       - native-macos
       - native-windows
       - native-linux
+    if: always() && needs.prep.result == 'success'
     runs-on: ubuntu-latest
     environment: ${{ needs.prep.outputs.environment_name }}
     steps:
@@ -423,24 +448,28 @@ jobs:
           cache: true
 
       - name: Download browser plugin world state
+        if: needs.prep.outputs.include_browser == 'true'
         uses: actions/download-artifact@v8
         with:
           name: plugin-world-browser
           path: .tmp/plugin-worlds/browser
 
       - name: Download macOS plugin world state
+        if: needs.prep.outputs.include_macos == 'true'
         uses: actions/download-artifact@v8
         with:
           name: plugin-world-macos
           path: .tmp/plugin-worlds/macos
 
       - name: Download Windows plugin world state
+        if: needs.prep.outputs.include_windows == 'true'
         uses: actions/download-artifact@v8
         with:
           name: plugin-world-windows
           path: .tmp/plugin-worlds/windows
 
       - name: Download Linux plugin world state
+        if: needs.prep.outputs.include_linux == 'true'
         uses: actions/download-artifact@v8
         with:
           name: plugin-world-linux
@@ -451,26 +480,35 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p .bldr
-          go run ./cmd/plugin-release consolidate-world \
-            --out .bldr/devtool.s4wave \
-            --world .tmp/plugin-worlds/browser/devtool.s4wave \
-            --world .tmp/plugin-worlds/macos/devtool.s4wave \
-            --world .tmp/plugin-worlds/windows/devtool.s4wave \
-            --world .tmp/plugin-worlds/linux/devtool.s4wave
+          args=(--out .bldr/devtool.s4wave)
+          while IFS= read -r world_path; do
+            args+=(--world "${world_path}")
+          done < <(find .tmp/plugin-worlds -name devtool.s4wave -type f | sort)
+          if [[ "${#args[@]}" -eq 2 ]]; then
+            echo "no plugin worlds selected" >&2
+            exit 1
+          fi
+          go run ./cmd/plugin-release consolidate-world "${args[@]}"
+          go run ./cmd/plugin-release manifest-inventory \
+            --world .bldr/devtool.s4wave \
+            --out .tmp/plugin-handoff-manifest-refs.json
 
       - name: Download macOS native plugin artifacts
+        if: needs.prep.outputs.include_macos == 'true'
         uses: actions/download-artifact@v8
         with:
           name: plugin-native-darwin
           path: .tmp/native-artifacts/darwin
 
       - name: Download Windows native plugin artifacts
+        if: needs.prep.outputs.include_windows == 'true'
         uses: actions/download-artifact@v8
         with:
           name: plugin-native-windows
           path: .tmp/native-artifacts/windows
 
       - name: Download Linux native plugin artifacts
+        if: needs.prep.outputs.include_linux == 'true'
         uses: actions/download-artifact@v8
         with:
           name: plugin-native-linux
@@ -483,9 +521,12 @@ jobs:
           rm -rf .tmp/plugin-handoff
           mkdir -p .tmp/plugin-handoff/native
           cp .bldr/devtool.s4wave .tmp/plugin-handoff/devtool.s4wave
-          cp -R .tmp/native-artifacts/darwin .tmp/plugin-handoff/native/darwin
-          cp -R .tmp/native-artifacts/windows .tmp/plugin-handoff/native/windows
-          cp -R .tmp/native-artifacts/linux .tmp/plugin-handoff/native/linux
+          cp .tmp/plugin-handoff-manifest-refs.json .tmp/plugin-handoff/manifest-refs.json
+          for platform in darwin windows linux; do
+            if [[ -d ".tmp/native-artifacts/${platform}" ]]; then
+              cp -R ".tmp/native-artifacts/${platform}" ".tmp/plugin-handoff/native/${platform}"
+            fi
+          done
 
       - name: Build plugin handoff manifest
         shell: bash
@@ -499,6 +540,7 @@ jobs:
 
           root = Path(".tmp/plugin-handoff/native")
           world_path = Path(".tmp/plugin-handoff/devtool.s4wave")
+          manifest_refs = json.loads(Path(".tmp/plugin-handoff/manifest-refs.json").read_text(encoding="utf-8"))
 
           def sha256(path: Path) -> str:
               h = hashlib.sha256()
@@ -526,11 +568,19 @@ jobs:
               "format": "plugin-handoff.v1",
               "plugin_rev": "${{ needs.prep.outputs.plugin_rev }}",
               "release_environment": "${{ needs.prep.outputs.environment_name }}",
+              "requested_selection": "${{ needs.prep.outputs.selection }}",
               "git_sha": os.environ["GITHUB_SHA"],
               "run_id": os.environ["GITHUB_RUN_ID"],
               "run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
               "source_repo": os.environ["GITHUB_REPOSITORY"],
               "workflow": os.environ["GITHUB_WORKFLOW"],
+              "produced_surfaces": {
+                  "browser": "${{ needs.prep.outputs.include_browser }}" == "true",
+                  "macos": "${{ needs.prep.outputs.include_macos }}" == "true",
+                  "windows": "${{ needs.prep.outputs.include_windows }}" == "true",
+                  "linux": "${{ needs.prep.outputs.include_linux }}" == "true",
+              },
+              "manifest_refs": manifest_refs,
               "world": {
                   "path": "devtool.s4wave",
                   "sha256": sha256(world_path),
