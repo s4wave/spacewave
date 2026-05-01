@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   LuArrowRight,
   LuCircleAlert,
@@ -63,9 +63,7 @@ function SessionSelfEnrollmentInterstitialContent({
   const [unlockOpen, setUnlockOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const autoStartKeyRef = useRef<string | null>(null)
-  const [initialCount] = useState(
-    onboarding?.sessionSelfEnrollmentCount ?? 0,
-  )
+  const [initialCount] = useState(onboarding?.sessionSelfEnrollmentCount ?? 0)
   const [, setSelfEnrollmentSkip] = useStateAtom(
     null,
     selfEnrollmentSkipAtomKey,
@@ -131,21 +129,26 @@ function SessionSelfEnrollmentInterstitialContent({
     !actionError &&
     (state.value?.running || (authReady && !isComplete && !hasFailures))
   const progressKnown = !!state.value
+  const stateRef = useRef(state)
+  useEffect(() => {
+    stateRef.current = state
+  })
+  const stateLoaded = !!state.value
   useAbortSignalEffect(
     (signal) => {
       if (
         !authReady ||
         !generationKey ||
-        autoStartKeyRef.current === generationKey
+        autoStartKeyRef.current === generationKey ||
+        !enrollment.value ||
+        !stateLoaded
       ) {
         return
       }
-      if (
-        !enrollment.value ||
-        !state.value ||
-        state.value.running ||
-        count === 0
-      ) {
+      const stateValue = stateRef.current.value
+      const currentCount =
+        stateValue?.count ?? onboarding?.sessionSelfEnrollmentCount ?? 0
+      if (!stateValue || stateValue.running || currentCount === 0) {
         return
       }
       autoStartKeyRef.current = generationKey
@@ -154,7 +157,7 @@ function SessionSelfEnrollmentInterstitialContent({
         setActionError(err instanceof Error ? err.message : String(err))
       })
     },
-    [authReady, count, enrollment.value, generationKey, state.value],
+    [authReady, enrollment.value, generationKey, stateLoaded],
   )
 
   const handleUnlockConfirm = useCallback(async () => {

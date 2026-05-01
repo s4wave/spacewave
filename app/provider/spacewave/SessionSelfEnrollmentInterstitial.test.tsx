@@ -24,8 +24,13 @@ interface MockOnboarding {
 }
 
 const mockNavigateSession = vi.hoisted(() => vi.fn())
-const mockStart = vi.hoisted(() => vi.fn(() => Promise.resolve({})))
-const mockSkip = vi.hoisted(() => vi.fn(() => Promise.resolve({})))
+const mockEnrollment = vi.hoisted(() => ({
+  start: vi.fn((_signal?: AbortSignal) => Promise.resolve({})),
+  skip: vi.fn((_generationKey: string) => Promise.resolve({})),
+  watchState: vi.fn(),
+}))
+const mockStart = mockEnrollment.start
+const mockSkip = mockEnrollment.skip
 const mockSetSkip = vi.hoisted(() => vi.fn())
 const mockState = vi.hoisted<{
   value: WatchSharedObjectSelfEnrollmentStateResponse | undefined
@@ -97,11 +102,7 @@ vi.mock('@aptre/bldr-sdk/hooks/useResource.js', () => ({
       }
     }
     return {
-      value: {
-        start: mockStart,
-        skip: mockSkip,
-        watchState: vi.fn(),
-      },
+      value: mockEnrollment,
       loading: false,
       error: null,
       retry: vi.fn(),
@@ -308,5 +309,52 @@ describe('SessionSelfEnrollmentInterstitial', () => {
     expect(screen.queryByText('Unlock and continue')).toBeNull()
     expect(screen.queryByText('Skip for now')).toBeNull()
     await waitFor(() => expect(mockStart).toHaveBeenCalledTimes(1))
+  })
+
+  it('does not abort the start signal on intermediate stream updates', async () => {
+    mockOnboarding.value = {
+      sessionSelfEnrollmentCount: 3,
+      sessionSelfEnrollmentGenerationKey: 'gen-1',
+    }
+    mockState.value = {
+      count: 3,
+      generationKey: 'gen-1',
+      running: false,
+      completedSharedObjectIds: [],
+      failures: [],
+    }
+    mockAccountState.entityKeypairs.value = {
+      keypairs: [{ keypair: { peerId: 'peer-1' }, unlocked: true }],
+      unlockedCount: 1,
+    }
+
+    const { rerender } = render(<SessionSelfEnrollmentInterstitial />)
+    await waitFor(() => expect(mockStart).toHaveBeenCalledTimes(1))
+    const signal = mockStart.mock.calls[0]?.[0]
+    expect(signal?.aborted).toBe(false)
+
+    mockState.value = {
+      count: 3,
+      generationKey: 'gen-1',
+      running: true,
+      currentSharedObjectId: 'space-1',
+      completedSharedObjectIds: [],
+      failures: [],
+    }
+    rerender(<SessionSelfEnrollmentInterstitial />)
+    expect(mockStart).toHaveBeenCalledTimes(1)
+    expect(signal?.aborted).toBe(false)
+
+    mockState.value = {
+      count: 2,
+      generationKey: 'gen-1',
+      running: true,
+      currentSharedObjectId: 'space-2',
+      completedSharedObjectIds: ['space-1'],
+      failures: [],
+    }
+    rerender(<SessionSelfEnrollmentInterstitial />)
+    expect(mockStart).toHaveBeenCalledTimes(1)
+    expect(signal?.aborted).toBe(false)
   })
 })
