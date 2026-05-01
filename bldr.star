@@ -125,7 +125,7 @@ manifest("spacewave-launcher",
             }),
             "release-world": config_entry("spacewave/cdn/world", 1, {
                 "engineId": "spacewave-release-world",
-                "spaceId": "01kqdabsd6m6npwr5dyzmt8t0e",
+                "spaceId": "01kqjmfxd44r7ggrq78efad3d2",
                 "cdnBaseUrl": "https://cdn.spacewave.app",
             }),
             "release-world-ops": config_entry("space/world/ops", 1, {
