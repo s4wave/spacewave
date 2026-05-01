@@ -357,4 +357,39 @@ describe('SessionSelfEnrollmentInterstitial', () => {
     expect(mockStart).toHaveBeenCalledTimes(1)
     expect(signal?.aborted).toBe(false)
   })
+
+  it('shows retry controls when an auto-started run stops before all spaces connect', async () => {
+    mockOnboarding.value = {
+      sessionSelfEnrollmentCount: 3,
+      sessionSelfEnrollmentGenerationKey: 'gen-1',
+    }
+    mockState.value = {
+      count: 3,
+      generationKey: 'gen-1',
+      running: false,
+      completedSharedObjectIds: [],
+      failures: [],
+    }
+    mockAccountState.entityKeypairs.value = {
+      keypairs: [{ keypair: { peerId: 'peer-1' }, unlocked: true }],
+      unlockedCount: 1,
+    }
+
+    const { rerender } = render(<SessionSelfEnrollmentInterstitial />)
+    await waitFor(() => expect(mockStart).toHaveBeenCalledTimes(1))
+
+    mockState.value = {
+      count: 3,
+      generationKey: 'gen-1',
+      running: false,
+      completedSharedObjectIds: ['space-1', 'space-2'],
+      failures: [],
+    }
+    rerender(<SessionSelfEnrollmentInterstitial />)
+
+    expect(screen.queryByText('Connecting to 3 spaces')).toBeNull()
+    expect(screen.queryByText('2/3')).toBeNull()
+    expect(screen.getByText('Unlock and continue')).toBeTruthy()
+    expect(screen.getByText('Skip for now')).toBeTruthy()
+  })
 })

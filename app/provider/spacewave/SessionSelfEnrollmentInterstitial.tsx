@@ -125,9 +125,18 @@ function SessionSelfEnrollmentInterstitialContent({
   const unlockedSigners = escalation?.state.requirement?.unlockedSigners ?? 0
   const authReady =
     !!accountState && !escalation?.loading && unlockedSigners >= requiredSigners
+  const autoStartAttempted =
+    !!generationKey && autoStartKeyRef.current === generationKey
+  const stoppedIncompleteRun =
+    !!state.value &&
+    !state.value.running &&
+    count > 0 &&
+    !hasFailures &&
+    autoStartAttempted
   const showProgress =
     !actionError &&
-    (state.value?.running || (authReady && !isComplete && !hasFailures))
+    (state.value?.running ||
+      (authReady && !isComplete && !hasFailures && !stoppedIncompleteRun))
   const progressKnown = !!state.value
   const stateRef = useRef(state)
   useEffect(() => {

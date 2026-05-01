@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/s4wave/spacewave/core/cdn"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/kvtx/hashmap"
@@ -79,6 +80,28 @@ func TestSelfEnrollmentEnumeratorLoadedWhenAllEntriesEvaluated(t *testing.T) {
 	}
 	if got.count != 1 || len(got.ids) != 1 || got.ids[0] != "needs" {
 		t.Fatalf("summary = %+v, want one needs entry", got)
+	}
+}
+
+func TestSelfEnrollmentEnumeratorSkipsPublicCDNSpace(t *testing.T) {
+	_, sessionPID, _ := generateEntityKey(t)
+	acc := &ProviderAccount{
+		accountID: "acct-1",
+		objStore:  hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]()),
+	}
+	list := &sobject.SharedObjectList{SharedObjects: []*sobject.SharedObjectListEntry{
+		selfEnrollmentListEntry(cdn.SpaceID()),
+		selfEnrollmentListEntry("needs"),
+	}}
+	writeSelfEnrollmentCache(t, acc, cdn.SpaceID(), "acct-1", "", sobject.SOParticipantRole_SOParticipantRole_READER)
+	writeSelfEnrollmentCache(t, acc, "needs", "acct-1", "", sobject.SOParticipantRole_SOParticipantRole_READER)
+
+	got, err := acc.enumerateSelfEnrollmentCandidates(context.Background(), list, sessionPID, "acct-1")
+	if err != nil {
+		t.Fatalf("enumerate: %v", err)
+	}
+	if got.count != 1 || len(got.ids) != 1 || got.ids[0] != "needs" {
+		t.Fatalf("summary = %+v, want only regular space", got)
 	}
 }
 

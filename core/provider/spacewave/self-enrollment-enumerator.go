@@ -6,6 +6,8 @@ import (
 	"encoding/hex"
 	"slices"
 
+	"github.com/s4wave/spacewave/core/cdn"
+	cdn_sharedobject "github.com/s4wave/spacewave/core/cdn/sharedobject"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/net/peer"
 )
@@ -198,15 +200,16 @@ func equalSelfEnrollmentSummary(a, b *SelfEnrollmentSummary) bool {
 func (a *ProviderAccount) isSelfEnrollmentExcludedSharedObject(
 	entry *sobject.SharedObjectListEntry,
 ) bool {
-	if entry.GetMeta().GetBodyType() == "cdn" {
-		return true
-	}
 	ref := entry.GetRef()
 	if ref == nil || ref.GetProviderResourceRef() == nil {
 		return true
 	}
 	soID := ref.GetProviderResourceRef().GetId()
-	if soID == "" {
+	if soID == "" || soID == cdn.SpaceID() {
+		return true
+	}
+	bodyType := entry.GetMeta().GetBodyType()
+	if bodyType == cdn_sharedobject.CdnBodyType || bodyType == "cdn" {
 		return true
 	}
 	metadata, status := a.getSharedObjectMetadataSnapshot(soID)
