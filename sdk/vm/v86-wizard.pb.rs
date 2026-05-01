@@ -15,13 +15,13 @@ pub struct V86WizardConfig {
     /// Networking enables network support.
     #[prost(bool, tag="4")]
     pub networking: bool,
-    /// ImageObjectKey is the target VmImage object key for finalize.
+    /// ImageObjectKey is the target V86Image object key for finalize.
     #[prost(string, tag="5")]
     pub image_object_key: ::prost::alloc::string::String,
-    /// Source selects where the VmImage comes from.
+    /// Source selects where the V86Image comes from.
     #[prost(enumeration="v86_wizard_config::Source", tag="6")]
     pub source: i32,
-    /// CdnSourceObjectKey is the CDN VmImage object key for copy-from-CDN mode.
+    /// CdnSourceObjectKey is the CDN V86Image object key for copy-from-CDN mode.
     #[prost(string, tag="7")]
     pub cdn_source_object_key: ::prost::alloc::string::String,
     /// CdnId identifies which CDN to use. Empty means the default CDN.
@@ -30,15 +30,15 @@ pub struct V86WizardConfig {
 }
 /// Nested message and enum types in `V86WizardConfig`.
 pub mod v86_wizard_config {
-    /// Source identifies how the wizard resolves the VmImage input.
+    /// Source identifies how the wizard resolves the V86Image input.
     #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
     #[repr(i32)]
     pub enum Source {
         /// Source_SOURCE_UNSPECIFIED leaves the image source unset.
         Unspecified = 0,
-        /// Source_EXISTING_IN_SPACE uses an existing VmImage from the Space.
+        /// Source_EXISTING_IN_SPACE uses an existing V86Image from the Space.
         ExistingInSpace = 1,
-        /// Source_COPY_FROM_CDN copies a VmImage from a CDN source object.
+        /// Source_COPY_FROM_CDN copies a V86Image from a CDN source object.
         CopyFromCdn = 2,
     }
     impl Source {
@@ -123,10 +123,10 @@ pub struct VmV86 {
     /// Cleared on any successful transition away from VmState_ERROR.
     ///
     /// Links (via graph edges, not proto fields):
-    ///    v86/image           -> VmImage object (required; supplies default
-    ///                            vmimage/wasm, vmimage/bios/seabios,
-    ///                            vmimage/bios/vgabios, vmimage/kernel,
-    ///                            vmimage/rootfs edges)
+    ///    v86/image           -> V86Image object (required; supplies default
+    ///                            v86image/wasm, v86image/bios/seabios,
+    ///                            v86image/bios/vgabios, v86image/kernel,
+    ///                            v86image/rootfs edges)
     ///    v86/kernel-override -> UnixFS object (optional, per-VM kernel override)
     ///    v86/rootfs-override -> UnixFS object (optional, per-VM rootfs override)
     ///    v86/bios-override   -> UnixFS object (optional, per-VM BIOS override)
@@ -134,10 +134,10 @@ pub struct VmV86 {
     #[prost(string, tag="5")]
     pub error_message: ::prost::alloc::string::String,
 }
-/// CreateVmV86Op creates a new VmV86 world object. The VmImage at
+/// CreateVmV86Op creates a new VmV86 world object. The V86Image at
 /// =image_object_key= supplies the four UnixFS asset edges (WASM, BIOS, kernel,
 /// rootfs). Optional per-asset =*_override_object_key= fields override the
-/// corresponding asset at resolve time without rewriting the VmImage.
+/// corresponding asset at resolve time without rewriting the V86Image.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateVmV86Op {
     /// ObjectKey is the key to create the VM at.
@@ -152,23 +152,23 @@ pub struct CreateVmV86Op {
     /// Timestamp is the creation timestamp.
     #[prost(message, optional, tag="4")]
     pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
-    /// ImageObjectKey points at a VmImage providing default asset edges. Required.
+    /// ImageObjectKey points at a V86Image providing default asset edges. Required.
     #[prost(string, tag="5")]
     pub image_object_key: ::prost::alloc::string::String,
     /// KernelOverrideObjectKey optionally overrides the kernel resolved from the
-    /// linked VmImage. Points at a UnixFS object.
+    /// linked V86Image. Points at a UnixFS object.
     #[prost(string, tag="6")]
     pub kernel_override_object_key: ::prost::alloc::string::String,
     /// RootfsOverrideObjectKey optionally overrides the rootfs resolved from the
-    /// linked VmImage. Points at a UnixFS object.
+    /// linked V86Image. Points at a UnixFS object.
     #[prost(string, tag="7")]
     pub rootfs_override_object_key: ::prost::alloc::string::String,
     /// BiosOverrideObjectKey optionally overrides the BIOS resolved from the
-    /// linked VmImage. Points at a UnixFS object.
+    /// linked V86Image. Points at a UnixFS object.
     #[prost(string, tag="8")]
     pub bios_override_object_key: ::prost::alloc::string::String,
     /// WasmOverrideObjectKey optionally overrides the emulator WASM resolved from
-    /// the linked VmImage. Points at a UnixFS object.
+    /// the linked V86Image. Points at a UnixFS object.
     #[prost(string, tag="9")]
     pub wasm_override_object_key: ::prost::alloc::string::String,
 }
@@ -198,19 +198,19 @@ pub struct SetV86StateOp {
     #[prost(string, tag="3")]
     pub error_message: ::prost::alloc::string::String,
 }
-/// VmImage is a curated bundle of VM assets (WASM emulator, SeaBIOS, VGA BIOS,
+/// V86Image is a curated bundle of v86 assets (WASM emulator, SeaBIOS, VGA BIOS,
 /// kernel, rootfs) linked through graph edges. The object itself carries
-/// metadata; the five UnixFS targets are attached via vmimage/wasm,
-/// vmimage/bios/seabios, vmimage/bios/vgabios, vmimage/kernel, vmimage/rootfs.
+/// metadata; the five UnixFS targets are attached via v86image/wasm,
+/// v86image/bios/seabios, v86image/bios/vgabios, v86image/kernel, v86image/rootfs.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct VmImage {
+pub struct V86Image {
     /// Name is the human-readable name of the image.
     #[prost(string, tag="1")]
     pub name: ::prost::alloc::string::String,
     /// Version identifies this revision of the image.
     #[prost(string, tag="2")]
     pub version: ::prost::alloc::string::String,
-    /// Platform identifies the target VM platform, e.g. "v86".
+    /// Platform identifies the target VM platform. Must be "v86".
     #[prost(string, tag="3")]
     pub platform: ::prost::alloc::string::String,
     /// Distro is the distribution name, e.g. "debian".
@@ -228,41 +228,41 @@ pub struct VmImage {
     /// CreatedAt is the creation timestamp.
     ///
     /// Links (via graph edges, not proto fields):
-    ///    vmimage/wasm          -> UnixFS object (emulator WASM binary)
-    ///    vmimage/bios/seabios  -> UnixFS object (SeaBIOS)
-    ///    vmimage/bios/vgabios  -> UnixFS object (VGA BIOS)
-    ///    vmimage/kernel        -> UnixFS object (kernel image)
-    ///    vmimage/rootfs        -> UnixFS object (rootfs archive)
+    ///    v86image/wasm          -> UnixFS object (emulator WASM binary)
+    ///    v86image/bios/seabios  -> UnixFS object (SeaBIOS)
+    ///    v86image/bios/vgabios  -> UnixFS object (VGA BIOS)
+    ///    v86image/kernel        -> UnixFS object (kernel image)
+    ///    v86image/rootfs        -> UnixFS object (rootfs archive)
     #[prost(message, optional, tag="8")]
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
 }
-/// CreateVmImageOp creates a new VmImage world object. Metadata is supplied
+/// CreateV86ImageOp creates a new V86Image world object. Metadata is supplied
 /// inline; the five UnixFS edges are set separately via SetGraphQuad.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct CreateVmImageOp {
-    /// ObjectKey is the key to create the VmImage at.
+pub struct CreateV86ImageOp {
+    /// ObjectKey is the key to create the V86Image at.
     #[prost(string, tag="1")]
     pub object_key: ::prost::alloc::string::String,
-    /// Image carries the metadata for the new VmImage. Name / platform / tags
+    /// Image carries the metadata for the new V86Image. Name / platform / tags
     /// are required; the remaining fields are optional.
     #[prost(message, optional, tag="2")]
-    pub image: ::core::option::Option<VmImage>,
+    pub image: ::core::option::Option<V86Image>,
     /// Timestamp is the creation timestamp. Stored on the block as CreatedAt.
     #[prost(message, optional, tag="3")]
     pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
 }
-/// SetVmImageMetadataOp replaces the metadata fields on an existing VmImage.
+/// SetV86ImageMetadataOp replaces the metadata fields on an existing V86Image.
 /// The four UnixFS edges are immutable post-create; use graph-quad ops on a
-/// fresh VmImage to change asset bindings.
+/// fresh V86Image to change asset bindings.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SetVmImageMetadataOp {
-    /// ObjectKey is the key of the VmImage to update.
+pub struct SetV86ImageMetadataOp {
+    /// ObjectKey is the key of the V86Image to update.
     #[prost(string, tag="1")]
     pub object_key: ::prost::alloc::string::String,
     /// Image carries the new metadata. CreatedAt is preserved from the stored
-    /// block; any CreatedAt on the supplied VmImage is ignored.
+    /// block; any CreatedAt on the supplied V86Image is ignored.
     #[prost(message, optional, tag="2")]
-    pub image: ::core::option::Option<VmImage>,
+    pub image: ::core::option::Option<V86Image>,
 }
 /// VmState is the state of a virtual machine instance.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]

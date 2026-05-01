@@ -8,8 +8,8 @@ service CdnResourceService {
 
   rpc MountCdnSpace(MountCdnSpaceRequest) returns (MountCdnSpaceResponse);
 
-  rpc CopyVmImageToSpace(CopyVmImageToSpaceRequest)
-      returns (CopyVmImageToSpaceResponse);
+  rpc CopyV86ImageToSpace(CopyV86ImageToSpaceRequest)
+      returns (CopyV86ImageToSpaceResponse);
 }
 
 // GetCdnSpaceIdRequest is the request type for GetCdnSpaceId.
@@ -30,18 +30,18 @@ message MountCdnSpaceResponse {
   uint32 resource_id = 1;
 }
 
-// CopyVmImageToSpaceRequest is the request type for CopyVmImageToSpace.
-message CopyVmImageToSpaceRequest {
+// CopyV86ImageToSpaceRequest is the request type for CopyV86ImageToSpace.
+message CopyV86ImageToSpaceRequest {
   // SessionIdx is the caller's session index; used to resolve the
   // destination user Space via the standard session-aware mount path.
   uint32 session_idx = 1;
-  // DstSpaceId is the ULID of the user Space the VmImage will land in.
+  // DstSpaceId is the ULID of the user Space the V86Image will land in.
   string dst_space_id = 2;
-  // SrcObjectKey is the VmImage object key in the CDN Space.
+  // SrcObjectKey is the V86Image object key in the CDN Space.
   string src_object_key = 3;
   // DstObjectKey is the object key in the destination Space.
   string dst_object_key = 4;
 }
 
-// CopyVmImageToSpaceResponse is the response type for CopyVmImageToSpace.
-message CopyVmImageToSpaceResponse {}
+// CopyV86ImageToSpaceResponse is the response type for CopyV86ImageToSpace.
+message CopyV86ImageToSpaceResponse {}

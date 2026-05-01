@@ -188,7 +188,7 @@ export default async function main(
   console.log('[spacewave-vm] loading v86 binaries from UnixFS...')
 
   // Load wasm/seabios/vgabios/kernel from UnixFS via v86fs mounts resolved
-  // through the VmV86 -> VmImage graph edges. The rootfs mount is resolved
+  // through the VmV86 -> V86Image graph edges. The rootfs mount is resolved
   // by the guest kernel itself at init time via MOUNT("") once v86 boots.
   const [wasmBuf, biosBuf, vgaBiosBuf, kernelBuf] = await Promise.all([
     readV86fsMountRoot(v86fsBridge.adapter, 'wasm'),

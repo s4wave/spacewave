@@ -5,8 +5,8 @@ import { V86WizardConfig_Source } from '@s4wave/sdk/vm/v86-wizard.pb.js'
 import {
   buildV86QuickstartWizardConfig,
   buildV86QuickstartWizardKey,
-  compareVmImageNewestFirst,
-  isDefaultV86VmImage,
+  compareV86ImageNewestFirst,
+  isDefaultV86Image,
   seedV86WizardConfig,
 } from './v86-wizard-config.js'
 
@@ -75,7 +75,7 @@ describe('v86 wizard config', () => {
     expect(cfg.memoryMb).toBe(512)
   })
 
-  it('sorts VmImages newest-first with version and key tie-breakers', () => {
+  it('sorts V86Images newest-first with version and key tie-breakers', () => {
     const items = [
       {
         objectKey: 'vm-image/b',
@@ -91,7 +91,7 @@ describe('v86 wizard config', () => {
       },
     ]
 
-    items.sort(compareVmImageNewestFirst)
+    items.sort(compareV86ImageNewestFirst)
 
     expect(items.map((item) => item.objectKey)).toEqual([
       'vm-image/c',
@@ -100,21 +100,21 @@ describe('v86 wizard config', () => {
     ])
   })
 
-  it('matches only default v86 VmImages', () => {
+  it('matches only default v86 V86Images', () => {
     expect(
-      isDefaultV86VmImage({
+      isDefaultV86Image({
         platform: 'v86',
         tags: ['default', 'stable'],
       } as never),
     ).toBe(true)
     expect(
-      isDefaultV86VmImage({
+      isDefaultV86Image({
         platform: 'wasi',
         tags: ['default'],
       } as never),
     ).toBe(false)
     expect(
-      isDefaultV86VmImage({
+      isDefaultV86Image({
         platform: 'v86',
         tags: ['stable'],
       } as never),

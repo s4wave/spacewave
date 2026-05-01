@@ -208,10 +208,10 @@ export interface VmV86 {
    * Cleared on any successful transition away from VmState_ERROR.
    *
    * Links (via graph edges, not proto fields):
-   *   v86/image           -> VmImage object (required; supplies default
-   *                           vmimage/wasm, vmimage/bios/seabios,
-   *                           vmimage/bios/vgabios, vmimage/kernel,
-   *                           vmimage/rootfs edges)
+   *   v86/image           -> V86Image object (required; supplies default
+   *                           v86image/wasm, v86image/bios/seabios,
+   *                           v86image/bios/vgabios, v86image/kernel,
+   *                           v86image/rootfs edges)
    *   v86/kernel-override -> UnixFS object (optional, per-VM kernel override)
    *   v86/rootfs-override -> UnixFS object (optional, per-VM rootfs override)
    *   v86/bios-override   -> UnixFS object (optional, per-VM BIOS override)
@@ -236,10 +236,10 @@ export const VmV86: MessageType<VmV86> = createMessageType({
 })
 
 /**
- * CreateVmV86Op creates a new VmV86 world object. The VmImage at
+ * CreateVmV86Op creates a new VmV86 world object. The V86Image at
  * =image_object_key= supplies the four UnixFS asset edges (WASM, BIOS, kernel,
  * rootfs). Optional per-asset =*_override_object_key= fields override the
- * corresponding asset at resolve time without rewriting the VmImage.
+ * corresponding asset at resolve time without rewriting the V86Image.
  *
  * @generated from message s4wave.vm.CreateVmV86Op
  */
@@ -269,35 +269,35 @@ export interface CreateVmV86Op {
    */
   timestamp?: Date
   /**
-   * ImageObjectKey points at a VmImage providing default asset edges. Required.
+   * ImageObjectKey points at a V86Image providing default asset edges. Required.
    *
    * @generated from field: string image_object_key = 5;
    */
   imageObjectKey?: string
   /**
    * KernelOverrideObjectKey optionally overrides the kernel resolved from the
-   * linked VmImage. Points at a UnixFS object.
+   * linked V86Image. Points at a UnixFS object.
    *
    * @generated from field: string kernel_override_object_key = 6;
    */
   kernelOverrideObjectKey?: string
   /**
    * RootfsOverrideObjectKey optionally overrides the rootfs resolved from the
-   * linked VmImage. Points at a UnixFS object.
+   * linked V86Image. Points at a UnixFS object.
    *
    * @generated from field: string rootfs_override_object_key = 7;
    */
   rootfsOverrideObjectKey?: string
   /**
    * BiosOverrideObjectKey optionally overrides the BIOS resolved from the
-   * linked VmImage. Points at a UnixFS object.
+   * linked V86Image. Points at a UnixFS object.
    *
    * @generated from field: string bios_override_object_key = 8;
    */
   biosOverrideObjectKey?: string
   /**
    * WasmOverrideObjectKey optionally overrides the emulator WASM resolved from
-   * the linked VmImage. Points at a UnixFS object.
+   * the linked V86Image. Points at a UnixFS object.
    *
    * @generated from field: string wasm_override_object_key = 9;
    */
@@ -412,14 +412,14 @@ export const SetV86StateOp: MessageType<SetV86StateOp> = createMessageType({
 })
 
 /**
- * VmImage is a curated bundle of VM assets (WASM emulator, SeaBIOS, VGA BIOS,
+ * V86Image is a curated bundle of v86 assets (WASM emulator, SeaBIOS, VGA BIOS,
  * kernel, rootfs) linked through graph edges. The object itself carries
- * metadata; the five UnixFS targets are attached via vmimage/wasm,
- * vmimage/bios/seabios, vmimage/bios/vgabios, vmimage/kernel, vmimage/rootfs.
+ * metadata; the five UnixFS targets are attached via v86image/wasm,
+ * v86image/bios/seabios, v86image/bios/vgabios, v86image/kernel, v86image/rootfs.
  *
- * @generated from message s4wave.vm.VmImage
+ * @generated from message s4wave.vm.V86Image
  */
-export interface VmImage {
+export interface V86Image {
   /**
    * Name is the human-readable name of the image.
    *
@@ -433,7 +433,7 @@ export interface VmImage {
    */
   version?: string
   /**
-   * Platform identifies the target VM platform, e.g. "v86".
+   * Platform identifies the target VM platform. Must be "v86".
    *
    * @generated from field: string platform = 3;
    */
@@ -466,20 +466,20 @@ export interface VmImage {
    * CreatedAt is the creation timestamp.
    *
    * Links (via graph edges, not proto fields):
-   *   vmimage/wasm          -> UnixFS object (emulator WASM binary)
-   *   vmimage/bios/seabios  -> UnixFS object (SeaBIOS)
-   *   vmimage/bios/vgabios  -> UnixFS object (VGA BIOS)
-   *   vmimage/kernel        -> UnixFS object (kernel image)
-   *   vmimage/rootfs        -> UnixFS object (rootfs archive)
+   *   v86image/wasm          -> UnixFS object (emulator WASM binary)
+   *   v86image/bios/seabios  -> UnixFS object (SeaBIOS)
+   *   v86image/bios/vgabios  -> UnixFS object (VGA BIOS)
+   *   v86image/kernel        -> UnixFS object (kernel image)
+   *   v86image/rootfs        -> UnixFS object (rootfs archive)
    *
    * @generated from field: google.protobuf.Timestamp created_at = 8;
    */
   createdAt?: Date
 }
 
-// VmImage contains the message type declaration for VmImage.
-export const VmImage: MessageType<VmImage> = createMessageType({
-  typeName: 's4wave.vm.VmImage',
+// V86Image contains the message type declaration for V86Image.
+export const V86Image: MessageType<V86Image> = createMessageType({
+  typeName: 's4wave.vm.V86Image',
   fields: [
     { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'version', kind: 'scalar', T: ScalarType.STRING },
@@ -500,25 +500,25 @@ export const VmImage: MessageType<VmImage> = createMessageType({
 })
 
 /**
- * CreateVmImageOp creates a new VmImage world object. Metadata is supplied
+ * CreateV86ImageOp creates a new V86Image world object. Metadata is supplied
  * inline; the five UnixFS edges are set separately via SetGraphQuad.
  *
- * @generated from message s4wave.vm.CreateVmImageOp
+ * @generated from message s4wave.vm.CreateV86ImageOp
  */
-export interface CreateVmImageOp {
+export interface CreateV86ImageOp {
   /**
-   * ObjectKey is the key to create the VmImage at.
+   * ObjectKey is the key to create the V86Image at.
    *
    * @generated from field: string object_key = 1;
    */
   objectKey?: string
   /**
-   * Image carries the metadata for the new VmImage. Name / platform / tags
+   * Image carries the metadata for the new V86Image. Name / platform / tags
    * are required; the remaining fields are optional.
    *
-   * @generated from field: s4wave.vm.VmImage image = 2;
+   * @generated from field: s4wave.vm.V86Image image = 2;
    */
-  image?: VmImage
+  image?: V86Image
   /**
    * Timestamp is the creation timestamp. Stored on the block as CreatedAt.
    *
@@ -527,47 +527,48 @@ export interface CreateVmImageOp {
   timestamp?: Date
 }
 
-// CreateVmImageOp contains the message type declaration for CreateVmImageOp.
-export const CreateVmImageOp: MessageType<CreateVmImageOp> = createMessageType({
-  typeName: 's4wave.vm.CreateVmImageOp',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'image', kind: 'message', T: () => VmImage },
-    { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+// CreateV86ImageOp contains the message type declaration for CreateV86ImageOp.
+export const CreateV86ImageOp: MessageType<CreateV86ImageOp> =
+  createMessageType({
+    typeName: 's4wave.vm.CreateV86ImageOp',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'image', kind: 'message', T: () => V86Image },
+      { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
- * SetVmImageMetadataOp replaces the metadata fields on an existing VmImage.
+ * SetV86ImageMetadataOp replaces the metadata fields on an existing V86Image.
  * The four UnixFS edges are immutable post-create; use graph-quad ops on a
- * fresh VmImage to change asset bindings.
+ * fresh V86Image to change asset bindings.
  *
- * @generated from message s4wave.vm.SetVmImageMetadataOp
+ * @generated from message s4wave.vm.SetV86ImageMetadataOp
  */
-export interface SetVmImageMetadataOp {
+export interface SetV86ImageMetadataOp {
   /**
-   * ObjectKey is the key of the VmImage to update.
+   * ObjectKey is the key of the V86Image to update.
    *
    * @generated from field: string object_key = 1;
    */
   objectKey?: string
   /**
    * Image carries the new metadata. CreatedAt is preserved from the stored
-   * block; any CreatedAt on the supplied VmImage is ignored.
+   * block; any CreatedAt on the supplied V86Image is ignored.
    *
-   * @generated from field: s4wave.vm.VmImage image = 2;
+   * @generated from field: s4wave.vm.V86Image image = 2;
    */
-  image?: VmImage
+  image?: V86Image
 }
 
-// SetVmImageMetadataOp contains the message type declaration for SetVmImageMetadataOp.
-export const SetVmImageMetadataOp: MessageType<SetVmImageMetadataOp> =
+// SetV86ImageMetadataOp contains the message type declaration for SetV86ImageMetadataOp.
+export const SetV86ImageMetadataOp: MessageType<SetV86ImageMetadataOp> =
   createMessageType({
-    typeName: 's4wave.vm.SetVmImageMetadataOp',
+    typeName: 's4wave.vm.SetV86ImageMetadataOp',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'image', kind: 'message', T: () => VmImage },
+      { no: 2, name: 'image', kind: 'message', T: () => V86Image },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

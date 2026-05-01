@@ -15,15 +15,15 @@ import (
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
 
-// Source identifies how the wizard resolves the VmImage input.
+// Source identifies how the wizard resolves the V86Image input.
 type V86WizardConfig_Source int32
 
 const (
 	// Source_SOURCE_UNSPECIFIED leaves the image source unset.
 	V86WizardConfig_SOURCE_UNSPECIFIED V86WizardConfig_Source = 0
-	// Source_EXISTING_IN_SPACE uses an existing VmImage from the Space.
+	// Source_EXISTING_IN_SPACE uses an existing V86Image from the Space.
 	V86WizardConfig_EXISTING_IN_SPACE V86WizardConfig_Source = 1
-	// Source_COPY_FROM_CDN copies a VmImage from a CDN source object.
+	// Source_COPY_FROM_CDN copies a V86Image from a CDN source object.
 	V86WizardConfig_COPY_FROM_CDN V86WizardConfig_Source = 2
 )
 
@@ -66,11 +66,11 @@ type V86WizardConfig struct {
 	VgaMemoryMb uint32 `protobuf:"varint,3,opt,name=vga_memory_mb,json=vgaMemoryMb,proto3" json:"vgaMemoryMb,omitempty"`
 	// Networking enables network support.
 	Networking bool `protobuf:"varint,4,opt,name=networking,proto3" json:"networking,omitempty"`
-	// ImageObjectKey is the target VmImage object key for finalize.
+	// ImageObjectKey is the target V86Image object key for finalize.
 	ImageObjectKey string `protobuf:"bytes,5,opt,name=image_object_key,json=imageObjectKey,proto3" json:"imageObjectKey,omitempty"`
-	// Source selects where the VmImage comes from.
+	// Source selects where the V86Image comes from.
 	Source V86WizardConfig_Source `protobuf:"varint,6,opt,name=source,proto3" json:"source,omitempty"`
-	// CdnSourceObjectKey is the CDN VmImage object key for copy-from-CDN mode.
+	// CdnSourceObjectKey is the CDN V86Image object key for copy-from-CDN mode.
 	CdnSourceObjectKey string `protobuf:"bytes,7,opt,name=cdn_source_object_key,json=cdnSourceObjectKey,proto3" json:"cdnSourceObjectKey,omitempty"`
 	// CdnId identifies which CDN to use. Empty means the default CDN.
 	CdnId string `protobuf:"bytes,8,opt,name=cdn_id,json=cdnId,proto3" json:"cdnId,omitempty"`

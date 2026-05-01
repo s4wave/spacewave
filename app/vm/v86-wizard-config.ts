@@ -1,14 +1,14 @@
-import type { VmImage } from '@s4wave/sdk/vm/v86.pb.js'
+import type { V86Image } from '@s4wave/sdk/vm/v86.pb.js'
 import type { V86WizardConfig } from '@s4wave/sdk/vm/v86-wizard.pb.js'
 import { V86WizardConfig_Source } from '@s4wave/sdk/vm/v86-wizard.pb.js'
 
 import { buildWizardObjectKey } from '@s4wave/app/space/create-op-builders.js'
 
-export interface ExistingVmImageSource {
+export interface ExistingV86ImageSource {
   imageKey: string
 }
 
-export interface InSpaceVmImageSource {
+export interface InSpaceV86ImageSource {
   objectKey: string
 }
 
@@ -43,8 +43,8 @@ export function buildV86QuickstartWizardKey(now: Date): string {
 
 export function seedV86WizardConfig(
   cfg: V86WizardConfig,
-  existingDefault: ExistingVmImageSource | undefined,
-  inSpaceImages: InSpaceVmImageSource[],
+  existingDefault: ExistingV86ImageSource | undefined,
+  inSpaceImages: InSpaceV86ImageSource[],
 ): V86WizardConfig {
   if (
     (cfg.source ?? V86WizardConfig_Source.SOURCE_UNSPECIFIED) !==
@@ -69,9 +69,9 @@ export function seedV86WizardConfig(
   return next
 }
 
-export function compareVmImageNewestFirst(
-  a: { image: VmImage; objectKey: string },
-  b: { image: VmImage; objectKey: string },
+export function compareV86ImageNewestFirst(
+  a: { image: V86Image; objectKey: string },
+  b: { image: V86Image; objectKey: string },
 ): number {
   const ta = a.image.createdAt?.getTime() ?? 0
   const tb = b.image.createdAt?.getTime() ?? 0
@@ -82,7 +82,7 @@ export function compareVmImageNewestFirst(
   return a.objectKey.localeCompare(b.objectKey)
 }
 
-export function isDefaultV86VmImage(image: VmImage): boolean {
+export function isDefaultV86Image(image: V86Image): boolean {
   if (image.platform !== V86_DEFAULT_IMAGE_PLATFORM) {
     return false
   }

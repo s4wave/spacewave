@@ -15,8 +15,8 @@ pub trait CdnResourceServiceClient: Send + Sync {
     async fn get_cdn_space_id(&self, request: &GetCdnSpaceIdRequest) -> starpc::Result<GetCdnSpaceIdResponse>;
     /// MountCdnSpace.
     async fn mount_cdn_space(&self, request: &MountCdnSpaceRequest) -> starpc::Result<MountCdnSpaceResponse>;
-    /// CopyVmImageToSpace.
-    async fn copy_vm_image_to_space(&self, request: &CopyVmImageToSpaceRequest) -> starpc::Result<CopyVmImageToSpaceResponse>;
+    /// CopyV86ImageToSpace.
+    async fn copy_v86_image_to_space(&self, request: &CopyV86ImageToSpaceRequest) -> starpc::Result<CopyV86ImageToSpaceResponse>;
 }
 
 /// Client implementation for CdnResourceService.
@@ -39,8 +39,8 @@ impl<C: starpc::Client + 'static> CdnResourceServiceClient for CdnResourceServic
     async fn mount_cdn_space(&self, request: &MountCdnSpaceRequest) -> starpc::Result<MountCdnSpaceResponse> {
         self.client.exec_call("s4wave.cdn.CdnResourceService", "MountCdnSpace", request).await
     }
-    async fn copy_vm_image_to_space(&self, request: &CopyVmImageToSpaceRequest) -> starpc::Result<CopyVmImageToSpaceResponse> {
-        self.client.exec_call("s4wave.cdn.CdnResourceService", "CopyVmImageToSpace", request).await
+    async fn copy_v86_image_to_space(&self, request: &CopyV86ImageToSpaceRequest) -> starpc::Result<CopyV86ImageToSpaceResponse> {
+        self.client.exec_call("s4wave.cdn.CdnResourceService", "CopyV86ImageToSpace", request).await
     }
 }
 
@@ -51,14 +51,14 @@ pub trait CdnResourceServiceServer: Send + Sync {
     async fn get_cdn_space_id(&self, request: GetCdnSpaceIdRequest) -> starpc::Result<GetCdnSpaceIdResponse>;
     /// MountCdnSpace.
     async fn mount_cdn_space(&self, request: MountCdnSpaceRequest) -> starpc::Result<MountCdnSpaceResponse>;
-    /// CopyVmImageToSpace.
-    async fn copy_vm_image_to_space(&self, request: CopyVmImageToSpaceRequest) -> starpc::Result<CopyVmImageToSpaceResponse>;
+    /// CopyV86ImageToSpace.
+    async fn copy_v86_image_to_space(&self, request: CopyV86ImageToSpaceRequest) -> starpc::Result<CopyV86ImageToSpaceResponse>;
 }
 
 const CDN_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
     "GetCdnSpaceId",
     "MountCdnSpace",
-    "CopyVmImageToSpace",
+    "CopyV86ImageToSpace",
 ];
 
 /// Handler for CdnResourceService.
@@ -117,12 +117,12 @@ impl<S: CdnResourceServiceServer + 'static> starpc::Invoker for CdnResourceServi
                     Err(e) => (true, Err(e)),
                 }
             }
-            "CopyVmImageToSpace" => {
-                let request: CopyVmImageToSpaceRequest = match stream.msg_recv().await {
+            "CopyV86ImageToSpace" => {
+                let request: CopyV86ImageToSpaceRequest = match stream.msg_recv().await {
                     Ok(r) => r,
                     Err(e) => return (true, Err(e)),
                 };
-                match self.server.copy_vm_image_to_space(request).await {
+                match self.server.copy_v86_image_to_space(request).await {
                     Ok(response) => {
                         if let Err(e) = stream.msg_send(&response).await {
                             return (true, Err(e));

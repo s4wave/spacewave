@@ -17,7 +17,7 @@ import (
 var CreateVmV86OpId = "spacewave/vm/v86/create"
 
 // NewCreateVmV86Op constructs a new CreateVmV86Op. imageObjectKey points at
-// the VmImage that supplies default asset edges and is required.
+// the V86Image that supplies default asset edges and is required.
 func NewCreateVmV86Op(objKey, name, imageObjectKey string, ts time.Time) *CreateVmV86Op {
 	return &CreateVmV86Op{
 		ObjectKey:      objKey,

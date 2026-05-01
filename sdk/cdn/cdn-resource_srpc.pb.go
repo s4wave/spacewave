@@ -18,7 +18,7 @@ type SRPCCdnResourceServiceClient interface {
 
 	MountCdnSpace(ctx context.Context, in *MountCdnSpaceRequest) (*MountCdnSpaceResponse, error)
 
-	CopyVmImageToSpace(ctx context.Context, in *CopyVmImageToSpaceRequest) (*CopyVmImageToSpaceResponse, error)
+	CopyV86ImageToSpace(ctx context.Context, in *CopyV86ImageToSpaceRequest) (*CopyV86ImageToSpaceResponse, error)
 }
 
 type srpcCdnResourceServiceClient struct {
@@ -57,9 +57,9 @@ func (c *srpcCdnResourceServiceClient) MountCdnSpace(ctx context.Context, in *Mo
 	return out, nil
 }
 
-func (c *srpcCdnResourceServiceClient) CopyVmImageToSpace(ctx context.Context, in *CopyVmImageToSpaceRequest) (*CopyVmImageToSpaceResponse, error) {
-	out := new(CopyVmImageToSpaceResponse)
-	err := c.cc.ExecCall(ctx, c.serviceID, "CopyVmImageToSpace", in, out)
+func (c *srpcCdnResourceServiceClient) CopyV86ImageToSpace(ctx context.Context, in *CopyV86ImageToSpaceRequest) (*CopyV86ImageToSpaceResponse, error) {
+	out := new(CopyV86ImageToSpaceResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "CopyV86ImageToSpace", in, out)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ type SRPCCdnResourceServiceServer interface {
 
 	MountCdnSpace(context.Context, *MountCdnSpaceRequest) (*MountCdnSpaceResponse, error)
 
-	CopyVmImageToSpace(context.Context, *CopyVmImageToSpaceRequest) (*CopyVmImageToSpaceResponse, error)
+	CopyV86ImageToSpace(context.Context, *CopyV86ImageToSpaceRequest) (*CopyV86ImageToSpaceResponse, error)
 }
 
 const SRPCCdnResourceServiceServiceID = "s4wave.cdn.CdnResourceService"
@@ -102,7 +102,7 @@ func (SRPCCdnResourceServiceHandler) GetMethodIDs() []string {
 	return []string{
 		"GetCdnSpaceId",
 		"MountCdnSpace",
-		"CopyVmImageToSpace",
+		"CopyV86ImageToSpace",
 	}
 }
 
@@ -119,8 +119,8 @@ func (d *SRPCCdnResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_GetCdnSpaceId(d.impl, strm)
 	case "MountCdnSpace":
 		return true, d.InvokeMethod_MountCdnSpace(d.impl, strm)
-	case "CopyVmImageToSpace":
-		return true, d.InvokeMethod_CopyVmImageToSpace(d.impl, strm)
+	case "CopyV86ImageToSpace":
+		return true, d.InvokeMethod_CopyV86ImageToSpace(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -150,12 +150,12 @@ func (SRPCCdnResourceServiceHandler) InvokeMethod_MountCdnSpace(impl SRPCCdnReso
 	return strm.MsgSend(out)
 }
 
-func (SRPCCdnResourceServiceHandler) InvokeMethod_CopyVmImageToSpace(impl SRPCCdnResourceServiceServer, strm srpc.Stream) error {
-	req := new(CopyVmImageToSpaceRequest)
+func (SRPCCdnResourceServiceHandler) InvokeMethod_CopyV86ImageToSpace(impl SRPCCdnResourceServiceServer, strm srpc.Stream) error {
+	req := new(CopyV86ImageToSpaceRequest)
 	if err := strm.MsgRecv(req); err != nil {
 		return err
 	}
-	out, err := impl.CopyVmImageToSpace(strm.Context(), req)
+	out, err := impl.CopyV86ImageToSpace(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -178,10 +178,10 @@ type srpcCdnResourceService_MountCdnSpaceStream struct {
 	srpc.Stream
 }
 
-type SRPCCdnResourceService_CopyVmImageToSpaceStream interface {
+type SRPCCdnResourceService_CopyV86ImageToSpaceStream interface {
 	srpc.Stream
 }
 
-type srpcCdnResourceService_CopyVmImageToSpaceStream struct {
+type srpcCdnResourceService_CopyV86ImageToSpaceStream struct {
 	srpc.Stream
 }

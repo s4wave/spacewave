@@ -29,7 +29,7 @@ const SET_V86_STATE_OP_ID = 'spacewave/vm/v86/set-state'
 
 // V86 graph predicates for per-asset overrides. Mirrors
 // sdk/vm/v86.go PredV86{Kernel,Rootfs,Bios,Wasm}Override. When set, a
-// per-VM override takes precedence over the VmImage's vmimage/* edge at
+// per-VM override takes precedence over the V86Image's v86image/* edge at
 // mount-resolve time.
 type OverrideSlot = 'kernel' | 'rootfs' | 'bios' | 'wasm'
 
@@ -137,7 +137,7 @@ export default function VmV86Viewer({
   const toggleSettings = useCallback(() => setShowSettings((v) => !v), [])
 
   // Read the four override edges for this VmV86 into a {slot: objectKey} map.
-  // A missing edge resolves to "" meaning "use VmImage default".
+  // A missing edge resolves to "" meaning "use V86Image default".
   const overridesResource = useResource(
     worldState,
     async (world: IWorldState, signal: AbortSignal) => {
@@ -170,7 +170,7 @@ export default function VmV86Viewer({
   const overrides = overridesResource.value
 
   // List UnixFS objects in the user Space. These are the candidates for
-  // per-asset override pickers; "(use VmImage default)" is the empty option.
+  // per-asset override pickers; "(use V86Image default)" is the empty option.
   const unixfsListResource = useResource(
     worldState,
     async (world: IWorldState, signal: AbortSignal) => {
@@ -387,7 +387,7 @@ export default function VmV86Viewer({
                       }}
                       className="bg-muted/40 text-foreground min-w-0 flex-1 rounded px-1 py-0.5 font-mono text-[11px]"
                     >
-                      <option value="">(use VmImage default)</option>
+                      <option value="">(use V86Image default)</option>
                       {current &&
                         !unixfsKeys.includes(current) && (
                           <option value={current}>{current}</option>

@@ -91,7 +91,7 @@ struct SetV86StateOpDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SetV86StateOpDefaultTypeInternal _SetV86StateOp_default_instance_;
 
-inline constexpr VmImage::Impl_::Impl_(
+inline constexpr V86Image::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
         tags_{},
@@ -116,24 +116,24 @@ inline constexpr VmImage::Impl_::Impl_(
         created_at_{nullptr} {}
 
 template <typename>
-PROTOBUF_CONSTEXPR VmImage::VmImage(::_pbi::ConstantInitialized)
+PROTOBUF_CONSTEXPR V86Image::V86Image(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(VmImage_class_data_.base()),
+    : ::google::protobuf::Message(V86Image_class_data_.base()),
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::Message(),
 #endif  // PROTOBUF_CUSTOM_VTABLE
       _impl_(::_pbi::ConstantInitialized()) {
 }
-struct VmImageDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR VmImageDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~VmImageDefaultTypeInternal() {}
+struct V86ImageDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR V86ImageDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~V86ImageDefaultTypeInternal() {}
   union {
-    VmImage _instance;
+    V86Image _instance;
   };
 };
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 VmImageDefaultTypeInternal _VmImage_default_instance_;
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 V86ImageDefaultTypeInternal _V86Image_default_instance_;
 
 inline constexpr V86Config::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -203,7 +203,7 @@ struct VmV86DefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 VmV86DefaultTypeInternal _VmV86_default_instance_;
 
-inline constexpr SetVmImageMetadataOp::Impl_::Impl_(
+inline constexpr SetV86ImageMetadataOp::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
         object_key_(
@@ -212,24 +212,24 @@ inline constexpr SetVmImageMetadataOp::Impl_::Impl_(
         image_{nullptr} {}
 
 template <typename>
-PROTOBUF_CONSTEXPR SetVmImageMetadataOp::SetVmImageMetadataOp(::_pbi::ConstantInitialized)
+PROTOBUF_CONSTEXPR SetV86ImageMetadataOp::SetV86ImageMetadataOp(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(SetVmImageMetadataOp_class_data_.base()),
+    : ::google::protobuf::Message(SetV86ImageMetadataOp_class_data_.base()),
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::Message(),
 #endif  // PROTOBUF_CUSTOM_VTABLE
       _impl_(::_pbi::ConstantInitialized()) {
 }
-struct SetVmImageMetadataOpDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR SetVmImageMetadataOpDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~SetVmImageMetadataOpDefaultTypeInternal() {}
+struct SetV86ImageMetadataOpDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SetV86ImageMetadataOpDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SetV86ImageMetadataOpDefaultTypeInternal() {}
   union {
-    SetVmImageMetadataOp _instance;
+    SetV86ImageMetadataOp _instance;
   };
 };
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SetVmImageMetadataOpDefaultTypeInternal _SetVmImageMetadataOp_default_instance_;
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SetV86ImageMetadataOpDefaultTypeInternal _SetV86ImageMetadataOp_default_instance_;
 
 inline constexpr SetV86ConfigOp::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -306,7 +306,7 @@ struct CreateVmV86OpDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CreateVmV86OpDefaultTypeInternal _CreateVmV86Op_default_instance_;
 
-inline constexpr CreateVmImageOp::Impl_::Impl_(
+inline constexpr CreateV86ImageOp::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
         object_key_(
@@ -316,24 +316,24 @@ inline constexpr CreateVmImageOp::Impl_::Impl_(
         timestamp_{nullptr} {}
 
 template <typename>
-PROTOBUF_CONSTEXPR CreateVmImageOp::CreateVmImageOp(::_pbi::ConstantInitialized)
+PROTOBUF_CONSTEXPR CreateV86ImageOp::CreateV86ImageOp(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(CreateVmImageOp_class_data_.base()),
+    : ::google::protobuf::Message(CreateV86ImageOp_class_data_.base()),
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::Message(),
 #endif  // PROTOBUF_CUSTOM_VTABLE
       _impl_(::_pbi::ConstantInitialized()) {
 }
-struct CreateVmImageOpDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR CreateVmImageOpDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~CreateVmImageOpDefaultTypeInternal() {}
+struct CreateV86ImageOpDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR CreateV86ImageOpDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~CreateV86ImageOpDefaultTypeInternal() {}
   union {
-    CreateVmImageOp _instance;
+    CreateV86ImageOp _instance;
   };
 };
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CreateVmImageOpDefaultTypeInternal _CreateVmImageOp_default_instance_;
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CreateV86ImageOpDefaultTypeInternal _CreateV86ImageOp_default_instance_;
 }  // namespace vm
 }  // namespace s4wave
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
@@ -420,16 +420,16 @@ const ::uint32_t
         2,
         1,
         0x081, // bitmap
-        PROTOBUF_FIELD_OFFSET(::s4wave::vm::VmImage, _impl_._has_bits_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::vm::V86Image, _impl_._has_bits_),
         11, // hasbit index offset
-        PROTOBUF_FIELD_OFFSET(::s4wave::vm::VmImage, _impl_.name_),
-        PROTOBUF_FIELD_OFFSET(::s4wave::vm::VmImage, _impl_.version_),
-        PROTOBUF_FIELD_OFFSET(::s4wave::vm::VmImage, _impl_.platform_),
-        PROTOBUF_FIELD_OFFSET(::s4wave::vm::VmImage, _impl_.distro_),
-        PROTOBUF_FIELD_OFFSET(::s4wave::vm::VmImage, _impl_.kernel_version_),
-        PROTOBUF_FIELD_OFFSET(::s4wave::vm::VmImage, _impl_.description_),
-        PROTOBUF_FIELD_OFFSET(::s4wave::vm::VmImage, _impl_.tags_),
-        PROTOBUF_FIELD_OFFSET(::s4wave::vm::VmImage, _impl_.created_at_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::vm::V86Image, _impl_.name_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::vm::V86Image, _impl_.version_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::vm::V86Image, _impl_.platform_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::vm::V86Image, _impl_.distro_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::vm::V86Image, _impl_.kernel_version_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::vm::V86Image, _impl_.description_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::vm::V86Image, _impl_.tags_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::vm::V86Image, _impl_.created_at_),
         1,
         2,
         3,
@@ -439,19 +439,19 @@ const ::uint32_t
         0,
         7,
         0x081, // bitmap
-        PROTOBUF_FIELD_OFFSET(::s4wave::vm::CreateVmImageOp, _impl_._has_bits_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::vm::CreateV86ImageOp, _impl_._has_bits_),
         6, // hasbit index offset
-        PROTOBUF_FIELD_OFFSET(::s4wave::vm::CreateVmImageOp, _impl_.object_key_),
-        PROTOBUF_FIELD_OFFSET(::s4wave::vm::CreateVmImageOp, _impl_.image_),
-        PROTOBUF_FIELD_OFFSET(::s4wave::vm::CreateVmImageOp, _impl_.timestamp_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::vm::CreateV86ImageOp, _impl_.object_key_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::vm::CreateV86ImageOp, _impl_.image_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::vm::CreateV86ImageOp, _impl_.timestamp_),
         0,
         1,
         2,
         0x081, // bitmap
-        PROTOBUF_FIELD_OFFSET(::s4wave::vm::SetVmImageMetadataOp, _impl_._has_bits_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::vm::SetV86ImageMetadataOp, _impl_._has_bits_),
         5, // hasbit index offset
-        PROTOBUF_FIELD_OFFSET(::s4wave::vm::SetVmImageMetadataOp, _impl_.object_key_),
-        PROTOBUF_FIELD_OFFSET(::s4wave::vm::SetVmImageMetadataOp, _impl_.image_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::vm::SetV86ImageMetadataOp, _impl_.object_key_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::vm::SetV86ImageMetadataOp, _impl_.image_),
         0,
         1,
 };
@@ -464,9 +464,9 @@ static const ::_pbi::MigrationSchema
         {39, sizeof(::s4wave::vm::CreateVmV86Op)},
         {60, sizeof(::s4wave::vm::SetV86ConfigOp)},
         {67, sizeof(::s4wave::vm::SetV86StateOp)},
-        {76, sizeof(::s4wave::vm::VmImage)},
-        {95, sizeof(::s4wave::vm::CreateVmImageOp)},
-        {104, sizeof(::s4wave::vm::SetVmImageMetadataOp)},
+        {76, sizeof(::s4wave::vm::V86Image)},
+        {95, sizeof(::s4wave::vm::CreateV86ImageOp)},
+        {104, sizeof(::s4wave::vm::SetV86ImageMetadataOp)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::vm::_V86Config_default_instance_._instance,
@@ -475,9 +475,9 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::vm::_CreateVmV86Op_default_instance_._instance,
     &::s4wave::vm::_SetV86ConfigOp_default_instance_._instance,
     &::s4wave::vm::_SetV86StateOp_default_instance_._instance,
-    &::s4wave::vm::_VmImage_default_instance_._instance,
-    &::s4wave::vm::_CreateVmImageOp_default_instance_._instance,
-    &::s4wave::vm::_SetVmImageMetadataOp_default_instance_._instance,
+    &::s4wave::vm::_V86Image_default_instance_._instance,
+    &::s4wave::vm::_CreateV86ImageOp_default_instance_._instance,
+    &::s4wave::vm::_SetV86ImageMetadataOp_default_instance_._instance,
 };
 const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fvm_2fv86_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
@@ -505,21 +505,21 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fv
     " \001(\t\022$\n\006config\030\002 \001(\0132\024.s4wave.vm.V86Conf"
     "ig\"]\n\rSetV86StateOp\022\022\n\nobject_key\030\001 \001(\t\022"
     "!\n\005state\030\002 \001(\0162\022.s4wave.vm.VmState\022\025\n\rer"
-    "ror_message\030\003 \001(\t\"\265\001\n\007VmImage\022\014\n\004name\030\001 "
-    "\001(\t\022\017\n\007version\030\002 \001(\t\022\020\n\010platform\030\003 \001(\t\022\016"
-    "\n\006distro\030\004 \001(\t\022\026\n\016kernel_version\030\005 \001(\t\022\023"
-    "\n\013description\030\006 \001(\t\022\014\n\004tags\030\007 \003(\t\022.\n\ncre"
-    "ated_at\030\010 \001(\0132\032.google.protobuf.Timestam"
-    "p\"w\n\017CreateVmImageOp\022\022\n\nobject_key\030\001 \001(\t"
-    "\022!\n\005image\030\002 \001(\0132\022.s4wave.vm.VmImage\022-\n\tt"
-    "imestamp\030\003 \001(\0132\032.google.protobuf.Timesta"
-    "mp\"M\n\024SetVmImageMetadataOp\022\022\n\nobject_key"
-    "\030\001 \001(\t\022!\n\005image\030\002 \001(\0132\022.s4wave.vm.VmImag"
-    "e*r\n\007VmState\022\023\n\017VmState_STOPPED\020\000\022\024\n\020VmS"
-    "tate_STARTING\020\001\022\023\n\017VmState_RUNNING\020\002\022\024\n\020"
-    "VmState_STOPPING\020\003\022\021\n\rVmState_ERROR\020\004B.Z"
-    ",github.com/s4wave/spacewave/sdk/vm;s4wa"
-    "ve_vmb\006proto3"
+    "ror_message\030\003 \001(\t\"\266\001\n\010V86Image\022\014\n\004name\030\001"
+    " \001(\t\022\017\n\007version\030\002 \001(\t\022\020\n\010platform\030\003 \001(\t\022"
+    "\016\n\006distro\030\004 \001(\t\022\026\n\016kernel_version\030\005 \001(\t\022"
+    "\023\n\013description\030\006 \001(\t\022\014\n\004tags\030\007 \003(\t\022.\n\ncr"
+    "eated_at\030\010 \001(\0132\032.google.protobuf.Timesta"
+    "mp\"y\n\020CreateV86ImageOp\022\022\n\nobject_key\030\001 \001"
+    "(\t\022\"\n\005image\030\002 \001(\0132\023.s4wave.vm.V86Image\022-"
+    "\n\ttimestamp\030\003 \001(\0132\032.google.protobuf.Time"
+    "stamp\"O\n\025SetV86ImageMetadataOp\022\022\n\nobject"
+    "_key\030\001 \001(\t\022\"\n\005image\030\002 \001(\0132\023.s4wave.vm.V8"
+    "6Image*r\n\007VmState\022\023\n\017VmState_STOPPED\020\000\022\024"
+    "\n\020VmState_STARTING\020\001\022\023\n\017VmState_RUNNING\020"
+    "\002\022\024\n\020VmState_STOPPING\020\003\022\021\n\rVmState_ERROR"
+    "\020\004B.Z,github.com/s4wave/spacewave/sdk/vm"
+    ";s4wave_vmb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fvm_2fv86_2eproto_deps[1] = {
@@ -529,7 +529,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fvm_2fv86_2eproto = {
     false,
     false,
-    1533,
+    1538,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fvm_2fv86_2eproto,
     "github.com/s4wave/spacewave/sdk/vm/v86.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fvm_2fv86_2eproto_once,
@@ -3141,33 +3141,33 @@ void SetV86StateOp::InternalSwap(SetV86StateOp* PROTOBUF_RESTRICT PROTOBUF_NONNU
 }
 // ===================================================================
 
-class VmImage::_Internal {
+class V86Image::_Internal {
  public:
   using HasBits =
-      decltype(::std::declval<VmImage>()._impl_._has_bits_);
+      decltype(::std::declval<V86Image>()._impl_._has_bits_);
   static constexpr ::int32_t kHasBitsOffset =
-      8 * PROTOBUF_FIELD_OFFSET(VmImage, _impl_._has_bits_);
+      8 * PROTOBUF_FIELD_OFFSET(V86Image, _impl_._has_bits_);
 };
 
-void VmImage::clear_created_at() {
+void V86Image::clear_created_at() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.created_at_ != nullptr) _impl_.created_at_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000080U);
 }
-VmImage::VmImage(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+V86Image::V86Image(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, VmImage_class_data_.base()) {
+    : ::google::protobuf::Message(arena, V86Image_class_data_.base()) {
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::Message(arena) {
 #endif  // PROTOBUF_CUSTOM_VTABLE
   SharedCtor(arena);
-  // @@protoc_insertion_point(arena_constructor:s4wave.vm.VmImage)
+  // @@protoc_insertion_point(arena_constructor:s4wave.vm.V86Image)
 }
-PROTOBUF_NDEBUG_INLINE VmImage::Impl_::Impl_(
+PROTOBUF_NDEBUG_INLINE V86Image::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-    [[maybe_unused]] const ::s4wave::vm::VmImage& from_msg)
+    [[maybe_unused]] const ::s4wave::vm::V86Image& from_msg)
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
         tags_{visibility, arena, from.tags_},
@@ -3178,15 +3178,15 @@ PROTOBUF_NDEBUG_INLINE VmImage::Impl_::Impl_(
         kernel_version_(arena, from.kernel_version_),
         description_(arena, from.description_) {}
 
-VmImage::VmImage(
+V86Image::V86Image(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
-    const VmImage& from)
+    const V86Image& from)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, VmImage_class_data_.base()) {
+    : ::google::protobuf::Message(arena, V86Image_class_data_.base()) {
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::Message(arena) {
 #endif  // PROTOBUF_CUSTOM_VTABLE
-  VmImage* const _this = this;
+  V86Image* const _this = this;
   (void)_this;
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
@@ -3196,9 +3196,9 @@ VmImage::VmImage(
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.created_at_)
                 : nullptr;
 
-  // @@protoc_insertion_point(copy_constructor:s4wave.vm.VmImage)
+  // @@protoc_insertion_point(copy_constructor:s4wave.vm.V86Image)
 }
-PROTOBUF_NDEBUG_INLINE VmImage::Impl_::Impl_(
+PROTOBUF_NDEBUG_INLINE V86Image::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
@@ -3210,16 +3210,16 @@ PROTOBUF_NDEBUG_INLINE VmImage::Impl_::Impl_(
         kernel_version_(arena),
         description_(arena) {}
 
-inline void VmImage::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+inline void V86Image::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
   _impl_.created_at_ = {};
 }
-VmImage::~VmImage() {
-  // @@protoc_insertion_point(destructor:s4wave.vm.VmImage)
+V86Image::~V86Image() {
+  // @@protoc_insertion_point(destructor:s4wave.vm.V86Image)
   SharedDtor(*this);
 }
-inline void VmImage::SharedDtor(MessageLite& self) {
-  VmImage& this_ = static_cast<VmImage&>(self);
+inline void V86Image::SharedDtor(MessageLite& self) {
+  V86Image& this_ = static_cast<V86Image&>(self);
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     this_.CheckHasBitConsistency();
   }
@@ -3235,65 +3235,65 @@ inline void VmImage::SharedDtor(MessageLite& self) {
   this_._impl_.~Impl_();
 }
 
-inline void* PROTOBUF_NONNULL VmImage::PlacementNew_(
+inline void* PROTOBUF_NONNULL V86Image::PlacementNew_(
     const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
-  return ::new (mem) VmImage(arena);
+  return ::new (mem) V86Image(arena);
 }
-constexpr auto VmImage::InternalNewImpl_() {
+constexpr auto V86Image::InternalNewImpl_() {
   constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
-      PROTOBUF_FIELD_OFFSET(VmImage, _impl_.tags_) +
-          decltype(VmImage::_impl_.tags_)::
+      PROTOBUF_FIELD_OFFSET(V86Image, _impl_.tags_) +
+          decltype(V86Image::_impl_.tags_)::
               InternalGetArenaOffset(
                   ::google::protobuf::Message::internal_visibility()),
   });
   if (arena_bits.has_value()) {
     return ::google::protobuf::internal::MessageCreator::CopyInit(
-        sizeof(VmImage), alignof(VmImage), *arena_bits);
+        sizeof(V86Image), alignof(V86Image), *arena_bits);
   } else {
-    return ::google::protobuf::internal::MessageCreator(&VmImage::PlacementNew_,
-                                 sizeof(VmImage),
-                                 alignof(VmImage));
+    return ::google::protobuf::internal::MessageCreator(&V86Image::PlacementNew_,
+                                 sizeof(V86Image),
+                                 alignof(V86Image));
   }
 }
-constexpr auto VmImage::InternalGenerateClassData_() {
+constexpr auto V86Image::InternalGenerateClassData_() {
   return ::google::protobuf::internal::ClassDataFull{
       ::google::protobuf::internal::ClassData{
-          &_VmImage_default_instance_._instance,
+          &_V86Image_default_instance_._instance,
           &_table_.header,
           nullptr,  // OnDemandRegisterArenaDtor
           nullptr,  // IsInitialized
-          &VmImage::MergeImpl,
-          ::google::protobuf::Message::GetNewImpl<VmImage>(),
+          &V86Image::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<V86Image>(),
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-          &VmImage::SharedDtor,
-          ::google::protobuf::Message::GetClearImpl<VmImage>(), &VmImage::ByteSizeLong,
-              &VmImage::_InternalSerialize,
+          &V86Image::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<V86Image>(), &V86Image::ByteSizeLong,
+              &V86Image::_InternalSerialize,
 #endif  // PROTOBUF_CUSTOM_VTABLE
-          PROTOBUF_FIELD_OFFSET(VmImage, _impl_._cached_size_),
+          PROTOBUF_FIELD_OFFSET(V86Image, _impl_._cached_size_),
           false,
       },
-      &VmImage::kDescriptorMethods,
+      &V86Image::kDescriptorMethods,
       &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fvm_2fv86_2eproto,
       nullptr,  // tracker
   };
 }
 
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
-    ::google::protobuf::internal::ClassDataFull VmImage_class_data_ =
-        VmImage::InternalGenerateClassData_();
+    ::google::protobuf::internal::ClassDataFull V86Image_class_data_ =
+        V86Image::InternalGenerateClassData_();
 
 PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
-VmImage::GetClassData() const {
-  ::google::protobuf::internal::PrefetchToLocalCache(&VmImage_class_data_);
-  ::google::protobuf::internal::PrefetchToLocalCache(VmImage_class_data_.tc_table);
-  return VmImage_class_data_.base();
+V86Image::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&V86Image_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(V86Image_class_data_.tc_table);
+  return V86Image_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 8, 1, 88, 2>
-VmImage::_table_ = {
+const ::_pbi::TcParseTable<3, 8, 1, 89, 2>
+V86Image::_table_ = {
   {
-    PROTOBUF_FIELD_OFFSET(VmImage, _impl_._has_bits_),
+    PROTOBUF_FIELD_OFFSET(V86Image, _impl_._has_bits_),
     0, // no _extensions_
     8, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
@@ -3302,71 +3302,71 @@ VmImage::_table_ = {
     8,  // num_field_entries
     1,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
-    VmImage_class_data_.base(),
+    V86Image_class_data_.base(),
     nullptr,  // post_loop_handler
     ::_pbi::TcParser::GenericFallback,  // fallback
     #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
-    ::_pbi::TcParser::GetTable<::s4wave::vm::VmImage>(),  // to_prefetch
+    ::_pbi::TcParser::GetTable<::s4wave::vm::V86Image>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
     // .google.protobuf.Timestamp created_at = 8;
     {::_pbi::TcParser::FastMtS1,
      {66, 7, 0,
-      PROTOBUF_FIELD_OFFSET(VmImage, _impl_.created_at_)}},
+      PROTOBUF_FIELD_OFFSET(V86Image, _impl_.created_at_)}},
     // string name = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 1, 0,
-      PROTOBUF_FIELD_OFFSET(VmImage, _impl_.name_)}},
+      PROTOBUF_FIELD_OFFSET(V86Image, _impl_.name_)}},
     // string version = 2;
     {::_pbi::TcParser::FastUS1,
      {18, 2, 0,
-      PROTOBUF_FIELD_OFFSET(VmImage, _impl_.version_)}},
+      PROTOBUF_FIELD_OFFSET(V86Image, _impl_.version_)}},
     // string platform = 3;
     {::_pbi::TcParser::FastUS1,
      {26, 3, 0,
-      PROTOBUF_FIELD_OFFSET(VmImage, _impl_.platform_)}},
+      PROTOBUF_FIELD_OFFSET(V86Image, _impl_.platform_)}},
     // string distro = 4;
     {::_pbi::TcParser::FastUS1,
      {34, 4, 0,
-      PROTOBUF_FIELD_OFFSET(VmImage, _impl_.distro_)}},
+      PROTOBUF_FIELD_OFFSET(V86Image, _impl_.distro_)}},
     // string kernel_version = 5;
     {::_pbi::TcParser::FastUS1,
      {42, 5, 0,
-      PROTOBUF_FIELD_OFFSET(VmImage, _impl_.kernel_version_)}},
+      PROTOBUF_FIELD_OFFSET(V86Image, _impl_.kernel_version_)}},
     // string description = 6;
     {::_pbi::TcParser::FastUS1,
      {50, 6, 0,
-      PROTOBUF_FIELD_OFFSET(VmImage, _impl_.description_)}},
+      PROTOBUF_FIELD_OFFSET(V86Image, _impl_.description_)}},
     // repeated string tags = 7;
     {::_pbi::TcParser::FastUR1,
      {58, 0, 0,
-      PROTOBUF_FIELD_OFFSET(VmImage, _impl_.tags_)}},
+      PROTOBUF_FIELD_OFFSET(V86Image, _impl_.tags_)}},
   }}, {{
     65535, 65535
   }}, {{
     // string name = 1;
-    {PROTOBUF_FIELD_OFFSET(VmImage, _impl_.name_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(V86Image, _impl_.name_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string version = 2;
-    {PROTOBUF_FIELD_OFFSET(VmImage, _impl_.version_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(V86Image, _impl_.version_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string platform = 3;
-    {PROTOBUF_FIELD_OFFSET(VmImage, _impl_.platform_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(V86Image, _impl_.platform_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string distro = 4;
-    {PROTOBUF_FIELD_OFFSET(VmImage, _impl_.distro_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(V86Image, _impl_.distro_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string kernel_version = 5;
-    {PROTOBUF_FIELD_OFFSET(VmImage, _impl_.kernel_version_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(V86Image, _impl_.kernel_version_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string description = 6;
-    {PROTOBUF_FIELD_OFFSET(VmImage, _impl_.description_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(V86Image, _impl_.description_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // repeated string tags = 7;
-    {PROTOBUF_FIELD_OFFSET(VmImage, _impl_.tags_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+    {PROTOBUF_FIELD_OFFSET(V86Image, _impl_.tags_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
     // .google.protobuf.Timestamp created_at = 8;
-    {PROTOBUF_FIELD_OFFSET(VmImage, _impl_.created_at_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(V86Image, _impl_.created_at_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::google::protobuf::Timestamp>()},
   }},
   {{
-    "\21\4\7\10\6\16\13\4\0\0\0\0\0\0\0\0"
-    "s4wave.vm.VmImage"
+    "\22\4\7\10\6\16\13\4\0\0\0\0\0\0\0\0"
+    "s4wave.vm.V86Image"
     "name"
     "version"
     "platform"
@@ -3376,8 +3376,8 @@ VmImage::_table_ = {
     "tags"
   }},
 };
-PROTOBUF_NOINLINE void VmImage::Clear() {
-// @@protoc_insertion_point(message_clear_start:s4wave.vm.VmImage)
+PROTOBUF_NOINLINE void V86Image::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.vm.V86Image)
   ::google::protobuf::internal::TSanWrite(&_impl_);
   ::uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
@@ -3416,20 +3416,20 @@ PROTOBUF_NOINLINE void VmImage::Clear() {
 }
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-::uint8_t* PROTOBUF_NONNULL VmImage::_InternalSerialize(
+::uint8_t* PROTOBUF_NONNULL V86Image::_InternalSerialize(
     const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
     ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
-  const VmImage& this_ = static_cast<const VmImage&>(base);
+  const V86Image& this_ = static_cast<const V86Image&>(base);
 #else   // PROTOBUF_CUSTOM_VTABLE
-::uint8_t* PROTOBUF_NONNULL VmImage::_InternalSerialize(
+::uint8_t* PROTOBUF_NONNULL V86Image::_InternalSerialize(
     ::uint8_t* PROTOBUF_NONNULL target,
     ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-  const VmImage& this_ = *this;
+  const V86Image& this_ = *this;
 #endif  // PROTOBUF_CUSTOM_VTABLE
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     this_.CheckHasBitConsistency();
   }
-  // @@protoc_insertion_point(serialize_to_array_start:s4wave.vm.VmImage)
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.vm.V86Image)
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
 
@@ -3439,7 +3439,7 @@ PROTOBUF_NOINLINE void VmImage::Clear() {
     if (!this_._internal_name().empty()) {
       const ::std::string& _s = this_._internal_name();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.vm.VmImage.name");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.vm.V86Image.name");
       target = stream->WriteStringMaybeAliased(1, _s, target);
     }
   }
@@ -3449,7 +3449,7 @@ PROTOBUF_NOINLINE void VmImage::Clear() {
     if (!this_._internal_version().empty()) {
       const ::std::string& _s = this_._internal_version();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.vm.VmImage.version");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.vm.V86Image.version");
       target = stream->WriteStringMaybeAliased(2, _s, target);
     }
   }
@@ -3459,7 +3459,7 @@ PROTOBUF_NOINLINE void VmImage::Clear() {
     if (!this_._internal_platform().empty()) {
       const ::std::string& _s = this_._internal_platform();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.vm.VmImage.platform");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.vm.V86Image.platform");
       target = stream->WriteStringMaybeAliased(3, _s, target);
     }
   }
@@ -3469,7 +3469,7 @@ PROTOBUF_NOINLINE void VmImage::Clear() {
     if (!this_._internal_distro().empty()) {
       const ::std::string& _s = this_._internal_distro();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.vm.VmImage.distro");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.vm.V86Image.distro");
       target = stream->WriteStringMaybeAliased(4, _s, target);
     }
   }
@@ -3479,7 +3479,7 @@ PROTOBUF_NOINLINE void VmImage::Clear() {
     if (!this_._internal_kernel_version().empty()) {
       const ::std::string& _s = this_._internal_kernel_version();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.vm.VmImage.kernel_version");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.vm.V86Image.kernel_version");
       target = stream->WriteStringMaybeAliased(5, _s, target);
     }
   }
@@ -3489,7 +3489,7 @@ PROTOBUF_NOINLINE void VmImage::Clear() {
     if (!this_._internal_description().empty()) {
       const ::std::string& _s = this_._internal_description();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.vm.VmImage.description");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.vm.V86Image.description");
       target = stream->WriteStringMaybeAliased(6, _s, target);
     }
   }
@@ -3499,7 +3499,7 @@ PROTOBUF_NOINLINE void VmImage::Clear() {
     for (int i = 0, n = this_._internal_tags_size(); i < n; ++i) {
       const auto& s = this_._internal_tags().Get(i);
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.vm.VmImage.tags");
+          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.vm.V86Image.tags");
       target = stream->WriteString(7, s, target);
     }
   }
@@ -3516,18 +3516,18 @@ PROTOBUF_NOINLINE void VmImage::Clear() {
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
             this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:s4wave.vm.VmImage)
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.vm.V86Image)
   return target;
 }
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-::size_t VmImage::ByteSizeLong(const MessageLite& base) {
-  const VmImage& this_ = static_cast<const VmImage&>(base);
+::size_t V86Image::ByteSizeLong(const MessageLite& base) {
+  const V86Image& this_ = static_cast<const V86Image&>(base);
 #else   // PROTOBUF_CUSTOM_VTABLE
-::size_t VmImage::ByteSizeLong() const {
-  const VmImage& this_ = *this;
+::size_t V86Image::ByteSizeLong() const {
+  const V86Image& this_ = *this;
 #endif  // PROTOBUF_CUSTOM_VTABLE
-  // @@protoc_insertion_point(message_byte_size_start:s4wave.vm.VmImage)
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.vm.V86Image)
   ::size_t total_size = 0;
 
   ::uint32_t cached_has_bits = 0;
@@ -3598,16 +3598,16 @@ PROTOBUF_NOINLINE void VmImage::Clear() {
                                              &this_._impl_._cached_size_);
 }
 
-void VmImage::MergeImpl(::google::protobuf::MessageLite& to_msg,
+void V86Image::MergeImpl(::google::protobuf::MessageLite& to_msg,
                             const ::google::protobuf::MessageLite& from_msg) {
    auto* const _this =
-      static_cast<VmImage*>(&to_msg);
-  auto& from = static_cast<const VmImage&>(from_msg);
+      static_cast<V86Image*>(&to_msg);
+  auto& from = static_cast<const V86Image&>(from_msg);
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     from.CheckHasBitConsistency();
   }
   ::google::protobuf::Arena* arena = _this->GetArena();
-  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.vm.VmImage)
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.vm.V86Image)
   ABSL_DCHECK_NE(&from, _this);
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
@@ -3687,15 +3687,15 @@ void VmImage::MergeImpl(::google::protobuf::MessageLite& to_msg,
       from._internal_metadata_);
 }
 
-void VmImage::CopyFrom(const VmImage& from) {
-  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.vm.VmImage)
+void V86Image::CopyFrom(const V86Image& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.vm.V86Image)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
 
-void VmImage::InternalSwap(VmImage* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+void V86Image::InternalSwap(V86Image* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   using ::std::swap;
   auto* arena = GetArena();
   ABSL_DCHECK_EQ(arena, other->GetArena());
@@ -3711,51 +3711,51 @@ void VmImage::InternalSwap(VmImage* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   swap(_impl_.created_at_, other->_impl_.created_at_);
 }
 
-::google::protobuf::Metadata VmImage::GetMetadata() const {
+::google::protobuf::Metadata V86Image::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================
 
-class CreateVmImageOp::_Internal {
+class CreateV86ImageOp::_Internal {
  public:
   using HasBits =
-      decltype(::std::declval<CreateVmImageOp>()._impl_._has_bits_);
+      decltype(::std::declval<CreateV86ImageOp>()._impl_._has_bits_);
   static constexpr ::int32_t kHasBitsOffset =
-      8 * PROTOBUF_FIELD_OFFSET(CreateVmImageOp, _impl_._has_bits_);
+      8 * PROTOBUF_FIELD_OFFSET(CreateV86ImageOp, _impl_._has_bits_);
 };
 
-void CreateVmImageOp::clear_timestamp() {
+void CreateV86ImageOp::clear_timestamp() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.timestamp_ != nullptr) _impl_.timestamp_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000004U);
 }
-CreateVmImageOp::CreateVmImageOp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+CreateV86ImageOp::CreateV86ImageOp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, CreateVmImageOp_class_data_.base()) {
+    : ::google::protobuf::Message(arena, CreateV86ImageOp_class_data_.base()) {
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::Message(arena) {
 #endif  // PROTOBUF_CUSTOM_VTABLE
   SharedCtor(arena);
-  // @@protoc_insertion_point(arena_constructor:s4wave.vm.CreateVmImageOp)
+  // @@protoc_insertion_point(arena_constructor:s4wave.vm.CreateV86ImageOp)
 }
-PROTOBUF_NDEBUG_INLINE CreateVmImageOp::Impl_::Impl_(
+PROTOBUF_NDEBUG_INLINE CreateV86ImageOp::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-    [[maybe_unused]] const ::s4wave::vm::CreateVmImageOp& from_msg)
+    [[maybe_unused]] const ::s4wave::vm::CreateV86ImageOp& from_msg)
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
         object_key_(arena, from.object_key_) {}
 
-CreateVmImageOp::CreateVmImageOp(
+CreateV86ImageOp::CreateV86ImageOp(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
-    const CreateVmImageOp& from)
+    const CreateV86ImageOp& from)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, CreateVmImageOp_class_data_.base()) {
+    : ::google::protobuf::Message(arena, CreateV86ImageOp_class_data_.base()) {
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::Message(arena) {
 #endif  // PROTOBUF_CUSTOM_VTABLE
-  CreateVmImageOp* const _this = this;
+  CreateV86ImageOp* const _this = this;
   (void)_this;
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
@@ -3768,15 +3768,15 @@ CreateVmImageOp::CreateVmImageOp(
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.timestamp_)
                 : nullptr;
 
-  // @@protoc_insertion_point(copy_constructor:s4wave.vm.CreateVmImageOp)
+  // @@protoc_insertion_point(copy_constructor:s4wave.vm.CreateV86ImageOp)
 }
-PROTOBUF_NDEBUG_INLINE CreateVmImageOp::Impl_::Impl_(
+PROTOBUF_NDEBUG_INLINE CreateV86ImageOp::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
         object_key_(arena) {}
 
-inline void CreateVmImageOp::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+inline void CreateV86ImageOp::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, image_),
@@ -3785,12 +3785,12 @@ inline void CreateVmImageOp::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
                offsetof(Impl_, image_) +
                sizeof(Impl_::timestamp_));
 }
-CreateVmImageOp::~CreateVmImageOp() {
-  // @@protoc_insertion_point(destructor:s4wave.vm.CreateVmImageOp)
+CreateV86ImageOp::~CreateV86ImageOp() {
+  // @@protoc_insertion_point(destructor:s4wave.vm.CreateV86ImageOp)
   SharedDtor(*this);
 }
-inline void CreateVmImageOp::SharedDtor(MessageLite& self) {
-  CreateVmImageOp& this_ = static_cast<CreateVmImageOp&>(self);
+inline void CreateV86ImageOp::SharedDtor(MessageLite& self) {
+  CreateV86ImageOp& this_ = static_cast<CreateV86ImageOp&>(self);
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     this_.CheckHasBitConsistency();
   }
@@ -3802,53 +3802,53 @@ inline void CreateVmImageOp::SharedDtor(MessageLite& self) {
   this_._impl_.~Impl_();
 }
 
-inline void* PROTOBUF_NONNULL CreateVmImageOp::PlacementNew_(
+inline void* PROTOBUF_NONNULL CreateV86ImageOp::PlacementNew_(
     const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
-  return ::new (mem) CreateVmImageOp(arena);
+  return ::new (mem) CreateV86ImageOp(arena);
 }
-constexpr auto CreateVmImageOp::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(CreateVmImageOp),
-                                            alignof(CreateVmImageOp));
+constexpr auto CreateV86ImageOp::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(CreateV86ImageOp),
+                                            alignof(CreateV86ImageOp));
 }
-constexpr auto CreateVmImageOp::InternalGenerateClassData_() {
+constexpr auto CreateV86ImageOp::InternalGenerateClassData_() {
   return ::google::protobuf::internal::ClassDataFull{
       ::google::protobuf::internal::ClassData{
-          &_CreateVmImageOp_default_instance_._instance,
+          &_CreateV86ImageOp_default_instance_._instance,
           &_table_.header,
           nullptr,  // OnDemandRegisterArenaDtor
           nullptr,  // IsInitialized
-          &CreateVmImageOp::MergeImpl,
-          ::google::protobuf::Message::GetNewImpl<CreateVmImageOp>(),
+          &CreateV86ImageOp::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<CreateV86ImageOp>(),
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-          &CreateVmImageOp::SharedDtor,
-          ::google::protobuf::Message::GetClearImpl<CreateVmImageOp>(), &CreateVmImageOp::ByteSizeLong,
-              &CreateVmImageOp::_InternalSerialize,
+          &CreateV86ImageOp::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<CreateV86ImageOp>(), &CreateV86ImageOp::ByteSizeLong,
+              &CreateV86ImageOp::_InternalSerialize,
 #endif  // PROTOBUF_CUSTOM_VTABLE
-          PROTOBUF_FIELD_OFFSET(CreateVmImageOp, _impl_._cached_size_),
+          PROTOBUF_FIELD_OFFSET(CreateV86ImageOp, _impl_._cached_size_),
           false,
       },
-      &CreateVmImageOp::kDescriptorMethods,
+      &CreateV86ImageOp::kDescriptorMethods,
       &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fvm_2fv86_2eproto,
       nullptr,  // tracker
   };
 }
 
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
-    ::google::protobuf::internal::ClassDataFull CreateVmImageOp_class_data_ =
-        CreateVmImageOp::InternalGenerateClassData_();
+    ::google::protobuf::internal::ClassDataFull CreateV86ImageOp_class_data_ =
+        CreateV86ImageOp::InternalGenerateClassData_();
 
 PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
-CreateVmImageOp::GetClassData() const {
-  ::google::protobuf::internal::PrefetchToLocalCache(&CreateVmImageOp_class_data_);
-  ::google::protobuf::internal::PrefetchToLocalCache(CreateVmImageOp_class_data_.tc_table);
-  return CreateVmImageOp_class_data_.base();
+CreateV86ImageOp::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&CreateV86ImageOp_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(CreateV86ImageOp_class_data_.tc_table);
+  return CreateV86ImageOp_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<2, 3, 2, 44, 2>
-CreateVmImageOp::_table_ = {
+const ::_pbi::TcParseTable<2, 3, 2, 45, 2>
+CreateV86ImageOp::_table_ = {
   {
-    PROTOBUF_FIELD_OFFSET(CreateVmImageOp, _impl_._has_bits_),
+    PROTOBUF_FIELD_OFFSET(CreateV86ImageOp, _impl_._has_bits_),
     0, // no _extensions_
     3, 24,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
@@ -3857,48 +3857,48 @@ CreateVmImageOp::_table_ = {
     3,  // num_field_entries
     2,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
-    CreateVmImageOp_class_data_.base(),
+    CreateV86ImageOp_class_data_.base(),
     nullptr,  // post_loop_handler
     ::_pbi::TcParser::GenericFallback,  // fallback
     #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
-    ::_pbi::TcParser::GetTable<::s4wave::vm::CreateVmImageOp>(),  // to_prefetch
+    ::_pbi::TcParser::GetTable<::s4wave::vm::CreateV86ImageOp>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
     {::_pbi::TcParser::MiniParse, {}},
     // string object_key = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
-      PROTOBUF_FIELD_OFFSET(CreateVmImageOp, _impl_.object_key_)}},
-    // .s4wave.vm.VmImage image = 2;
+      PROTOBUF_FIELD_OFFSET(CreateV86ImageOp, _impl_.object_key_)}},
+    // .s4wave.vm.V86Image image = 2;
     {::_pbi::TcParser::FastMtS1,
      {18, 1, 0,
-      PROTOBUF_FIELD_OFFSET(CreateVmImageOp, _impl_.image_)}},
+      PROTOBUF_FIELD_OFFSET(CreateV86ImageOp, _impl_.image_)}},
     // .google.protobuf.Timestamp timestamp = 3;
     {::_pbi::TcParser::FastMtS1,
      {26, 2, 1,
-      PROTOBUF_FIELD_OFFSET(CreateVmImageOp, _impl_.timestamp_)}},
+      PROTOBUF_FIELD_OFFSET(CreateV86ImageOp, _impl_.timestamp_)}},
   }}, {{
     65535, 65535
   }}, {{
     // string object_key = 1;
-    {PROTOBUF_FIELD_OFFSET(CreateVmImageOp, _impl_.object_key_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // .s4wave.vm.VmImage image = 2;
-    {PROTOBUF_FIELD_OFFSET(CreateVmImageOp, _impl_.image_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(CreateV86ImageOp, _impl_.object_key_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .s4wave.vm.V86Image image = 2;
+    {PROTOBUF_FIELD_OFFSET(CreateV86ImageOp, _impl_.image_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // .google.protobuf.Timestamp timestamp = 3;
-    {PROTOBUF_FIELD_OFFSET(CreateVmImageOp, _impl_.timestamp_), _Internal::kHasBitsOffset + 2, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(CreateV86ImageOp, _impl_.timestamp_), _Internal::kHasBitsOffset + 2, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
-      {::_pbi::TcParser::GetTable<::s4wave::vm::VmImage>()},
+      {::_pbi::TcParser::GetTable<::s4wave::vm::V86Image>()},
       {::_pbi::TcParser::GetTable<::google::protobuf::Timestamp>()},
   }},
   {{
-    "\31\12\0\0\0\0\0\0"
-    "s4wave.vm.CreateVmImageOp"
+    "\32\12\0\0\0\0\0\0"
+    "s4wave.vm.CreateV86ImageOp"
     "object_key"
   }},
 };
-PROTOBUF_NOINLINE void CreateVmImageOp::Clear() {
-// @@protoc_insertion_point(message_clear_start:s4wave.vm.CreateVmImageOp)
+PROTOBUF_NOINLINE void CreateV86ImageOp::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.vm.CreateV86ImageOp)
   ::google::protobuf::internal::TSanWrite(&_impl_);
   ::uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
@@ -3923,20 +3923,20 @@ PROTOBUF_NOINLINE void CreateVmImageOp::Clear() {
 }
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-::uint8_t* PROTOBUF_NONNULL CreateVmImageOp::_InternalSerialize(
+::uint8_t* PROTOBUF_NONNULL CreateV86ImageOp::_InternalSerialize(
     const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
     ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
-  const CreateVmImageOp& this_ = static_cast<const CreateVmImageOp&>(base);
+  const CreateV86ImageOp& this_ = static_cast<const CreateV86ImageOp&>(base);
 #else   // PROTOBUF_CUSTOM_VTABLE
-::uint8_t* PROTOBUF_NONNULL CreateVmImageOp::_InternalSerialize(
+::uint8_t* PROTOBUF_NONNULL CreateV86ImageOp::_InternalSerialize(
     ::uint8_t* PROTOBUF_NONNULL target,
     ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-  const CreateVmImageOp& this_ = *this;
+  const CreateV86ImageOp& this_ = *this;
 #endif  // PROTOBUF_CUSTOM_VTABLE
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     this_.CheckHasBitConsistency();
   }
-  // @@protoc_insertion_point(serialize_to_array_start:s4wave.vm.CreateVmImageOp)
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.vm.CreateV86ImageOp)
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
 
@@ -3946,12 +3946,12 @@ PROTOBUF_NOINLINE void CreateVmImageOp::Clear() {
     if (!this_._internal_object_key().empty()) {
       const ::std::string& _s = this_._internal_object_key();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.vm.CreateVmImageOp.object_key");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.vm.CreateV86ImageOp.object_key");
       target = stream->WriteStringMaybeAliased(1, _s, target);
     }
   }
 
-  // .s4wave.vm.VmImage image = 2;
+  // .s4wave.vm.V86Image image = 2;
   if (CheckHasBit(cached_has_bits, 0x00000002U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         2, *this_._impl_.image_, this_._impl_.image_->GetCachedSize(), target,
@@ -3970,18 +3970,18 @@ PROTOBUF_NOINLINE void CreateVmImageOp::Clear() {
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
             this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:s4wave.vm.CreateVmImageOp)
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.vm.CreateV86ImageOp)
   return target;
 }
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-::size_t CreateVmImageOp::ByteSizeLong(const MessageLite& base) {
-  const CreateVmImageOp& this_ = static_cast<const CreateVmImageOp&>(base);
+::size_t CreateV86ImageOp::ByteSizeLong(const MessageLite& base) {
+  const CreateV86ImageOp& this_ = static_cast<const CreateV86ImageOp&>(base);
 #else   // PROTOBUF_CUSTOM_VTABLE
-::size_t CreateVmImageOp::ByteSizeLong() const {
-  const CreateVmImageOp& this_ = *this;
+::size_t CreateV86ImageOp::ByteSizeLong() const {
+  const CreateV86ImageOp& this_ = *this;
 #endif  // PROTOBUF_CUSTOM_VTABLE
-  // @@protoc_insertion_point(message_byte_size_start:s4wave.vm.CreateVmImageOp)
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.vm.CreateV86ImageOp)
   ::size_t total_size = 0;
 
   ::uint32_t cached_has_bits = 0;
@@ -3998,7 +3998,7 @@ PROTOBUF_NOINLINE void CreateVmImageOp::Clear() {
                                         this_._internal_object_key());
       }
     }
-    // .s4wave.vm.VmImage image = 2;
+    // .s4wave.vm.V86Image image = 2;
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.image_);
@@ -4013,16 +4013,16 @@ PROTOBUF_NOINLINE void CreateVmImageOp::Clear() {
                                              &this_._impl_._cached_size_);
 }
 
-void CreateVmImageOp::MergeImpl(::google::protobuf::MessageLite& to_msg,
+void CreateV86ImageOp::MergeImpl(::google::protobuf::MessageLite& to_msg,
                             const ::google::protobuf::MessageLite& from_msg) {
    auto* const _this =
-      static_cast<CreateVmImageOp*>(&to_msg);
-  auto& from = static_cast<const CreateVmImageOp&>(from_msg);
+      static_cast<CreateV86ImageOp*>(&to_msg);
+  auto& from = static_cast<const CreateV86ImageOp&>(from_msg);
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     from.CheckHasBitConsistency();
   }
   ::google::protobuf::Arena* arena = _this->GetArena();
-  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.vm.CreateVmImageOp)
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.vm.CreateV86ImageOp)
   ABSL_DCHECK_NE(&from, _this);
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
@@ -4060,15 +4060,15 @@ void CreateVmImageOp::MergeImpl(::google::protobuf::MessageLite& to_msg,
       from._internal_metadata_);
 }
 
-void CreateVmImageOp::CopyFrom(const CreateVmImageOp& from) {
-  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.vm.CreateVmImageOp)
+void CreateV86ImageOp::CopyFrom(const CreateV86ImageOp& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.vm.CreateV86ImageOp)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
 
-void CreateVmImageOp::InternalSwap(CreateVmImageOp* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+void CreateV86ImageOp::InternalSwap(CreateV86ImageOp* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   using ::std::swap;
   auto* arena = GetArena();
   ABSL_DCHECK_EQ(arena, other->GetArena());
@@ -4076,52 +4076,52 @@ void CreateVmImageOp::InternalSwap(CreateVmImageOp* PROTOBUF_RESTRICT PROTOBUF_N
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.object_key_, &other->_impl_.object_key_, arena);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(CreateVmImageOp, _impl_.timestamp_)
-      + sizeof(CreateVmImageOp::_impl_.timestamp_)
-      - PROTOBUF_FIELD_OFFSET(CreateVmImageOp, _impl_.image_)>(
+      PROTOBUF_FIELD_OFFSET(CreateV86ImageOp, _impl_.timestamp_)
+      + sizeof(CreateV86ImageOp::_impl_.timestamp_)
+      - PROTOBUF_FIELD_OFFSET(CreateV86ImageOp, _impl_.image_)>(
           reinterpret_cast<char*>(&_impl_.image_),
           reinterpret_cast<char*>(&other->_impl_.image_));
 }
 
-::google::protobuf::Metadata CreateVmImageOp::GetMetadata() const {
+::google::protobuf::Metadata CreateV86ImageOp::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================
 
-class SetVmImageMetadataOp::_Internal {
+class SetV86ImageMetadataOp::_Internal {
  public:
   using HasBits =
-      decltype(::std::declval<SetVmImageMetadataOp>()._impl_._has_bits_);
+      decltype(::std::declval<SetV86ImageMetadataOp>()._impl_._has_bits_);
   static constexpr ::int32_t kHasBitsOffset =
-      8 * PROTOBUF_FIELD_OFFSET(SetVmImageMetadataOp, _impl_._has_bits_);
+      8 * PROTOBUF_FIELD_OFFSET(SetV86ImageMetadataOp, _impl_._has_bits_);
 };
 
-SetVmImageMetadataOp::SetVmImageMetadataOp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+SetV86ImageMetadataOp::SetV86ImageMetadataOp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, SetVmImageMetadataOp_class_data_.base()) {
+    : ::google::protobuf::Message(arena, SetV86ImageMetadataOp_class_data_.base()) {
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::Message(arena) {
 #endif  // PROTOBUF_CUSTOM_VTABLE
   SharedCtor(arena);
-  // @@protoc_insertion_point(arena_constructor:s4wave.vm.SetVmImageMetadataOp)
+  // @@protoc_insertion_point(arena_constructor:s4wave.vm.SetV86ImageMetadataOp)
 }
-PROTOBUF_NDEBUG_INLINE SetVmImageMetadataOp::Impl_::Impl_(
+PROTOBUF_NDEBUG_INLINE SetV86ImageMetadataOp::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-    [[maybe_unused]] const ::s4wave::vm::SetVmImageMetadataOp& from_msg)
+    [[maybe_unused]] const ::s4wave::vm::SetV86ImageMetadataOp& from_msg)
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
         object_key_(arena, from.object_key_) {}
 
-SetVmImageMetadataOp::SetVmImageMetadataOp(
+SetV86ImageMetadataOp::SetV86ImageMetadataOp(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
-    const SetVmImageMetadataOp& from)
+    const SetV86ImageMetadataOp& from)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, SetVmImageMetadataOp_class_data_.base()) {
+    : ::google::protobuf::Message(arena, SetV86ImageMetadataOp_class_data_.base()) {
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::Message(arena) {
 #endif  // PROTOBUF_CUSTOM_VTABLE
-  SetVmImageMetadataOp* const _this = this;
+  SetV86ImageMetadataOp* const _this = this;
   (void)_this;
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
@@ -4131,24 +4131,24 @@ SetVmImageMetadataOp::SetVmImageMetadataOp(
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.image_)
                 : nullptr;
 
-  // @@protoc_insertion_point(copy_constructor:s4wave.vm.SetVmImageMetadataOp)
+  // @@protoc_insertion_point(copy_constructor:s4wave.vm.SetV86ImageMetadataOp)
 }
-PROTOBUF_NDEBUG_INLINE SetVmImageMetadataOp::Impl_::Impl_(
+PROTOBUF_NDEBUG_INLINE SetV86ImageMetadataOp::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
         object_key_(arena) {}
 
-inline void SetVmImageMetadataOp::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+inline void SetV86ImageMetadataOp::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
   _impl_.image_ = {};
 }
-SetVmImageMetadataOp::~SetVmImageMetadataOp() {
-  // @@protoc_insertion_point(destructor:s4wave.vm.SetVmImageMetadataOp)
+SetV86ImageMetadataOp::~SetV86ImageMetadataOp() {
+  // @@protoc_insertion_point(destructor:s4wave.vm.SetV86ImageMetadataOp)
   SharedDtor(*this);
 }
-inline void SetVmImageMetadataOp::SharedDtor(MessageLite& self) {
-  SetVmImageMetadataOp& this_ = static_cast<SetVmImageMetadataOp&>(self);
+inline void SetV86ImageMetadataOp::SharedDtor(MessageLite& self) {
+  SetV86ImageMetadataOp& this_ = static_cast<SetV86ImageMetadataOp&>(self);
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     this_.CheckHasBitConsistency();
   }
@@ -4159,53 +4159,53 @@ inline void SetVmImageMetadataOp::SharedDtor(MessageLite& self) {
   this_._impl_.~Impl_();
 }
 
-inline void* PROTOBUF_NONNULL SetVmImageMetadataOp::PlacementNew_(
+inline void* PROTOBUF_NONNULL SetV86ImageMetadataOp::PlacementNew_(
     const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
-  return ::new (mem) SetVmImageMetadataOp(arena);
+  return ::new (mem) SetV86ImageMetadataOp(arena);
 }
-constexpr auto SetVmImageMetadataOp::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(SetVmImageMetadataOp),
-                                            alignof(SetVmImageMetadataOp));
+constexpr auto SetV86ImageMetadataOp::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(SetV86ImageMetadataOp),
+                                            alignof(SetV86ImageMetadataOp));
 }
-constexpr auto SetVmImageMetadataOp::InternalGenerateClassData_() {
+constexpr auto SetV86ImageMetadataOp::InternalGenerateClassData_() {
   return ::google::protobuf::internal::ClassDataFull{
       ::google::protobuf::internal::ClassData{
-          &_SetVmImageMetadataOp_default_instance_._instance,
+          &_SetV86ImageMetadataOp_default_instance_._instance,
           &_table_.header,
           nullptr,  // OnDemandRegisterArenaDtor
           nullptr,  // IsInitialized
-          &SetVmImageMetadataOp::MergeImpl,
-          ::google::protobuf::Message::GetNewImpl<SetVmImageMetadataOp>(),
+          &SetV86ImageMetadataOp::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<SetV86ImageMetadataOp>(),
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-          &SetVmImageMetadataOp::SharedDtor,
-          ::google::protobuf::Message::GetClearImpl<SetVmImageMetadataOp>(), &SetVmImageMetadataOp::ByteSizeLong,
-              &SetVmImageMetadataOp::_InternalSerialize,
+          &SetV86ImageMetadataOp::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<SetV86ImageMetadataOp>(), &SetV86ImageMetadataOp::ByteSizeLong,
+              &SetV86ImageMetadataOp::_InternalSerialize,
 #endif  // PROTOBUF_CUSTOM_VTABLE
-          PROTOBUF_FIELD_OFFSET(SetVmImageMetadataOp, _impl_._cached_size_),
+          PROTOBUF_FIELD_OFFSET(SetV86ImageMetadataOp, _impl_._cached_size_),
           false,
       },
-      &SetVmImageMetadataOp::kDescriptorMethods,
+      &SetV86ImageMetadataOp::kDescriptorMethods,
       &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fvm_2fv86_2eproto,
       nullptr,  // tracker
   };
 }
 
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
-    ::google::protobuf::internal::ClassDataFull SetVmImageMetadataOp_class_data_ =
-        SetVmImageMetadataOp::InternalGenerateClassData_();
+    ::google::protobuf::internal::ClassDataFull SetV86ImageMetadataOp_class_data_ =
+        SetV86ImageMetadataOp::InternalGenerateClassData_();
 
 PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
-SetVmImageMetadataOp::GetClassData() const {
-  ::google::protobuf::internal::PrefetchToLocalCache(&SetVmImageMetadataOp_class_data_);
-  ::google::protobuf::internal::PrefetchToLocalCache(SetVmImageMetadataOp_class_data_.tc_table);
-  return SetVmImageMetadataOp_class_data_.base();
+SetV86ImageMetadataOp::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&SetV86ImageMetadataOp_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(SetV86ImageMetadataOp_class_data_.tc_table);
+  return SetV86ImageMetadataOp_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<1, 2, 1, 49, 2>
-SetVmImageMetadataOp::_table_ = {
+const ::_pbi::TcParseTable<1, 2, 1, 50, 2>
+SetV86ImageMetadataOp::_table_ = {
   {
-    PROTOBUF_FIELD_OFFSET(SetVmImageMetadataOp, _impl_._has_bits_),
+    PROTOBUF_FIELD_OFFSET(SetV86ImageMetadataOp, _impl_._has_bits_),
     0, // no _extensions_
     2, 8,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
@@ -4214,40 +4214,40 @@ SetVmImageMetadataOp::_table_ = {
     2,  // num_field_entries
     1,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
-    SetVmImageMetadataOp_class_data_.base(),
+    SetV86ImageMetadataOp_class_data_.base(),
     nullptr,  // post_loop_handler
     ::_pbi::TcParser::GenericFallback,  // fallback
     #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
-    ::_pbi::TcParser::GetTable<::s4wave::vm::SetVmImageMetadataOp>(),  // to_prefetch
+    ::_pbi::TcParser::GetTable<::s4wave::vm::SetV86ImageMetadataOp>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // .s4wave.vm.VmImage image = 2;
+    // .s4wave.vm.V86Image image = 2;
     {::_pbi::TcParser::FastMtS1,
      {18, 1, 0,
-      PROTOBUF_FIELD_OFFSET(SetVmImageMetadataOp, _impl_.image_)}},
+      PROTOBUF_FIELD_OFFSET(SetV86ImageMetadataOp, _impl_.image_)}},
     // string object_key = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
-      PROTOBUF_FIELD_OFFSET(SetVmImageMetadataOp, _impl_.object_key_)}},
+      PROTOBUF_FIELD_OFFSET(SetV86ImageMetadataOp, _impl_.object_key_)}},
   }}, {{
     65535, 65535
   }}, {{
     // string object_key = 1;
-    {PROTOBUF_FIELD_OFFSET(SetVmImageMetadataOp, _impl_.object_key_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // .s4wave.vm.VmImage image = 2;
-    {PROTOBUF_FIELD_OFFSET(SetVmImageMetadataOp, _impl_.image_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(SetV86ImageMetadataOp, _impl_.object_key_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .s4wave.vm.V86Image image = 2;
+    {PROTOBUF_FIELD_OFFSET(SetV86ImageMetadataOp, _impl_.image_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
-      {::_pbi::TcParser::GetTable<::s4wave::vm::VmImage>()},
+      {::_pbi::TcParser::GetTable<::s4wave::vm::V86Image>()},
   }},
   {{
-    "\36\12\0\0\0\0\0\0"
-    "s4wave.vm.SetVmImageMetadataOp"
+    "\37\12\0\0\0\0\0\0"
+    "s4wave.vm.SetV86ImageMetadataOp"
     "object_key"
   }},
 };
-PROTOBUF_NOINLINE void SetVmImageMetadataOp::Clear() {
-// @@protoc_insertion_point(message_clear_start:s4wave.vm.SetVmImageMetadataOp)
+PROTOBUF_NOINLINE void SetV86ImageMetadataOp::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.vm.SetV86ImageMetadataOp)
   ::google::protobuf::internal::TSanWrite(&_impl_);
   ::uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
@@ -4268,20 +4268,20 @@ PROTOBUF_NOINLINE void SetVmImageMetadataOp::Clear() {
 }
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-::uint8_t* PROTOBUF_NONNULL SetVmImageMetadataOp::_InternalSerialize(
+::uint8_t* PROTOBUF_NONNULL SetV86ImageMetadataOp::_InternalSerialize(
     const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
     ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
-  const SetVmImageMetadataOp& this_ = static_cast<const SetVmImageMetadataOp&>(base);
+  const SetV86ImageMetadataOp& this_ = static_cast<const SetV86ImageMetadataOp&>(base);
 #else   // PROTOBUF_CUSTOM_VTABLE
-::uint8_t* PROTOBUF_NONNULL SetVmImageMetadataOp::_InternalSerialize(
+::uint8_t* PROTOBUF_NONNULL SetV86ImageMetadataOp::_InternalSerialize(
     ::uint8_t* PROTOBUF_NONNULL target,
     ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-  const SetVmImageMetadataOp& this_ = *this;
+  const SetV86ImageMetadataOp& this_ = *this;
 #endif  // PROTOBUF_CUSTOM_VTABLE
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     this_.CheckHasBitConsistency();
   }
-  // @@protoc_insertion_point(serialize_to_array_start:s4wave.vm.SetVmImageMetadataOp)
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.vm.SetV86ImageMetadataOp)
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
 
@@ -4291,12 +4291,12 @@ PROTOBUF_NOINLINE void SetVmImageMetadataOp::Clear() {
     if (!this_._internal_object_key().empty()) {
       const ::std::string& _s = this_._internal_object_key();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.vm.SetVmImageMetadataOp.object_key");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.vm.SetV86ImageMetadataOp.object_key");
       target = stream->WriteStringMaybeAliased(1, _s, target);
     }
   }
 
-  // .s4wave.vm.VmImage image = 2;
+  // .s4wave.vm.V86Image image = 2;
   if (CheckHasBit(cached_has_bits, 0x00000002U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         2, *this_._impl_.image_, this_._impl_.image_->GetCachedSize(), target,
@@ -4308,18 +4308,18 @@ PROTOBUF_NOINLINE void SetVmImageMetadataOp::Clear() {
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
             this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:s4wave.vm.SetVmImageMetadataOp)
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.vm.SetV86ImageMetadataOp)
   return target;
 }
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-::size_t SetVmImageMetadataOp::ByteSizeLong(const MessageLite& base) {
-  const SetVmImageMetadataOp& this_ = static_cast<const SetVmImageMetadataOp&>(base);
+::size_t SetV86ImageMetadataOp::ByteSizeLong(const MessageLite& base) {
+  const SetV86ImageMetadataOp& this_ = static_cast<const SetV86ImageMetadataOp&>(base);
 #else   // PROTOBUF_CUSTOM_VTABLE
-::size_t SetVmImageMetadataOp::ByteSizeLong() const {
-  const SetVmImageMetadataOp& this_ = *this;
+::size_t SetV86ImageMetadataOp::ByteSizeLong() const {
+  const SetV86ImageMetadataOp& this_ = *this;
 #endif  // PROTOBUF_CUSTOM_VTABLE
-  // @@protoc_insertion_point(message_byte_size_start:s4wave.vm.SetVmImageMetadataOp)
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.vm.SetV86ImageMetadataOp)
   ::size_t total_size = 0;
 
   ::uint32_t cached_has_bits = 0;
@@ -4336,7 +4336,7 @@ PROTOBUF_NOINLINE void SetVmImageMetadataOp::Clear() {
                                         this_._internal_object_key());
       }
     }
-    // .s4wave.vm.VmImage image = 2;
+    // .s4wave.vm.V86Image image = 2;
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.image_);
@@ -4346,16 +4346,16 @@ PROTOBUF_NOINLINE void SetVmImageMetadataOp::Clear() {
                                              &this_._impl_._cached_size_);
 }
 
-void SetVmImageMetadataOp::MergeImpl(::google::protobuf::MessageLite& to_msg,
+void SetV86ImageMetadataOp::MergeImpl(::google::protobuf::MessageLite& to_msg,
                             const ::google::protobuf::MessageLite& from_msg) {
    auto* const _this =
-      static_cast<SetVmImageMetadataOp*>(&to_msg);
-  auto& from = static_cast<const SetVmImageMetadataOp&>(from_msg);
+      static_cast<SetV86ImageMetadataOp*>(&to_msg);
+  auto& from = static_cast<const SetV86ImageMetadataOp&>(from_msg);
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     from.CheckHasBitConsistency();
   }
   ::google::protobuf::Arena* arena = _this->GetArena();
-  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.vm.SetVmImageMetadataOp)
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.vm.SetV86ImageMetadataOp)
   ABSL_DCHECK_NE(&from, _this);
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
@@ -4385,15 +4385,15 @@ void SetVmImageMetadataOp::MergeImpl(::google::protobuf::MessageLite& to_msg,
       from._internal_metadata_);
 }
 
-void SetVmImageMetadataOp::CopyFrom(const SetVmImageMetadataOp& from) {
-  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.vm.SetVmImageMetadataOp)
+void SetV86ImageMetadataOp::CopyFrom(const SetV86ImageMetadataOp& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.vm.SetV86ImageMetadataOp)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
 
-void SetVmImageMetadataOp::InternalSwap(SetVmImageMetadataOp* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+void SetV86ImageMetadataOp::InternalSwap(SetV86ImageMetadataOp* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   using ::std::swap;
   auto* arena = GetArena();
   ABSL_DCHECK_EQ(arena, other->GetArena());
@@ -4403,7 +4403,7 @@ void SetVmImageMetadataOp::InternalSwap(SetVmImageMetadataOp* PROTOBUF_RESTRICT 
   swap(_impl_.image_, other->_impl_.image_);
 }
 
-::google::protobuf::Metadata SetVmImageMetadataOp::GetMetadata() const {
+::google::protobuf::Metadata SetV86ImageMetadataOp::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // @@protoc_insertion_point(namespace_scope)

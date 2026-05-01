@@ -3,8 +3,8 @@
 /* eslint-disable */
 
 import {
-  CopyVmImageToSpaceRequest,
-  CopyVmImageToSpaceResponse,
+  CopyV86ImageToSpaceRequest,
+  CopyV86ImageToSpaceResponse,
   GetCdnSpaceIdRequest,
   GetCdnSpaceIdResponse,
   MountCdnSpaceRequest,
@@ -38,12 +38,12 @@ export const CdnResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
-     * @generated from rpc s4wave.cdn.CdnResourceService.CopyVmImageToSpace
+     * @generated from rpc s4wave.cdn.CdnResourceService.CopyV86ImageToSpace
      */
-    CopyVmImageToSpace: {
-      name: 'CopyVmImageToSpace',
-      I: CopyVmImageToSpaceRequest,
-      O: CopyVmImageToSpaceResponse,
+    CopyV86ImageToSpace: {
+      name: 'CopyV86ImageToSpace',
+      I: CopyV86ImageToSpaceRequest,
+      O: CopyV86ImageToSpaceResponse,
       kind: MethodKind.Unary,
     },
   },
@@ -70,12 +70,12 @@ export interface CdnResourceService {
   ): Promise<MountCdnSpaceResponse>
 
   /**
-   * @generated from rpc s4wave.cdn.CdnResourceService.CopyVmImageToSpace
+   * @generated from rpc s4wave.cdn.CdnResourceService.CopyV86ImageToSpace
    */
-  CopyVmImageToSpace(
-    request: CopyVmImageToSpaceRequest,
+  CopyV86ImageToSpace(
+    request: CopyV86ImageToSpaceRequest,
     abortSignal?: AbortSignal,
-  ): Promise<CopyVmImageToSpaceResponse>
+  ): Promise<CopyV86ImageToSpaceResponse>
 }
 
 export const CdnResourceServiceServiceName =
@@ -89,7 +89,7 @@ export class CdnResourceServiceClient implements CdnResourceService {
     this.rpc = rpc
     this.GetCdnSpaceId = this.GetCdnSpaceId.bind(this)
     this.MountCdnSpace = this.MountCdnSpace.bind(this)
-    this.CopyVmImageToSpace = this.CopyVmImageToSpace.bind(this)
+    this.CopyV86ImageToSpace = this.CopyV86ImageToSpace.bind(this)
   }
   /**
    * @generated from rpc s4wave.cdn.CdnResourceService.GetCdnSpaceId
@@ -126,19 +126,19 @@ export class CdnResourceServiceClient implements CdnResourceService {
   }
 
   /**
-   * @generated from rpc s4wave.cdn.CdnResourceService.CopyVmImageToSpace
+   * @generated from rpc s4wave.cdn.CdnResourceService.CopyV86ImageToSpace
    */
-  async CopyVmImageToSpace(
-    request: CopyVmImageToSpaceRequest,
+  async CopyV86ImageToSpace(
+    request: CopyV86ImageToSpaceRequest,
     abortSignal?: AbortSignal,
-  ): Promise<CopyVmImageToSpaceResponse> {
-    const requestMsg = CopyVmImageToSpaceRequest.create(request)
+  ): Promise<CopyV86ImageToSpaceResponse> {
+    const requestMsg = CopyV86ImageToSpaceRequest.create(request)
     const result = await this.rpc.request(
       this.service,
-      CdnResourceServiceDefinition.methods.CopyVmImageToSpace.name,
-      CopyVmImageToSpaceRequest.toBinary(requestMsg),
+      CdnResourceServiceDefinition.methods.CopyV86ImageToSpace.name,
+      CopyV86ImageToSpaceRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
-    return CopyVmImageToSpaceResponse.fromBinary(result)
+    return CopyV86ImageToSpaceResponse.fromBinary(result)
   }
 }

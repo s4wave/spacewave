@@ -86,11 +86,11 @@ export const MountCdnSpaceResponse: MessageType<MountCdnSpaceResponse> =
   })
 
 /**
- * CopyVmImageToSpaceRequest is the request type for CopyVmImageToSpace.
+ * CopyV86ImageToSpaceRequest is the request type for CopyV86ImageToSpace.
  *
- * @generated from message s4wave.cdn.CopyVmImageToSpaceRequest
+ * @generated from message s4wave.cdn.CopyV86ImageToSpaceRequest
  */
-export interface CopyVmImageToSpaceRequest {
+export interface CopyV86ImageToSpaceRequest {
   /**
    * SessionIdx is the caller's session index; used to resolve the
    * destination user Space via the standard session-aware mount path.
@@ -99,13 +99,13 @@ export interface CopyVmImageToSpaceRequest {
    */
   sessionIdx?: number
   /**
-   * DstSpaceId is the ULID of the user Space the VmImage will land in.
+   * DstSpaceId is the ULID of the user Space the V86Image will land in.
    *
    * @generated from field: string dst_space_id = 2;
    */
   dstSpaceId?: string
   /**
-   * SrcObjectKey is the VmImage object key in the CDN Space.
+   * SrcObjectKey is the V86Image object key in the CDN Space.
    *
    * @generated from field: string src_object_key = 3;
    */
@@ -118,10 +118,10 @@ export interface CopyVmImageToSpaceRequest {
   dstObjectKey?: string
 }
 
-// CopyVmImageToSpaceRequest contains the message type declaration for CopyVmImageToSpaceRequest.
-export const CopyVmImageToSpaceRequest: MessageType<CopyVmImageToSpaceRequest> =
+// CopyV86ImageToSpaceRequest contains the message type declaration for CopyV86ImageToSpaceRequest.
+export const CopyV86ImageToSpaceRequest: MessageType<CopyV86ImageToSpaceRequest> =
   createMessageType({
-    typeName: 's4wave.cdn.CopyVmImageToSpaceRequest',
+    typeName: 's4wave.cdn.CopyV86ImageToSpaceRequest',
     fields: [
       { no: 1, name: 'session_idx', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'dst_space_id', kind: 'scalar', T: ScalarType.STRING },
@@ -132,16 +132,16 @@ export const CopyVmImageToSpaceRequest: MessageType<CopyVmImageToSpaceRequest> =
   })
 
 /**
- * CopyVmImageToSpaceResponse is the response type for CopyVmImageToSpace.
+ * CopyV86ImageToSpaceResponse is the response type for CopyV86ImageToSpace.
  *
- * @generated from message s4wave.cdn.CopyVmImageToSpaceResponse
+ * @generated from message s4wave.cdn.CopyV86ImageToSpaceResponse
  */
-export interface CopyVmImageToSpaceResponse {}
+export interface CopyV86ImageToSpaceResponse {}
 
-// CopyVmImageToSpaceResponse contains the message type declaration for CopyVmImageToSpaceResponse.
-export const CopyVmImageToSpaceResponse: MessageType<CopyVmImageToSpaceResponse> =
+// CopyV86ImageToSpaceResponse contains the message type declaration for CopyV86ImageToSpaceResponse.
+export const CopyV86ImageToSpaceResponse: MessageType<CopyV86ImageToSpaceResponse> =
   createMessageType({
-    typeName: 's4wave.cdn.CopyVmImageToSpaceResponse',
+    typeName: 's4wave.cdn.CopyV86ImageToSpaceResponse',
     fields: [] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

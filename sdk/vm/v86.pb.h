@@ -60,10 +60,10 @@ namespace s4wave {
 namespace vm {
 enum VmState : int;
 extern const uint32_t VmState_internal_data_[];
-class CreateVmImageOp;
-struct CreateVmImageOpDefaultTypeInternal;
-extern CreateVmImageOpDefaultTypeInternal _CreateVmImageOp_default_instance_;
-extern const ::google::protobuf::internal::ClassDataFull CreateVmImageOp_class_data_;
+class CreateV86ImageOp;
+struct CreateV86ImageOpDefaultTypeInternal;
+extern CreateV86ImageOpDefaultTypeInternal _CreateV86ImageOp_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull CreateV86ImageOp_class_data_;
 class CreateVmV86Op;
 struct CreateVmV86OpDefaultTypeInternal;
 extern CreateVmV86OpDefaultTypeInternal _CreateVmV86Op_default_instance_;
@@ -72,22 +72,22 @@ class SetV86ConfigOp;
 struct SetV86ConfigOpDefaultTypeInternal;
 extern SetV86ConfigOpDefaultTypeInternal _SetV86ConfigOp_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull SetV86ConfigOp_class_data_;
+class SetV86ImageMetadataOp;
+struct SetV86ImageMetadataOpDefaultTypeInternal;
+extern SetV86ImageMetadataOpDefaultTypeInternal _SetV86ImageMetadataOp_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SetV86ImageMetadataOp_class_data_;
 class SetV86StateOp;
 struct SetV86StateOpDefaultTypeInternal;
 extern SetV86StateOpDefaultTypeInternal _SetV86StateOp_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull SetV86StateOp_class_data_;
-class SetVmImageMetadataOp;
-struct SetVmImageMetadataOpDefaultTypeInternal;
-extern SetVmImageMetadataOpDefaultTypeInternal _SetVmImageMetadataOp_default_instance_;
-extern const ::google::protobuf::internal::ClassDataFull SetVmImageMetadataOp_class_data_;
 class V86Config;
 struct V86ConfigDefaultTypeInternal;
 extern V86ConfigDefaultTypeInternal _V86Config_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull V86Config_class_data_;
-class VmImage;
-struct VmImageDefaultTypeInternal;
-extern VmImageDefaultTypeInternal _VmImage_default_instance_;
-extern const ::google::protobuf::internal::ClassDataFull VmImage_class_data_;
+class V86Image;
+struct V86ImageDefaultTypeInternal;
+extern V86ImageDefaultTypeInternal _V86Image_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull V86Image_class_data_;
 class VmMount;
 struct VmMountDefaultTypeInternal;
 extern VmMountDefaultTypeInternal _VmMount_default_instance_;
@@ -601,30 +601,30 @@ class SetV86StateOp final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull SetV86StateOp_class_data_;
 // -------------------------------------------------------------------
 
-class VmImage final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:s4wave.vm.VmImage) */ {
+class V86Image final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.vm.V86Image) */ {
  public:
-  inline VmImage() : VmImage(nullptr) {}
-  ~VmImage() PROTOBUF_FINAL;
+  inline V86Image() : V86Image(nullptr) {}
+  ~V86Image() PROTOBUF_FINAL;
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(VmImage* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+  void operator delete(V86Image* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
     SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(VmImage));
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(V86Image));
   }
 #endif
 
   template <typename = void>
-  explicit PROTOBUF_CONSTEXPR VmImage(::google::protobuf::internal::ConstantInitialized);
+  explicit PROTOBUF_CONSTEXPR V86Image(::google::protobuf::internal::ConstantInitialized);
 
-  inline VmImage(const VmImage& from) : VmImage(nullptr, from) {}
-  inline VmImage(VmImage&& from) noexcept
-      : VmImage(nullptr, ::std::move(from)) {}
-  inline VmImage& operator=(const VmImage& from) {
+  inline V86Image(const V86Image& from) : V86Image(nullptr, from) {}
+  inline V86Image(V86Image&& from) noexcept
+      : V86Image(nullptr, ::std::move(from)) {}
+  inline V86Image& operator=(const V86Image& from) {
     CopyFrom(from);
     return *this;
   }
-  inline VmImage& operator=(VmImage&& from) noexcept {
+  inline V86Image& operator=(V86Image&& from) noexcept {
     if (this == &from) return *this;
     if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
       InternalSwap(&from);
@@ -652,13 +652,13 @@ class VmImage final : public ::google::protobuf::Message
   static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
     return default_instance().GetMetadata().reflection;
   }
-  static const VmImage& default_instance() {
-    return *reinterpret_cast<const VmImage*>(
-        &_VmImage_default_instance_);
+  static const V86Image& default_instance() {
+    return *reinterpret_cast<const V86Image*>(
+        &_V86Image_default_instance_);
   }
   static constexpr int kIndexInFileMessages = 6;
-  friend void swap(VmImage& a, VmImage& b) { a.Swap(&b); }
-  inline void Swap(VmImage* PROTOBUF_NONNULL other) {
+  friend void swap(V86Image& a, V86Image& b) { a.Swap(&b); }
+  inline void Swap(V86Image* PROTOBUF_NONNULL other) {
     if (other == this) return;
     if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
       InternalSwap(other);
@@ -666,7 +666,7 @@ class VmImage final : public ::google::protobuf::Message
       ::google::protobuf::internal::GenericSwap(this, other);
     }
   }
-  void UnsafeArenaSwap(VmImage* PROTOBUF_NONNULL other) {
+  void UnsafeArenaSwap(V86Image* PROTOBUF_NONNULL other) {
     if (other == this) return;
     ABSL_DCHECK(GetArena() == other->GetArena());
     InternalSwap(other);
@@ -674,13 +674,13 @@ class VmImage final : public ::google::protobuf::Message
 
   // implements Message ----------------------------------------------
 
-  VmImage* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::Message::DefaultConstruct<VmImage>(arena);
+  V86Image* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<V86Image>(arena);
   }
   using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const VmImage& from);
+  void CopyFrom(const V86Image& from);
   using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom(const VmImage& from) { VmImage::MergeImpl(*this, from); }
+  void MergeFrom(const V86Image& from) { V86Image::MergeImpl(*this, from); }
 
   private:
   static void MergeImpl(::google::protobuf::MessageLite& to_msg,
@@ -716,17 +716,17 @@ class VmImage final : public ::google::protobuf::Message
   private:
   void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
   static void SharedDtor(MessageLite& self);
-  void InternalSwap(VmImage* PROTOBUF_NONNULL other);
+  void InternalSwap(V86Image* PROTOBUF_NONNULL other);
  private:
   template <typename T>
   friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "s4wave.vm.VmImage"; }
+  static ::absl::string_view FullMessageName() { return "s4wave.vm.V86Image"; }
 
-  explicit VmImage(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  VmImage(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const VmImage& from);
-  VmImage(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, VmImage&& from) noexcept
-      : VmImage(arena) {
+  explicit V86Image(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  V86Image(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const V86Image& from);
+  V86Image(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, V86Image&& from) noexcept
+      : V86Image(arena) {
     *this = ::std::move(from);
   }
   const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
@@ -879,12 +879,12 @@ class VmImage final : public ::google::protobuf::Message
   ::google::protobuf::Timestamp* PROTOBUF_NONNULL _internal_mutable_created_at();
 
   public:
-  // @@protoc_insertion_point(class_scope:s4wave.vm.VmImage)
+  // @@protoc_insertion_point(class_scope:s4wave.vm.V86Image)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
   static const ::google::protobuf::internal::TcParseTable<3, 8,
-                                   1, 88,
+                                   1, 89,
                                    2>
       _table_;
 
@@ -902,7 +902,7 @@ class VmImage final : public ::google::protobuf::Message
     inline explicit Impl_(
         ::google::protobuf::internal::InternalVisibility visibility,
         ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-        const VmImage& from_msg);
+        const V86Image& from_msg);
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::RepeatedPtrField<::std::string> tags_;
@@ -919,7 +919,7 @@ class VmImage final : public ::google::protobuf::Message
   friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fvm_2fv86_2eproto;
 };
 
-extern const ::google::protobuf::internal::ClassDataFull VmImage_class_data_;
+extern const ::google::protobuf::internal::ClassDataFull V86Image_class_data_;
 // -------------------------------------------------------------------
 
 class V86Config final : public ::google::protobuf::Message
@@ -1459,30 +1459,30 @@ class VmV86 final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull VmV86_class_data_;
 // -------------------------------------------------------------------
 
-class SetVmImageMetadataOp final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:s4wave.vm.SetVmImageMetadataOp) */ {
+class SetV86ImageMetadataOp final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.vm.SetV86ImageMetadataOp) */ {
  public:
-  inline SetVmImageMetadataOp() : SetVmImageMetadataOp(nullptr) {}
-  ~SetVmImageMetadataOp() PROTOBUF_FINAL;
+  inline SetV86ImageMetadataOp() : SetV86ImageMetadataOp(nullptr) {}
+  ~SetV86ImageMetadataOp() PROTOBUF_FINAL;
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(SetVmImageMetadataOp* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+  void operator delete(SetV86ImageMetadataOp* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
     SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(SetVmImageMetadataOp));
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SetV86ImageMetadataOp));
   }
 #endif
 
   template <typename = void>
-  explicit PROTOBUF_CONSTEXPR SetVmImageMetadataOp(::google::protobuf::internal::ConstantInitialized);
+  explicit PROTOBUF_CONSTEXPR SetV86ImageMetadataOp(::google::protobuf::internal::ConstantInitialized);
 
-  inline SetVmImageMetadataOp(const SetVmImageMetadataOp& from) : SetVmImageMetadataOp(nullptr, from) {}
-  inline SetVmImageMetadataOp(SetVmImageMetadataOp&& from) noexcept
-      : SetVmImageMetadataOp(nullptr, ::std::move(from)) {}
-  inline SetVmImageMetadataOp& operator=(const SetVmImageMetadataOp& from) {
+  inline SetV86ImageMetadataOp(const SetV86ImageMetadataOp& from) : SetV86ImageMetadataOp(nullptr, from) {}
+  inline SetV86ImageMetadataOp(SetV86ImageMetadataOp&& from) noexcept
+      : SetV86ImageMetadataOp(nullptr, ::std::move(from)) {}
+  inline SetV86ImageMetadataOp& operator=(const SetV86ImageMetadataOp& from) {
     CopyFrom(from);
     return *this;
   }
-  inline SetVmImageMetadataOp& operator=(SetVmImageMetadataOp&& from) noexcept {
+  inline SetV86ImageMetadataOp& operator=(SetV86ImageMetadataOp&& from) noexcept {
     if (this == &from) return *this;
     if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
       InternalSwap(&from);
@@ -1510,13 +1510,13 @@ class SetVmImageMetadataOp final : public ::google::protobuf::Message
   static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
     return default_instance().GetMetadata().reflection;
   }
-  static const SetVmImageMetadataOp& default_instance() {
-    return *reinterpret_cast<const SetVmImageMetadataOp*>(
-        &_SetVmImageMetadataOp_default_instance_);
+  static const SetV86ImageMetadataOp& default_instance() {
+    return *reinterpret_cast<const SetV86ImageMetadataOp*>(
+        &_SetV86ImageMetadataOp_default_instance_);
   }
   static constexpr int kIndexInFileMessages = 8;
-  friend void swap(SetVmImageMetadataOp& a, SetVmImageMetadataOp& b) { a.Swap(&b); }
-  inline void Swap(SetVmImageMetadataOp* PROTOBUF_NONNULL other) {
+  friend void swap(SetV86ImageMetadataOp& a, SetV86ImageMetadataOp& b) { a.Swap(&b); }
+  inline void Swap(SetV86ImageMetadataOp* PROTOBUF_NONNULL other) {
     if (other == this) return;
     if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
       InternalSwap(other);
@@ -1524,7 +1524,7 @@ class SetVmImageMetadataOp final : public ::google::protobuf::Message
       ::google::protobuf::internal::GenericSwap(this, other);
     }
   }
-  void UnsafeArenaSwap(SetVmImageMetadataOp* PROTOBUF_NONNULL other) {
+  void UnsafeArenaSwap(SetV86ImageMetadataOp* PROTOBUF_NONNULL other) {
     if (other == this) return;
     ABSL_DCHECK(GetArena() == other->GetArena());
     InternalSwap(other);
@@ -1532,13 +1532,13 @@ class SetVmImageMetadataOp final : public ::google::protobuf::Message
 
   // implements Message ----------------------------------------------
 
-  SetVmImageMetadataOp* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::Message::DefaultConstruct<SetVmImageMetadataOp>(arena);
+  SetV86ImageMetadataOp* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<SetV86ImageMetadataOp>(arena);
   }
   using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const SetVmImageMetadataOp& from);
+  void CopyFrom(const SetV86ImageMetadataOp& from);
   using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom(const SetVmImageMetadataOp& from) { SetVmImageMetadataOp::MergeImpl(*this, from); }
+  void MergeFrom(const SetV86ImageMetadataOp& from) { SetV86ImageMetadataOp::MergeImpl(*this, from); }
 
   private:
   static void MergeImpl(::google::protobuf::MessageLite& to_msg,
@@ -1574,17 +1574,17 @@ class SetVmImageMetadataOp final : public ::google::protobuf::Message
   private:
   void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
   static void SharedDtor(MessageLite& self);
-  void InternalSwap(SetVmImageMetadataOp* PROTOBUF_NONNULL other);
+  void InternalSwap(SetV86ImageMetadataOp* PROTOBUF_NONNULL other);
  private:
   template <typename T>
   friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "s4wave.vm.SetVmImageMetadataOp"; }
+  static ::absl::string_view FullMessageName() { return "s4wave.vm.SetV86ImageMetadataOp"; }
 
-  explicit SetVmImageMetadataOp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  SetVmImageMetadataOp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SetVmImageMetadataOp& from);
-  SetVmImageMetadataOp(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SetVmImageMetadataOp&& from) noexcept
-      : SetVmImageMetadataOp(arena) {
+  explicit SetV86ImageMetadataOp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SetV86ImageMetadataOp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SetV86ImageMetadataOp& from);
+  SetV86ImageMetadataOp(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SetV86ImageMetadataOp&& from) noexcept
+      : SetV86ImageMetadataOp(arena) {
     *this = ::std::move(from);
   }
   const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
@@ -1619,27 +1619,27 @@ class SetVmImageMetadataOp final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_object_key();
 
   public:
-  // .s4wave.vm.VmImage image = 2;
+  // .s4wave.vm.V86Image image = 2;
   bool has_image() const;
   void clear_image() ;
-  const ::s4wave::vm::VmImage& image() const;
-  [[nodiscard]] ::s4wave::vm::VmImage* PROTOBUF_NULLABLE release_image();
-  ::s4wave::vm::VmImage* PROTOBUF_NONNULL mutable_image();
-  void set_allocated_image(::s4wave::vm::VmImage* PROTOBUF_NULLABLE value);
-  void unsafe_arena_set_allocated_image(::s4wave::vm::VmImage* PROTOBUF_NULLABLE value);
-  ::s4wave::vm::VmImage* PROTOBUF_NULLABLE unsafe_arena_release_image();
+  const ::s4wave::vm::V86Image& image() const;
+  [[nodiscard]] ::s4wave::vm::V86Image* PROTOBUF_NULLABLE release_image();
+  ::s4wave::vm::V86Image* PROTOBUF_NONNULL mutable_image();
+  void set_allocated_image(::s4wave::vm::V86Image* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_image(::s4wave::vm::V86Image* PROTOBUF_NULLABLE value);
+  ::s4wave::vm::V86Image* PROTOBUF_NULLABLE unsafe_arena_release_image();
 
   private:
-  const ::s4wave::vm::VmImage& _internal_image() const;
-  ::s4wave::vm::VmImage* PROTOBUF_NONNULL _internal_mutable_image();
+  const ::s4wave::vm::V86Image& _internal_image() const;
+  ::s4wave::vm::V86Image* PROTOBUF_NONNULL _internal_mutable_image();
 
   public:
-  // @@protoc_insertion_point(class_scope:s4wave.vm.SetVmImageMetadataOp)
+  // @@protoc_insertion_point(class_scope:s4wave.vm.SetV86ImageMetadataOp)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
   static const ::google::protobuf::internal::TcParseTable<1, 2,
-                                   1, 49,
+                                   1, 50,
                                    2>
       _table_;
 
@@ -1657,18 +1657,18 @@ class SetVmImageMetadataOp final : public ::google::protobuf::Message
     inline explicit Impl_(
         ::google::protobuf::internal::InternalVisibility visibility,
         ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-        const SetVmImageMetadataOp& from_msg);
+        const SetV86ImageMetadataOp& from_msg);
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::internal::ArenaStringPtr object_key_;
-    ::s4wave::vm::VmImage* PROTOBUF_NULLABLE image_;
+    ::s4wave::vm::V86Image* PROTOBUF_NULLABLE image_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
   friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fvm_2fv86_2eproto;
 };
 
-extern const ::google::protobuf::internal::ClassDataFull SetVmImageMetadataOp_class_data_;
+extern const ::google::protobuf::internal::ClassDataFull SetV86ImageMetadataOp_class_data_;
 // -------------------------------------------------------------------
 
 class SetV86ConfigOp final : public ::google::protobuf::Message
@@ -2214,30 +2214,30 @@ class CreateVmV86Op final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull CreateVmV86Op_class_data_;
 // -------------------------------------------------------------------
 
-class CreateVmImageOp final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:s4wave.vm.CreateVmImageOp) */ {
+class CreateV86ImageOp final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.vm.CreateV86ImageOp) */ {
  public:
-  inline CreateVmImageOp() : CreateVmImageOp(nullptr) {}
-  ~CreateVmImageOp() PROTOBUF_FINAL;
+  inline CreateV86ImageOp() : CreateV86ImageOp(nullptr) {}
+  ~CreateV86ImageOp() PROTOBUF_FINAL;
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(CreateVmImageOp* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+  void operator delete(CreateV86ImageOp* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
     SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(CreateVmImageOp));
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(CreateV86ImageOp));
   }
 #endif
 
   template <typename = void>
-  explicit PROTOBUF_CONSTEXPR CreateVmImageOp(::google::protobuf::internal::ConstantInitialized);
+  explicit PROTOBUF_CONSTEXPR CreateV86ImageOp(::google::protobuf::internal::ConstantInitialized);
 
-  inline CreateVmImageOp(const CreateVmImageOp& from) : CreateVmImageOp(nullptr, from) {}
-  inline CreateVmImageOp(CreateVmImageOp&& from) noexcept
-      : CreateVmImageOp(nullptr, ::std::move(from)) {}
-  inline CreateVmImageOp& operator=(const CreateVmImageOp& from) {
+  inline CreateV86ImageOp(const CreateV86ImageOp& from) : CreateV86ImageOp(nullptr, from) {}
+  inline CreateV86ImageOp(CreateV86ImageOp&& from) noexcept
+      : CreateV86ImageOp(nullptr, ::std::move(from)) {}
+  inline CreateV86ImageOp& operator=(const CreateV86ImageOp& from) {
     CopyFrom(from);
     return *this;
   }
-  inline CreateVmImageOp& operator=(CreateVmImageOp&& from) noexcept {
+  inline CreateV86ImageOp& operator=(CreateV86ImageOp&& from) noexcept {
     if (this == &from) return *this;
     if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
       InternalSwap(&from);
@@ -2265,13 +2265,13 @@ class CreateVmImageOp final : public ::google::protobuf::Message
   static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
     return default_instance().GetMetadata().reflection;
   }
-  static const CreateVmImageOp& default_instance() {
-    return *reinterpret_cast<const CreateVmImageOp*>(
-        &_CreateVmImageOp_default_instance_);
+  static const CreateV86ImageOp& default_instance() {
+    return *reinterpret_cast<const CreateV86ImageOp*>(
+        &_CreateV86ImageOp_default_instance_);
   }
   static constexpr int kIndexInFileMessages = 7;
-  friend void swap(CreateVmImageOp& a, CreateVmImageOp& b) { a.Swap(&b); }
-  inline void Swap(CreateVmImageOp* PROTOBUF_NONNULL other) {
+  friend void swap(CreateV86ImageOp& a, CreateV86ImageOp& b) { a.Swap(&b); }
+  inline void Swap(CreateV86ImageOp* PROTOBUF_NONNULL other) {
     if (other == this) return;
     if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
       InternalSwap(other);
@@ -2279,7 +2279,7 @@ class CreateVmImageOp final : public ::google::protobuf::Message
       ::google::protobuf::internal::GenericSwap(this, other);
     }
   }
-  void UnsafeArenaSwap(CreateVmImageOp* PROTOBUF_NONNULL other) {
+  void UnsafeArenaSwap(CreateV86ImageOp* PROTOBUF_NONNULL other) {
     if (other == this) return;
     ABSL_DCHECK(GetArena() == other->GetArena());
     InternalSwap(other);
@@ -2287,13 +2287,13 @@ class CreateVmImageOp final : public ::google::protobuf::Message
 
   // implements Message ----------------------------------------------
 
-  CreateVmImageOp* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::Message::DefaultConstruct<CreateVmImageOp>(arena);
+  CreateV86ImageOp* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<CreateV86ImageOp>(arena);
   }
   using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const CreateVmImageOp& from);
+  void CopyFrom(const CreateV86ImageOp& from);
   using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom(const CreateVmImageOp& from) { CreateVmImageOp::MergeImpl(*this, from); }
+  void MergeFrom(const CreateV86ImageOp& from) { CreateV86ImageOp::MergeImpl(*this, from); }
 
   private:
   static void MergeImpl(::google::protobuf::MessageLite& to_msg,
@@ -2329,17 +2329,17 @@ class CreateVmImageOp final : public ::google::protobuf::Message
   private:
   void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
   static void SharedDtor(MessageLite& self);
-  void InternalSwap(CreateVmImageOp* PROTOBUF_NONNULL other);
+  void InternalSwap(CreateV86ImageOp* PROTOBUF_NONNULL other);
  private:
   template <typename T>
   friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "s4wave.vm.CreateVmImageOp"; }
+  static ::absl::string_view FullMessageName() { return "s4wave.vm.CreateV86ImageOp"; }
 
-  explicit CreateVmImageOp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  CreateVmImageOp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const CreateVmImageOp& from);
-  CreateVmImageOp(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, CreateVmImageOp&& from) noexcept
-      : CreateVmImageOp(arena) {
+  explicit CreateV86ImageOp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  CreateV86ImageOp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const CreateV86ImageOp& from);
+  CreateV86ImageOp(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, CreateV86ImageOp&& from) noexcept
+      : CreateV86ImageOp(arena) {
     *this = ::std::move(from);
   }
   const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
@@ -2375,19 +2375,19 @@ class CreateVmImageOp final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_object_key();
 
   public:
-  // .s4wave.vm.VmImage image = 2;
+  // .s4wave.vm.V86Image image = 2;
   bool has_image() const;
   void clear_image() ;
-  const ::s4wave::vm::VmImage& image() const;
-  [[nodiscard]] ::s4wave::vm::VmImage* PROTOBUF_NULLABLE release_image();
-  ::s4wave::vm::VmImage* PROTOBUF_NONNULL mutable_image();
-  void set_allocated_image(::s4wave::vm::VmImage* PROTOBUF_NULLABLE value);
-  void unsafe_arena_set_allocated_image(::s4wave::vm::VmImage* PROTOBUF_NULLABLE value);
-  ::s4wave::vm::VmImage* PROTOBUF_NULLABLE unsafe_arena_release_image();
+  const ::s4wave::vm::V86Image& image() const;
+  [[nodiscard]] ::s4wave::vm::V86Image* PROTOBUF_NULLABLE release_image();
+  ::s4wave::vm::V86Image* PROTOBUF_NONNULL mutable_image();
+  void set_allocated_image(::s4wave::vm::V86Image* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_image(::s4wave::vm::V86Image* PROTOBUF_NULLABLE value);
+  ::s4wave::vm::V86Image* PROTOBUF_NULLABLE unsafe_arena_release_image();
 
   private:
-  const ::s4wave::vm::VmImage& _internal_image() const;
-  ::s4wave::vm::VmImage* PROTOBUF_NONNULL _internal_mutable_image();
+  const ::s4wave::vm::V86Image& _internal_image() const;
+  ::s4wave::vm::V86Image* PROTOBUF_NONNULL _internal_mutable_image();
 
   public:
   // .google.protobuf.Timestamp timestamp = 3;
@@ -2405,12 +2405,12 @@ class CreateVmImageOp final : public ::google::protobuf::Message
   ::google::protobuf::Timestamp* PROTOBUF_NONNULL _internal_mutable_timestamp();
 
   public:
-  // @@protoc_insertion_point(class_scope:s4wave.vm.CreateVmImageOp)
+  // @@protoc_insertion_point(class_scope:s4wave.vm.CreateV86ImageOp)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
   static const ::google::protobuf::internal::TcParseTable<2, 3,
-                                   2, 44,
+                                   2, 45,
                                    2>
       _table_;
 
@@ -2428,11 +2428,11 @@ class CreateVmImageOp final : public ::google::protobuf::Message
     inline explicit Impl_(
         ::google::protobuf::internal::InternalVisibility visibility,
         ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-        const CreateVmImageOp& from_msg);
+        const CreateV86ImageOp& from_msg);
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::internal::ArenaStringPtr object_key_;
-    ::s4wave::vm::VmImage* PROTOBUF_NULLABLE image_;
+    ::s4wave::vm::V86Image* PROTOBUF_NULLABLE image_;
     ::google::protobuf::Timestamp* PROTOBUF_NULLABLE timestamp_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
@@ -2440,7 +2440,7 @@ class CreateVmImageOp final : public ::google::protobuf::Message
   friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fvm_2fv86_2eproto;
 };
 
-extern const ::google::protobuf::internal::ClassDataFull CreateVmImageOp_class_data_;
+extern const ::google::protobuf::internal::ClassDataFull CreateV86ImageOp_class_data_;
 
 // ===================================================================
 
@@ -4234,49 +4234,49 @@ inline void SetV86StateOp::set_allocated_error_message(::std::string* PROTOBUF_N
 
 // -------------------------------------------------------------------
 
-// VmImage
+// V86Image
 
 // string name = 1;
-inline void VmImage::clear_name() {
+inline void V86Image::clear_name() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.name_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000002U);
 }
-inline const ::std::string& VmImage::name() const
+inline const ::std::string& V86Image::name() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:s4wave.vm.VmImage.name)
+  // @@protoc_insertion_point(field_get:s4wave.vm.V86Image.name)
   return _internal_name();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void VmImage::set_name(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void V86Image::set_name(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   _impl_.name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:s4wave.vm.VmImage.name)
+  // @@protoc_insertion_point(field_set:s4wave.vm.V86Image.name)
 }
-inline ::std::string* PROTOBUF_NONNULL VmImage::mutable_name()
+inline ::std::string* PROTOBUF_NONNULL V86Image::mutable_name()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   ::std::string* _s = _internal_mutable_name();
-  // @@protoc_insertion_point(field_mutable:s4wave.vm.VmImage.name)
+  // @@protoc_insertion_point(field_mutable:s4wave.vm.V86Image.name)
   return _s;
 }
-inline const ::std::string& VmImage::_internal_name() const {
+inline const ::std::string& V86Image::_internal_name() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.name_.Get();
 }
-inline void VmImage::_internal_set_name(const ::std::string& value) {
+inline void V86Image::_internal_set_name(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.name_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL VmImage::_internal_mutable_name() {
+inline ::std::string* PROTOBUF_NONNULL V86Image::_internal_mutable_name() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _impl_.name_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE VmImage::release_name() {
+inline ::std::string* PROTOBUF_NULLABLE V86Image::release_name() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:s4wave.vm.VmImage.name)
+  // @@protoc_insertion_point(field_release:s4wave.vm.V86Image.name)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
     return nullptr;
   }
@@ -4287,7 +4287,7 @@ inline ::std::string* PROTOBUF_NULLABLE VmImage::release_name() {
   }
   return released;
 }
-inline void VmImage::set_allocated_name(::std::string* PROTOBUF_NULLABLE value) {
+inline void V86Image::set_allocated_name(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000002U);
@@ -4298,50 +4298,50 @@ inline void VmImage::set_allocated_name(::std::string* PROTOBUF_NULLABLE value) 
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.name_.IsDefault()) {
     _impl_.name_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:s4wave.vm.VmImage.name)
+  // @@protoc_insertion_point(field_set_allocated:s4wave.vm.V86Image.name)
 }
 
 // string version = 2;
-inline void VmImage::clear_version() {
+inline void V86Image::clear_version() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.version_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000004U);
 }
-inline const ::std::string& VmImage::version() const
+inline const ::std::string& V86Image::version() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:s4wave.vm.VmImage.version)
+  // @@protoc_insertion_point(field_get:s4wave.vm.V86Image.version)
   return _internal_version();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void VmImage::set_version(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void V86Image::set_version(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   _impl_.version_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:s4wave.vm.VmImage.version)
+  // @@protoc_insertion_point(field_set:s4wave.vm.V86Image.version)
 }
-inline ::std::string* PROTOBUF_NONNULL VmImage::mutable_version()
+inline ::std::string* PROTOBUF_NONNULL V86Image::mutable_version()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::std::string* _s = _internal_mutable_version();
-  // @@protoc_insertion_point(field_mutable:s4wave.vm.VmImage.version)
+  // @@protoc_insertion_point(field_mutable:s4wave.vm.V86Image.version)
   return _s;
 }
-inline const ::std::string& VmImage::_internal_version() const {
+inline const ::std::string& V86Image::_internal_version() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.version_.Get();
 }
-inline void VmImage::_internal_set_version(const ::std::string& value) {
+inline void V86Image::_internal_set_version(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.version_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL VmImage::_internal_mutable_version() {
+inline ::std::string* PROTOBUF_NONNULL V86Image::_internal_mutable_version() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _impl_.version_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE VmImage::release_version() {
+inline ::std::string* PROTOBUF_NULLABLE V86Image::release_version() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:s4wave.vm.VmImage.version)
+  // @@protoc_insertion_point(field_release:s4wave.vm.V86Image.version)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
     return nullptr;
   }
@@ -4352,7 +4352,7 @@ inline ::std::string* PROTOBUF_NULLABLE VmImage::release_version() {
   }
   return released;
 }
-inline void VmImage::set_allocated_version(::std::string* PROTOBUF_NULLABLE value) {
+inline void V86Image::set_allocated_version(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000004U);
@@ -4363,50 +4363,50 @@ inline void VmImage::set_allocated_version(::std::string* PROTOBUF_NULLABLE valu
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.version_.IsDefault()) {
     _impl_.version_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:s4wave.vm.VmImage.version)
+  // @@protoc_insertion_point(field_set_allocated:s4wave.vm.V86Image.version)
 }
 
 // string platform = 3;
-inline void VmImage::clear_platform() {
+inline void V86Image::clear_platform() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.platform_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000008U);
 }
-inline const ::std::string& VmImage::platform() const
+inline const ::std::string& V86Image::platform() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:s4wave.vm.VmImage.platform)
+  // @@protoc_insertion_point(field_get:s4wave.vm.V86Image.platform)
   return _internal_platform();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void VmImage::set_platform(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void V86Image::set_platform(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   _impl_.platform_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:s4wave.vm.VmImage.platform)
+  // @@protoc_insertion_point(field_set:s4wave.vm.V86Image.platform)
 }
-inline ::std::string* PROTOBUF_NONNULL VmImage::mutable_platform()
+inline ::std::string* PROTOBUF_NONNULL V86Image::mutable_platform()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   ::std::string* _s = _internal_mutable_platform();
-  // @@protoc_insertion_point(field_mutable:s4wave.vm.VmImage.platform)
+  // @@protoc_insertion_point(field_mutable:s4wave.vm.V86Image.platform)
   return _s;
 }
-inline const ::std::string& VmImage::_internal_platform() const {
+inline const ::std::string& V86Image::_internal_platform() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.platform_.Get();
 }
-inline void VmImage::_internal_set_platform(const ::std::string& value) {
+inline void V86Image::_internal_set_platform(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.platform_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL VmImage::_internal_mutable_platform() {
+inline ::std::string* PROTOBUF_NONNULL V86Image::_internal_mutable_platform() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _impl_.platform_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE VmImage::release_platform() {
+inline ::std::string* PROTOBUF_NULLABLE V86Image::release_platform() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:s4wave.vm.VmImage.platform)
+  // @@protoc_insertion_point(field_release:s4wave.vm.V86Image.platform)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
     return nullptr;
   }
@@ -4417,7 +4417,7 @@ inline ::std::string* PROTOBUF_NULLABLE VmImage::release_platform() {
   }
   return released;
 }
-inline void VmImage::set_allocated_platform(::std::string* PROTOBUF_NULLABLE value) {
+inline void V86Image::set_allocated_platform(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000008U);
@@ -4428,50 +4428,50 @@ inline void VmImage::set_allocated_platform(::std::string* PROTOBUF_NULLABLE val
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.platform_.IsDefault()) {
     _impl_.platform_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:s4wave.vm.VmImage.platform)
+  // @@protoc_insertion_point(field_set_allocated:s4wave.vm.V86Image.platform)
 }
 
 // string distro = 4;
-inline void VmImage::clear_distro() {
+inline void V86Image::clear_distro() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.distro_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000010U);
 }
-inline const ::std::string& VmImage::distro() const
+inline const ::std::string& V86Image::distro() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:s4wave.vm.VmImage.distro)
+  // @@protoc_insertion_point(field_get:s4wave.vm.V86Image.distro)
   return _internal_distro();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void VmImage::set_distro(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void V86Image::set_distro(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   _impl_.distro_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:s4wave.vm.VmImage.distro)
+  // @@protoc_insertion_point(field_set:s4wave.vm.V86Image.distro)
 }
-inline ::std::string* PROTOBUF_NONNULL VmImage::mutable_distro()
+inline ::std::string* PROTOBUF_NONNULL V86Image::mutable_distro()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   ::std::string* _s = _internal_mutable_distro();
-  // @@protoc_insertion_point(field_mutable:s4wave.vm.VmImage.distro)
+  // @@protoc_insertion_point(field_mutable:s4wave.vm.V86Image.distro)
   return _s;
 }
-inline const ::std::string& VmImage::_internal_distro() const {
+inline const ::std::string& V86Image::_internal_distro() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.distro_.Get();
 }
-inline void VmImage::_internal_set_distro(const ::std::string& value) {
+inline void V86Image::_internal_set_distro(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.distro_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL VmImage::_internal_mutable_distro() {
+inline ::std::string* PROTOBUF_NONNULL V86Image::_internal_mutable_distro() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _impl_.distro_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE VmImage::release_distro() {
+inline ::std::string* PROTOBUF_NULLABLE V86Image::release_distro() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:s4wave.vm.VmImage.distro)
+  // @@protoc_insertion_point(field_release:s4wave.vm.V86Image.distro)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
     return nullptr;
   }
@@ -4482,7 +4482,7 @@ inline ::std::string* PROTOBUF_NULLABLE VmImage::release_distro() {
   }
   return released;
 }
-inline void VmImage::set_allocated_distro(::std::string* PROTOBUF_NULLABLE value) {
+inline void V86Image::set_allocated_distro(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000010U);
@@ -4493,50 +4493,50 @@ inline void VmImage::set_allocated_distro(::std::string* PROTOBUF_NULLABLE value
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.distro_.IsDefault()) {
     _impl_.distro_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:s4wave.vm.VmImage.distro)
+  // @@protoc_insertion_point(field_set_allocated:s4wave.vm.V86Image.distro)
 }
 
 // string kernel_version = 5;
-inline void VmImage::clear_kernel_version() {
+inline void V86Image::clear_kernel_version() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.kernel_version_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000020U);
 }
-inline const ::std::string& VmImage::kernel_version() const
+inline const ::std::string& V86Image::kernel_version() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:s4wave.vm.VmImage.kernel_version)
+  // @@protoc_insertion_point(field_get:s4wave.vm.V86Image.kernel_version)
   return _internal_kernel_version();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void VmImage::set_kernel_version(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void V86Image::set_kernel_version(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   _impl_.kernel_version_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:s4wave.vm.VmImage.kernel_version)
+  // @@protoc_insertion_point(field_set:s4wave.vm.V86Image.kernel_version)
 }
-inline ::std::string* PROTOBUF_NONNULL VmImage::mutable_kernel_version()
+inline ::std::string* PROTOBUF_NONNULL V86Image::mutable_kernel_version()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   ::std::string* _s = _internal_mutable_kernel_version();
-  // @@protoc_insertion_point(field_mutable:s4wave.vm.VmImage.kernel_version)
+  // @@protoc_insertion_point(field_mutable:s4wave.vm.V86Image.kernel_version)
   return _s;
 }
-inline const ::std::string& VmImage::_internal_kernel_version() const {
+inline const ::std::string& V86Image::_internal_kernel_version() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.kernel_version_.Get();
 }
-inline void VmImage::_internal_set_kernel_version(const ::std::string& value) {
+inline void V86Image::_internal_set_kernel_version(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.kernel_version_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL VmImage::_internal_mutable_kernel_version() {
+inline ::std::string* PROTOBUF_NONNULL V86Image::_internal_mutable_kernel_version() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _impl_.kernel_version_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE VmImage::release_kernel_version() {
+inline ::std::string* PROTOBUF_NULLABLE V86Image::release_kernel_version() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:s4wave.vm.VmImage.kernel_version)
+  // @@protoc_insertion_point(field_release:s4wave.vm.V86Image.kernel_version)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000020U)) {
     return nullptr;
   }
@@ -4547,7 +4547,7 @@ inline ::std::string* PROTOBUF_NULLABLE VmImage::release_kernel_version() {
   }
   return released;
 }
-inline void VmImage::set_allocated_kernel_version(::std::string* PROTOBUF_NULLABLE value) {
+inline void V86Image::set_allocated_kernel_version(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000020U);
@@ -4558,50 +4558,50 @@ inline void VmImage::set_allocated_kernel_version(::std::string* PROTOBUF_NULLAB
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.kernel_version_.IsDefault()) {
     _impl_.kernel_version_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:s4wave.vm.VmImage.kernel_version)
+  // @@protoc_insertion_point(field_set_allocated:s4wave.vm.V86Image.kernel_version)
 }
 
 // string description = 6;
-inline void VmImage::clear_description() {
+inline void V86Image::clear_description() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.description_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000040U);
 }
-inline const ::std::string& VmImage::description() const
+inline const ::std::string& V86Image::description() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:s4wave.vm.VmImage.description)
+  // @@protoc_insertion_point(field_get:s4wave.vm.V86Image.description)
   return _internal_description();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void VmImage::set_description(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void V86Image::set_description(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   _impl_.description_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:s4wave.vm.VmImage.description)
+  // @@protoc_insertion_point(field_set:s4wave.vm.V86Image.description)
 }
-inline ::std::string* PROTOBUF_NONNULL VmImage::mutable_description()
+inline ::std::string* PROTOBUF_NONNULL V86Image::mutable_description()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   ::std::string* _s = _internal_mutable_description();
-  // @@protoc_insertion_point(field_mutable:s4wave.vm.VmImage.description)
+  // @@protoc_insertion_point(field_mutable:s4wave.vm.V86Image.description)
   return _s;
 }
-inline const ::std::string& VmImage::_internal_description() const {
+inline const ::std::string& V86Image::_internal_description() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.description_.Get();
 }
-inline void VmImage::_internal_set_description(const ::std::string& value) {
+inline void V86Image::_internal_set_description(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.description_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL VmImage::_internal_mutable_description() {
+inline ::std::string* PROTOBUF_NONNULL V86Image::_internal_mutable_description() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _impl_.description_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE VmImage::release_description() {
+inline ::std::string* PROTOBUF_NULLABLE V86Image::release_description() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:s4wave.vm.VmImage.description)
+  // @@protoc_insertion_point(field_release:s4wave.vm.V86Image.description)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000040U)) {
     return nullptr;
   }
@@ -4612,7 +4612,7 @@ inline ::std::string* PROTOBUF_NULLABLE VmImage::release_description() {
   }
   return released;
 }
-inline void VmImage::set_allocated_description(::std::string* PROTOBUF_NULLABLE value) {
+inline void V86Image::set_allocated_description(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000040U);
@@ -4623,97 +4623,97 @@ inline void VmImage::set_allocated_description(::std::string* PROTOBUF_NULLABLE 
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.description_.IsDefault()) {
     _impl_.description_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:s4wave.vm.VmImage.description)
+  // @@protoc_insertion_point(field_set_allocated:s4wave.vm.V86Image.description)
 }
 
 // repeated string tags = 7;
-inline int VmImage::_internal_tags_size() const {
+inline int V86Image::_internal_tags_size() const {
   return _internal_tags().size();
 }
-inline int VmImage::tags_size() const {
+inline int V86Image::tags_size() const {
   return _internal_tags_size();
 }
-inline void VmImage::clear_tags() {
+inline void V86Image::clear_tags() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.tags_.Clear();
   ClearHasBitForRepeated(_impl_._has_bits_[0],
                   0x00000001U);
 }
-inline ::std::string* PROTOBUF_NONNULL VmImage::add_tags()
+inline ::std::string* PROTOBUF_NONNULL V86Image::add_tags()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   ::std::string* _s =
       _internal_mutable_tags()->InternalAddWithArena(
           ::google::protobuf::MessageLite::internal_visibility(), GetArena());
   SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
-  // @@protoc_insertion_point(field_add_mutable:s4wave.vm.VmImage.tags)
+  // @@protoc_insertion_point(field_add_mutable:s4wave.vm.V86Image.tags)
   return _s;
 }
-inline const ::std::string& VmImage::tags(int index) const
+inline const ::std::string& V86Image::tags(int index) const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:s4wave.vm.VmImage.tags)
+  // @@protoc_insertion_point(field_get:s4wave.vm.V86Image.tags)
   return _internal_tags().Get(index);
 }
-inline ::std::string* PROTOBUF_NONNULL VmImage::mutable_tags(int index)
+inline ::std::string* PROTOBUF_NONNULL V86Image::mutable_tags(int index)
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_mutable:s4wave.vm.VmImage.tags)
+  // @@protoc_insertion_point(field_mutable:s4wave.vm.V86Image.tags)
   return _internal_mutable_tags()->Mutable(index);
 }
 template <typename Arg_, typename... Args_>
-inline void VmImage::set_tags(int index, Arg_&& value, Args_... args) {
+inline void V86Image::set_tags(int index, Arg_&& value, Args_... args) {
   ::google::protobuf::internal::AssignToString(*_internal_mutable_tags()->Mutable(index), ::std::forward<Arg_>(value),
                         args... );
-  // @@protoc_insertion_point(field_set:s4wave.vm.VmImage.tags)
+  // @@protoc_insertion_point(field_set:s4wave.vm.V86Image.tags)
 }
 template <typename Arg_, typename... Args_>
-inline void VmImage::add_tags(Arg_&& value, Args_... args) {
+inline void V86Image::add_tags(Arg_&& value, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   ::google::protobuf::internal::AddToRepeatedPtrField(
       ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
       *_internal_mutable_tags(), ::std::forward<Arg_>(value),
       args... );
   SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
-  // @@protoc_insertion_point(field_add:s4wave.vm.VmImage.tags)
+  // @@protoc_insertion_point(field_add:s4wave.vm.V86Image.tags)
 }
-inline const ::google::protobuf::RepeatedPtrField<::std::string>& VmImage::tags()
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& V86Image::tags()
     const ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_list:s4wave.vm.VmImage.tags)
+  // @@protoc_insertion_point(field_list:s4wave.vm.V86Image.tags)
   return _internal_tags();
 }
 inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
-VmImage::mutable_tags() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+V86Image::mutable_tags() ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
-  // @@protoc_insertion_point(field_mutable_list:s4wave.vm.VmImage.tags)
+  // @@protoc_insertion_point(field_mutable_list:s4wave.vm.V86Image.tags)
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _internal_mutable_tags();
 }
 inline const ::google::protobuf::RepeatedPtrField<::std::string>&
-VmImage::_internal_tags() const {
+V86Image::_internal_tags() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.tags_;
 }
 inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
-VmImage::_internal_mutable_tags() {
+V86Image::_internal_mutable_tags() {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return &_impl_.tags_;
 }
 
 // .google.protobuf.Timestamp created_at = 8;
-inline bool VmImage::has_created_at() const {
+inline bool V86Image::has_created_at() const {
   bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000080U);
   PROTOBUF_ASSUME(!value || _impl_.created_at_ != nullptr);
   return value;
 }
-inline const ::google::protobuf::Timestamp& VmImage::_internal_created_at() const {
+inline const ::google::protobuf::Timestamp& V86Image::_internal_created_at() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   const ::google::protobuf::Timestamp* p = _impl_.created_at_;
   return p != nullptr ? *p : reinterpret_cast<const ::google::protobuf::Timestamp&>(::google::protobuf::_Timestamp_default_instance_);
 }
-inline const ::google::protobuf::Timestamp& VmImage::created_at() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:s4wave.vm.VmImage.created_at)
+inline const ::google::protobuf::Timestamp& V86Image::created_at() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.vm.V86Image.created_at)
   return _internal_created_at();
 }
-inline void VmImage::unsafe_arena_set_allocated_created_at(
+inline void V86Image::unsafe_arena_set_allocated_created_at(
     ::google::protobuf::Timestamp* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (GetArena() == nullptr) {
@@ -4725,9 +4725,9 @@ inline void VmImage::unsafe_arena_set_allocated_created_at(
   } else {
     ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.vm.VmImage.created_at)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.vm.V86Image.created_at)
 }
-inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE VmImage::release_created_at() {
+inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE V86Image::release_created_at() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
   ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
@@ -4746,16 +4746,16 @@ inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE VmImage::release_created
   }
   return released;
 }
-inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE VmImage::unsafe_arena_release_created_at() {
+inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE V86Image::unsafe_arena_release_created_at() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:s4wave.vm.VmImage.created_at)
+  // @@protoc_insertion_point(field_release:s4wave.vm.V86Image.created_at)
 
   ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
   ::google::protobuf::Timestamp* temp = _impl_.created_at_;
   _impl_.created_at_ = nullptr;
   return temp;
 }
-inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL VmImage::_internal_mutable_created_at() {
+inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL V86Image::_internal_mutable_created_at() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.created_at_ == nullptr) {
     auto* p = ::google::protobuf::Message::DefaultConstruct<::google::protobuf::Timestamp>(GetArena());
@@ -4763,14 +4763,14 @@ inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL VmImage::_internal_mutabl
   }
   return _impl_.created_at_;
 }
-inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL VmImage::mutable_created_at()
+inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL V86Image::mutable_created_at()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000080U);
   ::google::protobuf::Timestamp* _msg = _internal_mutable_created_at();
-  // @@protoc_insertion_point(field_mutable:s4wave.vm.VmImage.created_at)
+  // @@protoc_insertion_point(field_mutable:s4wave.vm.V86Image.created_at)
   return _msg;
 }
-inline void VmImage::set_allocated_created_at(::google::protobuf::Timestamp* PROTOBUF_NULLABLE value) {
+inline void V86Image::set_allocated_created_at(::google::protobuf::Timestamp* PROTOBUF_NULLABLE value) {
   ::google::protobuf::Arena* message_arena = GetArena();
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (message_arena == nullptr) {
@@ -4788,54 +4788,54 @@ inline void VmImage::set_allocated_created_at(::google::protobuf::Timestamp* PRO
   }
 
   _impl_.created_at_ = reinterpret_cast<::google::protobuf::Timestamp*>(value);
-  // @@protoc_insertion_point(field_set_allocated:s4wave.vm.VmImage.created_at)
+  // @@protoc_insertion_point(field_set_allocated:s4wave.vm.V86Image.created_at)
 }
 
 // -------------------------------------------------------------------
 
-// CreateVmImageOp
+// CreateV86ImageOp
 
 // string object_key = 1;
-inline void CreateVmImageOp::clear_object_key() {
+inline void CreateV86ImageOp::clear_object_key() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.object_key_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000001U);
 }
-inline const ::std::string& CreateVmImageOp::object_key() const
+inline const ::std::string& CreateV86ImageOp::object_key() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:s4wave.vm.CreateVmImageOp.object_key)
+  // @@protoc_insertion_point(field_get:s4wave.vm.CreateV86ImageOp.object_key)
   return _internal_object_key();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void CreateVmImageOp::set_object_key(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void CreateV86ImageOp::set_object_key(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000001U);
   _impl_.object_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:s4wave.vm.CreateVmImageOp.object_key)
+  // @@protoc_insertion_point(field_set:s4wave.vm.CreateV86ImageOp.object_key)
 }
-inline ::std::string* PROTOBUF_NONNULL CreateVmImageOp::mutable_object_key()
+inline ::std::string* PROTOBUF_NONNULL CreateV86ImageOp::mutable_object_key()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000001U);
   ::std::string* _s = _internal_mutable_object_key();
-  // @@protoc_insertion_point(field_mutable:s4wave.vm.CreateVmImageOp.object_key)
+  // @@protoc_insertion_point(field_mutable:s4wave.vm.CreateV86ImageOp.object_key)
   return _s;
 }
-inline const ::std::string& CreateVmImageOp::_internal_object_key() const {
+inline const ::std::string& CreateV86ImageOp::_internal_object_key() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.object_key_.Get();
 }
-inline void CreateVmImageOp::_internal_set_object_key(const ::std::string& value) {
+inline void CreateV86ImageOp::_internal_set_object_key(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.object_key_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL CreateVmImageOp::_internal_mutable_object_key() {
+inline ::std::string* PROTOBUF_NONNULL CreateV86ImageOp::_internal_mutable_object_key() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _impl_.object_key_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE CreateVmImageOp::release_object_key() {
+inline ::std::string* PROTOBUF_NULLABLE CreateV86ImageOp::release_object_key() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:s4wave.vm.CreateVmImageOp.object_key)
+  // @@protoc_insertion_point(field_release:s4wave.vm.CreateV86ImageOp.object_key)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
     return nullptr;
   }
@@ -4846,7 +4846,7 @@ inline ::std::string* PROTOBUF_NULLABLE CreateVmImageOp::release_object_key() {
   }
   return released;
 }
-inline void CreateVmImageOp::set_allocated_object_key(::std::string* PROTOBUF_NULLABLE value) {
+inline void CreateV86ImageOp::set_allocated_object_key(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000001U);
@@ -4857,49 +4857,49 @@ inline void CreateVmImageOp::set_allocated_object_key(::std::string* PROTOBUF_NU
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.object_key_.IsDefault()) {
     _impl_.object_key_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:s4wave.vm.CreateVmImageOp.object_key)
+  // @@protoc_insertion_point(field_set_allocated:s4wave.vm.CreateV86ImageOp.object_key)
 }
 
-// .s4wave.vm.VmImage image = 2;
-inline bool CreateVmImageOp::has_image() const {
+// .s4wave.vm.V86Image image = 2;
+inline bool CreateV86ImageOp::has_image() const {
   bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
   PROTOBUF_ASSUME(!value || _impl_.image_ != nullptr);
   return value;
 }
-inline void CreateVmImageOp::clear_image() {
+inline void CreateV86ImageOp::clear_image() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.image_ != nullptr) _impl_.image_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000002U);
 }
-inline const ::s4wave::vm::VmImage& CreateVmImageOp::_internal_image() const {
+inline const ::s4wave::vm::V86Image& CreateV86ImageOp::_internal_image() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
-  const ::s4wave::vm::VmImage* p = _impl_.image_;
-  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::vm::VmImage&>(::s4wave::vm::_VmImage_default_instance_);
+  const ::s4wave::vm::V86Image* p = _impl_.image_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::vm::V86Image&>(::s4wave::vm::_V86Image_default_instance_);
 }
-inline const ::s4wave::vm::VmImage& CreateVmImageOp::image() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:s4wave.vm.CreateVmImageOp.image)
+inline const ::s4wave::vm::V86Image& CreateV86ImageOp::image() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.vm.CreateV86ImageOp.image)
   return _internal_image();
 }
-inline void CreateVmImageOp::unsafe_arena_set_allocated_image(
-    ::s4wave::vm::VmImage* PROTOBUF_NULLABLE value) {
+inline void CreateV86ImageOp::unsafe_arena_set_allocated_image(
+    ::s4wave::vm::V86Image* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (GetArena() == nullptr) {
     delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.image_);
   }
-  _impl_.image_ = reinterpret_cast<::s4wave::vm::VmImage*>(value);
+  _impl_.image_ = reinterpret_cast<::s4wave::vm::V86Image*>(value);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   } else {
     ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.vm.CreateVmImageOp.image)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.vm.CreateV86ImageOp.image)
 }
-inline ::s4wave::vm::VmImage* PROTOBUF_NULLABLE CreateVmImageOp::release_image() {
+inline ::s4wave::vm::V86Image* PROTOBUF_NULLABLE CreateV86ImageOp::release_image() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
   ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  ::s4wave::vm::VmImage* released = _impl_.image_;
+  ::s4wave::vm::V86Image* released = _impl_.image_;
   _impl_.image_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
     auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
@@ -4914,31 +4914,31 @@ inline ::s4wave::vm::VmImage* PROTOBUF_NULLABLE CreateVmImageOp::release_image()
   }
   return released;
 }
-inline ::s4wave::vm::VmImage* PROTOBUF_NULLABLE CreateVmImageOp::unsafe_arena_release_image() {
+inline ::s4wave::vm::V86Image* PROTOBUF_NULLABLE CreateV86ImageOp::unsafe_arena_release_image() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:s4wave.vm.CreateVmImageOp.image)
+  // @@protoc_insertion_point(field_release:s4wave.vm.CreateV86ImageOp.image)
 
   ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  ::s4wave::vm::VmImage* temp = _impl_.image_;
+  ::s4wave::vm::V86Image* temp = _impl_.image_;
   _impl_.image_ = nullptr;
   return temp;
 }
-inline ::s4wave::vm::VmImage* PROTOBUF_NONNULL CreateVmImageOp::_internal_mutable_image() {
+inline ::s4wave::vm::V86Image* PROTOBUF_NONNULL CreateV86ImageOp::_internal_mutable_image() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.image_ == nullptr) {
-    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::vm::VmImage>(GetArena());
-    _impl_.image_ = reinterpret_cast<::s4wave::vm::VmImage*>(p);
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::vm::V86Image>(GetArena());
+    _impl_.image_ = reinterpret_cast<::s4wave::vm::V86Image*>(p);
   }
   return _impl_.image_;
 }
-inline ::s4wave::vm::VmImage* PROTOBUF_NONNULL CreateVmImageOp::mutable_image()
+inline ::s4wave::vm::V86Image* PROTOBUF_NONNULL CreateV86ImageOp::mutable_image()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  ::s4wave::vm::VmImage* _msg = _internal_mutable_image();
-  // @@protoc_insertion_point(field_mutable:s4wave.vm.CreateVmImageOp.image)
+  ::s4wave::vm::V86Image* _msg = _internal_mutable_image();
+  // @@protoc_insertion_point(field_mutable:s4wave.vm.CreateV86ImageOp.image)
   return _msg;
 }
-inline void CreateVmImageOp::set_allocated_image(::s4wave::vm::VmImage* PROTOBUF_NULLABLE value) {
+inline void CreateV86ImageOp::set_allocated_image(::s4wave::vm::V86Image* PROTOBUF_NULLABLE value) {
   ::google::protobuf::Arena* message_arena = GetArena();
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (message_arena == nullptr) {
@@ -4955,26 +4955,26 @@ inline void CreateVmImageOp::set_allocated_image(::s4wave::vm::VmImage* PROTOBUF
     ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   }
 
-  _impl_.image_ = reinterpret_cast<::s4wave::vm::VmImage*>(value);
-  // @@protoc_insertion_point(field_set_allocated:s4wave.vm.CreateVmImageOp.image)
+  _impl_.image_ = reinterpret_cast<::s4wave::vm::V86Image*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.vm.CreateV86ImageOp.image)
 }
 
 // .google.protobuf.Timestamp timestamp = 3;
-inline bool CreateVmImageOp::has_timestamp() const {
+inline bool CreateV86ImageOp::has_timestamp() const {
   bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000004U);
   PROTOBUF_ASSUME(!value || _impl_.timestamp_ != nullptr);
   return value;
 }
-inline const ::google::protobuf::Timestamp& CreateVmImageOp::_internal_timestamp() const {
+inline const ::google::protobuf::Timestamp& CreateV86ImageOp::_internal_timestamp() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   const ::google::protobuf::Timestamp* p = _impl_.timestamp_;
   return p != nullptr ? *p : reinterpret_cast<const ::google::protobuf::Timestamp&>(::google::protobuf::_Timestamp_default_instance_);
 }
-inline const ::google::protobuf::Timestamp& CreateVmImageOp::timestamp() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:s4wave.vm.CreateVmImageOp.timestamp)
+inline const ::google::protobuf::Timestamp& CreateV86ImageOp::timestamp() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.vm.CreateV86ImageOp.timestamp)
   return _internal_timestamp();
 }
-inline void CreateVmImageOp::unsafe_arena_set_allocated_timestamp(
+inline void CreateV86ImageOp::unsafe_arena_set_allocated_timestamp(
     ::google::protobuf::Timestamp* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (GetArena() == nullptr) {
@@ -4986,9 +4986,9 @@ inline void CreateVmImageOp::unsafe_arena_set_allocated_timestamp(
   } else {
     ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.vm.CreateVmImageOp.timestamp)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.vm.CreateV86ImageOp.timestamp)
 }
-inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE CreateVmImageOp::release_timestamp() {
+inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE CreateV86ImageOp::release_timestamp() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
   ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
@@ -5007,16 +5007,16 @@ inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE CreateVmImageOp::release
   }
   return released;
 }
-inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE CreateVmImageOp::unsafe_arena_release_timestamp() {
+inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE CreateV86ImageOp::unsafe_arena_release_timestamp() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:s4wave.vm.CreateVmImageOp.timestamp)
+  // @@protoc_insertion_point(field_release:s4wave.vm.CreateV86ImageOp.timestamp)
 
   ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::google::protobuf::Timestamp* temp = _impl_.timestamp_;
   _impl_.timestamp_ = nullptr;
   return temp;
 }
-inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL CreateVmImageOp::_internal_mutable_timestamp() {
+inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL CreateV86ImageOp::_internal_mutable_timestamp() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.timestamp_ == nullptr) {
     auto* p = ::google::protobuf::Message::DefaultConstruct<::google::protobuf::Timestamp>(GetArena());
@@ -5024,14 +5024,14 @@ inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL CreateVmImageOp::_interna
   }
   return _impl_.timestamp_;
 }
-inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL CreateVmImageOp::mutable_timestamp()
+inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL CreateV86ImageOp::mutable_timestamp()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::google::protobuf::Timestamp* _msg = _internal_mutable_timestamp();
-  // @@protoc_insertion_point(field_mutable:s4wave.vm.CreateVmImageOp.timestamp)
+  // @@protoc_insertion_point(field_mutable:s4wave.vm.CreateV86ImageOp.timestamp)
   return _msg;
 }
-inline void CreateVmImageOp::set_allocated_timestamp(::google::protobuf::Timestamp* PROTOBUF_NULLABLE value) {
+inline void CreateV86ImageOp::set_allocated_timestamp(::google::protobuf::Timestamp* PROTOBUF_NULLABLE value) {
   ::google::protobuf::Arena* message_arena = GetArena();
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (message_arena == nullptr) {
@@ -5049,54 +5049,54 @@ inline void CreateVmImageOp::set_allocated_timestamp(::google::protobuf::Timesta
   }
 
   _impl_.timestamp_ = reinterpret_cast<::google::protobuf::Timestamp*>(value);
-  // @@protoc_insertion_point(field_set_allocated:s4wave.vm.CreateVmImageOp.timestamp)
+  // @@protoc_insertion_point(field_set_allocated:s4wave.vm.CreateV86ImageOp.timestamp)
 }
 
 // -------------------------------------------------------------------
 
-// SetVmImageMetadataOp
+// SetV86ImageMetadataOp
 
 // string object_key = 1;
-inline void SetVmImageMetadataOp::clear_object_key() {
+inline void SetV86ImageMetadataOp::clear_object_key() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.object_key_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000001U);
 }
-inline const ::std::string& SetVmImageMetadataOp::object_key() const
+inline const ::std::string& SetV86ImageMetadataOp::object_key() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:s4wave.vm.SetVmImageMetadataOp.object_key)
+  // @@protoc_insertion_point(field_get:s4wave.vm.SetV86ImageMetadataOp.object_key)
   return _internal_object_key();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void SetVmImageMetadataOp::set_object_key(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void SetV86ImageMetadataOp::set_object_key(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000001U);
   _impl_.object_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:s4wave.vm.SetVmImageMetadataOp.object_key)
+  // @@protoc_insertion_point(field_set:s4wave.vm.SetV86ImageMetadataOp.object_key)
 }
-inline ::std::string* PROTOBUF_NONNULL SetVmImageMetadataOp::mutable_object_key()
+inline ::std::string* PROTOBUF_NONNULL SetV86ImageMetadataOp::mutable_object_key()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000001U);
   ::std::string* _s = _internal_mutable_object_key();
-  // @@protoc_insertion_point(field_mutable:s4wave.vm.SetVmImageMetadataOp.object_key)
+  // @@protoc_insertion_point(field_mutable:s4wave.vm.SetV86ImageMetadataOp.object_key)
   return _s;
 }
-inline const ::std::string& SetVmImageMetadataOp::_internal_object_key() const {
+inline const ::std::string& SetV86ImageMetadataOp::_internal_object_key() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.object_key_.Get();
 }
-inline void SetVmImageMetadataOp::_internal_set_object_key(const ::std::string& value) {
+inline void SetV86ImageMetadataOp::_internal_set_object_key(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.object_key_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL SetVmImageMetadataOp::_internal_mutable_object_key() {
+inline ::std::string* PROTOBUF_NONNULL SetV86ImageMetadataOp::_internal_mutable_object_key() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _impl_.object_key_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE SetVmImageMetadataOp::release_object_key() {
+inline ::std::string* PROTOBUF_NULLABLE SetV86ImageMetadataOp::release_object_key() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:s4wave.vm.SetVmImageMetadataOp.object_key)
+  // @@protoc_insertion_point(field_release:s4wave.vm.SetV86ImageMetadataOp.object_key)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
     return nullptr;
   }
@@ -5107,7 +5107,7 @@ inline ::std::string* PROTOBUF_NULLABLE SetVmImageMetadataOp::release_object_key
   }
   return released;
 }
-inline void SetVmImageMetadataOp::set_allocated_object_key(::std::string* PROTOBUF_NULLABLE value) {
+inline void SetV86ImageMetadataOp::set_allocated_object_key(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000001U);
@@ -5118,49 +5118,49 @@ inline void SetVmImageMetadataOp::set_allocated_object_key(::std::string* PROTOB
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.object_key_.IsDefault()) {
     _impl_.object_key_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:s4wave.vm.SetVmImageMetadataOp.object_key)
+  // @@protoc_insertion_point(field_set_allocated:s4wave.vm.SetV86ImageMetadataOp.object_key)
 }
 
-// .s4wave.vm.VmImage image = 2;
-inline bool SetVmImageMetadataOp::has_image() const {
+// .s4wave.vm.V86Image image = 2;
+inline bool SetV86ImageMetadataOp::has_image() const {
   bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
   PROTOBUF_ASSUME(!value || _impl_.image_ != nullptr);
   return value;
 }
-inline void SetVmImageMetadataOp::clear_image() {
+inline void SetV86ImageMetadataOp::clear_image() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.image_ != nullptr) _impl_.image_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000002U);
 }
-inline const ::s4wave::vm::VmImage& SetVmImageMetadataOp::_internal_image() const {
+inline const ::s4wave::vm::V86Image& SetV86ImageMetadataOp::_internal_image() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
-  const ::s4wave::vm::VmImage* p = _impl_.image_;
-  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::vm::VmImage&>(::s4wave::vm::_VmImage_default_instance_);
+  const ::s4wave::vm::V86Image* p = _impl_.image_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::vm::V86Image&>(::s4wave::vm::_V86Image_default_instance_);
 }
-inline const ::s4wave::vm::VmImage& SetVmImageMetadataOp::image() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:s4wave.vm.SetVmImageMetadataOp.image)
+inline const ::s4wave::vm::V86Image& SetV86ImageMetadataOp::image() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.vm.SetV86ImageMetadataOp.image)
   return _internal_image();
 }
-inline void SetVmImageMetadataOp::unsafe_arena_set_allocated_image(
-    ::s4wave::vm::VmImage* PROTOBUF_NULLABLE value) {
+inline void SetV86ImageMetadataOp::unsafe_arena_set_allocated_image(
+    ::s4wave::vm::V86Image* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (GetArena() == nullptr) {
     delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.image_);
   }
-  _impl_.image_ = reinterpret_cast<::s4wave::vm::VmImage*>(value);
+  _impl_.image_ = reinterpret_cast<::s4wave::vm::V86Image*>(value);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   } else {
     ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.vm.SetVmImageMetadataOp.image)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.vm.SetV86ImageMetadataOp.image)
 }
-inline ::s4wave::vm::VmImage* PROTOBUF_NULLABLE SetVmImageMetadataOp::release_image() {
+inline ::s4wave::vm::V86Image* PROTOBUF_NULLABLE SetV86ImageMetadataOp::release_image() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
   ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  ::s4wave::vm::VmImage* released = _impl_.image_;
+  ::s4wave::vm::V86Image* released = _impl_.image_;
   _impl_.image_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
     auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
@@ -5175,31 +5175,31 @@ inline ::s4wave::vm::VmImage* PROTOBUF_NULLABLE SetVmImageMetadataOp::release_im
   }
   return released;
 }
-inline ::s4wave::vm::VmImage* PROTOBUF_NULLABLE SetVmImageMetadataOp::unsafe_arena_release_image() {
+inline ::s4wave::vm::V86Image* PROTOBUF_NULLABLE SetV86ImageMetadataOp::unsafe_arena_release_image() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:s4wave.vm.SetVmImageMetadataOp.image)
+  // @@protoc_insertion_point(field_release:s4wave.vm.SetV86ImageMetadataOp.image)
 
   ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  ::s4wave::vm::VmImage* temp = _impl_.image_;
+  ::s4wave::vm::V86Image* temp = _impl_.image_;
   _impl_.image_ = nullptr;
   return temp;
 }
-inline ::s4wave::vm::VmImage* PROTOBUF_NONNULL SetVmImageMetadataOp::_internal_mutable_image() {
+inline ::s4wave::vm::V86Image* PROTOBUF_NONNULL SetV86ImageMetadataOp::_internal_mutable_image() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.image_ == nullptr) {
-    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::vm::VmImage>(GetArena());
-    _impl_.image_ = reinterpret_cast<::s4wave::vm::VmImage*>(p);
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::vm::V86Image>(GetArena());
+    _impl_.image_ = reinterpret_cast<::s4wave::vm::V86Image*>(p);
   }
   return _impl_.image_;
 }
-inline ::s4wave::vm::VmImage* PROTOBUF_NONNULL SetVmImageMetadataOp::mutable_image()
+inline ::s4wave::vm::V86Image* PROTOBUF_NONNULL SetV86ImageMetadataOp::mutable_image()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  ::s4wave::vm::VmImage* _msg = _internal_mutable_image();
-  // @@protoc_insertion_point(field_mutable:s4wave.vm.SetVmImageMetadataOp.image)
+  ::s4wave::vm::V86Image* _msg = _internal_mutable_image();
+  // @@protoc_insertion_point(field_mutable:s4wave.vm.SetV86ImageMetadataOp.image)
   return _msg;
 }
-inline void SetVmImageMetadataOp::set_allocated_image(::s4wave::vm::VmImage* PROTOBUF_NULLABLE value) {
+inline void SetV86ImageMetadataOp::set_allocated_image(::s4wave::vm::V86Image* PROTOBUF_NULLABLE value) {
   ::google::protobuf::Arena* message_arena = GetArena();
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (message_arena == nullptr) {
@@ -5216,8 +5216,8 @@ inline void SetVmImageMetadataOp::set_allocated_image(::s4wave::vm::VmImage* PRO
     ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   }
 
-  _impl_.image_ = reinterpret_cast<::s4wave::vm::VmImage*>(value);
-  // @@protoc_insertion_point(field_set_allocated:s4wave.vm.SetVmImageMetadataOp.image)
+  _impl_.image_ = reinterpret_cast<::s4wave::vm::V86Image*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.vm.SetV86ImageMetadataOp.image)
 }
 
 #ifdef __GNUC__

@@ -22,25 +22,25 @@ pub struct MountCdnSpaceResponse {
     #[prost(uint32, tag="1")]
     pub resource_id: u32,
 }
-/// CopyVmImageToSpaceRequest is the request type for CopyVmImageToSpace.
+/// CopyV86ImageToSpaceRequest is the request type for CopyV86ImageToSpace.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct CopyVmImageToSpaceRequest {
+pub struct CopyV86ImageToSpaceRequest {
     /// SessionIdx is the caller's session index; used to resolve the
     /// destination user Space via the standard session-aware mount path.
     #[prost(uint32, tag="1")]
     pub session_idx: u32,
-    /// DstSpaceId is the ULID of the user Space the VmImage will land in.
+    /// DstSpaceId is the ULID of the user Space the V86Image will land in.
     #[prost(string, tag="2")]
     pub dst_space_id: ::prost::alloc::string::String,
-    /// SrcObjectKey is the VmImage object key in the CDN Space.
+    /// SrcObjectKey is the V86Image object key in the CDN Space.
     #[prost(string, tag="3")]
     pub src_object_key: ::prost::alloc::string::String,
     /// DstObjectKey is the object key in the destination Space.
     #[prost(string, tag="4")]
     pub dst_object_key: ::prost::alloc::string::String,
 }
-/// CopyVmImageToSpaceResponse is the response type for CopyVmImageToSpace.
+/// CopyV86ImageToSpaceResponse is the response type for CopyV86ImageToSpace.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct CopyVmImageToSpaceResponse {
+pub struct CopyV86ImageToSpaceResponse {
 }
 // @@protoc_insertion_point(module)

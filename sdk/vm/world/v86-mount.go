@@ -16,7 +16,7 @@ import (
 // resolveV86Mount resolves a v86fs mount name to an FSHandle.
 // Resolution order for each asset:
 //  1. per-VM override edge on the VmV86 (v86/{asset}-override)
-//  2. vmimage/{asset} edge on the VmImage linked via v86/image
+//  2. v86image/{asset} edge on the V86Image linked via v86/image
 //
 // Supported mount names: ""/rootfs (rootfs), "kernel", "seabios", "vgabios",
 // "wasm". The per-VM bios override (if present) covers both seabios and
@@ -26,19 +26,19 @@ func resolveV86Mount(ctx context.Context, ws world.WorldState, objectKey, name s
 	switch name {
 	case "", "rootfs":
 		overridePred = s4wave_vm.PredV86RootfsOverride
-		imagePred = s4wave_vm.PredVmImageRootfs
+		imagePred = s4wave_vm.PredV86ImageRootfs
 	case "kernel":
 		overridePred = s4wave_vm.PredV86KernelOverride
-		imagePred = s4wave_vm.PredVmImageKernel
+		imagePred = s4wave_vm.PredV86ImageKernel
 	case "seabios":
 		overridePred = s4wave_vm.PredV86BiosOverride
-		imagePred = s4wave_vm.PredVmImageBiosSeabios
+		imagePred = s4wave_vm.PredV86ImageBiosSeabios
 	case "vgabios":
 		overridePred = s4wave_vm.PredV86BiosOverride
-		imagePred = s4wave_vm.PredVmImageBiosVgabios
+		imagePred = s4wave_vm.PredV86ImageBiosVgabios
 	case "wasm":
 		overridePred = s4wave_vm.PredV86WasmOverride
-		imagePred = s4wave_vm.PredVmImageWasm
+		imagePred = s4wave_vm.PredV86ImageWasm
 	default:
 		return nil, unixfs_errors.ErrNotExist
 	}
@@ -63,7 +63,7 @@ func resolveV86Mount(ctx context.Context, ws world.WorldState, objectKey, name s
 		return nil, err
 	}
 	if !ok {
-		return nil, errors.Errorf("vmimage %s has no %s edge", imageKey, imagePred)
+		return nil, errors.Errorf("v86 image %s has no %s edge", imageKey, imagePred)
 	}
 	return openFSHandleForObject(ctx, ws, assetKey)
 }

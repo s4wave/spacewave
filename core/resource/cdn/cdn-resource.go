@@ -84,17 +84,17 @@ func (r *CdnResource) MountCdnSpace(
 	return &s4wave_cdn.MountCdnSpaceResponse{ResourceId: id}, nil
 }
 
-// CopyVmImageToSpace copies a VmImage from this CDN Space into a user-owned
+// CopyV86ImageToSpace copies a V86Image from this CDN Space into a user-owned
 // destination Space identified by session index + destination space id.
 // Source is a fresh read-only WorldEngine built from the bound CdnInstance;
 // destination is resolved via space_resolve.ResolveSpace using the caller's
 // session. Both engines are released before the RPC returns. Underlying
 // copy semantics (metadata block + five asset edges, dedupe by target key)
-// are handled by core/cdn.CopyVmImageFromCdn.
-func (r *CdnResource) CopyVmImageToSpace(
+// are handled by core/cdn.CopyV86ImageFromCdn.
+func (r *CdnResource) CopyV86ImageToSpace(
 	ctx context.Context,
-	req *s4wave_cdn.CopyVmImageToSpaceRequest,
-) (*s4wave_cdn.CopyVmImageToSpaceResponse, error) {
+	req *s4wave_cdn.CopyV86ImageToSpaceRequest,
+) (*s4wave_cdn.CopyV86ImageToSpaceResponse, error) {
 	if req.GetDstSpaceId() == "" {
 		return nil, errors.New("dst_space_id is required")
 	}
@@ -121,10 +121,10 @@ func (r *CdnResource) CopyVmImageToSpace(
 	src := world.NewEngineWorldState(srcEngine.Engine, false)
 	dst := world.NewEngineWorldState(resolved.Engine, true)
 
-	if err := cdn_copy.CopyVmImageFromCdn(ctx, src, dst, req.GetSrcObjectKey(), req.GetDstObjectKey()); err != nil {
+	if err := cdn_copy.CopyV86ImageFromCdn(ctx, src, dst, req.GetSrcObjectKey(), req.GetDstObjectKey()); err != nil {
 		return nil, err
 	}
-	return &s4wave_cdn.CopyVmImageToSpaceResponse{}, nil
+	return &s4wave_cdn.CopyV86ImageToSpaceResponse{}, nil
 }
 
 // _ is a type assertion.

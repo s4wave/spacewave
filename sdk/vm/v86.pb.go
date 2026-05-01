@@ -235,10 +235,10 @@ func (x *VmV86) GetErrorMessage() string {
 	return ""
 }
 
-// CreateVmV86Op creates a new VmV86 world object. The VmImage at
+// CreateVmV86Op creates a new VmV86 world object. The V86Image at
 // =image_object_key= supplies the four UnixFS asset edges (WASM, BIOS, kernel,
 // rootfs). Optional per-asset =*_override_object_key= fields override the
-// corresponding asset at resolve time without rewriting the VmImage.
+// corresponding asset at resolve time without rewriting the V86Image.
 type CreateVmV86Op struct {
 	unknownFields []byte
 	// ObjectKey is the key to create the VM at.
@@ -249,19 +249,19 @@ type CreateVmV86Op struct {
 	Config *V86Config `protobuf:"bytes,3,opt,name=config,proto3" json:"config,omitempty"`
 	// Timestamp is the creation timestamp.
 	Timestamp *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	// ImageObjectKey points at a VmImage providing default asset edges. Required.
+	// ImageObjectKey points at a V86Image providing default asset edges. Required.
 	ImageObjectKey string `protobuf:"bytes,5,opt,name=image_object_key,json=imageObjectKey,proto3" json:"imageObjectKey,omitempty"`
 	// KernelOverrideObjectKey optionally overrides the kernel resolved from the
-	// linked VmImage. Points at a UnixFS object.
+	// linked V86Image. Points at a UnixFS object.
 	KernelOverrideObjectKey string `protobuf:"bytes,6,opt,name=kernel_override_object_key,json=kernelOverrideObjectKey,proto3" json:"kernelOverrideObjectKey,omitempty"`
 	// RootfsOverrideObjectKey optionally overrides the rootfs resolved from the
-	// linked VmImage. Points at a UnixFS object.
+	// linked V86Image. Points at a UnixFS object.
 	RootfsOverrideObjectKey string `protobuf:"bytes,7,opt,name=rootfs_override_object_key,json=rootfsOverrideObjectKey,proto3" json:"rootfsOverrideObjectKey,omitempty"`
 	// BiosOverrideObjectKey optionally overrides the BIOS resolved from the
-	// linked VmImage. Points at a UnixFS object.
+	// linked V86Image. Points at a UnixFS object.
 	BiosOverrideObjectKey string `protobuf:"bytes,8,opt,name=bios_override_object_key,json=biosOverrideObjectKey,proto3" json:"biosOverrideObjectKey,omitempty"`
 	// WasmOverrideObjectKey optionally overrides the emulator WASM resolved from
-	// the linked VmImage. Points at a UnixFS object.
+	// the linked V86Image. Points at a UnixFS object.
 	WasmOverrideObjectKey string `protobuf:"bytes,9,opt,name=wasm_override_object_key,json=wasmOverrideObjectKey,proto3" json:"wasmOverrideObjectKey,omitempty"`
 }
 
@@ -404,17 +404,17 @@ func (x *SetV86StateOp) GetErrorMessage() string {
 	return ""
 }
 
-// VmImage is a curated bundle of VM assets (WASM emulator, SeaBIOS, VGA BIOS,
+// V86Image is a curated bundle of v86 assets (WASM emulator, SeaBIOS, VGA BIOS,
 // kernel, rootfs) linked through graph edges. The object itself carries
-// metadata; the five UnixFS targets are attached via vmimage/wasm,
-// vmimage/bios/seabios, vmimage/bios/vgabios, vmimage/kernel, vmimage/rootfs.
-type VmImage struct {
+// metadata; the five UnixFS targets are attached via v86image/wasm,
+// v86image/bios/seabios, v86image/bios/vgabios, v86image/kernel, v86image/rootfs.
+type V86Image struct {
 	unknownFields []byte
 	// Name is the human-readable name of the image.
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Version identifies this revision of the image.
 	Version string `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
-	// Platform identifies the target VM platform, e.g. "v86".
+	// Platform identifies the target VM platform. Must be "v86".
 	Platform string `protobuf:"bytes,3,opt,name=platform,proto3" json:"platform,omitempty"`
 	// Distro is the distribution name, e.g. "debian".
 	Distro string `protobuf:"bytes,4,opt,name=distro,proto3" json:"distro,omitempty"`
@@ -428,134 +428,134 @@ type VmImage struct {
 	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"createdAt,omitempty"`
 }
 
-func (x *VmImage) Reset() {
-	*x = VmImage{}
+func (x *V86Image) Reset() {
+	*x = V86Image{}
 }
 
-func (*VmImage) ProtoMessage() {}
+func (*V86Image) ProtoMessage() {}
 
-func (x *VmImage) GetName() string {
+func (x *V86Image) GetName() string {
 	if x != nil {
 		return x.Name
 	}
 	return ""
 }
 
-func (x *VmImage) GetVersion() string {
+func (x *V86Image) GetVersion() string {
 	if x != nil {
 		return x.Version
 	}
 	return ""
 }
 
-func (x *VmImage) GetPlatform() string {
+func (x *V86Image) GetPlatform() string {
 	if x != nil {
 		return x.Platform
 	}
 	return ""
 }
 
-func (x *VmImage) GetDistro() string {
+func (x *V86Image) GetDistro() string {
 	if x != nil {
 		return x.Distro
 	}
 	return ""
 }
 
-func (x *VmImage) GetKernelVersion() string {
+func (x *V86Image) GetKernelVersion() string {
 	if x != nil {
 		return x.KernelVersion
 	}
 	return ""
 }
 
-func (x *VmImage) GetDescription() string {
+func (x *V86Image) GetDescription() string {
 	if x != nil {
 		return x.Description
 	}
 	return ""
 }
 
-func (x *VmImage) GetTags() []string {
+func (x *V86Image) GetTags() []string {
 	if x != nil {
 		return x.Tags
 	}
 	return nil
 }
 
-func (x *VmImage) GetCreatedAt() *timestamppb.Timestamp {
+func (x *V86Image) GetCreatedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.CreatedAt
 	}
 	return nil
 }
 
-// CreateVmImageOp creates a new VmImage world object. Metadata is supplied
+// CreateV86ImageOp creates a new V86Image world object. Metadata is supplied
 // inline; the five UnixFS edges are set separately via SetGraphQuad.
-type CreateVmImageOp struct {
+type CreateV86ImageOp struct {
 	unknownFields []byte
-	// ObjectKey is the key to create the VmImage at.
+	// ObjectKey is the key to create the V86Image at.
 	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
-	// Image carries the metadata for the new VmImage. Name / platform / tags
+	// Image carries the metadata for the new V86Image. Name / platform / tags
 	// are required; the remaining fields are optional.
-	Image *VmImage `protobuf:"bytes,2,opt,name=image,proto3" json:"image,omitempty"`
+	Image *V86Image `protobuf:"bytes,2,opt,name=image,proto3" json:"image,omitempty"`
 	// Timestamp is the creation timestamp. Stored on the block as CreatedAt.
 	Timestamp *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 }
 
-func (x *CreateVmImageOp) Reset() {
-	*x = CreateVmImageOp{}
+func (x *CreateV86ImageOp) Reset() {
+	*x = CreateV86ImageOp{}
 }
 
-func (*CreateVmImageOp) ProtoMessage() {}
+func (*CreateV86ImageOp) ProtoMessage() {}
 
-func (x *CreateVmImageOp) GetObjectKey() string {
+func (x *CreateV86ImageOp) GetObjectKey() string {
 	if x != nil {
 		return x.ObjectKey
 	}
 	return ""
 }
 
-func (x *CreateVmImageOp) GetImage() *VmImage {
+func (x *CreateV86ImageOp) GetImage() *V86Image {
 	if x != nil {
 		return x.Image
 	}
 	return nil
 }
 
-func (x *CreateVmImageOp) GetTimestamp() *timestamppb.Timestamp {
+func (x *CreateV86ImageOp) GetTimestamp() *timestamppb.Timestamp {
 	if x != nil {
 		return x.Timestamp
 	}
 	return nil
 }
 
-// SetVmImageMetadataOp replaces the metadata fields on an existing VmImage.
+// SetV86ImageMetadataOp replaces the metadata fields on an existing V86Image.
 // The four UnixFS edges are immutable post-create; use graph-quad ops on a
-// fresh VmImage to change asset bindings.
-type SetVmImageMetadataOp struct {
+// fresh V86Image to change asset bindings.
+type SetV86ImageMetadataOp struct {
 	unknownFields []byte
-	// ObjectKey is the key of the VmImage to update.
+	// ObjectKey is the key of the V86Image to update.
 	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
 	// Image carries the new metadata. CreatedAt is preserved from the stored
-	// block; any CreatedAt on the supplied VmImage is ignored.
-	Image *VmImage `protobuf:"bytes,2,opt,name=image,proto3" json:"image,omitempty"`
+	// block; any CreatedAt on the supplied V86Image is ignored.
+	Image *V86Image `protobuf:"bytes,2,opt,name=image,proto3" json:"image,omitempty"`
 }
 
-func (x *SetVmImageMetadataOp) Reset() {
-	*x = SetVmImageMetadataOp{}
+func (x *SetV86ImageMetadataOp) Reset() {
+	*x = SetV86ImageMetadataOp{}
 }
 
-func (*SetVmImageMetadataOp) ProtoMessage() {}
+func (*SetV86ImageMetadataOp) ProtoMessage() {}
 
-func (x *SetVmImageMetadataOp) GetObjectKey() string {
+func (x *SetV86ImageMetadataOp) GetObjectKey() string {
 	if x != nil {
 		return x.ObjectKey
 	}
 	return ""
 }
 
-func (x *SetVmImageMetadataOp) GetImage() *VmImage {
+func (x *SetV86ImageMetadataOp) GetImage() *V86Image {
 	if x != nil {
 		return x.Image
 	}
@@ -690,11 +690,11 @@ func (m *SetV86StateOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (m *VmImage) CloneVT() *VmImage {
+func (m *V86Image) CloneVT() *V86Image {
 	if m == nil {
-		return (*VmImage)(nil)
+		return (*V86Image)(nil)
 	}
-	r := new(VmImage)
+	r := new(V86Image)
 	r.Name = m.Name
 	r.Version = m.Version
 	r.Platform = m.Platform
@@ -713,15 +713,15 @@ func (m *VmImage) CloneVT() *VmImage {
 	return r
 }
 
-func (m *VmImage) CloneMessageVT() protobuf_go_lite.CloneMessage {
+func (m *V86Image) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (m *CreateVmImageOp) CloneVT() *CreateVmImageOp {
+func (m *CreateV86ImageOp) CloneVT() *CreateV86ImageOp {
 	if m == nil {
-		return (*CreateVmImageOp)(nil)
+		return (*CreateV86ImageOp)(nil)
 	}
-	r := new(CreateVmImageOp)
+	r := new(CreateV86ImageOp)
 	r.ObjectKey = m.ObjectKey
 	r.Image = m.Image.CloneVT()
 	if rhs := m.Timestamp; rhs != nil {
@@ -733,15 +733,15 @@ func (m *CreateVmImageOp) CloneVT() *CreateVmImageOp {
 	return r
 }
 
-func (m *CreateVmImageOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
+func (m *CreateV86ImageOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (m *SetVmImageMetadataOp) CloneVT() *SetVmImageMetadataOp {
+func (m *SetV86ImageMetadataOp) CloneVT() *SetV86ImageMetadataOp {
 	if m == nil {
-		return (*SetVmImageMetadataOp)(nil)
+		return (*SetV86ImageMetadataOp)(nil)
 	}
-	r := new(SetVmImageMetadataOp)
+	r := new(SetV86ImageMetadataOp)
 	r.ObjectKey = m.ObjectKey
 	r.Image = m.Image.CloneVT()
 	if len(m.unknownFields) > 0 {
@@ -750,7 +750,7 @@ func (m *SetVmImageMetadataOp) CloneVT() *SetVmImageMetadataOp {
 	return r
 }
 
-func (m *SetVmImageMetadataOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
+func (m *SetV86ImageMetadataOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -957,7 +957,7 @@ func (this *SetV86StateOp) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
-func (this *VmImage) EqualVT(that *VmImage) bool {
+func (this *V86Image) EqualVT(that *V86Image) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
@@ -996,15 +996,15 @@ func (this *VmImage) EqualVT(that *VmImage) bool {
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *VmImage) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*VmImage)
+func (this *V86Image) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*V86Image)
 	if !ok {
 		return false
 	}
 	return this.EqualVT(that)
 }
 
-func (this *CreateVmImageOp) EqualVT(that *CreateVmImageOp) bool {
+func (this *CreateV86ImageOp) EqualVT(that *CreateV86ImageOp) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
@@ -1022,15 +1022,15 @@ func (this *CreateVmImageOp) EqualVT(that *CreateVmImageOp) bool {
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *CreateVmImageOp) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*CreateVmImageOp)
+func (this *CreateV86ImageOp) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CreateV86ImageOp)
 	if !ok {
 		return false
 	}
 	return this.EqualVT(that)
 }
 
-func (this *SetVmImageMetadataOp) EqualVT(that *SetVmImageMetadataOp) bool {
+func (this *SetV86ImageMetadataOp) EqualVT(that *SetV86ImageMetadataOp) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
@@ -1045,8 +1045,8 @@ func (this *SetVmImageMetadataOp) EqualVT(that *SetVmImageMetadataOp) bool {
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *SetVmImageMetadataOp) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*SetVmImageMetadataOp)
+func (this *SetV86ImageMetadataOp) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetV86ImageMetadataOp)
 	if !ok {
 		return false
 	}
@@ -1570,8 +1570,8 @@ func (x *SetV86StateOp) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the VmImage message to JSON.
-func (x *VmImage) MarshalProtoJSON(s *json.MarshalState) {
+// MarshalProtoJSON marshals the V86Image message to JSON.
+func (x *V86Image) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
 		s.WriteNil()
 		return
@@ -1621,13 +1621,13 @@ func (x *VmImage) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteObjectEnd()
 }
 
-// MarshalJSON marshals the VmImage to JSON.
-func (x *VmImage) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the V86Image to JSON.
+func (x *V86Image) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the VmImage message from JSON.
-func (x *VmImage) UnmarshalProtoJSON(s *json.UnmarshalState) {
+// UnmarshalProtoJSON unmarshals the V86Image message from JSON.
+func (x *V86Image) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	if s.ReadNil() {
 		return
 	}
@@ -1671,13 +1671,13 @@ func (x *VmImage) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	})
 }
 
-// UnmarshalJSON unmarshals the VmImage from JSON.
-func (x *VmImage) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the V86Image from JSON.
+func (x *V86Image) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the CreateVmImageOp message to JSON.
-func (x *CreateVmImageOp) MarshalProtoJSON(s *json.MarshalState) {
+// MarshalProtoJSON marshals the CreateV86ImageOp message to JSON.
+func (x *CreateV86ImageOp) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
 		s.WriteNil()
 		return
@@ -1702,13 +1702,13 @@ func (x *CreateVmImageOp) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteObjectEnd()
 }
 
-// MarshalJSON marshals the CreateVmImageOp to JSON.
-func (x *CreateVmImageOp) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the CreateV86ImageOp to JSON.
+func (x *CreateV86ImageOp) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the CreateVmImageOp message from JSON.
-func (x *CreateVmImageOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
+// UnmarshalProtoJSON unmarshals the CreateV86ImageOp message from JSON.
+func (x *CreateV86ImageOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	if s.ReadNil() {
 		return
 	}
@@ -1724,7 +1724,7 @@ func (x *CreateVmImageOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				x.Image = nil
 				return
 			}
-			x.Image = &VmImage{}
+			x.Image = &V86Image{}
 			x.Image.UnmarshalProtoJSON(s.WithField("image", true))
 		case "timestamp":
 			if s.ReadNil() {
@@ -1737,13 +1737,13 @@ func (x *CreateVmImageOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	})
 }
 
-// UnmarshalJSON unmarshals the CreateVmImageOp from JSON.
-func (x *CreateVmImageOp) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the CreateV86ImageOp from JSON.
+func (x *CreateV86ImageOp) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the SetVmImageMetadataOp message to JSON.
-func (x *SetVmImageMetadataOp) MarshalProtoJSON(s *json.MarshalState) {
+// MarshalProtoJSON marshals the SetV86ImageMetadataOp message to JSON.
+func (x *SetV86ImageMetadataOp) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
 		s.WriteNil()
 		return
@@ -1763,13 +1763,13 @@ func (x *SetVmImageMetadataOp) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteObjectEnd()
 }
 
-// MarshalJSON marshals the SetVmImageMetadataOp to JSON.
-func (x *SetVmImageMetadataOp) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the SetV86ImageMetadataOp to JSON.
+func (x *SetV86ImageMetadataOp) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the SetVmImageMetadataOp message from JSON.
-func (x *SetVmImageMetadataOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
+// UnmarshalProtoJSON unmarshals the SetV86ImageMetadataOp message from JSON.
+func (x *SetV86ImageMetadataOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	if s.ReadNil() {
 		return
 	}
@@ -1785,14 +1785,14 @@ func (x *SetVmImageMetadataOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				x.Image = nil
 				return
 			}
-			x.Image = &VmImage{}
+			x.Image = &V86Image{}
 			x.Image.UnmarshalProtoJSON(s.WithField("image", true))
 		}
 	})
 }
 
-// UnmarshalJSON unmarshals the SetVmImageMetadataOp from JSON.
-func (x *SetVmImageMetadataOp) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the SetV86ImageMetadataOp from JSON.
+func (x *SetV86ImageMetadataOp) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -2218,7 +2218,7 @@ func (m *SetV86StateOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *VmImage) MarshalVT() (dAtA []byte, err error) {
+func (m *V86Image) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -2231,12 +2231,12 @@ func (m *VmImage) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *VmImage) MarshalToVT(dAtA []byte) (int, error) {
+func (m *V86Image) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *VmImage) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *V86Image) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -2312,7 +2312,7 @@ func (m *VmImage) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *CreateVmImageOp) MarshalVT() (dAtA []byte, err error) {
+func (m *CreateV86ImageOp) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -2325,12 +2325,12 @@ func (m *CreateVmImageOp) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *CreateVmImageOp) MarshalToVT(dAtA []byte) (int, error) {
+func (m *CreateV86ImageOp) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *CreateVmImageOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *CreateV86ImageOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -2372,7 +2372,7 @@ func (m *CreateVmImageOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *SetVmImageMetadataOp) MarshalVT() (dAtA []byte, err error) {
+func (m *SetV86ImageMetadataOp) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -2385,12 +2385,12 @@ func (m *SetVmImageMetadataOp) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *SetVmImageMetadataOp) MarshalToVT(dAtA []byte) (int, error) {
+func (m *SetV86ImageMetadataOp) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *SetVmImageMetadataOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *SetV86ImageMetadataOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -2593,7 +2593,7 @@ func (m *SetV86StateOp) SizeVT() (n int) {
 	return n
 }
 
-func (m *VmImage) SizeVT() (n int) {
+func (m *V86Image) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -2637,7 +2637,7 @@ func (m *VmImage) SizeVT() (n int) {
 	return n
 }
 
-func (m *CreateVmImageOp) SizeVT() (n int) {
+func (m *CreateV86ImageOp) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -2659,7 +2659,7 @@ func (m *CreateVmImageOp) SizeVT() (n int) {
 	return n
 }
 
-func (m *SetVmImageMetadataOp) SizeVT() (n int) {
+func (m *SetV86ImageMetadataOp) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -2960,53 +2960,53 @@ func (x *SetV86StateOp) String() string {
 	return x.MarshalProtoText()
 }
 
-func (x *VmImage) MarshalProtoText() string {
+func (x *V86Image) MarshalProtoText() string {
 	var sb strings.Builder
-	sb.WriteString("VmImage {")
+	sb.WriteString("V86Image {")
 	if x.Name != "" {
-		if sb.Len() > 9 {
+		if sb.Len() > 10 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("name: ")
 		sb.WriteString(strconv.Quote(x.Name))
 	}
 	if x.Version != "" {
-		if sb.Len() > 9 {
+		if sb.Len() > 10 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("version: ")
 		sb.WriteString(strconv.Quote(x.Version))
 	}
 	if x.Platform != "" {
-		if sb.Len() > 9 {
+		if sb.Len() > 10 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("platform: ")
 		sb.WriteString(strconv.Quote(x.Platform))
 	}
 	if x.Distro != "" {
-		if sb.Len() > 9 {
+		if sb.Len() > 10 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("distro: ")
 		sb.WriteString(strconv.Quote(x.Distro))
 	}
 	if x.KernelVersion != "" {
-		if sb.Len() > 9 {
+		if sb.Len() > 10 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("kernel_version: ")
 		sb.WriteString(strconv.Quote(x.KernelVersion))
 	}
 	if x.Description != "" {
-		if sb.Len() > 9 {
+		if sb.Len() > 10 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("description: ")
 		sb.WriteString(strconv.Quote(x.Description))
 	}
 	if len(x.Tags) > 0 {
-		if sb.Len() > 9 {
+		if sb.Len() > 10 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("tags: [")
@@ -3019,7 +3019,7 @@ func (x *VmImage) MarshalProtoText() string {
 		sb.WriteString("]")
 	}
 	if x.CreatedAt != nil {
-		if sb.Len() > 9 {
+		if sb.Len() > 10 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("created_at: ")
@@ -3029,29 +3029,29 @@ func (x *VmImage) MarshalProtoText() string {
 	return sb.String()
 }
 
-func (x *VmImage) String() string {
+func (x *V86Image) String() string {
 	return x.MarshalProtoText()
 }
 
-func (x *CreateVmImageOp) MarshalProtoText() string {
+func (x *CreateV86ImageOp) MarshalProtoText() string {
 	var sb strings.Builder
-	sb.WriteString("CreateVmImageOp {")
+	sb.WriteString("CreateV86ImageOp {")
 	if x.ObjectKey != "" {
-		if sb.Len() > 17 {
+		if sb.Len() > 18 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("object_key: ")
 		sb.WriteString(strconv.Quote(x.ObjectKey))
 	}
 	if x.Image != nil {
-		if sb.Len() > 17 {
+		if sb.Len() > 18 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("image: ")
 		sb.WriteString(x.Image.MarshalProtoText())
 	}
 	if x.Timestamp != nil {
-		if sb.Len() > 17 {
+		if sb.Len() > 18 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("timestamp: ")
@@ -3061,22 +3061,22 @@ func (x *CreateVmImageOp) MarshalProtoText() string {
 	return sb.String()
 }
 
-func (x *CreateVmImageOp) String() string {
+func (x *CreateV86ImageOp) String() string {
 	return x.MarshalProtoText()
 }
 
-func (x *SetVmImageMetadataOp) MarshalProtoText() string {
+func (x *SetV86ImageMetadataOp) MarshalProtoText() string {
 	var sb strings.Builder
-	sb.WriteString("SetVmImageMetadataOp {")
+	sb.WriteString("SetV86ImageMetadataOp {")
 	if x.ObjectKey != "" {
-		if sb.Len() > 22 {
+		if sb.Len() > 23 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("object_key: ")
 		sb.WriteString(strconv.Quote(x.ObjectKey))
 	}
 	if x.Image != nil {
-		if sb.Len() > 22 {
+		if sb.Len() > 23 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("image: ")
@@ -3086,7 +3086,7 @@ func (x *SetVmImageMetadataOp) MarshalProtoText() string {
 	return sb.String()
 }
 
-func (x *SetVmImageMetadataOp) String() string {
+func (x *SetV86ImageMetadataOp) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -3942,7 +3942,7 @@ func (m *SetV86StateOp) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
-func (m *VmImage) UnmarshalVT(dAtA []byte) error {
+func (m *V86Image) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	var err error
@@ -3956,10 +3956,10 @@ func (m *VmImage) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: VmImage: wiretype end group for non-group")
+			return fmt.Errorf("proto: V86Image: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: VmImage: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: V86Image: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -4167,7 +4167,7 @@ func (m *VmImage) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
-func (m *CreateVmImageOp) UnmarshalVT(dAtA []byte) error {
+func (m *CreateV86ImageOp) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	var err error
@@ -4181,10 +4181,10 @@ func (m *CreateVmImageOp) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: CreateVmImageOp: wiretype end group for non-group")
+			return fmt.Errorf("proto: CreateV86ImageOp: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: CreateVmImageOp: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: CreateV86ImageOp: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -4231,7 +4231,7 @@ func (m *CreateVmImageOp) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Image == nil {
-				m.Image = &VmImage{}
+				m.Image = &V86Image{}
 			}
 			if err := m.Image.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -4288,7 +4288,7 @@ func (m *CreateVmImageOp) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
-func (m *SetVmImageMetadataOp) UnmarshalVT(dAtA []byte) error {
+func (m *SetV86ImageMetadataOp) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	var err error
@@ -4302,10 +4302,10 @@ func (m *SetVmImageMetadataOp) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: SetVmImageMetadataOp: wiretype end group for non-group")
+			return fmt.Errorf("proto: SetV86ImageMetadataOp: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: SetVmImageMetadataOp: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: SetV86ImageMetadataOp: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -4352,7 +4352,7 @@ func (m *SetVmImageMetadataOp) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Image == nil {
-				m.Image = &VmImage{}
+				m.Image = &V86Image{}
 			}
 			if err := m.Image.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err

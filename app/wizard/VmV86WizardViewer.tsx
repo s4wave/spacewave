@@ -34,20 +34,20 @@ import { keyToIRI, iriToKey } from '@s4wave/sdk/world/graph-utils.js'
 import type { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
 import type { Cdn } from '@s4wave/sdk/cdn/cdn.js'
 import type { Space } from '@s4wave/sdk/space/space.js'
-import { CreateVmV86Op, VmImage, VmV86 } from '@s4wave/sdk/vm/v86.pb.js'
+import { CreateVmV86Op, V86Image, VmV86 } from '@s4wave/sdk/vm/v86.pb.js'
 import {
   V86WizardConfig,
   V86WizardConfig_Source,
 } from '@s4wave/sdk/vm/v86-wizard.pb.js'
 import { CREATE_VM_V86_OP_ID } from '@s4wave/sdk/vm/create-vm-v86.js'
-import { VmImageTypeID } from '@s4wave/sdk/vm/vmimage.js'
+import { V86ImageTypeID } from '@s4wave/sdk/vm/v86image.js'
 import type { Root } from '@s4wave/sdk/root'
 import { buildObjectKey } from '../space/create-op-builders.js'
 import {
-  compareVmImageNewestFirst,
+  compareV86ImageNewestFirst,
   DEFAULT_V86_MEMORY_MB,
   DEFAULT_V86_VGA_MEMORY_MB,
-  isDefaultV86VmImage,
+  isDefaultV86Image,
   seedV86WizardConfig,
   V86_USER_IMAGE_OBJECT_KEY,
 } from '../vm/v86-wizard-config.js'
@@ -66,9 +66,9 @@ const V86_IMAGE_PRED = '<v86/image>'
 
 const MEMORY_OPTIONS: readonly number[] = [64, 128, 256, 512, 1024]
 
-interface InSpaceVmImageEntry {
+interface InSpaceV86ImageEntry {
   objectKey: string
-  image: VmImage
+  image: V86Image
 }
 
 interface ExistingVmInfo {
@@ -78,9 +78,9 @@ interface ExistingVmInfo {
   createdAt: Date | undefined
 }
 
-interface CdnVmImageEntry {
+interface CdnV86ImageEntry {
   objectKey: string
-  image: VmImage
+  image: V86Image
   metadataError?: string
 }
 
@@ -114,13 +114,13 @@ async function mountCdnImageSpace(
   }
 }
 
-async function loadCdnVmImagesFromSpace(
+async function loadCdnV86ImagesFromSpace(
   space: Space,
   signal: AbortSignal,
-): Promise<CdnVmImageEntry[]> {
+): Promise<CdnV86ImageEntry[]> {
   const world = await space.accessWorldState(false, signal)
-  const keys = await listObjectsWithType(world, VmImageTypeID, signal)
-  const out: CdnVmImageEntry[] = []
+  const keys = await listObjectsWithType(world, V86ImageTypeID, signal)
+  const out: CdnV86ImageEntry[] = []
   for (const key of keys) {
     using obj = await world.getObject(key, signal)
     if (!obj) continue
@@ -128,7 +128,7 @@ async function loadCdnVmImagesFromSpace(
     const resp = await cursor.unmarshal({}, signal)
     if (!resp.found || !resp.data?.length) continue
     try {
-      out.push({ objectKey: key, image: VmImage.fromBinary(resp.data) })
+      out.push({ objectKey: key, image: V86Image.fromBinary(resp.data) })
     } catch (err) {
       out.push({
         objectKey: key,
@@ -143,26 +143,26 @@ async function loadCdnVmImagesFromSpace(
       })
     }
   }
-  out.sort(compareVmImageNewestFirst)
+  out.sort(compareV86ImageNewestFirst)
   return out
 }
 
-async function loadCdnVmImages(
+async function loadCdnV86Images(
   root: Root,
   cdnId: string,
   signal: AbortSignal,
-): Promise<CdnVmImageEntry[]> {
+): Promise<CdnV86ImageEntry[]> {
   using handle = await mountCdnImageSpace(root, cdnId, signal)
-  return loadCdnVmImagesFromSpace(handle.space, signal)
+  return loadCdnV86ImagesFromSpace(handle.space, signal)
 }
 
-async function discoverDefaultCdnVmImage(
+async function discoverDefaultCdnV86Image(
   root: Root,
   cdnId: string,
   signal: AbortSignal,
-): Promise<CdnVmImageEntry | undefined> {
-  const entries = await loadCdnVmImages(root, cdnId, signal)
-  return entries.find((entry) => isDefaultV86VmImage(entry.image))
+): Promise<CdnV86ImageEntry | undefined> {
+  const entries = await loadCdnV86Images(root, cdnId, signal)
+  return entries.find((entry) => isDefaultV86Image(entry.image))
 }
 
 async function lookupImageEdge(
@@ -183,12 +183,12 @@ async function lookupImageEdge(
   return iriToKey(target)
 }
 
-async function loadInSpaceVmImages(
+async function loadInSpaceV86Images(
   ws: EngineWorldState,
   signal: AbortSignal,
-): Promise<InSpaceVmImageEntry[]> {
-  const keys = await listObjectsWithType(ws, VmImageTypeID, signal)
-  const out: InSpaceVmImageEntry[] = []
+): Promise<InSpaceV86ImageEntry[]> {
+  const keys = await listObjectsWithType(ws, V86ImageTypeID, signal)
+  const out: InSpaceV86ImageEntry[] = []
   for (const key of keys) {
     using obj = await ws.getObject(key, signal)
     if (!obj) continue
@@ -196,12 +196,12 @@ async function loadInSpaceVmImages(
     const resp = await cursor.unmarshal({}, signal)
     if (!resp.found || !resp.data?.length) continue
     try {
-      out.push({ objectKey: key, image: VmImage.fromBinary(resp.data) })
+      out.push({ objectKey: key, image: V86Image.fromBinary(resp.data) })
     } catch {
       /* skip corrupt */
     }
   }
-  out.sort(compareVmImageNewestFirst)
+  out.sort(compareV86ImageNewestFirst)
   return out
 }
 
@@ -249,14 +249,14 @@ function decodeConfig(configData: Uint8Array | undefined): V86WizardConfig {
   }
 }
 
-function formatImageLabel(img: VmImage): string {
-  const name = img.name || img.distro || 'VmImage'
+function formatImageLabel(img: V86Image): string {
+  const name = img.name || img.distro || 'V86Image'
   if (img.version) return `${name} (${img.version})`
   return name
 }
 
 // VmV86WizardViewer is the custom wizard viewer for creating V86 VMs.
-// Step 0: image source selection (existing in-space VmImage, inherit from
+// Step 0: image source selection (existing in-space V86Image, inherit from
 // existing VmV86, or copy default from CDN). Step 1: VM name and memory
 // configuration. Finalize runs the CDN copy (when selected) and then
 // CreateVmV86Op with the resolved image_object_key.
@@ -302,7 +302,7 @@ export function VmV86WizardViewer({
   const inSpaceImagesResource = useResource(
     spaceWorldResource,
     (world: EngineWorldState, signal: AbortSignal) =>
-      loadInSpaceVmImages(world, signal),
+      loadInSpaceV86Images(world, signal),
     [],
   )
   const inSpaceImages = useMemo(
@@ -348,7 +348,7 @@ export function VmV86WizardViewer({
 
   // Compute an intelligent default once the world listings are loaded and the
   // wizard has no source yet. Prefers inheriting from the newest existing VM,
-  // falls back to the newest in-space VmImage, falls back to COPY_FROM_CDN
+  // falls back to the newest in-space V86Image, falls back to COPY_FROM_CDN
   // (the quickstart pre-seed also sets COPY_FROM_CDN explicitly).
   const seededRef = useRef(false)
   useEffect(() => {
@@ -381,7 +381,7 @@ export function VmV86WizardViewer({
       if (cfg.cdnSourceObjectKey) {
         return Promise.resolve(undefined)
       }
-      return discoverDefaultCdnVmImage(nextRoot, cfg.cdnId ?? '', signal)
+      return discoverDefaultCdnV86Image(nextRoot, cfg.cdnId ?? '', signal)
     },
     [cfg.source, cfg.cdnId, cfg.cdnSourceObjectKey],
   )
@@ -399,7 +399,7 @@ export function VmV86WizardViewer({
     })
   }, [cfg, defaultCdnImageResource.value, persistConfig])
 
-  const selectedImage = useMemo((): VmImage | undefined => {
+  const selectedImage = useMemo((): V86Image | undefined => {
     if (!cfg.imageObjectKey) return undefined
     if (cfg.source === V86WizardConfig_Source.COPY_FROM_CDN) {
       return undefined
@@ -407,7 +407,7 @@ export function VmV86WizardViewer({
     return inSpaceImages.find((e) => e.objectKey === cfg.imageObjectKey)?.image
   }, [cfg.imageObjectKey, cfg.source, inSpaceImages])
 
-  const selectedCdnImage = useMemo((): VmImage | undefined => {
+  const selectedCdnImage = useMemo((): V86Image | undefined => {
     if (cfg.source !== V86WizardConfig_Source.COPY_FROM_CDN) {
       return undefined
     }
@@ -497,7 +497,7 @@ export function VmV86WizardViewer({
         if (!spaceId) throw new Error('space id not available')
         const { cdn } = await root.getCdn(cfg.cdnId ?? '')
         using cdnHandle = cdn
-        await cdnHandle.copyVmImageToSpace(
+        await cdnHandle.copyV86ImageToSpace(
           sessionIndex,
           spaceId,
           cfg.cdnSourceObjectKey ?? '',
@@ -634,7 +634,7 @@ export function VmV86WizardViewer({
 interface SourcePickerStepProps {
   cfg: V86WizardConfig
   existingDefault: ExistingVmInfo | undefined
-  inSpaceImages: InSpaceVmImageEntry[]
+  inSpaceImages: InSpaceV86ImageEntry[]
   onSelectInSpace: (imageKey: string) => void
   onOpenCdnPicker: () => void
   pending: boolean
@@ -668,7 +668,7 @@ function SourcePickerStep({
             Use same image as {existingDefault.name}
           </div>
           <div className="text-foreground-alt/50 text-xs">
-            Inherit the VmImage from the newest existing VM in this Space.
+            Inherit the V86Image from the newest existing VM in this Space.
           </div>
         </div>
       </button>
@@ -726,7 +726,7 @@ function SourcePickerStep({
               Copy default from CDN
             </div>
             <div className="text-foreground-alt/50 text-xs">
-              Download a published Aperture VmImage into this Space.
+              Download a published Aperture V86Image into this Space.
             </div>
           </div>
         </button>
@@ -743,7 +743,7 @@ function SourcePickerStep({
       {!pending && inSpaceImages.length === 0 && !existingDefault?.imageKey && (
         <div className="border-foreground/6 bg-background-card/30 text-foreground-alt/40 mt-2 flex items-center gap-2 rounded-lg border px-3.5 py-3 text-xs">
           <LuHardDrive className="h-3.5 w-3.5 shrink-0" />
-          No VmImages exist in this Space yet. Copy one from the CDN to
+          No V86Images exist in this Space yet. Copy one from the CDN to
           continue.
         </div>
       )}
@@ -755,8 +755,8 @@ interface ConfigStepProps {
   cfg: V86WizardConfig
   memoryMb: number
   onMemoryChange: (memoryMb: number) => void
-  selectedImage: VmImage | undefined
-  selectedCdnImage: VmImage | undefined
+  selectedImage: V86Image | undefined
+  selectedCdnImage: V86Image | undefined
   existingDefault: ExistingVmInfo | undefined
 }
 
@@ -840,9 +840,9 @@ function CdnImagePickerModal({
   const entriesResource = useStreamingResource(
     cdnSpaceResource,
     async function* (handle: CdnImageSpaceHandle, signal: AbortSignal) {
-      yield await loadCdnVmImagesFromSpace(handle.space, signal)
+      yield await loadCdnV86ImagesFromSpace(handle.space, signal)
       for await (const _state of handle.space.watchSpaceState({}, signal)) {
-        yield await loadCdnVmImagesFromSpace(handle.space, signal)
+        yield await loadCdnV86ImagesFromSpace(handle.space, signal)
       }
     },
     [],
@@ -861,7 +861,7 @@ function CdnImagePickerModal({
       >
         <div className="flex items-center justify-between">
           <h3 className="text-foreground text-sm font-semibold tracking-tight select-none">
-            Pick a CDN VmImage
+            Pick a CDN V86Image
           </h3>
           <Button
             variant="outline"
@@ -883,7 +883,7 @@ function CdnImagePickerModal({
           )}
           {entries && entries.length === 0 && !loadError && (
             <span className="text-foreground-alt text-xs">
-              No VmImages published in this CDN yet.
+              No V86Images published in this CDN yet.
             </span>
           )}
           {entries?.map((entry) => (

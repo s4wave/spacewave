@@ -33,8 +33,8 @@ class SRPCCdnResourceServiceClient {
   virtual starpc::Error GetCdnSpaceId(const s4wave::cdn::GetCdnSpaceIdRequest& in, s4wave::cdn::GetCdnSpaceIdResponse* out) = 0;
   // MountCdnSpace
   virtual starpc::Error MountCdnSpace(const s4wave::cdn::MountCdnSpaceRequest& in, s4wave::cdn::MountCdnSpaceResponse* out) = 0;
-  // CopyVmImageToSpace
-  virtual starpc::Error CopyVmImageToSpace(const s4wave::cdn::CopyVmImageToSpaceRequest& in, s4wave::cdn::CopyVmImageToSpaceResponse* out) = 0;
+  // CopyV86ImageToSpace
+  virtual starpc::Error CopyV86ImageToSpace(const s4wave::cdn::CopyV86ImageToSpaceRequest& in, s4wave::cdn::CopyV86ImageToSpaceResponse* out) = 0;
 };
 
 // SRPCCdnResourceServiceClientImpl implements SRPCCdnResourceServiceClient.
@@ -49,8 +49,8 @@ class SRPCCdnResourceServiceClientImpl : public SRPCCdnResourceServiceClient {
   virtual starpc::Error GetCdnSpaceId(const s4wave::cdn::GetCdnSpaceIdRequest& in, s4wave::cdn::GetCdnSpaceIdResponse* out) override;
   // MountCdnSpace
   virtual starpc::Error MountCdnSpace(const s4wave::cdn::MountCdnSpaceRequest& in, s4wave::cdn::MountCdnSpaceResponse* out) override;
-  // CopyVmImageToSpace
-  virtual starpc::Error CopyVmImageToSpace(const s4wave::cdn::CopyVmImageToSpaceRequest& in, s4wave::cdn::CopyVmImageToSpaceResponse* out) override;
+  // CopyV86ImageToSpace
+  virtual starpc::Error CopyV86ImageToSpace(const s4wave::cdn::CopyV86ImageToSpaceRequest& in, s4wave::cdn::CopyV86ImageToSpaceResponse* out) override;
 
  private:
   starpc::Client* cc_;
@@ -71,8 +71,8 @@ class SRPCCdnResourceServiceServer {
   virtual starpc::Error GetCdnSpaceId(const s4wave::cdn::GetCdnSpaceIdRequest& req, s4wave::cdn::GetCdnSpaceIdResponse* resp) = 0;
   // MountCdnSpace
   virtual starpc::Error MountCdnSpace(const s4wave::cdn::MountCdnSpaceRequest& req, s4wave::cdn::MountCdnSpaceResponse* resp) = 0;
-  // CopyVmImageToSpace
-  virtual starpc::Error CopyVmImageToSpace(const s4wave::cdn::CopyVmImageToSpaceRequest& req, s4wave::cdn::CopyVmImageToSpaceResponse* resp) = 0;
+  // CopyV86ImageToSpace
+  virtual starpc::Error CopyV86ImageToSpace(const s4wave::cdn::CopyV86ImageToSpaceRequest& req, s4wave::cdn::CopyV86ImageToSpaceResponse* resp) = 0;
 };
 
 // SRPCCdnResourceServiceHandler implements starpc::Handler for CdnResourceService.

@@ -12,7 +12,7 @@ import {
 export const protobufPackage = 's4wave.vm'
 
 /**
- * Source identifies how the wizard resolves the VmImage input.
+ * Source identifies how the wizard resolves the V86Image input.
  *
  * @generated from enum s4wave.vm.V86WizardConfig.Source
  */
@@ -25,14 +25,14 @@ export enum V86WizardConfig_Source {
   SOURCE_UNSPECIFIED = 0,
 
   /**
-   * Source_EXISTING_IN_SPACE uses an existing VmImage from the Space.
+   * Source_EXISTING_IN_SPACE uses an existing V86Image from the Space.
    *
    * @generated from enum value: EXISTING_IN_SPACE = 1;
    */
   EXISTING_IN_SPACE = 1,
 
   /**
-   * Source_COPY_FROM_CDN copies a VmImage from a CDN source object.
+   * Source_COPY_FROM_CDN copies a V86Image from a CDN source object.
    *
    * @generated from enum value: COPY_FROM_CDN = 2;
    */
@@ -80,19 +80,19 @@ export interface V86WizardConfig {
    */
   networking?: boolean
   /**
-   * ImageObjectKey is the target VmImage object key for finalize.
+   * ImageObjectKey is the target V86Image object key for finalize.
    *
    * @generated from field: string image_object_key = 5;
    */
   imageObjectKey?: string
   /**
-   * Source selects where the VmImage comes from.
+   * Source selects where the V86Image comes from.
    *
    * @generated from field: s4wave.vm.V86WizardConfig.Source source = 6;
    */
   source?: V86WizardConfig_Source
   /**
-   * CdnSourceObjectKey is the CDN VmImage object key for copy-from-CDN mode.
+   * CdnSourceObjectKey is the CDN V86Image object key for copy-from-CDN mode.
    *
    * @generated from field: string cdn_source_object_key = 7;
    */

@@ -60,8 +60,8 @@ func LookupObjectType(ctx context.Context, typeID string) (objecttype.ObjectType
 		return spacewave_chat_world.ChatMessageType, nil
 	case s4wave_vm.VmV86TypeID:
 		return s4wave_vm_world.VmV86Type, nil
-	case s4wave_vm.VmImageTypeID:
-		return s4wave_vm_world.VmImageType, nil
+	case s4wave_vm.V86ImageTypeID:
+		return s4wave_vm_world.V86ImageType, nil
 	case s4wave_org.OrganizationTypeID:
 		return s4wave_org_world.OrganizationType, nil
 	case bldr_manifest_world.ManifestTypeID:

@@ -19,12 +19,12 @@ import (
 // VmV86Type is the ObjectType for spacewave/vm/v86 objects.
 var VmV86Type = objecttype.NewObjectType(s4wave_vm.VmV86TypeID, vmV86Factory)
 
-// VmImageType is the ObjectType for spacewave/vm/image objects.
-// VmImage is metadata-only; block state is read through the objectState prop.
-var VmImageType = objecttype.NewObjectType(s4wave_vm.VmImageTypeID, vmImageReadOnlyFactory)
+// V86ImageType is the ObjectType for spacewave/vm/image/v86 objects.
+// V86Image is metadata-only; block state is read through the objectState prop.
+var V86ImageType = objecttype.NewObjectType(s4wave_vm.V86ImageTypeID, v86ImageReadOnlyFactory)
 
-// vmImageReadOnlyFactory is a minimal factory for the read-only VmImage type.
-func vmImageReadOnlyFactory(
+// v86ImageReadOnlyFactory is a minimal factory for the read-only V86Image type.
+func v86ImageReadOnlyFactory(
 	ctx context.Context,
 	le *logrus.Entry,
 	b bus.Bus,

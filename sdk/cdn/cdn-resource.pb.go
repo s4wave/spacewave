@@ -77,64 +77,64 @@ func (x *MountCdnSpaceResponse) GetResourceId() uint32 {
 	return 0
 }
 
-// CopyVmImageToSpaceRequest is the request type for CopyVmImageToSpace.
-type CopyVmImageToSpaceRequest struct {
+// CopyV86ImageToSpaceRequest is the request type for CopyV86ImageToSpace.
+type CopyV86ImageToSpaceRequest struct {
 	unknownFields []byte
 	// SessionIdx is the caller's session index; used to resolve the
 	// destination user Space via the standard session-aware mount path.
 	SessionIdx uint32 `protobuf:"varint,1,opt,name=session_idx,json=sessionIdx,proto3" json:"sessionIdx,omitempty"`
-	// DstSpaceId is the ULID of the user Space the VmImage will land in.
+	// DstSpaceId is the ULID of the user Space the V86Image will land in.
 	DstSpaceId string `protobuf:"bytes,2,opt,name=dst_space_id,json=dstSpaceId,proto3" json:"dstSpaceId,omitempty"`
-	// SrcObjectKey is the VmImage object key in the CDN Space.
+	// SrcObjectKey is the V86Image object key in the CDN Space.
 	SrcObjectKey string `protobuf:"bytes,3,opt,name=src_object_key,json=srcObjectKey,proto3" json:"srcObjectKey,omitempty"`
 	// DstObjectKey is the object key in the destination Space.
 	DstObjectKey string `protobuf:"bytes,4,opt,name=dst_object_key,json=dstObjectKey,proto3" json:"dstObjectKey,omitempty"`
 }
 
-func (x *CopyVmImageToSpaceRequest) Reset() {
-	*x = CopyVmImageToSpaceRequest{}
+func (x *CopyV86ImageToSpaceRequest) Reset() {
+	*x = CopyV86ImageToSpaceRequest{}
 }
 
-func (*CopyVmImageToSpaceRequest) ProtoMessage() {}
+func (*CopyV86ImageToSpaceRequest) ProtoMessage() {}
 
-func (x *CopyVmImageToSpaceRequest) GetSessionIdx() uint32 {
+func (x *CopyV86ImageToSpaceRequest) GetSessionIdx() uint32 {
 	if x != nil {
 		return x.SessionIdx
 	}
 	return 0
 }
 
-func (x *CopyVmImageToSpaceRequest) GetDstSpaceId() string {
+func (x *CopyV86ImageToSpaceRequest) GetDstSpaceId() string {
 	if x != nil {
 		return x.DstSpaceId
 	}
 	return ""
 }
 
-func (x *CopyVmImageToSpaceRequest) GetSrcObjectKey() string {
+func (x *CopyV86ImageToSpaceRequest) GetSrcObjectKey() string {
 	if x != nil {
 		return x.SrcObjectKey
 	}
 	return ""
 }
 
-func (x *CopyVmImageToSpaceRequest) GetDstObjectKey() string {
+func (x *CopyV86ImageToSpaceRequest) GetDstObjectKey() string {
 	if x != nil {
 		return x.DstObjectKey
 	}
 	return ""
 }
 
-// CopyVmImageToSpaceResponse is the response type for CopyVmImageToSpace.
-type CopyVmImageToSpaceResponse struct {
+// CopyV86ImageToSpaceResponse is the response type for CopyV86ImageToSpace.
+type CopyV86ImageToSpaceResponse struct {
 	unknownFields []byte
 }
 
-func (x *CopyVmImageToSpaceResponse) Reset() {
-	*x = CopyVmImageToSpaceResponse{}
+func (x *CopyV86ImageToSpaceResponse) Reset() {
+	*x = CopyV86ImageToSpaceResponse{}
 }
 
-func (*CopyVmImageToSpaceResponse) ProtoMessage() {}
+func (*CopyV86ImageToSpaceResponse) ProtoMessage() {}
 
 func (m *GetCdnSpaceIdRequest) CloneVT() *GetCdnSpaceIdRequest {
 	if m == nil {
@@ -198,11 +198,11 @@ func (m *MountCdnSpaceResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (m *CopyVmImageToSpaceRequest) CloneVT() *CopyVmImageToSpaceRequest {
+func (m *CopyV86ImageToSpaceRequest) CloneVT() *CopyV86ImageToSpaceRequest {
 	if m == nil {
-		return (*CopyVmImageToSpaceRequest)(nil)
+		return (*CopyV86ImageToSpaceRequest)(nil)
 	}
-	r := new(CopyVmImageToSpaceRequest)
+	r := new(CopyV86ImageToSpaceRequest)
 	r.SessionIdx = m.SessionIdx
 	r.DstSpaceId = m.DstSpaceId
 	r.SrcObjectKey = m.SrcObjectKey
@@ -213,22 +213,22 @@ func (m *CopyVmImageToSpaceRequest) CloneVT() *CopyVmImageToSpaceRequest {
 	return r
 }
 
-func (m *CopyVmImageToSpaceRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+func (m *CopyV86ImageToSpaceRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (m *CopyVmImageToSpaceResponse) CloneVT() *CopyVmImageToSpaceResponse {
+func (m *CopyV86ImageToSpaceResponse) CloneVT() *CopyV86ImageToSpaceResponse {
 	if m == nil {
-		return (*CopyVmImageToSpaceResponse)(nil)
+		return (*CopyV86ImageToSpaceResponse)(nil)
 	}
-	r := new(CopyVmImageToSpaceResponse)
+	r := new(CopyV86ImageToSpaceResponse)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
 	return r
 }
 
-func (m *CopyVmImageToSpaceResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+func (m *CopyV86ImageToSpaceResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -306,7 +306,7 @@ func (this *MountCdnSpaceResponse) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
-func (this *CopyVmImageToSpaceRequest) EqualVT(that *CopyVmImageToSpaceRequest) bool {
+func (this *CopyV86ImageToSpaceRequest) EqualVT(that *CopyV86ImageToSpaceRequest) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
@@ -327,15 +327,15 @@ func (this *CopyVmImageToSpaceRequest) EqualVT(that *CopyVmImageToSpaceRequest) 
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *CopyVmImageToSpaceRequest) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*CopyVmImageToSpaceRequest)
+func (this *CopyV86ImageToSpaceRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CopyV86ImageToSpaceRequest)
 	if !ok {
 		return false
 	}
 	return this.EqualVT(that)
 }
 
-func (this *CopyVmImageToSpaceResponse) EqualVT(that *CopyVmImageToSpaceResponse) bool {
+func (this *CopyV86ImageToSpaceResponse) EqualVT(that *CopyV86ImageToSpaceResponse) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
@@ -344,8 +344,8 @@ func (this *CopyVmImageToSpaceResponse) EqualVT(that *CopyVmImageToSpaceResponse
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *CopyVmImageToSpaceResponse) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*CopyVmImageToSpaceResponse)
+func (this *CopyV86ImageToSpaceResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CopyV86ImageToSpaceResponse)
 	if !ok {
 		return false
 	}
@@ -496,8 +496,8 @@ func (x *MountCdnSpaceResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the CopyVmImageToSpaceRequest message to JSON.
-func (x *CopyVmImageToSpaceRequest) MarshalProtoJSON(s *json.MarshalState) {
+// MarshalProtoJSON marshals the CopyV86ImageToSpaceRequest message to JSON.
+func (x *CopyV86ImageToSpaceRequest) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
 		s.WriteNil()
 		return
@@ -527,13 +527,13 @@ func (x *CopyVmImageToSpaceRequest) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteObjectEnd()
 }
 
-// MarshalJSON marshals the CopyVmImageToSpaceRequest to JSON.
-func (x *CopyVmImageToSpaceRequest) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the CopyV86ImageToSpaceRequest to JSON.
+func (x *CopyV86ImageToSpaceRequest) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the CopyVmImageToSpaceRequest message from JSON.
-func (x *CopyVmImageToSpaceRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+// UnmarshalProtoJSON unmarshals the CopyV86ImageToSpaceRequest message from JSON.
+func (x *CopyV86ImageToSpaceRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	if s.ReadNil() {
 		return
 	}
@@ -557,13 +557,13 @@ func (x *CopyVmImageToSpaceRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	})
 }
 
-// UnmarshalJSON unmarshals the CopyVmImageToSpaceRequest from JSON.
-func (x *CopyVmImageToSpaceRequest) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the CopyV86ImageToSpaceRequest from JSON.
+func (x *CopyV86ImageToSpaceRequest) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the CopyVmImageToSpaceResponse message to JSON.
-func (x *CopyVmImageToSpaceResponse) MarshalProtoJSON(s *json.MarshalState) {
+// MarshalProtoJSON marshals the CopyV86ImageToSpaceResponse message to JSON.
+func (x *CopyV86ImageToSpaceResponse) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
 		s.WriteNil()
 		return
@@ -572,13 +572,13 @@ func (x *CopyVmImageToSpaceResponse) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteObjectEnd()
 }
 
-// MarshalJSON marshals the CopyVmImageToSpaceResponse to JSON.
-func (x *CopyVmImageToSpaceResponse) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the CopyV86ImageToSpaceResponse to JSON.
+func (x *CopyV86ImageToSpaceResponse) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the CopyVmImageToSpaceResponse message from JSON.
-func (x *CopyVmImageToSpaceResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+// UnmarshalProtoJSON unmarshals the CopyV86ImageToSpaceResponse message from JSON.
+func (x *CopyV86ImageToSpaceResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	if s.ReadNil() {
 		return
 	}
@@ -587,8 +587,8 @@ func (x *CopyVmImageToSpaceResponse) UnmarshalProtoJSON(s *json.UnmarshalState) 
 	})
 }
 
-// UnmarshalJSON unmarshals the CopyVmImageToSpaceResponse from JSON.
-func (x *CopyVmImageToSpaceResponse) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the CopyV86ImageToSpaceResponse from JSON.
+func (x *CopyV86ImageToSpaceResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -736,7 +736,7 @@ func (m *MountCdnSpaceResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	return len(dAtA) - i, nil
 }
 
-func (m *CopyVmImageToSpaceRequest) MarshalVT() (dAtA []byte, err error) {
+func (m *CopyV86ImageToSpaceRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -749,12 +749,12 @@ func (m *CopyVmImageToSpaceRequest) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *CopyVmImageToSpaceRequest) MarshalToVT(dAtA []byte) (int, error) {
+func (m *CopyV86ImageToSpaceRequest) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *CopyVmImageToSpaceRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *CopyV86ImageToSpaceRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -795,7 +795,7 @@ func (m *CopyVmImageToSpaceRequest) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	return len(dAtA) - i, nil
 }
 
-func (m *CopyVmImageToSpaceResponse) MarshalVT() (dAtA []byte, err error) {
+func (m *CopyV86ImageToSpaceResponse) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -808,12 +808,12 @@ func (m *CopyVmImageToSpaceResponse) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *CopyVmImageToSpaceResponse) MarshalToVT(dAtA []byte) (int, error) {
+func (m *CopyV86ImageToSpaceResponse) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *CopyVmImageToSpaceResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *CopyV86ImageToSpaceResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -875,7 +875,7 @@ func (m *MountCdnSpaceResponse) SizeVT() (n int) {
 	return n
 }
 
-func (m *CopyVmImageToSpaceRequest) SizeVT() (n int) {
+func (m *CopyV86ImageToSpaceRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -900,7 +900,7 @@ func (m *CopyVmImageToSpaceRequest) SizeVT() (n int) {
 	return n
 }
 
-func (m *CopyVmImageToSpaceResponse) SizeVT() (n int) {
+func (m *CopyV86ImageToSpaceResponse) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -968,32 +968,32 @@ func (x *MountCdnSpaceResponse) String() string {
 	return x.MarshalProtoText()
 }
 
-func (x *CopyVmImageToSpaceRequest) MarshalProtoText() string {
+func (x *CopyV86ImageToSpaceRequest) MarshalProtoText() string {
 	var sb strings.Builder
-	sb.WriteString("CopyVmImageToSpaceRequest {")
+	sb.WriteString("CopyV86ImageToSpaceRequest {")
 	if x.SessionIdx != 0 {
-		if sb.Len() > 27 {
+		if sb.Len() > 28 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("session_idx: ")
 		sb.WriteString(strconv.FormatUint(uint64(x.SessionIdx), 10))
 	}
 	if x.DstSpaceId != "" {
-		if sb.Len() > 27 {
+		if sb.Len() > 28 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("dst_space_id: ")
 		sb.WriteString(strconv.Quote(x.DstSpaceId))
 	}
 	if x.SrcObjectKey != "" {
-		if sb.Len() > 27 {
+		if sb.Len() > 28 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("src_object_key: ")
 		sb.WriteString(strconv.Quote(x.SrcObjectKey))
 	}
 	if x.DstObjectKey != "" {
-		if sb.Len() > 27 {
+		if sb.Len() > 28 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("dst_object_key: ")
@@ -1003,18 +1003,18 @@ func (x *CopyVmImageToSpaceRequest) MarshalProtoText() string {
 	return sb.String()
 }
 
-func (x *CopyVmImageToSpaceRequest) String() string {
+func (x *CopyV86ImageToSpaceRequest) String() string {
 	return x.MarshalProtoText()
 }
 
-func (x *CopyVmImageToSpaceResponse) MarshalProtoText() string {
+func (x *CopyV86ImageToSpaceResponse) MarshalProtoText() string {
 	var sb strings.Builder
-	sb.WriteString("CopyVmImageToSpaceResponse {")
+	sb.WriteString("CopyV86ImageToSpaceResponse {")
 	sb.WriteString("}")
 	return sb.String()
 }
 
-func (x *CopyVmImageToSpaceResponse) String() string {
+func (x *CopyV86ImageToSpaceResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1221,7 +1221,7 @@ func (m *MountCdnSpaceResponse) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
-func (m *CopyVmImageToSpaceRequest) UnmarshalVT(dAtA []byte) error {
+func (m *CopyV86ImageToSpaceRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	var err error
@@ -1235,10 +1235,10 @@ func (m *CopyVmImageToSpaceRequest) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: CopyVmImageToSpaceRequest: wiretype end group for non-group")
+			return fmt.Errorf("proto: CopyV86ImageToSpaceRequest: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: CopyVmImageToSpaceRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: CopyV86ImageToSpaceRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -1339,7 +1339,7 @@ func (m *CopyVmImageToSpaceRequest) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
-func (m *CopyVmImageToSpaceResponse) UnmarshalVT(dAtA []byte) error {
+func (m *CopyV86ImageToSpaceResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	var err error
@@ -1353,10 +1353,10 @@ func (m *CopyVmImageToSpaceResponse) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: CopyVmImageToSpaceResponse: wiretype end group for non-group")
+			return fmt.Errorf("proto: CopyV86ImageToSpaceResponse: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: CopyVmImageToSpaceResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: CopyV86ImageToSpaceResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		default:

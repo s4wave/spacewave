@@ -5,13 +5,13 @@ option go_package = "github.com/s4wave/spacewave/sdk/vm;s4wave_vm";
 
 // V86WizardConfig contains persistent wizard config for v86 VM creation.
 message V86WizardConfig {
-  // Source identifies how the wizard resolves the VmImage input.
+  // Source identifies how the wizard resolves the V86Image input.
   enum Source {
     // Source_SOURCE_UNSPECIFIED leaves the image source unset.
     SOURCE_UNSPECIFIED = 0;
-    // Source_EXISTING_IN_SPACE uses an existing VmImage from the Space.
+    // Source_EXISTING_IN_SPACE uses an existing V86Image from the Space.
     EXISTING_IN_SPACE = 1;
-    // Source_COPY_FROM_CDN copies a VmImage from a CDN source object.
+    // Source_COPY_FROM_CDN copies a V86Image from a CDN source object.
     COPY_FROM_CDN = 2;
   }
 
@@ -23,11 +23,11 @@ message V86WizardConfig {
   uint32 vga_memory_mb = 3;
   // Networking enables network support.
   bool networking = 4;
-  // ImageObjectKey is the target VmImage object key for finalize.
+  // ImageObjectKey is the target V86Image object key for finalize.
   string image_object_key = 5;
-  // Source selects where the VmImage comes from.
+  // Source selects where the V86Image comes from.
   Source source = 6;
-  // CdnSourceObjectKey is the CDN VmImage object key for copy-from-CDN mode.
+  // CdnSourceObjectKey is the CDN V86Image object key for copy-from-CDN mode.
   string cdn_source_object_key = 7;
   // CdnId identifies which CDN to use. Empty means the default CDN.
   string cdn_id = 8;

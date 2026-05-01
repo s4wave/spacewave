@@ -106,8 +106,8 @@ func TestVmV86TypedObject(t *testing.T) {
 		// Verify V86fsService is accessible by opening a RelayV86fs stream.
 		v86fsSvc := unixfs_v86fs.NewSRPCV86FsServiceClient(vmClient)
 
-		// Send a mount request for the root (empty name).
-		// This exercises the full path: v86fs server -> mount resolver -> graph edge -> FSHandle.
+		// Send mount requests for every image-backed asset name. This exercises
+		// the full path: v86fs server -> mount resolver -> graph edge -> FSHandle.
 		streamCtx, streamCancel := context.WithTimeout(ctx, 5*time.Second)
 		defer streamCancel()
 
@@ -116,40 +116,41 @@ func TestVmV86TypedObject(t *testing.T) {
 			t.Fatalf("RelayV86Fs failed: %v", err)
 		}
 
-		// Send MOUNT request for root (empty name = rootfs).
-		err = stream.Send(&unixfs_v86fs.V86FsMessage{
-			Tag: 1,
-			Body: &unixfs_v86fs.V86FsMessage_MountRequest{
-				MountRequest: &unixfs_v86fs.V86FsMountRequest{
-					Name: "",
+		for tag, name := range []string{"", "rootfs", "kernel", "seabios", "vgabios", "wasm"} {
+			err = stream.Send(&unixfs_v86fs.V86FsMessage{
+				Tag: uint32(tag + 1),
+				Body: &unixfs_v86fs.V86FsMessage_MountRequest{
+					MountRequest: &unixfs_v86fs.V86FsMountRequest{
+						Name: name,
+					},
 				},
-			},
-		})
-		if err != nil {
-			t.Fatalf("Send MOUNT failed: %v", err)
-		}
+			})
+			if err != nil {
+				t.Fatalf("Send MOUNT %q failed: %v", name, err)
+			}
 
-		reply, err := stream.Recv()
-		if err != nil {
-			t.Fatalf("Recv MOUNT reply failed: %v", err)
-		}
-		if reply.GetTag() != 1 {
-			t.Fatalf("expected tag 1, got %d", reply.GetTag())
-		}
+			reply, err := stream.Recv()
+			if err != nil {
+				t.Fatalf("Recv MOUNT %q reply failed: %v", name, err)
+			}
+			if reply.GetTag() != uint32(tag+1) {
+				t.Fatalf("expected tag %d, got %d", tag+1, reply.GetTag())
+			}
 
-		mountReply := reply.GetMountReply()
-		if mountReply == nil {
-			t.Fatalf("expected MountReply, got %T", reply.GetBody())
-		}
-		if mountReply.GetStatus() != 0 {
-			t.Fatalf("mount failed with status %d", mountReply.GetStatus())
-		}
-		if mountReply.GetRootInodeId() == 0 {
-			t.Fatal("expected non-zero root inode ID")
-		}
+			mountReply := reply.GetMountReply()
+			if mountReply == nil {
+				t.Fatalf("expected MountReply for %q, got %T", name, reply.GetBody())
+			}
+			if mountReply.GetStatus() != 0 {
+				t.Fatalf("mount %q failed with status %d", name, mountReply.GetStatus())
+			}
+			if mountReply.GetRootInodeId() == 0 {
+				t.Fatalf("expected non-zero root inode ID for %q", name)
+			}
 
-		t.Logf("V86fs MOUNT succeeded: rootInodeId=%d mode=%o",
-			mountReply.GetRootInodeId(), mountReply.GetMode())
+			t.Logf("V86fs MOUNT %q succeeded: rootInodeId=%d mode=%o",
+				name, mountReply.GetRootInodeId(), mountReply.GetMode())
+		}
 
 		streamCancel()
 	})
@@ -272,19 +273,19 @@ func TestVmV86TypedObject(t *testing.T) {
 		apply(s4wave_vm.VmState_VmState_STOPPED, true)
 	})
 
-	t.Run("VmImageCreateAndSetMetadata", func(t *testing.T) {
+	t.Run("V86ImageCreateAndSetMetadata", func(t *testing.T) {
 		engine, cleanup := setupVmV86WorldEngine(ctx, t, tb)
 		defer cleanup()
 
 		imgKey := "vm-image-test/default"
 
-		// CreateVmImageOp stores a fresh VmImage with the supplied metadata.
+		// CreateV86ImageOp stores a fresh V86Image with the supplied metadata.
 		tx, err := engine.NewTransaction(ctx, true)
 		if err != nil {
 			t.Fatalf("NewTransaction failed: %v", err)
 		}
 		createdAt := time.Now()
-		createOp := s4wave_vm.NewCreateVmImageOp(imgKey, &s4wave_vm.VmImage{
+		createOp := s4wave_vm.NewCreateV86ImageOp(imgKey, &s4wave_vm.V86Image{
 			Name:     "debian-default",
 			Version:  "1.0.0",
 			Platform: "v86",
@@ -296,7 +297,7 @@ func TestVmV86TypedObject(t *testing.T) {
 			tx.Release()
 			t.Fatalf("MarshalVT (create image) failed: %v", err)
 		}
-		if _, _, err := tx.ApplyWorldOp(ctx, s4wave_vm.CreateVmImageOpId, createData, ""); err != nil {
+		if _, _, err := tx.ApplyWorldOp(ctx, s4wave_vm.CreateV86ImageOpId, createData, ""); err != nil {
 			tx.Release()
 			t.Fatalf("ApplyWorldOp (create image) failed: %v", err)
 		}
@@ -306,12 +307,12 @@ func TestVmV86TypedObject(t *testing.T) {
 		}
 		tx.Release()
 
-		// SetVmImageMetadataOp replaces metadata while preserving the op type.
+		// SetV86ImageMetadataOp replaces metadata while preserving the op type.
 		tx2, err := engine.NewTransaction(ctx, true)
 		if err != nil {
 			t.Fatalf("NewTransaction failed: %v", err)
 		}
-		setOp := s4wave_vm.NewSetVmImageMetadataOp(imgKey, &s4wave_vm.VmImage{
+		setOp := s4wave_vm.NewSetV86ImageMetadataOp(imgKey, &s4wave_vm.V86Image{
 			Name:          "debian-default",
 			Version:       "1.1.0",
 			Platform:      "v86",
@@ -325,7 +326,7 @@ func TestVmV86TypedObject(t *testing.T) {
 			tx2.Release()
 			t.Fatalf("MarshalVT (set metadata) failed: %v", err)
 		}
-		if _, _, err := tx2.ApplyWorldOp(ctx, s4wave_vm.SetVmImageMetadataOpId, setData, ""); err != nil {
+		if _, _, err := tx2.ApplyWorldOp(ctx, s4wave_vm.SetV86ImageMetadataOpId, setData, ""); err != nil {
 			tx2.Release()
 			t.Fatalf("ApplyWorldOp (set metadata) failed: %v", err)
 		}
@@ -335,12 +336,12 @@ func TestVmV86TypedObject(t *testing.T) {
 		}
 		tx2.Release()
 
-		// Applying SetVmImageMetadataOp against a missing key must error.
+		// Applying SetV86ImageMetadataOp against a missing key must error.
 		tx3, err := engine.NewTransaction(ctx, true)
 		if err != nil {
 			t.Fatalf("NewTransaction (missing) failed: %v", err)
 		}
-		missOp := s4wave_vm.NewSetVmImageMetadataOp("vm-image-test/missing", &s4wave_vm.VmImage{
+		missOp := s4wave_vm.NewSetV86ImageMetadataOp("vm-image-test/missing", &s4wave_vm.V86Image{
 			Name: "missing", Platform: "v86",
 		})
 		missData, err := missOp.MarshalVT()
@@ -348,9 +349,9 @@ func TestVmV86TypedObject(t *testing.T) {
 			tx3.Release()
 			t.Fatalf("MarshalVT (missing) failed: %v", err)
 		}
-		if _, _, err := tx3.ApplyWorldOp(ctx, s4wave_vm.SetVmImageMetadataOpId, missData, ""); err == nil {
+		if _, _, err := tx3.ApplyWorldOp(ctx, s4wave_vm.SetV86ImageMetadataOpId, missData, ""); err == nil {
 			tx3.Release()
-			t.Fatal("ApplyWorldOp on missing VmImage should error")
+			t.Fatal("ApplyWorldOp on missing V86Image should error")
 		}
 		tx3.Release()
 	})
@@ -409,7 +410,7 @@ func TestVmV86TypedObject(t *testing.T) {
 		stream, execCancel := openExecuteStream(ctx, t, resClient, engine, vmKey)
 		defer execCancel()
 
-		// VmImage has no vmimage/rootfs edge -> resolveV86Mount fails.
+		// V86Image has no v86image/rootfs edge -> resolveV86Mount fails.
 		expectStatusSequence(t, stream,
 			s4wave_process.ExecutionState_ExecutionState_STARTING,
 			s4wave_process.ExecutionState_ExecutionState_ERROR,
@@ -557,7 +558,7 @@ func setupVmV86WorldEngine(ctx context.Context, t *testing.T, tb *world_testbed.
 func setupVmV86WorldEngineWithClient(ctx context.Context, t *testing.T, tb *world_testbed.Testbed) (*resource_client.Client, *s4wave_world.Engine, func()) {
 	objectTypes := map[string]objecttype.ObjectType{
 		s4wave_vm.VmV86TypeID:            s4wave_vm_world.VmV86Type,
-		s4wave_vm.VmImageTypeID:          s4wave_vm_world.VmImageType,
+		s4wave_vm.V86ImageTypeID:         s4wave_vm_world.V86ImageType,
 		s4wave_unixfs_world.UnixFSTypeID: s4wave_unixfs_world.UnixFSType,
 	}
 	lookupFunc := func(ctx context.Context, typeID string) (objecttype.ObjectType, error) {
@@ -580,9 +581,9 @@ func setupVmV86WorldEngineWithClient(ctx context.Context, t *testing.T, tb *worl
 	return resClient, engine, cleanup
 }
 
-// createVmV86WithRootfs creates a VmV86 world object backed by a VmImage whose
-// =vmimage/rootfs= edge points at a UnixFS rootfs object. Mount resolution for
-// the empty/rootfs name flows VM -> v86/image -> VmImage -> vmimage/rootfs.
+// createVmV86WithRootfs creates a VmV86 world object backed by a V86Image whose
+// =v86image/rootfs= edge points at a UnixFS rootfs object. Mount resolution for
+// the empty/rootfs name flows VM -> v86/image -> V86Image -> v86image/rootfs.
 func createVmV86WithRootfs(ctx context.Context, t *testing.T, engine *s4wave_world.Engine, vmKey, rootfsKey string) {
 	imageKey := vmKey + "-image"
 	tx, err := engine.NewTransaction(ctx, true)
@@ -607,8 +608,8 @@ func createVmV86WithRootfs(ctx context.Context, t *testing.T, engine *s4wave_wor
 		t.Fatalf("ApplyWorldOp (unixfs init) failed: %v", err)
 	}
 
-	// Create a VmImage that carries the rootfs on its vmimage/rootfs edge.
-	imageOp := s4wave_vm.NewCreateVmImageOp(imageKey, &s4wave_vm.VmImage{
+	// Create a V86Image that carries each runtime asset on its v86image/* edge.
+	imageOp := s4wave_vm.NewCreateV86ImageOp(imageKey, &s4wave_vm.V86Image{
 		Name:     "test-image",
 		Platform: "v86",
 		Tags:     []string{"default"},
@@ -618,17 +619,25 @@ func createVmV86WithRootfs(ctx context.Context, t *testing.T, engine *s4wave_wor
 		tx.Release()
 		t.Fatalf("MarshalVT (create image) failed: %v", err)
 	}
-	if _, _, err := tx.ApplyWorldOp(ctx, s4wave_vm.CreateVmImageOpId, imageOpData, ""); err != nil {
+	if _, _, err := tx.ApplyWorldOp(ctx, s4wave_vm.CreateV86ImageOpId, imageOpData, ""); err != nil {
 		tx.Release()
 		t.Fatalf("ApplyWorldOp (create image) failed: %v", err)
 	}
-	if err := tx.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(imageKey, string(s4wave_vm.PredVmImageRootfs), rootfsKey, "")); err != nil {
-		tx.Release()
-		t.Fatalf("SetGraphQuad (vmimage/rootfs) failed: %v", err)
+	for _, pred := range []string{
+		string(s4wave_vm.PredV86ImageRootfs),
+		string(s4wave_vm.PredV86ImageKernel),
+		string(s4wave_vm.PredV86ImageBiosSeabios),
+		string(s4wave_vm.PredV86ImageBiosVgabios),
+		string(s4wave_vm.PredV86ImageWasm),
+	} {
+		if err := tx.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(imageKey, pred, rootfsKey, "")); err != nil {
+			tx.Release()
+			t.Fatalf("SetGraphQuad (%s) failed: %v", pred, err)
+		}
 	}
 
 	// Create the VmV86 object via CreateVmV86Op; the op wires the v86/image
-	// edge to the VmImage created above.
+	// edge to the V86Image created above.
 	createOp := s4wave_vm.NewCreateVmV86Op(vmKey, "test-vm", imageKey, time.Now())
 	createOpData, err := createOp.MarshalVT()
 	if err != nil {
@@ -649,8 +658,8 @@ func createVmV86WithRootfs(ctx context.Context, t *testing.T, engine *s4wave_wor
 	t.Logf("Created VmV86 %s via image %s with rootfs %s", vmKey, imageKey, rootfsKey)
 }
 
-// createVmV86WithoutRootfs creates a VmV86 backed by a VmImage that has no
-// =vmimage/rootfs= edge, so the rootfs mount fails to resolve. Exercises the
+// createVmV86WithoutRootfs creates a VmV86 backed by a V86Image that has no
+// =v86image/rootfs= edge, so the rootfs mount fails to resolve. Exercises the
 // mount-resolution ERROR path in the handler.
 func createVmV86WithoutRootfs(ctx context.Context, t *testing.T, engine *s4wave_world.Engine, vmKey string) {
 	imageKey := vmKey + "-image"
@@ -659,7 +668,7 @@ func createVmV86WithoutRootfs(ctx context.Context, t *testing.T, engine *s4wave_
 		t.Fatalf("NewTransaction failed: %v", err)
 	}
 
-	imageOp := s4wave_vm.NewCreateVmImageOp(imageKey, &s4wave_vm.VmImage{
+	imageOp := s4wave_vm.NewCreateV86ImageOp(imageKey, &s4wave_vm.V86Image{
 		Name:     "empty-image",
 		Platform: "v86",
 	}, time.Now())
@@ -668,7 +677,7 @@ func createVmV86WithoutRootfs(ctx context.Context, t *testing.T, engine *s4wave_
 		tx.Release()
 		t.Fatalf("MarshalVT (create image) failed: %v", err)
 	}
-	if _, _, err := tx.ApplyWorldOp(ctx, s4wave_vm.CreateVmImageOpId, imageOpData, ""); err != nil {
+	if _, _, err := tx.ApplyWorldOp(ctx, s4wave_vm.CreateV86ImageOpId, imageOpData, ""); err != nil {
 		tx.Release()
 		t.Fatalf("ApplyWorldOp (create image) failed: %v", err)
 	}

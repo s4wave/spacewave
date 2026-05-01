@@ -34,20 +34,20 @@ export class Cdn extends Resource {
     return this.resourceRef.createResource(resp.resourceId ?? 0, Space)
   }
 
-  // copyVmImageToSpace copies a VmImage (metadata block plus the five asset
+  // copyV86ImageToSpace copies a V86Image (metadata block plus the five asset
   // edges) from this CDN Space into a user-owned destination Space. The
   // caller supplies session_idx for the session-aware destination resolve
   // plus the destination space ULID and source/destination object keys.
   // Asset UnixFS blocks are content-addressed; the destination block store
   // dedupes them against the CDN block store without re-upload.
-  public async copyVmImageToSpace(
+  public async copyV86ImageToSpace(
     sessionIdx: number,
     dstSpaceId: string,
     srcObjectKey: string,
     dstObjectKey: string,
     abortSignal?: AbortSignal,
   ): Promise<void> {
-    await this.service.CopyVmImageToSpace(
+    await this.service.CopyV86ImageToSpace(
       { sessionIdx, dstSpaceId, srcObjectKey, dstObjectKey },
       abortSignal,
     )

@@ -179,7 +179,7 @@ func (r *v86Resource) Execute(req *s4wave_process.ExecuteRequest, stream s4wave_
 }
 
 // verifyRootfsMount confirms the rootfs asset (empty mount name) resolves
-// through the VmImage or override edge before the plugin is loaded. Any
+// through the V86Image or override edge before the plugin is loaded. Any
 // failure here is treated as an ERROR state for the handler.
 func (r *v86Resource) verifyRootfsMount(ctx context.Context) error {
 	fsh, err := resolveV86Mount(ctx, r.ws, r.objectKey, "")
