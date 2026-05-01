@@ -111,11 +111,12 @@ func EmitDeltaChunks(
 		}
 
 		entry := &packfile.PackfileEntry{
-			Id:          ulid.NewULID(),
-			BloomFilter: res.BloomFilter,
-			BlockCount:  res.BlockCount,
-			SizeBytes:   res.BytesWritten,
-			CreatedAt:   timestamppb.New(time.Now().UTC()),
+			Id:                 ulid.NewULID(),
+			BloomFilter:        res.BloomFilter,
+			BloomFormatVersion: packfile.BloomFormatVersionV1,
+			BlockCount:         res.BlockCount,
+			SizeBytes:          res.BytesWritten,
+			CreatedAt:          timestamppb.New(time.Now().UTC()),
 		}
 		if err := emit(ctx, chunkIdx, entry, chunkBuf.Bytes()); err != nil {
 			return nil, err
