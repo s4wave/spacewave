@@ -146,6 +146,9 @@ func (r *SharedObjectSelfEnrollmentResource) Start(
 			rel()
 		}
 		if err != nil {
+			if ctxErr := ctx.Err(); ctxErr != nil {
+				return nil, ctxErr
+			}
 			failure := &s4wave_session.SharedObjectSelfEnrollmentFailure{
 				SharedObjectId: soID,
 				Category:       categorizeSelfEnrollmentError(err),
