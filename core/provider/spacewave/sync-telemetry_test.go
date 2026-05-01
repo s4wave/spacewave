@@ -140,6 +140,15 @@ func TestSyncTelemetrySnapshotTransitions(t *testing.T) {
 		t.Fatalf("unexpected push error after success: %+v", snap)
 	}
 
+	acc.addSyncTelemetryDeduped("bstore-1", 256, 2)
+	snap = acc.GetSyncTelemetrySnapshot()
+	if snap.DedupedUploadCount != 2 || snap.DedupedUploadBytes != 256 {
+		t.Fatalf("unexpected deduped upload counters: %+v", snap)
+	}
+	if snap.PushCount != 1 || snap.PushedBytes != 128 {
+		t.Fatalf("deduped upload changed push counters: %+v", snap)
+	}
+
 	acc.startSyncTelemetryPull("bstore-1")
 	snap = acc.GetSyncTelemetrySnapshot()
 	if snap.PullActiveCount != 1 {

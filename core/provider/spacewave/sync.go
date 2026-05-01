@@ -494,6 +494,41 @@ func (s *syncController) orderDirtyBlocks(ctx context.Context, blocks []dirtyBlo
 	return ordered, nil
 }
 
+func (s *syncController) filterDuplicateDirtyBlocks(ctx context.Context, blocks []dirtyBlock) ([]dirtyBlock, []dirtyBlock, error) {
+	refs := make([]*block.BlockRef, 0, len(blocks))
+	for _, b := range blocks {
+		refs = append(refs, block.NewBlockRef(b.hash))
+	}
+	exists, err := s.lower.GetBlockExistsBatch(ctx, refs)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	pack := make([]dirtyBlock, 0, len(blocks))
+	deduped := make([]dirtyBlock, 0)
+	for i, b := range blocks {
+		if exists[i] {
+			deduped = append(deduped, b)
+			continue
+		}
+		pack = append(pack, b)
+	}
+	if len(deduped) != 0 {
+		var bytes int64
+		for _, b := range deduped {
+			bytes += int64(len(b.data))
+		}
+		s.le.WithField("dirty-blocks", len(blocks)).
+			WithField("deduped-blocks", len(deduped)).
+			WithField("deduped-bytes", bytes).
+			Debug("filtered duplicate dirty blocks")
+		s.telemetrySafeCall(func(t *ProviderAccount, id string) {
+			t.addSyncTelemetryDeduped(id, bytes, len(deduped))
+		})
+	}
+	return pack, deduped, nil
+}
+
 // prepareFlushChunk packs one bounded dirty-block chunk.
 func (s *syncController) prepareFlushChunk(blocks []dirtyBlock) (*preparedSyncChunk, error) {
 	var buf bytes.Buffer
@@ -654,6 +689,20 @@ func (s *syncController) flush(ctx context.Context, orderBlocks bool) error {
 		s.recalcDirtySize(ctx)
 		return nil
 	}
+
+	blocks, dedupedBlocks, err := s.filterDuplicateDirtyBlocks(ctx, blocks)
+	if err != nil {
+		s.recalcDirtySize(ctx)
+		return errors.Wrap(err, "filtering duplicate dirty blocks")
+	}
+	if len(blocks) == 0 {
+		if err := s.cleanupDirtyBlocks(ctx, dedupedBlocks); err != nil {
+			return err
+		}
+		s.recalcDirtySize(ctx)
+		return nil
+	}
+
 	if orderBlocks && len(blocks) > syncOrderDirtyBlocksLimit {
 		s.le.WithField("dirty-blocks", len(blocks)).
 			WithField("limit", syncOrderDirtyBlocksLimit).
@@ -716,7 +765,8 @@ func (s *syncController) flush(ctx context.Context, orderBlocks bool) error {
 	}
 
 	entries := make([]*packfile.PackfileEntry, 0, len(chunks))
-	var flushedBlocks []dirtyBlock
+	flushedBlocks := make([]dirtyBlock, 0, len(dedupedBlocks)+len(blocks))
+	flushedBlocks = append(flushedBlocks, dedupedBlocks...)
 	for _, chunk := range chunks {
 		entries = append(entries, chunk.entry)
 		flushedBlocks = append(flushedBlocks, chunk.blocks...)

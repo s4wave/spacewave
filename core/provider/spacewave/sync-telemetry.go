@@ -39,6 +39,10 @@ type SyncTelemetrySnapshot struct {
 	PushCount uint64
 	// PushedBytes is the number of completed pushed packfile bytes.
 	PushedBytes int64
+	// DedupedUploadCount is the number of dirty blocks skipped because they already exist remotely.
+	DedupedUploadCount uint64
+	// DedupedUploadBytes is the number of dirty block bytes skipped because they already exist remotely.
+	DedupedUploadBytes int64
 	// PullActiveCount is the number of active sync-pull requests.
 	PullActiveCount int
 	// InFlightFetches is the number of active packfile range fetches.
@@ -163,6 +167,8 @@ type syncTelemetryState struct {
 	inFlightPushes     int
 	pushCount          uint64
 	pushedBytes        int64
+	dedupedUploadCount uint64
+	dedupedUploadBytes int64
 	pullActiveCount    int
 	lastPushAt         time.Time
 	lastPullAt         time.Time
@@ -207,6 +213,8 @@ func buildSyncTelemetrySnapshot(states []syncTelemetryState) SyncTelemetrySnapsh
 		snap.InFlightPushes += state.inFlightPushes
 		snap.PushCount += state.pushCount
 		snap.PushedBytes += state.pushedBytes
+		snap.DedupedUploadCount += state.dedupedUploadCount
+		snap.DedupedUploadBytes += state.dedupedUploadBytes
 		snap.PullActiveCount += state.pullActiveCount
 		snap.LastPushAt = maxTime(snap.LastPushAt, state.lastPushAt)
 		snap.LastPullAt = maxTime(snap.LastPullAt, state.lastPullAt)
@@ -445,6 +453,23 @@ func (a *ProviderAccount) finishSyncTelemetryPush(bstoreID string, bytes int64, 
 			state.lastPushError = ""
 			state.lastPushErrorAt = time.Time{}
 		}
+		state.lastActivityAt = now
+		broadcast()
+	})
+}
+
+func (a *ProviderAccount) addSyncTelemetryDeduped(bstoreID string, bytes int64, count int) {
+	if bytes < 0 {
+		bytes = 0
+	}
+	if count < 0 {
+		count = 0
+	}
+	now := time.Now()
+	a.syncTelemetryBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		state := a.getOrCreateSyncTelemetryStateLocked(bstoreID)
+		state.dedupedUploadBytes += bytes
+		state.dedupedUploadCount += uint64(count)
 		state.lastActivityAt = now
 		broadcast()
 	})

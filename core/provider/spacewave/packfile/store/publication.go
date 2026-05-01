@@ -160,6 +160,18 @@ func (e *PackReader) getBlock(ctx context.Context, key []byte) ([]byte, bool, er
 	return data, true, nil
 }
 
+func (e *PackReader) getBlockExists(ctx context.Context, key []byte) (bool, error) {
+	if err := e.ensureIndexLoaded(ctx); err != nil {
+		return false, err
+	}
+
+	var found bool
+	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		_, found = e.findEntryByKeyLocked(key)
+	})
+	return found, nil
+}
+
 // verifyBlock runs hash verification and optional writeback for one record.
 //
 // On success the record transitions to Verified, or Published when writeback

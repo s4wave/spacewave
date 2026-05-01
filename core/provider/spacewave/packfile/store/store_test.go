@@ -300,6 +300,199 @@ func TestPackfileStoreBasicReads(t *testing.T) {
 	}
 }
 
+func TestPackfileStoreGetBlockExistsDoesNotFetchPayload(t *testing.T) {
+	ctx := t.Context()
+	filler := bytes.Repeat([]byte("x"), defaultIndexTailInitialWindow+4096)
+	ordered := []struct{ Name, Data string }{
+		{"a", "alpha-data"},
+		{"b", string(filler)},
+	}
+	packBytes, bloomBytes := buildTestPackOrdered(t, ordered)
+	opener, transport := openerFromBytes(packBytes)
+	store := NewPackfileStore(opener, newMemIndexCache())
+	store.UpdateManifest([]*packfile.PackfileEntry{{
+		Id:          "exists-pack",
+		BloomFilter: bloomBytes,
+		BlockCount:  uint64(len(ordered)),
+		SizeBytes:   uint64(len(packBytes)),
+	}})
+
+	h, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha-data"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	exists, err := store.GetBlockExists(ctx, &block.BlockRef{Hash: h})
+	if err != nil {
+		t.Fatalf("GetBlockExists: %v", err)
+	}
+	if !exists {
+		t.Fatal("expected block to exist")
+	}
+	firstCalls := transport.callCount()
+	if firstCalls == 0 {
+		t.Fatal("expected index load fetch")
+	}
+
+	wb := &writebackStore{}
+	store.SetWriteback(ctx, wb, 0)
+	exists, err = store.GetBlockExists(ctx, &block.BlockRef{Hash: h})
+	if err != nil {
+		t.Fatalf("GetBlockExists with writeback: %v", err)
+	}
+	if !exists {
+		t.Fatal("expected block to still exist")
+	}
+	if got := transport.callCount(); got != firstCalls {
+		t.Fatalf("GetBlockExists fetched payload window: calls %d -> %d", firstCalls, got)
+	}
+	if got := wb.putCount(); got != 0 {
+		t.Fatalf("GetBlockExists published writeback blocks: %d", got)
+	}
+
+	data, found, err := store.GetBlock(ctx, &block.BlockRef{Hash: h})
+	if err != nil {
+		t.Fatalf("GetBlock: %v", err)
+	}
+	if !found || !bytes.Equal(data, []byte("alpha-data")) {
+		t.Fatalf("expected GetBlock to fetch target data, found=%v data=%q", found, data)
+	}
+	if got := transport.callCount(); got <= firstCalls {
+		t.Fatalf("GetBlock did not fetch payload window: calls %d -> %d", firstCalls, got)
+	}
+}
+
+func TestPackfileStoreGetBlockExistsBatchUsesIndexes(t *testing.T) {
+	ctx := t.Context()
+	filler := bytes.Repeat([]byte("x"), defaultIndexTailInitialWindow+4096)
+	ordered := []struct{ Name, Data string }{
+		{"a", "alpha-data"},
+		{"b", "beta-data"},
+		{"c", string(filler)},
+	}
+	packBytes, bloomBytes := buildTestPackOrdered(t, ordered)
+	opener, transport := openerFromBytes(packBytes)
+	store := NewPackfileStore(opener, newMemIndexCache())
+	store.UpdateManifest([]*packfile.PackfileEntry{{
+		Id:          "batch-exists-pack",
+		BloomFilter: bloomBytes,
+		BlockCount:  uint64(len(ordered)),
+		SizeBytes:   uint64(len(packBytes)),
+	}})
+
+	alpha, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha-data"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	beta, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("beta-data"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	missing, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("missing-data"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	wb := &writebackStore{}
+	store.SetWriteback(ctx, wb, 0)
+	found, err := store.GetBlockExistsBatch(ctx, []*block.BlockRef{
+		{Hash: missing},
+		{Hash: alpha},
+		nil,
+		{Hash: beta},
+		{Hash: alpha},
+	})
+	if err != nil {
+		t.Fatalf("GetBlockExistsBatch: %v", err)
+	}
+	want := []bool{false, true, false, true, true}
+	if len(found) != len(want) {
+		t.Fatalf("found len = %d, want %d", len(found), len(want))
+	}
+	for i := range want {
+		if found[i] != want[i] {
+			t.Fatalf("found[%d] = %v, want %v (all=%v)", i, found[i], want[i], found)
+		}
+	}
+	firstCalls := transport.callCount()
+	if firstCalls == 0 {
+		t.Fatal("expected index load fetch")
+	}
+	if got := wb.putCount(); got != 0 {
+		t.Fatalf("GetBlockExistsBatch published writeback blocks: %d", got)
+	}
+
+	found, err = store.GetBlockExistsBatch(ctx, []*block.BlockRef{{Hash: beta}, {Hash: missing}})
+	if err != nil {
+		t.Fatalf("GetBlockExistsBatch cached index: %v", err)
+	}
+	if !found[0] || found[1] {
+		t.Fatalf("unexpected cached-index batch result: %v", found)
+	}
+	if got := transport.callCount(); got != firstCalls {
+		t.Fatalf("cached GetBlockExistsBatch fetched payload window: calls %d -> %d", firstCalls, got)
+	}
+}
+
+func TestPackfileStoreGetBlockExistsHandlesBloomFalsePositive(t *testing.T) {
+	ctx := t.Context()
+	filler := bytes.Repeat([]byte("x"), defaultIndexTailInitialWindow+4096)
+	targetBytes, targetBloom := buildTestPackOrdered(t, []struct{ Name, Data string }{
+		{"target", "target-data"},
+		{"filler", string(filler)},
+	})
+	negativeBytes, _ := buildTestPackOrdered(t, []struct{ Name, Data string }{
+		{"negative", "negative-data"},
+		{"filler", string(filler)},
+	})
+	packs := map[string][]byte{
+		"negative-pack": negativeBytes,
+		"target-pack":   targetBytes,
+	}
+	transports := make(map[string]*bytesTransport, len(packs))
+	opener := func(packID string, size int64) (*PackReader, error) {
+		transport := &bytesTransport{data: packs[packID]}
+		transports[packID] = transport
+		return NewPackReader(packID, size, transport, hash.HashType_HashType_SHA256), nil
+	}
+	store := NewPackfileStore(opener, newMemIndexCache())
+	store.UpdateManifest([]*packfile.PackfileEntry{
+		{
+			Id:          "negative-pack",
+			BloomFilter: targetBloom,
+			BlockCount:  2,
+			SizeBytes:   uint64(len(negativeBytes)),
+		},
+		{
+			Id:          "target-pack",
+			BloomFilter: targetBloom,
+			BlockCount:  2,
+			SizeBytes:   uint64(len(targetBytes)),
+		},
+	})
+
+	h, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("target-data"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	wb := &writebackStore{}
+	store.SetWriteback(ctx, wb, 0)
+	exists, err := store.GetBlockExists(ctx, &block.BlockRef{Hash: h})
+	if err != nil {
+		t.Fatalf("GetBlockExists: %v", err)
+	}
+	if !exists {
+		t.Fatal("expected target block to exist")
+	}
+	for packID, transport := range transports {
+		if got := transport.callCount(); got == 0 {
+			t.Fatalf("expected index load for %s", packID)
+		}
+	}
+	if got := wb.putCount(); got != 0 {
+		t.Fatalf("GetBlockExists published writeback blocks: %d", got)
+	}
+}
+
 func TestPackfileStoreLookupStats(t *testing.T) {
 	ctx := t.Context()
 	targetBytes, targetBloom := buildTestPackOrdered(t, []struct{ Name, Data string }{{"a", "alpha"}})

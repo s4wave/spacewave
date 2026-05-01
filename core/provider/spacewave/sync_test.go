@@ -882,6 +882,26 @@ type syncFlushTestStore struct {
 	blocks map[string][]byte
 }
 
+type syncPackTransport struct {
+	data []byte
+}
+
+type syncErrorTransport struct {
+	err error
+}
+
+func (t *syncPackTransport) Fetch(_ context.Context, off int64, length int) ([]byte, error) {
+	if off >= int64(len(t.data)) {
+		return nil, io.EOF
+	}
+	end := min(off+int64(length), int64(len(t.data)))
+	return bytes.Clone(t.data[off:end]), nil
+}
+
+func (t *syncErrorTransport) Fetch(context.Context, int64, int) ([]byte, error) {
+	return nil, t.err
+}
+
 func (s *syncFlushTestStore) GetHashType() hash.HashType {
 	return hash.RecommendedHashType
 }
@@ -914,6 +934,81 @@ func (s *syncFlushTestStore) StatBlock(_ context.Context, ref *block.BlockRef) (
 
 // _ is a type assertion
 var _ block.StoreOps = ((*syncFlushTestStore)(nil))
+
+func newSyncTestLowerPackfileStore(t *testing.T, blocks map[string][]byte) *packfile_store.PackfileStore {
+	t.Helper()
+	var items []struct {
+		h    *hash.Hash
+		data []byte
+	}
+	for _, data := range blocks {
+		h, err := hash.Sum(hash.RecommendedHashType, data)
+		if err != nil {
+			t.Fatalf("sum lower block hash: %v", err)
+		}
+		items = append(items, struct {
+			h    *hash.Hash
+			data []byte
+		}{h: h, data: data})
+	}
+
+	var buf bytes.Buffer
+	idx := 0
+	result, err := writer.PackBlocks(&buf, func() (*hash.Hash, []byte, error) {
+		if idx >= len(items) {
+			return nil, nil, nil
+		}
+		item := items[idx]
+		idx++
+		return item.h, item.data, nil
+	})
+	if err != nil {
+		t.Fatalf("pack lower blocks: %v", err)
+	}
+
+	packData := bytes.Clone(buf.Bytes())
+	lower := packfile_store.NewPackfileStore(
+		func(packID string, size int64) (*packfile_store.PackReader, error) {
+			return packfile_store.NewPackReader(
+				packID,
+				size,
+				&syncPackTransport{data: packData},
+				hash.RecommendedHashType,
+			), nil
+		},
+		nil,
+	)
+	lower.UpdateManifest([]*packfile.PackfileEntry{{
+		Id:                 "existing-pack",
+		BloomFilter:        result.BloomFilter,
+		BloomFormatVersion: packfile.BloomFormatVersionV1,
+		BlockCount:         result.BlockCount,
+		SizeBytes:          result.BytesWritten,
+	}})
+	return lower
+}
+
+func newSyncTestErrorLowerPackfileStore() *packfile_store.PackfileStore {
+	lower := packfile_store.NewPackfileStore(
+		func(packID string, size int64) (*packfile_store.PackReader, error) {
+			return packfile_store.NewPackReader(
+				packID,
+				size,
+				&syncErrorTransport{err: io.ErrUnexpectedEOF},
+				hash.RecommendedHashType,
+			), nil
+		},
+		nil,
+	)
+	lower.UpdateManifest([]*packfile.PackfileEntry{{
+		Id:                 "error-pack",
+		BloomFilter:        []byte("invalid-bloom"),
+		BloomFormatVersion: packfile.BloomFormatVersionV1,
+		BlockCount:         1,
+		SizeBytes:          1,
+	}})
+	return lower
+}
 
 type syncTestRefGraph struct {
 	out map[string][]string
@@ -1161,6 +1256,262 @@ func TestSyncControllerFlushChunksLargeDirtySet(t *testing.T) {
 	}
 	if dirtyCount != 0 {
 		t.Fatalf("expected dirty set to be empty, got %d entries", dirtyCount)
+	}
+}
+
+func TestSyncControllerFlushDedupesLowerBlocks(t *testing.T) {
+	ctx := context.Background()
+
+	dirtyStore := newSyncTestKvStore()
+	manifestStore := newSyncTestKvStore()
+	mfst, err := packfile_manifest.New(ctx, manifestStore)
+	if err != nil {
+		t.Fatalf("new manifest: %v", err)
+	}
+
+	var pushedBody []byte
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/bstore/test-res/sync/push" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Fatalf("read body: %v", err)
+		}
+		pushedBody = bytes.Clone(body)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	priv, pid := generateTestKeypair(t)
+	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
+	cli.executeWriteTicketAudience = func(
+		ctx context.Context,
+		resourceID string,
+		audience writeTicketAudience,
+		fn func(ticket string) error,
+	) error {
+		if resourceID != "test-res" {
+			t.Fatalf("unexpected resource id: %s", resourceID)
+		}
+		if audience != writeTicketAudienceBstoreSyncPush {
+			t.Fatalf("unexpected audience: %s", audience)
+		}
+		return fn("ticket-push")
+	}
+
+	upper := &syncFlushTestStore{blocks: make(map[string][]byte, 2)}
+	wtx, err := dirtyStore.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatalf("new dirty tx: %v", err)
+	}
+	defer wtx.Discard()
+	duplicate := addSyncDirtyBlock(t, ctx, wtx, upper, "duplicate dirty block")
+	fresh := addSyncDirtyBlock(t, ctx, wtx, upper, "fresh dirty block")
+	if err := wtx.Commit(ctx); err != nil {
+		t.Fatalf("commit dirty tx: %v", err)
+	}
+
+	s := &syncController{
+		le:         logrus.NewEntry(logrus.New()),
+		store:      dirtyStore,
+		client:     cli,
+		resourceID: "test-res",
+		mfst:       mfst,
+		lower: newSyncTestLowerPackfileStore(t, map[string][]byte{
+			"duplicate": []byte("duplicate dirty block"),
+		}),
+		upper: upper,
+	}
+	telemetry := &ProviderAccount{}
+	s.telemetry = telemetry
+
+	if err := s.flush(ctx, true); err != nil {
+		t.Fatalf("flush: %v", err)
+	}
+
+	if len(mfst.GetEntries()) != 1 {
+		t.Fatalf("expected 1 manifest entry, got %d", len(mfst.GetEntries()))
+	}
+	want := []string{fresh.GetHash().MarshalString()}
+	if got := readPackPhysicalKeys(t, pushedBody); !slices.Equal(got, want) {
+		t.Fatalf("physical pack keys = %v, want %v; duplicate=%s", got, want, duplicate.GetHash().MarshalString())
+	}
+
+	rtx, err := dirtyStore.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatalf("new read tx: %v", err)
+	}
+	defer rtx.Discard()
+	dirtyCount := 0
+	err = rtx.ScanPrefix(ctx, []byte("dirty/"), func(_, _ []byte) error {
+		dirtyCount++
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("scan dirty keys: %v", err)
+	}
+	if dirtyCount != 0 {
+		t.Fatalf("expected dirty set to be empty, got %d entries", dirtyCount)
+	}
+	snap := telemetry.GetSyncTelemetrySnapshot()
+	if snap.PushCount != 1 || snap.PushedBytes == 0 {
+		t.Fatalf("expected one uploaded pack in telemetry, got %+v", snap)
+	}
+	if snap.DedupedUploadCount != 1 || snap.DedupedUploadBytes != int64(len("duplicate dirty block")) {
+		t.Fatalf("unexpected dedup telemetry: %+v", snap)
+	}
+	if snap.PendingUploadBytes != 0 || snap.PendingUploadCount != 0 {
+		t.Fatalf("expected no pending upload after cleanup, got %+v", snap)
+	}
+}
+
+func TestSyncControllerFlushAllDuplicateDirtyBlocksSkipsPush(t *testing.T) {
+	ctx := context.Background()
+
+	dirtyStore := newSyncTestKvStore()
+	manifestStore := newSyncTestKvStore()
+	mfst, err := packfile_manifest.New(ctx, manifestStore)
+	if err != nil {
+		t.Fatalf("new manifest: %v", err)
+	}
+
+	var pushCount int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		pushCount++
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	priv, pid := generateTestKeypair(t)
+	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
+	cli.executeWriteTicketAudience = func(
+		ctx context.Context,
+		resourceID string,
+		audience writeTicketAudience,
+		fn func(ticket string) error,
+	) error {
+		return fn("ticket-push")
+	}
+
+	upper := &syncFlushTestStore{blocks: make(map[string][]byte, 2)}
+	wtx, err := dirtyStore.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatalf("new dirty tx: %v", err)
+	}
+	defer wtx.Discard()
+	addSyncDirtyBlock(t, ctx, wtx, upper, "duplicate-a")
+	addSyncDirtyBlock(t, ctx, wtx, upper, "duplicate-b")
+	if err := wtx.Commit(ctx); err != nil {
+		t.Fatalf("commit dirty tx: %v", err)
+	}
+
+	s := &syncController{
+		le:         logrus.NewEntry(logrus.New()),
+		store:      dirtyStore,
+		client:     cli,
+		resourceID: "test-res",
+		mfst:       mfst,
+		lower: newSyncTestLowerPackfileStore(t, map[string][]byte{
+			"a": []byte("duplicate-a"),
+			"b": []byte("duplicate-b"),
+		}),
+		upper: upper,
+	}
+	telemetry := &ProviderAccount{}
+	s.telemetry = telemetry
+
+	if err := s.flush(ctx, true); err != nil {
+		t.Fatalf("flush: %v", err)
+	}
+	if pushCount != 0 {
+		t.Fatalf("expected no sync pushes, got %d", pushCount)
+	}
+	if len(mfst.GetEntries()) != 0 {
+		t.Fatalf("expected no manifest entries, got %d", len(mfst.GetEntries()))
+	}
+
+	rtx, err := dirtyStore.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatalf("new read tx: %v", err)
+	}
+	defer rtx.Discard()
+	dirtyCount := 0
+	err = rtx.ScanPrefix(ctx, []byte("dirty/"), func(_, _ []byte) error {
+		dirtyCount++
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("scan dirty keys: %v", err)
+	}
+	if dirtyCount != 0 {
+		t.Fatalf("expected dirty set to be empty, got %d entries", dirtyCount)
+	}
+	snap := telemetry.GetSyncTelemetrySnapshot()
+	if snap.PushCount != 0 || snap.PushedBytes != 0 {
+		t.Fatalf("expected no uploaded pack telemetry, got %+v", snap)
+	}
+	if snap.DedupedUploadCount != 2 ||
+		snap.DedupedUploadBytes != int64(len("duplicate-a")+len("duplicate-b")) {
+		t.Fatalf("unexpected dedup telemetry: %+v", snap)
+	}
+	if snap.PendingUploadBytes != 0 || snap.PendingUploadCount != 0 {
+		t.Fatalf("expected no pending upload after all-duplicate cleanup, got %+v", snap)
+	}
+}
+
+func TestSyncControllerFlushDuplicateProbeErrorPreservesDirty(t *testing.T) {
+	ctx := context.Background()
+
+	dirtyStore := newSyncTestKvStore()
+	manifestStore := newSyncTestKvStore()
+	mfst, err := packfile_manifest.New(ctx, manifestStore)
+	if err != nil {
+		t.Fatalf("new manifest: %v", err)
+	}
+
+	priv, pid := generateTestKeypair(t)
+	cli := NewSessionClient(http.DefaultClient, "https://example.invalid", DefaultSigningEnvPrefix, priv, pid.String())
+	upper := &syncFlushTestStore{blocks: make(map[string][]byte, 1)}
+	wtx, err := dirtyStore.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatalf("new dirty tx: %v", err)
+	}
+	defer wtx.Discard()
+	addSyncDirtyBlock(t, ctx, wtx, upper, "dirty block")
+	if err := wtx.Commit(ctx); err != nil {
+		t.Fatalf("commit dirty tx: %v", err)
+	}
+
+	s := &syncController{
+		le:         logrus.NewEntry(logrus.New()),
+		store:      dirtyStore,
+		client:     cli,
+		resourceID: "test-res",
+		mfst:       mfst,
+		lower:      newSyncTestErrorLowerPackfileStore(),
+		upper:      upper,
+	}
+
+	if err := s.flush(ctx, true); err == nil {
+		t.Fatal("expected duplicate probe error")
+	}
+
+	rtx, err := dirtyStore.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatalf("new read tx: %v", err)
+	}
+	defer rtx.Discard()
+	dirtyCount := 0
+	err = rtx.ScanPrefix(ctx, []byte("dirty/"), func(_, _ []byte) error {
+		dirtyCount++
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("scan dirty keys: %v", err)
+	}
+	if dirtyCount != 1 {
+		t.Fatalf("expected dirty key to remain after probe error, got %d", dirtyCount)
 	}
 }
 

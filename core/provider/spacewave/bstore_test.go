@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strconv"
 	"testing"
 	"time"
@@ -192,6 +193,7 @@ type dirtyBatchTestStore struct {
 	block.NopStoreOps
 	putBlockBatchHits int
 	existsBatchHits   int
+	exists            []bool
 }
 
 func (s *dirtyBatchTestStore) GetHashType() hash.HashType { return 0 }
@@ -218,6 +220,9 @@ func (s *dirtyBatchTestStore) PutBlockBatch(_ context.Context, _ []*block.PutBat
 
 func (s *dirtyBatchTestStore) GetBlockExistsBatch(_ context.Context, refs []*block.BlockRef) ([]bool, error) {
 	s.existsBatchHits++
+	if s.exists != nil {
+		return slices.Clone(s.exists), nil
+	}
 	return make([]bool, len(refs)), nil
 }
 
@@ -256,12 +261,53 @@ func TestDirtyTrackingStoreForwardsBatch(t *testing.T) {
 	if dirtyMarks != 2 {
 		t.Fatalf("expected 2 dirty marks, got %d", dirtyMarks)
 	}
+	if inner.existsBatchHits != 1 {
+		t.Fatalf("expected 1 advisory GetBlockExistsBatch call, got %d", inner.existsBatchHits)
+	}
 
 	if _, err := store.GetBlockExistsBatch(ctx, []*block.BlockRef{{}}); err != nil {
 		t.Fatalf("GetBlockExistsBatch failed: %v", err)
 	}
+	if inner.existsBatchHits != 2 {
+		t.Fatalf("expected 2 GetBlockExistsBatch calls, got %d", inner.existsBatchHits)
+	}
+}
+
+func TestDirtyTrackingStoreBatchSkipsExistingBlocks(t *testing.T) {
+	ctx := context.Background()
+	inner := &dirtyBatchTestStore{exists: []bool{true, false}}
+	var dirty []string
+	store := &dirtyTrackingStore{
+		store: inner,
+		markDirty: func(_ context.Context, h *hash.Hash, _ int64) {
+			dirty = append(dirty, h.MarshalString())
+		},
+	}
+
+	existing, err := block.BuildBlockRef([]byte("existing"), nil)
+	if err != nil {
+		t.Fatalf("BuildBlockRef existing failed: %v", err)
+	}
+	fresh, err := block.BuildBlockRef([]byte("fresh"), nil)
+	if err != nil {
+		t.Fatalf("BuildBlockRef fresh failed: %v", err)
+	}
+
+	if err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{
+		{Ref: existing, Data: []byte("existing")},
+		{Ref: fresh, Data: []byte("fresh")},
+	}); err != nil {
+		t.Fatalf("PutBlockBatch failed: %v", err)
+	}
+	if inner.putBlockBatchHits != 1 {
+		t.Fatalf("expected 1 PutBlockBatch call, got %d", inner.putBlockBatchHits)
+	}
 	if inner.existsBatchHits != 1 {
 		t.Fatalf("expected 1 GetBlockExistsBatch call, got %d", inner.existsBatchHits)
+	}
+	want := []string{fresh.GetHash().MarshalString()}
+	if !slices.Equal(dirty, want) {
+		t.Fatalf("dirty marks = %v, want %v", dirty, want)
 	}
 }
 

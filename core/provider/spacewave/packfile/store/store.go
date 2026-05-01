@@ -260,19 +260,150 @@ func (s *PackfileStore) recordLookupStats(candidateCount, openedCount, negativeC
 
 // GetBlockExists reports whether a block exists in the store.
 func (s *PackfileStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
-	_, found, err := s.GetBlock(ctx, ref)
-	return found, err
+	h := ref.GetHash()
+	if h == nil {
+		return false, nil
+	}
+	key := []byte(h.MarshalString())
+
+	var entries []*packfile.PackfileEntry
+	var tree *bloomNode
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		entries = s.manifest
+		tree = s.tree
+	})
+	if len(entries) == 0 {
+		return false, nil
+	}
+
+	candidates := s.findCandidates(key, entries, tree)
+	opened := 0
+	negative := 0
+	hit := false
+	defer func() {
+		s.recordLookupStats(len(candidates), opened, negative, hit)
+	}()
+
+	for _, idx := range candidates {
+		entry := entries[idx]
+		if tree == nil {
+			bf := s.getOrDeserializeBloom(entry)
+			if bf != nil && !bf.Test(key) {
+				continue
+			}
+		}
+		size := int64(entry.GetSizeBytes())
+		if size <= 0 {
+			continue
+		}
+		eng, err := s.getOrOpenEngine(entry.GetId(), size, entry.GetBlockCount())
+		if err != nil {
+			return false, errors.Wrap(err, "opening packfile")
+		}
+		opened++
+		found, err := eng.getBlockExists(ctx, key)
+		if err != nil {
+			return false, err
+		}
+		if found {
+			hit = true
+			return true, nil
+		}
+		negative++
+	}
+
+	return false, nil
 }
 
 // GetBlockExistsBatch checks whether each block exists.
 func (s *PackfileStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	out := make([]bool, len(refs))
+	if len(refs) == 0 {
+		return out, nil
+	}
+
+	type pendingRef struct {
+		key     []byte
+		indexes []int
+	}
+
+	byKey := make(map[string]*pendingRef, len(refs))
+	var pending []*pendingRef
 	for i, ref := range refs {
-		found, err := s.GetBlockExists(ctx, ref)
-		if err != nil {
-			return nil, err
+		h := ref.GetHash()
+		if h == nil {
+			continue
 		}
-		out[i] = found
+		key := []byte(h.MarshalString())
+		keyStr := string(key)
+		item, ok := byKey[keyStr]
+		if !ok {
+			item = &pendingRef{key: key}
+			byKey[keyStr] = item
+			pending = append(pending, item)
+		}
+		item.indexes = append(item.indexes, i)
+	}
+	if len(pending) == 0 {
+		return out, nil
+	}
+
+	var entries []*packfile.PackfileEntry
+	var tree *bloomNode
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		entries = s.manifest
+		tree = s.tree
+	})
+	if len(entries) == 0 {
+		return out, nil
+	}
+
+	candidateSets := make([][]int, len(pending))
+	candidateTotal := 0
+	for i, item := range pending {
+		candidates := s.findCandidates(item.key, entries, tree)
+		candidateSets[i] = candidates
+		candidateTotal += len(candidates)
+	}
+
+	opened := 0
+	negative := 0
+	hit := false
+	defer func() {
+		s.recordLookupStats(candidateTotal, opened, negative, hit)
+	}()
+
+	for pi, item := range pending {
+		for _, idx := range candidateSets[pi] {
+			entry := entries[idx]
+			if tree == nil {
+				bf := s.getOrDeserializeBloom(entry)
+				if bf != nil && !bf.Test(item.key) {
+					continue
+				}
+			}
+			size := int64(entry.GetSizeBytes())
+			if size <= 0 {
+				continue
+			}
+			eng, err := s.getOrOpenEngine(entry.GetId(), size, entry.GetBlockCount())
+			if err != nil {
+				return nil, errors.Wrap(err, "opening packfile")
+			}
+			opened++
+			found, err := eng.getBlockExists(ctx, item.key)
+			if err != nil {
+				return nil, err
+			}
+			if found {
+				hit = true
+				for _, index := range item.indexes {
+					out[index] = true
+				}
+				break
+			}
+			negative++
+		}
 	}
 	return out, nil
 }

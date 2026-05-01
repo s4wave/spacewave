@@ -378,17 +378,36 @@ func (d *dirtyTrackingStore) PutBlock(ctx context.Context, data []byte, opts *bl
 	return ref, existed, err
 }
 
-// PutBlockBatch writes blocks and conservatively marks all successful
-// non-tombstone writes dirty.
+// PutBlockBatch writes blocks and marks successful new entries dirty.
 func (d *dirtyTrackingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	var exists []bool
+	var valid []int
+	if d.markDirty != nil {
+		refs := make([]*block.BlockRef, 0, len(entries))
+		for i, entry := range entries {
+			if entry.Tombstone || entry.Ref == nil || entry.Ref.GetEmpty() {
+				continue
+			}
+			valid = append(valid, i)
+			refs = append(refs, entry.Ref)
+		}
+		var err error
+		exists, err = d.store.GetBlockExistsBatch(ctx, refs)
+		if err != nil || len(exists) != len(refs) {
+			// Existence preflight is advisory; fall back to conservative dirty
+			// marking rather than failing the underlying batch write.
+			exists = nil
+		}
+	}
 	if err := d.store.PutBlockBatch(ctx, entries); err != nil {
 		return err
 	}
 	if d.markDirty != nil {
-		for _, entry := range entries {
-			if entry.Tombstone || entry.Ref == nil || entry.Ref.GetEmpty() {
+		for j, i := range valid {
+			if exists != nil && exists[j] {
 				continue
 			}
+			entry := entries[i]
 			d.markDirty(ctx, entry.Ref.GetHash(), int64(len(entry.Data)))
 		}
 	}
