@@ -186,6 +186,11 @@ func (r *Root) GetChangelog(ctx context.Context) (*changelog.Changelog, error) {
 	return resp.GetChangelog(), nil
 }
 
+// GetCdn accesses a configured CDN resource by id.
+func (r *Root) GetCdn(ctx context.Context, cdnID string) (*GetCdnResponse, error) {
+	return r.service.GetCdn(ctx, &GetCdnRequest{CdnId: cdnID})
+}
+
 // UnlockSession unlocks a PIN-locked session before mounting.
 func (r *Root) UnlockSession(ctx context.Context, sessionIdx uint32, pin []byte) error {
 	_, err := r.service.UnlockSession(ctx, &UnlockSessionByIdxRequest{

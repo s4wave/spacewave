@@ -30,6 +30,7 @@ func NewCliCommands(getBus func() cli_entrypoint.CliBus) []*cli.Command {
 		newGitCommand(getBus),
 		newCanvasCommand(getBus),
 		newForgeCommand(getBus),
+		newVmCommand(getBus),
 		newPluginCommand(getBus),
 
 		// Tier 4: plumbing

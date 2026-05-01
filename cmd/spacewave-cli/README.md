@@ -200,6 +200,32 @@ spacewave-cli canvas edge add --source <id> --target <id>  Add an edge (--label,
 spacewave-cli canvas edge rm <id> [id...]               Remove edges
 ```
 
+### VMs
+
+VM operations for spaces. The first runtime is V86, with runtime-specific VM
+creation and image import commands under `vm create v86` and `vm image v86`.
+
+```
+spacewave-cli vm list --space <space-id>       List VMs
+spacewave-cli vm info <vm-key> --space <space-id>  Show VM details
+spacewave-cli vm create v86 <name> --image <v86-image-key> --space <space-id>  Create a V86 VM
+spacewave-cli vm start <vm-key> --space <space-id> [--wait]  Start a VM
+spacewave-cli vm stop <vm-key> --space <space-id>  Stop a VM
+spacewave-cli vm watch <vm-key> --space <space-id>  Stream VM state changes
+```
+
+`vm create v86` accepts `--memory-mb`, `--vga-memory-mb`, and repeated
+`--mount /guest/path=objectKey[:rw|:ro]` flags.
+
+#### V86 Images
+
+```
+spacewave-cli vm image v86 list --space <space-id>       List V86 images
+spacewave-cli vm image v86 info <image-key> --space <space-id>  Show V86 image details
+spacewave-cli vm image v86 copy-from-cdn <cdn-image-key> --space <space-id> [--as <image-key>]  Copy a CDN V86 image into a space
+spacewave-cli vm image v86 import tar --space <space-id> --name <name> --wasm <v86.wasm> --seabios <seabios.bin> --vgabios <vgabios.bin> --kernel <bzImage> --rootfs-tar <rootfs.tar> [--as <image-key>] [--tag <tag>]  Create a V86 image from local files
+```
+
 ### Plugins
 
 Plugin management for spaces. Plugins extend space functionality (e.g., chat,
