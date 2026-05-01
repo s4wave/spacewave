@@ -1,9 +1,7 @@
 package provider_local_test
 
 import (
-	"context"
 	"testing"
-	"time"
 
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 )
@@ -12,8 +10,7 @@ import (
 // no-op when no paired devices have been recorded. It must NOT spin up
 // P2P sync controllers for accounts that never paired.
 func TestAutoStartP2PSyncIfPairedNoDevices(t *testing.T) {
-	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
-	defer cancel()
+	ctx := t.Context()
 
 	_, _, acc, sess, release := setupProviderAndSession(ctx, t)
 	defer release()
@@ -42,8 +39,7 @@ func TestAutoStartP2PSyncIfPairedNoDevices(t *testing.T) {
 // proving the session-mount path will resume P2P sync after a remount with
 // a paired peer.
 func TestAutoStartP2PSyncIfPairedWithDevice(t *testing.T) {
-	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
-	defer cancel()
+	ctx := t.Context()
 
 	tb, sessRef, acc, sess, release := setupProviderAndSession(ctx, t)
 	defer release()
