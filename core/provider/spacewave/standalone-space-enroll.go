@@ -325,33 +325,29 @@ func (c *SessionClient) addStandalonePeerParticipant(
 			return nil, err
 		}
 		var (
-			participantExists      bool
-			participantNeedsUpdate bool
-			participantIdx         int
+			participantExists bool
+			participantIdx    int
+			participantCount  int
 		)
 		for i, p := range currentCfg.GetParticipants() {
 			if p.GetPeerId() != targetPeerID {
 				continue
 			}
-			participantExists = true
-			participantIdx = i
-			if p.GetRole() != role || p.GetEntityId() != "" {
-				participantNeedsUpdate = true
+			if !participantExists {
+				participantExists = true
+				participantIdx = i
 			}
-			break
-		}
-		if existingRole := participantRoleForPeer(
-			currentCfg,
-			targetPeerID,
-			sobject.SOParticipantRole_SOParticipantRole_UNKNOWN,
-		); existingRole > role {
-			role = existingRole
+			participantCount++
 		}
 		epoch := currentEpochWithFallback(state, epochs)
 		grantExists := soGrantSliceHasPeerID(state.GetRootGrants(), targetPeerID)
 		if !grantExists && epoch != nil {
 			grantExists = soGrantSliceHasPeerID(epoch.GetGrants(), targetPeerID)
 		}
+		participantNeedsUpdate := !participantExists ||
+			participantCount != 1 ||
+			currentCfg.GetParticipants()[participantIdx].GetRole() != role ||
+			currentCfg.GetParticipants()[participantIdx].GetEntityId() != ""
 		if participantExists && !participantNeedsUpdate && grantExists {
 			return nil, nil
 		}
@@ -378,10 +374,9 @@ func (c *SessionClient) addStandalonePeerParticipant(
 				Role:   role,
 			}
 			if participantExists {
-				nextCfg.Participants[participantIdx] = nextParticipant
-			} else {
-				nextCfg.Participants = append(nextCfg.Participants, nextParticipant)
+				nextCfg.Participants = removeParticipantPeerID(nextCfg.GetParticipants(), targetPeerID)
 			}
+			nextCfg.Participants = append(nextCfg.Participants, nextParticipant)
 			entry, err = sobject.BuildSOConfigChange(
 				currentCfg,
 				nextCfg,
@@ -470,6 +465,19 @@ func (c *SessionClient) addStandalonePeerParticipant(
 	}
 
 	return nil, errors.New("add peer participant failed after max retries due to config conflicts")
+}
+
+func removeParticipantPeerID(
+	participants []*sobject.SOParticipantConfig,
+	peerID string,
+) []*sobject.SOParticipantConfig {
+	next := participants[:0]
+	for _, participant := range participants {
+		if participant.GetPeerId() != peerID {
+			next = append(next, participant)
+		}
+	}
+	return next
 }
 
 func (c *SessionClient) loadStandaloneConfigState(
