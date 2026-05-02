@@ -11,6 +11,7 @@ import (
 	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
 	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/identity"
 	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/writer"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
@@ -30,35 +31,56 @@ func PackManifestBundle(
 		return nil, nil, err
 	}
 	var blocks []packBlock
-	if err := ws.AccessWorldState(ctx, bundleRef, func(bls *bucket_lookup.Cursor) error {
-		readXfrm := bls.GetTransformer()
-		if readXfrm == nil {
-			readXfrm = block_transform.NewTransformerWithSteps(nil)
+	seen := make(map[string]struct{})
+	appendBlocks := func(rootRef *bucket.ObjectRef, ctor func() block.Block) error {
+		if err := ValidateCleanObjectRef("manifest_pack_root", rootRef); err != nil {
+			return err
 		}
-		return bucket_lookup.WalkObjectBlocks(
-			ctx,
-			bucket_lookup.NewWalkObjectBlocksWithRef(bundleRef.GetRootRef(), bldr_manifest.NewManifestBundleBlock),
-			func(entry *bucket_lookup.WalkObjectBlocksEntry) (bool, error) {
-				if entry.Err != nil {
-					return false, entry.Err
-				}
-				if entry.Ref == nil || entry.Ref.GetEmpty() || !entry.Found || entry.IsSubBlock || len(entry.Data) == 0 {
+		return ws.AccessWorldState(ctx, rootRef, func(bls *bucket_lookup.Cursor) error {
+			readXfrm := bls.GetTransformer()
+			if readXfrm == nil {
+				readXfrm = block_transform.NewTransformerWithSteps(nil)
+			}
+			return bucket_lookup.WalkObjectBlocks(
+				ctx,
+				bucket_lookup.NewWalkObjectBlocksWithRef(rootRef.GetRootRef(), ctor),
+				func(entry *bucket_lookup.WalkObjectBlocksEntry) (bool, error) {
+					if entry.Err != nil {
+						return false, entry.Err
+					}
+					if entry.Ref == nil || entry.Ref.GetEmpty() || !entry.Found || entry.IsSubBlock || len(entry.Data) == 0 {
+						return true, nil
+					}
+					key := entry.Ref.MarshalString()
+					if _, ok := seen[key]; ok {
+						return true, nil
+					}
+					seen[key] = struct{}{}
+					blocks = append(blocks, packBlock{
+						key:  key,
+						hash: entry.Ref.GetHash().Clone(),
+						data: append([]byte(nil), entry.Data...),
+					})
 					return true, nil
-				}
-				blocks = append(blocks, packBlock{
-					key:  entry.Ref.MarshalString(),
-					hash: entry.Ref.GetHash().Clone(),
-					data: append([]byte(nil), entry.Data...),
-				})
-				return true, nil
-			},
-			bls.GetBucket(),
-			readXfrm,
-			1,
-			true,
-		)
-	}); err != nil {
+				},
+				bls.GetBucket(),
+				readXfrm,
+				1,
+				true,
+			)
+		})
+	}
+	if err := appendBlocks(bundleRef, bldr_manifest.NewManifestBundleBlock); err != nil {
 		return nil, nil, err
+	}
+	bundle, err := readManifestBundle(ctx, ws, bundleRef)
+	if err != nil {
+		return nil, nil, err
+	}
+	for i, manifestRef := range bundle.GetManifestRefs() {
+		if err := appendBlocks(manifestRef.GetManifestRef(), bldr_manifest.NewManifestBlock); err != nil {
+			return nil, nil, errors.Wrapf(err, "manifest_refs[%d]", i)
+		}
 	}
 	sort.Slice(blocks, func(i, j int) bool {
 		return blocks[i].key < blocks[j].key

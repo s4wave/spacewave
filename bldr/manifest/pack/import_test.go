@@ -10,6 +10,8 @@ import (
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/bucket"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
@@ -20,6 +22,30 @@ import (
 func TestImportManifestPackReconstructsCollectableManifest(t *testing.T) {
 	ctx := context.Background()
 	dest, meta, tuple := importTestManifestPack(t, ctx)
+	if err := VerifyImportedManifests(ctx, dest, meta); err != nil {
+		t.Fatal(err)
+	}
+	got, errs, err := bldr_manifest_world.CollectManifestsForManifestID(
+		ctx,
+		dest,
+		tuple.GetManifestId(),
+		[]string{tuple.GetPlatformId()},
+		tuple.GetLinkObjectKeys()[0],
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(errs) != 0 {
+		t.Fatalf("manifest errors = %v", errs)
+	}
+	if len(got) != 1 {
+		t.Fatalf("manifest count = %d", len(got))
+	}
+}
+
+func TestImportManifestPackIncludesBucketScopedManifestRoot(t *testing.T) {
+	ctx := context.Background()
+	dest, meta, tuple := importTestManifestPackWithOptions(t, ctx, true)
 	if err := VerifyImportedManifests(ctx, dest, meta); err != nil {
 		t.Fatal(err)
 	}
@@ -82,6 +108,15 @@ func importTestManifestPack(
 	ctx context.Context,
 ) (world.WorldState, *ManifestPackMetadata, *ManifestTuple) {
 	t.Helper()
+	return importTestManifestPackWithOptions(t, ctx, false)
+}
+
+func importTestManifestPackWithOptions(
+	t *testing.T,
+	ctx context.Context,
+	bucketScopedManifest bool,
+) (world.WorldState, *ManifestPackMetadata, *ManifestTuple) {
+	t.Helper()
 	le := logrus.NewEntry(logrus.New())
 	sender := peer.ID("test")
 	source := newTestWorld(t, ctx, le)
@@ -99,7 +134,7 @@ func importTestManifestPack(
 	if _, err := bldr_manifest_world.CreateManifestStore(ctx, dest, tuple.GetLinkObjectKeys()[0]); err != nil {
 		t.Fatal(err)
 	}
-	manifestRef := storeTestManifest(t, ctx, source, tuple)
+	manifestRef := storeTestManifest(t, ctx, source, tuple, bucketScopedManifest)
 	_, bundleRef, err := StoreManifestBundle(ctx, source, sender, tuple, manifestRef, timestamppb.Now())
 	if err != nil {
 		t.Fatal(err)
@@ -158,6 +193,7 @@ func storeTestManifest(
 	ctx context.Context,
 	ws world.WorldState,
 	tuple *ManifestTuple,
+	bucketScopedManifest bool,
 ) *bldr_manifest.ManifestRef {
 	t.Helper()
 	meta := &bldr_manifest.ManifestMeta{
@@ -166,7 +202,17 @@ func storeTestManifest(
 		PlatformId: tuple.GetPlatformId(),
 		Rev:        tuple.GetRev(),
 	}
-	manifestRef, err := world.AccessObject(ctx, ws.AccessWorldState, nil, func(bcs *block.Cursor) error {
+	var initRef *bucket.ObjectRef
+	if bucketScopedManifest {
+		err := ws.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
+			initRef = bls.GetRef().Clone()
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	manifestRef, err := world.AccessObject(ctx, ws.AccessWorldState, initRef, func(bcs *block.Cursor) error {
 		bcs.SetBlock(bldr_manifest.NewManifest(meta, "entrypoint"), true)
 		return nil
 	})
