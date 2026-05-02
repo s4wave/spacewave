@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_iterator "github.com/s4wave/spacewave/db/kvtx/iterator"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/pagestore"
@@ -32,6 +33,7 @@ func (s *MetaStore) Execute(ctx context.Context) error {
 func (s *MetaStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	tree, generation := s.shard.OpenCommittedTree()
 	readTx := metaReadTx{
+		shard:      s.shard,
 		tree:       tree,
 		generation: generation,
 	}
@@ -47,28 +49,38 @@ func (s *MetaStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, er
 
 // metaReadTx is a read-only transaction delegating to MetaShard.
 type metaReadTx struct {
+	shard      *MetaShard
 	tree       *pagestore.Tree
 	generation uint64
+	recovered  bool
+}
+
+type metaEntry struct {
+	key   []byte
+	value []byte
 }
 
 // Size returns the number of keys. Scans the entire tree.
 func (t *metaReadTx) Size(ctx context.Context) (uint64, error) {
-	var count uint64
-	err := t.tree.ScanPrefix(nil, func(_, _ []byte) bool {
-		count++
-		return true
-	})
-	return count, err
+	entries, err := t.collectPrefix(nil)
+	return uint64(len(entries)), err
 }
 
 // Get looks up a key.
 func (t *metaReadTx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
+	val, found, err := t.tree.Get(key)
+	if err == nil {
+		return val, found, nil
+	}
+	if err := t.recoverCorruptRead(err); err != nil {
+		return nil, false, err
+	}
 	return t.tree.Get(key)
 }
 
 // Exists checks if a key exists.
 func (t *metaReadTx) Exists(ctx context.Context, key []byte) (bool, error) {
-	_, found, err := t.tree.Get(key)
+	_, found, err := t.Get(ctx, key)
 	return found, err
 }
 
@@ -84,34 +96,31 @@ func (t *metaReadTx) Delete(ctx context.Context, key []byte) error {
 
 // ScanPrefix iterates over entries matching the prefix.
 func (t *metaReadTx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value []byte) error) error {
-	var cbErr error
-	err := t.tree.ScanPrefix(prefix, func(key, value []byte) bool {
-		if err := cb(key, value); err != nil {
-			cbErr = err
-			return false
-		}
-		return true
-	})
-	if cbErr != nil {
-		return cbErr
+	entries, err := t.collectPrefix(prefix)
+	if err != nil {
+		return err
 	}
-	return err
+	for i := range entries {
+		entry := &entries[i]
+		if err := cb(entry.key, entry.value); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // ScanPrefixKeys iterates over keys only with a prefix.
 func (t *metaReadTx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []byte) error) error {
-	var cbErr error
-	err := t.tree.ScanPrefix(prefix, func(key, _ []byte) bool {
-		if err := cb(key); err != nil {
-			cbErr = err
-			return false
-		}
-		return true
-	})
-	if cbErr != nil {
-		return cbErr
+	entries, err := t.collectPrefix(prefix)
+	if err != nil {
+		return err
 	}
-	return err
+	for i := range entries {
+		if err := cb(entries[i].key); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Iterate returns a sorted iterator for keys with the given prefix.
@@ -126,6 +135,51 @@ func (t *metaReadTx) Commit(ctx context.Context) error {
 
 // Discard is a no-op for read transactions.
 func (t *metaReadTx) Discard() {
+}
+
+func (t *metaReadTx) collectPrefix(prefix []byte) ([]metaEntry, error) {
+	var entries []metaEntry
+	err := t.tree.ScanPrefix(prefix, func(key, value []byte) bool {
+		entries = append(entries, metaEntry{
+			key:   bytes.Clone(key),
+			value: bytes.Clone(value),
+		})
+		return true
+	})
+	if err == nil {
+		return entries, nil
+	}
+	if err := t.recoverCorruptRead(err); err != nil {
+		return nil, err
+	}
+
+	entries = nil
+	err = t.tree.ScanPrefix(prefix, func(key, value []byte) bool {
+		entries = append(entries, metaEntry{
+			key:   bytes.Clone(key),
+			value: bytes.Clone(value),
+		})
+		return true
+	})
+	return entries, err
+}
+
+func (t *metaReadTx) recoverCorruptRead(err error) error {
+	if !IsCorruptError(err) {
+		return err
+	}
+	if t.recovered {
+		return err
+	}
+	if t.shard == nil {
+		return err
+	}
+	if err := t.shard.recoverCorruptState(); err != nil {
+		return errors.Wrap(err, "recover corrupt meta shard")
+	}
+	t.tree, t.generation = t.shard.OpenCommittedTree()
+	t.recovered = true
+	return nil
 }
 
 // mutation is a buffered Set or Delete operation.
@@ -155,7 +209,7 @@ func (t *metaWriteTx) Get(ctx context.Context, key []byte) ([]byte, bool, error)
 			return m.value, true, nil
 		}
 	}
-	return t.tree.Get(key)
+	return t.metaReadTx.Get(ctx, key)
 }
 
 // Exists checks pending mutations then the tree.
@@ -166,8 +220,7 @@ func (t *metaWriteTx) Exists(ctx context.Context, key []byte) (bool, error) {
 			return m.value != nil, nil
 		}
 	}
-	_, found, err := t.tree.Get(key)
-	return found, err
+	return t.metaReadTx.Exists(ctx, key)
 }
 
 // Set buffers a set operation.
