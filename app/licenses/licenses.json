@@ -223,6 +223,20 @@
       "source": "js"
     },
     {
+      "name": "@pierre/diffs",
+      "version": "1.1.20",
+      "spdx": "apache-2.0",
+      "source": "js",
+      "fullText": "Apache License\n                           Version 2.0, January 2004\n                        http://www.apache.org/licenses/\n\nTERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION\n\n1.  Definitions.\n\n    \"License\" shall mean the terms and conditions for use, reproduction, and\n    distribution as defined by Sections 1 through 9 of this document.\n\n    \"Licensor\" shall mean the copyright owner or entity authorized by the\n    copyright owner that is granting the License.\n\n    \"Legal Entity\" shall mean the union of the acting entity and all other\n    entities that control, are controlled by, or are under common control with\n    that entity. For the purposes of this definition, \"control\" means (i) the\n    power, direct or indirect, to cause the direction or management of such\n    entity, whether by contract or otherwise, or (ii) ownership of fifty percent\n    (50%) or more of the outstanding shares, or (iii) beneficial ownership of\n    such entity.\n\n    \"You\" (or \"Your\") shall mean an individual or Legal Entity exercising\n    permissions granted by this License.\n\n    \"Source\" form shall mean the preferred form for making modifications,\n    including but not limited to software source code, documentation source, and\n    configuration files.\n\n    \"Object\" form shall mean any form resulting from mechanical transformation\n    or translation of a Source form, including but not limited to compiled\n    object code, generated documentation, and conversions to other media types.\n\n    \"Work\" shall mean the work of authorship, whether in Source or Object form,\n    made available under the License, as indicated by a copyright notice that is\n    included in or attached to the work (an example is provided in the Appendix\n    below).\n\n    \"Derivative Works\" shall mean any work, whether in Source or Object form,\n    that is based on (or derived from) the Work and for which the editorial\n    revisions, annotations, elaborations, or other modifications represent, as a\n    whole, an original work of authorship. For the purposes of this License,\n    Derivative Works shall not include works that remain separable from, or\n    merely link (or bind by name) to the interfaces of, the Work and Derivative\n    Works thereof.\n\n    \"Contribution\" shall mean any work of authorship, including the original\n    version of the Work and any modifications or additions to that Work or\n    Derivative Works thereof, that is intentionally submitted to Licensor for\n    inclusion in the Work by the copyright owner or by an individual or Legal\n    Entity authorized to submit on behalf of the copyright owner. For the\n    purposes of this definition, \"submitted\" means any form of electronic,\n    verbal, or written communication sent to the Licensor or its\n    representatives, including but not limited to communication on electronic\n    mailing lists, source code control systems, and issue tracking systems that\n    are managed by, or on behalf of, the Licensor for the purpose of discussing\n    and improving the Work, but excluding communication that is conspicuously\n    marked or otherwise designated in writing by the copyright owner as \"Not a\n    Contribution.\"\n\n    \"Contributor\" shall mean Licensor and any individual or Legal Entity on\n    behalf of whom a Contribution has been received by Licensor and subsequently\n    incorporated within the Work.\n\n2.  Grant of Copyright License. Subject to the terms and conditions of this\n    License, each Contributor hereby grants to You a perpetual, worldwide,\n    non-exclusive, no-charge, royalty-free, irrevocable copyright license to\n    reproduce, prepare Derivative Works of, publicly display, publicly perform,\n    sublicense, and distribute the Work and such Derivative Works in Source or\n    Object form.\n\n3.  Grant of Patent License. Subject to the terms and conditions of this\n    License, each Contributor hereby grants to You a perpetual, worldwide,\n    non-exclusive, no-charge, royalty-free, irrevocable (except as stated in\n    this section) patent license to make, have made, use, offer to sell, sell,\n    import, and otherwise transfer the Work, where such license applies only to\n    those patent claims licensable by such Contributor that are necessarily\n    infringed by their Contribution(s) alone or by combination of their\n    Contribution(s) with the Work to which such Contribution(s) was submitted.\n    If You institute patent litigation against any entity (including a\n    cross-claim or counterclaim in a lawsuit) alleging that the Work or a\n    Contribution incorporated within the Work constitutes direct or contributory\n    patent infringement, then any patent licenses granted to You under this\n    License for that Work shall terminate as of the date such litigation is\n    filed.\n\n4.  Redistribution. You may reproduce and distribute copies of the Work or\n    Derivative Works thereof in any medium, with or without modifications, and\n    in Source or Object form, provided that You meet the following conditions:\n\n    (a) You must give any other recipients of the Work or Derivative Works a\n    copy of this License; and\n\n    (b) You must cause any modified files to carry prominent notices stating\n    that You changed the files; and\n\n    (c) You must retain, in the Source form of any Derivative Works that You\n    distribute, all copyright, patent, trademark, and attribution notices from\n    the Source form of the Work, excluding those notices that do not pertain to\n    any part of the Derivative Works; and\n\n    (d) If the Work includes a \"NOTICE\" text file as part of its distribution,\n    then any Derivative Works that You distribute must include a readable copy\n    of the attribution notices contained within such NOTICE file, excluding\n    those notices that do not pertain to any part of the Derivative Works, in at\n    least one of the following places: within a NOTICE text file distributed as\n    part of the Derivative Works; within the Source form or documentation, if\n    provided along with the Derivative Works; or, within a display generated by\n    the Derivative Works, if and wherever such third-party notices normally\n    appear. The contents of the NOTICE file are for informational purposes only\n    and do not modify the License. You may add Your own attribution notices\n    within Derivative Works that You distribute, alongside or as an addendum to\n    the NOTICE text from the Work, provided that such additional attribution\n    notices cannot be construed as modifying the License.\n\n    You may add Your own copyright statement to Your modifications and may\n    provide additional or different license terms and conditions for use,\n    reproduction, or distribution of Your modifications, or for any such\n    Derivative Works as a whole, provided Your use, reproduction, and\n    distribution of the Work otherwise complies with the conditions stated in\n    this License.\n\n5.  Submission of Contributions. Unless You explicitly state otherwise, any\n    Contribution intentionally submitted for inclusion in the Work by You to the\n    Licensor shall be under the terms and conditions of this License, without\n    any additional terms or conditions. Notwithstanding the above, nothing\n    herein shall supersede or modify the terms of any separate license agreement\n    you may have executed with Licensor regarding such Contributions.\n\n6.  Trademarks. This License does not grant permission to use the trade names,\n    trademarks, service marks, or product names of the Licensor, except as\n    required for reasonable and customary use in describing the origin of the\n    Work and reproducing the content of the NOTICE file.\n\n7.  Disclaimer of Warranty. Unless required by applicable law or agreed to in\n    writing, Licensor provides the Work (and each Contributor provides its\n    Contributions) on an \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY\n    KIND, either express or implied, including, without limitation, any\n    warranties or conditions of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or\n    FITNESS FOR A PARTICULAR PURPOSE. You are solely responsible for determining\n    the appropriateness of using or redistributing the Work and assume any risks\n    associated with Your exercise of permissions under this License.\n\n8.  Limitation of Liability. In no event and under no legal theory, whether in\n    tort (including negligence), contract, or otherwise, unless required by\n    applicable law (such as deliberate and grossly negligent acts) or agreed to\n    in writing, shall any Contributor be liable to You for damages, including\n    any direct, indirect, special, incidental, or consequential damages of any\n    character arising as a result of this License or out of the use or inability\n    to use the Work (including but not limited to damages for loss of goodwill,\n    work stoppage, computer failure or malfunction, or any and all other\n    commercial damages or losses), even if such Contributor has been advised of\n    the possibility of such damages.\n\n9.  Accepting Warranty or Additional Liability. While redistributing the Work or\n    Derivative Works thereof, You may choose to offer, and charge a fee for,\n    acceptance of support, warranty, indemnity, or other liability obligations\n    and/or rights consistent with this License. However, in accepting such\n    obligations, You may act only on Your own behalf and on Your sole\n    responsibility, not on behalf of any other Contributor, and only if You\n    agree to indemnify, defend, and hold each Contributor harmless for any\n    liability incurred by, or claims asserted against, such Contributor by\n    reason of your accepting any such warranty or additional liability.\n\nEND OF TERMS AND CONDITIONS\n\nAPPENDIX: How to apply the Apache License to your work.\n\n      To apply the Apache License to your work, attach the following\n      boilerplate notice, with the fields enclosed by brackets \"[]\"\n      replaced with your own identifying information. (Don't include\n      the brackets!)  The text should be enclosed in the appropriate\n      comment syntax for the file format. We also recommend that a\n      file or class name and description of purpose be included on the\n      same \"printed page\" as the copyright notice for easier\n      identification within third-party archives.\n\nCopyright 2025 Pierre Computer Company\n\nLicensed under the Apache License, Version 2.0 (the \"License\"); you may not use\nthis file except in compliance with the License. You may obtain a copy of the\nLicense at\n\n       http://www.apache.org/licenses/LICENSE-2.0\n\nUnless required by applicable law or agreed to in writing, software distributed\nunder the License is distributed on an \"AS IS\" BASIS, WITHOUT WARRANTIES OR\nCONDITIONS OF ANY KIND, either express or implied. See the License for the\nspecific language governing permissions and limitations under the License."
+    },
+    {
+      "name": "@pierre/theme",
+      "version": "0.0.28",
+      "spdx": "MIT",
+      "source": "js",
+      "copyrightNotice": "Copyright (c) 2026 The Pierre Computer Company"
+    },
+    {
       "name": "@radix-ui/primitive",
       "version": "1.1.3",
       "spdx": "MIT",
@@ -464,7 +478,21 @@
     },
     {
       "name": "@shikijs/core",
+      "version": "3.23.0",
+      "spdx": "MIT",
+      "source": "js",
+      "copyrightNotice": "Copyright (c) 2021 Pine Wu\nCopyright (c) 2023 Anthony Fu <https://github.com/antfu>"
+    },
+    {
+      "name": "@shikijs/core",
       "version": "4.0.2",
+      "spdx": "MIT",
+      "source": "js",
+      "copyrightNotice": "Copyright (c) 2021 Pine Wu\nCopyright (c) 2023 Anthony Fu <https://github.com/antfu>"
+    },
+    {
+      "name": "@shikijs/engine-javascript",
+      "version": "3.23.0",
       "spdx": "MIT",
       "source": "js",
       "copyrightNotice": "Copyright (c) 2021 Pine Wu\nCopyright (c) 2023 Anthony Fu <https://github.com/antfu>"
@@ -478,7 +506,21 @@
     },
     {
       "name": "@shikijs/engine-oniguruma",
+      "version": "3.23.0",
+      "spdx": "MIT",
+      "source": "js",
+      "copyrightNotice": "Copyright (c) 2021 Pine Wu\nCopyright (c) 2023 Anthony Fu <https://github.com/antfu>"
+    },
+    {
+      "name": "@shikijs/engine-oniguruma",
       "version": "4.0.2",
+      "spdx": "MIT",
+      "source": "js",
+      "copyrightNotice": "Copyright (c) 2021 Pine Wu\nCopyright (c) 2023 Anthony Fu <https://github.com/antfu>"
+    },
+    {
+      "name": "@shikijs/langs",
+      "version": "3.23.0",
       "spdx": "MIT",
       "source": "js",
       "copyrightNotice": "Copyright (c) 2021 Pine Wu\nCopyright (c) 2023 Anthony Fu <https://github.com/antfu>"
@@ -499,7 +541,28 @@
     },
     {
       "name": "@shikijs/themes",
+      "version": "3.23.0",
+      "spdx": "MIT",
+      "source": "js",
+      "copyrightNotice": "Copyright (c) 2021 Pine Wu\nCopyright (c) 2023 Anthony Fu <https://github.com/antfu>"
+    },
+    {
+      "name": "@shikijs/themes",
       "version": "4.0.2",
+      "spdx": "MIT",
+      "source": "js",
+      "copyrightNotice": "Copyright (c) 2021 Pine Wu\nCopyright (c) 2023 Anthony Fu <https://github.com/antfu>"
+    },
+    {
+      "name": "@shikijs/transformers",
+      "version": "3.23.0",
+      "spdx": "MIT",
+      "source": "js",
+      "copyrightNotice": "Copyright (c) 2021 Pine Wu\nCopyright (c) 2023 Anthony Fu <https://github.com/antfu>"
+    },
+    {
+      "name": "@shikijs/types",
+      "version": "3.23.0",
       "spdx": "MIT",
       "source": "js",
       "copyrightNotice": "Copyright (c) 2021 Pine Wu\nCopyright (c) 2023 Anthony Fu <https://github.com/antfu>"
@@ -680,6 +743,13 @@
       "spdx": "MIT",
       "source": "js",
       "copyrightNotice": "Copyright (c) Luke Edwards <luke.edwards05@gmail.com> (lukeed.com)"
+    },
+    {
+      "name": "diff",
+      "version": "8.0.3",
+      "spdx": "BSD-3-Clause",
+      "source": "js",
+      "fullText": "BSD 3-Clause License\n\nCopyright (c) 2009-2015, Kevin Decker <kpdecker@gmail.com>\nAll rights reserved.\n\nRedistribution and use in source and binary forms, with or without\nmodification, are permitted provided that the following conditions are met:\n\n1. Redistributions of source code must retain the above copyright notice, this\n   list of conditions and the following disclaimer.\n\n2. Redistributions in binary form must reproduce the above copyright notice,\n   this list of conditions and the following disclaimer in the documentation\n   and/or other materials provided with the distribution.\n\n3. Neither the name of the copyright holder nor the names of its\n   contributors may be used to endorse or promote products derived from\n   this software without specific prior written permission.\n\nTHIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\"\nAND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE\nIMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE\nDISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE\nFOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL\nDAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR\nSERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER\nCAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,\nOR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE\nOF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
     },
     {
       "name": "dijkstrajs",
@@ -2122,6 +2192,13 @@
       "spdx": "MIT",
       "source": "js",
       "copyrightNotice": "Copyright (c) 2017, Jon Schlinkert."
+    },
+    {
+      "name": "shiki",
+      "version": "3.23.0",
+      "spdx": "MIT",
+      "source": "js",
+      "copyrightNotice": "Copyright (c) 2021 Pine Wu\nCopyright (c) 2023 Anthony Fu <https://github.com/antfu>"
     },
     {
       "name": "shiki",
