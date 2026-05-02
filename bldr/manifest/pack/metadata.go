@@ -6,6 +6,7 @@ import (
 	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
 	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/identity"
 	"github.com/s4wave/spacewave/db/bucket"
+	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
 )
 
 const (
@@ -81,7 +82,7 @@ func (m *ManifestTuple) validate() error {
 }
 
 // ValidateCleanObjectRef validates a manifest-pack object ref and rejects
-// transform configuration pointers that must not cross the CI artifact boundary.
+// transform configuration pointers or key-bearing transform steps.
 func ValidateCleanObjectRef(name string, ref *bucket.ObjectRef) error {
 	if ref.GetRootRef().GetEmpty() {
 		return errors.Errorf("%s root_ref is empty", name)
@@ -89,11 +90,13 @@ func ValidateCleanObjectRef(name string, ref *bucket.ObjectRef) error {
 	if err := ref.Validate(); err != nil {
 		return errors.Wrap(err, name)
 	}
-	if !ref.GetTransformConf().GetEmpty() {
-		return errors.Errorf("%s contains inline transform config", name)
-	}
 	if !ref.GetTransformConfRef().GetEmpty() {
 		return errors.Errorf("%s contains transform config ref", name)
+	}
+	for i, step := range ref.GetTransformConf().GetSteps() {
+		if step.GetId() == transform_blockenc.ConfigID {
+			return errors.Errorf("%s transform_config.steps[%d] uses block encryption", name, i)
+		}
 	}
 	return nil
 }

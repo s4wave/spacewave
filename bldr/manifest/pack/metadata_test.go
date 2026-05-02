@@ -5,10 +5,14 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/aperturerobotics/controllerbus/config"
 	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
 	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/bucket"
+	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
+	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
+	"github.com/s4wave/spacewave/db/util/blockenc"
 )
 
 func TestManifestPackMetadataValidateAcceptsCleanMetadata(t *testing.T) {
@@ -38,19 +42,33 @@ func TestManifestPackMetadataValidateRejectsWrongPackDigestLength(t *testing.T) 
 	}
 }
 
-func TestManifestPackMetadataValidateRejectsInlineTransformConfig(t *testing.T) {
+func TestManifestPackMetadataValidateAcceptsInlineCompressionTransformConfig(t *testing.T) {
 	meta := testManifestPackMetadata(t)
-	meta.ManifestBundleRef.TransformConf = &block_transform.Config{
-		Steps: []*block_transform.StepConfig{{
-			Id:     "blockenc",
-			Config: []byte("secret"),
-		}},
+	conf, err := block_transform.NewConfig([]config.Config{&transform_s2.Config{}})
+	if err != nil {
+		t.Fatal(err)
 	}
-	err := meta.Validate()
+	meta.ManifestBundleRef.TransformConf = conf
+	if err := meta.Validate(); err != nil {
+		t.Fatalf("Validate rejected compression transform config: %v", err)
+	}
+}
+
+func TestManifestPackMetadataValidateRejectsBlockEncTransformConfig(t *testing.T) {
+	meta := testManifestPackMetadata(t)
+	conf, err := block_transform.NewConfig([]config.Config{&transform_blockenc.Config{
+		BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
+		Key:      make([]byte, 32),
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	meta.ManifestBundleRef.TransformConf = conf
+	err = meta.Validate()
 	if err == nil {
-		t.Fatal("Validate accepted inline transform config")
+		t.Fatal("Validate accepted block encryption transform config")
 	}
-	if !strings.Contains(err.Error(), "inline transform config") {
+	if !strings.Contains(err.Error(), "block encryption") {
 		t.Fatalf("Validate error = %v", err)
 	}
 }
@@ -71,15 +89,14 @@ func TestManifestPackMetadataValidateRejectsTransformConfigRef(t *testing.T) {
 	}
 }
 
-func TestNewMetadataStripsManifestBundleTransformConfig(t *testing.T) {
+func TestNewMetadataPreservesSafeManifestBundleTransformConfig(t *testing.T) {
 	meta := testManifestPackMetadata(t)
 	ref := meta.GetManifestBundleRef().Clone()
-	ref.TransformConf = &block_transform.Config{
-		Steps: []*block_transform.StepConfig{{
-			Id:     "blockenc",
-			Config: []byte("secret"),
-		}},
+	conf, err := block_transform.NewConfig([]config.Config{&transform_s2.Config{}})
+	if err != nil {
+		t.Fatal(err)
 	}
+	ref.TransformConf = conf
 	clean, err := NewMetadata(
 		meta.GetGitSha(),
 		meta.GetBuildType(),
@@ -94,8 +111,8 @@ func TestNewMetadataStripsManifestBundleTransformConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewMetadata with transformed local ref = %v", err)
 	}
-	if !clean.GetManifestBundleRef().GetTransformConf().GetEmpty() {
-		t.Fatal("NewMetadata preserved inline transform config")
+	if clean.GetManifestBundleRef().GetTransformConf().GetEmpty() {
+		t.Fatal("NewMetadata stripped safe transform config")
 	}
 }
 
