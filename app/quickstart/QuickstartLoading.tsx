@@ -1,4 +1,5 @@
 import { QUICKSTART_OPTIONS, type QuickstartOption } from './options.js'
+import { useBrowserBootStatus } from '@s4wave/app/prerender/boot-status.js'
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
 import { usePath } from '@s4wave/web/router/router.js'
 
@@ -11,6 +12,7 @@ export function QuickstartLoading() {
   const id = path.split('/').pop() ?? ''
   const option = QUICKSTART_OPTIONS.find((o) => o.id === id)
   const landingHref = useStaticHref('/')
+  const boot = useBrowserBootStatus()
 
   if (!option) {
     return (
@@ -30,7 +32,15 @@ export function QuickstartLoading() {
         <p className="text-lg text-[var(--color-neutral-400)]">
           {option.description}
         </p>
-        <LoadingDots />
+        <div data-sw-boot-state={boot.state} className="flex flex-col items-center gap-3">
+          <LoadingDots />
+          <p
+            data-sw-boot-status
+            className="min-h-5 text-sm text-[var(--color-neutral-500)]"
+          >
+            {boot.detail}
+          </p>
+        </div>
         <a
           href={landingHref}
           className="mt-4 text-sm text-[var(--color-neutral-500)] transition-colors hover:text-[var(--color-neutral-300)]"

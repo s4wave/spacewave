@@ -99,6 +99,7 @@ func TestQuickstartPrerenderAutoBootsProductionWasmBundle(t *testing.T) {
 	waitForPrerenderRoot(t, page)
 	waitForBootFunction(t, page)
 	waitForLiveApp(t, page)
+	waitForCanonicalQuickstartURL(t, page)
 	err := page.Locator("[data-testid='unixfs-browser']").WaitFor(
 		playwright.LocatorWaitForOptions{Timeout: playwright.Float(browserWaitMS)},
 	)
@@ -107,6 +108,24 @@ func TestQuickstartPrerenderAutoBootsProductionWasmBundle(t *testing.T) {
 		t.Fatalf("wait for quickstart drive shell: %v", err)
 	}
 	logQuickstartTiming(t, page)
+}
+
+func waitForCanonicalQuickstartURL(t *testing.T, page playwright.Page) {
+	t.Helper()
+
+	_, err := page.Evaluate(`async () => {
+		const deadline = performance.now() + 30000
+		while (window.location.pathname !== '/' || window.location.hash !== '#/quickstart/drive') {
+			if (performance.now() > deadline) {
+				throw new Error('quickstart did not canonicalize to /#/quickstart/drive: '+window.location.href)
+			}
+			await new Promise((resolve) => requestAnimationFrame(resolve))
+		}
+		return true
+	}`)
+	if err != nil {
+		t.Fatalf("wait for canonical quickstart URL: %v", err)
+	}
 }
 
 func waitForLiveApp(t *testing.T, page playwright.Page) {

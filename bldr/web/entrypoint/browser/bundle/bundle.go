@@ -67,16 +67,31 @@ func WriteBuildManifest(dir string, manifest *BuildManifest) error {
 
 // WriteStableBootAsset writes the stable browser boot asset at the build root.
 func WriteStableBootAsset(dir string) error {
-	const bootAsset = `const releasePath='/browser-release.json';
+const bootAsset = `const releasePath='/browser-release.json';
 const g=globalThis;
+const bootStatusEvent='spacewave:boot-status';
 let releasePromise;
 let primePromise;
+function setBootStatus(phase,detail,state){
+  const status={phase,detail:detail||phase,state:state||'loading'};
+  g.__swBootStatus=status;
+  const target=document.querySelector('[data-sw-boot-status]');
+  if(target)target.textContent=status.detail;
+  const stateTarget=document.querySelector('[data-sw-boot-state]');
+  if(stateTarget)stateTarget.setAttribute('data-sw-boot-state',status.state);
+  window.dispatchEvent(new CustomEvent(bootStatusEvent,{detail:status}));
+}
+function setBootError(phase,err){
+  const msg=err&&err.message?err.message:String(err);
+  setBootStatus(phase,msg,'error');
+}
 function absPath(path){
   if(!path)return'';
   return path.startsWith('/')?path:'/'+path;
 }
 function loadRelease(){
   if(releasePromise)return releasePromise;
+  setBootStatus('manifest','Loading browser release...');
   releasePromise=fetch(releasePath,{cache:'no-cache'}).then(async function(resp){
     if(!resp.ok)throw new Error('failed to load browser release manifest: '+resp.status);
     const release=await resp.json();
@@ -87,6 +102,7 @@ function loadRelease(){
     if(!wasm)throw new Error('browser release manifest missing shellAssets.wasm');
     g.__swEntry=entrypoint;
     g.__swGenerationId=release.generationId||'';
+    setBootStatus('manifest-ready','Browser release found.');
     return {entrypoint,wasm};
   });
   return releasePromise;
@@ -94,6 +110,7 @@ function loadRelease(){
 function primeRelease(){
   if(primePromise)return primePromise;
   primePromise=loadRelease().then(function(release){
+    setBootStatus('wasm','Preparing runtime...');
     fetch(release.wasm);
     return release;
   });
@@ -108,9 +125,10 @@ function primeRelease(){
   function doImport(){
     if(imported)return;
     imported=true;
+    setBootStatus('entrypoint','Starting application...');
     void primeRelease()
       .then(function(release){return import(release.entrypoint)})
-      .catch(function(err){console.error('boot.mjs: failed to import entrypoint',err)});
+      .catch(function(err){setBootError('entrypoint-error',err);console.error('boot.mjs: failed to import entrypoint',err)});
   }
   void primeRelease()
     .then(function(release){
@@ -134,7 +152,7 @@ function primeRelease(){
       document.addEventListener('keydown',onInteract);
       window.addEventListener('load',function(){setTimeout(doImport,1000)});
     })
-    .catch(function(err){console.error('boot.mjs: failed to load release manifest',err)});
+    .catch(function(err){setBootError('manifest-error',err);console.error('boot.mjs: failed to load release manifest',err)});
 })();`
 
 	return os.WriteFile(filepath.Join(dir, stableBootFilename), []byte(bootAsset), 0o644)

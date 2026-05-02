@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { getAppPath, normalizeAppPath } from './app-path.js'
+import { getAppPath, normalizeAppPath, setAppPath } from './app-path.js'
 
 describe('app path helpers', () => {
   afterEach(() => {
@@ -21,6 +21,10 @@ describe('app path helpers', () => {
     expect(normalizeAppPath('/recover%20flow?code=abc')).toBe('/recover flow')
   })
 
+  it('normalizes hash-prefixed paths', () => {
+    expect(normalizeAppPath('#/quickstart/drive')).toBe('/quickstart/drive')
+  })
+
   it('uses direct login pathnames as app routes', () => {
     window.history.replaceState({}, '', '/login')
 
@@ -31,5 +35,30 @@ describe('app path helpers', () => {
     expect(normalizeAppPath('/u/1/notes/100% ready.txt')).toBe(
       '/u/1/notes/100% ready.txt',
     )
+  })
+
+  it('sets app paths as root hash routes from static pathnames', () => {
+    window.history.replaceState({}, '', '/quickstart/drive')
+
+    setAppPath('#/quickstart/drive')
+
+    expect(window.location.pathname).toBe('/')
+    expect(window.location.hash).toBe('#/quickstart/drive')
+  })
+
+  it('canonicalizes app-only routes from static pathnames', () => {
+    window.history.replaceState({}, '', '/pricing')
+
+    setAppPath('/login')
+
+    expect(window.location.pathname).toBe('/')
+    expect(window.location.hash).toBe('#/login')
+  })
+
+  it('sets app paths as hash routes from root', () => {
+    setAppPath('/login')
+
+    expect(window.location.pathname).toBe('/')
+    expect(window.location.hash).toBe('#/login')
   })
 })

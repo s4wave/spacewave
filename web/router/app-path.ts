@@ -21,6 +21,10 @@ function stripQueryParams(path: string): string {
   return path.slice(0, idx)
 }
 
+function stripHashPrefix(path: string): string {
+  return path.startsWith('#') ? path.slice(1) : path
+}
+
 function decodePath(path: string): string {
   try {
     return decodeURIComponent(path)
@@ -31,7 +35,7 @@ function decodePath(path: string): string {
 
 // normalizeAppPath returns the decoded app route path for a raw hash/pathname.
 export function normalizeAppPath(path: string): string {
-  const stripped = stripQueryParams(path)
+  const stripped = stripQueryParams(stripHashPrefix(path))
   if (!stripped) return '/'
   const normalized = stripped.startsWith('/') ? stripped : '/' + stripped
   return decodePath(normalized)
@@ -49,8 +53,13 @@ export function getAppPath(): string {
   return '/'
 }
 
-// setAppPath sets the hash to the given path. If on a pathname-based
-// static route, the first setAppPath call transitions to hash routing.
+// setAppPath sets the hash to the given path. If on a pathname-based static
+// route, the first setAppPath call transitions to the canonical root hash URL.
 export function setAppPath(path: string): void {
-  window.location.hash = path
+  const normalized = normalizeAppPath(path)
+  if (window.location.pathname !== '/' || window.location.search) {
+    window.history.replaceState({}, '', `/#${normalized}`)
+    return
+  }
+  window.location.hash = normalized
 }

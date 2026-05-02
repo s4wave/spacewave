@@ -446,11 +446,11 @@ async function buildRootTemplate(ctx: PrerenderContext) {
   // Bootstrap inline script (in bootstrapScript) handles visibility
   // based on hasSession/hash. No separate inline script needed.
   const body = `<div id="sw-landing" style="display:flex;flex-direction:column;flex:1;min-height:0">${landingHtml}</div>
-      <div id="sw-loading" style="display:none">
+      <div id="sw-loading" data-sw-boot-state="loading" style="display:none">
         <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;width:100%;background:var(--color-background,#0a0a0a)">
           <div style="text-align:center">
             <h1 style="font-size:1.5rem;font-weight:600;color:var(--color-foreground,#fafafa)">Spacewave</h1>
-            <p style="font-size:0.875rem;color:var(--color-foreground-alt,#a1a1aa);margin-top:0.75rem">Loading application...</p>
+            <p data-sw-boot-status style="font-size:0.875rem;color:var(--color-foreground-alt,#a1a1aa);margin-top:0.75rem">Loading application...</p>
           </div>
         </div>
       </div>`

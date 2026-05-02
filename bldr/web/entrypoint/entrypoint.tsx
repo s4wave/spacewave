@@ -7,11 +7,16 @@ import {
 } from '@aptre/bldr-react'
 import { WebDocument as BldrWebDocument, WebDocumentOptions } from '@aptre/bldr'
 
+import { setAppPath } from '@s4wave/web/router/app-path.js'
+
 import { initBrowserReleaseAutoReload } from '../bldr/browser-release-update.js'
 
 declare global {
   var __swDeferBoot: boolean | undefined
   var __swBoot: ((hash: string) => void) | undefined
+  var __swBootStatus:
+    | { phase: string; detail: string; state: 'loading' | 'error' }
+    | undefined
   var __swPrerenderRoot: Root | undefined
   var __swPrerenderContainer: HTMLElement | undefined
   var __swReadyResolve: (() => void) | undefined
@@ -55,6 +60,22 @@ const bldrRootProps: IBldrRootProps = { webDocumentOpts }
 
 initBrowserReleaseAutoReload()
 
+function setBrowserBootStatus(
+  phase: string,
+  detail: string,
+  state: 'loading' | 'error' = 'loading',
+) {
+  const status = { phase, detail, state }
+  globalThis.__swBootStatus = status
+  document.querySelector('[data-sw-boot-status]')?.replaceChildren(detail)
+  document
+    .querySelector('[data-sw-boot-state]')
+    ?.setAttribute('data-sw-boot-state', state)
+  window.dispatchEvent(
+    new CustomEvent('spacewave:boot-status', { detail: status }),
+  )
+}
+
 // BLDR_STARTUP_JS is an injected variable with the path to the startup js component
 declare const BLDR_STARTUP_JS: string | undefined
 if (typeof BLDR_STARTUP_JS === 'string') {
@@ -97,9 +118,18 @@ function resolveDeferredBootReady() {
 }
 
 function waitForWebRuntime(webDocument: BldrWebDocument) {
-  void webDocument.waitConn().then(() => {
-    resolveDeferredBootReady()
-  })
+  setBrowserBootStatus('runtime', 'Connecting runtime...')
+  void webDocument
+    .waitConn()
+    .then(() => {
+      setBrowserBootStatus('ready', 'Application ready.')
+      resolveDeferredBootReady()
+    })
+    .catch((err: unknown) => {
+      const detail = err instanceof Error ? err.message : String(err)
+      setBrowserBootStatus('runtime-error', detail, 'error')
+      console.error('entrypoint: failed to connect runtime', err)
+    })
 }
 
 // initialize react and Bldr
@@ -137,7 +167,8 @@ if (container && deferBoot) {
   }
 
   globalThis.__swBoot = (hash: string) => {
-    window.location.hash = hash
+    setBrowserBootStatus('app', 'Opening application...')
+    setAppPath(hash)
     renderBootedRoot()
   }
   waitForWebRuntime(webDocument)
