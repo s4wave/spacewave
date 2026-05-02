@@ -54,23 +54,20 @@ func (m *ManifestPackMetadata) Validate() error {
 
 // Validate validates the manifest tuple.
 func (m *ManifestTuple) Validate() error {
-	return m.validate(true)
+	return m.validate()
 }
 
 // ValidateRequest validates a manifest tuple before FetchManifest resolves rev.
 func (m *ManifestTuple) ValidateRequest() error {
-	return m.validate(false)
+	return m.validate()
 }
 
-func (m *ManifestTuple) validate(requireRev bool) error {
+func (m *ManifestTuple) validate() error {
 	if err := bldr_manifest.ValidateManifestID(m.GetManifestId(), false); err != nil {
 		return errors.Wrap(err, "manifest_id")
 	}
 	if m.GetPlatformId() == "" {
 		return errors.New("platform_id is empty")
-	}
-	if requireRev && m.GetRev() == 0 {
-		return errors.New("rev is empty")
 	}
 	if m.GetObjectKey() == "" {
 		return errors.New("object_key is empty")

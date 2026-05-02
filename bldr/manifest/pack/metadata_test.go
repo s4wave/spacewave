@@ -18,6 +18,14 @@ func TestManifestPackMetadataValidateAcceptsCleanMetadata(t *testing.T) {
 	}
 }
 
+func TestManifestPackMetadataValidateAcceptsZeroManifestRev(t *testing.T) {
+	meta := testManifestPackMetadata(t)
+	meta.Manifests[0].Rev = 0
+	if err := meta.Validate(); err != nil {
+		t.Fatalf("Validate metadata with zero manifest rev = %v", err)
+	}
+}
+
 func TestManifestPackMetadataValidateRejectsWrongPackDigestLength(t *testing.T) {
 	meta := testManifestPackMetadata(t)
 	meta.PackSha256 = []byte("short")
