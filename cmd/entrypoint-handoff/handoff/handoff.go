@@ -444,7 +444,7 @@ func produceManifestPack(
 		busHandle.GetBus(),
 		repoDir,
 		"bldr.yaml",
-		"",
+		"devtool",
 		nil,
 	)
 	if err != nil {
