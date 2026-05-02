@@ -128,3 +128,43 @@ func TestValidateRemoteHandoffManifestRejectsReactDevMismatch(t *testing.T) {
 		t.Fatal("validateRemoteHandoffManifest accepted react_dev mismatch")
 	}
 }
+
+func TestValidateRemoteHandoffManifestAcceptsArtifactRestoredSymlink(t *testing.T) {
+	dir := t.TempDir()
+	root := filepath.Join(dir, "root")
+	binDir := filepath.Join(root, ".bldr", "build", "js", "spacewave-app", "dist-deps", "node_modules", ".bin")
+	if err := os.MkdirAll(binDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	targetPath := filepath.Join(binDir, "tool-target")
+	if err := os.WriteFile(targetPath, []byte("tool bytes"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	linkPath := filepath.Join(binDir, "tool")
+	if err := os.Symlink("tool-target", linkPath); err != nil {
+		t.Skipf("symlink unavailable: %v", err)
+	}
+	files, err := hashTree(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	identity := remoteHandoffIdentity{
+		GitSHA:             "abc123",
+		ReleaseEnv:         "production",
+		ReactDev:           false,
+		RemoteTargetNames:  remoteHandoffTargets,
+		RemoteFileMetadata: files,
+	}
+	if err := os.WriteFile(filepath.Join(dir, "remote-manifest.json"), marshalRemoteHandoffManifest(identity), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(linkPath); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(linkPath, []byte("tool bytes"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := validateRemoteHandoffManifest(dir, identity); err != nil {
+		t.Fatalf("validateRemoteHandoffManifest artifact-restored symlink = %v", err)
+	}
+}

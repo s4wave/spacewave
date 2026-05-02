@@ -529,11 +529,7 @@ func validateRemoteHandoffManifest(handoffDir string, expected remoteHandoffIden
 		if err != nil {
 			return errors.Wrap(err, "stat remote file "+rel)
 		}
-		statSize := info.Size()
-		if linkInfo, err := os.Lstat(path); err == nil && linkInfo.Mode()&os.ModeSymlink != 0 {
-			statSize = linkInfo.Size()
-		}
-		if statSize != file.GetInt64("size") {
+		if info.Size() != file.GetInt64("size") {
 			return errors.Errorf("remote file size mismatch: %s", rel)
 		}
 		digest, err := fileSHA256(path)
@@ -564,10 +560,18 @@ func hashTree(root string) ([]remoteHandoffFile, error) {
 		if err != nil {
 			return err
 		}
+		size := info.Size()
+		if info.Mode()&os.ModeSymlink != 0 {
+			targetInfo, err := os.Stat(path)
+			if err != nil {
+				return errors.Wrap(err, "stat remote symlink target "+path)
+			}
+			size = targetInfo.Size()
+		}
 		out = append(out, remoteHandoffFile{
 			Path:   filepath.ToSlash(rel),
 			SHA256: digest,
-			Size:   info.Size(),
+			Size:   size,
 		})
 		return nil
 	}); err != nil {
