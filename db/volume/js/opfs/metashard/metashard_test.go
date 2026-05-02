@@ -315,6 +315,53 @@ func TestMetaShardNewestSuperblockWithZeroRootFallsBack(t *testing.T) {
 	}
 }
 
+func TestMetaShardBothSuperblocksWithZeroRootsResets(t *testing.T) {
+	name := "test-metashard-both-zero-roots"
+	ms := newTestMetaShard(t, name)
+	putMetaValue(t, ms, "k", "v1")
+	putMetaValue(t, ms, "k", "v2")
+	zeroSuperblockRoots(t, ms)
+
+	reopened := reopenTestMetaShard(t, name)
+	_, found, err := reopened.Get([]byte("k"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if found {
+		t.Fatal("expected corrupt metashard reset to drop old metadata")
+	}
+
+	putMetaValue(t, reopened, "after-reset", "ok")
+	assertMetaValue(t, reopenTestMetaShard(t, name), "after-reset", "ok")
+}
+
+func TestMetaStoreReadTxRecoversCorruptSnapshot(t *testing.T) {
+	name := "test-metastore-read-tx-recovers-corrupt-snapshot"
+	ms := newTestMetaShard(t, name)
+	putMetaValue(t, ms, "k", "v1")
+	putMetaValue(t, ms, "k", "v2")
+
+	store := NewMetaStore(ms)
+	tx, err := store.NewTransaction(context.Background(), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+
+	zeroSuperblockRoots(t, ms)
+
+	_, found, err := tx.Get(context.Background(), []byte("k"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if found {
+		t.Fatal("expected corrupt read transaction recovery to reset metadata")
+	}
+
+	putMetaValue(t, ms, "after-reset", "ok")
+	assertMetaValue(t, reopenTestMetaShard(t, name), "after-reset", "ok")
+}
+
 func TestMetaShardMissingPagesFileReturnsReadError(t *testing.T) {
 	ms := newTestMetaShard(t, "test-metashard-missing-pages")
 	putMetaValue(t, ms, "k", "v1")
@@ -330,5 +377,36 @@ func TestMetaShardMissingPagesFileReturnsReadError(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "open page file for read") {
 		t.Fatalf("expected missing pages.dat read error, got %v", err)
+	}
+}
+
+func zeroSuperblockRoots(t *testing.T, ms *MetaShard) {
+	t.Helper()
+	zeroSuperblockRoot(t, ms, "super-a")
+	zeroSuperblockRoot(t, ms, "super-b")
+}
+
+func zeroSuperblockRoot(t *testing.T, ms *MetaShard, slot string) {
+	t.Helper()
+	var sbBuf [pagestore.SuperblockSize]byte
+	readSuper(ms.dir, slot, sbBuf[:])
+	sb, err := pagestore.DecodeSuperblock(sbBuf[:])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sb.RootPage == pagestore.InvalidPage {
+		return
+	}
+	f, err := opfs.CreateSyncFile(ms.dir, "pages.dat")
+	if err != nil {
+		t.Fatal(err)
+	}
+	zeroPage := make([]byte, pagestore.DefaultPageSize)
+	if _, err := f.WriteAt(zeroPage, int64(sb.RootPage)*pagestore.DefaultPageSize); err != nil {
+		t.Fatal(err)
+	}
+	f.Flush()
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
 	}
 }

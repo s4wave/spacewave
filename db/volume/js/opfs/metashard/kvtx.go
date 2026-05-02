@@ -31,11 +31,16 @@ func (s *MetaStore) Execute(ctx context.Context) error {
 
 // NewTransaction returns a new transaction against the store.
 func (s *MetaStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	release, err := s.shard.acquireStateLock(false)
+	if err != nil {
+		return nil, errors.Wrap(err, "acquire meta read lock")
+	}
 	tree, generation := s.shard.OpenCommittedTree()
 	readTx := metaReadTx{
 		shard:      s.shard,
 		tree:       tree,
 		generation: generation,
+		release:    release,
 	}
 	if write {
 		return &metaWriteTx{
@@ -53,6 +58,8 @@ type metaReadTx struct {
 	tree       *pagestore.Tree
 	generation uint64
 	recovered  bool
+	release    func()
+	released   bool
 }
 
 type metaEntry struct {
@@ -130,22 +137,17 @@ func (t *metaReadTx) Iterate(ctx context.Context, prefix []byte, sort, reverse b
 
 // Commit is a no-op for read transactions.
 func (t *metaReadTx) Commit(ctx context.Context) error {
+	t.releaseLock()
 	return nil
 }
 
 // Discard is a no-op for read transactions.
 func (t *metaReadTx) Discard() {
+	t.releaseLock()
 }
 
 func (t *metaReadTx) collectPrefix(prefix []byte) ([]metaEntry, error) {
-	var entries []metaEntry
-	err := t.tree.ScanPrefix(prefix, func(key, value []byte) bool {
-		entries = append(entries, metaEntry{
-			key:   bytes.Clone(key),
-			value: bytes.Clone(value),
-		})
-		return true
-	})
+	entries, err := scanPrefixEntries(t.tree, prefix)
 	if err == nil {
 		return entries, nil
 	}
@@ -153,15 +155,7 @@ func (t *metaReadTx) collectPrefix(prefix []byte) ([]metaEntry, error) {
 		return nil, err
 	}
 
-	entries = nil
-	err = t.tree.ScanPrefix(prefix, func(key, value []byte) bool {
-		entries = append(entries, metaEntry{
-			key:   bytes.Clone(key),
-			value: bytes.Clone(value),
-		})
-		return true
-	})
-	return entries, err
+	return scanPrefixEntries(t.tree, prefix)
 }
 
 func (t *metaReadTx) recoverCorruptRead(err error) error {
@@ -174,12 +168,32 @@ func (t *metaReadTx) recoverCorruptRead(err error) error {
 	if t.shard == nil {
 		return err
 	}
+	hadLock := t.release != nil && !t.released
+	if hadLock {
+		t.releaseLock()
+	}
 	if err := t.shard.recoverCorruptState(); err != nil {
 		return errors.Wrap(err, "recover corrupt meta shard")
+	}
+	if hadLock {
+		release, err := t.shard.acquireStateLock(false)
+		if err != nil {
+			return errors.Wrap(err, "reacquire meta read lock")
+		}
+		t.release = release
+		t.released = false
 	}
 	t.tree, t.generation = t.shard.OpenCommittedTree()
 	t.recovered = true
 	return nil
+}
+
+func (t *metaReadTx) releaseLock() {
+	if t.release == nil || t.released {
+		return
+	}
+	t.release()
+	t.released = true
 }
 
 // mutation is a buffered Set or Delete operation.
@@ -244,14 +258,17 @@ func (t *metaWriteTx) Delete(ctx context.Context, key []byte) error {
 // Commit applies all buffered mutations atomically via WriteTx.
 func (t *metaWriteTx) Commit(ctx context.Context) error {
 	if t.committed {
+		t.releaseLock()
 		return nil
 	}
 	t.committed = true
 
 	if len(t.pending) == 0 {
+		t.releaseLock()
 		return nil
 	}
 
+	t.releaseLock()
 	return t.shard.WriteTx(func(tree *pagestore.Tree) error {
 		for i := range t.pending {
 			m := &t.pending[i]
@@ -272,6 +289,7 @@ func (t *metaWriteTx) Commit(ctx context.Context) error {
 // Discard discards pending mutations.
 func (t *metaWriteTx) Discard() {
 	t.pending = nil
+	t.releaseLock()
 }
 
 // _ is a type assertion.

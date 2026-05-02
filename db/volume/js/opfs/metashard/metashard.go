@@ -5,6 +5,8 @@
 package metashard
 
 import (
+	"bytes"
+	"log"
 	"sync"
 	"syscall/js"
 
@@ -41,7 +43,13 @@ func NewMetaShard(dir js.Value, lockPrefix string, pageSize int) (*MetaShard, er
 		pager:      NewOpfsPager(dir, "pages.dat", pageSize),
 		rootPage:   pagestore.InvalidPage,
 	}
-	if err := ms.reloadCommittedState(); err != nil {
+	release, err := ms.acquireStateLock(false)
+	if err != nil {
+		return nil, errors.Wrap(err, "acquire meta read lock")
+	}
+	err = ms.reloadCommittedState()
+	release()
+	if err != nil {
 		if !IsCorruptError(err) {
 			return nil, err
 		}
@@ -54,7 +62,26 @@ func NewMetaShard(dir js.Value, lockPrefix string, pageSize int) (*MetaShard, er
 
 // Get looks up a key. Returns value, found, error.
 func (ms *MetaShard) Get(key []byte) ([]byte, bool, error) {
+	release, err := ms.acquireStateLock(false)
+	if err != nil {
+		return nil, false, errors.Wrap(err, "acquire meta read lock")
+	}
 	tree, _ := ms.OpenCommittedTree()
+	val, found, err := tree.Get(key)
+	if err == nil || !IsCorruptError(err) {
+		release()
+		return val, found, err
+	}
+	release()
+	if err := ms.recoverCorruptState(); err != nil {
+		return nil, false, errors.Wrap(err, "recover corrupt meta shard")
+	}
+	release, err = ms.acquireStateLock(false)
+	if err != nil {
+		return nil, false, errors.Wrap(err, "reacquire meta read lock")
+	}
+	defer release()
+	tree, _ = ms.OpenCommittedTree()
 	return tree.Get(key)
 }
 
@@ -63,7 +90,7 @@ func (ms *MetaShard) Get(key []byte) ([]byte, bool, error) {
 // by writing dirty pages and flipping the superblock.
 func (ms *MetaShard) WriteTx(fn func(tree *pagestore.Tree) error) error {
 	// Acquire write lock.
-	release, err := filelock.AcquireWebLock(ms.lockPrefix+"/meta/write", true)
+	release, err := ms.acquireStateLock(true)
 	if err != nil {
 		return errors.Wrap(err, "acquire meta write lock")
 	}
@@ -150,8 +177,44 @@ func (ms *MetaShard) WriteTx(fn func(tree *pagestore.Tree) error) error {
 
 // ScanPrefix iterates over entries matching the prefix.
 func (ms *MetaShard) ScanPrefix(prefix []byte, fn func(key, value []byte) bool) error {
+	release, err := ms.acquireStateLock(false)
+	if err != nil {
+		return errors.Wrap(err, "acquire meta read lock")
+	}
 	tree, _ := ms.OpenCommittedTree()
-	return tree.ScanPrefix(prefix, fn)
+	entries, err := scanPrefixEntries(tree, prefix)
+	if err == nil || !IsCorruptError(err) {
+		release()
+		if err != nil {
+			return err
+		}
+		for i := range entries {
+			if !fn(entries[i].key, entries[i].value) {
+				return nil
+			}
+		}
+		return nil
+	}
+	release()
+	if err := ms.recoverCorruptState(); err != nil {
+		return errors.Wrap(err, "recover corrupt meta shard")
+	}
+	release, err = ms.acquireStateLock(false)
+	if err != nil {
+		return errors.Wrap(err, "reacquire meta read lock")
+	}
+	defer release()
+	tree, _ = ms.OpenCommittedTree()
+	entries, err = scanPrefixEntries(tree, prefix)
+	if err != nil {
+		return err
+	}
+	for i := range entries {
+		if !fn(entries[i].key, entries[i].value) {
+			return nil
+		}
+	}
+	return nil
 }
 
 // Generation returns the current commit generation.
@@ -184,6 +247,10 @@ func (ms *MetaShard) reloadCommittedState() error {
 	rootPage := pagestore.InvalidPage
 	var gen uint64
 	if sb != nil {
+		ms.pager.SetPageCount(sb.PageCount)
+		if err := ms.pager.LoadFreelist(sb.FreelistPage); err != nil {
+			return errors.Wrap(err, "load freelist")
+		}
 		rootPage = sb.RootPage
 		gen = sb.Generation
 	}
@@ -202,7 +269,7 @@ func (ms *MetaShard) reloadCommittedState() error {
 }
 
 func (ms *MetaShard) recoverCorruptState() error {
-	release, err := filelock.AcquireWebLock(ms.lockPrefix+"/meta/write", true)
+	release, err := ms.acquireStateLock(true)
 	if err != nil {
 		return errors.Wrap(err, "acquire meta write lock")
 	}
@@ -212,8 +279,26 @@ func (ms *MetaShard) recoverCorruptState() error {
 		return nil
 	} else if !IsCorruptError(err) {
 		return err
+	} else {
+		log.Printf("metashard: resetting corrupt OPFS metadata: %v", err)
 	}
 	return ms.resetCommittedStateLocked()
+}
+
+func (ms *MetaShard) acquireStateLock(exclusive bool) (func(), error) {
+	return filelock.AcquireWebLock(ms.lockPrefix+"/meta/write", exclusive)
+}
+
+func scanPrefixEntries(tree *pagestore.Tree, prefix []byte) ([]metaEntry, error) {
+	var entries []metaEntry
+	err := tree.ScanPrefix(prefix, func(key, value []byte) bool {
+		entries = append(entries, metaEntry{
+			key:   bytes.Clone(key),
+			value: bytes.Clone(value),
+		})
+		return true
+	})
+	return entries, err
 }
 
 func (ms *MetaShard) resetCommittedStateLocked() error {
@@ -337,7 +422,12 @@ func readSuper(dir js.Value, name string, buf []byte) {
 // writeSuper writes a superblock to OPFS.
 func writeSuper(dir js.Value, name string, data []byte) error {
 	if !opfs.SyncAvailable() {
-		return opfs.WriteFile(dir, name, data)
+		f, err := opfs.CreateAsyncFile(dir, name)
+		if err != nil {
+			return err
+		}
+		_, err = f.WriteAt(data, 0)
+		return err
 	}
 	f, err := opfs.CreateSyncFile(dir, name)
 	if err != nil {
