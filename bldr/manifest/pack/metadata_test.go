@@ -71,6 +71,34 @@ func TestManifestPackMetadataValidateRejectsTransformConfigRef(t *testing.T) {
 	}
 }
 
+func TestNewMetadataStripsManifestBundleTransformConfig(t *testing.T) {
+	meta := testManifestPackMetadata(t)
+	ref := meta.GetManifestBundleRef().Clone()
+	ref.TransformConf = &block_transform.Config{
+		Steps: []*block_transform.StepConfig{{
+			Id:     "blockenc",
+			Config: []byte("secret"),
+		}},
+	}
+	clean, err := NewMetadata(
+		meta.GetGitSha(),
+		meta.GetBuildType(),
+		meta.GetProducerTarget(),
+		meta.GetReactDev(),
+		meta.GetCacheSchema(),
+		meta.GetManifests(),
+		ref,
+		meta.GetPack(),
+		meta.GetPackSha256(),
+	)
+	if err != nil {
+		t.Fatalf("NewMetadata with transformed local ref = %v", err)
+	}
+	if !clean.GetManifestBundleRef().GetTransformConf().GetEmpty() {
+		t.Fatal("NewMetadata preserved inline transform config")
+	}
+}
+
 func testManifestPackMetadata(t *testing.T) *ManifestPackMetadata {
 	t.Helper()
 

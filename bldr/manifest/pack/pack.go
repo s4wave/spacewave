@@ -26,7 +26,7 @@ func PackManifestBundle(
 	bundleRef *bucket.ObjectRef,
 	w io.Writer,
 ) (*packfile.PackfileEntry, []byte, error) {
-	if err := ValidateCleanObjectRef("manifest_bundle_ref", bundleRef); err != nil {
+	if err := bundleRef.Validate(); err != nil {
 		return nil, nil, err
 	}
 	var blocks []packBlock
@@ -108,7 +108,7 @@ func NewMetadata(
 		ProducerTarget:    producerTarget,
 		ReactDev:          reactDev,
 		CacheSchema:       cacheSchema,
-		ManifestBundleRef: bundleRef.Clone(),
+		ManifestBundleRef: cleanObjectRef(bundleRef),
 		Pack:              entry.CloneVT(),
 		PackSha256:        append([]byte(nil), packSHA256...),
 	}
@@ -128,4 +128,11 @@ type packBlock struct {
 	key  string
 	hash *hash.Hash
 	data []byte
+}
+
+func cleanObjectRef(ref *bucket.ObjectRef) *bucket.ObjectRef {
+	clean := ref.Clone()
+	clean.TransformConf = nil
+	clean.TransformConfRef = nil
+	return clean
 }
