@@ -34,37 +34,22 @@ func NewMetaShard(dir js.Value, lockPrefix string, pageSize int) (*MetaShard, er
 		pageSize = pagestore.DefaultPageSize
 	}
 
-	pager := NewOpfsPager(dir, "pages.dat", pageSize)
-
-	aBuf := make([]byte, pagestore.SuperblockSize)
-	bBuf := make([]byte, pagestore.SuperblockSize)
-	readSuper(dir, "super-a", aBuf)
-	readSuper(dir, "super-b", bBuf)
-
-	sb, err := pickValidSuperblock(pager, aBuf, bBuf)
-	if err != nil {
-		return nil, err
-	}
-
-	rootPage := pagestore.InvalidPage
-	var gen uint64
-	if sb != nil {
-		pager.SetPageCount(sb.PageCount)
-		rootPage = sb.RootPage
-		gen = sb.Generation
-		if err := pager.LoadFreelist(sb.FreelistPage); err != nil {
-			return nil, errors.Wrap(err, "load freelist")
-		}
-	}
-
-	return &MetaShard{
+	ms := &MetaShard{
 		dir:        dir,
 		lockPrefix: lockPrefix,
 		pageSize:   pageSize,
-		pager:      pager,
-		rootPage:   rootPage,
-		generation: gen,
-	}, nil
+		pager:      NewOpfsPager(dir, "pages.dat", pageSize),
+		rootPage:   pagestore.InvalidPage,
+	}
+	if err := ms.reloadCommittedState(); err != nil {
+		if !IsCorruptError(err) {
+			return nil, err
+		}
+		if err := ms.recoverCorruptState(); err != nil {
+			return nil, err
+		}
+	}
+	return ms, nil
 }
 
 // Get looks up a key. Returns value, found, error.
@@ -85,7 +70,12 @@ func (ms *MetaShard) WriteTx(fn func(tree *pagestore.Tree) error) error {
 	defer release()
 
 	if err := ms.reloadCommittedState(); err != nil {
-		return errors.Wrap(err, "reload committed state")
+		if !IsCorruptError(err) {
+			return errors.Wrap(err, "reload committed state")
+		}
+		if err := ms.resetCommittedStateLocked(); err != nil {
+			return errors.Wrap(err, "reset corrupt meta shard")
+		}
 	}
 	tree, gen := ms.OpenCommittedTree()
 
@@ -211,6 +201,44 @@ func (ms *MetaShard) reloadCommittedState() error {
 	return nil
 }
 
+func (ms *MetaShard) recoverCorruptState() error {
+	release, err := filelock.AcquireWebLock(ms.lockPrefix+"/meta/write", true)
+	if err != nil {
+		return errors.Wrap(err, "acquire meta write lock")
+	}
+	defer release()
+
+	if err := ms.reloadCommittedState(); err == nil {
+		return nil
+	} else if !IsCorruptError(err) {
+		return err
+	}
+	return ms.resetCommittedStateLocked()
+}
+
+func (ms *MetaShard) resetCommittedStateLocked() error {
+	if err := ms.pager.Close(); err != nil {
+		return errors.Wrap(err, "close page file")
+	}
+	for _, name := range []string{"pages.dat", "super-a", "super-b"} {
+		if err := opfs.DeleteFile(ms.dir, name); err != nil && !opfs.IsNotFound(err) {
+			return errors.Wrapf(err, "delete %s", name)
+		}
+	}
+
+	ms.pager = NewOpfsPager(ms.dir, "pages.dat", ms.pageSize)
+	ms.pager.SetPageCount(0)
+	if err := ms.pager.LoadFreelist(pagestore.InvalidPage); err != nil {
+		return err
+	}
+
+	ms.mu.Lock()
+	ms.rootPage = pagestore.InvalidPage
+	ms.generation = 0
+	ms.mu.Unlock()
+	return nil
+}
+
 func (ms *MetaShard) callTestHook(stage string) error {
 	if ms.testHook != nil {
 		return ms.testHook(stage)
@@ -225,23 +253,51 @@ func pickValidSuperblock(pager *OpfsPager, a, b []byte) (*pagestore.Superblock, 
 		return nil, nil
 	}
 	if errA != nil {
-		return validateSuperblock(pager, sb)
+		return validateOnlySuperblock(pager, "super-b", sb)
 	}
 	if errB != nil {
-		return validateSuperblock(pager, sa)
+		return validateOnlySuperblock(pager, "super-a", sa)
 	}
 	if sb.Generation > sa.Generation {
 		valid, err := validateSuperblock(pager, sb)
 		if err == nil {
 			return valid, nil
 		}
-		return validateSuperblock(pager, sa)
+		fallback, fallbackErr := validateSuperblock(pager, sa)
+		if fallbackErr == nil {
+			return fallback, nil
+		}
+		return nil, NewCorruptError(errors.Errorf(
+			"newest super-b invalid: %v; fallback super-a invalid: %v",
+			err,
+			fallbackErr,
+		))
 	}
 	valid, err := validateSuperblock(pager, sa)
 	if err == nil {
 		return valid, nil
 	}
-	return validateSuperblock(pager, sb)
+	fallback, fallbackErr := validateSuperblock(pager, sb)
+	if fallbackErr == nil {
+		return fallback, nil
+	}
+	return nil, NewCorruptError(errors.Errorf(
+		"newest super-a invalid: %v; fallback super-b invalid: %v",
+		err,
+		fallbackErr,
+	))
+}
+
+func validateOnlySuperblock(
+	pager *OpfsPager,
+	slot string,
+	sb *pagestore.Superblock,
+) (*pagestore.Superblock, error) {
+	valid, err := validateSuperblock(pager, sb)
+	if err != nil {
+		return nil, NewCorruptError(errors.Wrapf(err, "%s invalid", slot))
+	}
+	return valid, nil
 }
 
 func validateSuperblock(pager *OpfsPager, sb *pagestore.Superblock) (*pagestore.Superblock, error) {
