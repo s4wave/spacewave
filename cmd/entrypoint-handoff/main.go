@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -49,6 +50,8 @@ func run(ctx context.Context, args []string) error {
 	var skipBuild bool
 	var skipPackage bool
 	var stageBuildInputs bool
+	var remoteOnly bool
+	var remoteHandoffDir string
 	if err := func() error {
 		fs.StringVar(&version, "version", "", "release version")
 		fs.StringVar(&platformsCSV, "platforms", "", "comma-separated target platforms")
@@ -60,6 +63,8 @@ func run(ctx context.Context, args []string) error {
 		fs.BoolVar(&skipBuild, "skip-build", false, "skip helper and entrypoint builds and package existing artifacts")
 		fs.BoolVar(&skipPackage, "skip-package", false, "skip installer packaging")
 		fs.BoolVar(&stageBuildInputs, "stage-build-inputs", false, "stage raw dist/helper/icon inputs into out-dir")
+		fs.BoolVar(&remoteOnly, "remote-only", false, "build only shared remote entrypoint outputs")
+		fs.StringVar(&remoteHandoffDir, "remote-handoff-dir", "", "validated shared remote entrypoint handoff input dir")
 		return fs.Parse(args)
 	}(); err != nil {
 		return errors.Wrap(err, "parse flags")
@@ -67,7 +72,7 @@ func run(ctx context.Context, args []string) error {
 	if version == "" || outDir == "" {
 		return errors.New(usageText)
 	}
-	if !browserOnly && platformsCSV == "" {
+	if !browserOnly && !remoteOnly && platformsCSV == "" {
 		return errors.New(usageText)
 	}
 	if browserOnly && platformsCSV != "" {
@@ -76,13 +81,19 @@ func run(ctx context.Context, args []string) error {
 	if browserOnly && includeBrowser {
 		return errors.New("--browser-only and --include-browser cannot be combined")
 	}
+	if remoteOnly && platformsCSV != "" {
+		return errors.New("--remote-only does not accept --platforms")
+	}
+	if remoteOnly && (browserOnly || includeBrowser || skipBuild || skipPackage || stageBuildInputs) {
+		return errors.New("--remote-only cannot be combined with browser/platform packaging flags")
+	}
 
 	repoDir, err := os.Getwd()
 	if err != nil {
 		return errors.Wrap(err, "resolve repo dir")
 	}
 	platforms := splitCSV(platformsCSV)
-	if !browserOnly && len(platforms) == 0 {
+	if !browserOnly && !remoteOnly && len(platforms) == 0 {
 		return errors.New("at least one platform is required")
 	}
 
@@ -94,11 +105,33 @@ func run(ctx context.Context, args []string) error {
 	if err := os.RemoveAll(outDir); err != nil {
 		return errors.Wrap(err, "clean out dir")
 	}
-	if browserOnly {
+	if remoteOnly {
 		if err := runPhase(le, "build-remote-entrypoints", func() error {
 			return buildRemoteEntrypoints(ctx, repoDir)
 		}); err != nil {
 			return err
+		}
+		if err := runPhase(le, "stage-remote-handoff", func() error {
+			return stageRemoteHandoff(ctx, repoDir, outDir, reactDev)
+		}); err != nil {
+			return err
+		}
+		return nil
+	}
+	if remoteHandoffDir != "" {
+		if err := runPhase(le, "restore-remote-handoff", func() error {
+			return restoreRemoteHandoff(ctx, repoDir, remoteHandoffDir, reactDev)
+		}); err != nil {
+			return err
+		}
+	}
+	if browserOnly {
+		if remoteHandoffDir == "" {
+			if err := runPhase(le, "build-remote-entrypoints", func() error {
+				return buildRemoteEntrypoints(ctx, repoDir)
+			}); err != nil {
+				return err
+			}
 		}
 		if err := runPhase(le, "build-browser", func() error {
 			return buildBrowser(ctx, repoDir, reactDev)
@@ -305,8 +338,10 @@ func buildHelpers(repoDir string, platforms []string) error {
 }
 
 func buildEntrypoints(ctx context.Context, repoDir string, platforms []string) error {
-	if err := buildRemoteEntrypoints(ctx, repoDir); err != nil {
-		return err
+	if strings.TrimSpace(os.Getenv("ENTRYPOINT_HANDOFF_REMOTE_RESTORED")) != "1" {
+		if err := buildRemoteEntrypoints(ctx, repoDir); err != nil {
+			return err
+		}
 	}
 	for _, platform := range platforms {
 		goos, goarch := splitPlatform(platform)
@@ -346,6 +381,264 @@ func buildRemoteEntrypoints(ctx context.Context, repoDir string) error {
 		return errors.Wrap(err, "run bldr release-remote-js")
 	}
 	return nil
+}
+
+var remoteHandoffTargets = []string{"release-remote-web", "release-remote-js"}
+
+type remoteHandoffIdentity struct {
+	GitSHA             string
+	ReleaseEnv         string
+	ReactDev           bool
+	RemoteTargetNames  []string
+	RemoteFileMetadata []remoteHandoffFile
+}
+
+type remoteHandoffFile struct {
+	Path   string
+	SHA256 string
+	Size   int64
+}
+
+func stageRemoteHandoff(ctx context.Context, repoDir, outDir string, reactDev bool) error {
+	identity, err := currentRemoteHandoffIdentity(ctx, reactDev)
+	if err != nil {
+		return err
+	}
+	root := filepath.Join(outDir, "root")
+	for _, rel := range []string{
+		filepath.Join(".bldr", "build", "js", "spacewave-app", "dist"),
+		filepath.Join(".bldr", "build", "js", "spacewave-app", "dist-deps"),
+		filepath.Join(".bldr", "build", "js", "spacewave-app", "assets"),
+		filepath.Join(".bldr", "build", "js", "spacewave-web", "dist"),
+		filepath.Join(".bldr", "build", "js", "spacewave-web", "dist-deps"),
+		filepath.Join(".bldr", "build", "js", "spacewave-web", "assets"),
+		".bldr-dist",
+	} {
+		src := filepath.Join(repoDir, rel)
+		if _, err := os.Stat(src); err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			return errors.Wrap(err, "stat "+rel)
+		}
+		if err := copyTree(src, filepath.Join(root, rel)); err != nil {
+			return errors.Wrap(err, "stage remote "+rel)
+		}
+	}
+	files, err := hashTree(root)
+	if err != nil {
+		return err
+	}
+	if len(files) == 0 {
+		return errors.New("remote handoff contains no files")
+	}
+	identity.RemoteFileMetadata = files
+	if err := os.WriteFile(
+		filepath.Join(outDir, "remote-manifest.json"),
+		marshalRemoteHandoffManifest(identity),
+		0o644,
+	); err != nil {
+		return errors.Wrap(err, "write remote manifest")
+	}
+	return nil
+}
+
+func restoreRemoteHandoff(ctx context.Context, repoDir, handoffDir string, reactDev bool) error {
+	expected, err := currentRemoteHandoffIdentity(ctx, reactDev)
+	if err != nil {
+		return err
+	}
+	if err := validateRemoteHandoffManifest(handoffDir, expected); err != nil {
+		return err
+	}
+	root := filepath.Join(handoffDir, "root")
+	for _, rel := range []string{".bldr", ".bldr-dist"} {
+		src := filepath.Join(root, rel)
+		if _, err := os.Stat(src); err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			return errors.Wrap(err, "stat remote "+rel)
+		}
+		if err := copyTree(src, filepath.Join(repoDir, rel)); err != nil {
+			return errors.Wrap(err, "restore remote "+rel)
+		}
+	}
+	return os.Setenv("ENTRYPOINT_HANDOFF_REMOTE_RESTORED", "1")
+}
+
+func currentRemoteHandoffIdentity(ctx context.Context, reactDev bool) (remoteHandoffIdentity, error) {
+	sha := strings.TrimSpace(os.Getenv("GITHUB_SHA"))
+	if sha == "" {
+		out, err := exec.CommandContext(ctx, "git", "rev-parse", "HEAD").Output()
+		if err != nil {
+			return remoteHandoffIdentity{}, errors.Wrap(err, "resolve git sha")
+		}
+		sha = strings.TrimSpace(string(out))
+	}
+	return remoteHandoffIdentity{
+		GitSHA:            sha,
+		ReleaseEnv:        strings.TrimSpace(os.Getenv("SPACEWAVE_RELEASE_ENV")),
+		ReactDev:          reactDev,
+		RemoteTargetNames: append([]string(nil), remoteHandoffTargets...),
+	}, nil
+}
+
+func validateRemoteHandoffManifest(handoffDir string, expected remoteHandoffIdentity) error {
+	data, err := os.ReadFile(filepath.Join(handoffDir, "remote-manifest.json"))
+	if err != nil {
+		return errors.Wrap(err, "read remote manifest")
+	}
+	var p fastjson.Parser
+	v, err := p.ParseBytes(data)
+	if err != nil {
+		return errors.Wrap(err, "parse remote manifest")
+	}
+	if got := string(v.GetStringBytes("format")); got != "entrypoint-remote-handoff.v1" {
+		return errors.Errorf("remote manifest format mismatch: %s", got)
+	}
+	if got := string(v.GetStringBytes("git_sha")); got != expected.GitSHA {
+		return errors.Errorf("remote manifest git sha mismatch: %s", got)
+	}
+	if got := string(v.GetStringBytes("release_environment")); got != expected.ReleaseEnv {
+		return errors.Errorf("remote manifest release environment mismatch: %s", got)
+	}
+	if got := v.GetBool("react_dev"); got != expected.ReactDev {
+		return errors.Errorf("remote manifest react_dev mismatch: %v", got)
+	}
+	targets := v.GetArray("remote_targets")
+	if len(targets) != len(expected.RemoteTargetNames) {
+		return errors.New("remote manifest target count mismatch")
+	}
+	for i, target := range targets {
+		if got := string(target.GetStringBytes()); got != expected.RemoteTargetNames[i] {
+			return errors.Errorf("remote manifest target mismatch: %s", got)
+		}
+	}
+	files := v.GetArray("files")
+	if len(files) == 0 {
+		return errors.New("remote manifest has no files")
+	}
+	for _, file := range files {
+		rel := string(file.GetStringBytes("path"))
+		if rel == "" || filepath.IsAbs(rel) || strings.Contains(rel, "..") {
+			return errors.Errorf("remote manifest has invalid path: %s", rel)
+		}
+		path := filepath.Join(handoffDir, "root", filepath.FromSlash(rel))
+		info, err := os.Stat(path)
+		if err != nil {
+			return errors.Wrap(err, "stat remote file "+rel)
+		}
+		statSize := info.Size()
+		if linkInfo, err := os.Lstat(path); err == nil && linkInfo.Mode()&os.ModeSymlink != 0 {
+			statSize = linkInfo.Size()
+		}
+		if statSize != file.GetInt64("size") {
+			return errors.Errorf("remote file size mismatch: %s", rel)
+		}
+		digest, err := fileSHA256(path)
+		if err != nil {
+			return err
+		}
+		if digest != string(file.GetStringBytes("sha256")) {
+			return errors.Errorf("remote file sha256 mismatch: %s", rel)
+		}
+	}
+	return nil
+}
+
+func hashTree(root string) ([]remoteHandoffFile, error) {
+	var out []remoteHandoffFile
+	if err := filepath.Walk(root, func(path string, info fs.FileInfo, err error) error {
+		if err != nil {
+			return errors.Wrap(err, "walk "+path)
+		}
+		if info.IsDir() {
+			return nil
+		}
+		rel, err := filepath.Rel(root, path)
+		if err != nil {
+			return errors.Wrap(err, "rel remote file")
+		}
+		digest, err := fileSHA256(path)
+		if err != nil {
+			return err
+		}
+		out = append(out, remoteHandoffFile{
+			Path:   filepath.ToSlash(rel),
+			SHA256: digest,
+			Size:   info.Size(),
+		})
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func fileSHA256(path string) (string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", errors.Wrap(err, "open "+path)
+	}
+	defer f.Close()
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return "", errors.Wrap(err, "hash "+path)
+	}
+	return hex.EncodeToString(h.Sum(nil)), nil
+}
+
+func marshalRemoteHandoffManifest(identity remoteHandoffIdentity) []byte {
+	var b strings.Builder
+	b.WriteString("{\n")
+	writeJSONField(&b, "format", "entrypoint-remote-handoff.v1", true)
+	writeJSONField(&b, "git_sha", identity.GitSHA, true)
+	writeJSONField(&b, "release_environment", identity.ReleaseEnv, true)
+	b.WriteString("  \"react_dev\": ")
+	if identity.ReactDev {
+		b.WriteString("true,\n")
+	} else {
+		b.WriteString("false,\n")
+	}
+	b.WriteString("  \"remote_targets\": [\n")
+	for i, target := range identity.RemoteTargetNames {
+		b.WriteString("    ")
+		b.WriteString(strconv.Quote(target))
+		if i+1 != len(identity.RemoteTargetNames) {
+			b.WriteByte(',')
+		}
+		b.WriteByte('\n')
+	}
+	b.WriteString("  ],\n")
+	b.WriteString("  \"files\": [\n")
+	for i, file := range identity.RemoteFileMetadata {
+		b.WriteString("    {\"path\": ")
+		b.WriteString(strconv.Quote(file.Path))
+		b.WriteString(", \"sha256\": ")
+		b.WriteString(strconv.Quote(file.SHA256))
+		b.WriteString(", \"size\": ")
+		b.WriteString(strconv.FormatInt(file.Size, 10))
+		b.WriteByte('}')
+		if i+1 != len(identity.RemoteFileMetadata) {
+			b.WriteByte(',')
+		}
+		b.WriteByte('\n')
+	}
+	b.WriteString("  ]\n")
+	b.WriteString("}\n")
+	return []byte(b.String())
+}
+
+func writeJSONField(b *strings.Builder, key, value string, comma bool) {
+	b.WriteString("  ")
+	b.WriteString(strconv.Quote(key))
+	b.WriteString(": ")
+	b.WriteString(strconv.Quote(value))
+	if comma {
+		b.WriteByte(',')
+	}
+	b.WriteByte('\n')
 }
 
 // buildCliEntrypoints cross-compiles the standalone spacewave-cli binary
@@ -882,6 +1175,22 @@ func copyTree(srcRoot, dstRoot string) error {
 		dst := filepath.Join(dstRoot, rel)
 		if info.IsDir() {
 			return os.MkdirAll(dst, 0o755)
+		}
+		if info.Mode()&os.ModeSymlink != 0 {
+			target, err := os.Readlink(path)
+			if err != nil {
+				return errors.Wrap(err, "readlink "+path)
+			}
+			if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+				return errors.Wrap(err, "mkdir "+filepath.Dir(dst))
+			}
+			if err := os.Remove(dst); err != nil && !os.IsNotExist(err) {
+				return errors.Wrap(err, "remove "+dst)
+			}
+			if err := os.Symlink(target, dst); err != nil {
+				return errors.Wrap(err, "symlink "+dst)
+			}
+			return nil
 		}
 		if err := copyFile(path, dst); err != nil {
 			return err

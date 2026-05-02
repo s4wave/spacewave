@@ -2,7 +2,11 @@
 
 package main
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 func TestNeedsBuilderImage(t *testing.T) {
 	tests := []struct {
@@ -50,5 +54,77 @@ func TestNeedsBuilderImage(t *testing.T) {
 				t.Fatalf("needsBuilderImage(%q, %#v) = %v, want %v", test.hostGOOS, test.platforms, got, test.want)
 			}
 		})
+	}
+}
+
+func TestValidateRemoteHandoffManifestRejectsStaleHash(t *testing.T) {
+	dir := t.TempDir()
+	root := filepath.Join(dir, "root")
+	if err := os.MkdirAll(root, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	filePath := filepath.Join(root, ".bldr", "build", "js", "spacewave-app", "dist", "app.js")
+	if err := os.MkdirAll(filepath.Dir(filePath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filePath, []byte("current"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	files, err := hashTree(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	identity := remoteHandoffIdentity{
+		GitSHA:             "abc123",
+		ReleaseEnv:         "staging",
+		ReactDev:           true,
+		RemoteTargetNames:  remoteHandoffTargets,
+		RemoteFileMetadata: files,
+	}
+	if err := os.WriteFile(filepath.Join(dir, "remote-manifest.json"), marshalRemoteHandoffManifest(identity), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := validateRemoteHandoffManifest(dir, identity); err != nil {
+		t.Fatalf("validateRemoteHandoffManifest valid = %v", err)
+	}
+	if err := os.WriteFile(filePath, []byte("stale"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := validateRemoteHandoffManifest(dir, identity); err == nil {
+		t.Fatal("validateRemoteHandoffManifest accepted stale file hash")
+	}
+}
+
+func TestValidateRemoteHandoffManifestRejectsReactDevMismatch(t *testing.T) {
+	dir := t.TempDir()
+	root := filepath.Join(dir, "root")
+	if err := os.MkdirAll(root, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	filePath := filepath.Join(root, ".bldr", "build", "js", "spacewave-web", "dist", "web.js")
+	if err := os.MkdirAll(filepath.Dir(filePath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filePath, []byte("web"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	files, err := hashTree(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	identity := remoteHandoffIdentity{
+		GitSHA:             "abc123",
+		ReleaseEnv:         "staging",
+		ReactDev:           true,
+		RemoteTargetNames:  remoteHandoffTargets,
+		RemoteFileMetadata: files,
+	}
+	if err := os.WriteFile(filepath.Join(dir, "remote-manifest.json"), marshalRemoteHandoffManifest(identity), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	expected := identity
+	expected.ReactDev = false
+	if err := validateRemoteHandoffManifest(dir, expected); err == nil {
+		t.Fatal("validateRemoteHandoffManifest accepted react_dev mismatch")
 	}
 }

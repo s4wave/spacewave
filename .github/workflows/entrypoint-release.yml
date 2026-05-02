@@ -75,8 +75,70 @@ jobs:
           echo "rev=${{ inputs.rev }}" >> "${GITHUB_OUTPUT}"
           echo "tag=v${{ inputs.version }}" >> "${GITHUB_OUTPUT}"
 
-  linux:
+  remote:
     needs: prep
+    runs-on: ubuntu-latest
+    environment: ${{ needs.prep.outputs.environment_name }}
+    env:
+      SPACEWAVE_RELEASE_ENV: ${{ needs.prep.outputs.release_env }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Cache remote handoff part
+        id: remote_handoff_cache
+        uses: actions/cache@v5
+        with:
+          path: .tmp/entrypoint-handoff/remote
+          key: entrypoint-remote-${{ needs.prep.outputs.environment_name }}-${{ github.sha }}-reactdev${{ inputs.react_dev }}
+
+      - name: Setup Go
+        if: steps.remote_handoff_cache.outputs.cache-hit != 'true'
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Setup Bun
+        if: steps.remote_handoff_cache.outputs.cache-hit != 'true'
+        uses: oven-sh/setup-bun@v2
+
+      - name: Setup Node.JS
+        if: steps.remote_handoff_cache.outputs.cache-hit != 'true'
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 25.x
+
+      - name: Install Bun dependencies
+        if: steps.remote_handoff_cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          bun install --frozen-lockfile --ignore-scripts
+          go mod vendor
+
+      - name: Build remote handoff slice
+        if: steps.remote_handoff_cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          go run ./cmd/entrypoint-handoff \
+            --version "${{ needs.prep.outputs.version }}" \
+            --remote-only \
+            --react-dev=${{ inputs.react_dev }} \
+            --out-dir .tmp/entrypoint-handoff/remote
+
+      - name: Upload remote handoff part
+        uses: actions/upload-artifact@v7
+        with:
+          name: entrypoint-remote-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
+          path: .tmp/entrypoint-handoff/remote
+          if-no-files-found: error
+
+  linux:
+    needs:
+      - prep
+      - remote
     runs-on: ubuntu-latest
     environment: ${{ needs.prep.outputs.environment_name }}
     strategy:
@@ -98,7 +160,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: .tmp/entrypoint-handoff/linux-${{ matrix.arch }}
-          key: entrypoint-part-linux-${{ matrix.arch }}-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
+          key: entrypoint-part-linux-${{ matrix.arch }}-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-${{ github.sha }}
 
       - name: Setup Go
         if: steps.linux_handoff_cache.outputs.cache-hit != 'true'
@@ -138,6 +200,13 @@ jobs:
           bun install --frozen-lockfile --ignore-scripts
           go mod vendor
 
+      - name: Download remote handoff part
+        if: steps.linux_handoff_cache.outputs.cache-hit != 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: entrypoint-remote-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
+          path: .tmp/entrypoint-remote
+
       - name: Build Linux ${{ matrix.arch }} handoff slice
         if: steps.linux_handoff_cache.outputs.cache-hit != 'true'
         shell: bash
@@ -147,6 +216,7 @@ jobs:
             --version "${{ needs.prep.outputs.version }}" \
             --platforms "linux-${{ matrix.arch }}" \
             --skip-notarize \
+            --remote-handoff-dir .tmp/entrypoint-remote \
             --out-dir .tmp/entrypoint-handoff/linux-${{ matrix.arch }}
 
       - name: Upload Linux handoff part
@@ -157,7 +227,9 @@ jobs:
           if-no-files-found: error
 
   browser:
-    needs: prep
+    needs:
+      - prep
+      - remote
     runs-on: ubuntu-latest
     environment: ${{ needs.prep.outputs.environment_name }}
     env:
@@ -171,7 +243,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: .tmp/entrypoint-handoff/browser
-          key: entrypoint-part-browser-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-reactdev${{ inputs.react_dev }}
+          key: entrypoint-part-browser-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-${{ github.sha }}-reactdev${{ inputs.react_dev }}
 
       - name: Setup Go
         if: steps.browser_handoff_cache.outputs.cache-hit != 'true'
@@ -198,6 +270,13 @@ jobs:
           bun install --frozen-lockfile --ignore-scripts
           go mod vendor
 
+      - name: Download remote handoff part
+        if: steps.browser_handoff_cache.outputs.cache-hit != 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: entrypoint-remote-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
+          path: .tmp/entrypoint-remote
+
       - name: Build browser handoff slice
         if: steps.browser_handoff_cache.outputs.cache-hit != 'true'
         shell: bash
@@ -207,6 +286,7 @@ jobs:
             --version "${{ needs.prep.outputs.version }}" \
             --browser-only \
             --react-dev=${{ inputs.react_dev }} \
+            --remote-handoff-dir .tmp/entrypoint-remote \
             --out-dir .tmp/entrypoint-handoff/browser
 
       - name: Upload browser handoff part
@@ -217,12 +297,20 @@ jobs:
           if-no-files-found: error
 
   windows:
-    needs: prep
+    needs:
+      - prep
+      - remote
     runs-on: windows-2025
     environment: ${{ needs.prep.outputs.environment_name }}
     permissions:
       contents: read
       id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - amd64
+          - arm64
     env:
       SPACEWAVE_RELEASE_ENV: ${{ needs.prep.outputs.release_env }}
     steps:
@@ -233,8 +321,8 @@ jobs:
         id: windows_handoff_cache
         uses: actions/cache@v5
         with:
-          path: .tmp/entrypoint-handoff/windows
-          key: entrypoint-part-windows-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-sign${{ inputs.sign_artifacts }}
+          path: .tmp/entrypoint-handoff/windows-${{ matrix.arch }}
+          key: entrypoint-part-windows-${{ matrix.arch }}-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-${{ github.sha }}-sign${{ inputs.sign_artifacts }}
 
       - name: Setup Go
         if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
@@ -360,7 +448,14 @@ jobs:
           Remove-Item -Path (Join-Path $root ".store") -Recurse -Force
           Remove-Item -Path (Join-Path $root "sign.exe") -Force -ErrorAction Ignore
 
-      - name: Build signed Windows handoff slice
+      - name: Download remote handoff part
+        if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: entrypoint-remote-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
+          path: .tmp/entrypoint-remote
+
+      - name: Build signed Windows ${{ matrix.arch }} handoff slice
         if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
         shell: bash
         env:
@@ -372,45 +467,25 @@ jobs:
           set -euo pipefail
           go run ./cmd/entrypoint-handoff \
             --version "${{ needs.prep.outputs.version }}" \
-            --platforms "windows-amd64,windows-arm64" \
-            --out-dir .tmp/entrypoint-handoff/windows
+            --platforms "windows-${{ matrix.arch }}" \
+            --remote-handoff-dir .tmp/entrypoint-remote \
+            --out-dir .tmp/entrypoint-handoff/windows-${{ matrix.arch }}
 
-      - name: Collect Windows MSIX installers
+      - name: Collect Windows MSIX installer
         if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
         id: windows_msix_paths
         shell: pwsh
         run: |
-          "amd64=$((Resolve-Path "dist/installers/spacewave-windows-amd64.msix").Path)" >> $env:GITHUB_OUTPUT
-          "arm64=$((Resolve-Path "dist/installers/spacewave-windows-arm64.msix").Path)" >> $env:GITHUB_OUTPUT
+          "msix=$((Resolve-Path 'dist/installers/spacewave-windows-${{ matrix.arch }}.msix').Path)" >> $env:GITHUB_OUTPUT
 
-      - name: Sign Windows amd64 MSIX installer
+      - name: Sign Windows ${{ matrix.arch }} MSIX installer
         if: ${{ inputs.sign_artifacts && steps.windows_handoff_cache.outputs.cache-hit != 'true' }}
         shell: pwsh
         env:
           BLDR_SIGN_ENDPOINT: https://wus.codesigning.azure.net/
           BLDR_SIGN_ACCOUNT: ${{ vars.BLDR_WINDOWS_SIGN_ACCOUNT }}
           BLDR_SIGN_PROFILE: ${{ vars.BLDR_WINDOWS_SIGN_PROFILE }}
-          BLDR_SIGN_FILE: ${{ steps.windows_msix_paths.outputs.amd64 }}
-        run: |
-          $ErrorActionPreference = 'Stop'
-          Invoke-TrustedSigning `
-            -Endpoint $env:BLDR_SIGN_ENDPOINT `
-            -CodeSigningAccountName $env:BLDR_SIGN_ACCOUNT `
-            -CertificateProfileName $env:BLDR_SIGN_PROFILE `
-            -Files $env:BLDR_SIGN_FILE `
-            -Description Spacewave `
-            -FileDigest SHA256 `
-            -TimestampRfc3161 'http://timestamp.acs.microsoft.com' `
-            -TimestampDigest SHA256
-
-      - name: Sign Windows arm64 MSIX installer
-        if: ${{ inputs.sign_artifacts && steps.windows_handoff_cache.outputs.cache-hit != 'true' }}
-        shell: pwsh
-        env:
-          BLDR_SIGN_ENDPOINT: https://wus.codesigning.azure.net/
-          BLDR_SIGN_ACCOUNT: ${{ vars.BLDR_WINDOWS_SIGN_ACCOUNT }}
-          BLDR_SIGN_PROFILE: ${{ vars.BLDR_WINDOWS_SIGN_PROFILE }}
-          BLDR_SIGN_FILE: ${{ steps.windows_msix_paths.outputs.arm64 }}
+          BLDR_SIGN_FILE: ${{ steps.windows_msix_paths.outputs.msix }}
         run: |
           $ErrorActionPreference = 'Stop'
           Invoke-TrustedSigning `
@@ -428,23 +503,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf .tmp/entrypoint-handoff/windows/installers
-          mkdir -p .tmp/entrypoint-handoff/windows/installers
-          cp -R dist/installers/. .tmp/entrypoint-handoff/windows/installers/
+          rm -rf .tmp/entrypoint-handoff/windows-${{ matrix.arch }}/installers
+          mkdir -p .tmp/entrypoint-handoff/windows-${{ matrix.arch }}/installers
+          cp -R dist/installers/. .tmp/entrypoint-handoff/windows-${{ matrix.arch }}/installers/
 
       - name: Verify Windows signatures
         if: ${{ inputs.sign_artifacts && steps.windows_handoff_cache.outputs.cache-hit != 'true' }}
         shell: pwsh
         run: |
           $files = @(
-            ".tmp/dist/windows-amd64/spacewave.exe"
-            ".tmp/dist/windows-arm64/spacewave.exe"
-            ".tmp/dist-cli/windows-amd64/spacewave.exe"
-            ".tmp/dist-cli/windows-arm64/spacewave.exe"
-            "dist/helper/windows-amd64/spacewave-helper.exe"
-            "dist/helper/windows-arm64/spacewave-helper.exe"
-            "dist/installers/spacewave-windows-amd64.msix"
-            "dist/installers/spacewave-windows-arm64.msix"
+            ".tmp/dist/windows-${{ matrix.arch }}/spacewave.exe"
+            ".tmp/dist-cli/windows-${{ matrix.arch }}/spacewave.exe"
+            "dist/helper/windows-${{ matrix.arch }}/spacewave-helper.exe"
+            "dist/installers/spacewave-windows-${{ matrix.arch }}.msix"
           )
           foreach ($path in $files) {
             $sig = Get-AuthenticodeSignature -FilePath $path
@@ -456,16 +527,24 @@ jobs:
       - name: Upload Windows handoff part
         uses: actions/upload-artifact@v7
         with:
-          name: entrypoint-part-windows-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
-          path: .tmp/entrypoint-handoff/windows
+          name: entrypoint-part-windows-${{ matrix.arch }}-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
+          path: .tmp/entrypoint-handoff/windows-${{ matrix.arch }}
           if-no-files-found: error
 
   macos:
-    needs: prep
+    needs:
+      - prep
+      - remote
     runs-on: macos-15
     environment: ${{ needs.prep.outputs.environment_name }}
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - amd64
+          - arm64
     env:
       SPACEWAVE_RELEASE_ENV: ${{ needs.prep.outputs.release_env }}
     steps:
@@ -476,8 +555,8 @@ jobs:
         id: macos_handoff_cache
         uses: actions/cache@v5
         with:
-          path: .tmp/entrypoint-handoff/macos
-          key: entrypoint-part-macos-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-sign${{ inputs.sign_artifacts }}-skipnotarize${{ inputs.skip_notarize }}
+          path: .tmp/entrypoint-handoff/macos-${{ matrix.arch }}
+          key: entrypoint-part-macos-${{ matrix.arch }}-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-${{ github.sha }}-sign${{ inputs.sign_artifacts }}-skipnotarize${{ inputs.skip_notarize }}
 
       - name: Setup Go
         if: steps.macos_handoff_cache.outputs.cache-hit != 'true'
@@ -560,7 +639,14 @@ jobs:
             --issuer "${APPLE_NOTARY_ISSUER_ID}"
           rm -f "${KEY_PATH}"
 
-      - name: Build macOS handoff slice
+      - name: Download remote handoff part
+        if: steps.macos_handoff_cache.outputs.cache-hit != 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: entrypoint-remote-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
+          path: .tmp/entrypoint-remote
+
+      - name: Build macOS ${{ matrix.arch }} handoff slice
         if: steps.macos_handoff_cache.outputs.cache-hit != 'true'
         shell: bash
         env:
@@ -573,15 +659,16 @@ jobs:
           set -euo pipefail
           go run ./cmd/entrypoint-handoff \
             --version "${{ needs.prep.outputs.version }}" \
-            --platforms "darwin-amd64,darwin-arm64" \
+            --platforms "darwin-${{ matrix.arch }}" \
             --skip-notarize=${{ !inputs.sign_artifacts || inputs.skip_notarize }} \
-            --out-dir .tmp/entrypoint-handoff/macos
+            --remote-handoff-dir .tmp/entrypoint-remote \
+            --out-dir .tmp/entrypoint-handoff/macos-${{ matrix.arch }}
 
       - name: Upload macOS handoff part
         uses: actions/upload-artifact@v7
         with:
-          name: entrypoint-part-macos-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
-          path: .tmp/entrypoint-handoff/macos
+          name: entrypoint-part-macos-${{ matrix.arch }}-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
+          path: .tmp/entrypoint-handoff/macos-${{ matrix.arch }}
           if-no-files-found: error
 
   assemble:
@@ -620,17 +707,29 @@ jobs:
           name: entrypoint-part-browser-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
           path: .tmp/entrypoint-parts/browser
 
-      - name: Download macOS handoff part
+      - name: Download macOS amd64 handoff part
         uses: actions/download-artifact@v8
         with:
-          name: entrypoint-part-macos-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
-          path: .tmp/entrypoint-parts/macos
+          name: entrypoint-part-macos-amd64-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
+          path: .tmp/entrypoint-parts/macos-amd64
 
-      - name: Download Windows handoff part
+      - name: Download macOS arm64 handoff part
         uses: actions/download-artifact@v8
         with:
-          name: entrypoint-part-windows-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
-          path: .tmp/entrypoint-parts/windows
+          name: entrypoint-part-macos-arm64-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
+          path: .tmp/entrypoint-parts/macos-arm64
+
+      - name: Download Windows amd64 handoff part
+        uses: actions/download-artifact@v8
+        with:
+          name: entrypoint-part-windows-amd64-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
+          path: .tmp/entrypoint-parts/windows-amd64
+
+      - name: Download Windows arm64 handoff part
+        uses: actions/download-artifact@v8
+        with:
+          name: entrypoint-part-windows-arm64-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
+          path: .tmp/entrypoint-parts/windows-arm64
 
       - name: Assemble entrypoint handoff bundle
         shell: bash
@@ -647,16 +746,18 @@ jobs:
               cp -R ".tmp/entrypoint-parts/linux-${arch}/cli/." .tmp/entrypoint-handoff/cli/
             fi
           done
-          cp -R .tmp/entrypoint-parts/windows/installers/. .tmp/entrypoint-handoff/installers/
-          cp -R .tmp/entrypoint-parts/windows/bundles/. .tmp/entrypoint-handoff/bundles/
-          if [ -d .tmp/entrypoint-parts/windows/cli ]; then
-            cp -R .tmp/entrypoint-parts/windows/cli/. .tmp/entrypoint-handoff/cli/
-          fi
-          cp -R .tmp/entrypoint-parts/macos/installers/. .tmp/entrypoint-handoff/installers/
-          cp -R .tmp/entrypoint-parts/macos/bundles/. .tmp/entrypoint-handoff/bundles/
-          if [ -d .tmp/entrypoint-parts/macos/cli ]; then
-            cp -R .tmp/entrypoint-parts/macos/cli/. .tmp/entrypoint-handoff/cli/
-          fi
+          for arch in amd64 arm64; do
+            cp -R ".tmp/entrypoint-parts/windows-${arch}/installers/." .tmp/entrypoint-handoff/installers/
+            cp -R ".tmp/entrypoint-parts/windows-${arch}/bundles/." .tmp/entrypoint-handoff/bundles/
+            if [ -d ".tmp/entrypoint-parts/windows-${arch}/cli" ]; then
+              cp -R ".tmp/entrypoint-parts/windows-${arch}/cli/." .tmp/entrypoint-handoff/cli/
+            fi
+            cp -R ".tmp/entrypoint-parts/macos-${arch}/installers/." .tmp/entrypoint-handoff/installers/
+            cp -R ".tmp/entrypoint-parts/macos-${arch}/bundles/." .tmp/entrypoint-handoff/bundles/
+            if [ -d ".tmp/entrypoint-parts/macos-${arch}/cli" ]; then
+              cp -R ".tmp/entrypoint-parts/macos-${arch}/cli/." .tmp/entrypoint-handoff/cli/
+            fi
+          done
           cp -R .tmp/entrypoint-parts/browser/browser-staging .tmp/entrypoint-handoff/browser-staging
           cp .tmp/entrypoint-parts/browser/static-manifest.ts .tmp/entrypoint-handoff/static-manifest.ts
 
