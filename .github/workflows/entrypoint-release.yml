@@ -133,6 +133,7 @@ jobs:
         with:
           name: entrypoint-remote-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
           path: .tmp/entrypoint-handoff/remote
+          include-hidden-files: true
           if-no-files-found: error
 
   linux:
@@ -224,6 +225,7 @@ jobs:
         with:
           name: entrypoint-part-linux-${{ matrix.arch }}-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
           path: .tmp/entrypoint-handoff/linux-${{ matrix.arch }}
+          include-hidden-files: true
           if-no-files-found: error
 
   browser:
@@ -294,6 +296,7 @@ jobs:
         with:
           name: entrypoint-part-browser-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
           path: .tmp/entrypoint-handoff/browser
+          include-hidden-files: true
           if-no-files-found: error
 
   windows:
@@ -529,6 +532,7 @@ jobs:
         with:
           name: entrypoint-part-windows-${{ matrix.arch }}-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
           path: .tmp/entrypoint-handoff/windows-${{ matrix.arch }}
+          include-hidden-files: true
           if-no-files-found: error
 
   macos:
@@ -669,6 +673,7 @@ jobs:
         with:
           name: entrypoint-part-macos-${{ matrix.arch }}-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
           path: .tmp/entrypoint-handoff/macos-${{ matrix.arch }}
+          include-hidden-files: true
           if-no-files-found: error
 
   assemble:
