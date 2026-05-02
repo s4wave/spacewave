@@ -8,6 +8,10 @@ import {
 import { WebDocument as BldrWebDocument, WebDocumentOptions } from '@aptre/bldr'
 
 import { setAppPath } from '@s4wave/web/router/app-path.js'
+import {
+  bootStatusEvent,
+  canMutateBrowserBootStatusTarget,
+} from '@s4wave/app/prerender/boot-status.js'
 
 import { initBrowserReleaseAutoReload } from '../bldr/browser-release-update.js'
 
@@ -52,7 +56,10 @@ if (typeof BLDR_SHW_JS === 'string') {
 
 // BLDR_FORCE_DEDICATED_WORKERS is an injected variable to force dedicated workers.
 declare const BLDR_FORCE_DEDICATED_WORKERS: boolean | undefined
-if (typeof BLDR_FORCE_DEDICATED_WORKERS === 'boolean' && BLDR_FORCE_DEDICATED_WORKERS) {
+if (
+  typeof BLDR_FORCE_DEDICATED_WORKERS === 'boolean' &&
+  BLDR_FORCE_DEDICATED_WORKERS
+) {
   webDocumentOpts.forceDedicatedWorkers = true
 }
 
@@ -67,13 +74,15 @@ function setBrowserBootStatus(
 ) {
   const status = { phase, detail, state }
   globalThis.__swBootStatus = status
-  document.querySelector('[data-sw-boot-status]')?.replaceChildren(detail)
-  document
-    .querySelector('[data-sw-boot-state]')
-    ?.setAttribute('data-sw-boot-state', state)
-  window.dispatchEvent(
-    new CustomEvent('spacewave:boot-status', { detail: status }),
-  )
+  const detailTarget = document.querySelector('[data-sw-boot-status]')
+  if (canMutateBrowserBootStatusTarget(detailTarget)) {
+    detailTarget.replaceChildren(detail)
+  }
+  const stateTarget = document.querySelector('[data-sw-boot-state]')
+  if (canMutateBrowserBootStatusTarget(stateTarget)) {
+    stateTarget.setAttribute('data-sw-boot-state', state)
+  }
+  window.dispatchEvent(new CustomEvent(bootStatusEvent, { detail: status }))
 }
 
 // BLDR_STARTUP_JS is an injected variable with the path to the startup js component
@@ -85,7 +94,10 @@ if (typeof BLDR_STARTUP_JS === 'string') {
         React.lazy(
           async (): Promise<{
             default: React.LazyExoticComponent<React.ComponentType>
-          }> => import(BLDR_STARTUP_JS),
+          }> =>
+            (await import(BLDR_STARTUP_JS)) as {
+              default: React.LazyExoticComponent<React.ComponentType>
+            },
         ),
       [],
     )

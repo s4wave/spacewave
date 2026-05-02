@@ -67,7 +67,7 @@ func WriteBuildManifest(dir string, manifest *BuildManifest) error {
 
 // WriteStableBootAsset writes the stable browser boot asset at the build root.
 func WriteStableBootAsset(dir string) error {
-const bootAsset = `const releasePath='/browser-release.json';
+	const bootAsset = `const releasePath='/browser-release.json';
 const g=globalThis;
 const bootStatusEvent='spacewave:boot-status';
 let releasePromise;
@@ -76,10 +76,16 @@ function setBootStatus(phase,detail,state){
   const status={phase,detail:detail||phase,state:state||'loading'};
   g.__swBootStatus=status;
   const target=document.querySelector('[data-sw-boot-status]');
-  if(target)target.textContent=status.detail;
+  if(canMutateBootStatusTarget(target))target.textContent=status.detail;
   const stateTarget=document.querySelector('[data-sw-boot-state]');
-  if(stateTarget)stateTarget.setAttribute('data-sw-boot-state',status.state);
+  if(canMutateBootStatusTarget(stateTarget))stateTarget.setAttribute('data-sw-boot-state',status.state);
   window.dispatchEvent(new CustomEvent(bootStatusEvent,{detail:status}));
+}
+function canMutateBootStatusTarget(target){
+  if(!target)return false;
+  const root=target.closest('#bldr-root[data-prerendered]');
+  if(!root)return true;
+  return !!target.closest('#sw-loading');
 }
 function setBootError(phase,err){
   const msg=err&&err.message?err.message:String(err);

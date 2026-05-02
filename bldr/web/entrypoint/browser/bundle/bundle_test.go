@@ -125,6 +125,15 @@ func TestWriteStableBootAsset(t *testing.T) {
 	if !strings.Contains(script, "__swBootStatus") {
 		t.Fatalf("boot asset missing boot status global: %s", script)
 	}
+	if !strings.Contains(script, "canMutateBootStatusTarget") {
+		t.Fatalf("boot asset missing prerender mutation guard: %s", script)
+	}
+	if !strings.Contains(script, "#bldr-root[data-prerendered]") {
+		t.Fatalf("boot asset missing prerender root selector: %s", script)
+	}
+	if !strings.Contains(script, "#sw-loading") {
+		t.Fatalf("boot asset missing root loading selector: %s", script)
+	}
 }
 
 func TestBuildRendererIndexUsesEntrypointPath(t *testing.T) {

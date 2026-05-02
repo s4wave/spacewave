@@ -113,16 +113,14 @@ func TestQuickstartPrerenderAutoBootsProductionWasmBundle(t *testing.T) {
 func waitForCanonicalQuickstartURL(t *testing.T, page playwright.Page) {
 	t.Helper()
 
-	_, err := page.Evaluate(`async () => {
-		const deadline = performance.now() + 30000
-		while (window.location.pathname !== '/' || window.location.hash !== '#/quickstart/drive') {
-			if (performance.now() > deadline) {
-				throw new Error('quickstart did not canonicalize to /#/quickstart/drive: '+window.location.href)
-			}
-			await new Promise((resolve) => requestAnimationFrame(resolve))
-		}
-		return true
-	}`)
+	expectedURL := testHarness.getBaseURL() + "/#/quickstart/drive"
+	if page.URL() == expectedURL {
+		return
+	}
+	err := page.WaitForURL(expectedURL, playwright.PageWaitForURLOptions{
+		Timeout:   playwright.Float(30000),
+		WaitUntil: playwright.WaitUntilStateCommit,
+	})
 	if err != nil {
 		t.Fatalf("wait for canonical quickstart URL: %v", err)
 	}
