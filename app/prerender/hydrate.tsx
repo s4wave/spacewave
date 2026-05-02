@@ -71,6 +71,13 @@ function handleNavigate(to: To) {
   }
 }
 
+function handleRootHashChange() {
+  const hash = window.location.hash
+  if (hash.length <= 1) return
+  window.removeEventListener('hashchange', handleRootHashChange)
+  handleNavigate({ path: hash })
+}
+
 function readBlogData(): Record<string, unknown> | null {
   const el = document.getElementById('blog-data')
   if (!el?.textContent) return null
@@ -90,6 +97,7 @@ if (pathname === '/' && window.location.hash.length > 1) {
   // New visitor on root: hydrate the landing page inside sw-landing.
   const container = document.getElementById('sw-landing')
   if (container) {
+    window.addEventListener('hashchange', handleRootHashChange)
     globalThis.__swPrerenderContainer = container
     globalThis.__swPrerenderRoot = hydrateRoot(
       container,
