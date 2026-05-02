@@ -25,10 +25,18 @@ const APPROVED_LICENSES = new Set([
   'BlueOak-1.0.0',
 ])
 
+const APPROVED_LICENSE_KEYS = new Set(
+  [...APPROVED_LICENSES].map((spdx) => spdx.toLowerCase()),
+)
+
+function isApprovedLicense(spdx: string): boolean {
+  return APPROVED_LICENSE_KEYS.has(spdx.toLowerCase())
+}
+
 describe('license compliance', () => {
   it('all dependencies use approved licenses', () => {
     const violations = licenseEntries.filter(
-      (e) => e.spdx !== 'Unknown' && !APPROVED_LICENSES.has(e.spdx),
+      (e) => e.spdx !== 'Unknown' && !isApprovedLicense(e.spdx),
     )
     if (violations.length > 0) {
       const msg = violations.map((e) => `  ${e.name} (${e.spdx})`).join('\n')
@@ -36,6 +44,10 @@ describe('license compliance', () => {
         `${violations.length} dependencies have unapproved licenses:\n${msg}`,
       )
     }
+  })
+
+  it('accepts SPDX license identifiers case-insensitively', () => {
+    expect(isApprovedLicense('apache-2.0')).toBe(true)
   })
 
   it('no Unknown licenses in production dependencies', () => {

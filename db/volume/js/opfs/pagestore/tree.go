@@ -41,10 +41,10 @@ func (t *Tree) Get(key []byte) ([]byte, bool, error) {
 
 	pageID := t.rootID
 	for {
-		if err := t.pager.ReadPage(pageID, t.pageBuf); err != nil {
-			return nil, false, errors.Wrap(err, "read page")
+		h, err := t.readTreePage(pageID, t.pageBuf)
+		if err != nil {
+			return nil, false, err
 		}
-		h := DecodePageHeader(t.pageBuf)
 
 		switch h.Type {
 		case PageTypeLeaf:
@@ -110,10 +110,10 @@ func (t *Tree) Put(key, value []byte) error {
 // also returns the separator key and right-side page ID.
 func (t *Tree) insert(pageID PageID, key, value []byte) (PageID, []byte, PageID, error) {
 	buf := make([]byte, t.pager.PageSize())
-	if err := t.pager.ReadPage(pageID, buf); err != nil {
+	h, err := t.readTreePage(pageID, buf)
+	if err != nil {
 		return InvalidPage, nil, InvalidPage, err
 	}
-	h := DecodePageHeader(buf)
 
 	switch h.Type {
 	case PageTypeLeaf:
@@ -253,10 +253,10 @@ func (t *Tree) Delete(key []byte) (bool, error) {
 // deleteFrom removes a key from the subtree. Simple version without rebalancing.
 func (t *Tree) deleteFrom(pageID PageID, key []byte) (bool, PageID, error) {
 	buf := make([]byte, t.pager.PageSize())
-	if err := t.pager.ReadPage(pageID, buf); err != nil {
+	h, err := t.readTreePage(pageID, buf)
+	if err != nil {
 		return false, InvalidPage, err
 	}
-	h := DecodePageHeader(buf)
 
 	switch h.Type {
 	case PageTypeLeaf:
@@ -318,10 +318,10 @@ func (t *Tree) ScanPrefix(prefix []byte, fn func(key, value []byte) bool) error 
 // scanFrom scans the subtree for prefix matches.
 func (t *Tree) scanFrom(pageID PageID, prefix []byte, fn func(key, value []byte) bool) error {
 	buf := make([]byte, t.pager.PageSize())
-	if err := t.pager.ReadPage(pageID, buf); err != nil {
+	h, err := t.readTreePage(pageID, buf)
+	if err != nil {
 		return err
 	}
-	h := DecodePageHeader(buf)
 
 	switch h.Type {
 	case PageTypeLeaf:
@@ -403,4 +403,20 @@ func (t *Tree) writePage(buf []byte) (PageID, error) {
 		return InvalidPage, err
 	}
 	return id, nil
+}
+
+func (t *Tree) readTreePage(pageID PageID, buf []byte) (*PageHeader, error) {
+	if err := t.pager.ReadPage(pageID, buf); err != nil {
+		return nil, NewCorruptPageError(pageID, errors.Wrap(err, "read page"))
+	}
+	h := DecodePageHeader(buf)
+	switch h.Type {
+	case PageTypeLeaf, PageTypeBranch:
+	default:
+		return nil, NewCorruptPageError(pageID, errors.Errorf("unexpected page type %d", h.Type))
+	}
+	if err := ValidatePage(buf); err != nil {
+		return nil, NewCorruptPageError(pageID, err)
+	}
+	return h, nil
 }

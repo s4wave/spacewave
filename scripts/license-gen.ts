@@ -28,6 +28,27 @@ const doGo = !explicit || args.includes('--go')
 const doJs = !explicit || args.includes('--js')
 const doMerge = !explicit || args.includes('--merge')
 
+const canonicalSpdxIdentifiers = new Map(
+  [
+    '0BSD',
+    'Apache-2.0',
+    'Apache-2.0 OR MIT',
+    'BSD-2-Clause',
+    'BSD-3-Clause',
+    'CC0-1.0',
+    'ISC',
+    'LGPL-2.1',
+    'LGPL-2.1-only',
+    'LGPL-3.0',
+    'LGPL-3.0-only',
+    'MIT',
+    'MPL-2.0',
+    'Unlicense',
+    'BlueOak-1.0.0',
+    'Unknown',
+  ].map((spdx) => [spdx.toLowerCase(), spdx]),
+)
+
 interface GoLicenseEntry {
   name: string
   version: string
@@ -324,6 +345,10 @@ function normalize(text: string): string {
     .trim()
 }
 
+function canonicalizeSpdxIdentifier(spdx: string): string {
+  return canonicalSpdxIdentifiers.get(spdx.toLowerCase()) ?? spdx
+}
+
 // Extract copyright notice lines and the license body from a license text.
 function splitLicense(text: string): { copyright: string; body: string } {
   const lines = text.trim().split('\n')
@@ -425,7 +450,7 @@ function mergeLicenses(goData: GoLicenseEntry[], jsData: JsLicenseEntry[]): Lice
     rawEntries.push({
       name: entry.name,
       version: entry.version,
-      spdx: entry.licenseName,
+      spdx: canonicalizeSpdxIdentifier(entry.licenseName),
       text: entry.licenseText,
       source: 'go',
       repo: goModuleRepo(entry.name),
@@ -441,7 +466,7 @@ function mergeLicenses(goData: GoLicenseEntry[], jsData: JsLicenseEntry[]): Lice
       rawEntries.push({
         name: entry.name,
         version: entry.version,
-        spdx: entry.identifier,
+        spdx: canonicalizeSpdxIdentifier(entry.identifier),
         text: entry.text || '',
         source: 'js',
         repo: jsPackageRepo(entry.name),

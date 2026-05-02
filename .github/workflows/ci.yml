@@ -154,9 +154,9 @@ jobs:
 
       - name: Validate SPDX allowlist
         run: |
-          allowed='["0BSD","Apache-2.0","Apache-2.0 OR MIT","BSD-2-Clause","BSD-3-Clause","CC0-1.0","ISC","MIT","MPL-2.0"]'
+          allowed='["0bsd","apache-2.0","apache-2.0 or mit","bsd-2-clause","bsd-3-clause","cc0-1.0","isc","mit","mpl-2.0"]'
           unknown=$(jq --argjson allowed "$allowed" -r \
-            '[.entries[].spdx] | unique - $allowed | .[]' \
+            '[.entries[].spdx | ascii_downcase] | unique - $allowed | .[]' \
             app/licenses/licenses.json)
           if [ -n "$unknown" ]; then
             echo "Disallowed SPDX licenses found in app/licenses/licenses.json:"

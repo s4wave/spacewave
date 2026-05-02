@@ -1,13 +1,16 @@
 package sdk_world_engine
 
 import (
+	"bytes"
 	"context"
 	"sync"
 
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/pkg/errors"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
+	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/net/hash"
@@ -16,6 +19,7 @@ import (
 
 type sdkBucketLookupStore struct {
 	service s4wave_bucket_lookup.SRPCBucketLookupCursorResourceServiceClient
+	xfrm    block.Transformer
 }
 
 func newSDKBucketLookupCursor(
@@ -32,15 +36,20 @@ func newSDKBucketLookupCursor(
 		return nil, err
 	}
 	objRef := resp.GetRef()
-	conf := &block_transform.Config{}
+	store := &sdkBucketLookupStore{service: service}
+	conf, xfrm, err := buildSDKCursorTransform(ctx, store, objRef)
+	if err != nil {
+		return nil, err
+	}
+	store.xfrm = xfrm
 	var once sync.Once
 	return bucket_lookup.NewCursorWithRelease(
 		ctx,
 		nil,
 		nil,
 		nil,
-		&sdkBucketLookupStore{service: service},
-		nil,
+		store,
+		xfrm,
 		objRef,
 		&bucket.BucketOpArgs{BucketId: objRef.GetBucketId()},
 		conf,
@@ -66,6 +75,33 @@ func accessSDKBucketLookupCursor(
 	return cb(cursor)
 }
 
+func buildSDKCursorTransform(
+	ctx context.Context,
+	store *sdkBucketLookupStore,
+	objRef *bucket.ObjectRef,
+) (*block_transform.Config, block.Transformer, error) {
+	conf := objRef.GetTransformConf()
+	if conf.GetEmpty() && !objRef.GetTransformConfRef().GetEmpty() {
+		var err error
+		conf, err = bucket_lookup.FetchTransformConf(ctx, store, objRef.GetTransformConfRef(), nil)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+	if conf.GetEmpty() {
+		return nil, nil, nil
+	}
+	xfrm, err := block_transform.NewTransformer(
+		controller.ConstructOpts{},
+		transform_all.BuildFactorySet(),
+		conf,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+	return conf, xfrm, nil
+}
+
 func (s *sdkBucketLookupStore) GetHashType() hash.HashType {
 	return 0
 }
@@ -79,6 +115,14 @@ func (s *sdkBucketLookupStore) PutBlock(
 	data []byte,
 	opts *block.PutOpts,
 ) (*block.BlockRef, bool, error) {
+	var err error
+	if s.xfrm != nil {
+		data = bytes.Clone(data)
+		data, err = s.xfrm.DecodeBlock(data)
+		if err != nil {
+			return nil, false, err
+		}
+	}
 	resp, err := s.service.PutBlock(ctx, &s4wave_bucket_lookup.PutBlockRequest{
 		Data: data,
 		Opts: opts,
@@ -124,7 +168,14 @@ func (s *sdkBucketLookupStore) GetBlock(
 	if err != nil {
 		return nil, false, err
 	}
-	return resp.GetData(), resp.GetFound(), nil
+	data := resp.GetData()
+	if resp.GetFound() && s.xfrm != nil {
+		data, err = s.xfrm.EncodeBlock(data)
+		if err != nil {
+			return nil, true, err
+		}
+	}
+	return data, resp.GetFound(), nil
 }
 
 func (s *sdkBucketLookupStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
