@@ -73,6 +73,14 @@ class GetCommitResponse;
 struct GetCommitResponseDefaultTypeInternal;
 extern GetCommitResponseDefaultTypeInternal _GetCommitResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull GetCommitResponse_class_data_;
+class GetDiffPatchRequest;
+struct GetDiffPatchRequestDefaultTypeInternal;
+extern GetDiffPatchRequestDefaultTypeInternal _GetDiffPatchRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull GetDiffPatchRequest_class_data_;
+class GetDiffPatchResponse;
+struct GetDiffPatchResponseDefaultTypeInternal;
+extern GetDiffPatchResponseDefaultTypeInternal _GetDiffPatchResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull GetDiffPatchResponse_class_data_;
 class GetDiffStatRequest;
 struct GetDiffStatRequestDefaultTypeInternal;
 extern GetDiffStatRequestDefaultTypeInternal _GetDiffStatRequest_default_instance_;
@@ -2260,6 +2268,413 @@ class GetDiffStatRequest final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull GetDiffStatRequest_class_data_;
 // -------------------------------------------------------------------
 
+class GetDiffPatchResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.git.GetDiffPatchResponse) */ {
+ public:
+  inline GetDiffPatchResponse() : GetDiffPatchResponse(nullptr) {}
+  ~GetDiffPatchResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(GetDiffPatchResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(GetDiffPatchResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR GetDiffPatchResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline GetDiffPatchResponse(const GetDiffPatchResponse& from) : GetDiffPatchResponse(nullptr, from) {}
+  inline GetDiffPatchResponse(GetDiffPatchResponse&& from) noexcept
+      : GetDiffPatchResponse(nullptr, ::std::move(from)) {}
+  inline GetDiffPatchResponse& operator=(const GetDiffPatchResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline GetDiffPatchResponse& operator=(GetDiffPatchResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const GetDiffPatchResponse& default_instance() {
+    return *reinterpret_cast<const GetDiffPatchResponse*>(
+        &_GetDiffPatchResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 19;
+  friend void swap(GetDiffPatchResponse& a, GetDiffPatchResponse& b) { a.Swap(&b); }
+  inline void Swap(GetDiffPatchResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(GetDiffPatchResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  GetDiffPatchResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<GetDiffPatchResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const GetDiffPatchResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const GetDiffPatchResponse& from) { GetDiffPatchResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(GetDiffPatchResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.git.GetDiffPatchResponse"; }
+
+  explicit GetDiffPatchResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  GetDiffPatchResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const GetDiffPatchResponse& from);
+  GetDiffPatchResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, GetDiffPatchResponse&& from) noexcept
+      : GetDiffPatchResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kPatchFieldNumber = 1,
+  };
+  // string patch = 1;
+  void clear_patch() ;
+  const ::std::string& patch() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_patch(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_patch();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_patch();
+  void set_allocated_patch(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_patch() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_patch(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_patch();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.git.GetDiffPatchResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   0, 45,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const GetDiffPatchResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr patch_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fgit_2frepo_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull GetDiffPatchResponse_class_data_;
+// -------------------------------------------------------------------
+
+class GetDiffPatchRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.git.GetDiffPatchRequest) */ {
+ public:
+  inline GetDiffPatchRequest() : GetDiffPatchRequest(nullptr) {}
+  ~GetDiffPatchRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(GetDiffPatchRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(GetDiffPatchRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR GetDiffPatchRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline GetDiffPatchRequest(const GetDiffPatchRequest& from) : GetDiffPatchRequest(nullptr, from) {}
+  inline GetDiffPatchRequest(GetDiffPatchRequest&& from) noexcept
+      : GetDiffPatchRequest(nullptr, ::std::move(from)) {}
+  inline GetDiffPatchRequest& operator=(const GetDiffPatchRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline GetDiffPatchRequest& operator=(GetDiffPatchRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const GetDiffPatchRequest& default_instance() {
+    return *reinterpret_cast<const GetDiffPatchRequest*>(
+        &_GetDiffPatchRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 18;
+  friend void swap(GetDiffPatchRequest& a, GetDiffPatchRequest& b) { a.Swap(&b); }
+  inline void Swap(GetDiffPatchRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(GetDiffPatchRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  GetDiffPatchRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<GetDiffPatchRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const GetDiffPatchRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const GetDiffPatchRequest& from) { GetDiffPatchRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(GetDiffPatchRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.git.GetDiffPatchRequest"; }
+
+  explicit GetDiffPatchRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  GetDiffPatchRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const GetDiffPatchRequest& from);
+  GetDiffPatchRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, GetDiffPatchRequest&& from) noexcept
+      : GetDiffPatchRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kRefAFieldNumber = 1,
+    kRefBFieldNumber = 2,
+  };
+  // string ref_a = 1;
+  void clear_ref_a() ;
+  const ::std::string& ref_a() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_ref_a(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_ref_a();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_ref_a();
+  void set_allocated_ref_a(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_ref_a() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_ref_a(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_ref_a();
+
+  public:
+  // string ref_b = 2;
+  void clear_ref_b() ;
+  const ::std::string& ref_b() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_ref_b(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_ref_b();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_ref_b();
+  void set_allocated_ref_b(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_ref_b() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_ref_b(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_ref_b();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.git.GetDiffPatchRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   0, 49,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const GetDiffPatchRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr ref_a_;
+    ::google::protobuf::internal::ArenaStringPtr ref_b_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fgit_2frepo_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull GetDiffPatchRequest_class_data_;
+// -------------------------------------------------------------------
+
 class GetCommitRequest final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.git.GetCommitRequest) */ {
  public:
@@ -2510,7 +2925,7 @@ class DiffFileStat final : public ::google::protobuf::Message
     return *reinterpret_cast<const DiffFileStat*>(
         &_DiffFileStat_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 18;
+  static constexpr int kIndexInFileMessages = 20;
   friend void swap(DiffFileStat& a, DiffFileStat& b) { a.Swap(&b); }
   inline void Swap(DiffFileStat* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6157,6 +6572,209 @@ inline ::uint32_t GetDiffStatResponse::_internal_total_deletions() const {
 inline void GetDiffStatResponse::_internal_set_total_deletions(::uint32_t value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.total_deletions_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// GetDiffPatchRequest
+
+// string ref_a = 1;
+inline void GetDiffPatchRequest::clear_ref_a() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ref_a_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& GetDiffPatchRequest::ref_a() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.git.GetDiffPatchRequest.ref_a)
+  return _internal_ref_a();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void GetDiffPatchRequest::set_ref_a(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.ref_a_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.git.GetDiffPatchRequest.ref_a)
+}
+inline ::std::string* PROTOBUF_NONNULL GetDiffPatchRequest::mutable_ref_a()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_ref_a();
+  // @@protoc_insertion_point(field_mutable:s4wave.git.GetDiffPatchRequest.ref_a)
+  return _s;
+}
+inline const ::std::string& GetDiffPatchRequest::_internal_ref_a() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.ref_a_.Get();
+}
+inline void GetDiffPatchRequest::_internal_set_ref_a(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ref_a_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL GetDiffPatchRequest::_internal_mutable_ref_a() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.ref_a_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE GetDiffPatchRequest::release_ref_a() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.git.GetDiffPatchRequest.ref_a)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.ref_a_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.ref_a_.Set("", GetArena());
+  }
+  return released;
+}
+inline void GetDiffPatchRequest::set_allocated_ref_a(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.ref_a_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.ref_a_.IsDefault()) {
+    _impl_.ref_a_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.git.GetDiffPatchRequest.ref_a)
+}
+
+// string ref_b = 2;
+inline void GetDiffPatchRequest::clear_ref_b() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ref_b_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& GetDiffPatchRequest::ref_b() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.git.GetDiffPatchRequest.ref_b)
+  return _internal_ref_b();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void GetDiffPatchRequest::set_ref_b(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.ref_b_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.git.GetDiffPatchRequest.ref_b)
+}
+inline ::std::string* PROTOBUF_NONNULL GetDiffPatchRequest::mutable_ref_b()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_ref_b();
+  // @@protoc_insertion_point(field_mutable:s4wave.git.GetDiffPatchRequest.ref_b)
+  return _s;
+}
+inline const ::std::string& GetDiffPatchRequest::_internal_ref_b() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.ref_b_.Get();
+}
+inline void GetDiffPatchRequest::_internal_set_ref_b(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ref_b_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL GetDiffPatchRequest::_internal_mutable_ref_b() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.ref_b_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE GetDiffPatchRequest::release_ref_b() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.git.GetDiffPatchRequest.ref_b)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.ref_b_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.ref_b_.Set("", GetArena());
+  }
+  return released;
+}
+inline void GetDiffPatchRequest::set_allocated_ref_b(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.ref_b_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.ref_b_.IsDefault()) {
+    _impl_.ref_b_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.git.GetDiffPatchRequest.ref_b)
+}
+
+// -------------------------------------------------------------------
+
+// GetDiffPatchResponse
+
+// string patch = 1;
+inline void GetDiffPatchResponse::clear_patch() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.patch_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& GetDiffPatchResponse::patch() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.git.GetDiffPatchResponse.patch)
+  return _internal_patch();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void GetDiffPatchResponse::set_patch(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.patch_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.git.GetDiffPatchResponse.patch)
+}
+inline ::std::string* PROTOBUF_NONNULL GetDiffPatchResponse::mutable_patch()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_patch();
+  // @@protoc_insertion_point(field_mutable:s4wave.git.GetDiffPatchResponse.patch)
+  return _s;
+}
+inline const ::std::string& GetDiffPatchResponse::_internal_patch() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.patch_.Get();
+}
+inline void GetDiffPatchResponse::_internal_set_patch(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.patch_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL GetDiffPatchResponse::_internal_mutable_patch() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.patch_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE GetDiffPatchResponse::release_patch() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.git.GetDiffPatchResponse.patch)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.patch_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.patch_.Set("", GetArena());
+  }
+  return released;
+}
+inline void GetDiffPatchResponse::set_allocated_patch(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.patch_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.patch_.IsDefault()) {
+    _impl_.patch_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.git.GetDiffPatchResponse.patch)
 }
 
 // -------------------------------------------------------------------

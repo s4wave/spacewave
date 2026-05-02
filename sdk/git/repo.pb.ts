@@ -630,3 +630,58 @@ export const GetDiffStatResponse: MessageType<GetDiffStatResponse> =
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
+
+/**
+ * GetDiffPatchRequest is the request for GetDiffPatch.
+ *
+ * @generated from message s4wave.git.GetDiffPatchRequest
+ */
+export interface GetDiffPatchRequest {
+  /**
+   * RefA is the first ref (branch, tag, or commit hash).
+   *
+   * @generated from field: string ref_a = 1;
+   */
+  refA?: string
+  /**
+   * RefB is the second ref. If empty, diffs against ref_a's parent.
+   *
+   * @generated from field: string ref_b = 2;
+   */
+  refB?: string
+}
+
+// GetDiffPatchRequest contains the message type declaration for GetDiffPatchRequest.
+export const GetDiffPatchRequest: MessageType<GetDiffPatchRequest> =
+  createMessageType({
+    typeName: 's4wave.git.GetDiffPatchRequest',
+    fields: [
+      { no: 1, name: 'ref_a', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'ref_b', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * GetDiffPatchResponse is the response for GetDiffPatch.
+ *
+ * @generated from message s4wave.git.GetDiffPatchResponse
+ */
+export interface GetDiffPatchResponse {
+  /**
+   * Patch is the unified diff patch text.
+   *
+   * @generated from field: string patch = 1;
+   */
+  patch?: string
+}
+
+// GetDiffPatchResponse contains the message type declaration for GetDiffPatchResponse.
+export const GetDiffPatchResponse: MessageType<GetDiffPatchResponse> =
+  createMessageType({
+    typeName: 's4wave.git.GetDiffPatchResponse',
+    fields: [
+      { no: 1, name: 'patch', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

@@ -5,6 +5,7 @@ import { FSHandle } from '../unixfs/handle.js'
 import type {
   CommitInfo,
   GetDiffStatResponse,
+  GetDiffPatchResponse,
   GetRepoInfoResponse,
   ListRefsResponse,
   LogResponse,
@@ -100,6 +101,15 @@ export class GitRepoHandle extends Resource {
     signal?: AbortSignal,
   ): Promise<GetDiffStatResponse> {
     return this.service.GetDiffStat({ refA, refB: refB ?? '' }, signal)
+  }
+
+  // getDiffPatch returns a unified diff patch between two refs.
+  public async getDiffPatch(
+    refA: string,
+    refB?: string,
+    signal?: AbortSignal,
+  ): Promise<GetDiffPatchResponse> {
+    return this.service.GetDiffPatch({ refA, refB: refB ?? '' }, signal)
   }
 
   // resolveRefToCommit resolves a ref name and fetches the full commit info.

@@ -20,6 +20,8 @@ service GitRepoResourceService {
   rpc GetCommit(GetCommitRequest) returns (GetCommitResponse);
 
   rpc GetDiffStat(GetDiffStatRequest) returns (GetDiffStatResponse);
+
+  rpc GetDiffPatch(GetDiffPatchRequest) returns (GetDiffPatchResponse);
 }
 
 // RefInfo contains information about a git reference.
@@ -165,6 +167,20 @@ message GetDiffStatResponse {
   uint32 total_additions = 2;
   // TotalDeletions is the total number of deleted lines.
   uint32 total_deletions = 3;
+}
+
+// GetDiffPatchRequest is the request for GetDiffPatch.
+message GetDiffPatchRequest {
+  // RefA is the first ref (branch, tag, or commit hash).
+  string ref_a = 1;
+  // RefB is the second ref. If empty, diffs against ref_a's parent.
+  string ref_b = 2;
+}
+
+// GetDiffPatchResponse is the response for GetDiffPatch.
+message GetDiffPatchResponse {
+  // Patch is the unified diff patch text.
+  string patch = 1;
 }
 
 // DiffFileStat contains line change stats for a single file.

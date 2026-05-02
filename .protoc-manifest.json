@@ -4483,7 +4483,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/git": {
-      "hash": "c68728b851a55110e854ac18389f898821dcf0c0c27326b126f9064e88adfd06",
+      "hash": "a2c8603cef541f92375dd437740a1f7528500ebba35bc1cdef1ba55e85ff5f13",
       "generatedFiles": [
         "sdk/git/repo.pb.cc",
         "sdk/git/repo.pb.go",

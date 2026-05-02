@@ -40,6 +40,10 @@ starpc::Error SRPCGitRepoResourceServiceClientImpl::GetDiffStat(const s4wave::gi
   return cc_->ExecCall(service_id_, "GetDiffStat", in, out);
 }
 
+starpc::Error SRPCGitRepoResourceServiceClientImpl::GetDiffPatch(const s4wave::git::GetDiffPatchRequest& in, s4wave::git::GetDiffPatchResponse* out) {
+  return cc_->ExecCall(service_id_, "GetDiffPatch", in, out);
+}
+
 std::vector<std::string> SRPCGitRepoResourceServiceHandler::GetMethodIDs() const {
   return {
     "ListRefs",
@@ -50,6 +54,7 @@ std::vector<std::string> SRPCGitRepoResourceServiceHandler::GetMethodIDs() const
     "Log",
     "GetCommit",
     "GetDiffStat",
+    "GetDiffPatch",
   };
 }
 
@@ -123,6 +128,14 @@ std::pair<bool, starpc::Error> SRPCGitRepoResourceServiceHandler::InvokeMethod(
     if (err != starpc::Error::OK) return {true, err};
     s4wave::git::GetDiffStatResponse resp;
     err = impl_->GetDiffStat(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "GetDiffPatch") {
+    s4wave::git::GetDiffPatchRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::git::GetDiffPatchResponse resp;
+    err = impl_->GetDiffPatch(req, &resp);
     if (err != starpc::Error::OK) return {true, err};
     return {true, strm->MsgSend(resp)};
   }

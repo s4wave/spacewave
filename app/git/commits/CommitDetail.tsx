@@ -3,7 +3,7 @@ import type { GitRepoHandle } from '@s4wave/sdk/git/repo.js'
 import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 
 import { formatRelativeTime } from '../util.js'
-import { DiffStatSection } from './DiffStatSection.js'
+import { GitDiffPatchFiles } from './GitDiffPatch.js'
 
 // CommitDetailProps are props for the CommitDetail component.
 export interface CommitDetailProps {
@@ -32,6 +32,15 @@ export function CommitDetail({
     async (h) => {
       if (!h) return null
       return h.getDiffStat(commitHash)
+    },
+    [commitHash],
+  )
+
+  const diffPatchResource = useResource(
+    { value: handle, loading: false, error: null, retry: () => {} },
+    async (h) => {
+      if (!h) return null
+      return h.getDiffPatch(commitHash)
     },
     [commitHash],
   )
@@ -139,10 +148,12 @@ export function CommitDetail({
           )}
         </div>
       </div>
-      <div className="px-3 py-2">
-        <DiffStatSection
+      <div className="px-3 py-3">
+        <GitDiffPatchFiles
           files={diffStatResource.value?.files}
-          loading={diffStatResource.loading}
+          patch={diffPatchResource.value?.patch}
+          loading={diffStatResource.loading || diffPatchResource.loading}
+          error={diffPatchResource.error}
         />
       </div>
     </div>

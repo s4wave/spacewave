@@ -426,27 +426,9 @@ func (r *GitRepoResource) GetDiffStat(ctx context.Context, req *s4wave_git.GetDi
 		ctx, r.ws, r.objKey, false,
 		nil, nil, nil,
 		func(repo *git.Repository) error {
-			commitA, err := resolveRefToCommitObject(repo, refA)
+			patch, err := diffRefs(repo, refA, refB)
 			if err != nil {
-				return errors.Wrap(err, "resolve ref_a")
-			}
-
-			var commitB *object.Commit
-			if refB != "" {
-				commitB, err = resolveRefToCommitObject(repo, refB)
-				if err != nil {
-					return errors.Wrap(err, "resolve ref_b")
-				}
-			} else if len(commitA.ParentHashes) > 0 {
-				commitB, err = repo.CommitObject(commitA.ParentHashes[0])
-				if err != nil {
-					return errors.Wrap(err, "parent commit")
-				}
-			}
-
-			patch, err := commitA.Patch(commitB)
-			if err != nil {
-				return errors.Wrap(err, "compute patch")
+				return err
 			}
 
 			var totalAdd, totalDel uint32
@@ -471,6 +453,61 @@ func (r *GitRepoResource) GetDiffStat(ctx context.Context, req *s4wave_git.GetDi
 	}
 
 	return resp, nil
+}
+
+// GetDiffPatch returns a unified diff patch between two refs.
+func (r *GitRepoResource) GetDiffPatch(ctx context.Context, req *s4wave_git.GetDiffPatchRequest) (*s4wave_git.GetDiffPatchResponse, error) {
+	refA := req.GetRefA()
+	if refA == "" {
+		return nil, errors.New("ref_a is required")
+	}
+	refB := req.GetRefB()
+
+	resp := &s4wave_git.GetDiffPatchResponse{}
+	_, _, err := git_world.AccessWorldObjectRepo(
+		ctx, r.ws, r.objKey, false,
+		nil, nil, nil,
+		func(repo *git.Repository) error {
+			patch, err := diffRefs(repo, refA, refB)
+			if err != nil {
+				return err
+			}
+			resp.Patch = patch.String()
+			return nil
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+func diffRefs(repo *git.Repository, refA, refB string) (*object.Patch, error) {
+	commitA, err := resolveRefToCommitObject(repo, refA)
+	if err != nil {
+		return nil, errors.Wrap(err, "resolve ref_a")
+	}
+
+	var commitB *object.Commit
+	if refB != "" {
+		commitB, err = resolveRefToCommitObject(repo, refB)
+		if err != nil {
+			return nil, errors.Wrap(err, "resolve ref_b")
+		}
+	}
+	if refB == "" && len(commitA.ParentHashes) > 0 {
+		commitB, err = repo.CommitObject(commitA.ParentHashes[0])
+		if err != nil {
+			return nil, errors.Wrap(err, "parent commit")
+		}
+	}
+
+	patch, err := commitA.Patch(commitB)
+	if err != nil {
+		return nil, errors.Wrap(err, "compute patch")
+	}
+	return patch, nil
 }
 
 // resolveRefToCommitObject resolves a ref name to a commit object.

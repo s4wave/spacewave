@@ -27,6 +27,8 @@ pub trait GitRepoResourceServiceClient: Send + Sync {
     async fn get_commit(&self, request: &GetCommitRequest) -> starpc::Result<GetCommitResponse>;
     /// GetDiffStat.
     async fn get_diff_stat(&self, request: &GetDiffStatRequest) -> starpc::Result<GetDiffStatResponse>;
+    /// GetDiffPatch.
+    async fn get_diff_patch(&self, request: &GetDiffPatchRequest) -> starpc::Result<GetDiffPatchResponse>;
 }
 
 /// Client implementation for GitRepoResourceService.
@@ -67,6 +69,9 @@ impl<C: starpc::Client + 'static> GitRepoResourceServiceClient for GitRepoResour
     async fn get_diff_stat(&self, request: &GetDiffStatRequest) -> starpc::Result<GetDiffStatResponse> {
         self.client.exec_call("s4wave.git.GitRepoResourceService", "GetDiffStat", request).await
     }
+    async fn get_diff_patch(&self, request: &GetDiffPatchRequest) -> starpc::Result<GetDiffPatchResponse> {
+        self.client.exec_call("s4wave.git.GitRepoResourceService", "GetDiffPatch", request).await
+    }
 }
 
 /// Server trait for GitRepoResourceService.
@@ -88,6 +93,8 @@ pub trait GitRepoResourceServiceServer: Send + Sync {
     async fn get_commit(&self, request: GetCommitRequest) -> starpc::Result<GetCommitResponse>;
     /// GetDiffStat.
     async fn get_diff_stat(&self, request: GetDiffStatRequest) -> starpc::Result<GetDiffStatResponse>;
+    /// GetDiffPatch.
+    async fn get_diff_patch(&self, request: GetDiffPatchRequest) -> starpc::Result<GetDiffPatchResponse>;
 }
 
 const GIT_REPO_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
@@ -99,6 +106,7 @@ const GIT_REPO_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
     "Log",
     "GetCommit",
     "GetDiffStat",
+    "GetDiffPatch",
 ];
 
 /// Handler for GitRepoResourceService.
@@ -238,6 +246,21 @@ impl<S: GitRepoResourceServiceServer + 'static> starpc::Invoker for GitRepoResou
                     Err(e) => return (true, Err(e)),
                 };
                 match self.server.get_diff_stat(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "GetDiffPatch" => {
+                let request: GetDiffPatchRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.get_diff_patch(request).await {
                     Ok(response) => {
                         if let Err(e) = stream.msg_send(&response).await {
                             return (true, Err(e));

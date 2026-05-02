@@ -5,6 +5,8 @@
 import {
   GetCommitRequest,
   GetCommitResponse,
+  GetDiffPatchRequest,
+  GetDiffPatchResponse,
   GetDiffStatRequest,
   GetDiffStatResponse,
   GetRepoFilesystemResourceRequest,
@@ -101,6 +103,15 @@ export const GitRepoResourceServiceDefinition = {
       O: GetDiffStatResponse,
       kind: MethodKind.Unary,
     },
+    /**
+     * @generated from rpc s4wave.git.GitRepoResourceService.GetDiffPatch
+     */
+    GetDiffPatch: {
+      name: 'GetDiffPatch',
+      I: GetDiffPatchRequest,
+      O: GetDiffPatchResponse,
+      kind: MethodKind.Unary,
+    },
   },
 } as const
 
@@ -168,6 +179,14 @@ export interface GitRepoResourceService {
     request: GetDiffStatRequest,
     abortSignal?: AbortSignal,
   ): Promise<GetDiffStatResponse>
+
+  /**
+   * @generated from rpc s4wave.git.GitRepoResourceService.GetDiffPatch
+   */
+  GetDiffPatch(
+    request: GetDiffPatchRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetDiffPatchResponse>
 }
 
 export const GitRepoResourceServiceServiceName =
@@ -187,6 +206,7 @@ export class GitRepoResourceServiceClient implements GitRepoResourceService {
     this.Log = this.Log.bind(this)
     this.GetCommit = this.GetCommit.bind(this)
     this.GetDiffStat = this.GetDiffStat.bind(this)
+    this.GetDiffPatch = this.GetDiffPatch.bind(this)
   }
   /**
    * @generated from rpc s4wave.git.GitRepoResourceService.ListRefs
@@ -322,5 +342,22 @@ export class GitRepoResourceServiceClient implements GitRepoResourceService {
       abortSignal || undefined,
     )
     return GetDiffStatResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.git.GitRepoResourceService.GetDiffPatch
+   */
+  async GetDiffPatch(
+    request: GetDiffPatchRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetDiffPatchResponse> {
+    const requestMsg = GetDiffPatchRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      GitRepoResourceServiceDefinition.methods.GetDiffPatch.name,
+      GetDiffPatchRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return GetDiffPatchResponse.fromBinary(result)
   }
 }

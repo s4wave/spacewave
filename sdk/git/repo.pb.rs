@@ -184,6 +184,23 @@ pub struct GetDiffStatResponse {
     #[prost(uint32, tag="3")]
     pub total_deletions: u32,
 }
+/// GetDiffPatchRequest is the request for GetDiffPatch.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetDiffPatchRequest {
+    /// RefA is the first ref (branch, tag, or commit hash).
+    #[prost(string, tag="1")]
+    pub ref_a: ::prost::alloc::string::String,
+    /// RefB is the second ref. If empty, diffs against ref_a's parent.
+    #[prost(string, tag="2")]
+    pub ref_b: ::prost::alloc::string::String,
+}
+/// GetDiffPatchResponse is the response for GetDiffPatch.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetDiffPatchResponse {
+    /// Patch is the unified diff patch text.
+    #[prost(string, tag="1")]
+    pub patch: ::prost::alloc::string::String,
+}
 /// DiffFileStat contains line change stats for a single file.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct DiffFileStat {

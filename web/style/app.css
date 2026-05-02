@@ -45,6 +45,41 @@
 /* FlexLayout */
 @import './flexlayout/flexlayout.css';
 
+@layer components {
+  .git-diff-patch {
+    --diffs-dark-bg: var(--color-background-card);
+    --diffs-dark: var(--color-foreground);
+    --diffs-font-family: var(--font-mono);
+    --diffs-header-font-family: var(--font-display);
+    --diffs-font-size: 0.75rem;
+    --diffs-line-height: 1.25rem;
+    --diffs-gap-block: 0.375rem;
+    --diffs-gap-inline: 0.5rem;
+    --diffs-addition-color: var(--color-success);
+    --diffs-deletion-color: var(--color-error);
+    --diffs-bg-hover-override: var(--color-foreground);
+    --diffs-bg-buffer-override: color-mix(
+      in oklch,
+      var(--color-background-card) 92%,
+      var(--color-foreground)
+    );
+    --diffs-bg-context-override: color-mix(
+      in oklch,
+      var(--color-background-card) 94%,
+      var(--color-foreground)
+    );
+    --diffs-bg-separator-override: color-mix(
+      in oklch,
+      var(--color-background-card) 90%,
+      var(--color-foreground)
+    );
+  }
+
+  .git-diff-patch [data-code] {
+    padding-top: 0;
+  }
+}
+
 @theme {
   /* Fonts */
   --font-mono:

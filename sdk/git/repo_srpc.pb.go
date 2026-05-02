@@ -29,6 +29,8 @@ type SRPCGitRepoResourceServiceClient interface {
 	GetCommit(ctx context.Context, in *GetCommitRequest) (*GetCommitResponse, error)
 
 	GetDiffStat(ctx context.Context, in *GetDiffStatRequest) (*GetDiffStatResponse, error)
+
+	GetDiffPatch(ctx context.Context, in *GetDiffPatchRequest) (*GetDiffPatchResponse, error)
 }
 
 type srpcGitRepoResourceServiceClient struct {
@@ -121,6 +123,15 @@ func (c *srpcGitRepoResourceServiceClient) GetDiffStat(ctx context.Context, in *
 	return out, nil
 }
 
+func (c *srpcGitRepoResourceServiceClient) GetDiffPatch(ctx context.Context, in *GetDiffPatchRequest) (*GetDiffPatchResponse, error) {
+	out := new(GetDiffPatchResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "GetDiffPatch", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 type SRPCGitRepoResourceServiceServer interface {
 	ListRefs(context.Context, *ListRefsRequest) (*ListRefsResponse, error)
 
@@ -137,6 +148,8 @@ type SRPCGitRepoResourceServiceServer interface {
 	GetCommit(context.Context, *GetCommitRequest) (*GetCommitResponse, error)
 
 	GetDiffStat(context.Context, *GetDiffStatRequest) (*GetDiffStatResponse, error)
+
+	GetDiffPatch(context.Context, *GetDiffPatchRequest) (*GetDiffPatchResponse, error)
 }
 
 const SRPCGitRepoResourceServiceServiceID = "s4wave.git.GitRepoResourceService"
@@ -173,6 +186,7 @@ func (SRPCGitRepoResourceServiceHandler) GetMethodIDs() []string {
 		"Log",
 		"GetCommit",
 		"GetDiffStat",
+		"GetDiffPatch",
 	}
 }
 
@@ -201,6 +215,8 @@ func (d *SRPCGitRepoResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_GetCommit(d.impl, strm)
 	case "GetDiffStat":
 		return true, d.InvokeMethod_GetDiffStat(d.impl, strm)
+	case "GetDiffPatch":
+		return true, d.InvokeMethod_GetDiffPatch(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -302,6 +318,18 @@ func (SRPCGitRepoResourceServiceHandler) InvokeMethod_GetDiffStat(impl SRPCGitRe
 	return strm.MsgSend(out)
 }
 
+func (SRPCGitRepoResourceServiceHandler) InvokeMethod_GetDiffPatch(impl SRPCGitRepoResourceServiceServer, strm srpc.Stream) error {
+	req := new(GetDiffPatchRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.GetDiffPatch(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
 type SRPCGitRepoResourceService_ListRefsStream interface {
 	srpc.Stream
 }
@@ -363,5 +391,13 @@ type SRPCGitRepoResourceService_GetDiffStatStream interface {
 }
 
 type srpcGitRepoResourceService_GetDiffStatStream struct {
+	srpc.Stream
+}
+
+type SRPCGitRepoResourceService_GetDiffPatchStream interface {
+	srpc.Stream
+}
+
+type srpcGitRepoResourceService_GetDiffPatchStream struct {
 	srpc.Stream
 }

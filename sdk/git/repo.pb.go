@@ -547,6 +547,55 @@ func (x *GetDiffStatResponse) GetTotalDeletions() uint32 {
 	return 0
 }
 
+// GetDiffPatchRequest is the request for GetDiffPatch.
+type GetDiffPatchRequest struct {
+	unknownFields []byte
+	// RefA is the first ref (branch, tag, or commit hash).
+	RefA string `protobuf:"bytes,1,opt,name=ref_a,json=refA,proto3" json:"refA,omitempty"`
+	// RefB is the second ref. If empty, diffs against ref_a's parent.
+	RefB string `protobuf:"bytes,2,opt,name=ref_b,json=refB,proto3" json:"refB,omitempty"`
+}
+
+func (x *GetDiffPatchRequest) Reset() {
+	*x = GetDiffPatchRequest{}
+}
+
+func (*GetDiffPatchRequest) ProtoMessage() {}
+
+func (x *GetDiffPatchRequest) GetRefA() string {
+	if x != nil {
+		return x.RefA
+	}
+	return ""
+}
+
+func (x *GetDiffPatchRequest) GetRefB() string {
+	if x != nil {
+		return x.RefB
+	}
+	return ""
+}
+
+// GetDiffPatchResponse is the response for GetDiffPatch.
+type GetDiffPatchResponse struct {
+	unknownFields []byte
+	// Patch is the unified diff patch text.
+	Patch string `protobuf:"bytes,1,opt,name=patch,proto3" json:"patch,omitempty"`
+}
+
+func (x *GetDiffPatchResponse) Reset() {
+	*x = GetDiffPatchResponse{}
+}
+
+func (*GetDiffPatchResponse) ProtoMessage() {}
+
+func (x *GetDiffPatchResponse) GetPatch() string {
+	if x != nil {
+		return x.Patch
+	}
+	return ""
+}
+
 // DiffFileStat contains line change stats for a single file.
 type DiffFileStat struct {
 	unknownFields []byte
@@ -911,6 +960,39 @@ func (m *GetDiffStatResponse) CloneVT() *GetDiffStatResponse {
 }
 
 func (m *GetDiffStatResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *GetDiffPatchRequest) CloneVT() *GetDiffPatchRequest {
+	if m == nil {
+		return (*GetDiffPatchRequest)(nil)
+	}
+	r := new(GetDiffPatchRequest)
+	r.RefA = m.RefA
+	r.RefB = m.RefB
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GetDiffPatchRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *GetDiffPatchResponse) CloneVT() *GetDiffPatchResponse {
+	if m == nil {
+		return (*GetDiffPatchResponse)(nil)
+	}
+	r := new(GetDiffPatchResponse)
+	r.Patch = m.Patch
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GetDiffPatchResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -1405,6 +1487,49 @@ func (this *GetDiffStatResponse) EqualVT(that *GetDiffStatResponse) bool {
 
 func (this *GetDiffStatResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*GetDiffStatResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *GetDiffPatchRequest) EqualVT(that *GetDiffPatchRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.RefA != that.RefA {
+		return false
+	}
+	if this.RefB != that.RefB {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GetDiffPatchRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GetDiffPatchRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *GetDiffPatchResponse) EqualVT(that *GetDiffPatchResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Patch != that.Patch {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GetDiffPatchResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GetDiffPatchResponse)
 	if !ok {
 		return false
 	}
@@ -2433,6 +2558,98 @@ func (x *GetDiffStatResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the GetDiffPatchRequest message to JSON.
+func (x *GetDiffPatchRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.RefA != "" || s.HasField("refA") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("refA")
+		s.WriteString(x.RefA)
+	}
+	if x.RefB != "" || s.HasField("refB") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("refB")
+		s.WriteString(x.RefB)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GetDiffPatchRequest to JSON.
+func (x *GetDiffPatchRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GetDiffPatchRequest message from JSON.
+func (x *GetDiffPatchRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "ref_a", "refA":
+			s.AddField("ref_a")
+			x.RefA = s.ReadString()
+		case "ref_b", "refB":
+			s.AddField("ref_b")
+			x.RefB = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the GetDiffPatchRequest from JSON.
+func (x *GetDiffPatchRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the GetDiffPatchResponse message to JSON.
+func (x *GetDiffPatchResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Patch != "" || s.HasField("patch") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("patch")
+		s.WriteString(x.Patch)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GetDiffPatchResponse to JSON.
+func (x *GetDiffPatchResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GetDiffPatchResponse message from JSON.
+func (x *GetDiffPatchResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "patch":
+			s.AddField("patch")
+			x.Patch = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the GetDiffPatchResponse from JSON.
+func (x *GetDiffPatchResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the DiffFileStat message to JSON.
 func (x *DiffFileStat) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -3370,6 +3587,93 @@ func (m *GetDiffStatResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *GetDiffPatchRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetDiffPatchRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GetDiffPatchRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.RefB) > 0 {
+		i -= len(m.RefB)
+		copy(dAtA[i:], m.RefB)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.RefB)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.RefA) > 0 {
+		i -= len(m.RefA)
+		copy(dAtA[i:], m.RefA)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.RefA)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *GetDiffPatchResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetDiffPatchResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GetDiffPatchResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Patch) > 0 {
+		i -= len(m.Patch)
+		copy(dAtA[i:], m.Patch)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Patch)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *DiffFileStat) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -3742,6 +4046,38 @@ func (m *GetDiffStatResponse) SizeVT() (n int) {
 	}
 	if m.TotalDeletions != 0 {
 		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.TotalDeletions))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GetDiffPatchRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.RefA)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.RefB)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GetDiffPatchResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Patch)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -4251,6 +4587,49 @@ func (x *GetDiffStatResponse) MarshalProtoText() string {
 }
 
 func (x *GetDiffStatResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *GetDiffPatchRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("GetDiffPatchRequest {")
+	if x.RefA != "" {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("ref_a: ")
+		sb.WriteString(strconv.Quote(x.RefA))
+	}
+	if x.RefB != "" {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("ref_b: ")
+		sb.WriteString(strconv.Quote(x.RefB))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *GetDiffPatchRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *GetDiffPatchResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("GetDiffPatchResponse {")
+	if x.Patch != "" {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("patch: ")
+		sb.WriteString(strconv.Quote(x.Patch))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *GetDiffPatchResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -5748,6 +6127,158 @@ func (m *GetDiffStatResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *GetDiffPatchRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetDiffPatchRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetDiffPatchRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RefA", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RefA = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RefB", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RefB = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *GetDiffPatchResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetDiffPatchResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetDiffPatchResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Patch", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Patch = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

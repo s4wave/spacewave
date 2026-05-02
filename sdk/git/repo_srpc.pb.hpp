@@ -45,6 +45,8 @@ class SRPCGitRepoResourceServiceClient {
   virtual starpc::Error GetCommit(const s4wave::git::GetCommitRequest& in, s4wave::git::GetCommitResponse* out) = 0;
   // GetDiffStat
   virtual starpc::Error GetDiffStat(const s4wave::git::GetDiffStatRequest& in, s4wave::git::GetDiffStatResponse* out) = 0;
+  // GetDiffPatch
+  virtual starpc::Error GetDiffPatch(const s4wave::git::GetDiffPatchRequest& in, s4wave::git::GetDiffPatchResponse* out) = 0;
 };
 
 // SRPCGitRepoResourceServiceClientImpl implements SRPCGitRepoResourceServiceClient.
@@ -71,6 +73,8 @@ class SRPCGitRepoResourceServiceClientImpl : public SRPCGitRepoResourceServiceCl
   virtual starpc::Error GetCommit(const s4wave::git::GetCommitRequest& in, s4wave::git::GetCommitResponse* out) override;
   // GetDiffStat
   virtual starpc::Error GetDiffStat(const s4wave::git::GetDiffStatRequest& in, s4wave::git::GetDiffStatResponse* out) override;
+  // GetDiffPatch
+  virtual starpc::Error GetDiffPatch(const s4wave::git::GetDiffPatchRequest& in, s4wave::git::GetDiffPatchResponse* out) override;
 
  private:
   starpc::Client* cc_;
@@ -103,6 +107,8 @@ class SRPCGitRepoResourceServiceServer {
   virtual starpc::Error GetCommit(const s4wave::git::GetCommitRequest& req, s4wave::git::GetCommitResponse* resp) = 0;
   // GetDiffStat
   virtual starpc::Error GetDiffStat(const s4wave::git::GetDiffStatRequest& req, s4wave::git::GetDiffStatResponse* resp) = 0;
+  // GetDiffPatch
+  virtual starpc::Error GetDiffPatch(const s4wave::git::GetDiffPatchRequest& req, s4wave::git::GetDiffPatchResponse* resp) = 0;
 };
 
 // SRPCGitRepoResourceServiceHandler implements starpc::Handler for GitRepoResourceService.
