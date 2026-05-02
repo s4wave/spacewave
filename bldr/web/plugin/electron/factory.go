@@ -76,6 +76,7 @@ func (t *Factory) Construct(
 			WindowHeight:  cc.GetWindowHeight(),
 			DevTools:      cc.GetDevTools(),
 			ThemeSource:   cc.GetThemeSource(),
+			QuitPolicy:    cc.GetQuitPolicy(),
 		},
 	)
 }
