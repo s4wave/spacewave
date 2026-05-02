@@ -140,16 +140,6 @@ func (c *Controller) processInitWorldOp(
 		), nil
 	}
 
-	// Generate transform config if not provided
-	transformConf := initOp.GetTransformConf()
-	if transformConf.GetEmpty() {
-		var err error
-		transformConf, err = buildDefaultTransformConf()
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-
 	// Create the op result (accept)
 	opResult := sobject.BuildSOOperationResult(
 		peerID.String(),
@@ -158,13 +148,9 @@ func (c *Controller) processInitWorldOp(
 		nil,
 	)
 
-	// TODO: initialize the root ref with an empty world block?
-
-	// Create the mutated result state
-	finalState := &InnerState{
-		HeadRef: &bucket.ObjectRef{
-			TransformConf: transformConf,
-		},
+	finalState, err := BuildInitialInnerState(initOp)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	return finalState, opResult, nil

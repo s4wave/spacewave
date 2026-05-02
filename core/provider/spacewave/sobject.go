@@ -517,7 +517,7 @@ func (a *ProviderAccount) CreateSharedObject(ctx context.Context, id string, met
 	if err != nil {
 		return nil, errors.Wrap(err, "session private key not available for crypto init")
 	}
-	if err := a.initCloudSharedObjectState(ctx, id, sessionPriv); err != nil {
+	if err := a.initCloudSharedObjectState(ctx, id, sessionPriv, objectType == space.SpaceBodyType); err != nil {
 		return nil, errors.Wrap(err, "init shared object state")
 	}
 
@@ -703,7 +703,7 @@ func getSharedObjectDisplayName(meta *sobject.SharedObjectMeta) string {
 // initCloudSharedObjectState performs the client-side crypto initialization
 // for a newly created shared object. Generates a random XChaCha20 key, builds
 // the initial root, signs it, creates grants, and POSTs the state to the server.
-func (a *ProviderAccount) initCloudSharedObjectState(ctx context.Context, sharedObjectID string, localPriv crypto.PrivKey) error {
+func (a *ProviderAccount) initCloudSharedObjectState(ctx context.Context, sharedObjectID string, localPriv crypto.PrivKey, seedWorldHead bool) error {
 	le := a.le.WithField("sobject-id", sharedObjectID)
 	return initializeCloudSharedObjectState(
 		ctx,
@@ -713,6 +713,7 @@ func (a *ProviderAccount) initCloudSharedObjectState(ctx context.Context, shared
 		sharedObjectID,
 		localPriv,
 		a.sfs,
+		seedWorldHead,
 	)
 }
 

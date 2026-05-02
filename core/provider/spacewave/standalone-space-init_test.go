@@ -7,11 +7,14 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/aperturerobotics/controllerbus/controller"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	session "github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
+	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
+	"github.com/sirupsen/logrus"
 )
 
 func TestSessionClientInitEmptyStandaloneSpace(t *testing.T) {
@@ -40,7 +43,7 @@ func TestSessionClientInitEmptyStandaloneSpace(t *testing.T) {
 	var (
 		postedConfig *api.PostConfigStateRequest
 		postedRoot   *sobject.SORoot
-		postedEpoch  *api.PostKeyEpochRequest
+		postedEpoch  *sobject.SOKeyEpoch
 	)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -60,6 +63,7 @@ func TestSessionClientInitEmptyStandaloneSpace(t *testing.T) {
 				t.Fatalf("unmarshal config-state request: %v", err)
 			}
 			postedConfig = req
+			postedEpoch = req.GetKeyEpoch()
 			w.WriteHeader(http.StatusOK)
 		case "/api/sobject/" + soID + "/root":
 			body, err := io.ReadAll(r.Body)
@@ -71,17 +75,6 @@ func TestSessionClientInitEmptyStandaloneSpace(t *testing.T) {
 				t.Fatalf("unmarshal post root request: %v", err)
 			}
 			postedRoot = req.GetRoot()
-			w.WriteHeader(http.StatusOK)
-		case "/api/sobject/" + soID + "/key-epoch":
-			body, err := io.ReadAll(r.Body)
-			if err != nil {
-				t.Fatalf("read key-epoch body: %v", err)
-			}
-			req := &api.PostKeyEpochRequest{}
-			if err := req.UnmarshalVT(body); err != nil {
-				t.Fatalf("unmarshal key-epoch request: %v", err)
-			}
-			postedEpoch = req
 			w.WriteHeader(http.StatusOK)
 		default:
 			t.Fatalf("unexpected path: %s", r.URL.Path)
@@ -143,10 +136,7 @@ func TestSessionClientInitEmptyStandaloneSpace(t *testing.T) {
 	if postedRoot.GetInnerSeqno() != 1 {
 		t.Fatalf("root seqno = %d", postedRoot.GetInnerSeqno())
 	}
-	if postedEpoch.GetKeyEpoch() == nil {
-		t.Fatal("expected posted key epoch")
-	}
-	if !soGrantSliceHasPeerID(postedEpoch.GetKeyEpoch().GetGrants(), localPID.String()) {
+	if !soGrantSliceHasPeerID(postedEpoch.GetGrants(), localPID.String()) {
 		t.Fatal("expected local owner grant in posted key epoch")
 	}
 }
@@ -289,4 +279,41 @@ func buildRecoveryKeypairResponse(
 			}},
 		}},
 	}
+}
+
+func decodePostedRootInner(
+	t *testing.T,
+	soID string,
+	localPriv crypto.PrivKey,
+	localPeerID string,
+	epoch *sobject.SOKeyEpoch,
+	root *sobject.SORoot,
+) *sobject.SORootInner {
+	t.Helper()
+
+	grant := findSOGrantByPeerID(epoch.GetGrants(), localPeerID)
+	if grant == nil {
+		t.Fatal("expected local grant")
+	}
+	grantInner, err := grant.DecryptInnerData(localPriv, soID)
+	if err != nil {
+		t.Fatalf("decrypt grant inner: %v", err)
+	}
+	xfrm, err := block_transform.NewTransformer(
+		controller.ConstructOpts{Logger: logrus.New().WithField("test", t.Name())},
+		buildStandaloneSpaceInitStepFactorySet(),
+		grantInner.GetTransformConf(),
+	)
+	if err != nil {
+		t.Fatalf("build transformer: %v", err)
+	}
+	innerData, err := xfrm.DecodeBlock(root.GetInner())
+	if err != nil {
+		t.Fatalf("decode root inner: %v", err)
+	}
+	inner := &sobject.SORootInner{}
+	if err := inner.UnmarshalVT(innerData); err != nil {
+		t.Fatalf("unmarshal root inner: %v", err)
+	}
+	return inner
 }

@@ -180,10 +180,8 @@ func TestReinitializeSharedObjectClearsVerifiedCacheBeforeReseed(t *testing.T) {
 		case "/api/sobject/" + soID + "/recovery-entity-keypairs":
 			_, _ = w.Write(mustMarshalVT(t, &api.ListSORecoveryEntityKeypairsResponse{}))
 		case "/api/sobject/" + soID + "/config-state":
-			if _, err := io.Copy(io.Discard, r.Body); err != nil {
-				t.Fatalf("read config-state body: %v", err)
-			}
 			postedConfig = true
+			postedEpoch = configStateIncludesKeyEpoch(t, r)
 			w.WriteHeader(http.StatusOK)
 		case "/api/session/write-tickets/" + soID:
 			body, err := (&api.WriteTicketBundleResponse{
@@ -199,12 +197,6 @@ func TestReinitializeSharedObjectClearsVerifiedCacheBeforeReseed(t *testing.T) {
 				t.Fatalf("read root body: %v", err)
 			}
 			postedRoot = true
-			w.WriteHeader(http.StatusOK)
-		case "/api/sobject/" + soID + "/key-epoch":
-			if _, err := io.Copy(io.Discard, r.Body); err != nil {
-				t.Fatalf("read key-epoch body: %v", err)
-			}
-			postedEpoch = true
 			w.WriteHeader(http.StatusOK)
 		default:
 			t.Fatalf("unexpected path: %s", r.URL.Path)
@@ -264,18 +256,14 @@ func TestRepairStandaloneEmptyRootClearsVerifiedCacheBeforeReseed(t *testing.T) 
 		case "/api/sobject/" + soID + "/recovery-entity-keypairs":
 			_, _ = w.Write(mustMarshalVT(t, &api.ListSORecoveryEntityKeypairsResponse{}))
 		case "/api/sobject/" + soID + "/config-state":
-			drainTestRequestBody(t, r)
 			postedConfig = true
+			postedEpoch = configStateIncludesKeyEpoch(t, r)
 			w.WriteHeader(http.StatusOK)
 		case "/api/session/write-tickets/" + soID:
 			writeRootTicketBundle(t, w)
 		case "/api/sobject/" + soID + "/root":
 			drainTestRequestBody(t, r)
 			postedRoot = true
-			w.WriteHeader(http.StatusOK)
-		case "/api/sobject/" + soID + "/key-epoch":
-			drainTestRequestBody(t, r)
-			postedEpoch = true
 			w.WriteHeader(http.StatusOK)
 		default:
 			t.Fatalf("unexpected path: %s", r.URL.Path)
@@ -325,18 +313,14 @@ func TestRepairOrganizationRootEmptyRootClearsVerifiedCacheBeforeReseed(t *testi
 		case "/api/sobject/" + orgID + "/recovery-entity-keypairs":
 			_, _ = w.Write(mustMarshalVT(t, &api.ListSORecoveryEntityKeypairsResponse{}))
 		case "/api/sobject/" + orgID + "/config-state":
-			drainTestRequestBody(t, r)
 			postedConfig = true
+			postedEpoch = configStateIncludesKeyEpoch(t, r)
 			w.WriteHeader(http.StatusOK)
 		case "/api/session/write-tickets/" + orgID:
 			writeRootTicketBundle(t, w)
 		case "/api/sobject/" + orgID + "/root":
 			drainTestRequestBody(t, r)
 			postedRoot = true
-			w.WriteHeader(http.StatusOK)
-		case "/api/sobject/" + orgID + "/key-epoch":
-			drainTestRequestBody(t, r)
-			postedEpoch = true
 			w.WriteHeader(http.StatusOK)
 		default:
 			http.NotFound(w, r)
@@ -432,6 +416,20 @@ func drainTestRequestBody(t *testing.T, r *http.Request) {
 	if _, err := io.Copy(io.Discard, r.Body); err != nil {
 		t.Fatalf("read request body: %v", err)
 	}
+}
+
+func configStateIncludesKeyEpoch(t *testing.T, r *http.Request) bool {
+	t.Helper()
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		t.Fatalf("read config-state body: %v", err)
+	}
+	req := &api.PostConfigStateRequest{}
+	if err := req.UnmarshalVT(body); err != nil {
+		t.Fatalf("unmarshal config-state request: %v", err)
+	}
+	return req.GetKeyEpoch() != nil
 }
 
 func assertVerifiedCacheCleared(

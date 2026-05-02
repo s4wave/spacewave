@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
+	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
 	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
@@ -77,6 +78,7 @@ func (c *SessionClient) InitEmptyStandaloneSpace(
 			spaceID,
 			c.priv,
 			buildStandaloneSpaceInitStepFactorySet(),
+			false,
 		); err != nil {
 			return false, err
 		}
@@ -140,6 +142,21 @@ func buildStandaloneSpaceInitStepFactorySet() *block_transform.StepFactorySet {
 	return sfs
 }
 
+func buildInitialWorldStateData(seedWorldHead bool) ([]byte, error) {
+	if !seedWorldHead {
+		return nil, nil
+	}
+	state, err := sobject_world_engine.BuildInitialInnerState(nil)
+	if err != nil {
+		return nil, err
+	}
+	data, err := state.MarshalVT()
+	if err != nil {
+		return nil, errors.Wrap(err, "marshal initial world state")
+	}
+	return data, nil
+}
+
 func initializeCloudSharedObjectState(
 	ctx context.Context,
 	cli *SessionClient,
@@ -148,6 +165,7 @@ func initializeCloudSharedObjectState(
 	sharedObjectID string,
 	localPriv crypto.PrivKey,
 	sfs *block_transform.StepFactorySet,
+	seedWorldHead bool,
 ) error {
 	localPeerID, err := peer.IDFromPrivateKey(localPriv)
 	if err != nil {
@@ -222,13 +240,20 @@ func initializeCloudSharedObjectState(
 		sharedObjectID,
 		genesisData,
 		nil,
-		nil,
+		epoch,
 		recoveryEnvelopes,
 	); err != nil {
 		return errors.Wrap(err, "post signed genesis config")
 	}
 
-	ninner := &sobject.SORootInner{Seqno: 1}
+	stateData, err := buildInitialWorldStateData(seedWorldHead)
+	if err != nil {
+		return err
+	}
+	ninner := &sobject.SORootInner{
+		Seqno:     1,
+		StateData: stateData,
+	}
 	innerDataDec, err := ninner.MarshalVT()
 	if err != nil {
 		return err
@@ -251,12 +276,7 @@ func initializeCloudSharedObjectState(
 		return err
 	}
 
-	return cli.PostKeyEpoch(
-		ctx,
-		sharedObjectID,
-		epoch,
-		recoveryEnvelopes,
-	)
+	return nil
 }
 
 func repairGrantlessStandaloneSpace(
