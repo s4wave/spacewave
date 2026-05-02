@@ -38,7 +38,7 @@ for selection_part in "${selection_parts[@]}"; do
   esac
 done
 
-printf 'browser=%s\n' "${include_browser}"
-printf 'macos=%s\n' "${include_macos}"
-printf 'windows=%s\n' "${include_windows}"
-printf 'linux=%s\n' "${include_linux}"
+printf 'include_browser=%s\n' "${include_browser}"
+printf 'include_macos=%s\n' "${include_macos}"
+printf 'include_windows=%s\n' "${include_windows}"
+printf 'include_linux=%s\n' "${include_linux}"
