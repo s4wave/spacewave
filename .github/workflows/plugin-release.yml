@@ -42,6 +42,9 @@ jobs:
       include_windows: ${{ steps.vars.outputs.include_windows }}
       include_linux: ${{ steps.vars.outputs.include_linux }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
       - id: vars
         shell: bash
         run: |
