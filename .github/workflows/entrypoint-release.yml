@@ -75,71 +75,90 @@ jobs:
           echo "rev=${{ inputs.rev }}" >> "${GITHUB_OUTPUT}"
           echo "tag=v${{ inputs.version }}" >> "${GITHUB_OUTPUT}"
 
-  remote:
+  manifest_packs:
     needs: prep
     runs-on: ubuntu-latest
     environment: ${{ needs.prep.outputs.environment_name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: spacewave-web-js
+            manifest_id: spacewave-web
+            platform: js
+            object_key: devtool/manifest-pack/spacewave-web/js
+            producer_target: release-remote-web
+          - name: spacewave-app-js
+            manifest_id: spacewave-app
+            platform: js
+            object_key: devtool/manifest-pack/spacewave-app/js
+            producer_target: release-remote-js
     env:
       SPACEWAVE_RELEASE_ENV: ${{ needs.prep.outputs.release_env }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Cache remote handoff part
-        id: remote_handoff_cache
+      - name: Cache manifest pack
+        id: manifest_pack_cache
         uses: actions/cache@v5
         with:
-          path: .tmp/entrypoint-handoff/remote
-          key: entrypoint-remote-${{ needs.prep.outputs.environment_name }}-${{ github.sha }}-reactdev${{ inputs.react_dev }}
+          path: .tmp/entrypoint-manifest-packs/${{ matrix.name }}
+          key: entrypoint-manifest-pack-${{ matrix.name }}-${{ needs.prep.outputs.environment_name }}-${{ github.sha }}-reactdev${{ inputs.react_dev }}
 
       - name: Setup Go
-        if: steps.remote_handoff_cache.outputs.cache-hit != 'true'
+        if: steps.manifest_pack_cache.outputs.cache-hit != 'true'
         uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           cache: true
 
       - name: Setup Bun
-        if: steps.remote_handoff_cache.outputs.cache-hit != 'true'
+        if: steps.manifest_pack_cache.outputs.cache-hit != 'true'
         uses: oven-sh/setup-bun@v2
 
       - name: Setup Node.JS
-        if: steps.remote_handoff_cache.outputs.cache-hit != 'true'
+        if: steps.manifest_pack_cache.outputs.cache-hit != 'true'
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: 25.x
 
       - name: Install Bun dependencies
-        if: steps.remote_handoff_cache.outputs.cache-hit != 'true'
+        if: steps.manifest_pack_cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
           set -euo pipefail
           bun install --frozen-lockfile --ignore-scripts
           go mod vendor
 
-      - name: Build remote handoff slice
-        if: steps.remote_handoff_cache.outputs.cache-hit != 'true'
+      - name: Build manifest pack
+        if: steps.manifest_pack_cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
           set -euo pipefail
           go run ./cmd/entrypoint-handoff \
             --version "${{ needs.prep.outputs.version }}" \
-            --remote-only \
+            --manifest-pack-produce \
+            --manifest-id "${{ matrix.manifest_id }}" \
+            --manifest-platform "${{ matrix.platform }}" \
+            --manifest-object-key "${{ matrix.object_key }}" \
+            --manifest-link-object-keys devtool \
+            --manifest-producer-target "${{ matrix.producer_target }}" \
             --react-dev=${{ inputs.react_dev }} \
-            --out-dir .tmp/entrypoint-handoff/remote
+            --out-dir .tmp/entrypoint-manifest-packs/${{ matrix.name }}
 
-      - name: Upload remote handoff part
+      - name: Upload manifest pack
         uses: actions/upload-artifact@v7
         with:
-          name: entrypoint-remote-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
-          path: .tmp/entrypoint-handoff/remote
+          name: entrypoint-manifest-pack-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-${{ matrix.name }}
+          path: .tmp/entrypoint-manifest-packs/${{ matrix.name }}
           include-hidden-files: true
           if-no-files-found: error
 
   linux:
     needs:
       - prep
-      - remote
+      - manifest_packs
     runs-on: ubuntu-latest
     environment: ${{ needs.prep.outputs.environment_name }}
     strategy:
@@ -201,12 +220,12 @@ jobs:
           bun install --frozen-lockfile --ignore-scripts
           go mod vendor
 
-      - name: Download remote handoff part
+      - name: Download manifest packs
         if: steps.linux_handoff_cache.outputs.cache-hit != 'true'
         uses: actions/download-artifact@v8
         with:
-          name: entrypoint-remote-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
-          path: .tmp/entrypoint-remote
+          pattern: entrypoint-manifest-pack-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-*
+          path: .tmp/entrypoint-manifest-packs
 
       - name: Build Linux ${{ matrix.arch }} handoff slice
         if: steps.linux_handoff_cache.outputs.cache-hit != 'true'
@@ -217,7 +236,7 @@ jobs:
             --version "${{ needs.prep.outputs.version }}" \
             --platforms "linux-${{ matrix.arch }}" \
             --skip-notarize \
-            --remote-handoff-dir .tmp/entrypoint-remote \
+            --manifest-pack-import-dirs .tmp/entrypoint-manifest-packs \
             --out-dir .tmp/entrypoint-handoff/linux-${{ matrix.arch }}
 
       - name: Upload Linux handoff part
@@ -231,7 +250,7 @@ jobs:
   browser:
     needs:
       - prep
-      - remote
+      - manifest_packs
     runs-on: ubuntu-latest
     environment: ${{ needs.prep.outputs.environment_name }}
     env:
@@ -272,12 +291,12 @@ jobs:
           bun install --frozen-lockfile --ignore-scripts
           go mod vendor
 
-      - name: Download remote handoff part
+      - name: Download manifest packs
         if: steps.browser_handoff_cache.outputs.cache-hit != 'true'
         uses: actions/download-artifact@v8
         with:
-          name: entrypoint-remote-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
-          path: .tmp/entrypoint-remote
+          pattern: entrypoint-manifest-pack-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-*
+          path: .tmp/entrypoint-manifest-packs
 
       - name: Build browser handoff slice
         if: steps.browser_handoff_cache.outputs.cache-hit != 'true'
@@ -288,7 +307,7 @@ jobs:
             --version "${{ needs.prep.outputs.version }}" \
             --browser-only \
             --react-dev=${{ inputs.react_dev }} \
-            --remote-handoff-dir .tmp/entrypoint-remote \
+            --manifest-pack-import-dirs .tmp/entrypoint-manifest-packs \
             --out-dir .tmp/entrypoint-handoff/browser
 
       - name: Upload browser handoff part
@@ -302,7 +321,7 @@ jobs:
   windows:
     needs:
       - prep
-      - remote
+      - manifest_packs
     runs-on: windows-2025
     environment: ${{ needs.prep.outputs.environment_name }}
     permissions:
@@ -451,12 +470,12 @@ jobs:
           Remove-Item -Path (Join-Path $root ".store") -Recurse -Force
           Remove-Item -Path (Join-Path $root "sign.exe") -Force -ErrorAction Ignore
 
-      - name: Download remote handoff part
+      - name: Download manifest packs
         if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
         uses: actions/download-artifact@v8
         with:
-          name: entrypoint-remote-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
-          path: .tmp/entrypoint-remote
+          pattern: entrypoint-manifest-pack-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-*
+          path: .tmp/entrypoint-manifest-packs
 
       - name: Build signed Windows ${{ matrix.arch }} handoff slice
         if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
@@ -471,7 +490,7 @@ jobs:
           go run ./cmd/entrypoint-handoff \
             --version "${{ needs.prep.outputs.version }}" \
             --platforms "windows-${{ matrix.arch }}" \
-            --remote-handoff-dir .tmp/entrypoint-remote \
+            --manifest-pack-import-dirs .tmp/entrypoint-manifest-packs \
             --out-dir .tmp/entrypoint-handoff/windows-${{ matrix.arch }}
 
       - name: Collect Windows MSIX installer
@@ -538,7 +557,7 @@ jobs:
   macos:
     needs:
       - prep
-      - remote
+      - manifest_packs
     runs-on: macos-15
     environment: ${{ needs.prep.outputs.environment_name }}
     permissions:
@@ -643,12 +662,12 @@ jobs:
             --issuer "${APPLE_NOTARY_ISSUER_ID}"
           rm -f "${KEY_PATH}"
 
-      - name: Download remote handoff part
+      - name: Download manifest packs
         if: steps.macos_handoff_cache.outputs.cache-hit != 'true'
         uses: actions/download-artifact@v8
         with:
-          name: entrypoint-remote-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
-          path: .tmp/entrypoint-remote
+          pattern: entrypoint-manifest-pack-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-*
+          path: .tmp/entrypoint-manifest-packs
 
       - name: Build macOS ${{ matrix.arch }} handoff slice
         if: steps.macos_handoff_cache.outputs.cache-hit != 'true'
@@ -665,7 +684,7 @@ jobs:
             --version "${{ needs.prep.outputs.version }}" \
             --platforms "darwin-${{ matrix.arch }}" \
             --skip-notarize=${{ !inputs.sign_artifacts || inputs.skip_notarize }} \
-            --remote-handoff-dir .tmp/entrypoint-remote \
+            --manifest-pack-import-dirs .tmp/entrypoint-manifest-packs \
             --out-dir .tmp/entrypoint-handoff/macos-${{ matrix.arch }}
 
       - name: Upload macOS handoff part

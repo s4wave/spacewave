@@ -1,0 +1,43 @@
+syntax = "proto3";
+package bldr.manifest.pack;
+
+import "github.com/s4wave/spacewave/core/provider/spacewave/packfile/packfile.proto";
+import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
+
+// ManifestPackMetadata describes a CI manifest-pack handoff artifact.
+message ManifestPackMetadata {
+  // FormatVersion is the manifest-pack metadata schema version.
+  uint32 format_version = 1;
+  // GitSha is the source git commit SHA the pack was built from.
+  string git_sha = 2;
+  // BuildType is the bldr build type used to resolve manifests.
+  string build_type = 3;
+  // ProducerTarget is the bldr or workflow target that emitted the pack.
+  string producer_target = 4;
+  // Manifests is the explicit tuple set carried by this pack.
+  repeated ManifestTuple manifests = 5;
+  // ManifestBundleRef is the object ref for the ManifestBundle root.
+  .bucket.ObjectRef manifest_bundle_ref = 6;
+  // Pack is the packfile manifest entry for the kvfile pack.
+  .provider.spacewave.packfile.PackfileEntry pack = 7;
+  // PackSha256 is the sha256 digest of the kvfile pack bytes.
+  bytes pack_sha256 = 8;
+  // ReactDev indicates the browser entrypoint was built in react_dev mode.
+  bool react_dev = 9;
+  // CacheSchema is bumped when cache/artifact identity semantics change.
+  string cache_schema = 10;
+}
+
+// ManifestTuple names one bldr manifest tuple in a manifest-pack handoff.
+message ManifestTuple {
+  // ManifestId is the bldr manifest ID.
+  string manifest_id = 1;
+  // PlatformId is the bldr platform ID.
+  string platform_id = 2;
+  // Rev is the manifest revision.
+  uint64 rev = 3;
+  // ObjectKey is the object key used for the bundle or stored manifest.
+  string object_key = 4;
+  // LinkObjectKeys are world object keys linked to the manifest bundle.
+  repeated string link_object_keys = 5;
+}

@@ -190,6 +190,19 @@
         "bldr/manifest/fetch/world/config.proto"
       ]
     },
+    "github.com/s4wave/spacewave/bldr/manifest/pack": {
+      "hash": "fcb522142c11ec696baca5d8aedcba93eab742bc3bfb9889b58e75651a5d0c4c",
+      "generatedFiles": [
+        "bldr/manifest/pack/metadata.pb.cc",
+        "bldr/manifest/pack/metadata.pb.go",
+        "bldr/manifest/pack/metadata.pb.h",
+        "bldr/manifest/pack/metadata.pb.rs",
+        "bldr/manifest/pack/metadata.pb.ts"
+      ],
+      "protoFiles": [
+        "bldr/manifest/pack/metadata.proto"
+      ]
+    },
     "github.com/s4wave/spacewave/bldr/manifest/world": {
       "hash": "fcb092bcea518a47c5ab4fdc92a05dd5096920b6360618a74120df95a2d010d8",
       "generatedFiles": [
