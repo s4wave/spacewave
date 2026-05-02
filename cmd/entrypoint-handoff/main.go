@@ -413,6 +413,7 @@ func stageRemoteHandoff(ctx context.Context, repoDir, outDir string, reactDev bo
 		filepath.Join(".bldr", "build", "js", "spacewave-web", "dist-deps"),
 		filepath.Join(".bldr", "build", "js", "spacewave-web", "assets"),
 		filepath.Join(".bldr", "src", "sdk"),
+		filepath.Join(".bldr", "src", "web"),
 		".bldr-dist",
 	} {
 		src := filepath.Join(repoDir, rel)
