@@ -1205,7 +1205,7 @@
     },
     {
       "name": "github.com/klauspost/compress",
-      "version": "v1.18.5",
+      "version": "v1.18.6",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/klauspost/compress",
