@@ -31,6 +31,10 @@ func PackManifestBundle(
 	}
 	var blocks []packBlock
 	if err := ws.AccessWorldState(ctx, bundleRef, func(bls *bucket_lookup.Cursor) error {
+		readXfrm := bls.GetTransformer()
+		if readXfrm == nil {
+			readXfrm = block_transform.NewTransformerWithSteps(nil)
+		}
 		return bucket_lookup.WalkObjectBlocks(
 			ctx,
 			bucket_lookup.NewWalkObjectBlocksWithRef(bundleRef.GetRootRef(), bldr_manifest.NewManifestBundleBlock),
@@ -49,7 +53,7 @@ func PackManifestBundle(
 				return true, nil
 			},
 			bls.GetBucket(),
-			block_transform.NewTransformerWithSteps(nil),
+			readXfrm,
 			1,
 			true,
 		)
