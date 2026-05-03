@@ -440,6 +440,7 @@ export default async function main(
 
   // Add boot harness at /boot/plugin-quickjs.esm.js
   files.set('/boot/plugin-quickjs.esm.js', bootHarness)
+  files.set(scriptPath, await fetchPluginScript(scriptPath))
 
   const assetLoadingMode = selectBackendAssetLoadingMode()
   const preopens =
@@ -456,10 +457,8 @@ export default async function main(
     ])
     if (!loadedBackendAssets) {
       console.log(
-        'quickjs-runner: backend asset manifest unavailable; fetching backend script directly',
+        'quickjs-runner: backend asset manifest unavailable; using direct backend script',
       )
-      const pluginScript = await fetchPluginScript(scriptPath)
-      files.set(scriptPath, pluginScript)
     }
     if (loadedBackendAssets) {
       console.log('quickjs-runner: using bounded backend asset preload')

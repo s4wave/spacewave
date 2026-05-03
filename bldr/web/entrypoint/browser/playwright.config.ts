@@ -1,6 +1,8 @@
 import { defineConfig, devices } from '@playwright/test'
 
-const distPath = '.bldr-dist/build/native/js/wasm/bldr-demo-release/dist'
+const distPath =
+  process.env.PLAYWRIGHT_RELEASE_DIST_PATH ??
+  '.bldr-dist/build/web/js/wasm/bldr-demo-release/dist'
 const port =
   Number.parseInt(process.env.PLAYWRIGHT_WEB_PORT ?? '', 10) ||
   30000 + Math.floor(Math.random() * 10000)

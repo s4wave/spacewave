@@ -91,6 +91,7 @@
     "test:browser": "go test -v -timeout=30m ./core/e2e/browser/... -run TestBrowserE2EWithBldr",
     "test:browser:ui": "cross-env BROWSER_TEST_UI=1 bun run test:browser",
     "test:browser:watch": "cross-env BROWSER_TEST_WATCH=1 bun run test:browser",
+    "test:release:web": "bun run test:go:e2e:release-wasm",
     "test:browser:nobackend": "vitest --config=vitest.browser.config.ts --run",
     "test:browser:nobackend:watch": "vitest --config=vitest.browser.config.ts",
     "test:browser:nobackend:ui": "cross-env BROWSER_TEST_UI=1 vitest --config=vitest.browser.config.ts --ui",
@@ -167,7 +168,7 @@
     "test:js:net": "echo No JS tests in net.",
     "bldr:test:go": "bun run go:aptre -- test ./bldr/...",
     "bldr:test:js": "vitest run --config bldr/vitest.config.ts && bun run bldr:typecheck",
-    "bldr:test:release:web": "bun run bldr:build:release:web && playwright test --config bldr/web/entrypoint/browser/playwright.config.ts",
+    "bldr:test:release:web": "bun run bldr:build:release:web && cross-env PLAYWRIGHT_WEB_PORT=30771 PLAYWRIGHT_RELEASE_DIST_PATH=.bldr-dist/build/web/js/wasm/bldr-demo-release/dist playwright test --config bldr/web/entrypoint/browser/playwright.config.ts",
     "bldr:typecheck": "tsgo --noEmit -p tsconfig.json",
     "bldr:vendor": "go mod vendor"
   },
