@@ -23,6 +23,7 @@ import {
   Landing,
   metadata as landingMetadata,
 } from '@s4wave/app/landing/Landing.js'
+import { SPACEWAVE_PUBLIC_BASE_URL } from '@s4wave/app/urls.js'
 
 import { buildBlog, collectBlogPaths } from '../blog/blog-build.js'
 import { buildBrowserReleaseDescriptor } from './browser-release.js'
@@ -33,7 +34,7 @@ import { StaticProvider } from './StaticContext.js'
 import { STATIC_PAGES } from './static-pages.js'
 import { getMetadata, type PageMetadata } from './metadata.js'
 
-const SITE_ORIGIN = process.env.SITE_ORIGIN ?? 'https://spacewave.app'
+const SITE_ORIGIN = process.env.SITE_ORIGIN ?? SPACEWAVE_PUBLIC_BASE_URL
 
 // When built as an SSR bundle, import.meta.url points to the output
 // file. Use process.cwd() which is always the spacewave project root.

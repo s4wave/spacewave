@@ -31,6 +31,7 @@ import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { usePromise } from '@s4wave/web/hooks/usePromise.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import { useOptionalLocalSessionOnboardingContext } from '@s4wave/app/session/setup/LocalSessionOnboardingContext.js'
+import { SPACEWAVE_PUBLIC_BASE_URL } from '@s4wave/app/urls.js'
 import { PairingStatus } from '@s4wave/sdk/session/session.pb.js'
 import type { Session } from '@s4wave/sdk/session/session.js'
 import QRCode from 'qrcode'
@@ -472,7 +473,7 @@ function PairingQRCode({ code }: { code: string }) {
   const qrCallback = useCallback(
     (signal: AbortSignal) => {
       if (!code) return undefined
-      const url = `https://spacewave.app/#/pair/${code}`
+      const url = `${SPACEWAVE_PUBLIC_BASE_URL}/#/pair/${code}`
       return QRCode.toDataURL(url, {
         width: 160,
         margin: 1,
@@ -1297,7 +1298,7 @@ function DirectOfferStep({
   const qrCallback = useCallback(
     (signal: AbortSignal) => {
       if (!offerPayload) return undefined
-      const url = `https://spacewave.app/#/pair/${offerPayload}`
+      const url = `${SPACEWAVE_PUBLIC_BASE_URL}/#/pair/${offerPayload}`
       return QRCode.toDataURL(url, {
         width: 200,
         margin: 1,

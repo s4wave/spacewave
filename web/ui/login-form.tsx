@@ -5,6 +5,7 @@ import { RxArrowRight } from 'react-icons/rx'
 import { PiUserCircleDuotone } from 'react-icons/pi'
 import { isDesktop } from '@aptre/bldr'
 import type { CloudProviderConfig } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
+import { SPACEWAVE_PUBLIC_BASE_URL } from '@s4wave/app/urls.js'
 
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 import { cn } from '@s4wave/web/style/utils.js'
@@ -237,7 +238,7 @@ export function LoginForm({
   const browserSignInAbortRef = useRef<AbortController | null>(null)
   const turnstileSiteKey = cloudProviderConfig?.turnstileSiteKey ?? ''
   const publicBaseUrl =
-    cloudProviderConfig?.publicBaseUrl ?? 'https://spacewave.app'
+    cloudProviderConfig?.publicBaseUrl ?? SPACEWAVE_PUBLIC_BASE_URL
   const publicHost = stripHost(publicBaseUrl)
   const forgotPasswordUrl = buildHashRouteURL(publicBaseUrl, '/recover')
   const turnstileReady = isDesktop || turnstileSiteKey !== ''

@@ -3,9 +3,11 @@ import { useCallback, useState } from 'react'
 import { getAppPath, setAppPath } from '@s4wave/web/router/app-path.js'
 import { useCommand } from '@s4wave/web/command/useCommand.js'
 import { KeyboardShortcutsDialog } from '@s4wave/web/command/KeyboardShortcutsDialog.js'
+import { toast } from '@s4wave/web/ui/toaster.js'
 import { AboutDialog } from '@s4wave/app/AboutDialog.js'
 import { EmailSupportDialog } from '@s4wave/app/EmailSupportDialog.js'
 import { DISCORD_INVITE_URL, GITHUB_ISSUES_URL } from '@s4wave/app/github.js'
+import { SPACEWAVE_PUBLIC_BASE_URL } from '@s4wave/app/urls.js'
 import {
   addTab as addShellTab,
   useShellTabs,
@@ -46,6 +48,32 @@ export function BuiltinCommands() {
       } else {
         void document.documentElement.requestFullscreen()
       }
+    }, []),
+  })
+
+  useCommand({
+    commandId: 'spacewave.view.copy-link',
+    label: 'Copy Link to Current View',
+    description: 'Copy a public spacewave.app URL for the current view',
+    menuPath: 'View/Copy Link',
+    menuGroup: 10,
+    menuOrder: 1,
+    handler: useCallback(() => {
+      const path = getAppPath()
+      const url = `${SPACEWAVE_PUBLIC_BASE_URL}/#${path}`
+      navigator.clipboard.writeText(url).then(
+        () => {
+          toast.success('Copied link', {
+            description: url,
+            duration: 2000,
+          })
+        },
+        () => {
+          toast.error('Copy failed', {
+            description: 'Could not copy link to clipboard.',
+          })
+        },
+      )
     }, []),
   })
 
