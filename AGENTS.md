@@ -19,6 +19,10 @@ company AGENTS rules first, then apply these Spacewave-specific rules.
   methods. These fallbacks mask bugs and rot into false invariants.
 - Docs describe the current system, not the migration path. Use direct
   present-state wording in docs, design notes, and tracker summaries.
+- Do not push to the `release` branch unless the user explicitly asks. Push
+  commits to `master`; fast-forwarding `release` to `master` happens only on
+  explicit request. `release` must always equal `master` after any update,
+  with no merge commits.
 
 ## Go Modules And Vendoring
 
