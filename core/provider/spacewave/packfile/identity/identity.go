@@ -3,10 +3,10 @@ package identity
 import (
 	"crypto/sha256"
 	"encoding/binary"
-	"encoding/hex"
 	"sort"
 	"strconv"
 
+	b58 "github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/writer"
 )
@@ -54,7 +54,7 @@ func BuildPackID(resourceID string, result *writer.PackResult) (string, error) {
 	writePart(h, result.SortedKeyDigest)
 	writePart(h, result.PackBytesDigest)
 	sum := h.Sum(nil)
-	return PackIDPrefix + hex.EncodeToString(sum), nil
+	return PackIDPrefix + b58.Encode(sum), nil
 }
 
 // DigestSortedKeys digests a pack's block keys independent of physical value
@@ -88,17 +88,15 @@ func PolicyTag(policy writer.Policy) string {
 
 // ValidatePackID validates the v1 packfile identifier shape.
 func ValidatePackID(id string) error {
-	if len(id) != len(PackIDPrefix)+packIDDigestLen*2 {
-		return errors.New("pack id must be pfv1_ followed by 64 lowercase hex characters")
-	}
-	if id[:len(PackIDPrefix)] != PackIDPrefix {
+	if len(id) <= len(PackIDPrefix) || id[:len(PackIDPrefix)] != PackIDPrefix {
 		return errors.New("pack id must start with pfv1_")
 	}
-	for _, ch := range id[len(PackIDPrefix):] {
-		if (ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f') {
-			continue
-		}
-		return errors.New("pack id contains invalid character")
+	digest, err := b58.Decode(id[len(PackIDPrefix):])
+	if err != nil {
+		return errors.Wrap(err, "pack id suffix must be base58")
+	}
+	if len(digest) != packIDDigestLen {
+		return errors.New("pack id suffix must decode to 32 bytes")
 	}
 	return nil
 }

@@ -2,6 +2,7 @@ package identity
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 
 	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/writer"
@@ -28,6 +29,12 @@ func TestBuildPackIDIsDeterministic(t *testing.T) {
 	}
 	if err := ValidatePackID(first); err != nil {
 		t.Fatal(err)
+	}
+	if len(first) >= len(PackIDPrefix)+64 {
+		t.Fatalf("pack id did not shrink from hex shape: %q", first)
+	}
+	if strings.ContainsAny(first[len(PackIDPrefix):], "0OIl") {
+		t.Fatalf("pack id suffix is not base58: %q", first)
 	}
 }
 
@@ -56,5 +63,12 @@ func TestBuildPackIDBindsResourceAndBytes(t *testing.T) {
 	}
 	if base == otherBytes {
 		t.Fatal("pack bytes digest did not affect pack id")
+	}
+}
+
+func TestValidatePackIDRejectsHexSuffix(t *testing.T) {
+	err := ValidatePackID(PackIDPrefix + strings.Repeat("a", 64))
+	if err == nil {
+		t.Fatal("expected legacy hex pack id to be rejected")
 	}
 }
