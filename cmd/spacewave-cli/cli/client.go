@@ -4,10 +4,12 @@ package spacewave_cli
 
 import (
 	"context"
+	stderrors "errors"
 	"net"
 	"os"
 	"path/filepath"
 	"slices"
+	"syscall"
 
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -66,8 +68,17 @@ var (
 // CLI-owned daemon in statePath on dial failure.
 func connectDaemon(ctx context.Context, statePath string) (*sdkClient, error) {
 	sockPath := filepath.Join(statePath, socketName)
+	_, statErr := os.Stat(sockPath)
 	conn, err := connectDaemonDial(ctx, sockPath)
 	if err != nil {
+		if statErr == nil && !stderrors.Is(err, syscall.ECONNREFUSED) {
+			return nil, errors.Wrapf(err, "connect to existing daemon socket %s", sockPath)
+		}
+		if statErr == nil {
+			if err := os.Remove(sockPath); err != nil && !os.IsNotExist(err) {
+				return nil, errors.Wrap(err, "remove stale daemon socket")
+			}
+		}
 		if err := connectDaemonStart(ctx, statePath); err != nil {
 			return nil, errors.Wrap(err, "start daemon")
 		}

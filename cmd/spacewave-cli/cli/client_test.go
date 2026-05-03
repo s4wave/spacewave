@@ -5,7 +5,10 @@ package spacewave_cli
 import (
 	"context"
 	"net"
+	"os"
+	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 )
 
@@ -60,6 +63,97 @@ func TestConnectDaemonStartsDaemonAfterDialFailure(t *testing.T) {
 	}
 	if startStatePath != "/tmp/state" {
 		t.Fatalf("unexpected start state path: %s", startStatePath)
+	}
+}
+
+func TestConnectDaemonDoesNotAutostartOverExistingSocketAfterTransientDialFailure(t *testing.T) {
+	oldDial := connectDaemonDial
+	oldBuildClient := connectDaemonBuildClient
+	oldStart := connectDaemonStart
+	t.Cleanup(func() {
+		connectDaemonDial = oldDial
+		connectDaemonBuildClient = oldBuildClient
+		connectDaemonStart = oldStart
+	})
+
+	statePath := t.TempDir()
+	sockPath := filepath.Join(statePath, socketName)
+	if err := os.WriteFile(sockPath, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	connectDaemonDial = func(ctx context.Context, sockPath string) (net.Conn, error) {
+		return nil, context.DeadlineExceeded
+	}
+	connectDaemonStart = func(ctx context.Context, statePath string) error {
+		t.Fatal("must not autostart while an existing daemon socket may still be live")
+		return nil
+	}
+	connectDaemonBuildClient = func(ctx context.Context, conn net.Conn) (*sdkClient, error) {
+		t.Fatal("unexpected build client call")
+		return nil, nil
+	}
+
+	_, err := connectDaemon(context.Background(), statePath)
+	if err == nil {
+		t.Fatal("expected dial error")
+	}
+	if !strings.Contains(err.Error(), "existing daemon socket") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestConnectDaemonAutostartsAfterRemovingStaleSocket(t *testing.T) {
+	oldDial := connectDaemonDial
+	oldBuildClient := connectDaemonBuildClient
+	oldStart := connectDaemonStart
+	t.Cleanup(func() {
+		connectDaemonDial = oldDial
+		connectDaemonBuildClient = oldBuildClient
+		connectDaemonStart = oldStart
+	})
+
+	statePath := t.TempDir()
+	sockPath := filepath.Join(statePath, socketName)
+	if err := os.WriteFile(sockPath, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	var dialCalls int
+	var startCalled bool
+	connA, connB := net.Pipe()
+	t.Cleanup(func() {
+		connA.Close()
+		connB.Close()
+	})
+
+	connectDaemonDial = func(ctx context.Context, sockPath string) (net.Conn, error) {
+		dialCalls++
+		if dialCalls == 1 {
+			return nil, syscall.ECONNREFUSED
+		}
+		return connA, nil
+	}
+	connectDaemonStart = func(ctx context.Context, statePath string) error {
+		startCalled = true
+		return nil
+	}
+	connectDaemonBuildClient = func(ctx context.Context, conn net.Conn) (*sdkClient, error) {
+		return &sdkClient{conn: conn}, nil
+	}
+
+	client, err := connectDaemon(context.Background(), statePath)
+	if err != nil {
+		t.Fatalf("connect daemon: %v", err)
+	}
+	if client == nil {
+		t.Fatal("expected client")
+	}
+	if !startCalled {
+		t.Fatal("expected daemon autostart")
+	}
+	if _, err := os.Stat(sockPath); !os.IsNotExist(err) {
+		t.Fatalf("expected stale socket removed before autostart, stat err=%v", err)
 	}
 }
 
