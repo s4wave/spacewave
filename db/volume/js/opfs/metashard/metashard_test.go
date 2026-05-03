@@ -3,6 +3,7 @@
 package metashard
 
 import (
+	"bytes"
 	"context"
 	"strings"
 	"testing"
@@ -86,6 +87,48 @@ func assertMetaValue(t *testing.T, ms *MetaShard, key, want string) {
 	}
 	if !found || string(val) != want {
 		t.Fatalf("%s got found=%v val=%q want %q", key, found, val, want)
+	}
+}
+
+func TestMetaStoreLargeValue(t *testing.T) {
+	ms := newTestMetaShard(t, "test-metastore-large-value")
+	store := NewMetaStore(ms)
+	ctx := context.Background()
+	key := []byte("pack_bloom/aa/test-pack")
+	large := bytes.Repeat([]byte("b"), pagestore.DefaultPageSize+2048)
+
+	tx, err := store.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Set(ctx, key, large); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	readTx, err := store.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer readTx.Discard()
+
+	got, found, err := readTx.Get(ctx, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found || !bytes.Equal(got, large) {
+		t.Fatalf("Get large: found=%v got %d bytes want %d", found, len(got), len(large))
+	}
+
+	reopened := reopenTestMetaShard(t, "test-metastore-large-value")
+	got, found, err = reopened.Get(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found || !bytes.Equal(got, large) {
+		t.Fatalf("reopened Get large: found=%v got %d bytes want %d", found, len(got), len(large))
 	}
 }
 

@@ -93,7 +93,7 @@ func ValidatePage(page []byte) error {
 type LeafEntry struct {
 	Key   []byte
 	Value []byte
-	// Overflow indicates the value is stored in overflow pages.
+	// OverflowPage is the first overflow page when OverflowLen is non-zero.
 	OverflowPage PageID
 	OverflowLen  uint32
 }

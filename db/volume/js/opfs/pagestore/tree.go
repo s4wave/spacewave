@@ -1,8 +1,6 @@
 package pagestore
 
-import (
-	"github.com/pkg/errors"
-)
+import "github.com/pkg/errors"
 
 // Tree is a B+tree backed by a Pager.
 type Tree struct {
@@ -54,6 +52,13 @@ func (t *Tree) Get(key []byte) ([]byte, bool, error) {
 			}
 			for i := range entries {
 				if string(entries[i].Key) == string(key) {
+					if entries[i].OverflowLen != 0 {
+						val, readErr := t.readOverflowValue(entries[i].OverflowPage, entries[i].OverflowLen)
+						if readErr != nil {
+							return nil, false, readErr
+						}
+						return val, true, nil
+					}
 					return entries[i].Value, true, nil
 				}
 			}
@@ -75,8 +80,11 @@ func (t *Tree) Get(key []byte) ([]byte, bool, error) {
 // Put inserts or updates a key-value pair.
 func (t *Tree) Put(key, value []byte) error {
 	if t.rootID == InvalidPage {
-		// Create initial leaf.
-		id, err := t.writeLeafPage([]LeafEntry{{Key: key, Value: value}})
+		entry, err := t.makeLeafEntry(key, value)
+		if err != nil {
+			return err
+		}
+		id, err := t.writeLeafPage([]LeafEntry{entry})
 		if err != nil {
 			return err
 		}
@@ -132,12 +140,16 @@ func (t *Tree) insertLeaf(pageID PageID, buf []byte, key, value []byte) (PageID,
 		return InvalidPage, nil, InvalidPage, err
 	}
 
-	// Upsert: find position and replace or insert.
+	entry, err := t.makeLeafEntry(key, value)
+	if err != nil {
+		return InvalidPage, nil, InvalidPage, err
+	}
+
 	found := false
 	insertPos := len(entries)
 	for i := range entries {
 		if string(entries[i].Key) == string(key) {
-			entries[i].Value = value
+			entries[i] = entry
 			found = true
 			break
 		}
@@ -149,7 +161,7 @@ func (t *Tree) insertLeaf(pageID PageID, buf []byte, key, value []byte) (PageID,
 	if !found {
 		entries = append(entries, LeafEntry{})
 		copy(entries[insertPos+1:], entries[insertPos:])
-		entries[insertPos] = LeafEntry{Key: key, Value: value}
+		entries[insertPos] = entry
 	}
 
 	// Try to fit in one page.
@@ -332,7 +344,15 @@ func (t *Tree) scanFrom(pageID PageID, prefix []byte, fn func(key, value []byte)
 		for i := range entries {
 			k := entries[i].Key
 			if len(k) >= len(prefix) && string(k[:len(prefix)]) == string(prefix) {
-				if !fn(k, entries[i].Value) {
+				value := entries[i].Value
+				if entries[i].OverflowLen != 0 {
+					var readErr error
+					value, readErr = t.readOverflowValue(entries[i].OverflowPage, entries[i].OverflowLen)
+					if readErr != nil {
+						return readErr
+					}
+				}
+				if !fn(k, value) {
 					return nil
 				}
 			} else if string(k) > string(prefix)+"~" {
@@ -403,6 +423,87 @@ func (t *Tree) writePage(buf []byte) (PageID, error) {
 		return InvalidPage, err
 	}
 	return id, nil
+}
+
+func (t *Tree) makeLeafEntry(key, value []byte) (LeafEntry, error) {
+	if len(key) > int(^uint16(0)) {
+		return LeafEntry{}, errors.New("leaf key length overflows uint16")
+	}
+	needed := PageHeaderSize + LeafEntryOverhead + len(key) + len(value)
+	if needed <= t.pager.PageSize() && len(value) < int(OverflowSentinel) {
+		return LeafEntry{Key: key, Value: value}, nil
+	}
+	refNeeded := PageHeaderSize + LeafEntryOverhead + len(key) + 8
+	if refNeeded > t.pager.PageSize() {
+		return LeafEntry{}, errors.New("leaf key exceeds page size")
+	}
+	if uint64(len(value)) > uint64(^uint32(0)) {
+		return LeafEntry{}, errors.New("overflow value length overflows uint32")
+	}
+	firstPage, err := t.writeOverflowValue(value)
+	if err != nil {
+		return LeafEntry{}, err
+	}
+	return LeafEntry{
+		Key:          key,
+		OverflowPage: firstPage,
+		OverflowLen:  uint32(len(value)),
+	}, nil
+}
+
+func (t *Tree) writeOverflowValue(value []byte) (PageID, error) {
+	capacity := OverflowPageCapacity(t.pager.PageSize())
+	if capacity < 1 {
+		return InvalidPage, errors.New("page size too small for overflow value")
+	}
+
+	pageCount := (len(value) + capacity - 1) / capacity
+	pages := make([]PageID, pageCount)
+	for i := range pages {
+		pages[i] = t.pager.AllocPage()
+	}
+
+	buf := make([]byte, t.pager.PageSize())
+	off := 0
+	for i, page := range pages {
+		nextPage := InvalidPage
+		if i+1 < len(pages) {
+			nextPage = pages[i+1]
+		}
+		clear(buf)
+		written := EncodeOverflowPage(buf, nextPage, value[off:])
+		if written == 0 {
+			return InvalidPage, errors.New("overflow page wrote zero bytes")
+		}
+		if err := t.pager.WritePage(page, buf); err != nil {
+			return InvalidPage, err
+		}
+		off += written
+	}
+	return pages[0], nil
+}
+
+func (t *Tree) readOverflowValue(pageID PageID, valueLen uint32) ([]byte, error) {
+	buf := make([]byte, t.pager.PageSize())
+	out := make([]byte, 0, int(valueLen))
+	for pageID != InvalidPage && len(out) < int(valueLen) {
+		if err := t.pager.ReadPage(pageID, buf); err != nil {
+			return nil, NewCorruptPageError(pageID, errors.Wrap(err, "read overflow page"))
+		}
+		nextPage, value, err := DecodeOverflowPage(buf)
+		if err != nil {
+			return nil, NewCorruptPageError(pageID, err)
+		}
+		if len(out)+len(value) > int(valueLen) {
+			return nil, NewCorruptPageError(pageID, errors.New("overflow value exceeds declared length"))
+		}
+		out = append(out, value...)
+		pageID = nextPage
+	}
+	if len(out) != int(valueLen) {
+		return nil, errors.Errorf("overflow value truncated: got %d want %d", len(out), valueLen)
+	}
+	return out, nil
 }
 
 func (t *Tree) readTreePage(pageID PageID, buf []byte) (*PageHeader, error) {

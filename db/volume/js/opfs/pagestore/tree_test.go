@@ -1,6 +1,7 @@
 package pagestore
 
 import (
+	"bytes"
 	"strconv"
 	"testing"
 )
@@ -50,6 +51,86 @@ func TestTreeUpdate(t *testing.T) {
 	}
 	if !found || string(val) != "v2" {
 		t.Fatalf("Get: found=%v val=%q", found, val)
+	}
+}
+
+func TestTreeOverflowValueRoundTrip(t *testing.T) {
+	pager := NewMemPager(DefaultPageSize)
+	tree := NewTree(pager)
+	large := bytes.Repeat([]byte("x"), DefaultPageSize+1024)
+
+	if err := tree.Put([]byte("large"), large); err != nil {
+		t.Fatalf("Put large: %v", err)
+	}
+
+	val, found, err := tree.Get([]byte("large"))
+	if err != nil {
+		t.Fatalf("Get large: %v", err)
+	}
+	if !found {
+		t.Fatal("Get large: not found")
+	}
+	if !bytes.Equal(val, large) {
+		t.Fatalf("Get large mismatch: got %d bytes want %d", len(val), len(large))
+	}
+
+	var scanned []byte
+	if err := tree.ScanPrefix([]byte("lar"), func(key, value []byte) bool {
+		scanned = bytes.Clone(value)
+		return true
+	}); err != nil {
+		t.Fatalf("ScanPrefix large: %v", err)
+	}
+	if !bytes.Equal(scanned, large) {
+		t.Fatalf("ScanPrefix large mismatch: got %d bytes want %d", len(scanned), len(large))
+	}
+}
+
+func TestTreeOverflowValueUpdateDeleteAndSnapshot(t *testing.T) {
+	pager := NewMemPager(DefaultPageSize)
+	tree := NewTree(pager)
+	large := bytes.Repeat([]byte("a"), DefaultPageSize+2048)
+
+	if err := tree.Put([]byte("key"), large); err != nil {
+		t.Fatalf("Put large: %v", err)
+	}
+	rootLarge := tree.RootID()
+
+	small := []byte("small")
+	if err := tree.Put([]byte("key"), small); err != nil {
+		t.Fatalf("Put small: %v", err)
+	}
+
+	val, found, err := tree.Get([]byte("key"))
+	if err != nil {
+		t.Fatalf("Get small: %v", err)
+	}
+	if !found || string(val) != string(small) {
+		t.Fatalf("Get small: found=%v val=%q", found, val)
+	}
+
+	snapLarge := OpenTree(pager, rootLarge)
+	val, found, err = snapLarge.Get([]byte("key"))
+	if err != nil {
+		t.Fatalf("snap Get large: %v", err)
+	}
+	if !found || !bytes.Equal(val, large) {
+		t.Fatalf("snap Get large: found=%v len=%d want %d", found, len(val), len(large))
+	}
+
+	found, err = tree.Delete([]byte("key"))
+	if err != nil {
+		t.Fatalf("Delete: %v", err)
+	}
+	if !found {
+		t.Fatal("Delete: not found")
+	}
+	_, found, err = tree.Get([]byte("key"))
+	if err != nil {
+		t.Fatalf("Get after delete: %v", err)
+	}
+	if found {
+		t.Fatal("Get after delete: found")
 	}
 }
 
