@@ -479,6 +479,41 @@ func TestStaleReaderRefreshesAfterCompactionReclaim(t *testing.T) {
 	}
 }
 
+func TestSerializedPublishReloadsStaleManifest(t *testing.T) {
+	root, err := opfs.GetRoot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir, err := opfs.GetDirectory(root, "test-blockshard-stale-publish", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer opfs.DeleteEntry(root, "test-blockshard-stale-publish", true) //nolint
+
+	settings := DefaultSettings()
+	settings.ShardCount = 1
+	first, err := NewShard(0, dir, "test-blockshard-stale-publish", settings)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := NewShard(0, dir, "test-blockshard-stale-publish", settings)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	publishEntries(t, first, []segment.Entry{{Key: []byte("a"), Value: []byte("one")}})
+	publishEntries(t, second, []segment.Entry{{Key: []byte("b"), Value: []byte("two")}})
+
+	fresh, err := NewShard(0, dir, "test-blockshard-stale-publish", settings)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := fresh.Manifest()
+	if len(m.Segments) != 2 {
+		t.Fatalf("segments after two serialized publishes: got %d want 2", len(m.Segments))
+	}
+}
+
 func BenchmarkBlockshardPutBatchMatrix(b *testing.B) {
 	ctx := context.Background()
 	compactionTriggers := []int{DefaultL0Trigger, DefaultL0Trigger * 2}

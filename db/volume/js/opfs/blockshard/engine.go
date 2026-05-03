@@ -87,11 +87,12 @@ func NewEngineWithSettings(
 			cancel()
 			return nil, errors.Errorf("reclaim shard %d pending delete: %v", i, err)
 		}
-		release()
 		if err := shard.CleanOrphans(); err != nil {
+			release()
 			cancel()
 			return nil, errors.Errorf("clean shard %d orphans: %v", i, err)
 		}
+		release()
 		e.shards[i] = shard
 		e.actors[i] = make(chan writeReq, 64)
 		e.bgActors[i] = make(chan writeReq, 64)

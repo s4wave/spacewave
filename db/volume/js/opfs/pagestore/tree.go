@@ -175,10 +175,10 @@ func (t *Tree) insertLeaf(pageID PageID, buf []byte, key, value []byte) (PageID,
 		return newID, nil, InvalidPage, nil
 	}
 
-	// Split: first half stays, second half goes to new page.
-	mid := len(entries) / 2
-	left := entries[:mid]
-	right := entries[mid:]
+	left, right, err := splitLeafEntries(entries, t.pager.PageSize())
+	if err != nil {
+		return InvalidPage, nil, InvalidPage, err
+	}
 
 	leftID, writeErr := t.writeLeafPage(left)
 	if writeErr != nil {
@@ -406,6 +406,27 @@ func (t *Tree) writeLeafPage(entries []LeafEntry) (PageID, error) {
 		return InvalidPage, errors.New("leaf entries exceed page size")
 	}
 	return t.writePage(buf)
+}
+
+func splitLeafEntries(entries []LeafEntry, pageSize int) ([]LeafEntry, []LeafEntry, error) {
+	if len(entries) < 2 {
+		return nil, nil, errors.New("cannot split fewer than two leaf entries")
+	}
+	buf := make([]byte, pageSize)
+	for i := 1; i < len(entries); i++ {
+		left := entries[:i]
+		right := entries[i:]
+		clear(buf)
+		if EncodeLeafPage(buf, left) != len(left) {
+			continue
+		}
+		clear(buf)
+		if EncodeLeafPage(buf, right) != len(right) {
+			continue
+		}
+		return left, right, nil
+	}
+	return nil, nil, errors.New("leaf entries exceed page size")
 }
 
 func (t *Tree) writeBranchPage(entries []BranchEntry) (PageID, error) {

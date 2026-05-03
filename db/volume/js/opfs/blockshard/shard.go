@@ -60,19 +60,9 @@ func NewShard(id int, dir js.Value, lockPrefix string, settings *Settings) (*Sha
 		segmentFileCache: make(map[string]*cachedSegmentFile),
 	}
 
-	// Read both manifest slots.
-	a := readFileBytes(dir, manifestSlotA)
-	b := readFileBytes(dir, manifestSlotB)
-	m := PickManifest(a, b)
-	if m == nil {
-		m = &Manifest{Generation: 0}
+	if err := s.reloadManifestFromDisk(context.Background()); err != nil {
+		return nil, err
 	}
-	s.manifest = m
-	s.latestGen = m.Generation
-
-	// Derive the next segment sequence number from existing segments.
-	s.seqNum = s.deriveSeqNum()
-
 	return s, nil
 }
 
@@ -110,6 +100,9 @@ func (s *Shard) Publish(ctx context.Context, entries []segment.Entry) error {
 
 	if len(entries) == 0 {
 		return nil
+	}
+	if err := s.reloadManifestFromDisk(ctx); err != nil {
+		return errors.Wrap(err, "reload manifest")
 	}
 
 	// Build the SSTable in memory.
@@ -305,10 +298,22 @@ func (s *Shard) AcquirePublishLock() (func(), error) {
 	return filelock.AcquireWebLock(name, true)
 }
 
+func (s *Shard) reloadManifestFromDisk(ctx context.Context) error {
+	m, err := readManifestFromDisk(ctx, s.dir)
+	if err != nil {
+		return err
+	}
+	s.mu.Lock()
+	s.setManifestLocked(m)
+	s.seqNum = deriveSeqNum(m)
+	s.mu.Unlock()
+	return nil
+}
+
 // deriveSeqNum scans the manifest for the highest segment sequence number.
-func (s *Shard) deriveSeqNum() uint64 {
+func deriveSeqNum(m *Manifest) uint64 {
 	var max uint64
-	for _, seg := range s.manifest.Segments {
+	for _, seg := range m.Segments {
 		// Parse "seg-NNNNNN.sst" -> NNNNNN
 		if len(seg.Filename) >= 14 {
 			if n, err := strconv.ParseUint(seg.Filename[4:10], 10, 64); err == nil {
@@ -318,7 +323,7 @@ func (s *Shard) deriveSeqNum() uint64 {
 			}
 		}
 	}
-	for _, seg := range s.manifest.PendingDelete {
+	for _, seg := range m.PendingDelete {
 		if len(seg.Filename) >= 14 {
 			if n, err := strconv.ParseUint(seg.Filename[4:10], 10, 64); err == nil {
 				if n > max {
@@ -328,6 +333,25 @@ func (s *Shard) deriveSeqNum() uint64 {
 		}
 	}
 	return max
+}
+
+func readManifestFromDisk(ctx context.Context, dir js.Value) (*Manifest, error) {
+	a, err := readFileBytesRequired(ctx, dir, manifestSlotA)
+	if err != nil {
+		return nil, errors.Wrap(err, "read manifest-a")
+	}
+	b, err := readFileBytesRequired(ctx, dir, manifestSlotB)
+	if err != nil {
+		return nil, errors.Wrap(err, "read manifest-b")
+	}
+	m := PickManifest(a, b)
+	if m != nil {
+		return m, nil
+	}
+	if len(a) != 0 || len(b) != 0 {
+		return nil, errors.New("no valid shard manifest slots")
+	}
+	return &Manifest{Generation: 0}, nil
 }
 
 // CleanOrphans removes segment files not referenced by the current manifest.
@@ -360,6 +384,9 @@ func (s *Shard) CleanOrphans() error {
 // generation gate and grace-period gate say they are safe to reclaim. Caller
 // must hold the shard publish lock.
 func (s *Shard) ReclaimPendingDelete() (bool, error) {
+	if err := s.reloadManifestFromDisk(context.Background()); err != nil {
+		return false, errors.Wrap(err, "reload manifest")
+	}
 	s.mu.Lock()
 	current := s.manifest.Clone()
 	nowUnixMilli := uint64(s.nowFn().UnixMilli())
@@ -412,6 +439,40 @@ func readFileBytesContext(ctx context.Context, dir js.Value, name string) []byte
 		return nil
 	}
 	return buf
+}
+
+func readFileBytesRequired(ctx context.Context, dir js.Value, name string) ([]byte, error) {
+	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/read-file-bytes-required")
+	defer task.End()
+
+	if name == manifestGen && opfs.SyncAvailable() {
+		_, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/read-file-bytes-required/read-sync")
+		buf, err := readSyncFileBytes(dir, name)
+		subtask.End()
+		if err == nil {
+			return buf, nil
+		}
+		if !opfs.IsNoModificationAllowed(err) {
+			if opfs.IsNotFound(err) {
+				return nil, nil
+			}
+			return nil, err
+		}
+	}
+
+	_, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/read-file-bytes-required/read-all")
+	buf, err := opfs.ReadFile(dir, name)
+	subtask.End()
+	if err != nil {
+		if opfs.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	if len(buf) == 0 {
+		return nil, nil
+	}
+	return buf, nil
 }
 
 func readSyncFileBytes(dir js.Value, name string) ([]byte, error) {

@@ -55,6 +55,9 @@ func PlanCompaction(shard *Shard, trigger int) *CompactionPlan {
 
 // ExecuteCompaction runs compaction for a plan. Caller must hold the publish lock.
 func ExecuteCompaction(shard *Shard, plan *CompactionPlan) error {
+	if err := shard.reloadManifestFromDisk(context.Background()); err != nil {
+		return errors.Wrap(err, "reload manifest")
+	}
 	m := shard.Manifest()
 	inputNames := make(map[string]bool, len(plan.InputSegs))
 	for _, seg := range plan.InputSegs {
