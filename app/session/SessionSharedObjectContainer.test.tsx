@@ -488,7 +488,13 @@ describe('SessionSharedObjectContainer', () => {
       expect(mockRepairSharedObject).toHaveBeenCalledWith(SPACE_ID)
     })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Reinitialize' }))
+    const reinitializeButton = screen.getByRole('button', {
+      name: 'Reinitialize',
+    })
+    await waitFor(() => {
+      expect(reinitializeButton.hasAttribute('disabled')).toBe(false)
+    })
+    fireEvent.click(reinitializeButton)
     expect(document.body.textContent).toContain('Confirm reinitialize')
     expect(document.body.textContent).toContain(
       'Reinitialize is destructive. It rewrites this shared object in place on the same shared object id and URL.',
