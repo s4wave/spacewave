@@ -41,6 +41,34 @@ func newFsCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 	}
 }
 
+// fsURIGrammar is the shared URI argument documentation included in each fs
+// subcommand's --help description. Newlines are preserved in cli help output
+// (each line is reindented under DESCRIPTION:).
+const fsURIGrammar = `Each URI argument selects the session, space, object, and (optionally) a
+path inside the object. Three forms are accepted:
+
+  object key only          my-object
+  object key + path        my-object/-/some/dir
+  full URI                 /u/1/so/my-space/-/my-object/-/some/dir
+
+The "/-/" sequence delimits URI segments. The first segment is the object
+key (the entity within a space). Later segments form the UnixFS path inside
+that object. In the full form, "/u/{n}" selects the session by index and
+"so/{space-id}" selects the space. The full form is identical to the URL
+path used by the spacewave web UI, so a path copied from the browser
+address bar can be used here directly.
+
+When the short forms are used the session index defaults to 1 and the space
+is resolved from the daemon's default space. The --space and --session-index
+flags (or SPACEWAVE_SPACE / SPACEWAVE_SESSION_INDEX) override the values
+parsed from each URI.`
+
+// fsURIDescription composes a help description from a lead sentence, the
+// shared URI grammar, and a subcommand-specific examples block.
+func fsURIDescription(lead, examples string) string {
+	return lead + "\n\n" + fsURIGrammar + "\n\nEXAMPLES:\n\n" + examples
+}
+
 // fsURI holds the parsed components needed for FS operations.
 type fsURI struct {
 	sessionIdx uint32
@@ -235,7 +263,21 @@ func buildFsLsCommand() *cli.Command {
 		Name:      "ls",
 		Usage:     "list directory contents",
 		ArgsUsage: "<uri>",
-		Flags:     commonFsFlags(&statePath, &spaceID, &sessIdx),
+		Description: fsURIDescription(
+			"List entries in a directory inside a UnixFS object.",
+			`  # list the root of an object in the default space and session
+  spacewave fs ls my-object
+
+  # list a subdirectory inside an object
+  spacewave fs ls my-object/-/docs/images
+
+  # list using the full URI form (session 1, space "my-space")
+  spacewave fs ls /u/1/so/my-space/-/my-object/-/docs
+
+  # override the space and session via flags
+  spacewave fs ls --space my-space --session-index 2 my-object/-/docs`,
+		),
+		Flags: commonFsFlags(&statePath, &spaceID, &sessIdx),
 		Action: func(c *cli.Context) error {
 			uri, err := parseFsURI(c.Args().First(), spaceID, sessIdx)
 			if err != nil {
@@ -351,6 +393,17 @@ func buildFsCatCommand() *cli.Command {
 		Name:      "cat",
 		Usage:     "read file contents to stdout",
 		ArgsUsage: "<uri>",
+		Description: fsURIDescription(
+			"Read the contents of a file inside a UnixFS object to stdout.",
+			`  # print a whole file
+  spacewave fs cat my-object/-/notes.txt
+
+  # print a 1KiB window starting at byte 4096
+  spacewave fs cat --offset 4096 --limit 1024 my-object/-/big.bin
+
+  # full URI form
+  spacewave fs cat /u/1/so/my-space/-/my-object/-/notes.txt`,
+		),
 		Flags: append(commonFsFlags(&statePath, &spaceID, &sessIdx),
 			&cli.Uint64Flag{
 				Name:        "offset",
@@ -437,7 +490,15 @@ func buildFsMkdirCommand() *cli.Command {
 		Name:      "mkdir",
 		Usage:     "create a directory (and parents)",
 		ArgsUsage: "<uri>",
-		Flags:     commonFsFlags(&statePath, &spaceID, &sessIdx),
+		Description: fsURIDescription(
+			"Create a directory inside a UnixFS object, including any missing parents.",
+			`  # create a/b/c under the object root
+  spacewave fs mkdir my-object/-/a/b/c
+
+  # full URI form
+  spacewave fs mkdir /u/1/so/my-space/-/my-object/-/a/b/c`,
+		),
+		Flags: commonFsFlags(&statePath, &spaceID, &sessIdx),
 		Action: func(c *cli.Context) error {
 			uri, err := parseFsURI(c.Args().First(), spaceID, sessIdx)
 			if err != nil {
@@ -477,7 +538,15 @@ func buildFsRmCommand() *cli.Command {
 		Name:      "rm",
 		Usage:     "remove a file or directory",
 		ArgsUsage: "<uri>",
-		Flags:     commonFsFlags(&statePath, &spaceID, &sessIdx),
+		Description: fsURIDescription(
+			"Remove a file or directory inside a UnixFS object. The URI must include a path; removing an object root is not supported.",
+			`  # delete a file
+  spacewave fs rm my-object/-/old/notes.txt
+
+  # delete a directory
+  spacewave fs rm my-object/-/old`,
+		),
+		Flags: commonFsFlags(&statePath, &spaceID, &sessIdx),
 		Action: func(c *cli.Context) error {
 			uri, err := parseFsURI(c.Args().First(), spaceID, sessIdx)
 			if err != nil {
@@ -521,6 +590,17 @@ func buildFsWriteCommand() *cli.Command {
 		Name:      "write",
 		Usage:     "write data to a file from stdin or local file",
 		ArgsUsage: "<uri>",
+		Description: fsURIDescription(
+			"Write data to a file inside a UnixFS object, creating it if needed. The target file is truncated before writing. Input comes from stdin unless --from is given.",
+			`  # write a file from stdin
+  echo hello | spacewave fs write my-object/-/greeting.txt
+
+  # upload a local file
+  spacewave fs write --from ./report.pdf my-object/-/docs/report.pdf
+
+  # full URI form
+  spacewave fs write --from ./report.pdf /u/1/so/my-space/-/my-object/-/docs/report.pdf`,
+		),
 		Flags: append(commonFsFlags(&statePath, &spaceID, &sessIdx),
 			&cli.StringFlag{
 				Name:        "from",
@@ -625,7 +705,15 @@ func buildFsMvCommand() *cli.Command {
 		Name:      "mv",
 		Usage:     "rename/move a file or directory",
 		ArgsUsage: "<source-uri> <dest-uri>",
-		Flags:     commonFsFlags(&statePath, &spaceID, &sessIdx),
+		Description: fsURIDescription(
+			"Rename or move a file or directory inside a UnixFS object. The source and destination URIs must point at the same space and the same object; only the path within the object may differ.",
+			`  # rename a file in place
+  spacewave fs mv my-object/-/old.txt my-object/-/new.txt
+
+  # move a file into a different directory
+  spacewave fs mv my-object/-/inbox/note.md my-object/-/archive/2026/note.md`,
+		),
+		Flags: commonFsFlags(&statePath, &spaceID, &sessIdx),
 		Action: func(c *cli.Context) error {
 			if c.NArg() < 2 {
 				return errors.New("source and destination URIs required")
@@ -723,7 +811,18 @@ func buildFsStatCommand() *cli.Command {
 		Name:      "stat",
 		Usage:     "show file or directory information",
 		ArgsUsage: "<uri>",
-		Flags:     commonFsFlags(&statePath, &spaceID, &sessIdx),
+		Description: fsURIDescription(
+			"Show metadata (name, type, size, mode, modification time) for a file or directory inside a UnixFS object. Omit the path to stat the object's UnixFS root.",
+			`  # stat the root of an object
+  spacewave fs stat my-object
+
+  # stat a file
+  spacewave fs stat my-object/-/docs/report.pdf
+
+  # full URI form
+  spacewave fs stat /u/1/so/my-space/-/my-object/-/docs/report.pdf`,
+		),
+		Flags: commonFsFlags(&statePath, &spaceID, &sessIdx),
 		Action: func(c *cli.Context) error {
 			uri, err := parseFsURI(c.Args().First(), spaceID, sessIdx)
 			if err != nil {

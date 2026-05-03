@@ -112,4 +112,4 @@ var configSets = []cli_entrypoint.BuildConfigSetFunc{cli_entrypoint.ConfigSetFun
 var cliCommands = []cli_entrypoint.BuildCommandsFunc{cli.NewCliCommands}
 
 // main is the main entrypoint.
-func main() { cli_entrypoint.Main("spacewave-cli", "spacewave", factories, configSets, cliCommands) }
+func main() { cli_entrypoint.Main("spacewave", "spacewave", factories, configSets, cliCommands) }
