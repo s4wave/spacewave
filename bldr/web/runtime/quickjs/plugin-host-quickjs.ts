@@ -23,9 +23,12 @@ import { pushable } from 'it-pushable'
 import {
   QuickJS,
   buildFileSystem,
+  createReadOnlyMount,
   PollableStdin,
   LOOP_IDLE,
   LOOP_ERROR,
+  type Fd,
+  type ReadOnlyFileMount,
 } from 'quickjs-wasi-reactor'
 
 import { BackendAPI } from '@aptre/bldr-sdk'
@@ -129,6 +132,62 @@ export function collectViteManifestAssetPaths(
   return [...paths]
 }
 
+// collectViteManifestStaticAssetPaths returns the static asset graph for entrypoint files.
+export function collectViteManifestStaticAssetPaths(
+  manifest: Record<string, ViteManifestEntry>,
+  entryAssetPaths: string[],
+): string[] {
+  const entryByResolvedFile = new Map<string, string>()
+  for (const [ref, entry] of Object.entries(manifest)) {
+    if (entry.file) {
+      entryByResolvedFile.set(resolveBackendAssetPath(entry.file), ref)
+    }
+  }
+
+  const paths = new Set<string>()
+  const addPath = (path?: string) => {
+    if (!path) {
+      return
+    }
+    paths.add(path)
+  }
+
+  const visited = new Set<string>()
+  const visitRef = (ref: string) => {
+    const entry = manifest[ref]
+    if (!entry) {
+      addPath(ref)
+      return
+    }
+    if (visited.has(ref)) {
+      return
+    }
+    visited.add(ref)
+
+    addPath(entry.file)
+    for (const path of entry.css ?? []) {
+      addPath(path)
+    }
+    for (const path of entry.assets ?? []) {
+      addPath(path)
+    }
+    for (const dep of entry.imports ?? []) {
+      visitRef(dep)
+    }
+  }
+
+  for (const entryPath of entryAssetPaths) {
+    const resolvedPath = resolveBackendAssetPath(entryPath)
+    const ref = entryByResolvedFile.get(resolvedPath)
+    if (ref) {
+      visitRef(ref)
+      continue
+    }
+    addPath(resolvedPath)
+  }
+  return [...paths]
+}
+
 // resolveBackendAssetPath normalizes a backend asset path to the v/b/be asset tree.
 export function resolveBackendAssetPath(path: string): string {
   const trimmed = path.replace(/^\/+/, '')
@@ -137,6 +196,9 @@ export function resolveBackendAssetPath(path: string): string {
   }
   if (trimmed.startsWith('v/')) {
     return trimmed
+  }
+  if (trimmed.startsWith('assets/')) {
+    return resolveBackendAssetPath(trimmed.slice('assets/'.length))
   }
   if (trimmed.startsWith('b/')) {
     return 'v/' + trimmed
@@ -158,21 +220,153 @@ export function addAssetToFileSystem(
   files.set('/assets/' + resolvedPath, content)
 }
 
+type BackendAssetCacheEntry =
+  | { ok: true; data: Uint8Array }
+  | { ok: false; status: number; url: string }
+
+export type BackendAssetLoadingMode = 'lazy-http' | 'bounded-preload'
+
+type BackendAssetAPI = {
+  startInfo: Pick<BackendAPI['startInfo'], 'pluginId'>
+  utils: Pick<BackendAPI['utils'], 'pluginAssetHttpPath'>
+}
+
+// canUseSynchronousBackendAssetFetch returns true when the worker can service
+// WASI filesystem misses without suspending the QuickJS import path.
+export function canUseSynchronousBackendAssetFetch(): boolean {
+  if (typeof XMLHttpRequest === 'undefined') {
+    return false
+  }
+  return typeof XMLHttpRequest === 'function'
+}
+
+export function selectBackendAssetLoadingMode(): BackendAssetLoadingMode {
+  return canUseSynchronousBackendAssetFetch() ? 'lazy-http' : 'bounded-preload'
+}
+
+// createBackendAssetMount returns a synchronous read-only mount over plugin HTTP assets.
+export function createBackendAssetMount(
+  api: BackendAssetAPI,
+  signal: AbortSignal,
+  pathPrefix = '',
+): ReadOnlyFileMount | null {
+  return createBackendAssetMountWithCache(
+    api,
+    signal,
+    pathPrefix,
+    new Map<string, BackendAssetCacheEntry>(),
+  )
+}
+
+function createBackendAssetMountWithCache(
+  api: BackendAssetAPI,
+  signal: AbortSignal,
+  pathPrefix: string,
+  cache: Map<string, BackendAssetCacheEntry>,
+): ReadOnlyFileMount | null {
+  const pluginId = api.startInfo.pluginId
+  if (!pluginId) {
+    return null
+  }
+
+  return {
+    getFile(path: string) {
+      const resolvedPath = resolveBackendAssetPath(pathPrefix + path)
+      if (!resolvedPath) {
+        return null
+      }
+      if (signal.aborted) {
+        throw new Error(`QuickJS backend asset read aborted: ${resolvedPath}`)
+      }
+
+      const cached = cache.get(resolvedPath)
+      if (cached?.ok) {
+        return backendAssetFile(cached.data)
+      }
+      if (cached && cached.status === 404) {
+        return null
+      }
+      if (cached) {
+        throw new Error(
+          `Failed to fetch backend asset ${cached.url}: ${cached.status}`,
+        )
+      }
+
+      const url = api.utils.pluginAssetHttpPath(pluginId, resolvedPath)
+      const entry = fetchBackendAssetSync(url)
+      cache.set(resolvedPath, entry)
+      if (entry.ok) {
+        return backendAssetFile(entry.data)
+      }
+      if (entry.status === 404) {
+        return null
+      }
+      throw new Error(`Failed to fetch backend asset ${url}: ${entry.status}`)
+    },
+  }
+}
+
+export function createBackendAssetPreopens(
+  api: BackendAssetAPI,
+  signal: AbortSignal,
+): Fd[] {
+  const cache = new Map<string, BackendAssetCacheEntry>()
+  const assetsMount = createBackendAssetMountWithCache(api, signal, '', cache)
+  const rootVMount = createBackendAssetMountWithCache(api, signal, 'v/', cache)
+  const preopens: Fd[] = []
+  if (assetsMount) {
+    preopens.push(createReadOnlyMount('/assets', assetsMount))
+  }
+  if (rootVMount) {
+    preopens.push(createReadOnlyMount('/v', rootVMount))
+  }
+  return preopens
+}
+
+function backendAssetFile(data: Uint8Array) {
+  return {
+    size: BigInt(data.byteLength),
+    readAt(offset: bigint, size: number) {
+      return data.slice(Number(offset), Number(offset) + size)
+    },
+  }
+}
+
+function fetchBackendAssetSync(url: string): BackendAssetCacheEntry {
+  const xhr = new XMLHttpRequest()
+  xhr.open('GET', url, false)
+  xhr.responseType = 'arraybuffer'
+  xhr.send()
+
+  if (xhr.status < 200 || xhr.status >= 300) {
+    return { ok: false, status: xhr.status, url }
+  }
+  const response = xhr.response
+  if (response instanceof ArrayBuffer) {
+    return { ok: true, data: new Uint8Array(response) }
+  }
+  return {
+    ok: true,
+    data: new TextEncoder().encode(xhr.responseText),
+  }
+}
+
 async function loadBackendAssets(
   api: BackendAPI,
   signal: AbortSignal,
   files: Map<string, string | Uint8Array>,
-): Promise<void> {
+  entryAssetPaths: string[],
+): Promise<boolean> {
   const pluginId = api.startInfo.pluginId
   if (!pluginId) {
-    return
+    return false
   }
 
   const manifestPath = backendAssetsRoot + '.vite/manifest.json'
   const manifestURL = api.utils.pluginAssetHttpPath(pluginId, manifestPath)
   const manifestResponse = await fetch(manifestURL, { signal })
   if (manifestResponse.status === 404) {
-    return
+    return false
   }
   if (!manifestResponse.ok) {
     throw new Error(
@@ -186,7 +380,10 @@ async function loadBackendAssets(
   const manifest = JSON.parse(
     manifestText,
   ) as Record<string, ViteManifestEntry>
-  const assetPaths = collectViteManifestAssetPaths(manifest)
+  const assetPaths = collectViteManifestStaticAssetPaths(
+    manifest,
+    entryAssetPaths,
+  )
 
   await Promise.all(
     assetPaths.map(async (assetPath) => {
@@ -208,6 +405,7 @@ async function loadBackendAssets(
       )
     }),
   )
+  return true
 }
 
 // main runs a JavaScript plugin in the QuickJS WASI reactor.
@@ -223,10 +421,9 @@ export default async function main(
   console.log('quickjs-runner: loading QuickJS and boot harness...')
 
   // Load WASM module, boot harness, and plugin script in parallel
-  const [wasmModule, bootHarness, pluginScript] = await Promise.all([
+  const [wasmModule, bootHarness] = await Promise.all([
     loadQuickJSModule(),
     loadBootHarness(),
-    fetchPluginScript(scriptPath),
   ])
 
   console.log('quickjs-runner: setting up WASI environment...')
@@ -244,12 +441,33 @@ export default async function main(
   // Add boot harness at /boot/plugin-quickjs.esm.js
   files.set('/boot/plugin-quickjs.esm.js', bootHarness)
 
-  // Add plugin script at its expected path
-  files.set(scriptPath, pluginScript)
+  const assetLoadingMode = selectBackendAssetLoadingMode()
+  const preopens =
+    assetLoadingMode === 'lazy-http'
+      ? createBackendAssetPreopens(api, signal)
+      : []
 
-  // Mirror backend Vite assets into the in-memory filesystem so dynamic
-  // import() calls can resolve the plugin assets tree inside QuickJS.
-  await loadBackendAssets(api, signal, files)
+  if (preopens.length === 0) {
+    console.log(
+      'quickjs-runner: synchronous backend asset mount unavailable; preloading backend assets',
+    )
+    const loadedBackendAssets = await loadBackendAssets(api, signal, files, [
+      scriptPath,
+    ])
+    if (!loadedBackendAssets) {
+      console.log(
+        'quickjs-runner: backend asset manifest unavailable; fetching backend script directly',
+      )
+      const pluginScript = await fetchPluginScript(scriptPath)
+      files.set(scriptPath, pluginScript)
+    }
+    if (loadedBackendAssets) {
+      console.log('quickjs-runner: using bounded backend asset preload')
+    }
+  }
+  if (preopens.length !== 0) {
+    console.log('quickjs-runner: using lazy backend asset mount')
+  }
 
   const fs = buildFileSystem(files)
 
@@ -266,6 +484,7 @@ export default async function main(
       `BLDR_PLUGIN_START_INFO=${startInfoB64}`,
     ],
     fs,
+    preopens,
     stdin,
     stdout: (line) => console.log('[QuickJS stdout]', line),
     stderr: (line) => console.error('[QuickJS stderr]', line),

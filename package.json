@@ -255,7 +255,7 @@
     "lodash.isequal": "^4.5.0",
     "markdown-to-jsx": "^9.7.16",
     "qrcode": "^1.5.4",
-    "quickjs-wasi-reactor": "^0.14.0",
+    "quickjs-wasi-reactor": "0.14.0-rev.2",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-icons": "^5.6.0",
