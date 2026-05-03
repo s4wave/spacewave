@@ -759,27 +759,28 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf .tmp/entrypoint-handoff
-          mkdir -p .tmp/entrypoint-handoff/installers
-          mkdir -p .tmp/entrypoint-handoff/bundles
-          mkdir -p .tmp/entrypoint-handoff/cli
+          rm -rf .tmp/entrypoint-handoff .tmp/entrypoint-public-assets
+          mkdir -p .tmp/entrypoint-handoff
+          mkdir -p .tmp/entrypoint-public-assets/installers
+          mkdir -p .tmp/entrypoint-public-assets/bundles
+          mkdir -p .tmp/entrypoint-public-assets/cli
           for arch in amd64 arm64; do
-            cp -R ".tmp/entrypoint-parts/linux-${arch}/installers/." .tmp/entrypoint-handoff/installers/
-            cp -R ".tmp/entrypoint-parts/linux-${arch}/bundles/." .tmp/entrypoint-handoff/bundles/
+            cp -R ".tmp/entrypoint-parts/linux-${arch}/installers/." .tmp/entrypoint-public-assets/installers/
+            cp -R ".tmp/entrypoint-parts/linux-${arch}/bundles/." .tmp/entrypoint-public-assets/bundles/
             if [ -d ".tmp/entrypoint-parts/linux-${arch}/cli" ]; then
-              cp -R ".tmp/entrypoint-parts/linux-${arch}/cli/." .tmp/entrypoint-handoff/cli/
+              cp -R ".tmp/entrypoint-parts/linux-${arch}/cli/." .tmp/entrypoint-public-assets/cli/
             fi
           done
           for arch in amd64 arm64; do
-            cp -R ".tmp/entrypoint-parts/windows-${arch}/installers/." .tmp/entrypoint-handoff/installers/
-            cp -R ".tmp/entrypoint-parts/windows-${arch}/bundles/." .tmp/entrypoint-handoff/bundles/
+            cp -R ".tmp/entrypoint-parts/windows-${arch}/installers/." .tmp/entrypoint-public-assets/installers/
+            cp -R ".tmp/entrypoint-parts/windows-${arch}/bundles/." .tmp/entrypoint-public-assets/bundles/
             if [ -d ".tmp/entrypoint-parts/windows-${arch}/cli" ]; then
-              cp -R ".tmp/entrypoint-parts/windows-${arch}/cli/." .tmp/entrypoint-handoff/cli/
+              cp -R ".tmp/entrypoint-parts/windows-${arch}/cli/." .tmp/entrypoint-public-assets/cli/
             fi
-            cp -R ".tmp/entrypoint-parts/macos-${arch}/installers/." .tmp/entrypoint-handoff/installers/
-            cp -R ".tmp/entrypoint-parts/macos-${arch}/bundles/." .tmp/entrypoint-handoff/bundles/
+            cp -R ".tmp/entrypoint-parts/macos-${arch}/installers/." .tmp/entrypoint-public-assets/installers/
+            cp -R ".tmp/entrypoint-parts/macos-${arch}/bundles/." .tmp/entrypoint-public-assets/bundles/
             if [ -d ".tmp/entrypoint-parts/macos-${arch}/cli" ]; then
-              cp -R ".tmp/entrypoint-parts/macos-${arch}/cli/." .tmp/entrypoint-handoff/cli/
+              cp -R ".tmp/entrypoint-parts/macos-${arch}/cli/." .tmp/entrypoint-public-assets/cli/
             fi
           done
           cp -R .tmp/entrypoint-parts/browser/browser-staging .tmp/entrypoint-handoff/browser-staging
@@ -795,12 +796,12 @@ jobs:
           import os
           from pathlib import Path
 
-          root = Path(".tmp/entrypoint-handoff")
-          installers_root = root / "installers"
-          bundles_root = root / "bundles"
-          cli_root = root / "cli"
-          browser_root = root / "browser-staging"
-          static_manifest_path = root / "static-manifest.ts"
+          handoff_root = Path(".tmp/entrypoint-handoff")
+          public_root = Path(".tmp/entrypoint-public-assets")
+          installers_root = public_root / "installers"
+          cli_root = public_root / "cli"
+          browser_root = handoff_root / "browser-staging"
+          static_manifest_path = handoff_root / "static-manifest.ts"
 
           def sha256(path: Path) -> str:
               h = hashlib.sha256()
@@ -812,44 +813,23 @@ jobs:
                       h.update(chunk)
               return h.hexdigest()
 
-          installers = []
           checksums_lines = []
           for path in sorted(p for p in installers_root.rglob("*") if p.is_file()):
               digest = sha256(path)
-              installers.append({
-                  "path": path.relative_to(root).as_posix(),
-                  "sha256": digest,
-                  "size": path.stat().st_size,
-              })
               checksums_lines.append(f"{digest}  {path.name}")
 
-          bundles = []
-          for path in sorted(p for p in bundles_root.rglob("*") if p.is_file()):
-              digest = sha256(path)
-              bundles.append({
-                  "path": path.relative_to(root).as_posix(),
-                  "sha256": digest,
-                  "size": path.stat().st_size,
-              })
-
-          cli_artifacts = []
           if cli_root.exists():
               for path in sorted(p for p in cli_root.rglob("*") if p.is_file()):
                   digest = sha256(path)
-                  cli_artifacts.append({
-                      "path": path.relative_to(root).as_posix(),
-                      "sha256": digest,
-                      "size": path.stat().st_size,
-                  })
                   checksums_lines.append(f"{digest}  {path.name}")
 
-          checksums_path = root / "checksums.txt"
+          checksums_path = public_root / "checksums.txt"
           checksums_path.write_text("\n".join(checksums_lines) + "\n", encoding="utf-8")
 
           browser_entries = []
           for path in sorted(p for p in browser_root.rglob("*") if p.is_file()):
               browser_entries.append({
-                  "path": path.relative_to(root).as_posix(),
+                  "path": path.relative_to(handoff_root).as_posix(),
                   "sha256": sha256(path),
                   "size": path.stat().st_size,
               })
@@ -865,14 +845,6 @@ jobs:
               "run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
               "source_repo": os.environ["GITHUB_REPOSITORY"],
               "workflow": os.environ["GITHUB_WORKFLOW"],
-              "installers": installers,
-              "bundles": bundles,
-              "cli": cli_artifacts,
-              "checksums": {
-                  "path": "checksums.txt",
-                  "sha256": sha256(checksums_path),
-                  "size": checksums_path.stat().st_size,
-              },
               "browser_staging": browser_entries,
               "static_manifest": {
                   "path": "static-manifest.ts",
@@ -880,7 +852,7 @@ jobs:
                   "size": static_manifest_path.stat().st_size,
               },
           }
-          (root / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          (handoff_root / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
           PY
 
       - name: Archive entrypoint handoff bundle
@@ -888,6 +860,8 @@ jobs:
         run: |
           set -euo pipefail
           tar -cf .tmp/entrypoint-handoff.tar -C .tmp/entrypoint-handoff .
+          du -sh .tmp/entrypoint-handoff .tmp/entrypoint-handoff.tar
+          tar -tf .tmp/entrypoint-handoff.tar | sort
 
       - name: Upload entrypoint handoff artifact
         uses: actions/upload-artifact@v7
@@ -931,11 +905,11 @@ jobs:
               --draft
           fi
           upload_args=(
-            .tmp/entrypoint-handoff/checksums.txt
-            .tmp/entrypoint-handoff/installers/*
+            .tmp/entrypoint-public-assets/checksums.txt
+            .tmp/entrypoint-public-assets/installers/*
           )
-          if compgen -G ".tmp/entrypoint-handoff/cli/*" > /dev/null; then
-            upload_args+=(.tmp/entrypoint-handoff/cli/*)
+          if compgen -G ".tmp/entrypoint-public-assets/cli/*" > /dev/null; then
+            upload_args+=(.tmp/entrypoint-public-assets/cli/*)
           fi
           gh release upload "${tag}" "${upload_args[@]}" --clobber
 
@@ -943,7 +917,7 @@ jobs:
         uses: actions/attest@v4
         with:
           subject-path: |
-            .tmp/entrypoint-handoff/checksums.txt
-            .tmp/entrypoint-handoff/installers/*
-            .tmp/entrypoint-handoff/bundles/*
-            .tmp/entrypoint-handoff/cli/*
+            .tmp/entrypoint-public-assets/checksums.txt
+            .tmp/entrypoint-public-assets/installers/*
+            .tmp/entrypoint-public-assets/bundles/*
+            .tmp/entrypoint-public-assets/cli/*
