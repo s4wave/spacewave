@@ -50,6 +50,10 @@ const stableBootFilename = "boot.mjs"
 
 // WriteBuildManifest writes a manifest.json to the given directory.
 func WriteBuildManifest(dir string, manifest *BuildManifest) error {
+	if err := writeBrowserReleaseManifest(dir, manifest); err != nil {
+		return err
+	}
+
 	var a fastjson.Arena
 	obj := a.NewObject()
 	obj.Set("entrypoint", a.NewString(manifest.Entrypoint))
@@ -63,6 +67,33 @@ func WriteBuildManifest(dir string, manifest *BuildManifest) error {
 	obj.Set("css", css)
 	data := obj.MarshalTo(nil)
 	return os.WriteFile(filepath.Join(dir, "manifest.json"), data, 0o644)
+}
+
+func writeBrowserReleaseManifest(dir string, manifest *BuildManifest) error {
+	var a fastjson.Arena
+	obj := a.NewObject()
+	obj.Set("schemaVersion", a.NewNumberInt(1))
+	obj.Set("generationId", a.NewString(manifest.ServiceWorker))
+
+	shellAssets := a.NewObject()
+	shellAssets.Set("entrypoint", a.NewString(manifest.Entrypoint))
+	shellAssets.Set("serviceWorker", a.NewString(manifest.ServiceWorker))
+	shellAssets.Set("sharedWorker", a.NewString(manifest.SharedWorker))
+	shellAssets.Set("wasm", a.NewString(manifest.Wasm))
+	css := a.NewArray()
+	for _, path := range manifest.CSS {
+		css.SetArrayItem(len(css.GetArray()), a.NewString(path))
+	}
+	shellAssets.Set("css", css)
+	obj.Set("shellAssets", shellAssets)
+
+	routes := a.NewArray()
+	routes.SetArrayItem(0, a.NewString("/"))
+	obj.Set("prerenderedRoutes", routes)
+	obj.Set("requiredStaticAssets", a.NewArray())
+
+	data := obj.MarshalTo(nil)
+	return os.WriteFile(filepath.Join(dir, "browser-release.json"), data, 0o644)
 }
 
 // WriteStableBootAsset writes the stable browser boot asset at the build root.

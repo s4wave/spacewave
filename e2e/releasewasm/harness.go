@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -148,7 +149,7 @@ func (h *harness) getBaseURL() string { return h.baseURL }
 func (h *harness) newPage(t testing.TB) playwright.Page {
 	t.Helper()
 
-	ctx, err := h.browser.NewContext()
+	ctx, err := h.browser.NewContext(h.newContextOptions(t))
 	if err != nil {
 		t.Fatalf("new browser context: %v", err)
 	}
@@ -199,6 +200,34 @@ func (h *harness) newPage(t testing.TB) playwright.Page {
 	})
 
 	return page
+}
+
+func (h *harness) newContextOptions(t testing.TB) playwright.BrowserNewContextOptions {
+	t.Helper()
+
+	deviceName := strings.TrimSpace(os.Getenv("PLAYWRIGHT_BROWSER_DEVICE"))
+	if deviceName == "" {
+		return playwright.BrowserNewContextOptions{}
+	}
+
+	device := h.pw.Devices[deviceName]
+	if device == nil {
+		names := make([]string, 0, len(h.pw.Devices))
+		for name := range h.pw.Devices {
+			names = append(names, name)
+		}
+		slices.Sort(names)
+		t.Fatalf("unknown PLAYWRIGHT_BROWSER_DEVICE %q. Available devices: %s", deviceName, strings.Join(names, ", "))
+	}
+
+	return playwright.BrowserNewContextOptions{
+		Viewport:          device.Viewport,
+		Screen:            device.Screen,
+		UserAgent:         new(device.UserAgent),
+		DeviceScaleFactor: new(device.DeviceScaleFactor),
+		IsMobile:          new(device.IsMobile),
+		HasTouch:          new(device.HasTouch),
+	}
 }
 
 func ignoreBrowserError(msg string) bool {

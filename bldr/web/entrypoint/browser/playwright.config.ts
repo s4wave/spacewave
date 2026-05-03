@@ -7,6 +7,14 @@ const port =
   Number.parseInt(process.env.PLAYWRIGHT_WEB_PORT ?? '', 10) ||
   30000 + Math.floor(Math.random() * 10000)
 const url = `http://localhost:${port}`
+const deviceName = process.env.PLAYWRIGHT_BROWSER_DEVICE ?? 'Desktop Chrome'
+const device = devices[deviceName]
+
+if (!device) {
+  throw new Error(
+    `Unknown PLAYWRIGHT_BROWSER_DEVICE "${deviceName}". Available devices: ${Object.keys(devices).join(', ')}`,
+  )
+}
 
 export default defineConfig({
   testDir: '.',
@@ -26,8 +34,8 @@ export default defineConfig({
   },
   projects: [
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      name: deviceName,
+      use: { ...device },
     },
   ],
   webServer: {

@@ -14,7 +14,7 @@ def demo_dist_config(embed_manifests):
     return dist_compiler_config(
         embedManifests=embed_manifests,
         loadPlugins=["bldr-demo"],
-        loadWebStartup="example/startup.tsx",
+        loadWebStartup="bldr/example/startup.tsx",
     )
 
 project(
@@ -34,7 +34,7 @@ manifest("bldr-demo",
     rev=5,
     config=go_plugin_config(
         webPluginId="web",
-        goPkgs=["./example"],
+        goPkgs=["./bldr/example"],
         webPkgs=[
             web_pkg("lucide-react"),
         ],
@@ -62,8 +62,8 @@ manifest("bldr-demo",
 manifest("bldr-demo-cli",
     builder="bldr/cli/compiler",
     config=cli_compiler_config(
-        goPkgs=["./example"],
-        cliPkgs=["./example/cli"],
+        goPkgs=["./bldr/example"],
+        cliPkgs=["./bldr/example/cli"],
         configSet={
             "demo-1": config_entry("bldr/example/demo", 0, {
                 "runDemo": False,

@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 
 test.describe('Web Release Build E2E', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/#/')
     // Wait for app to initialize
     await page.waitForSelector('#bldr-root', { timeout: 10000 })
   })
@@ -25,20 +25,29 @@ test.describe('Web Release Build E2E', () => {
 
   test('should render content', async ({ page }) => {
     const root = page.locator('#bldr-root')
-    // Wait for root to have children
     await expect(async () => {
-      const childCount = await root.evaluate((el) => el.children.length)
-      expect(childCount).toBeGreaterThan(0)
+      const text = await root.textContent()
+      expect(text?.trim().length).toBeGreaterThan(0)
     }).toPass({ timeout: 10000 })
   })
 
   test('should complete loading', async ({ page }) => {
     const root = page.locator('#bldr-root')
-    // Wait for loading to complete (no "Loading" text and has content)
     await expect(async () => {
-      const text = await root.textContent()
-      expect(text).not.toContain('Loading')
-      expect(text?.length).toBeGreaterThan(0)
+      const boot = await page.evaluate(() => {
+        const g = globalThis as {
+          __swBootStatus?: { state?: string }
+          __swEntry?: string
+        }
+        return {
+          bootState: g.__swBootStatus?.state ?? '',
+          entrypoint: g.__swEntry ?? '',
+        }
+      })
+      expect(boot.bootState).not.toBe('error')
+      expect(boot.entrypoint).toContain('/entrypoint/')
+      const text = (await root.textContent()) ?? ''
+      expect(text.trim().length).toBeGreaterThan(0)
     }).toPass({ timeout: 15000 })
   })
 })

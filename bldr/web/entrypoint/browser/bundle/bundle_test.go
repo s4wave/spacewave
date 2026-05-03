@@ -100,6 +100,24 @@ func TestWriteBuildManifestIncludesServiceWorker(t *testing.T) {
 	if got := string(v.GetStringBytes("entrypoint")); got != manifest.Entrypoint {
 		t.Fatalf("unexpected entrypoint: %q", got)
 	}
+
+	data, err = os.ReadFile(filepath.Join(dir, "browser-release.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	v, err = p.ParseBytes(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := v.GetInt("schemaVersion"); got != 1 {
+		t.Fatalf("unexpected schemaVersion: %d", got)
+	}
+	if got := string(v.GetStringBytes("shellAssets", "serviceWorker")); got != manifest.ServiceWorker {
+		t.Fatalf("unexpected release serviceWorker: %q", got)
+	}
+	if got := string(v.GetStringBytes("shellAssets", "entrypoint")); got != manifest.Entrypoint {
+		t.Fatalf("unexpected release entrypoint: %q", got)
+	}
 }
 
 func TestWriteStableBootAsset(t *testing.T) {
