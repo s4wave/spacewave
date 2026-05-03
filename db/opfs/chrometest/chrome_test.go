@@ -1,0 +1,593 @@
+package chrometest
+
+import (
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/pkg/errors"
+	playwright "github.com/playwright-community/playwright-go"
+)
+
+const (
+	runEnv        = "RUN_OPFS_CHROME_TEST"
+	defaultShards = 4
+)
+
+var sharedHarness *chromeHarness
+
+type chromeHarness struct {
+	dir     string
+	server  *httptest.Server
+	pw      *playwright.Playwright
+	browser playwright.Browser
+}
+
+func TestMain(m *testing.M) {
+	if os.Getenv(runEnv) != "1" && !strings.EqualFold(os.Getenv(runEnv), "true") {
+		os.Exit(m.Run())
+	}
+	h, err := startChromeHarness()
+	if err != nil {
+		os.Stderr.WriteString(err.Error() + "\n")
+		os.Exit(1)
+	}
+	sharedHarness = h
+	code := m.Run()
+	h.close()
+	os.Exit(code)
+}
+
+func TestOpfsChromeConcurrentBlockReadersWriters(t *testing.T) {
+	h := newChromeHarness(t)
+
+	root := "opfs-chrome-block-" + time.Now().Format("150405.000000000")
+	h.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+
+	const (
+		writers    = 4
+		readers    = 2
+		iterations = 24
+		batch      = 12
+	)
+	var args []workerArgs
+	for i := range writers {
+		args = append(args, workerArgs{
+			scenario:   "block-writer",
+			root:       root,
+			worker:     i,
+			workers:    writers,
+			iterations: iterations,
+			batch:      batch,
+			shards:     defaultShards,
+		})
+	}
+	for i := range readers {
+		args = append(args, workerArgs{
+			scenario:   "block-reader",
+			root:       root,
+			worker:     i,
+			workers:    writers,
+			iterations: iterations,
+			batch:      batch,
+			shards:     defaultShards,
+		})
+	}
+	h.runWorkersStaged(t, args[writers:], args[:writers])
+	h.runWorker(t, workerArgs{
+		scenario:   "block-verify",
+		root:       root,
+		workers:    writers,
+		iterations: iterations,
+		batch:      batch,
+		shards:     defaultShards,
+	})
+}
+
+func TestOpfsChromeConcurrentMetaWriters(t *testing.T) {
+	h := newChromeHarness(t)
+
+	root := "opfs-chrome-meta-" + time.Now().Format("150405.000000000")
+	h.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+
+	const (
+		writers    = 4
+		iterations = 32
+	)
+	var args []workerArgs
+	for i := range writers {
+		args = append(args, workerArgs{
+			scenario:   "meta-writer",
+			root:       root,
+			worker:     i,
+			workers:    writers,
+			iterations: iterations,
+			batch:      1,
+			shards:     defaultShards,
+		})
+	}
+	h.runWorkers(t, args)
+	h.runWorker(t, workerArgs{
+		scenario:   "meta-verify",
+		root:       root,
+		workers:    writers,
+		iterations: iterations,
+		batch:      1,
+		shards:     defaultShards,
+	})
+}
+
+func TestOpfsChromeFileLockSerializesWorkers(t *testing.T) {
+	h := newChromeHarness(t)
+
+	root := "opfs-chrome-lock-" + time.Now().Format("150405.000000000")
+	h.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	h.runWorker(t, workerArgs{
+		scenario: "counter-init",
+		root:     root,
+	})
+
+	const (
+		workers    = 6
+		iterations = 12
+	)
+	var args []workerArgs
+	for i := range workers {
+		args = append(args, workerArgs{
+			scenario:   "counter-increment",
+			root:       root,
+			worker:     i,
+			workers:    workers,
+			iterations: iterations,
+			batch:      1,
+			shards:     defaultShards,
+		})
+	}
+	h.runWorkers(t, args)
+	h.runWorker(t, workerArgs{
+		scenario:   "counter-verify",
+		root:       root,
+		workers:    workers,
+		iterations: iterations,
+		batch:      1,
+		shards:     defaultShards,
+	})
+}
+
+func newChromeHarness(t testing.TB) *chromeHarness {
+	t.Helper()
+	if os.Getenv(runEnv) != "1" && !strings.EqualFold(os.Getenv(runEnv), "true") {
+		t.Skipf("set %s=1 to run Chrome OPFS stress tests", runEnv)
+	}
+	if sharedHarness == nil {
+		t.Fatal("Chrome OPFS stress harness was not initialized")
+	}
+	return sharedHarness
+}
+
+func startChromeHarness() (*chromeHarness, error) {
+	dir, err := os.MkdirTemp("", "opfs-chrometest-*")
+	if err != nil {
+		return nil, err
+	}
+	if err := buildAssets(dir); err != nil {
+		os.RemoveAll(dir)
+		return nil, err
+	}
+
+	server := newServer(dir)
+	if err := playwright.Install(&playwright.RunOptions{
+		Browsers: []string{"chromium"},
+		Stdout:   os.Stdout,
+		Stderr:   os.Stderr,
+	}); err != nil {
+		server.Close()
+		os.RemoveAll(dir)
+		return nil, errors.Wrap(err, "install playwright chromium")
+	}
+	pw, err := playwright.Run()
+	if err != nil {
+		server.Close()
+		os.RemoveAll(dir)
+		return nil, errors.Wrap(err, "start playwright")
+	}
+	headless := true
+	browser, err := pw.Chromium.Launch(playwright.BrowserTypeLaunchOptions{
+		Headless: &headless,
+	})
+	if err != nil {
+		pw.Stop()
+		server.Close()
+		os.RemoveAll(dir)
+		return nil, errors.Wrap(err, "launch chromium")
+	}
+	return &chromeHarness{
+		dir:     dir,
+		server:  server,
+		pw:      pw,
+		browser: browser,
+	}, nil
+}
+
+func (h *chromeHarness) close() {
+	if h.browser != nil {
+		if err := h.browser.Close(); err != nil {
+			os.Stderr.WriteString(err.Error() + "\n")
+		}
+	}
+	if h.pw != nil {
+		if err := h.pw.Stop(); err != nil {
+			os.Stderr.WriteString(err.Error() + "\n")
+		}
+	}
+	if h.server != nil {
+		h.server.Close()
+	}
+	if h.dir != "" {
+		os.RemoveAll(h.dir)
+	}
+}
+
+func (h *chromeHarness) runWorker(t testing.TB, args workerArgs) workerResult {
+	t.Helper()
+	results := h.runWorkers(t, []workerArgs{args})
+	return results[0]
+}
+
+func (h *chromeHarness) runWorkers(t testing.TB, args []workerArgs) []workerResult {
+	t.Helper()
+	return h.runWorkersScript(t, `async ({ workers }) => {
+  return await window.runOpfsWorkers(workers)
+}`, map[string]any{"workers": mapWorkerArgs(args)})
+}
+
+func (h *chromeHarness) runWorkersStaged(t testing.TB, readyWorkers, workers []workerArgs) []workerResult {
+	t.Helper()
+	return h.runWorkersScript(t, `async ({ readyWorkers, workers }) => {
+  return await window.runOpfsWorkersStaged(readyWorkers, workers)
+}`, map[string]any{
+		"readyWorkers": mapWorkerArgs(readyWorkers),
+		"workers":      mapWorkerArgs(workers),
+	})
+}
+
+func (h *chromeHarness) runWorkersScript(t testing.TB, script string, args map[string]any) []workerResult {
+	t.Helper()
+	ctx, err := h.browser.NewContext()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := ctx.Close(); err != nil {
+			t.Error(err)
+		}
+	}()
+	page, err := ctx.NewPage()
+	if err != nil {
+		t.Fatal(err)
+	}
+	page.On("console", func(msg playwright.ConsoleMessage) {
+		t.Logf("browser console %s: %s", msg.Type(), msg.Text())
+	})
+	page.On("pageerror", func(err error) {
+		t.Errorf("page error: %v", err)
+	})
+	resp, err := page.Goto(h.server.URL+"/", playwright.PageGotoOptions{
+		WaitUntil: playwright.WaitUntilStateDomcontentloaded,
+		Timeout:   playwright.Float(30000),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp != nil && resp.Status() >= 400 {
+		t.Fatalf("GET / returned HTTP %d", resp.Status())
+	}
+
+	raw, err := page.Evaluate(script, args)
+	if err != nil {
+		t.Fatal(err)
+	}
+	results, err := decodeWorkerResults(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, res := range results {
+		if !res.ok {
+			t.Fatalf("worker scenario=%s worker=%d failed: %s", res.scenario, res.worker, res.err)
+		}
+		t.Logf("worker scenario=%s worker=%d duration=%dms", res.scenario, res.worker, res.durationMS)
+	}
+	return results
+}
+
+func buildAssets(dir string) error {
+	if err := buildWasm(filepath.Join(dir, "testprog.wasm")); err != nil {
+		return err
+	}
+	if err := copyFile(wasmExecPath(), filepath.Join(dir, "wasm_exec.js")); err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join(dir, "index.html"), []byte(indexHTML), 0o644); err != nil {
+		return errors.Wrap(err, "write index")
+	}
+	if err := os.WriteFile(filepath.Join(dir, "worker.js"), []byte(workerJS), 0o644); err != nil {
+		return errors.Wrap(err, "write worker")
+	}
+	return nil
+}
+
+func buildWasm(out string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+	root, err := repoRoot()
+	if err != nil {
+		return err
+	}
+	cmd := exec.CommandContext(ctx, "go", "build", "-o", out, "./db/opfs/chrometest/testprog")
+	cmd.Env = append(os.Environ(), "GOOS=js", "GOARCH=wasm")
+	cmd.Dir = root
+	data, err := cmd.CombinedOutput()
+	if err != nil {
+		return errors.Errorf("go build js/wasm failed: %v\n%s", err, data)
+	}
+	return nil
+}
+
+func wasmExecPath() string {
+	return filepath.Join(runtime.GOROOT(), "lib", "wasm", "wasm_exec.js")
+}
+
+func repoRoot() (string, error) {
+	dir, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+	for {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return dir, nil
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return "", errors.New("go.mod not found")
+		}
+		dir = parent
+	}
+}
+
+func copyFile(src, dst string) error {
+	data, err := os.ReadFile(src)
+	if err != nil {
+		return errors.Wrap(err, "read "+src)
+	}
+	return os.WriteFile(dst, data, 0o644)
+}
+
+func newServer(dir string) *httptest.Server {
+	mux := http.NewServeMux()
+	fs := http.FileServer(http.Dir(dir))
+	mux.HandleFunc("/", func(rw http.ResponseWriter, req *http.Request) {
+		rw.Header().Set("Cross-Origin-Opener-Policy", "same-origin")
+		rw.Header().Set("Cross-Origin-Embedder-Policy", "require-corp")
+		fs.ServeHTTP(rw, req)
+	})
+	return httptest.NewServer(mux)
+}
+
+func decodeWorkerResults(raw any) ([]workerResult, error) {
+	list, ok := raw.([]any)
+	if !ok {
+		return nil, errors.Errorf("unexpected result type %T", raw)
+	}
+	results := make([]workerResult, len(list))
+	for i, item := range list {
+		m, ok := item.(map[string]any)
+		if !ok {
+			return nil, errors.Errorf("unexpected result item %T", item)
+		}
+		results[i] = workerResult{
+			scenario: stringField(m, "scenario"),
+			worker:   intField(m, "worker"),
+			ok:       boolField(m, "ok"),
+			err:      stringField(m, "error"),
+			durationMS: intField(
+				m,
+				"durationMs",
+			),
+		}
+	}
+	return results, nil
+}
+
+func mapWorkerArgs(args []workerArgs) []map[string]any {
+	out := make([]map[string]any, len(args))
+	for i, arg := range args {
+		out[i] = map[string]any{
+			"scenario":   arg.scenario,
+			"root":       arg.root,
+			"worker":     arg.worker,
+			"workers":    arg.workers,
+			"iterations": arg.iterations,
+			"batch":      arg.batch,
+			"shards":     arg.shards,
+		}
+	}
+	return out
+}
+
+func stringField(m map[string]any, key string) string {
+	if v, ok := m[key].(string); ok {
+		return v
+	}
+	return ""
+}
+
+func boolField(m map[string]any, key string) bool {
+	if v, ok := m[key].(bool); ok {
+		return v
+	}
+	return false
+}
+
+func intField(m map[string]any, key string) int {
+	switch v := m[key].(type) {
+	case int:
+		return v
+	case float64:
+		return int(v)
+	default:
+		return 0
+	}
+}
+
+type workerArgs struct {
+	scenario   string
+	root       string
+	worker     int
+	workers    int
+	iterations int
+	batch      int
+	shards     int
+}
+
+type workerResult struct {
+	scenario   string
+	worker     int
+	ok         bool
+	err        string
+	durationMS int
+}
+
+const indexHTML = `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>opfs chrome test</title>
+  </head>
+  <body>
+    <script type="module">
+      window.runOpfsWorkers = async (workers) => {
+        return await waitWorkers(workers.map((args) => runWorker(args)))
+      }
+
+      window.runOpfsWorkersStaged = async (readyWorkers, workers) => {
+        const ready = readyWorkers.map((args) => runWorker(args))
+        const readyResults = await Promise.all(ready.map((item) => item.ready))
+        if (readyResults.some((result) => result.kind === 'result' && !result.ok)) {
+          return compactResults(readyResults)
+        }
+        const started = workers.map((args) => runWorker(args))
+        return await waitWorkers([...ready, ...started])
+      }
+
+      function waitWorkers(items) {
+        return new Promise((resolve) => {
+          const results = new Array(items.length)
+          let remaining = items.length
+          let resolved = false
+          for (const [index, item] of items.entries()) {
+            item.done.then((result) => {
+              if (resolved) {
+                return
+              }
+              results[index] = result
+              if (!result.ok) {
+                resolved = true
+                for (const other of items) {
+                  other.stop()
+                }
+                resolve(compactResults(results))
+                return
+              }
+              remaining--
+              if (remaining === 0) {
+                resolved = true
+                resolve(results)
+              }
+            })
+          }
+        })
+      }
+
+      function compactResults(results) {
+        return results.filter((result) => result)
+      }
+
+      function runWorker(args) {
+        let readyResolve
+        const worker = new Worker('/worker.js', { type: 'classic' })
+        const ready = new Promise((resolve) => {
+          readyResolve = resolve
+        })
+        const done = new Promise((resolve) => {
+          worker.onmessage = (event) => {
+            const data = event.data
+            if (data.kind === 'ready') {
+              readyResolve(data)
+              return
+            }
+            if (data.kind === 'result') {
+              worker.terminate()
+              readyResolve(data)
+              resolve(data)
+            }
+          }
+          worker.onerror = (event) => {
+            worker.terminate()
+            const data = {
+              kind: 'result',
+              scenario: args.scenario,
+              worker: args.worker ?? 0,
+              ok: false,
+              error: event.message,
+            }
+            readyResolve(data)
+            resolve(data)
+          }
+          worker.postMessage(args)
+        })
+        return {
+          ready,
+          done,
+          stop: () => worker.terminate(),
+        }
+      }
+    </script>
+  </body>
+</html>
+`
+
+const workerJS = `importScripts('/wasm_exec.js')
+
+self.onmessage = async (event) => {
+  const args = event.data
+  const go = new Go()
+  go.argv = [
+    'testprog',
+    args.scenario ?? '',
+    args.root ?? '',
+    String(args.worker ?? 0),
+    String(args.workers ?? 1),
+    String(args.iterations ?? 1),
+    String(args.batch ?? 1),
+    String(args.shards ?? 4),
+  ]
+  const res = await WebAssembly.instantiateStreaming(fetch('/testprog.wasm'), go.importObject)
+  await go.run(res.instance)
+}
+`

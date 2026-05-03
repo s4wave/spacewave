@@ -155,6 +155,7 @@
     "test:go:alpha": "packages=$(go list ./cmd/... ./core/... ./plugin/... ./sdk/... | grep -Ev '^(github.com/s4wave/spacewave/core/e2e($|/)|github.com/s4wave/spacewave/core/resource/space$|github.com/s4wave/spacewave/core/resource/testbed$|github.com/s4wave/spacewave/core/trace/service$)'); test -z \"$packages\" || cross-env GOFLAGS=-mod=mod go test -tags skip_e2e,purego $packages",
     "test:go:auth": "bun run go:aptre -- test ./auth/...",
     "test:go:db": "bun run go:aptre -- test ./db/...",
+    "test:go:db:opfs:chrome": "cross-env RUN_OPFS_CHROME_TEST=1 go test -count=1 -timeout=10m -v ./db/opfs/chrometest",
     "test:go:forge": "bun run go:aptre -- test ./forge/...",
     "test:go:identity": "bun run go:aptre -- test ./identity/...",
     "test:go:net": "bun run go:aptre -- test ./net/...",
