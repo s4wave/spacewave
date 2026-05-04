@@ -53,9 +53,9 @@ func acceptDaemonListener(ctx context.Context, lis net.Listener, srv *srpc.Serve
 			continue
 		}
 
-		if err := srv.AcceptMuxedConn(ctx, mc); err != nil {
-			_ = tc.Close()
-			continue
-		}
+		go func() {
+			defer tc.Close()
+			_ = srv.AcceptMuxedConn(ctx, mc)
+		}()
 	}
 }
