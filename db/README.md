@@ -103,6 +103,26 @@ to create a shared Volume, which can be encrypted or compressed by adding a
 [transform config]: ./block/transform
 [volume controller]: ./volume/controller
 
+### OPFS Chrome Tests
+
+The OPFS Chrome tests run the WASM storage stack inside Chromium workers. They
+are disabled by default because they require a browser runtime.
+
+```bash
+# Full Chrome OPFS suite.
+bun run test:go:db:opfs:chrome
+
+# Small CI smoke profile.
+bun run test:go:db:opfs:chrome:smoke
+
+# Heavier manual stress profile.
+bun run test:go:db:opfs:chrome:stress
+```
+
+The smoke profile is intended for routine automation. The stress profile covers
+concurrent block and metadata writers, metadata overflow, Web Lock behavior,
+worker termination recovery, and the integrated OPFS volume slice.
+
 ## Examples
 
 Hydra can be used as either a [Go library] or a command-line / daemon.

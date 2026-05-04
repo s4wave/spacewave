@@ -157,6 +157,7 @@
     "test:go:db": "bun run go:aptre -- test ./db/...",
     "test:go:db:opfs:chrome": "cross-env RUN_OPFS_CHROME_TEST=1 go test -count=1 -timeout=10m -v ./db/opfs/chrometest",
     "test:go:db:opfs:chrome:smoke": "cross-env RUN_OPFS_CHROME_TEST=1 RUN_OPFS_CHROME_PROFILE=smoke go test -count=1 -timeout=10m -v ./db/opfs/chrometest",
+    "test:go:db:opfs:chrome:stress": "cross-env RUN_OPFS_CHROME_TEST=1 RUN_OPFS_CHROME_PROFILE=stress go test -count=1 -timeout=10m -v ./db/opfs/chrometest",
     "test:go:forge": "bun run go:aptre -- test ./forge/...",
     "test:go:identity": "bun run go:aptre -- test ./identity/...",
     "test:go:net": "bun run go:aptre -- test ./net/...",
