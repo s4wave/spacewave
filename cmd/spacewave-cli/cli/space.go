@@ -39,6 +39,7 @@ func newSpaceCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 			newSpaceListCommand(&statePath, &sessionIdx),
 			newSpaceCreateCommand(&statePath, &sessionIdx),
 			newSpaceDeleteCommand(&statePath, &sessionIdx),
+			newSpaceRenameCommand(&statePath, &sessionIdx),
 			newSpaceInfoCommand(&statePath, &sessionIdx),
 			newSpaceResolveCommand(&statePath, &sessionIdx),
 			newSpaceSettingsCommand(&statePath, &sessionIdx),
@@ -207,6 +208,46 @@ func newSpaceDeleteCommand(statePath *string, sessionIdx *uint) *cli.Command {
 			}
 
 			os.Stdout.WriteString("space deleted\n")
+			return nil
+		},
+	}
+}
+
+// newSpaceRenameCommand builds the space rename subcommand.
+func newSpaceRenameCommand(statePath *string, sessionIdx *uint) *cli.Command {
+	return &cli.Command{
+		Name:      "rename",
+		Usage:     "rename a space by ID",
+		ArgsUsage: "<space-id> <name>",
+		Action: func(c *cli.Context) error {
+			spaceID := c.Args().Get(0)
+			if spaceID == "" {
+				return errors.New("space ID required")
+			}
+			name := c.Args().Get(1)
+			if name == "" {
+				return errors.New("space name required")
+			}
+
+			ctx := c.Context
+			client, err := connectDaemonFromContext(ctx, c, *statePath)
+			if err != nil {
+				return err
+			}
+			defer client.close()
+
+			sess, err := client.mountSession(ctx, uint32(*sessionIdx))
+			if err != nil {
+				return err
+			}
+			defer sess.Release()
+
+			_, err = sess.RenameSpace(ctx, spaceID, name)
+			if err != nil {
+				return errors.Wrap(err, "rename space")
+			}
+
+			os.Stdout.WriteString("space renamed\n")
 			return nil
 		},
 	}

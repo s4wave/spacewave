@@ -61,6 +61,14 @@ func (s *Session) DeleteSpace(ctx context.Context, sharedObjectID string) (*Dele
 	return s.service.DeleteSpace(ctx, &DeleteSpaceRequest{SharedObjectId: sharedObjectID})
 }
 
+// RenameSpace updates a space display name.
+func (s *Session) RenameSpace(ctx context.Context, sharedObjectID, displayName string) (*RenameSpaceResponse, error) {
+	return s.service.RenameSpace(ctx, &RenameSpaceRequest{
+		SharedObjectId: sharedObjectID,
+		DisplayName:    displayName,
+	})
+}
+
 // WatchResourcesList returns a stream of the full spaces list snapshots.
 func (s *Session) WatchResourcesList(ctx context.Context) (SRPCSessionResourceService_WatchResourcesListClient, error) {
 	return s.service.WatchResourcesList(ctx, &WatchResourcesListRequest{})
