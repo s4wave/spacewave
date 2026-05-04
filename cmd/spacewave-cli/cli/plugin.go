@@ -33,11 +33,11 @@ func newPluginCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 // buildPluginListCommand builds the plugin list subcommand.
 func buildPluginListCommand() *cli.Command {
 	var statePath string
+	var sessionIdx uint
 	return &cli.Command{
 		Name:  "list",
 		Usage: "list plugins and their approval state",
-		Flags: []cli.Flag{
-			statePathFlag(&statePath),
+		Flags: append(clientFlags(&statePath, &sessionIdx),
 			&cli.StringFlag{
 				Name:    "space",
 				Usage:   "space ID (auto-detected if only one space)",
@@ -48,7 +48,7 @@ func buildPluginListCommand() *cli.Command {
 				Usage:   "watch for changes (append mode)",
 				EnvVars: []string{"SPACEWAVE_WATCH"},
 			},
-		},
+		),
 		Action: func(c *cli.Context) error {
 			ctx := c.Context
 			spaceID := c.String("space")
@@ -59,7 +59,7 @@ func buildPluginListCommand() *cli.Command {
 			}
 			defer client.close()
 
-			sess, err := client.mountSession(ctx, 1)
+			sess, err := client.mountSession(ctx, uint32(sessionIdx))
 			if err != nil {
 				return err
 			}
@@ -126,24 +126,24 @@ func buildPluginListCommand() *cli.Command {
 // buildPluginApproveCommand builds the plugin approve subcommand.
 func buildPluginApproveCommand() *cli.Command {
 	var statePath string
+	var sessionIdx uint
 	return &cli.Command{
 		Name:      "approve",
 		Usage:     "approve a plugin (fire-and-forget)",
 		ArgsUsage: "<name-or-id>",
-		Flags: []cli.Flag{
-			statePathFlag(&statePath),
+		Flags: append(clientFlags(&statePath, &sessionIdx),
 			&cli.StringFlag{
 				Name:    "space",
 				Usage:   "space ID (auto-detected if only one space)",
 				EnvVars: []string{"SPACEWAVE_SPACE"},
 			},
-		},
+		),
 		Action: func(c *cli.Context) error {
 			nameOrID := c.Args().First()
 			if nameOrID == "" {
 				return errors.New("plugin name or manifest ID required")
 			}
-			return setPluginApproval(c, statePath, nameOrID, true)
+			return setPluginApproval(c, statePath, uint32(sessionIdx), nameOrID, true)
 		},
 	}
 }
@@ -151,30 +151,30 @@ func buildPluginApproveCommand() *cli.Command {
 // buildPluginDenyCommand builds the plugin deny subcommand.
 func buildPluginDenyCommand() *cli.Command {
 	var statePath string
+	var sessionIdx uint
 	return &cli.Command{
 		Name:      "deny",
 		Usage:     "deny a plugin (fire-and-forget)",
 		ArgsUsage: "<name-or-id>",
-		Flags: []cli.Flag{
-			statePathFlag(&statePath),
+		Flags: append(clientFlags(&statePath, &sessionIdx),
 			&cli.StringFlag{
 				Name:    "space",
 				Usage:   "space ID (auto-detected if only one space)",
 				EnvVars: []string{"SPACEWAVE_SPACE"},
 			},
-		},
+		),
 		Action: func(c *cli.Context) error {
 			nameOrID := c.Args().First()
 			if nameOrID == "" {
 				return errors.New("plugin name or manifest ID required")
 			}
-			return setPluginApproval(c, statePath, nameOrID, false)
+			return setPluginApproval(c, statePath, uint32(sessionIdx), nameOrID, false)
 		},
 	}
 }
 
 // setPluginApproval resolves a plugin name or ID and sets its approval state.
-func setPluginApproval(c *cli.Context, statePath, nameOrID string, approved bool) error {
+func setPluginApproval(c *cli.Context, statePath string, sessionIdx uint32, nameOrID string, approved bool) error {
 	ctx := c.Context
 	spaceID := c.String("space")
 	client, err := connectDaemonFromContext(ctx, c, statePath)
@@ -183,7 +183,7 @@ func setPluginApproval(c *cli.Context, statePath, nameOrID string, approved bool
 	}
 	defer client.close()
 
-	sess, err := client.mountSession(ctx, 1)
+	sess, err := client.mountSession(ctx, sessionIdx)
 	if err != nil {
 		return err
 	}
@@ -279,18 +279,18 @@ func resolvePluginID(
 // buildPluginAddCommand builds the plugin add subcommand.
 func buildPluginAddCommand() *cli.Command {
 	var statePath string
+	var sessionIdx uint
 	return &cli.Command{
 		Name:      "add",
 		Usage:     "add a plugin to space settings",
 		ArgsUsage: "<manifest-id>",
-		Flags: []cli.Flag{
-			statePathFlag(&statePath),
+		Flags: append(clientFlags(&statePath, &sessionIdx),
 			&cli.StringFlag{
 				Name:    "space",
 				Usage:   "space ID (auto-detected if only one space)",
 				EnvVars: []string{"SPACEWAVE_SPACE"},
 			},
-		},
+		),
 		Action: func(c *cli.Context) error {
 			manifestID := c.Args().First()
 			if manifestID == "" {
@@ -305,7 +305,7 @@ func buildPluginAddCommand() *cli.Command {
 			}
 			defer client.close()
 
-			sess, err := client.mountSession(ctx, 1)
+			sess, err := client.mountSession(ctx, uint32(sessionIdx))
 			if err != nil {
 				return err
 			}
@@ -338,18 +338,18 @@ func buildPluginAddCommand() *cli.Command {
 // buildPluginRemoveCommand builds the plugin remove subcommand.
 func buildPluginRemoveCommand() *cli.Command {
 	var statePath string
+	var sessionIdx uint
 	return &cli.Command{
 		Name:      "remove",
 		Usage:     "remove a plugin from space settings",
 		ArgsUsage: "<manifest-id>",
-		Flags: []cli.Flag{
-			statePathFlag(&statePath),
+		Flags: append(clientFlags(&statePath, &sessionIdx),
 			&cli.StringFlag{
 				Name:    "space",
 				Usage:   "space ID (auto-detected if only one space)",
 				EnvVars: []string{"SPACEWAVE_SPACE"},
 			},
-		},
+		),
 		Action: func(c *cli.Context) error {
 			manifestID := c.Args().First()
 			if manifestID == "" {
@@ -364,7 +364,7 @@ func buildPluginRemoveCommand() *cli.Command {
 			}
 			defer client.close()
 
-			sess, err := client.mountSession(ctx, 1)
+			sess, err := client.mountSession(ctx, uint32(sessionIdx))
 			if err != nil {
 				return err
 			}
