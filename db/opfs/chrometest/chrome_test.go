@@ -325,6 +325,36 @@ func TestOpfsChromeFileLockQueuedWorkersProgressAfterRelease(t *testing.T) {
 	})
 }
 
+func TestOpfsChromeWebLockIfAvailable(t *testing.T) {
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-lock-if-available-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	s.runWorker(t, workerArgs{
+		scenario: "counter-init",
+		root:     root,
+	})
+
+	holder := workerArgs{
+		scenario: "counter-hold",
+		root:     root,
+	}
+	heldCheck := workerArgs{
+		scenario: "counter-try-lock-unavailable",
+		root:     root,
+	}
+	s.runHeldLockCheck(t, holder, heldCheck)
+	s.runWorker(t, workerArgs{
+		scenario: "counter-try-lock-available",
+		root:     root,
+	})
+}
+
 func newChromeHarness(t testing.TB) *chromeHarness {
 	t.Helper()
 	if os.Getenv(runEnv) != "1" && !strings.EqualFold(os.Getenv(runEnv), "true") {
@@ -490,6 +520,16 @@ func (s *chromeSession) runBlockedLockWorkers(t testing.TB, holder workerArgs, w
 }`, map[string]any{
 		"holder":  mapSingleWorkerArg(holder),
 		"workers": mapWorkerArgs(workers),
+	})
+}
+
+func (s *chromeSession) runHeldLockCheck(t testing.TB, holder, check workerArgs) []workerResult {
+	t.Helper()
+	return s.runWorkersScript(t, `async ({ holder, check }) => {
+  return await window.runOpfsHeldLockCheck(holder, check)
+}`, map[string]any{
+		"holder": mapSingleWorkerArg(holder),
+		"check":  mapSingleWorkerArg(check),
 	})
 }
 
@@ -711,6 +751,25 @@ const indexHTML = `<!doctype html>
         release.postMessage({ type: 'release' })
         release.close()
         return await waitWorkers([holder, ...queued])
+      }
+
+      window.runOpfsHeldLockCheck = async (holderArgs, checkArgs) => {
+        const holder = runWorker(holderArgs)
+        const holderReady = await holder.ready
+        if (holderReady.kind === 'result') {
+          return compactResults([holderReady])
+        }
+        const check = runWorker(checkArgs)
+        const checkResults = await waitWorkers([check])
+        if (checkResults.some((result) => !result.ok)) {
+          holder.stop()
+          return checkResults
+        }
+        const release = new BroadcastChannel('opfs-chrometest-counter-release:' + holderArgs.root)
+        release.postMessage({ type: 'release' })
+        release.close()
+        const holderResults = await waitWorkers([holder])
+        return [...checkResults, ...holderResults]
       }
 
       function waitWorkers(items) {

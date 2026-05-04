@@ -118,6 +118,11 @@ func run(ctx context.Context, c *config) error {
 	case "counter-queued-increment":
 		postReady(c)
 		return runCounterIncrement(c)
+	case "counter-try-lock-unavailable":
+		postReady(c)
+		return runCounterTryLock(c, false)
+	case "counter-try-lock-available":
+		return runCounterTryLock(c, true)
 	case "counter-verify":
 		return runCounterVerify(c)
 	default:
@@ -516,6 +521,20 @@ func runCounterIncrement(c *config) error {
 			release()
 			return errors.Wrap(err, "flush counter")
 		}
+		release()
+	}
+	return nil
+}
+
+func runCounterTryLock(c *config, want bool) error {
+	release, acquired, err := filelock.AcquireWebLockIfAvailable(c.root+"/locks/counter", true)
+	if err != nil {
+		return err
+	}
+	if acquired != want {
+		return errors.Errorf("try counter lock acquired=%v want %v", acquired, want)
+	}
+	if release != nil {
 		release()
 	}
 	return nil
