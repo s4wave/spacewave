@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -101,6 +102,10 @@ func run(ctx context.Context, c *config) error {
 		return runBlockReader(ctx, c)
 	case "block-verify":
 		return runBlockVerify(ctx, c)
+	case "block-orphan-segment":
+		return runBlockOrphanSegment(c)
+	case "block-orphan-verify-clean":
+		return runBlockOrphanVerifyClean(c)
 	case "meta-writer":
 		return runMetaWriter(ctx, c)
 	case "meta-verify":
@@ -337,6 +342,41 @@ func describeBlockShard(c *config, shard int) string {
 		sb.WriteString("]")
 	}
 	return sb.String()
+}
+
+func runBlockOrphanSegment(c *config) error {
+	dir, err := openTestDirectory(c.root, []string{"blocks", "shard-00"})
+	if err != nil {
+		return err
+	}
+	w := segment.NewWriter()
+	key := []byte("orphan/terminated")
+	w.Add(key, blockValue(key))
+	var buf bytes.Buffer
+	if _, err := w.Build(&buf); err != nil {
+		return errors.Wrap(err, "build orphan segment")
+	}
+	if err := opfs.WriteFile(dir, orphanSegmentFilename(), buf.Bytes()); err != nil {
+		return errors.Wrap(err, "write orphan segment")
+	}
+	postReady(c)
+	_, err = io.Copy(io.Discard, neverReader{})
+	return err
+}
+
+func runBlockOrphanVerifyClean(c *config) error {
+	dir, err := openTestDirectory(c.root, []string{"blocks", "shard-00"})
+	if err != nil {
+		return err
+	}
+	exists, err := opfs.FileExists(dir, orphanSegmentFilename())
+	if err != nil {
+		return err
+	}
+	if exists {
+		return errors.Errorf("orphan segment %s still exists", orphanSegmentFilename())
+	}
+	return nil
 }
 
 func runMetaWriter(ctx context.Context, c *config) error {
@@ -680,6 +720,10 @@ func blockEventChannel(root string) string {
 	return "opfs-chrometest:" + root
 }
 
+func orphanSegmentFilename() string {
+	return "seg-999999.sst"
+}
+
 func counterReleaseChannel(root string) string {
 	return "opfs-chrometest-counter-release:" + root
 }
@@ -707,4 +751,12 @@ func postResult(c *config, dur time.Duration, err error) {
 		obj.Set("ok", true)
 	}
 	js.Global().Call("postMessage", obj)
+}
+
+type neverReader struct{}
+
+func (neverReader) Read(p []byte) (int, error) {
+	ch := make(chan struct{})
+	<-ch
+	return 0, nil
 }

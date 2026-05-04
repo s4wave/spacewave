@@ -355,6 +355,45 @@ func TestOpfsChromeWebLockIfAvailable(t *testing.T) {
 	})
 }
 
+func TestOpfsChromeTerminatedBlockWriterLeavesRecoverableShard(t *testing.T) {
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-block-terminated-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	s.runWorker(t, workerArgs{
+		scenario:   "block-writer",
+		root:       root,
+		worker:     0,
+		workers:    1,
+		iterations: 1,
+		batch:      1,
+		shards:     defaultShards,
+	})
+	s.runTerminatedReadyWorker(t, workerArgs{
+		scenario: "block-orphan-segment",
+		root:     root,
+		shards:   defaultShards,
+	})
+	s.runWorker(t, workerArgs{
+		scenario:   "block-verify",
+		root:       root,
+		workers:    1,
+		iterations: 1,
+		batch:      1,
+		shards:     defaultShards,
+	})
+	s.runWorker(t, workerArgs{
+		scenario: "block-orphan-verify-clean",
+		root:     root,
+		shards:   defaultShards,
+	})
+}
+
 func newChromeHarness(t testing.TB) *chromeHarness {
 	t.Helper()
 	if os.Getenv(runEnv) != "1" && !strings.EqualFold(os.Getenv(runEnv), "true") {
@@ -531,6 +570,16 @@ func (s *chromeSession) runHeldLockCheck(t testing.TB, holder, check workerArgs)
 		"holder": mapSingleWorkerArg(holder),
 		"check":  mapSingleWorkerArg(check),
 	})
+}
+
+func (s *chromeSession) runTerminatedReadyWorker(t testing.TB, worker workerArgs) workerResult {
+	t.Helper()
+	results := s.runWorkersScript(t, `async ({ worker }) => {
+  return await window.runOpfsTerminateReadyWorker(worker)
+}`, map[string]any{
+		"worker": mapSingleWorkerArg(worker),
+	})
+	return results[0]
 }
 
 func (s *chromeSession) runWorkersScript(t testing.TB, script string, args map[string]any) []workerResult {
@@ -770,6 +819,22 @@ const indexHTML = `<!doctype html>
         release.close()
         const holderResults = await waitWorkers([holder])
         return [...checkResults, ...holderResults]
+      }
+
+      window.runOpfsTerminateReadyWorker = async (args) => {
+        const worker = runWorker(args)
+        const ready = await worker.ready
+        if (ready.kind === 'result') {
+          return compactResults([ready])
+        }
+        worker.stop()
+        return [{
+          kind: 'result',
+          scenario: args.scenario,
+          worker: args.worker ?? 0,
+          ok: true,
+          durationMs: 0,
+        }]
       }
 
       function waitWorkers(items) {
