@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -872,7 +871,11 @@ func buildAssets(dir string) error {
 	if err := buildWasm(filepath.Join(dir, "testprog.wasm")); err != nil {
 		return err
 	}
-	if err := copyFile(wasmExecPath(), filepath.Join(dir, "wasm_exec.js")); err != nil {
+	wasmExec, err := wasmExecPath()
+	if err != nil {
+		return err
+	}
+	if err := copyFile(wasmExec, filepath.Join(dir, "wasm_exec.js")); err != nil {
 		return err
 	}
 	if err := os.WriteFile(filepath.Join(dir, "index.html"), []byte(indexHTML), 0o644); err != nil {
@@ -901,8 +904,19 @@ func buildWasm(out string) error {
 	return nil
 }
 
-func wasmExecPath() string {
-	return filepath.Join(runtime.GOROOT(), "lib", "wasm", "wasm_exec.js")
+func wasmExecPath() (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "go", "env", "GOROOT")
+	data, err := cmd.Output()
+	if err != nil {
+		return "", errors.Wrap(err, "go env GOROOT")
+	}
+	goroot := strings.TrimSpace(string(data))
+	if goroot == "" {
+		return "", errors.New("go env GOROOT returned empty path")
+	}
+	return filepath.Join(goroot, "lib", "wasm", "wasm_exec.js"), nil
 }
 
 func repoRoot() (string, error) {
