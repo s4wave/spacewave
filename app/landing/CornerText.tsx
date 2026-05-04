@@ -6,6 +6,7 @@ import {
   useStaticHref,
 } from '@s4wave/app/prerender/StaticContext.js'
 import { useAppBuildInfo } from '@s4wave/app/build-info.js'
+import { ExternalLink } from './ExternalLink.js'
 
 interface CornerTextProps {
   show: boolean
@@ -42,7 +43,7 @@ export function CornerText({ show }: CornerTextProps) {
         {buildInfo.cornerLabel}
       </div>
 
-      <a
+      <ExternalLink
         href="https://aperture.us"
         className={cn(
           baseClasses,
@@ -52,7 +53,7 @@ export function CornerText({ show }: CornerTextProps) {
       >
         {/* The cake is a lie! */}
         <strong>Aperture Robotics</strong>
-      </a>
+      </ExternalLink>
 
       <a
         href={dmcaHref}

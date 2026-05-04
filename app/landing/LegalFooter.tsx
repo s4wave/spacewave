@@ -1,4 +1,5 @@
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
+import { ExternalLink } from './ExternalLink.js'
 
 // LegalFooter renders the footer for legal pages (ToS, Privacy, Pricing, DMCA).
 export function LegalFooter() {
@@ -15,12 +16,12 @@ export function LegalFooter() {
       <div className="mx-auto flex max-w-4xl flex-col items-center gap-3 sm:flex-row">
         <p className="text-foreground-alt/50 text-xs">
           &copy; 2018&ndash;2026{' '}
-          <a
+          <ExternalLink
             href="https://github.com/aperturerobotics"
             className="font-medium text-white/80 transition-colors hover:text-white"
           >
             Aperture Robotics
-          </a>
+          </ExternalLink>
           , LLC. and contributors
         </p>
         <nav className="flex gap-4 sm:ml-auto">

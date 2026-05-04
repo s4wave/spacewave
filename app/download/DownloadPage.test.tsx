@@ -56,6 +56,8 @@ describe('DownloadPage', () => {
       c.getAttribute('href')?.includes('spacewave-macos-arm64.dmg'),
     )
     expect(installerCta).toBeTruthy()
+    expect(installerCta?.getAttribute('target')).toBe('_blank')
+    expect(installerCta?.getAttribute('rel')).toBe('noopener noreferrer')
   })
 
   it('reflects a detected Windows platform in the installer primary CTA', () => {
@@ -91,6 +93,8 @@ describe('DownloadPage', () => {
       c.getAttribute('href')?.includes('spacewave-cli-macos-arm64.zip'),
     )
     expect(cliCta).toBeTruthy()
+    expect(cliCta?.getAttribute('target')).toBe('_blank')
+    expect(cliCta?.getAttribute('rel')).toBe('noopener noreferrer')
   })
 
   it('renders a macOS zip-extract instruction in the CLI section', () => {

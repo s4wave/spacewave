@@ -1,5 +1,6 @@
 import { LuDownload } from 'react-icons/lu'
 
+import { ExternalLink } from '@s4wave/app/landing/ExternalLink.js'
 import { cn } from '@s4wave/web/style/utils.js'
 
 import type { DownloadEntry } from './manifest.js'
@@ -21,10 +22,9 @@ export function PrimaryDownloadButton({ entry }: PrimaryDownloadButtonProps) {
   }
 
   return (
-    <a
+    <ExternalLink
       href={entry.url}
       download
-      rel="noopener noreferrer"
       className={cn(
         'border-brand/40 bg-brand/10 text-foreground hover:border-brand/60 hover:bg-brand/15',
         'inline-flex cursor-pointer items-center gap-3 rounded-lg border px-6 py-3 text-base font-semibold select-none',
@@ -35,6 +35,6 @@ export function PrimaryDownloadButton({ entry }: PrimaryDownloadButtonProps) {
       <span>
         Download for {entry.osLabel} ({entry.archLabel})
       </span>
-    </a>
+    </ExternalLink>
   )
 }

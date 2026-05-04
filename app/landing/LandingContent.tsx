@@ -37,6 +37,7 @@ import { isDesktop } from '@aptre/bldr'
 import { GITHUB_REPO_URL } from '@s4wave/app/github.js'
 import { useNavLinks } from '@s4wave/app/nav-links.js'
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
+import { ExternalLink } from './ExternalLink.js'
 
 // Section provides consistent section styling with optional scroll-reveal.
 function Section({
@@ -300,14 +301,12 @@ const FaqAccordion: React.FC = () => {
             peer-to-peer (P2P) networking. Your data is encrypted on your device
             and stays private in transport and in storage. Even we can't decrypt
             it. This is{' '}
-            <a
+            <ExternalLink
               href="https://www.cloudflare.com/learning/privacy/what-is-end-to-end-encryption/"
-              target="_blank"
-              rel="noopener noreferrer"
               className="text-brand hover:text-brand-highlight underline underline-offset-2"
             >
               a standard approach to data safety
-            </a>{' '}
+            </ExternalLink>{' '}
             on the web.
           </>
         ),
@@ -1240,13 +1239,13 @@ function ForDevelopersSection() {
         <CtaButton icon={LuBookOpen} variant="primary" onClick={nav.docs}>
           Read the Docs
         </CtaButton>
-        <a
+        <ExternalLink
           href={GITHUB_REPO_URL}
           className="border-foreground/15 bg-background/50 text-foreground hover:border-brand/40 hover:bg-brand/8 flex cursor-pointer items-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium no-underline transition-all duration-300 select-none hover:-translate-y-0.5"
         >
           <LuGithub className="h-4 w-4" />
           <span>Browse Source</span>
-        </a>
+        </ExternalLink>
       </CtaRow>
     </Section>
   )
@@ -1402,13 +1401,13 @@ const OpenSourceSection: React.FC = () => {
             </p>
           </div>
         </div>
-        <a
+        <ExternalLink
           href={GITHUB_REPO_URL}
           className="group hover:border-brand/30 hover:bg-brand/10 flex cursor-pointer items-center rounded-md border border-gray-700 bg-black/50 px-6 py-2 text-sm font-medium text-white no-underline transition-all duration-300"
         >
           <LuGithub className="mr-2 h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
           <span className="select-none">View on GitHub</span>
-        </a>
+        </ExternalLink>
       </div>
     </Section>
   )
@@ -1423,12 +1422,12 @@ function Footer() {
     <footer className="flex w-full shrink-0 flex-col items-center gap-2 border-t border-gray-800 bg-black/90 px-4 py-6 @lg:flex-row @2xl:px-6">
       <p className="text-xs text-gray-400 select-none">
         &copy; 2018-2026{' '}
-        <a
+        <ExternalLink
           href="https://github.com/aperturerobotics"
           className="text-gray-300 hover:text-white hover:underline"
         >
           Aperture Robotics
-        </a>
+        </ExternalLink>
         , LLC. and contributors
       </p>
       <nav className="flex gap-2 @lg:ml-auto @lg:gap-6">

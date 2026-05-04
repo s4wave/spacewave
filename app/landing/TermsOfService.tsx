@@ -1,4 +1,5 @@
 import { LuFileText } from 'react-icons/lu'
+import { ExternalLink } from './ExternalLink.js'
 import { LegalPageLayout } from './LegalPageLayout.js'
 
 export const metadata = {
@@ -835,14 +836,12 @@ export function TermsOfService() {
                 abuse prevention. Turnstile may collect interaction data to
                 distinguish human users from automated access. Your use of the
                 Service is subject to the{' '}
-                <a
+                <ExternalLink
                   href="https://www.cloudflare.com/turnstile-privacy-policy/"
                   className="text-brand hover:text-brand-highlight underline"
-                  target="_blank"
-                  rel="noopener noreferrer"
                 >
                   Cloudflare Turnstile Privacy Policy
-                </a>
+                </ExternalLink>
                 .
               </p>
             </div>

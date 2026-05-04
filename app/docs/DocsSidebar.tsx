@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react'
 import { LuArrowLeft, LuExternalLink } from 'react-icons/lu'
 import { GITHUB_REPO_URL } from '@s4wave/app/github.js'
+import { ExternalLink } from '@s4wave/app/landing/ExternalLink.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { siteDefs } from './sections.js'
@@ -109,15 +110,13 @@ export function DocsSidebar({
       </div>
 
       <div className="mt-auto flex flex-col gap-1.5 border-t border-white/10 p-4">
-        <a
+        <ExternalLink
           href={githubUrl}
-          target="_blank"
-          rel="noopener noreferrer"
           className="text-foreground-alt/50 hover:text-foreground-alt flex items-center gap-1.5 text-xs transition-colors"
         >
           <LuExternalLink className="h-3 w-3" />
           View on GitHub
-        </a>
+        </ExternalLink>
         <button
           onClick={currentSlug ? goToIndex : goHome}
           className="text-foreground-alt/50 hover:text-foreground-alt flex cursor-pointer items-center gap-1.5 text-left text-xs transition-colors"

@@ -22,6 +22,7 @@ import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
 import { useInvokeCommand } from '@s4wave/web/command/index.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { cn } from '@s4wave/web/style/utils.js'
+import { ExternalLink } from './ExternalLink.js'
 import {
   licenseEntries,
   groupByCategory,
@@ -186,15 +187,13 @@ export function Community() {
           Spacewave is free and open-source software built by the community.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <a
+          <ExternalLink
             href={GITHUB_REPO_URL}
-            target="_blank"
-            rel="noopener noreferrer"
             className="border-foreground/20 hover:border-brand/40 hover:bg-brand/5 text-foreground inline-flex items-center gap-2.5 rounded-lg border px-6 py-3 text-sm font-medium transition-all"
           >
             <LuGithub className="h-5 w-5" />
             View on GitHub
-          </a>
+          </ExternalLink>
           <button
             onClick={handleEmailSupport}
             className="border-foreground/20 hover:border-brand/40 hover:bg-brand/5 text-foreground inline-flex cursor-pointer items-center gap-2.5 rounded-lg border px-6 py-3 text-sm font-medium transition-all"
@@ -212,11 +211,9 @@ export function Community() {
         </span>
         <div className="grid gap-4 @lg:grid-cols-3">
           {CONTRIBUTE_PATHS.map((c) => (
-            <a
+            <ExternalLink
               key={c.title}
               href={c.href}
-              target="_blank"
-              rel="noopener noreferrer"
               className="border-foreground/8 hover:border-foreground/15 bg-background-card/50 group flex flex-col gap-3 rounded-lg border p-5 backdrop-blur-sm transition-all hover:-translate-y-0.5"
             >
               <c.icon className="text-foreground-alt group-hover:text-brand h-5 w-5 transition-colors" />
@@ -230,7 +227,7 @@ export function Community() {
                 {c.linkText}
                 <LuArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
               </span>
-            </a>
+            </ExternalLink>
           ))}
         </div>
       </section>
@@ -352,10 +349,8 @@ export function Community() {
                       <div className="flex items-center gap-2">
                         <div className="flex min-w-0 items-center gap-2">
                           {entry.repo ?
-                            <a
+                            <ExternalLink
                               href={entry.repo}
-                              target="_blank"
-                              rel="noopener noreferrer"
                               onClick={(e) => e.stopPropagation()}
                               className={cn(
                                 'truncate text-xs font-medium hover:underline',
@@ -365,7 +360,7 @@ export function Community() {
                               )}
                             >
                               {entry.name}
-                            </a>
+                            </ExternalLink>
                           : <span
                               className={cn(
                                 'truncate text-xs font-medium',
@@ -435,15 +430,13 @@ export function Community() {
           — running in web browsers, Linux, and other operating systems. We are
           grateful to everyone behind these projects.
         </p>
-        <a
+        <ExternalLink
           href={GITHUB_REPO_URL}
-          target="_blank"
-          rel="noopener noreferrer"
           className="text-brand hover:text-brand-highlight mt-4 inline-flex items-center gap-2 text-sm underline"
         >
           <LuGithub className="h-4 w-4" />
           Contribute to Spacewave
-        </a>
+        </ExternalLink>
       </section>
 
       {/* Footer */}

@@ -6,6 +6,7 @@ import { ShootingStars } from '@s4wave/web/ui/shooting-stars.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import type { SessionListEntry } from '@s4wave/core/session/session.pb.js'
+import { ExternalLink } from './ExternalLink.js'
 
 interface GetStartedSectionProps {
   homeRef: React.RefObject<HTMLDivElement | null>
@@ -78,14 +79,12 @@ export function GetStartedSection({
             Proudly free software
           </p>
           <p className="text-[10px]">
-            <a
+            <ExternalLink
               href="https://spacemacs.org"
-              target="_blank"
-              rel="noopener noreferrer"
               className="text-brand underline"
             >
               Inspired by Spacemacs
-            </a>
+            </ExternalLink>
           </p>
         </div>
 

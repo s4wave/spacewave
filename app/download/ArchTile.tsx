@@ -1,5 +1,6 @@
 import { LuDownload } from 'react-icons/lu'
 
+import { ExternalLink } from '@s4wave/app/landing/ExternalLink.js'
 import { cn } from '@s4wave/web/style/utils.js'
 
 import type { DownloadEntry } from './manifest.js'
@@ -12,10 +13,9 @@ interface ArchTileProps {
 // filename, and a download link.
 export function ArchTile({ entry }: ArchTileProps) {
   return (
-    <a
+    <ExternalLink
       href={entry.url}
       download
-      rel="noopener noreferrer"
       className={cn(
         'border-foreground/6 bg-background-card/30 hover:border-foreground/12',
         'group flex cursor-pointer flex-col gap-2 rounded-lg border p-6 backdrop-blur-sm',
@@ -31,6 +31,6 @@ export function ArchTile({ entry }: ArchTileProps) {
       <span className="text-foreground-alt font-mono text-xs break-all select-none">
         {entry.filename}
       </span>
-    </a>
+    </ExternalLink>
   )
 }

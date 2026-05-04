@@ -1,4 +1,5 @@
 import { LuShield } from 'react-icons/lu'
+import { ExternalLink } from './ExternalLink.js'
 import { LegalPageLayout } from './LegalPageLayout.js'
 
 export const metadata = {
@@ -307,38 +308,32 @@ export function PrivacyPolicy() {
                 <li>
                   <strong className="text-foreground">Stripe</strong> - payment
                   processing (governed by{' '}
-                  <a
+                  <ExternalLink
                     href="https://stripe.com/privacy"
                     className="text-brand hover:text-brand-highlight underline"
-                    target="_blank"
-                    rel="noopener noreferrer"
                   >
                     Stripe&rsquo;s Privacy Policy
-                  </a>
+                  </ExternalLink>
                   )
                 </li>
                 <li>
                   <strong className="text-foreground">Cloudflare</strong> -
                   infrastructure provider for cloud storage and data relay
                   (governed by{' '}
-                  <a
+                  <ExternalLink
                     href="https://www.cloudflare.com/privacypolicy/"
                     className="text-brand hover:text-brand-highlight underline"
-                    target="_blank"
-                    rel="noopener noreferrer"
                   >
                     Cloudflare&rsquo;s Privacy Policy
-                  </a>
+                  </ExternalLink>
                   ). The Service also uses Cloudflare Turnstile for bot
                   detection and abuse prevention, which is subject to the{' '}
-                  <a
+                  <ExternalLink
                     href="https://www.cloudflare.com/turnstile-privacy-policy/"
                     className="text-brand hover:text-brand-highlight underline"
-                    target="_blank"
-                    rel="noopener noreferrer"
                   >
                     Cloudflare Turnstile Privacy Policy
-                  </a>
+                  </ExternalLink>
                 </li>
                 <li>
                   <strong className="text-foreground">

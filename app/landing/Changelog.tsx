@@ -9,6 +9,7 @@ import { LegalFooter } from './LegalFooter.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
+import { ExternalLink } from './ExternalLink.js'
 import { useLandingBackNavigation } from './useLandingBackNavigation.js'
 import type {
   Release,
@@ -29,10 +30,8 @@ const markdownOptions = {
       ) {
         const { className, ...rest } = props
         return (
-          <a
+          <ExternalLink
             {...rest}
-            target="_blank"
-            rel="noopener noreferrer"
             className={cn(
               'text-foreground underline decoration-white/20 underline-offset-3 transition-colors hover:text-white hover:decoration-white/60',
               className,
@@ -87,15 +86,13 @@ function ReleaseCard({ release }: { release: Release }) {
           v{release.version}
         </h2>
         {release.releaseUrl && (
-          <a
+          <ExternalLink
             href={release.releaseUrl}
-            target="_blank"
-            rel="noopener noreferrer"
             className="text-foreground-alt/50 hover:text-foreground shrink-0 transition-colors"
             title="View release"
           >
             <LuGithub className="h-5 w-5" />
-          </a>
+          </ExternalLink>
         )}
       </div>
       {release.date && (

@@ -10,6 +10,7 @@ import {
 } from 'react-icons/lu'
 import { cn } from '@s4wave/web/style/utils.js'
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
+import { ExternalLink } from './ExternalLink.js'
 import { LegalPageLayout } from './LegalPageLayout.js'
 
 export const metadata = {
@@ -169,7 +170,7 @@ export function LandingBifrost() {
       {/* CTA */}
       <section className="relative z-10 mx-auto w-full max-w-4xl px-4 pb-16 @lg:px-8">
         <div className="flex flex-wrap justify-center gap-3">
-          <a
+          <ExternalLink
             href="https://github.com/s4wave/spacewave/net"
             className={cn(
               'border-brand/40 bg-brand/10 text-foreground hover:border-brand/60 hover:bg-brand/15',
@@ -178,7 +179,7 @@ export function LandingBifrost() {
           >
             <LuGithub className="h-4 w-4" />
             <span>View on GitHub</span>
-          </a>
+          </ExternalLink>
           <a
             href={landingHref}
             className="border-foreground/15 bg-background/50 text-foreground hover:border-brand/40 hover:bg-brand/8 flex items-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium no-underline transition-all duration-300 select-none hover:-translate-y-0.5"

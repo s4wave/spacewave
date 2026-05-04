@@ -12,6 +12,7 @@ import {
   reconstructText,
   type AnnotatedLicenseEntry,
 } from '@s4wave/app/licenses/data.js'
+import { ExternalLink } from './ExternalLink.js'
 import { LegalPageLayout } from './LegalPageLayout.js'
 
 export const metadata = {
@@ -121,14 +122,12 @@ function LicenseGroup({
                 )}
                 <span className="text-foreground text-sm">
                   {entry.repo ?
-                    <a
+                    <ExternalLink
                       href={entry.repo}
                       className="hover:text-brand transition-colors hover:underline"
-                      target="_blank"
-                      rel="noopener noreferrer"
                     >
                       {entry.name}
-                    </a>
+                    </ExternalLink>
                   : entry.name}
                 </span>
                 <span className="text-foreground-alt/50 text-xs">

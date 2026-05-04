@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from '@s4wave/web/ui/DropdownMenu.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
+import { ExternalLink } from '@s4wave/app/landing/ExternalLink.js'
 import { PreBlock } from './CodeBlock.js'
 import { MarkdownLink } from './MarkdownLink.js'
 import { sectionDefs, siteDefs } from './sections.js'
@@ -62,7 +63,7 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
   }, [])
 
   const handleCopyMarkdown = useCallback(() => {
-    navigator.clipboard.writeText(doc.body)
+    void navigator.clipboard.writeText(doc.body)
     setCopied(true)
     clearTimeout(copyTimer.current)
     copyTimer.current = setTimeout(() => setCopied(false), 1500)
@@ -73,6 +74,10 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
       `https://raw.githubusercontent.com/aperturerobotics/alpha/master/app/docs/content/${doc.site}/${doc.section}/${doc.filename}`,
     [doc.site, doc.section, doc.filename],
   )
+
+  const handleCopyMarkdownUrl = useCallback(() => {
+    void navigator.clipboard.writeText(rawGitHubUrl)
+  }, [rawGitHubUrl])
 
   const aiPrompt = useMemo(() => {
     return `I'm reading the Spacewave documentation page "${doc.title}".\n\n${doc.body}`
@@ -119,16 +124,14 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
             </span>
           </button>
 
-          <a
+          <ExternalLink
             href={rawGitHubUrl}
-            target="_blank"
-            rel="noopener noreferrer"
             className="text-foreground-alt/40 hover:text-foreground-alt hover:bg-foreground/5 flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors"
             title="Open raw Markdown on GitHub"
           >
             <LuFileText className="h-3 w-3" />
             <span className="hidden @lg:inline">Open MD</span>
-          </a>
+          </ExternalLink>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -148,9 +151,7 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
               <DropdownMenuItem onSelect={handleOpenChatGPT}>
                 Open in ChatGPT
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() => navigator.clipboard.writeText(rawGitHubUrl)}
-              >
+              <DropdownMenuItem onSelect={handleCopyMarkdownUrl}>
                 Copy .md URL
               </DropdownMenuItem>
             </DropdownMenuContent>
