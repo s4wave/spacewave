@@ -44,14 +44,14 @@ func TestAcceptDaemonListenerServesConcurrentResourceClients(t *testing.T) {
 	}()
 
 	first, firstConn := openDaemonResourceClient(t, ctx, sock)
-	defer first.Release()
 	defer firstConn.Close()
+	defer first.Release()
 
 	secondCtx, secondCancel := context.WithTimeout(ctx, time.Second)
 	defer secondCancel()
 	second, secondConn := openDaemonResourceClient(t, secondCtx, sock)
-	defer second.Release()
 	defer secondConn.Close()
+	defer second.Release()
 
 	cancel()
 	lis.Close()
