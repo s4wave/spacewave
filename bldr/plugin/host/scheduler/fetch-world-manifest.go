@@ -11,7 +11,6 @@ import (
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
-	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/sirupsen/logrus"
 )
 
@@ -136,27 +135,6 @@ func (t *fetchManifestValueStorer) execFetchManifestValueStorer(ctx context.Cont
 	}
 
 	manifestKey := bldr_manifest.NewManifestKey(t.pi.c.objKey, meta)
-	prevManifest, prevManifestFound, err := ws.GetObject(ctx, manifestKey)
-	if err != nil {
-		return err
-	}
-	var prevManifestRootRef *bucket.ObjectRef
-	if prevManifest != nil {
-		prevManifestRootRef, _, err = prevManifest.GetRootRef(ctx)
-		if err != nil {
-			return err
-		}
-	}
-
-	// TODO: See manifest/builder/controller/controller.go
-	// TODO: We don't increment the manifest revision in devtool mode when hot reloading.
-	// TODO: Instead make sure the root ref is the same in storage here.
-	if prevManifestFound && prevManifestRootRef.EqualVT(manifestRef.GetManifestRef()) {
-		// manifest exists, do nothing.
-		le.Debug("manifest is identical, skipping")
-		return nil
-	}
-
 	// detects changes and does nothing if there are no changes
 	le.
 		WithFields(logrus.Fields{

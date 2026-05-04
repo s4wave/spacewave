@@ -6,11 +6,18 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/aperturerobotics/util/promise"
 	"github.com/aperturerobotics/util/routine"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
+	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 	"github.com/s4wave/spacewave/db/bucket"
+	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/unixfs"
+	"github.com/s4wave/spacewave/db/world"
+	world_block "github.com/s4wave/spacewave/db/world/block"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 
@@ -125,11 +132,127 @@ func TestDirectFetchHandlerPrefersCurrentStateAcrossEqualRevOverlap(t *testing.T
 	}
 }
 
+func TestFetchManifestValueStorerRepairsMissingManifestLink(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const objKey = "plugin-host"
+	if _, err := bldr_manifest_world.CreateManifestStore(ctx, ws, objKey); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	ref := newTestStoredManifestRef(t, ctx, tb, "spacewave-core", "desktop/darwin/arm64", 1)
+	manifestKey := bldr_manifest.NewManifestKey(objKey, ref.GetMeta())
+	if _, _, err := bldr_manifest_world.SetManifest(ctx, ws, peer.ID("test"), manifestKey, ref.GetManifestRef()); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	got, errs, err := bldr_manifest_world.CollectManifestsForManifestID(
+		ctx,
+		ws,
+		"spacewave-core",
+		[]string{"desktop/darwin/arm64"},
+		objKey,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(errs) != 0 {
+		t.Fatalf("manifest errors = %v", errs)
+	}
+	if len(got) != 0 {
+		t.Fatalf("expected orphaned manifest to be unreachable, got %d", len(got))
+	}
+
+	var wsv world.WorldState = ws
+	pi := &pluginInstance{
+		c: &Controller{
+			objKey:        objKey,
+			peerID:        peer.ID("test"),
+			worldStateCtr: ccontainer.NewCContainer(wsv),
+		},
+		le: le,
+	}
+	storer := &fetchManifestValueStorer{
+		pi:     pi,
+		value:  promise.NewPromiseWithResult(bldr_manifest.NewFetchManifestValue([]*bldr_manifest.ManifestRef{ref}), nil),
+		refIdx: 0,
+	}
+	if err := storer.execFetchManifestValueStorer(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	got, errs, err = bldr_manifest_world.CollectManifestsForManifestID(
+		ctx,
+		ws,
+		"spacewave-core",
+		[]string{"desktop/darwin/arm64"},
+		objKey,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(errs) != 0 {
+		t.Fatalf("manifest errors = %v", errs)
+	}
+	if len(got) != 1 {
+		t.Fatalf("expected repaired manifest link, got %d", len(got))
+	}
+	if !got[0].ManifestRef.EqualVT(ref.GetManifestRef()) {
+		t.Fatal("manifest ref changed during repair")
+	}
+}
+
 func newTestManifestRef(manifestID, platformID string, rev uint64, bucketID string) *bldr_manifest.ManifestRef {
 	return bldr_manifest.NewManifestRef(
 		bldr_manifest.NewManifestMeta(manifestID, bldr_manifest.BuildType_DEV, platformID, rev),
 		&bucket.ObjectRef{BucketId: bucketID},
 	)
+}
+
+func newTestStoredManifestRef(
+	t *testing.T,
+	ctx context.Context,
+	tb *testbed.Testbed,
+	manifestID,
+	platformID string,
+	rev uint64,
+) *bldr_manifest.ManifestRef {
+	t.Helper()
+
+	meta := bldr_manifest.NewManifestMeta(manifestID, bldr_manifest.BuildType_RELEASE, platformID, rev)
+	oc, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer oc.Release()
+
+	btx, bcs := oc.BuildTransaction(nil)
+	bcs.SetBlock(bldr_manifest.NewManifest(meta, "entrypoint"), true)
+	rootRef, _, err := btx.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ref := oc.GetRef()
+	ref.RootRef = rootRef
+	return bldr_manifest.NewManifestRef(meta, ref)
 }
 
 type testPluginHost struct {
