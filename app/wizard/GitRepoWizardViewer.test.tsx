@@ -1,6 +1,6 @@
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import { CreateGitRepoWizardOp } from '@s4wave/core/git/git.pb.js'
@@ -14,6 +14,7 @@ import {
 import { GitRepoWizardViewer } from './GitRepoWizardViewer.js'
 
 const h = vi.hoisted(() => ({
+  isDesktop: false,
   applyWorldOp: vi.fn().mockResolvedValue({ seqno: 1n, sysErr: false }),
   deleteObject: vi.fn().mockResolvedValue({ deleted: true }),
   navigateToObjects: vi.fn(),
@@ -35,6 +36,12 @@ let configValue: CreateGitRepoWizardOp = {
   clone: true,
   cloneOpts: { url: 'https://github.com/urfave/cli' },
 }
+
+vi.mock('@aptre/bldr', () => ({
+  get isDesktop() {
+    return h.isDesktop
+  },
+}))
 
 vi.mock('@aptre/bldr-sdk/hooks/useStreamingResource.js', () => ({
   useStreamingResource: () => ({ value: currentProgress }),
@@ -92,6 +99,7 @@ vi.mock('@s4wave/web/ui/toaster.js', () => ({
 
 describe('GitRepoWizardViewer', () => {
   beforeEach(() => {
+    h.isDesktop = true
     currentStep = 0
     localName = 'Repository'
     currentProgress = null
@@ -102,6 +110,7 @@ describe('GitRepoWizardViewer', () => {
   })
 
   afterEach(() => {
+    cleanup()
     vi.clearAllMocks()
   })
 
@@ -160,6 +169,57 @@ describe('GitRepoWizardViewer', () => {
     expect(op.cloneOpts?.url).toBe('https://github.com/urfave/cli')
   })
 
+  it('blocks GitHub clone URLs in the web browser before advancing', async () => {
+    const user = userEvent.setup()
+    h.isDesktop = false
+    render(
+      <GitRepoWizardViewer
+        objectInfo={{}}
+        worldState={{
+          value: {} as never,
+          loading: false,
+          error: null,
+          retry: vi.fn(),
+        }}
+      />,
+    )
+
+    expect(
+      screen.getByText(/browser cannot clone directly from GitHub/i),
+    ).toBeTruthy()
+    const next = screen.getByRole<HTMLButtonElement>('button', {
+      name: /next/i,
+    })
+    expect(next.disabled).toBe(true)
+    await user.click(next)
+
+    expect(h.updateState).not.toHaveBeenCalled()
+  })
+
+  it('allows non-GitHub clone URLs in the web browser', async () => {
+    const user = userEvent.setup()
+    h.isDesktop = false
+    configValue = {
+      clone: true,
+      cloneOpts: { url: 'https://gitlab.com/example/project.git' },
+    }
+    render(
+      <GitRepoWizardViewer
+        objectInfo={{}}
+        worldState={{
+          value: {} as never,
+          loading: false,
+          error: null,
+          retry: vi.fn(),
+        }}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: /next/i }))
+
+    expect(h.updateState).toHaveBeenCalledWith({ step: 1 })
+  })
+
   it('updates the space index before deleting the wizard for a created repo', async () => {
     const user = userEvent.setup()
     currentStep = 1
@@ -216,5 +276,33 @@ describe('GitRepoWizardViewer', () => {
       expect(h.navigateToObjects).toHaveBeenCalledWith(['git/repo/cli'])
     })
     expect(h.toastSuccess).toHaveBeenCalledWith('Cloned cli')
+  })
+
+  it('explains GitHub browser CORS failures from clone progress', () => {
+    currentStep = 2
+    currentProgress = {
+      state: GitCloneProgressState.FAILED,
+      message: 'Clone failed.',
+      error:
+        'clone: http transport: unexpected requesting "https://github.com/pkg/errors/info/refs?service=git-upload-pack" status code: 500: Failed to fetch',
+    }
+
+    render(
+      <GitRepoWizardViewer
+        objectInfo={{}}
+        worldState={{
+          value: {} as never,
+          loading: false,
+          error: null,
+          retry: vi.fn(),
+        }}
+      />,
+    )
+
+    expect(
+      screen.getByText(
+        /GitHub does not set the required cross-origin headers/i,
+      ),
+    ).toBeTruthy()
   })
 })

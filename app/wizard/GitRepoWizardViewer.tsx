@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
-import { LuGitBranch } from 'react-icons/lu'
+import { isDesktop } from '@aptre/bldr'
+import { LuGitBranch, LuTriangleAlert } from 'react-icons/lu'
 
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
@@ -17,6 +18,8 @@ import { useWizardState } from './useWizardState.js'
 import { WizardShell } from './WizardShell.js'
 
 export const GitRepoWizardTypeID = 'wizard/git/repo'
+const githubBrowserCloneError =
+  'The browser cannot clone directly from GitHub because GitHub does not set the required cross-origin headers. Use the desktop app to clone this repository.'
 
 // GitRepoWizardViewer is a custom wizard viewer for creating Git repositories.
 // Step 0: config editor (mode toggle + clone options). Step 1: repository name.
@@ -31,6 +34,10 @@ export function GitRepoWizardViewer(props: ObjectViewerComponentProps) {
     () => inferGitRepoName(cloneOpts?.url ?? ''),
     [cloneOpts?.url],
   )
+  const cloneUrlError =
+    isClone && !isDesktop && isGithubCloneUrl(cloneOpts?.url ?? '') ?
+      githubBrowserCloneError
+    : ''
   const lastAutoNameRef = useRef<string | undefined>(undefined)
   const completedObjectKeyRef = useRef<string | undefined>(undefined)
 
@@ -176,9 +183,15 @@ export function GitRepoWizardViewer(props: ObjectViewerComponentProps) {
       onFinalize={handleFinalizeClick}
       canFinalize={(!isClone || !!cloneOpts?.url?.trim()) && !cloning}
       onNext={() => void handleNext()}
+      canNext={!cloneUrlError}
       finalizeStep={1}
     >
-      {currentStep === 0 && configEditor.element}
+      {currentStep === 0 && (
+        <>
+          {configEditor.element}
+          {cloneUrlError && <GitCloneUrlError message={cloneUrlError} />}
+        </>
+      )}
       {currentStep === 2 && (
         <GitCloneProgressStep progress={cloneProgress} failed={cloneFailed} />
       )}
@@ -208,7 +221,7 @@ function GitCloneProgressStep({
   const message =
     progress?.message ||
     (failed ? 'Clone failed.' : 'Cloning objects into the local block store.')
-  const error = progress?.error ?? ''
+  const error = getGitCloneProgressError(progress)
 
   return (
     <section>
@@ -235,6 +248,50 @@ function GitCloneProgressStep({
       }
     </section>
   )
+}
+
+function GitCloneUrlError({ message }: { message: string }) {
+  return (
+    <div className="border-warning/20 bg-warning/5 text-warning flex items-start gap-2 rounded-lg border px-3 py-2 text-xs">
+      <LuTriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+      <p>{message}</p>
+    </div>
+  )
+}
+
+function getGitCloneProgressError(
+  progress: GitCloneProgress | undefined,
+): string {
+  const error = progress?.error ?? ''
+  if (isGithubCorsCloneError(error)) return githubBrowserCloneError
+  return error
+}
+
+function isGithubCorsCloneError(error: string): boolean {
+  return (
+    error.includes('clone: http transport: unexpected requesting') &&
+    error.includes('github.com/') &&
+    error.includes('status code: 500') &&
+    error.includes('Failed to fetch')
+  )
+}
+
+function isGithubCloneUrl(url: string): boolean {
+  const trimmed = url.trim()
+  if (!trimmed) return false
+  const host = getGitCloneUrlHost(trimmed).toLowerCase()
+  return host === 'github.com'
+}
+
+function getGitCloneUrlHost(url: string): string {
+  try {
+    return new URL(url).hostname
+  } catch {
+    const scpMatch = url.match(/^[^@]+@([^:]+):.+$/)
+    if (scpMatch) return scpMatch[1] ?? ''
+    const slashMatch = url.match(/^([^/]+)\/[^/]+\/[^/]+/)
+    return slashMatch?.[1] ?? ''
+  }
 }
 
 function inferGitRepoName(url: string): string {
