@@ -137,6 +137,28 @@ describe('SabBusEndpoint', () => {
     }
   })
 
+  it('closed readers do not hold writer backpressure', async () => {
+    const sab = createBusSab({ slotSize: 128, numSlots: 2 })
+    const writer = new SabBusEndpoint(sab, 1, { slotSize: 128, numSlots: 2 })
+    const stale = new SabBusEndpoint(sab, 2, { slotSize: 128, numSlots: 2 })
+    const live = new SabBusEndpoint(sab, 3, { slotSize: 128, numSlots: 2 })
+    stale.register()
+    stale.close()
+    live.register()
+
+    await writer.write(3, new Uint8Array([1]))
+    await writer.write(3, new Uint8Array([2]))
+    const third = writer.write(3, new Uint8Array([3]))
+    await live.read()
+    await third
+
+    expect((await live.read())!.data).toEqual(new Uint8Array([2]))
+    expect((await live.read())!.data).toEqual(new Uint8Array([3]))
+
+    writer.close()
+    live.close()
+  })
+
   it('rejects more than 16 simultaneous readers', () => {
     const sab = createBusSab(testOpts)
     const eps = Array.from(

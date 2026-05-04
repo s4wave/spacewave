@@ -215,33 +215,6 @@ func (h *WebHost) ExecutePlugin(
 	var rpcReadyPublished bool
 	var cmtx csync.Mutex
 
-	waitForWorkerReady := func(ctx context.Context, doc web_document.WebDocument) error {
-		docStatusCtr := doc.GetWebDocumentStatusCtr()
-		var docStatus *web_document.WebDocumentStatus
-		for {
-			nextDocStatus, err := docStatusCtr.WaitValueChange(ctx, docStatus, nil)
-			if err != nil {
-				return err
-			}
-			docStatus = nextDocStatus
-			if docStatus.GetClosed() {
-				return errors.New("web document closed before worker became ready")
-			}
-
-			for _, worker := range docStatus.GetWebWorkers() {
-				if worker.GetId() != pluginWebWorkerID {
-					continue
-				}
-				if worker.GetDeleted() {
-					return errors.New("web worker was removed before becoming ready")
-				}
-				if worker.GetReady() {
-					return nil
-				}
-			}
-		}
-	}
-
 	// Create the web worker on each document.
 	var webDocumentsKeyed *keyed.Keyed[string, struct{}]
 	wakeOtherWebDocs := func(otherThanDoc string) {
@@ -319,7 +292,7 @@ func (h *WebHost) ExecutePlugin(
 
 		readyCtx, readyCtxCancel := context.WithTimeout(ctx, time.Second*10)
 		defer readyCtxCancel()
-		if err := waitForWorkerReady(readyCtx, doc); err != nil {
+		if err := waitForWebWorkerReady(readyCtx, doc.GetWebDocumentStatusCtr(), pluginWebWorkerID); err != nil {
 			return err
 		}
 

@@ -184,12 +184,10 @@ func (h *WebQuickJSHost) ExecutePlugin(
 
 	// Initialize the rpc client for calling the plugin.
 	pluginRpcClient := srpc.NewClient(webRuntime.GetWebWorkerOpenStream(pluginWebWorkerID))
-	if err := rpcInit(pluginRpcClient); err != nil {
-		return err
-	}
 
 	// Track web documents and create workers (similar to WebHost)
 	var singletonWorkerDoc string
+	var rpcReadyPublished bool
 	var cmtx csync.Mutex
 
 	var webDocumentsKeyed *keyed.Keyed[string, struct{}]
@@ -204,7 +202,12 @@ func (h *WebQuickJSHost) ExecutePlugin(
 		if err != nil {
 			return err
 		}
-		defer unlock()
+		locked := true
+		defer func() {
+			if locked {
+				unlock()
+			}
+		}()
 
 		webDocumentID := doc.GetWebDocumentUuid()
 		if singletonWorkerDoc == webDocumentID {
@@ -251,6 +254,27 @@ func (h *WebQuickJSHost) ExecutePlugin(
 
 		if !createdShared {
 			singletonWorkerDoc = webDocumentID
+		}
+
+		unlock()
+		locked = false
+
+		readyCtx, readyCtxCancel := context.WithTimeout(ctx, time.Second*10)
+		defer readyCtxCancel()
+		if err := waitForWebWorkerReady(readyCtx, doc.GetWebDocumentStatusCtr(), pluginWebWorkerID); err != nil {
+			return err
+		}
+
+		unlock, err = cmtx.Lock(ctx)
+		if err != nil {
+			return err
+		}
+		locked = true
+		if !rpcReadyPublished {
+			if err := rpcInit(pluginRpcClient); err != nil {
+				return err
+			}
+			rpcReadyPublished = true
 		}
 
 		return nil
