@@ -177,10 +177,9 @@ func (s *Shard) Publish(ctx context.Context, entries []segment.Entry) error {
 	// Update manifest.
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/shard/publish/write-manifest")
 	s.mu.Lock()
-	newManifest := &Manifest{
-		Generation: gen,
-		Segments:   append(append([]SegmentMeta{}, s.manifest.Segments...), meta),
-	}
+	newManifest := s.manifest.Clone()
+	newManifest.Generation = gen
+	newManifest.Segments = append(newManifest.Segments, meta)
 	s.mu.Unlock()
 
 	if err := s.writeManifest(newManifest); err != nil {
@@ -357,6 +356,9 @@ func readManifestFromDisk(ctx context.Context, dir js.Value) (*Manifest, error) 
 // CleanOrphans removes segment files not referenced by the current manifest.
 // Called during startup to clean up after interrupted writes.
 func (s *Shard) CleanOrphans() error {
+	if err := s.reloadManifestFromDisk(context.Background()); err != nil {
+		return errors.Wrap(err, "reload manifest")
+	}
 	entries, err := opfs.ListDirectory(s.dir)
 	if err != nil {
 		return errors.Wrap(err, "list shard directory")

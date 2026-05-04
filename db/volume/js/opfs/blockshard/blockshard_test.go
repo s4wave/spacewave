@@ -441,18 +441,6 @@ func TestStaleReaderRefreshesAfterCompactionReclaim(t *testing.T) {
 		t.Fatalf("post-compaction pending deletes: got %d want 4", len(postCompact.PendingDelete))
 	}
 
-	now = now.Add(DefaultRetireGracePeriod + time.Millisecond)
-	for _, v := range []string{"v5", "v6"} {
-		publishEntries(t, writer.shards[0], []segment.Entry{{
-			Key:   key,
-			Value: []byte(v),
-		}})
-	}
-	current := writer.shards[0].Manifest()
-	if len(current.PendingDelete) != 0 {
-		t.Fatalf("expected reclaimed pending deletes, got %d at generation %d", len(current.PendingDelete), current.Generation)
-	}
-
 	missing := stale.Segments[len(stale.Segments)-1].Filename
 	foundPending := false
 	for _, seg := range postCompact.PendingDelete {
@@ -463,6 +451,32 @@ func TestStaleReaderRefreshesAfterCompactionReclaim(t *testing.T) {
 	}
 	if !foundPending {
 		t.Fatalf("expected %q in pending delete set after compaction", missing)
+	}
+
+	now = now.Add(DefaultRetireGracePeriod + time.Millisecond)
+	publishEntries(t, writer.shards[0], []segment.Entry{{
+		Key:   key,
+		Value: []byte("v5"),
+	}})
+	beforeReclaim := writer.shards[0].Manifest()
+	if len(beforeReclaim.PendingDelete) != 4 {
+		t.Fatalf("pending deletes before generation gate: got %d want 4", len(beforeReclaim.PendingDelete))
+	}
+	exists, err := opfs.FileExists(writer.shards[0].dir, missing)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !exists {
+		t.Fatalf("pending segment %q was removed before generation gate", missing)
+	}
+
+	publishEntries(t, writer.shards[0], []segment.Entry{{
+		Key:   key,
+		Value: []byte("v6"),
+	}})
+	current := writer.shards[0].Manifest()
+	if len(current.PendingDelete) != 0 {
+		t.Fatalf("expected reclaimed pending deletes, got %d at generation %d", len(current.PendingDelete), current.Generation)
 	}
 
 	reader.shards[0].mu.Lock()
@@ -520,6 +534,67 @@ func TestSerializedPublishReloadsStaleManifest(t *testing.T) {
 	}
 	assertShardEntry(t, fresh, keyA, []byte("one"))
 	assertShardEntry(t, fresh, keyB, []byte("two"))
+}
+
+func TestPublishPreservesPendingDelete(t *testing.T) {
+	e, cleanup := newTestEngine(t, "test-blockshard-publish-pending-delete", "test-blockshard-publish-pending-delete")
+	defer cleanup()
+
+	for _, key := range []string{"a", "b", "c", "d"} {
+		publishEntries(t, e.shards[0], []segment.Entry{{
+			Key:   []byte(key),
+			Value: []byte("value-" + key),
+		}})
+	}
+	compactShard(t, e.shards[0])
+	compacted := e.shards[0].Manifest()
+	if len(compacted.PendingDelete) != 4 {
+		t.Fatalf("pending delete after compaction: got %d want 4", len(compacted.PendingDelete))
+	}
+
+	publishEntries(t, e.shards[0], []segment.Entry{{
+		Key:   []byte("e"),
+		Value: []byte("value-e"),
+	}})
+	current := e.shards[0].Manifest()
+	if len(current.PendingDelete) != len(compacted.PendingDelete) {
+		t.Fatalf("pending delete after publish: got %d want %d", len(current.PendingDelete), len(compacted.PendingDelete))
+	}
+	assertShardEntry(t, e.shards[0], []byte("e"), []byte("value-e"))
+}
+
+func TestCleanOrphansReloadsStaleManifest(t *testing.T) {
+	root, err := opfs.GetRoot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir, err := opfs.GetDirectory(root, "test-blockshard-clean-orphans-reload", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer opfs.DeleteEntry(root, "test-blockshard-clean-orphans-reload", true) //nolint
+
+	settings := DefaultSettings()
+	settings.ShardCount = 1
+	writer, err := NewShard(0, dir, "test-blockshard-clean-orphans-reload", settings)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stale, err := NewShard(0, dir, "test-blockshard-clean-orphans-reload", settings)
+	if err != nil {
+		t.Fatal(err)
+	}
+	key := []byte("committed")
+	publishEntries(t, writer, []segment.Entry{{Key: key, Value: []byte("value")}})
+
+	if err := stale.CleanOrphans(); err != nil {
+		t.Fatal(err)
+	}
+	fresh, err := NewShard(0, dir, "test-blockshard-clean-orphans-reload", settings)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertShardEntry(t, fresh, key, []byte("value"))
 }
 
 func assertShardEntry(t testing.TB, shard *Shard, key, want []byte) {
