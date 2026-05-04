@@ -114,6 +114,12 @@ func run(ctx context.Context, c *config) error {
 		return runMetaMixedWriter(ctx, c)
 	case "meta-mixed-verify":
 		return runMetaMixedVerify(ctx, c)
+	case "meta-crash-before-superblock":
+		return runMetaCrashWrite(c, false)
+	case "meta-crash-after-superblock":
+		return runMetaCrashWrite(c, true)
+	case "meta-crash-verify":
+		return runMetaCrashVerify(ctx, c)
 	case "counter-init":
 		return runCounterInit(c)
 	case "counter-hold":
@@ -464,6 +470,91 @@ func runMetaMixedVerify(ctx context.Context, c *config) error {
 	return nil
 }
 
+func runMetaCrashWrite(c *config, flipSuperblock bool) error {
+	dir, err := openTestDirectory(c.root, []string{"meta"})
+	if err != nil {
+		return err
+	}
+	sb, err := readCurrentMetaSuperblock(dir)
+	if err != nil {
+		return err
+	}
+	pager := metashard.NewOpfsPager(dir, "pages.dat", pagestore.DefaultPageSize)
+	if sb != nil {
+		pager.SetPageCount(sb.PageCount)
+		if err := pager.LoadFreelist(sb.FreelistPage); err != nil {
+			return errors.Wrap(err, "load freelist")
+		}
+	}
+	tree := pagestore.NewTree(pager)
+	if sb != nil {
+		tree = pagestore.OpenTree(pager, sb.RootPage)
+	}
+	key := metaKey(0, 0)
+	if err := tree.Put(key, metaCrashValue(key)); err != nil {
+		return errors.Wrap(err, "put crash meta")
+	}
+	freelistPage, err := pager.PersistFreelist()
+	if err != nil {
+		return errors.Wrap(err, "persist crash freelist")
+	}
+	pager.Flush()
+	if err := pager.Close(); err != nil {
+		return errors.Wrap(err, "close crash pager")
+	}
+	if flipSuperblock {
+		gen := uint64(1)
+		if sb != nil {
+			gen = sb.Generation + 1
+		}
+		next := pagestore.Superblock{
+			Magic:        pagestore.SuperblockMagic,
+			Version:      1,
+			Generation:   gen,
+			RootPage:     tree.RootID(),
+			FreelistPage: freelistPage,
+			PageCount:    pager.PageCount(),
+		}
+		slot := "super-a"
+		if gen%2 == 0 {
+			slot = "super-b"
+		}
+		var sbBuf [pagestore.SuperblockSize]byte
+		pagestore.EncodeSuperblock(sbBuf[:], &next)
+		if err := opfs.WriteFile(dir, slot, sbBuf[:]); err != nil {
+			return errors.Wrap(err, "write crash superblock")
+		}
+	}
+	postReady(c)
+	_, err = io.Copy(io.Discard, neverReader{})
+	return err
+}
+
+func runMetaCrashVerify(ctx context.Context, c *config) error {
+	store, err := openMetaStore(c)
+	if err != nil {
+		return err
+	}
+	key := metaKey(0, 0)
+	return verifyMetaValue(ctx, store, key, metaCrashValue(key))
+}
+
+func readCurrentMetaSuperblock(dir js.Value) (*pagestore.Superblock, error) {
+	a, err := opfs.ReadFile(dir, "super-a")
+	if err != nil && !opfs.IsNotFound(err) {
+		return nil, errors.Wrap(err, "read super-a")
+	}
+	b, err := opfs.ReadFile(dir, "super-b")
+	if err != nil && !opfs.IsNotFound(err) {
+		return nil, errors.Wrap(err, "read super-b")
+	}
+	sb := pagestore.PickSuperblock(a, b)
+	if sb == nil && (len(a) != 0 || len(b) != 0) {
+		return nil, errors.New("no valid meta superblock")
+	}
+	return sb, nil
+}
+
 func openMetaStore(c *config) (*metashard.MetaStore, error) {
 	dir, err := openTestDirectory(c.root, []string{"meta"})
 	if err != nil {
@@ -653,6 +744,10 @@ func metaMixedValue(worker int, key []byte) []byte {
 	size := pagestore.DefaultPageSize + 2048
 	out := bytes.Repeat(seed, size/len(seed)+1)
 	return out[:size]
+}
+
+func metaCrashValue(key []byte) []byte {
+	return []byte("crash:" + string(key))
 }
 
 func zeroPad(n, width int) string {

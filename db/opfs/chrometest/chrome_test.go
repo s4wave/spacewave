@@ -394,6 +394,51 @@ func TestOpfsChromeTerminatedBlockWriterLeavesRecoverableShard(t *testing.T) {
 	})
 }
 
+func TestOpfsChromeTerminatedMetaWriterRecovery(t *testing.T) {
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-meta-terminated-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	s.runWorker(t, workerArgs{
+		scenario:   "meta-writer",
+		root:       root,
+		worker:     0,
+		workers:    1,
+		iterations: 1,
+		batch:      1,
+		shards:     defaultShards,
+	})
+	s.runTerminatedReadyWorker(t, workerArgs{
+		scenario: "meta-crash-before-superblock",
+		root:     root,
+	})
+	s.runWorker(t, workerArgs{
+		scenario:   "meta-verify",
+		root:       root,
+		workers:    1,
+		iterations: 1,
+		batch:      1,
+		shards:     defaultShards,
+	})
+	s.runTerminatedReadyWorker(t, workerArgs{
+		scenario: "meta-crash-after-superblock",
+		root:     root,
+	})
+	s.runWorker(t, workerArgs{
+		scenario:   "meta-crash-verify",
+		root:       root,
+		workers:    1,
+		iterations: 1,
+		batch:      1,
+		shards:     defaultShards,
+	})
+}
+
 func newChromeHarness(t testing.TB) *chromeHarness {
 	t.Helper()
 	if os.Getenv(runEnv) != "1" && !strings.EqualFold(os.Getenv(runEnv), "true") {
