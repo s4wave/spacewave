@@ -1,6 +1,10 @@
 package pagestore
 
-import "github.com/pkg/errors"
+import (
+	"bytes"
+
+	"github.com/pkg/errors"
+)
 
 // Tree is a B+tree backed by a Pager.
 type Tree struct {
@@ -324,59 +328,67 @@ func (t *Tree) ScanPrefix(prefix []byte, fn func(key, value []byte) bool) error 
 	if t.rootID == InvalidPage {
 		return nil
 	}
-	return t.scanFrom(t.rootID, prefix, fn)
+	_, err := t.scanFrom(t.rootID, prefix, fn)
+	return err
 }
 
 // scanFrom scans the subtree for prefix matches.
-func (t *Tree) scanFrom(pageID PageID, prefix []byte, fn func(key, value []byte) bool) error {
+func (t *Tree) scanFrom(pageID PageID, prefix []byte, fn func(key, value []byte) bool) (bool, error) {
 	buf := make([]byte, t.pager.PageSize())
 	h, err := t.readTreePage(pageID, buf)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	switch h.Type {
 	case PageTypeLeaf:
 		entries, err := DecodeLeafPage(buf)
 		if err != nil {
-			return err
+			return false, err
 		}
 		for i := range entries {
 			k := entries[i].Key
-			if len(k) >= len(prefix) && string(k[:len(prefix)]) == string(prefix) {
+			if bytes.HasPrefix(k, prefix) {
 				value := entries[i].Value
 				if entries[i].OverflowLen != 0 {
 					var readErr error
 					value, readErr = t.readOverflowValue(entries[i].OverflowPage, entries[i].OverflowLen)
 					if readErr != nil {
-						return readErr
+						return false, readErr
 					}
 				}
 				if !fn(k, value) {
-					return nil
+					return false, nil
 				}
-			} else if string(k) > string(prefix)+"~" {
+			} else if bytes.Compare(k, prefix) > 0 {
 				// Past the prefix range in sorted order.
-				return nil
+				return false, nil
 			}
 		}
-		return nil
+		return true, nil
 
 	case PageTypeBranch:
 		entries, err := DecodeBranchPage(buf)
 		if err != nil {
-			return err
+			return false, err
 		}
-		// Scan all children that might contain prefix matches.
+		prefixEnd := prefixSuccessor(prefix)
 		for i := range entries {
-			if err := t.scanFrom(entries[i].ChildID, prefix, fn); err != nil {
-				return err
+			if !branchChildMightContainPrefix(entries, i, prefix, prefixEnd) {
+				continue
+			}
+			cont, scanErr := t.scanFrom(entries[i].ChildID, prefix, fn)
+			if scanErr != nil {
+				return false, scanErr
+			}
+			if !cont {
+				return false, nil
 			}
 		}
-		return nil
+		return true, nil
 
 	default:
-		return errors.Errorf("unexpected page type %d", h.Type)
+		return false, errors.Errorf("unexpected page type %d", h.Type)
 	}
 }
 
@@ -397,6 +409,33 @@ func findChildIndex(entries []BranchEntry, key []byte) int {
 		}
 	}
 	return childIdx
+}
+
+func branchChildMightContainPrefix(entries []BranchEntry, i int, prefix, prefixEnd []byte) bool {
+	if len(prefix) == 0 {
+		return true
+	}
+	if i+1 < len(entries) && bytes.Compare(entries[i+1].Key, prefix) <= 0 {
+		return false
+	}
+	if prefixEnd != nil && i > 0 && bytes.Compare(entries[i].Key, prefixEnd) >= 0 {
+		return false
+	}
+	return true
+}
+
+func prefixSuccessor(prefix []byte) []byte {
+	if len(prefix) == 0 {
+		return nil
+	}
+	next := bytes.Clone(prefix)
+	for i := len(next) - 1; i >= 0; i-- {
+		if next[i] != 0xff {
+			next[i]++
+			return next[:i+1]
+		}
+	}
+	return nil
 }
 
 func (t *Tree) writeLeafPage(entries []LeafEntry) (PageID, error) {

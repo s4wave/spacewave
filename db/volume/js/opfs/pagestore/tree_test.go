@@ -272,6 +272,97 @@ func TestTreeScanPrefix(t *testing.T) {
 	}
 }
 
+func TestTreeScanPrefixIncludesBinarySuffixBytes(t *testing.T) {
+	pager := NewMemPager(256)
+	tree := NewTree(pager)
+	keys := [][]byte{
+		[]byte("bin/"),
+		[]byte("bin/a"),
+		{'b', 'i', 'n', '/', 0x7e},
+		{'b', 'i', 'n', '/', 0x7f},
+		{'b', 'i', 'n', '/', 0xff},
+		[]byte("bio/a"),
+		[]byte("other"),
+	}
+	for i := range keys {
+		if err := tree.Put(keys[i], []byte{byte(i)}); err != nil {
+			t.Fatalf("Put %x: %v", keys[i], err)
+		}
+	}
+
+	var found [][]byte
+	if err := tree.ScanPrefix([]byte("bin/"), func(key, value []byte) bool {
+		found = append(found, bytes.Clone(key))
+		return true
+	}); err != nil {
+		t.Fatalf("ScanPrefix: %v", err)
+	}
+
+	want := [][]byte{
+		[]byte("bin/"),
+		[]byte("bin/a"),
+		{'b', 'i', 'n', '/', 0x7e},
+		{'b', 'i', 'n', '/', 0x7f},
+		{'b', 'i', 'n', '/', 0xff},
+	}
+	if len(found) != len(want) {
+		t.Fatalf("ScanPrefix: got %d keys want %d: %x", len(found), len(want), found)
+	}
+	for i := range want {
+		if !bytes.Equal(found[i], want[i]) {
+			t.Fatalf("ScanPrefix[%d]: got %x want %x", i, found[i], want[i])
+		}
+	}
+}
+
+func TestTreeScanPrefixStopsAcrossBranchPages(t *testing.T) {
+	pager := NewMemPager(256)
+	tree := NewTree(pager)
+	for i := range 100 {
+		key := []byte("key-" + zeroPad(i, 4))
+		if err := tree.Put(key, []byte("value")); err != nil {
+			t.Fatalf("Put %d: %v", i, err)
+		}
+	}
+
+	count := 0
+	if err := tree.ScanPrefix([]byte("key-"), func(key, value []byte) bool {
+		count++
+		return false
+	}); err != nil {
+		t.Fatalf("ScanPrefix: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("ScanPrefix callbacks: got %d want 1", count)
+	}
+}
+
+func TestTreeScanPrefixPrunesBranchPages(t *testing.T) {
+	pager := &countingPager{Pager: NewMemPager(256)}
+	tree := NewTree(pager)
+	for i := range 100 {
+		key := []byte("key-" + zeroPad(i, 4))
+		if err := tree.Put(key, []byte("value")); err != nil {
+			t.Fatalf("Put %d: %v", i, err)
+		}
+	}
+
+	pager.reads = 0
+	var found []string
+	if err := tree.ScanPrefix([]byte("key-005"), func(key, value []byte) bool {
+		found = append(found, string(key))
+		return true
+	}); err != nil {
+		t.Fatalf("ScanPrefix: %v", err)
+	}
+	if len(found) != 10 {
+		t.Fatalf("ScanPrefix: got %d keys want 10: %v", len(found), found)
+	}
+	if pager.reads >= int(pager.PageCount()) {
+		t.Fatalf("ScanPrefix read %d pages, want fewer than full tree page count %d", pager.reads, pager.PageCount())
+	}
+}
+
 func TestTreeSnapshotIsolationOnPutAndDelete(t *testing.T) {
 	pager := NewMemPager(DefaultPageSize)
 	tree := NewTree(pager)
@@ -372,4 +463,14 @@ func zeroPad(n, width int) string {
 		s = "0" + s
 	}
 	return s
+}
+
+type countingPager struct {
+	Pager
+	reads int
+}
+
+func (p *countingPager) ReadPage(id PageID, buf []byte) error {
+	p.reads++
+	return p.Pager.ReadPage(id, buf)
 }
