@@ -177,6 +177,66 @@ func TestOpfsChromeConcurrentMetaOverflowWriters(t *testing.T) {
 	})
 }
 
+func TestOpfsChromePersistsAcrossPageLifecycle(t *testing.T) {
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-lifecycle-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+
+	const (
+		blockIterations = 8
+		blockBatch      = 4
+		metaWorkers     = 2
+		metaIterations  = 6
+	)
+	s.runWorker(t, workerArgs{
+		scenario:   "block-writer",
+		root:       root,
+		worker:     0,
+		workers:    1,
+		iterations: blockIterations,
+		batch:      blockBatch,
+		shards:     defaultShards,
+	})
+	var metaArgs []workerArgs
+	for i := range metaWorkers {
+		metaArgs = append(metaArgs, workerArgs{
+			scenario:   "meta-mixed-writer",
+			root:       root,
+			worker:     i,
+			workers:    metaWorkers,
+			iterations: metaIterations,
+			batch:      1,
+			shards:     defaultShards,
+		})
+	}
+	s.runWorkers(t, metaArgs)
+
+	s.reopenPage(t)
+
+	s.runWorker(t, workerArgs{
+		scenario:   "block-verify",
+		root:       root,
+		workers:    1,
+		iterations: blockIterations,
+		batch:      blockBatch,
+		shards:     defaultShards,
+	})
+	s.runWorker(t, workerArgs{
+		scenario:   "meta-mixed-verify",
+		root:       root,
+		workers:    metaWorkers,
+		iterations: metaIterations,
+		batch:      1,
+		shards:     defaultShards,
+	})
+}
+
 func TestOpfsChromeFileLockSerializesWorkers(t *testing.T) {
 	h := newChromeHarness(t)
 	s := h.newSession(t)
@@ -299,9 +359,32 @@ func (h *chromeHarness) newSession(t testing.TB) *chromeSession {
 	if err != nil {
 		t.Fatal(err)
 	}
-	page, err := ctx.NewPage()
+	s := &chromeSession{ctx: ctx}
+	s.openPage(t, h.server.URL)
+	return s
+}
+
+func (s *chromeSession) close(t testing.TB) {
+	t.Helper()
+	if err := s.ctx.Close(); err != nil {
+		t.Error(err)
+	}
+}
+
+func (s *chromeSession) reopenPage(t testing.TB) {
+	t.Helper()
+	url := s.page.URL()
+	if err := s.page.Close(); err != nil {
+		t.Fatal(err)
+	}
+	s.openPage(t, url)
+}
+
+func (s *chromeSession) openPage(t testing.TB, url string) {
+	t.Helper()
+	page, err := s.ctx.NewPage()
 	if err != nil {
-		if closeErr := ctx.Close(); closeErr != nil {
+		if closeErr := s.ctx.Close(); closeErr != nil {
 			t.Error(closeErr)
 		}
 		t.Fatal(err)
@@ -312,33 +395,23 @@ func (h *chromeHarness) newSession(t testing.TB) *chromeSession {
 	page.On("pageerror", func(err error) {
 		t.Errorf("page error: %v", err)
 	})
-	resp, err := page.Goto(h.server.URL+"/", playwright.PageGotoOptions{
+	resp, err := page.Goto(url, playwright.PageGotoOptions{
 		WaitUntil: playwright.WaitUntilStateDomcontentloaded,
 		Timeout:   playwright.Float(30000),
 	})
 	if err != nil {
-		if closeErr := ctx.Close(); closeErr != nil {
+		if closeErr := page.Close(); closeErr != nil {
 			t.Error(closeErr)
 		}
 		t.Fatal(err)
 	}
 	if resp != nil && resp.Status() >= 400 {
-		if closeErr := ctx.Close(); closeErr != nil {
+		if closeErr := page.Close(); closeErr != nil {
 			t.Error(closeErr)
 		}
 		t.Fatalf("GET / returned HTTP %d", resp.Status())
 	}
-	return &chromeSession{
-		ctx:  ctx,
-		page: page,
-	}
-}
-
-func (s *chromeSession) close(t testing.TB) {
-	t.Helper()
-	if err := s.ctx.Close(); err != nil {
-		t.Error(err)
-	}
+	s.page = page
 }
 
 func (s *chromeSession) runWorker(t testing.TB, args workerArgs) workerResult {
