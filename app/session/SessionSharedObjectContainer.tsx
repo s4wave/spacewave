@@ -439,6 +439,7 @@ function SharedObjectHealthCard({
   const isDegraded = health.status === SharedObjectHealthStatus.DEGRADED
   const [selectedAction, setSelectedAction] =
     useState<SharedObjectRemediationAction>(null)
+  const [confirmingRepair, setConfirmingRepair] = useState(false)
   const [confirmingReinitialize, setConfirmingReinitialize] = useState(false)
 
   if (isLoading) {
@@ -503,130 +504,164 @@ function SharedObjectHealthCard({
           </div>
 
           <div className="mt-5 space-y-3">
-              <div className="border-foreground/8 bg-background-card/30 rounded-lg border p-3">
-                <div className="flex items-center gap-1.5">
-                  <LuCircleAlert className="text-foreground-alt/60 h-3.5 w-3.5" />
-                  <span className="text-foreground text-xs font-medium select-none">
-                    Issue
-                  </span>
-                </div>
-                <p className="text-foreground-alt/70 mt-1.5 text-xs leading-relaxed">
-                  {summary.hint ||
-                    'Review the issue details below before choosing the next step.'}
-                </p>
-                {detail ?
-                  <div className="border-foreground/8 bg-foreground/5 text-foreground-alt/80 mt-2.5 rounded-md border px-2.5 py-1.5 text-[0.7rem] leading-relaxed break-words whitespace-pre-wrap">
-                    {detail}
-                  </div>
-                : null}
+            <div className="border-foreground/8 bg-background-card/30 rounded-lg border p-3">
+              <div className="flex items-center gap-1.5">
+                <LuCircleAlert className="text-foreground-alt/60 h-3.5 w-3.5" />
+                <span className="text-foreground text-xs font-medium select-none">
+                  Issue
+                </span>
               </div>
-
-              <div className="border-foreground/8 bg-background-card/30 rounded-lg border p-3">
-                <div className="flex items-center gap-1.5">
-                  <LuArrowRight className="text-foreground-alt/60 h-3.5 w-3.5" />
-                  <span className="text-foreground text-xs font-medium select-none">
-                    Next step
-                  </span>
+              <p className="text-foreground-alt/70 mt-1.5 text-xs leading-relaxed">
+                {summary.hint ||
+                  'Review the issue details below before choosing the next step.'}
+              </p>
+              {detail ?
+                <div className="border-foreground/8 bg-foreground/5 text-foreground-alt/80 mt-2.5 rounded-md border px-2.5 py-1.5 text-[0.7rem] leading-relaxed break-words whitespace-pre-wrap">
+                  {detail}
                 </div>
-                <p className="text-foreground-alt/70 mt-1.5 text-xs leading-relaxed">
-                  {selectedAction === 'repair' ?
-                    'Repair is non-destructive. It reuses the normal recovery path and keeps the current shared object identity intact.'
-                  : selectedAction === 'reinitialize' ?
-                    'Reinitialize is destructive. It rewrites the broken shared object in place on the same shared object id and canonical URL.'
-                  : mutationPermission.canMutate ?
-                    'Choose Repair to retry recovery, or Reinitialize to rewrite the shared object in place. You can also go back and decide later.'
-                  : 'You do not have permission to repair or reinitialize this shared object from the current account. The action set stays visible here so the owner can recover it without losing this route.'
+              : null}
+            </div>
+
+            <div className="border-foreground/8 bg-background-card/30 rounded-lg border p-3">
+              <div className="flex items-center gap-1.5">
+                <LuArrowRight className="text-foreground-alt/60 h-3.5 w-3.5" />
+                <span className="text-foreground text-xs font-medium select-none">
+                  Next step
+                </span>
+              </div>
+              <p className="text-foreground-alt/70 mt-1.5 text-xs leading-relaxed">
+                {selectedAction === 'repair' ?
+                  'Repair keeps the current shared object identity, but it can rewrite recovery state. Confirm only after checking that the current state is backed up or recoverable.'
+                : selectedAction === 'reinitialize' ?
+                  'Reinitialize is destructive. It rewrites the broken shared object in place on the same shared object id and canonical URL.'
+                : mutationPermission.canMutate ?
+                  'Choose Repair only after checking the current shared object state. Reinitialize rewrites the shared object in place. You can also go back and decide later.'
+                : 'You do not have permission to repair or reinitialize this shared object from the current account. The action set stays visible here so the owner can recover it without losing this route.'
+                }
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {showRetry ?
+                  <DashboardButton
+                    icon={<LuRotateCcw className="h-3.5 w-3.5" />}
+                    onClick={onRetry}
+                  >
+                    Retry
+                  </DashboardButton>
+                : null}
+                <RemediationActionButton
+                  icon={<LuRefreshCw className="h-3.5 w-3.5" />}
+                  label="Repair"
+                  onClick={() => {
+                    setConfirmingRepair(true)
+                  }}
+                  disabledReason={
+                    mutationPermission.canMutate ? '' : (
+                      mutationPermission.disabledReason
+                    )
                   }
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {showRetry ?
+                  disabled={mutationPending}
+                  active={selectedAction === 'repair'}
+                />
+                <RemediationActionButton
+                  icon={<LuShieldAlert className="h-3.5 w-3.5" />}
+                  label="Reinitialize"
+                  onClick={() => setConfirmingReinitialize(true)}
+                  disabledReason={
+                    mutationPermission.canMutate ? '' : (
+                      mutationPermission.disabledReason
+                    )
+                  }
+                  disabled={mutationPending}
+                  active={selectedAction === 'reinitialize'}
+                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                />
+              </div>
+              {confirmingRepair ?
+                <div className="border-destructive/20 bg-destructive/5 mt-3 rounded-md border p-3">
+                  <div className="flex items-center gap-1.5">
+                    <LuTriangleAlert className="text-destructive h-3.5 w-3.5" />
+                    <span className="text-destructive text-xs font-medium select-none">
+                      Confirm repair
+                    </span>
+                  </div>
+                  <p className="text-foreground-alt/70 mt-1.5 text-xs leading-relaxed">
+                    Repair keeps this shared object id and URL, but it can post
+                    a replacement root. Continue only if you have checked that
+                    the current state is backed up or recoverable.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
                     <DashboardButton
                       icon={<LuRotateCcw className="h-3.5 w-3.5" />}
-                      onClick={onRetry}
+                      onClick={() => setConfirmingRepair(false)}
                     >
-                      Retry
+                      Cancel
                     </DashboardButton>
-                  : null}
-                  <RemediationActionButton
-                    icon={<LuRefreshCw className="h-3.5 w-3.5" />}
-                    label="Repair"
-                    onClick={() => {
-                      setConfirmingReinitialize(false)
-                      setSelectedAction('repair')
-                      onRepair()
-                    }}
-                    disabledReason={
-                      mutationPermission.canMutate ? '' : (
-                        mutationPermission.disabledReason
-                      )
-                    }
-                    disabled={mutationPending}
-                    active={selectedAction === 'repair'}
-                  />
-                  <RemediationActionButton
-                    icon={<LuShieldAlert className="h-3.5 w-3.5" />}
-                    label="Reinitialize"
-                    onClick={() => setConfirmingReinitialize(true)}
-                    disabledReason={
-                      mutationPermission.canMutate ? '' : (
-                        mutationPermission.disabledReason
-                      )
-                    }
-                    disabled={mutationPending}
-                    active={selectedAction === 'reinitialize'}
-                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  />
-                </div>
-                {confirmingReinitialize ?
-                  <div className="border-destructive/20 bg-destructive/5 mt-3 rounded-md border p-3">
-                    <div className="flex items-center gap-1.5">
-                      <LuShieldAlert className="text-destructive h-3.5 w-3.5" />
-                      <span className="text-destructive text-xs font-medium select-none">
-                        Confirm reinitialize
-                      </span>
-                    </div>
-                    <p className="text-foreground-alt/70 mt-1.5 text-xs leading-relaxed">
-                      Reinitialize is destructive. It rewrites this shared
-                      object in place on the same shared object id and URL. Use
-                      repair first when you want Alpha to retry the normal
-                      recovery path without discarding the current state.
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <DashboardButton
-                        icon={<LuRotateCcw className="h-3.5 w-3.5" />}
-                        onClick={() => setConfirmingReinitialize(false)}
-                      >
-                        Cancel
-                      </DashboardButton>
-                      <DashboardButton
-                        icon={<LuShieldAlert className="h-3.5 w-3.5" />}
-                        onClick={() => {
-                          setSelectedAction('reinitialize')
-                          setConfirmingReinitialize(false)
-                          onReinitialize()
-                        }}
-                        disabled={mutationPending}
-                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      >
-                        Confirm reinitialize
-                      </DashboardButton>
-                    </div>
+                    <DashboardButton
+                      icon={<LuTriangleAlert className="h-3.5 w-3.5" />}
+                      onClick={() => {
+                        setSelectedAction('repair')
+                        setConfirmingRepair(false)
+                        setConfirmingReinitialize(false)
+                        onRepair()
+                      }}
+                      disabled={mutationPending}
+                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    >
+                      Confirm repair
+                    </DashboardButton>
                   </div>
-                : null}
-                {selectedAction ?
-                  <p className="text-foreground-alt/55 mt-2.5 text-[0.7rem]">
-                    {selectedAction === 'repair' ?
-                      'Repair is selected for this broken shared object.'
-                    : 'Reinitialize is selected for this broken shared object.'}
+                </div>
+              : null}
+              {confirmingReinitialize ?
+                <div className="border-destructive/20 bg-destructive/5 mt-3 rounded-md border p-3">
+                  <div className="flex items-center gap-1.5">
+                    <LuShieldAlert className="text-destructive h-3.5 w-3.5" />
+                    <span className="text-destructive text-xs font-medium select-none">
+                      Confirm reinitialize
+                    </span>
+                  </div>
+                  <p className="text-foreground-alt/70 mt-1.5 text-xs leading-relaxed">
+                    Reinitialize is destructive. It rewrites this shared object
+                    in place on the same shared object id and URL. Use repair
+                    first when you want Alpha to retry the normal recovery path
+                    without discarding the current state.
                   </p>
-                : null}
-                {mutationError ?
-                  <p className="text-destructive mt-2.5 text-[0.7rem]">
-                    {mutationError}
-                  </p>
-                : null}
-              </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <DashboardButton
+                      icon={<LuRotateCcw className="h-3.5 w-3.5" />}
+                      onClick={() => setConfirmingReinitialize(false)}
+                    >
+                      Cancel
+                    </DashboardButton>
+                    <DashboardButton
+                      icon={<LuShieldAlert className="h-3.5 w-3.5" />}
+                      onClick={() => {
+                        setSelectedAction('reinitialize')
+                        setConfirmingReinitialize(false)
+                        onReinitialize()
+                      }}
+                      disabled={mutationPending}
+                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    >
+                      Confirm reinitialize
+                    </DashboardButton>
+                  </div>
+                </div>
+              : null}
+              {selectedAction ?
+                <p className="text-foreground-alt/55 mt-2.5 text-[0.7rem]">
+                  {selectedAction === 'repair' ?
+                    'Repair is selected for this broken shared object.'
+                  : 'Reinitialize is selected for this broken shared object.'}
+                </p>
+              : null}
+              {mutationError ?
+                <p className="text-destructive mt-2.5 text-[0.7rem]">
+                  {mutationError}
+                </p>
+              : null}
             </div>
+          </div>
         </div>
       </div>
     </div>
@@ -953,13 +988,13 @@ export function SessionSharedObjectContainer() {
             open={credentialRepairOpen}
             onOpenChange={setCredentialRepairOpen}
             title="Unlock shared object recovery"
-            description="Unlock an account key to grant this session access to the shared object."
-            confirmLabel="Repair shared object"
+            description="Unlock an account key to grant this session access before attempting shared object repair. Repair may post a replacement root, so continue only after checking that the current state is backed up or recoverable."
+            confirmLabel="Continue repair"
             intent={{
               kind: AccountEscalationIntentKind.AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_UNSPECIFIED,
               title: 'Unlock shared object recovery',
               description:
-                'Unlock an account key to grant this session access to the shared object.',
+                'Unlock an account key to grant this session access before attempting shared object repair.',
             }}
             onConfirm={handleCredentialRepairConfirm}
             account={accountResource}

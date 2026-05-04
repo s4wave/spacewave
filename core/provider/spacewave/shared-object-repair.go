@@ -259,6 +259,14 @@ func (a *ProviderAccount) repairStandaloneSharedObject(
 	if err != nil {
 		return err
 	}
+	stateData, err := a.decodeSharedObjectRootStateData(
+		sharedObjectID,
+		root,
+		material.GetGrantInner(),
+	)
+	if err != nil {
+		return err
+	}
 	return a.postRepairedSharedObjectRoot(
 		ctx,
 		cli,
@@ -266,6 +274,7 @@ func (a *ProviderAccount) repairStandaloneSharedObject(
 		sharedObjectID,
 		root.GetInnerSeqno()+1,
 		material.GetGrantInner(),
+		stateData,
 	)
 }
 
@@ -312,6 +321,46 @@ func (a *ProviderAccount) readSharedObjectRecoveryMaterial(
 	return material, nil
 }
 
+func (a *ProviderAccount) decodeSharedObjectRootStateData(
+	sharedObjectID string,
+	root *sobject.SORoot,
+	grantInner *sobject.SOGrantInner,
+) ([]byte, error) {
+	if root == nil {
+		return nil, errors.New("root is required")
+	}
+	if grantInner == nil {
+		return nil, errors.New("grant inner is required")
+	}
+	xfrm, err := block_transform.NewTransformer(
+		controller.ConstructOpts{
+			Logger: a.le.WithField("sobject-id", sharedObjectID),
+		},
+		a.sfs,
+		grantInner.GetTransformConf(),
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "build repair decode transformer")
+	}
+	innerDataDec, err := xfrm.DecodeBlock(root.GetInner())
+	if err != nil {
+		return nil, errors.Wrap(err, "decode repair root inner")
+	}
+	inner := &sobject.SORootInner{}
+	if err := inner.UnmarshalVT(innerDataDec); err != nil {
+		return nil, errors.Wrap(err, "unmarshal repair root inner")
+	}
+	if inner.GetSeqno() != root.GetInnerSeqno() {
+		return nil, errors.Wrapf(
+			sobject.ErrInvalidSeqno,
+			"root had %d but inner had %d",
+			root.GetInnerSeqno(),
+			inner.GetSeqno(),
+		)
+	}
+	return inner.GetStateData(), nil
+}
+
 func (a *ProviderAccount) postRepairedSharedObjectRoot(
 	ctx context.Context,
 	cli *SessionClient,
@@ -319,6 +368,7 @@ func (a *ProviderAccount) postRepairedSharedObjectRoot(
 	sharedObjectID string,
 	nextSeqno uint64,
 	grantInner *sobject.SOGrantInner,
+	stateData []byte,
 ) error {
 	if grantInner == nil {
 		return errors.New("grant inner is required")
@@ -334,7 +384,8 @@ func (a *ProviderAccount) postRepairedSharedObjectRoot(
 		return errors.Wrap(err, "build repair transformer")
 	}
 	innerDataDec, err := (&sobject.SORootInner{
-		Seqno: nextSeqno,
+		Seqno:     nextSeqno,
+		StateData: stateData,
 	}).MarshalVT()
 	if err != nil {
 		return errors.Wrap(err, "marshal repaired root inner")

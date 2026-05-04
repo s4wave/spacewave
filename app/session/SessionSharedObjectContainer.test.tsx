@@ -482,7 +482,13 @@ describe('SessionSharedObjectContainer', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Repair' }))
     expect(document.body.textContent).toContain(
-      'Repair is non-destructive. It reuses the normal recovery path and keeps the current shared object identity intact.',
+      'Repair keeps this shared object id and URL, but it can post a replacement root.',
+    )
+    expect(mockRepairSharedObject).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm repair' }))
+    expect(document.body.textContent).toContain(
+      'Repair keeps the current shared object identity, but it can rewrite recovery state.',
     )
     await waitFor(() => {
       expect(mockRepairSharedObject).toHaveBeenCalledWith(SPACE_ID)

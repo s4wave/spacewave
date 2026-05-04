@@ -297,6 +297,76 @@ func TestRepairStandaloneEmptyRootClearsVerifiedCacheBeforeReseed(t *testing.T) 
 	}
 }
 
+func TestPostRepairedSharedObjectRootPreservesStateData(t *testing.T) {
+	const soID = "so-repair-preserve-state"
+	stateData := []byte("existing world state")
+
+	var acc *ProviderAccount
+	var postedRoot *sobject.SORoot
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/session/write-tickets/" + soID:
+			writeRootTicketBundle(t, w)
+		case "/api/sobject/" + soID + "/root":
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatalf("read root body: %v", err)
+			}
+			req := &api.PostRootRequest{}
+			if err := req.UnmarshalVT(body); err != nil {
+				t.Fatalf("unmarshal post root request: %v", err)
+			}
+			postedRoot = req.GetRoot()
+			_, _ = w.Write(mustMarshalVT(t, &api.SubmitRootResponse{}))
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer srv.Close()
+
+	acc = NewTestProviderAccount(t, srv.URL)
+	acc.sessionClient.executeWriteTicketAudience = func(
+		ctx context.Context,
+		resourceID string,
+		audience writeTicketAudience,
+		fn func(ticket string) error,
+	) error {
+		return fn("root-ticket")
+	}
+	_, xfrm, grantInner, err := buildInitialSpaceTransform(acc.le, acc.sfs)
+	if err != nil {
+		t.Fatalf("build initial space transform: %v", err)
+	}
+	if err := acc.postRepairedSharedObjectRoot(
+		context.Background(),
+		acc.sessionClient,
+		acc.sessionClient.priv,
+		soID,
+		2,
+		grantInner,
+		stateData,
+	); err != nil {
+		t.Fatalf("postRepairedSharedObjectRoot: %v", err)
+	}
+	if postedRoot == nil {
+		t.Fatal("expected posted root")
+	}
+	innerData, err := xfrm.DecodeBlock(postedRoot.GetInner())
+	if err != nil {
+		t.Fatalf("decode posted root: %v", err)
+	}
+	inner := &sobject.SORootInner{}
+	if err := inner.UnmarshalVT(innerData); err != nil {
+		t.Fatalf("unmarshal posted root inner: %v", err)
+	}
+	if inner.GetSeqno() != 2 {
+		t.Fatalf("expected seqno 2, got %d", inner.GetSeqno())
+	}
+	if string(inner.GetStateData()) != string(stateData) {
+		t.Fatalf("expected state data %q, got %q", stateData, inner.GetStateData())
+	}
+}
+
 func TestRepairOrganizationRootEmptyRootClearsVerifiedCacheBeforeReseed(t *testing.T) {
 	const orgID = "org-empty-root"
 
