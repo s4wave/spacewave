@@ -485,6 +485,104 @@ func TestOpfsChromeTerminatedMetaWriterRecovery(t *testing.T) {
 	})
 }
 
+func TestOpfsChromeTerminationRecoverySurvivesFreshContext(t *testing.T) {
+	h := newChromeHarness(t)
+	profile := "opfs-chrome-termination-profile-" + time.Now().Format("150405.000000000")
+	root := "opfs-chrome-termination-reload-" + time.Now().Format("150405.000000000")
+
+	s := h.newPersistentSession(t, profile)
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	s.runWorker(t, workerArgs{
+		scenario:   "block-writer",
+		root:       root,
+		worker:     0,
+		workers:    1,
+		iterations: 1,
+		batch:      1,
+		shards:     defaultShards,
+	})
+	s.runTerminatedReadyWorker(t, workerArgs{
+		scenario: "block-orphan-segment",
+		root:     root,
+		shards:   defaultShards,
+	})
+	s.runWorker(t, workerArgs{
+		scenario:   "meta-writer",
+		root:       root,
+		worker:     0,
+		workers:    1,
+		iterations: 1,
+		batch:      1,
+		shards:     defaultShards,
+	})
+	s.runTerminatedReadyWorker(t, workerArgs{
+		scenario: "meta-crash-before-superblock",
+		root:     root,
+	})
+	s.runWorker(t, workerArgs{
+		scenario: "counter-init",
+		root:     root,
+	})
+
+	const (
+		workers    = 2
+		iterations = 3
+	)
+	holder := workerArgs{
+		scenario: "counter-hold",
+		root:     root,
+	}
+	var args []workerArgs
+	for i := range workers {
+		args = append(args, workerArgs{
+			scenario:   "counter-queued-increment",
+			root:       root,
+			worker:     i,
+			workers:    workers,
+			iterations: iterations,
+			batch:      1,
+			shards:     defaultShards,
+		})
+	}
+	s.runTerminatedLockHolderWorkers(t, holder, args)
+	s.close(t)
+
+	reopened := h.newPersistentSession(t, profile)
+	defer reopened.close(t)
+	reopened.runWorker(t, workerArgs{
+		scenario:   "block-verify",
+		root:       root,
+		workers:    1,
+		iterations: 1,
+		batch:      1,
+		shards:     defaultShards,
+	})
+	reopened.runWorker(t, workerArgs{
+		scenario: "block-orphan-verify-clean",
+		root:     root,
+		shards:   defaultShards,
+	})
+	reopened.runWorker(t, workerArgs{
+		scenario:   "meta-verify",
+		root:       root,
+		workers:    1,
+		iterations: 1,
+		batch:      1,
+		shards:     defaultShards,
+	})
+	reopened.runWorker(t, workerArgs{
+		scenario:   "counter-verify",
+		root:       root,
+		workers:    workers,
+		iterations: iterations,
+		batch:      1,
+		shards:     defaultShards,
+	})
+}
+
 func newChromeHarness(t testing.TB) *chromeHarness {
 	t.Helper()
 	if os.Getenv(runEnv) != "1" && !strings.EqualFold(os.Getenv(runEnv), "true") {
@@ -567,6 +665,20 @@ func (h *chromeHarness) newSession(t testing.TB) *chromeSession {
 	}
 	s := &chromeSession{ctx: ctx}
 	s.openPage(t, h.server.URL)
+	return s
+}
+
+func (h *chromeHarness) newPersistentSession(t testing.TB, name string) *chromeSession {
+	t.Helper()
+	headless := true
+	ctx, err := h.pw.Chromium.LaunchPersistentContext(filepath.Join(h.dir, name), playwright.BrowserTypeLaunchPersistentContextOptions{
+		Headless: &headless,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := &chromeSession{ctx: ctx}
+	s.openPage(t, h.server.URL+"/")
 	return s
 }
 
