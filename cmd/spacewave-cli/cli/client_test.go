@@ -10,6 +10,10 @@ import (
 	"strings"
 	"syscall"
 	"testing"
+
+	s4wave_provider_core "github.com/s4wave/spacewave/core/provider"
+	s4wave_sobject_core "github.com/s4wave/spacewave/core/sobject"
+	s4wave_space_core "github.com/s4wave/spacewave/core/space"
 )
 
 func TestConnectDaemonStartsDaemonAfterDialFailure(t *testing.T) {
@@ -220,5 +224,53 @@ func TestConnectDaemonReturnsAutostartFailure(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "start daemon") {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestResolveSpaceIDFromListResolvesName(t *testing.T) {
+	got, err := resolveSpaceIDFromList("Glados", []*s4wave_space_core.SpaceSoListEntry{
+		testSpaceListEntry("01other", "Other"),
+		testSpaceListEntry("01glados", "Glados"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "01glados" {
+		t.Fatalf("got %q, want 01glados", got)
+	}
+}
+
+func TestResolveSpaceIDFromListPreservesExactID(t *testing.T) {
+	got, err := resolveSpaceIDFromList("01glados", []*s4wave_space_core.SpaceSoListEntry{
+		testSpaceListEntry("01glados", "Glados"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "01glados" {
+		t.Fatalf("got %q, want 01glados", got)
+	}
+}
+
+func TestResolveSpaceIDFromListKeepsUnknownArgument(t *testing.T) {
+	got, err := resolveSpaceIDFromList("missing", []*s4wave_space_core.SpaceSoListEntry{
+		testSpaceListEntry("01glados", "Glados"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "missing" {
+		t.Fatalf("got %q, want missing", got)
+	}
+}
+
+func testSpaceListEntry(id, name string) *s4wave_space_core.SpaceSoListEntry {
+	return &s4wave_space_core.SpaceSoListEntry{
+		Entry: &s4wave_sobject_core.SharedObjectListEntry{
+			Ref: &s4wave_sobject_core.SharedObjectRef{
+				ProviderResourceRef: &s4wave_provider_core.ProviderResourceRef{Id: id},
+			},
+		},
+		SpaceMeta: &s4wave_space_core.SpaceSoMeta{Name: name},
 	}
 }

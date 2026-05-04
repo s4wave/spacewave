@@ -18,6 +18,7 @@ import (
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
+	s4wave_space_core "github.com/s4wave/spacewave/core/space"
 	s4wave_account "github.com/s4wave/spacewave/sdk/account"
 	s4wave_provider "github.com/s4wave/spacewave/sdk/provider"
 	s4wave_provider_local "github.com/s4wave/spacewave/sdk/provider/local"
@@ -229,12 +230,8 @@ func (c *sdkClient) mountSpace(ctx context.Context, sess *s4wave_session.Session
 	return spaceSvc, cleanup, nil
 }
 
-// resolveSpaceID returns spaceID as-is if non-empty, otherwise looks up the
-// session's space list and returns the ID if there is exactly one space.
+// resolveSpaceID resolves a space argument to a shared object ID.
 func (c *sdkClient) resolveSpaceID(ctx context.Context, sess *s4wave_session.Session, spaceID string) (string, error) {
-	if spaceID != "" {
-		return spaceID, nil
-	}
 	strm, err := sess.WatchResourcesList(ctx)
 	if err != nil {
 		return "", errors.Wrap(err, "watch resources list")
@@ -246,9 +243,26 @@ func (c *sdkClient) resolveSpaceID(ctx context.Context, sess *s4wave_session.Ses
 		return "", errors.Wrap(err, "recv resources list")
 	}
 
-	spaces := resp.GetSpacesList()
+	return resolveSpaceIDFromList(spaceID, resp.GetSpacesList())
+}
+
+func resolveSpaceIDFromList(spaceID string, spaces []*s4wave_space_core.SpaceSoListEntry) (string, error) {
 	if len(spaces) == 0 {
 		return "", errors.New("no spaces found; specify --space")
+	}
+	if spaceID != "" {
+		for _, sp := range spaces {
+			id := sp.GetEntry().GetRef().GetProviderResourceRef().GetId()
+			if id == spaceID {
+				return spaceID, nil
+			}
+		}
+		for _, sp := range spaces {
+			if sp.GetSpaceMeta().GetName() == spaceID {
+				return sp.GetEntry().GetRef().GetProviderResourceRef().GetId(), nil
+			}
+		}
+		return spaceID, nil
 	}
 	if len(spaces) > 1 {
 		return "", errors.New("multiple spaces found; specify --space")
