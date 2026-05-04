@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -18,6 +19,9 @@ import (
 
 const (
 	runEnv        = "RUN_OPFS_CHROME_TEST"
+	profileEnv    = "RUN_OPFS_CHROME_PROFILE"
+	chromeSmoke   = "smoke"
+	chromeStress  = "stress"
 	defaultShards = 4
 )
 
@@ -51,6 +55,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestOpfsChromeConcurrentBlockReadersWriters(t *testing.T) {
+	requireChromeProfile(t, chromeStress)
 	h := newChromeHarness(t)
 	s := h.newSession(t)
 	defer s.close(t)
@@ -102,6 +107,7 @@ func TestOpfsChromeConcurrentBlockReadersWriters(t *testing.T) {
 }
 
 func TestOpfsChromeConcurrentMetaWriters(t *testing.T) {
+	requireChromeProfile(t, chromeStress)
 	h := newChromeHarness(t)
 	s := h.newSession(t)
 	defer s.close(t)
@@ -140,6 +146,7 @@ func TestOpfsChromeConcurrentMetaWriters(t *testing.T) {
 }
 
 func TestOpfsChromeConcurrentMetaOverflowWriters(t *testing.T) {
+	requireChromeProfile(t, chromeStress)
 	h := newChromeHarness(t)
 	s := h.newSession(t)
 	defer s.close(t)
@@ -178,6 +185,7 @@ func TestOpfsChromeConcurrentMetaOverflowWriters(t *testing.T) {
 }
 
 func TestOpfsChromePersistsAcrossPageLifecycle(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
 	h := newChromeHarness(t)
 	s := h.newSession(t)
 	defer s.close(t)
@@ -238,6 +246,7 @@ func TestOpfsChromePersistsAcrossPageLifecycle(t *testing.T) {
 }
 
 func TestOpfsChromeFileLockSerializesWorkers(t *testing.T) {
+	requireChromeProfile(t, chromeStress)
 	h := newChromeHarness(t)
 	s := h.newSession(t)
 	defer s.close(t)
@@ -280,6 +289,7 @@ func TestOpfsChromeFileLockSerializesWorkers(t *testing.T) {
 }
 
 func TestOpfsChromeFileLockQueuedWorkersProgressAfterRelease(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
 	h := newChromeHarness(t)
 	s := h.newSession(t)
 	defer s.close(t)
@@ -326,6 +336,7 @@ func TestOpfsChromeFileLockQueuedWorkersProgressAfterRelease(t *testing.T) {
 }
 
 func TestOpfsChromeFileLockQueuedWorkersProgressAfterHolderTermination(t *testing.T) {
+	requireChromeProfile(t, chromeStress)
 	h := newChromeHarness(t)
 	s := h.newSession(t)
 	defer s.close(t)
@@ -372,6 +383,7 @@ func TestOpfsChromeFileLockQueuedWorkersProgressAfterHolderTermination(t *testin
 }
 
 func TestOpfsChromeWebLockIfAvailable(t *testing.T) {
+	requireChromeProfile(t, chromeStress)
 	h := newChromeHarness(t)
 	s := h.newSession(t)
 	defer s.close(t)
@@ -402,6 +414,7 @@ func TestOpfsChromeWebLockIfAvailable(t *testing.T) {
 }
 
 func TestOpfsChromeTerminatedBlockWriterLeavesRecoverableShard(t *testing.T) {
+	requireChromeProfile(t, chromeStress)
 	h := newChromeHarness(t)
 	s := h.newSession(t)
 	defer s.close(t)
@@ -441,6 +454,7 @@ func TestOpfsChromeTerminatedBlockWriterLeavesRecoverableShard(t *testing.T) {
 }
 
 func TestOpfsChromeTerminatedMetaWriterRecovery(t *testing.T) {
+	requireChromeProfile(t, chromeStress)
 	h := newChromeHarness(t)
 	s := h.newSession(t)
 	defer s.close(t)
@@ -486,6 +500,7 @@ func TestOpfsChromeTerminatedMetaWriterRecovery(t *testing.T) {
 }
 
 func TestOpfsChromeTerminationRecoverySurvivesFreshContext(t *testing.T) {
+	requireChromeProfile(t, chromeStress)
 	h := newChromeHarness(t)
 	profile := "opfs-chrome-termination-profile-" + time.Now().Format("150405.000000000")
 	root := "opfs-chrome-termination-reload-" + time.Now().Format("150405.000000000")
@@ -592,6 +607,18 @@ func newChromeHarness(t testing.TB) *chromeHarness {
 		t.Fatal("Chrome OPFS stress harness was not initialized")
 	}
 	return sharedHarness
+}
+
+func requireChromeProfile(t testing.TB, profiles ...string) {
+	t.Helper()
+	profile := os.Getenv(profileEnv)
+	if profile == "" {
+		return
+	}
+	if slices.Contains(profiles, profile) {
+		return
+	}
+	t.Skipf("set %s=%s to run this Chrome OPFS test", profileEnv, strings.Join(profiles, " or "))
 }
 
 func startChromeHarness() (*chromeHarness, error) {
