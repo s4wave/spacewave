@@ -139,6 +139,44 @@ func TestOpfsChromeConcurrentMetaWriters(t *testing.T) {
 	})
 }
 
+func TestOpfsChromeConcurrentMetaOverflowWriters(t *testing.T) {
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-meta-overflow-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+
+	const (
+		workers    = 4
+		iterations = 12
+	)
+	var args []workerArgs
+	for i := range workers {
+		args = append(args, workerArgs{
+			scenario:   "meta-mixed-writer",
+			root:       root,
+			worker:     i,
+			workers:    workers,
+			iterations: iterations,
+			batch:      1,
+			shards:     defaultShards,
+		})
+	}
+	s.runWorkers(t, args)
+	s.runWorker(t, workerArgs{
+		scenario:   "meta-mixed-verify",
+		root:       root,
+		workers:    workers,
+		iterations: iterations,
+		batch:      1,
+		shards:     defaultShards,
+	})
+}
+
 func TestOpfsChromeFileLockSerializesWorkers(t *testing.T) {
 	h := newChromeHarness(t)
 	s := h.newSession(t)

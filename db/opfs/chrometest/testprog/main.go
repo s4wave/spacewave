@@ -3,6 +3,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/binary"
 	"os"
@@ -16,6 +17,7 @@ import (
 	"github.com/s4wave/spacewave/db/opfs/filelock"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/blockshard"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/metashard"
+	"github.com/s4wave/spacewave/db/volume/js/opfs/pagestore"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/segment"
 )
 
@@ -103,6 +105,10 @@ func run(ctx context.Context, c *config) error {
 		return runMetaWriter(ctx, c)
 	case "meta-verify":
 		return runMetaVerify(ctx, c)
+	case "meta-mixed-writer":
+		return runMetaMixedWriter(ctx, c)
+	case "meta-mixed-verify":
+		return runMetaMixedVerify(ctx, c)
 	case "counter-init":
 		return runCounterInit(c)
 	case "counter-increment":
@@ -365,6 +371,49 @@ func runMetaVerify(ctx context.Context, c *config) error {
 	return nil
 }
 
+func runMetaMixedWriter(ctx context.Context, c *config) error {
+	store, err := openMetaStore(c)
+	if err != nil {
+		return err
+	}
+	for i := 0; i < c.iterations; i++ {
+		tx, err := store.NewTransaction(ctx, true)
+		if err != nil {
+			return errors.Wrap(err, "open mixed meta write tx")
+		}
+		key := metaKey(c.worker, i)
+		if err := tx.Set(ctx, key, metaMixedValue(c.worker, key)); err != nil {
+			tx.Discard()
+			return errors.Wrap(err, "set mixed meta")
+		}
+		if err := tx.Commit(ctx); err != nil {
+			return errors.Wrap(err, "commit mixed meta")
+		}
+		if i%4 == 0 {
+			if err := verifyMetaValue(ctx, store, key, metaMixedValue(c.worker, key)); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func runMetaMixedVerify(ctx context.Context, c *config) error {
+	store, err := openMetaStore(c)
+	if err != nil {
+		return err
+	}
+	for w := 0; w < c.workers; w++ {
+		for i := 0; i < c.iterations; i++ {
+			key := metaKey(w, i)
+			if err := verifyMetaValue(ctx, store, key, metaMixedValue(w, key)); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func openMetaStore(c *config) (*metashard.MetaStore, error) {
 	dir, err := openTestDirectory(c.root, []string{"meta"})
 	if err != nil {
@@ -378,6 +427,10 @@ func openMetaStore(c *config) (*metashard.MetaStore, error) {
 }
 
 func verifyMetaKey(ctx context.Context, store *metashard.MetaStore, key []byte) error {
+	return verifyMetaValue(ctx, store, key, metaValue(key))
+}
+
+func verifyMetaValue(ctx context.Context, store *metashard.MetaStore, key, want []byte) error {
 	tx, err := store.NewTransaction(ctx, false)
 	if err != nil {
 		return errors.Wrap(err, "open meta read tx")
@@ -390,7 +443,7 @@ func verifyMetaKey(ctx context.Context, store *metashard.MetaStore, key []byte) 
 	if !found {
 		return errors.Errorf("missing meta key=%s", string(key))
 	}
-	if string(val) != string(metaValue(key)) {
+	if !bytes.Equal(val, want) {
 		return errors.Errorf("bad meta value key=%s", string(key))
 	}
 	return nil
@@ -491,6 +544,16 @@ func metaKey(worker, iteration int) []byte {
 
 func metaValue(key []byte) []byte {
 	return []byte("value:" + string(key))
+}
+
+func metaMixedValue(worker int, key []byte) []byte {
+	if worker%2 != 0 {
+		return metaValue(key)
+	}
+	seed := []byte("overflow:" + string(key) + ":")
+	size := pagestore.DefaultPageSize + 2048
+	out := bytes.Repeat(seed, size/len(seed)+1)
+	return out[:size]
 }
 
 func zeroPad(n, width int) string {
