@@ -598,6 +598,29 @@ func TestOpfsChromeTerminationRecoverySurvivesFreshContext(t *testing.T) {
 	})
 }
 
+func TestOpfsChromeVolumeRuntimeSlice(t *testing.T) {
+	requireChromeProfile(t, chromeStress)
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-volume-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	s.runWorker(t, workerArgs{
+		scenario: "volume-runtime-write",
+		root:     root,
+		shards:   defaultShards,
+	})
+	s.runWorker(t, workerArgs{
+		scenario: "volume-runtime-verify",
+		root:     root,
+		shards:   defaultShards,
+	})
+}
+
 func newChromeHarness(t testing.TB) *chromeHarness {
 	t.Helper()
 	if os.Getenv(runEnv) != "1" && !strings.EqualFold(os.Getenv(runEnv), "true") {

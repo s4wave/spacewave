@@ -14,12 +14,16 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/opfs"
 	"github.com/s4wave/spacewave/db/opfs/filelock"
+	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
+	volume_opfs "github.com/s4wave/spacewave/db/volume/js/opfs"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/blockshard"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/metashard"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/pagestore"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/segment"
+	"github.com/sirupsen/logrus"
 )
 
 type config struct {
@@ -136,6 +140,10 @@ func run(ctx context.Context, c *config) error {
 		return runCounterTryLock(c, true)
 	case "counter-verify":
 		return runCounterVerify(c)
+	case "volume-runtime-write":
+		return runVolumeRuntimeWrite(ctx, c)
+	case "volume-runtime-verify":
+		return runVolumeRuntimeVerify(ctx, c)
 	default:
 		return errors.Errorf("unknown scenario %q", c.scenario)
 	}
@@ -539,6 +547,79 @@ func runMetaCrashVerify(ctx context.Context, c *config) error {
 	return verifyMetaValue(ctx, store, key, metaCrashValue(key))
 }
 
+func runVolumeRuntimeWrite(ctx context.Context, c *config) error {
+	vol, err := openVolume(ctx, c)
+	if err != nil {
+		return err
+	}
+	defer vol.Close()
+
+	ref, _, err := vol.PutBlock(ctx, volumeBlockValue(), nil)
+	if err != nil {
+		return errors.Wrap(err, "put volume block")
+	}
+	refData, err := ref.MarshalVT()
+	if err != nil {
+		return errors.Wrap(err, "marshal volume block ref")
+	}
+
+	tx, err := vol.GetKvtxStore().NewTransaction(ctx, true)
+	if err != nil {
+		return errors.Wrap(err, "open volume write tx")
+	}
+	defer tx.Discard()
+	if err := tx.Set(ctx, volumeMetaKey(), volumeMetaValue()); err != nil {
+		return errors.Wrap(err, "set volume meta")
+	}
+	if err := tx.Set(ctx, volumeRefKey(), refData); err != nil {
+		return errors.Wrap(err, "set volume block ref")
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return errors.Wrap(err, "commit volume meta")
+	}
+	return nil
+}
+
+func runVolumeRuntimeVerify(ctx context.Context, c *config) error {
+	vol, err := openVolume(ctx, c)
+	if err != nil {
+		return err
+	}
+	defer vol.Close()
+
+	tx, err := vol.GetKvtxStore().NewTransaction(ctx, false)
+	if err != nil {
+		return errors.Wrap(err, "open volume read tx")
+	}
+	defer tx.Discard()
+	meta, found, err := tx.Get(ctx, volumeMetaKey())
+	if err != nil {
+		return errors.Wrap(err, "get volume meta")
+	}
+	if !found || !bytes.Equal(meta, volumeMetaValue()) {
+		return errors.Errorf("volume meta mismatch found=%v value=%q", found, string(meta))
+	}
+	refData, found, err := tx.Get(ctx, volumeRefKey())
+	if err != nil {
+		return errors.Wrap(err, "get volume block ref")
+	}
+	if !found {
+		return errors.New("volume block ref missing")
+	}
+	ref := &block.BlockRef{}
+	if err := ref.UnmarshalVT(refData); err != nil {
+		return errors.Wrap(err, "unmarshal volume block ref")
+	}
+	data, found, err := vol.GetBlock(ctx, ref)
+	if err != nil {
+		return errors.Wrap(err, "get volume block")
+	}
+	if !found || !bytes.Equal(data, volumeBlockValue()) {
+		return errors.Errorf("volume block mismatch found=%v value=%q", found, string(data))
+	}
+	return nil
+}
+
 func readCurrentMetaSuperblock(dir js.Value) (*pagestore.Superblock, error) {
 	a, err := opfs.ReadFile(dir, "super-a")
 	if err != nil && !opfs.IsNotFound(err) {
@@ -565,6 +646,16 @@ func openMetaStore(c *config) (*metashard.MetaStore, error) {
 		return nil, err
 	}
 	return metashard.NewMetaStore(shard), nil
+}
+
+func openVolume(ctx context.Context, c *config) (*volume_opfs.Opfs, error) {
+	return volume_opfs.NewOpfs(ctx, logrus.NewEntry(logrus.New()), &volume_opfs.Config{
+		RootPath:        c.root + "/volume",
+		LockPrefix:      c.root + "/volume",
+		StoreConfig:     &store_kvtx.Config{},
+		BlockShardCount: uint32(c.shards),
+		AsyncIo:         true,
+	})
 }
 
 func verifyMetaKey(ctx context.Context, store *metashard.MetaStore, key []byte) error {
@@ -748,6 +839,22 @@ func metaMixedValue(worker int, key []byte) []byte {
 
 func metaCrashValue(key []byte) []byte {
 	return []byte("crash:" + string(key))
+}
+
+func volumeMetaKey() []byte {
+	return []byte("volume/runtime/meta")
+}
+
+func volumeMetaValue() []byte {
+	return []byte("volume-runtime-meta-value")
+}
+
+func volumeRefKey() []byte {
+	return []byte("volume/runtime/block-ref")
+}
+
+func volumeBlockValue() []byte {
+	return []byte("volume-runtime-block-value")
 }
 
 func zeroPad(n, width int) string {
