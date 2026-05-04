@@ -325,6 +325,52 @@ func TestOpfsChromeFileLockQueuedWorkersProgressAfterRelease(t *testing.T) {
 	})
 }
 
+func TestOpfsChromeFileLockQueuedWorkersProgressAfterHolderTermination(t *testing.T) {
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-lock-terminated-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	s.runWorker(t, workerArgs{
+		scenario: "counter-init",
+		root:     root,
+	})
+
+	const (
+		workers    = 4
+		iterations = 5
+	)
+	holder := workerArgs{
+		scenario: "counter-hold",
+		root:     root,
+	}
+	var args []workerArgs
+	for i := range workers {
+		args = append(args, workerArgs{
+			scenario:   "counter-queued-increment",
+			root:       root,
+			worker:     i,
+			workers:    workers,
+			iterations: iterations,
+			batch:      1,
+			shards:     defaultShards,
+		})
+	}
+	s.runTerminatedLockHolderWorkers(t, holder, args)
+	s.runWorker(t, workerArgs{
+		scenario:   "counter-verify",
+		root:       root,
+		workers:    workers,
+		iterations: iterations,
+		batch:      1,
+		shards:     defaultShards,
+	})
+}
+
 func TestOpfsChromeWebLockIfAvailable(t *testing.T) {
 	h := newChromeHarness(t)
 	s := h.newSession(t)
@@ -607,6 +653,20 @@ func (s *chromeSession) runBlockedLockWorkers(t testing.TB, holder workerArgs, w
 	})
 }
 
+func (s *chromeSession) runTerminatedLockHolderWorkers(
+	t testing.TB,
+	holder workerArgs,
+	workers []workerArgs,
+) []workerResult {
+	t.Helper()
+	return s.runWorkersScript(t, `async ({ holder, workers }) => {
+  return await window.runOpfsTerminatedLockHolderWorkers(holder, workers)
+}`, map[string]any{
+		"holder":  mapSingleWorkerArg(holder),
+		"workers": mapWorkerArgs(workers),
+	})
+}
+
 func (s *chromeSession) runHeldLockCheck(t testing.TB, holder, check workerArgs) []workerResult {
 	t.Helper()
 	return s.runWorkersScript(t, `async ({ holder, check }) => {
@@ -864,6 +924,22 @@ const indexHTML = `<!doctype html>
         release.close()
         const holderResults = await waitWorkers([holder])
         return [...checkResults, ...holderResults]
+      }
+
+      window.runOpfsTerminatedLockHolderWorkers = async (holderArgs, workers) => {
+        const holder = runWorker(holderArgs)
+        const holderReady = await holder.ready
+        if (holderReady.kind === 'result') {
+          return compactResults([holderReady])
+        }
+        const queued = workers.map((args) => runWorker(args))
+        const queuedReady = await Promise.all(queued.map((item) => item.ready))
+        if (queuedReady.some((result) => result.kind === 'result' && !result.ok)) {
+          holder.stop()
+          return compactResults(queuedReady)
+        }
+        holder.stop()
+        return await waitWorkers(queued)
       }
 
       window.runOpfsTerminateReadyWorker = async (args) => {
