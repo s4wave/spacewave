@@ -111,7 +111,12 @@ func run(ctx context.Context, c *config) error {
 		return runMetaMixedVerify(ctx, c)
 	case "counter-init":
 		return runCounterInit(c)
+	case "counter-hold":
+		return runCounterHold(c)
 	case "counter-increment":
+		return runCounterIncrement(c)
+	case "counter-queued-increment":
+		postReady(c)
 		return runCounterIncrement(c)
 	case "counter-verify":
 		return runCounterVerify(c)
@@ -469,6 +474,23 @@ func runCounterInit(c *config) error {
 	return file.Flush()
 }
 
+func runCounterHold(c *config) error {
+	dir, err := openTestDirectory(c.root, []string{"locks"})
+	if err != nil {
+		return err
+	}
+	file, release, err := filelock.AcquireFile(dir, "counter", c.root+"/locks", true)
+	if err != nil {
+		return errors.Wrap(err, "acquire held counter")
+	}
+	defer release()
+	var buf [8]byte
+	if _, err := file.ReadAt(buf[:], 0); err != nil {
+		return errors.Wrap(err, "read held counter")
+	}
+	return waitCounterRelease(c)
+}
+
 func runCounterIncrement(c *config) error {
 	dir, err := openTestDirectory(c.root, []string{"locks"})
 	if err != nil {
@@ -496,6 +518,24 @@ func runCounterIncrement(c *config) error {
 		}
 		release()
 	}
+	return nil
+}
+
+func waitCounterRelease(c *config) error {
+	ch := make(chan struct{}, 1)
+	bc := js.Global().Get("BroadcastChannel").New(counterReleaseChannel(c.root))
+	cb := js.FuncOf(func(this js.Value, args []js.Value) any {
+		data := args[0].Get("data")
+		if data.Get("type").String() == "release" {
+			ch <- struct{}{}
+		}
+		return nil
+	})
+	defer cb.Release()
+	defer bc.Call("close")
+	bc.Set("onmessage", cb)
+	postReady(c)
+	<-ch
 	return nil
 }
 
@@ -619,6 +659,10 @@ func (p *blockEventPub) Close() {
 
 func blockEventChannel(root string) string {
 	return "opfs-chrometest:" + root
+}
+
+func counterReleaseChannel(root string) string {
+	return "opfs-chrometest-counter-release:" + root
 }
 
 func postReady(c *config) {

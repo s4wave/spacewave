@@ -279,6 +279,52 @@ func TestOpfsChromeFileLockSerializesWorkers(t *testing.T) {
 	})
 }
 
+func TestOpfsChromeFileLockQueuedWorkersProgressAfterRelease(t *testing.T) {
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-lock-queued-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	s.runWorker(t, workerArgs{
+		scenario: "counter-init",
+		root:     root,
+	})
+
+	const (
+		workers    = 4
+		iterations = 5
+	)
+	holder := workerArgs{
+		scenario: "counter-hold",
+		root:     root,
+	}
+	var args []workerArgs
+	for i := range workers {
+		args = append(args, workerArgs{
+			scenario:   "counter-queued-increment",
+			root:       root,
+			worker:     i,
+			workers:    workers,
+			iterations: iterations,
+			batch:      1,
+			shards:     defaultShards,
+		})
+	}
+	s.runBlockedLockWorkers(t, holder, args)
+	s.runWorker(t, workerArgs{
+		scenario:   "counter-verify",
+		root:       root,
+		workers:    workers,
+		iterations: iterations,
+		batch:      1,
+		shards:     defaultShards,
+	})
+}
+
 func newChromeHarness(t testing.TB) *chromeHarness {
 	t.Helper()
 	if os.Getenv(runEnv) != "1" && !strings.EqualFold(os.Getenv(runEnv), "true") {
@@ -431,9 +477,19 @@ func (s *chromeSession) runWorkersStaged(t testing.TB, readyWorkers, workers []w
 	t.Helper()
 	return s.runWorkersScript(t, `async ({ readyWorkers, workers }) => {
   return await window.runOpfsWorkersStaged(readyWorkers, workers)
-}`, map[string]any{
+	}`, map[string]any{
 		"readyWorkers": mapWorkerArgs(readyWorkers),
 		"workers":      mapWorkerArgs(workers),
+	})
+}
+
+func (s *chromeSession) runBlockedLockWorkers(t testing.TB, holder workerArgs, workers []workerArgs) []workerResult {
+	t.Helper()
+	return s.runWorkersScript(t, `async ({ holder, workers }) => {
+  return await window.runOpfsBlockedLockWorkers(holder, workers)
+}`, map[string]any{
+		"holder":  mapSingleWorkerArg(holder),
+		"workers": mapWorkerArgs(workers),
 	})
 }
 
@@ -557,17 +613,21 @@ func decodeWorkerResults(raw any) ([]workerResult, error) {
 func mapWorkerArgs(args []workerArgs) []map[string]any {
 	out := make([]map[string]any, len(args))
 	for i, arg := range args {
-		out[i] = map[string]any{
-			"scenario":   arg.scenario,
-			"root":       arg.root,
-			"worker":     arg.worker,
-			"workers":    arg.workers,
-			"iterations": arg.iterations,
-			"batch":      arg.batch,
-			"shards":     arg.shards,
-		}
+		out[i] = mapSingleWorkerArg(arg)
 	}
 	return out
+}
+
+func mapSingleWorkerArg(arg workerArgs) map[string]any {
+	return map[string]any{
+		"scenario":   arg.scenario,
+		"root":       arg.root,
+		"worker":     arg.worker,
+		"workers":    arg.workers,
+		"iterations": arg.iterations,
+		"batch":      arg.batch,
+		"shards":     arg.shards,
+	}
 }
 
 func stringField(m map[string]any, key string) string {
@@ -633,6 +693,24 @@ const indexHTML = `<!doctype html>
         }
         const started = workers.map((args) => runWorker(args))
         return await waitWorkers([...ready, ...started])
+      }
+
+      window.runOpfsBlockedLockWorkers = async (holderArgs, workers) => {
+        const holder = runWorker(holderArgs)
+        const holderReady = await holder.ready
+        if (holderReady.kind === 'result') {
+          return compactResults([holderReady])
+        }
+        const queued = workers.map((args) => runWorker(args))
+        const queuedReady = await Promise.all(queued.map((item) => item.ready))
+        if (queuedReady.some((result) => result.kind === 'result' && !result.ok)) {
+          holder.stop()
+          return compactResults(queuedReady)
+        }
+        const release = new BroadcastChannel('opfs-chrometest-counter-release:' + holderArgs.root)
+        release.postMessage({ type: 'release' })
+        release.close()
+        return await waitWorkers([holder, ...queued])
       }
 
       function waitWorkers(items) {
