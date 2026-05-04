@@ -30,6 +30,11 @@ type chromeHarness struct {
 	browser playwright.Browser
 }
 
+type chromeSession struct {
+	ctx  playwright.BrowserContext
+	page playwright.Page
+}
+
 func TestMain(m *testing.M) {
 	if os.Getenv(runEnv) != "1" && !strings.EqualFold(os.Getenv(runEnv), "true") {
 		os.Exit(m.Run())
@@ -47,9 +52,11 @@ func TestMain(m *testing.M) {
 
 func TestOpfsChromeConcurrentBlockReadersWriters(t *testing.T) {
 	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
 
 	root := "opfs-chrome-block-" + time.Now().Format("150405.000000000")
-	h.runWorker(t, workerArgs{
+	s.runWorker(t, workerArgs{
 		scenario: "clear",
 		root:     root,
 	})
@@ -83,8 +90,8 @@ func TestOpfsChromeConcurrentBlockReadersWriters(t *testing.T) {
 			shards:     defaultShards,
 		})
 	}
-	h.runWorkersStaged(t, args[writers:], args[:writers])
-	h.runWorker(t, workerArgs{
+	s.runWorkersStaged(t, args[writers:], args[:writers])
+	s.runWorker(t, workerArgs{
 		scenario:   "block-verify",
 		root:       root,
 		workers:    writers,
@@ -96,9 +103,11 @@ func TestOpfsChromeConcurrentBlockReadersWriters(t *testing.T) {
 
 func TestOpfsChromeConcurrentMetaWriters(t *testing.T) {
 	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
 
 	root := "opfs-chrome-meta-" + time.Now().Format("150405.000000000")
-	h.runWorker(t, workerArgs{
+	s.runWorker(t, workerArgs{
 		scenario: "clear",
 		root:     root,
 	})
@@ -119,8 +128,8 @@ func TestOpfsChromeConcurrentMetaWriters(t *testing.T) {
 			shards:     defaultShards,
 		})
 	}
-	h.runWorkers(t, args)
-	h.runWorker(t, workerArgs{
+	s.runWorkers(t, args)
+	s.runWorker(t, workerArgs{
 		scenario:   "meta-verify",
 		root:       root,
 		workers:    writers,
@@ -132,13 +141,15 @@ func TestOpfsChromeConcurrentMetaWriters(t *testing.T) {
 
 func TestOpfsChromeFileLockSerializesWorkers(t *testing.T) {
 	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
 
 	root := "opfs-chrome-lock-" + time.Now().Format("150405.000000000")
-	h.runWorker(t, workerArgs{
+	s.runWorker(t, workerArgs{
 		scenario: "clear",
 		root:     root,
 	})
-	h.runWorker(t, workerArgs{
+	s.runWorker(t, workerArgs{
 		scenario: "counter-init",
 		root:     root,
 	})
@@ -159,8 +170,8 @@ func TestOpfsChromeFileLockSerializesWorkers(t *testing.T) {
 			shards:     defaultShards,
 		})
 	}
-	h.runWorkers(t, args)
-	h.runWorker(t, workerArgs{
+	s.runWorkers(t, args)
+	s.runWorker(t, workerArgs{
 		scenario:   "counter-verify",
 		root:       root,
 		workers:    workers,
@@ -244,42 +255,17 @@ func (h *chromeHarness) close() {
 	}
 }
 
-func (h *chromeHarness) runWorker(t testing.TB, args workerArgs) workerResult {
-	t.Helper()
-	results := h.runWorkers(t, []workerArgs{args})
-	return results[0]
-}
-
-func (h *chromeHarness) runWorkers(t testing.TB, args []workerArgs) []workerResult {
-	t.Helper()
-	return h.runWorkersScript(t, `async ({ workers }) => {
-  return await window.runOpfsWorkers(workers)
-}`, map[string]any{"workers": mapWorkerArgs(args)})
-}
-
-func (h *chromeHarness) runWorkersStaged(t testing.TB, readyWorkers, workers []workerArgs) []workerResult {
-	t.Helper()
-	return h.runWorkersScript(t, `async ({ readyWorkers, workers }) => {
-  return await window.runOpfsWorkersStaged(readyWorkers, workers)
-}`, map[string]any{
-		"readyWorkers": mapWorkerArgs(readyWorkers),
-		"workers":      mapWorkerArgs(workers),
-	})
-}
-
-func (h *chromeHarness) runWorkersScript(t testing.TB, script string, args map[string]any) []workerResult {
+func (h *chromeHarness) newSession(t testing.TB) *chromeSession {
 	t.Helper()
 	ctx, err := h.browser.NewContext()
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer func() {
-		if err := ctx.Close(); err != nil {
-			t.Error(err)
-		}
-	}()
 	page, err := ctx.NewPage()
 	if err != nil {
+		if closeErr := ctx.Close(); closeErr != nil {
+			t.Error(closeErr)
+		}
 		t.Fatal(err)
 	}
 	page.On("console", func(msg playwright.ConsoleMessage) {
@@ -293,13 +279,56 @@ func (h *chromeHarness) runWorkersScript(t testing.TB, script string, args map[s
 		Timeout:   playwright.Float(30000),
 	})
 	if err != nil {
+		if closeErr := ctx.Close(); closeErr != nil {
+			t.Error(closeErr)
+		}
 		t.Fatal(err)
 	}
 	if resp != nil && resp.Status() >= 400 {
+		if closeErr := ctx.Close(); closeErr != nil {
+			t.Error(closeErr)
+		}
 		t.Fatalf("GET / returned HTTP %d", resp.Status())
 	}
+	return &chromeSession{
+		ctx:  ctx,
+		page: page,
+	}
+}
 
-	raw, err := page.Evaluate(script, args)
+func (s *chromeSession) close(t testing.TB) {
+	t.Helper()
+	if err := s.ctx.Close(); err != nil {
+		t.Error(err)
+	}
+}
+
+func (s *chromeSession) runWorker(t testing.TB, args workerArgs) workerResult {
+	t.Helper()
+	results := s.runWorkers(t, []workerArgs{args})
+	return results[0]
+}
+
+func (s *chromeSession) runWorkers(t testing.TB, args []workerArgs) []workerResult {
+	t.Helper()
+	return s.runWorkersScript(t, `async ({ workers }) => {
+  return await window.runOpfsWorkers(workers)
+}`, map[string]any{"workers": mapWorkerArgs(args)})
+}
+
+func (s *chromeSession) runWorkersStaged(t testing.TB, readyWorkers, workers []workerArgs) []workerResult {
+	t.Helper()
+	return s.runWorkersScript(t, `async ({ readyWorkers, workers }) => {
+  return await window.runOpfsWorkersStaged(readyWorkers, workers)
+}`, map[string]any{
+		"readyWorkers": mapWorkerArgs(readyWorkers),
+		"workers":      mapWorkerArgs(workers),
+	})
+}
+
+func (s *chromeSession) runWorkersScript(t testing.TB, script string, args map[string]any) []workerResult {
+	t.Helper()
+	raw, err := s.page.Evaluate(script, args)
 	if err != nil {
 		t.Fatal(err)
 	}

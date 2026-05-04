@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"os"
 	"strconv"
+	"strings"
 	"syscall/js"
 	"time"
 
@@ -255,7 +256,7 @@ func runBlockVerify(ctx context.Context, c *config) error {
 					return errors.Wrap(err, "verify block")
 				}
 				if !found {
-					return errors.Errorf("missing block key=%s", string(key))
+					return errors.Errorf("missing block key=%s %s", string(key), describeBlockShard(c, e.ShardForKey(key)))
 				}
 				if string(val) != string(blockValue(key)) {
 					return errors.Errorf("bad block value key=%s", string(key))
@@ -279,6 +280,47 @@ func openBlockEngine(ctx context.Context, c *config) (*blockshard.Engine, func()
 		return nil, nil, err
 	}
 	return e, e.Close, nil
+}
+
+func describeBlockShard(c *config, shard int) string {
+	dir, err := openTestDirectory(c.root, []string{"blocks", "shard-" + zeroPad(shard, 2)})
+	if err != nil {
+		return "describe-shard-error=" + err.Error()
+	}
+	a, err := opfs.ReadFile(dir, "manifest-a")
+	if err != nil && !opfs.IsNotFound(err) {
+		return "read-manifest-a-error=" + err.Error()
+	}
+	b, err := opfs.ReadFile(dir, "manifest-b")
+	if err != nil && !opfs.IsNotFound(err) {
+		return "read-manifest-b-error=" + err.Error()
+	}
+	m := blockshard.PickManifest(a, b)
+	if m == nil {
+		return "manifest=nil"
+	}
+	var sb strings.Builder
+	sb.WriteString("shard=")
+	sb.WriteString(strconv.Itoa(shard))
+	sb.WriteString(" gen=")
+	sb.WriteString(strconv.FormatUint(m.Generation, 10))
+	sb.WriteString(" segments=")
+	sb.WriteString(strconv.Itoa(len(m.Segments)))
+	limit := len(m.Segments)
+	if limit > 8 {
+		limit = 8
+	}
+	for i := 0; i < limit; i++ {
+		seg := m.Segments[i]
+		sb.WriteString(" ")
+		sb.WriteString(seg.Filename)
+		sb.WriteString("[")
+		sb.Write(seg.MinKey)
+		sb.WriteString("..")
+		sb.Write(seg.MaxKey)
+		sb.WriteString("]")
+	}
+	return sb.String()
 }
 
 func runMetaWriter(ctx context.Context, c *config) error {

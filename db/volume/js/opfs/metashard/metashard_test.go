@@ -241,6 +241,37 @@ func TestMetaShardWriteTxRefreshesStaleSecondInstance(t *testing.T) {
 	assertMetaValue(t, reopened, "k2", "v2")
 }
 
+func TestMetaShardReadRefreshesStaleSecondInstance(t *testing.T) {
+	ms1 := newTestMetaShard(t, "test-metashard-stale-second-instance-read")
+	ms2 := openSecondTestMetaShard(t, "test-metashard-stale-second-instance-read")
+
+	putMetaValue(t, ms1, "k1", "v1")
+	assertMetaValue(t, ms2, "k1", "v1")
+}
+
+func TestMetaStoreReadTxRefreshesStaleSecondInstance(t *testing.T) {
+	ms1 := newTestMetaShard(t, "test-metastore-stale-second-instance-read")
+	ms2 := openSecondTestMetaShard(t, "test-metastore-stale-second-instance-read")
+	store := NewMetaStore(ms2)
+	ctx := context.Background()
+
+	putMetaValue(t, ms1, "k1", "v1")
+
+	tx, err := store.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+
+	val, found, err := tx.Get(ctx, []byte("k1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found || string(val) != "v1" {
+		t.Fatalf("read tx got found=%v val=%q want v1", found, val)
+	}
+}
+
 func TestMetaShardRecoveryBeforeSuperblockFlip(t *testing.T) {
 	ms := newTestMetaShard(t, "test-metashard-before-flip")
 	putMetaValue(t, ms, "k", "v1")

@@ -423,15 +423,6 @@ func readFileBytesContext(ctx context.Context, dir js.Value, name string) []byte
 	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/read-file-bytes")
 	defer task.End()
 
-	if name == manifestGen && opfs.SyncAvailable() {
-		_, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/read-file-bytes/read-sync")
-		buf, err := readSyncFileBytes(dir, name)
-		subtask.End()
-		if err == nil || !opfs.IsNoModificationAllowed(err) {
-			return buf
-		}
-	}
-
 	_, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/read-file-bytes/read-all")
 	buf, err := opfs.ReadFile(dir, name)
 	subtask.End()
@@ -445,21 +436,6 @@ func readFileBytesRequired(ctx context.Context, dir js.Value, name string) ([]by
 	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/read-file-bytes-required")
 	defer task.End()
 
-	if name == manifestGen && opfs.SyncAvailable() {
-		_, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/read-file-bytes-required/read-sync")
-		buf, err := readSyncFileBytes(dir, name)
-		subtask.End()
-		if err == nil {
-			return buf, nil
-		}
-		if !opfs.IsNoModificationAllowed(err) {
-			if opfs.IsNotFound(err) {
-				return nil, nil
-			}
-			return nil, err
-		}
-	}
-
 	_, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/read-file-bytes-required/read-all")
 	buf, err := opfs.ReadFile(dir, name)
 	subtask.End()
@@ -471,24 +447,6 @@ func readFileBytesRequired(ctx context.Context, dir js.Value, name string) ([]by
 	}
 	if len(buf) == 0 {
 		return nil, nil
-	}
-	return buf, nil
-}
-
-func readSyncFileBytes(dir js.Value, name string) ([]byte, error) {
-	f, err := opfs.OpenSyncFile(dir, name)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	size := f.Size()
-	if size == 0 {
-		return nil, nil
-	}
-	buf := make([]byte, size)
-	if _, err := f.ReadAt(buf, 0); err != nil {
-		return nil, err
 	}
 	return buf, nil
 }

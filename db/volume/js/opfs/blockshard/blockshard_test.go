@@ -501,8 +501,14 @@ func TestSerializedPublishReloadsStaleManifest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	publishEntries(t, first, []segment.Entry{{Key: []byte("a"), Value: []byte("one")}})
-	publishEntries(t, second, []segment.Entry{{Key: []byte("b"), Value: []byte("two")}})
+	if gen := second.Manifest().Generation; gen != 0 {
+		t.Fatalf("second shard initial generation: got %d want 0", gen)
+	}
+
+	keyA := []byte("a")
+	keyB := []byte("b")
+	publishEntries(t, first, []segment.Entry{{Key: keyA, Value: []byte("one")}})
+	publishEntries(t, second, []segment.Entry{{Key: keyB, Value: []byte("two")}})
 
 	fresh, err := NewShard(0, dir, "test-blockshard-stale-publish", settings)
 	if err != nil {
@@ -512,6 +518,42 @@ func TestSerializedPublishReloadsStaleManifest(t *testing.T) {
 	if len(m.Segments) != 2 {
 		t.Fatalf("segments after two serialized publishes: got %d want 2", len(m.Segments))
 	}
+	assertShardEntry(t, fresh, keyA, []byte("one"))
+	assertShardEntry(t, fresh, keyB, []byte("two"))
+}
+
+func assertShardEntry(t testing.TB, shard *Shard, key, want []byte) {
+	t.Helper()
+	m := shard.Manifest()
+	for i := len(m.Segments) - 1; i >= 0; i-- {
+		seg := &m.Segments[i]
+		if string(key) < string(seg.MinKey) || string(key) > string(seg.MaxKey) {
+			continue
+		}
+		lookup, err := shard.getLookup(context.Background(), seg)
+		if err != nil {
+			t.Fatal(err)
+		}
+		f, err := shard.getSegmentFile(context.Background(), seg)
+		if err != nil {
+			t.Fatal(err)
+		}
+		val, found, tombstone, err := lookup.Locate(f, key, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if tombstone {
+			t.Fatalf("key %q resolved to tombstone", key)
+		}
+		if !found {
+			continue
+		}
+		if !bytes.Equal(val, want) {
+			t.Fatalf("key %q: got %q want %q", key, val, want)
+		}
+		return
+	}
+	t.Fatalf("key %q not reachable from manifest", key)
 }
 
 func BenchmarkBlockshardPutBatchMatrix(b *testing.B) {

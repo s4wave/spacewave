@@ -31,11 +31,10 @@ func (s *MetaStore) Execute(ctx context.Context) error {
 
 // NewTransaction returns a new transaction against the store.
 func (s *MetaStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
-	release, err := s.shard.acquireStateLock(false)
+	tree, generation, release, err := s.shard.openCommittedTreeForRead()
 	if err != nil {
-		return nil, errors.Wrap(err, "acquire meta read lock")
+		return nil, err
 	}
-	tree, generation := s.shard.OpenCommittedTree()
 	readTx := metaReadTx{
 		shard:      s.shard,
 		tree:       tree,
