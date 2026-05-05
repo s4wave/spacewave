@@ -35,6 +35,8 @@ import {
 } from '@s4wave/web/ui/tabs.js'
 
 import { base58Encode } from '@s4wave/app/provider/spacewave/keypair-utils.js'
+import { buildInviteLink } from '@s4wave/app/urls.js'
+import { useCloudProviderConfig } from '@s4wave/app/provider/spacewave/useSpacewaveAuth.js'
 
 export interface AddUserDialogProps {
   open: boolean
@@ -106,6 +108,7 @@ export function AddUserDialog({
 }: AddUserDialogProps) {
   const session = useResourceValue(SessionContext.useContext())
   const spaceContainer = SpaceContainerContext.useContextSafe()
+  const cloudProviderConfig = useCloudProviderConfig()
   const [state, dispatch] = useReducer(reducer, initialState)
 
   const handleOpenChange = useCallback(
@@ -140,8 +143,8 @@ export function AddUserDialog({
     const encoded = base58Encode(
       SOInviteMessage.toBinary(state.inviteResp.inviteMessage),
     )
-    return `${window.location.origin}/#/join/${encoded}`
-  }, [state.inviteResp])
+    return buildInviteLink(cloudProviderConfig?.publicBaseUrl, encoded)
+  }, [state.inviteResp, cloudProviderConfig?.publicBaseUrl])
 
   const handleCopy = useCallback((text: string) => {
     void navigator.clipboard.writeText(text)
