@@ -248,17 +248,17 @@ function RuntimeHandoffBanner({
   return (
     <div
       data-slot="runtime-handoff-banner"
-      className="border-warning/20 bg-warning/5 flex w-full flex-wrap items-center justify-between gap-3 border-b px-4 py-2.5"
+      className="border-warning/20 bg-warning/5 flex w-full flex-wrap items-center justify-between gap-3 border-b px-3 py-1.5"
     >
-      <div className="flex min-w-0 items-start gap-2">
-        <LuTriangleAlert className="text-warning mt-0.5 h-4 w-4 shrink-0" />
-        <div className="min-w-0 space-y-0.5">
-          <p className="text-foreground text-sm font-medium select-none">
+      <div className="flex min-w-0 flex-1 items-start gap-2">
+        <LuTriangleAlert className="text-warning h-3.5 w-3.5 shrink-0" />
+        <div className="min-w-0">
+          <p className="text-foreground/80 text-xs font-medium select-none">
             Runtime handed off
           </p>
-          <p className="text-foreground-alt text-xs leading-relaxed">
+          <p className="text-foreground-alt/60 mt-0.5 text-[11px]">
             {requesterName} is running against{' '}
-            <code className="bg-foreground/5 rounded px-1 py-0.5 font-mono text-[0.65rem]">
+            <code className="bg-foreground/5 rounded px-1 py-0.5 font-mono text-[10px]">
               {socketPath}
             </code>
             . Runtime actions are disabled until you reclaim.
@@ -270,9 +270,9 @@ function RuntimeHandoffBanner({
         onClick={onReclaim}
         disabled={reclaiming}
         className={cn(
-          'shrink-0 rounded-md border px-3 py-1.5 text-sm transition-colors',
-          'border-warning/20 bg-warning/10 hover:bg-warning/20',
-          'disabled:cursor-not-allowed disabled:opacity-50',
+          'shrink-0 h-7 rounded-md border px-3 text-xs font-medium transition-all duration-150',
+          'border-warning/30 bg-warning/10 hover:border-warning/50 hover:bg-warning/15',
+          'text-foreground disabled:cursor-not-allowed disabled:opacity-50',
         )}
       >
         {reclaiming ? 'Reclaiming...' : 'Reclaim runtime'}
