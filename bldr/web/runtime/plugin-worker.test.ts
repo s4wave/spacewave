@@ -12,16 +12,14 @@ describe('waitPluginStartupFailureShutdownDelay', () => {
 
   test('waits before allowing failed plugin workers to shut down', async () => {
     vi.useFakeTimers()
-    let complete = false
-    const wait = waitPluginStartupFailureShutdownDelay().then(() => {
-      complete = true
-    })
+    const complete = vi.fn()
+    const wait = waitPluginStartupFailureShutdownDelay().then(complete)
 
     await vi.advanceTimersByTimeAsync(PLUGIN_STARTUP_FAILURE_SHUTDOWN_DELAY_MS - 1)
-    expect(complete).toBe(false)
+    expect(complete).not.toHaveBeenCalled()
 
     await vi.advanceTimersByTimeAsync(1)
     await wait
-    expect(complete).toBe(true)
+    expect(complete).toHaveBeenCalledTimes(1)
   })
 })
