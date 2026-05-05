@@ -11,19 +11,28 @@ import (
 
 // WizardRegistryResource implements ObjectWizardRegistryResourceService.
 type WizardRegistryResource struct {
-	mux srpc.Mux
+	mux   srpc.Mux
+	state *wizardRegistryState
+}
 
+type wizardRegistryState struct {
 	bcast         broadcast.Broadcast
 	nextID        uint32
 	registrations map[uint32]*ObjectWizard
 }
 
-// NewWizardRegistryResource creates a new WizardRegistryResource.
-func NewWizardRegistryResource() *WizardRegistryResource {
-	r := &WizardRegistryResource{
+var defaultWizardRegistryState = newWizardRegistryState()
+
+func newWizardRegistryState() *wizardRegistryState {
+	return &wizardRegistryState{
 		nextID:        1,
 		registrations: make(map[uint32]*ObjectWizard),
 	}
+}
+
+// NewWizardRegistryResource creates a new WizardRegistryResource.
+func NewWizardRegistryResource() *WizardRegistryResource {
+	r := &WizardRegistryResource{state: defaultWizardRegistryState}
 	r.mux = resource_server.NewResourceMux(func(mux srpc.Mux) error {
 		return SRPCRegisterObjectWizardRegistryResourceService(mux, r)
 	})
@@ -60,18 +69,18 @@ func (r *WizardRegistryResource) RegisterWizard(
 	}
 
 	var regID uint32
-	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		for _, v := range r.registrations {
+	r.state.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		for _, v := range r.state.registrations {
 			if v.GetTypeId() == wizard.GetTypeId() {
 				err = ErrWizardAlreadyRegistered
 				return
 			}
 		}
-		regID = r.nextID
-		r.nextID++
+		regID = r.state.nextID
+		r.state.nextID++
 		stored := wizard.CloneVT()
 		stored.RegistrationId = regID
-		r.registrations[regID] = stored
+		r.state.registrations[regID] = stored
 		broadcast()
 	})
 	if err != nil {
@@ -80,16 +89,16 @@ func (r *WizardRegistryResource) RegisterWizard(
 
 	emptyMux := srpc.NewMux()
 	resourceID, err := client.AddResource(emptyMux, func() {
-		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-			if _, ok := r.registrations[regID]; ok {
-				delete(r.registrations, regID)
+		r.state.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			if _, ok := r.state.registrations[regID]; ok {
+				delete(r.state.registrations, regID)
 				broadcast()
 			}
 		})
 	})
 	if err != nil {
-		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-			delete(r.registrations, regID)
+		r.state.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			delete(r.state.registrations, regID)
 			broadcast()
 		})
 		return nil, err
@@ -104,7 +113,7 @@ func (r *WizardRegistryResource) ListWizards(
 	req *ListWizardsRequest,
 ) (*ListWizardsResponse, error) {
 	var wizards []*ObjectWizard
-	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+	r.state.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		wizards = r.getWizardsLocked()
 	})
 	return &ListWizardsResponse{Wizards: wizards}, nil
@@ -121,7 +130,7 @@ func (r *WizardRegistryResource) WatchWizards(
 		var wizards []*ObjectWizard
 		var waitCh <-chan struct{}
 
-		r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		r.state.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			wizards = r.getWizardsLocked()
 			waitCh = getWaitCh()
 		})
@@ -139,7 +148,7 @@ func (r *WizardRegistryResource) WatchWizards(
 }
 
 func (r *WizardRegistryResource) getWizardsLocked() []*ObjectWizard {
-	wizards := make([]*ObjectWizard, 0, len(ObjectWizards)+len(r.registrations))
+	wizards := make([]*ObjectWizard, 0, len(ObjectWizards)+len(r.state.registrations))
 	seen := make(map[string]struct{})
 	for _, wizard := range ObjectWizards {
 		if wizard.GetTypeId() == "" {
@@ -148,8 +157,8 @@ func (r *WizardRegistryResource) getWizardsLocked() []*ObjectWizard {
 		seen[wizard.GetTypeId()] = struct{}{}
 		wizards = append(wizards, wizard.CloneVT())
 	}
-	regs := make([]*ObjectWizard, 0, len(r.registrations))
-	for _, wizard := range r.registrations {
+	regs := make([]*ObjectWizard, 0, len(r.state.registrations))
+	for _, wizard := range r.state.registrations {
 		regs = append(regs, wizard.CloneVT())
 	}
 	sort.Slice(regs, func(i, j int) bool {

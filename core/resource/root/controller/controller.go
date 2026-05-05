@@ -27,6 +27,7 @@ import (
 	s4wave_root "github.com/s4wave/spacewave/sdk/root"
 	s4wave_viewer_registry "github.com/s4wave/spacewave/sdk/viewer/registry"
 	objecttype_controller "github.com/s4wave/spacewave/sdk/world/objecttype/controller"
+	s4wave_wizard "github.com/s4wave/spacewave/sdk/world/wizard"
 	s4wave_worldop_registry "github.com/s4wave/spacewave/sdk/worldop/registry"
 )
 
@@ -60,6 +61,8 @@ type Controller struct {
 	configTypeRegistry *resource_configtype_registry.ConfigTypeRegistryResource
 	// quickstartRegistry is the Quickstart registry resource
 	quickstartRegistry *resource_quickstart_registry.QuickstartRegistryResource
+	// objectWizardRegistry is the ObjectWizard registry resource
+	objectWizardRegistry *s4wave_wizard.WizardRegistryResource
 	// commandsManager is the commands manager resource
 	commandsManager *resource_command.CommandsManager
 }
@@ -127,6 +130,12 @@ func NewFactory(b bus.Bus) controller.Factory {
 			// create and register the Quickstart registry on the root resource mux
 			c.quickstartRegistry = resource_quickstart_registry.NewQuickstartRegistryResource(base.GetLogger(), b)
 			if err := s4wave_quickstart_registry.SRPCRegisterQuickstartRegistryResourceService(c.rootResourceMux, c.quickstartRegistry); err != nil {
+				return nil, err
+			}
+
+			// create and register the ObjectWizard registry on the root resource mux
+			c.objectWizardRegistry = s4wave_wizard.NewWizardRegistryResource()
+			if err := s4wave_wizard.SRPCRegisterObjectWizardRegistryResourceService(c.rootResourceMux, c.objectWizardRegistry); err != nil {
 				return nil, err
 			}
 

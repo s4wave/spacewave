@@ -274,6 +274,22 @@ func TestWizardRegistryRegisterListWatchAndRelease(t *testing.T) {
 		t.Fatal("expected assigned registration id")
 	}
 
+	spaceRegistry := s4wave_wizard.NewWizardRegistryResource()
+	spaceList, err := spaceRegistry.ListWizards(ctx, &s4wave_wizard.ListWizardsRequest{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	var foundInSpaceRegistry bool
+	for _, wizard := range spaceList.GetWizards() {
+		if wizard.GetTypeId() == "glados/org-chart" {
+			foundInSpaceRegistry = true
+			break
+		}
+	}
+	if !foundInSpaceRegistry {
+		t.Fatal("expected root registration to appear in space wizard registry")
+	}
+
 	second, err := watch.Recv()
 	if err != nil {
 		t.Fatal(err.Error())
@@ -354,11 +370,69 @@ func TestWizardRegistryValidationAndDedupe(t *testing.T) {
 	if resp.GetResourceId() == 0 {
 		t.Fatal("expected registration resource id")
 	}
+	ref := client.CreateResourceReference(resp.GetResourceId())
+	t.Cleanup(ref.Release)
 	_, err = svc.RegisterWizard(ctx, req)
 	if err != nil {
 		return
 	}
 	t.Fatal("expected duplicate wizard registration error")
+}
+
+func TestWizardRegistryStaticWizardsWinTypeDedupe(t *testing.T) {
+	ctx, client := setupWizardRegistryClient(t)
+	rootRef := client.AccessRootResource()
+	t.Cleanup(rootRef.Release)
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	svc := s4wave_wizard.NewSRPCObjectWizardRegistryResourceServiceClient(rootClient)
+
+	before, err := svc.ListWizards(ctx, &s4wave_wizard.ListWizardsRequest{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(before.GetWizards()) == 0 {
+		t.Fatal("expected static object wizards")
+	}
+
+	resp, err := svc.RegisterWizard(ctx, &s4wave_wizard.RegisterWizardRequest{
+		Wizard: &s4wave_wizard.ObjectWizard{
+			TypeId:       "canvas",
+			PluginId:     "glados-web",
+			DisplayName:  "Dynamic Canvas",
+			Category:     "Glados",
+			Persistent:   true,
+			WizardTypeId: "wizard/glados/canvas",
+		},
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if resp.GetResourceId() == 0 {
+		t.Fatal("expected registration resource id")
+	}
+	ref := client.CreateResourceReference(resp.GetResourceId())
+	t.Cleanup(ref.Release)
+
+	after, err := svc.ListWizards(ctx, &s4wave_wizard.ListWizardsRequest{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(after.GetWizards()) != len(before.GetWizards()) {
+		t.Fatalf("expected static duplicate to be deduped, got %d before and %d after", len(before.GetWizards()), len(after.GetWizards()))
+	}
+	for _, wizard := range after.GetWizards() {
+		if wizard.GetTypeId() != "canvas" {
+			continue
+		}
+		if wizard.GetDisplayName() != "Canvas" {
+			t.Fatalf("expected static canvas wizard to win, got %s", wizard.GetDisplayName())
+		}
+		return
+	}
+	t.Fatal("expected canvas wizard")
 }
 
 // TestWizardResourcePersistsState verifies the persistent wizard flow for a
