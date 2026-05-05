@@ -160,7 +160,7 @@ describe('CreateSpaceRoute', () => {
     })
     mockPopulateSpace.mockResolvedValue(undefined)
 
-    await act(async () => {
+    act(() => {
       render(<CreateSpaceRoute />)
     })
 
@@ -217,7 +217,7 @@ describe('CreateSpaceRoute', () => {
     mockCreateSetup.mockResolvedValue(setup)
     mockExecuteDynamicQuickstart.mockResolvedValue(undefined)
 
-    await act(async () => {
+    act(() => {
       render(<CreateSpaceRoute />)
     })
 
@@ -254,7 +254,7 @@ describe('CreateSpaceRoute', () => {
     })
     mockPopulateSpace.mockResolvedValue(undefined)
 
-    await act(async () => {
+    act(() => {
       render(<CreateSpaceRoute />)
     })
 
@@ -283,7 +283,7 @@ describe('CreateSpaceRoute', () => {
     })
     mockPopulateSpace.mockRejectedValueOnce(new Error('populate failed'))
 
-    await act(async () => {
+    act(() => {
       render(<CreateSpaceRoute />)
     })
 
@@ -292,7 +292,7 @@ describe('CreateSpaceRoute', () => {
     expect(mockUseSessionNavigate).not.toHaveBeenCalled()
 
     mockPopulateSpace.mockResolvedValueOnce(undefined)
-    await act(async () => {
+    act(() => {
       fireEvent.click(retryButton)
     })
 
@@ -317,12 +317,12 @@ describe('CreateSpaceRoute', () => {
       },
     )
 
-    await act(async () => {
+    act(() => {
       render(<CreateSpaceRoute />)
     })
 
     const cancelButton = await screen.findByRole('button', { name: 'Cancel' })
-    await act(async () => {
+    act(() => {
       fireEvent.click(cancelButton)
     })
 
@@ -338,9 +338,9 @@ describe('CreateSpaceRoute', () => {
     })
   })
 
-  it('redirects invalid quickstart ids to the dashboard without creating', async () => {
+  it('redirects invalid quickstart ids to the dashboard without creating', () => {
     setParams({ quickstartId: 'local' })
-    await act(async () => {
+    act(() => {
       render(<CreateSpaceRoute />)
     })
     expect(mockUseSessionNavigate).toHaveBeenCalledWith({
@@ -351,10 +351,10 @@ describe('CreateSpaceRoute', () => {
     expect(mockSessionCreateSpace).not.toHaveBeenCalled()
   })
 
-  it('returns to the organization dashboard for invalid org quickstarts', async () => {
+  it('returns to the organization dashboard for invalid org quickstarts', () => {
     setParams({ quickstartId: 'local', orgId: 'org-1' })
 
-    await act(async () => {
+    act(() => {
       render(<CreateSpaceRoute />)
     })
 

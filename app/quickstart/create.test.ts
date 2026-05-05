@@ -146,9 +146,7 @@ describe('quickstart create', () => {
     const settingsCall = applyWorldOp.mock.calls.find(
       (call) => call[0] === SET_SPACE_SETTINGS_OP_ID,
     )
-    const settings = SetSpaceSettingsOp.fromBinary(
-      settingsCall?.[1] as Uint8Array,
-    ).settings
+    const settings = SetSpaceSettingsOp.fromBinary(settingsCall?.[1]).settings
     expect(settings?.pluginIds).toEqual(['glados-core', 'glados-web'])
     expect(spaceContents.setPluginApproval).toHaveBeenCalledTimes(2)
     expect(spaceContents.setPluginApproval).toHaveBeenCalledWith(
@@ -214,9 +212,7 @@ describe('quickstart create', () => {
     expect(applyWorldOp.mock.calls[0]?.[0]).toBe(INIT_UNIXFS_OP_ID)
     expect(applyWorldOp.mock.calls[1]?.[0]).toBe(INIT_DRIVE_OP_ID)
 
-    const drive = InitDriveOp.fromBinary(
-      applyWorldOp.mock.calls[1]?.[1] as Uint8Array,
-    )
+    const drive = InitDriveOp.fromBinary(applyWorldOp.mock.calls[1]?.[1])
     expect(drive.objectKey).toBe(DRIVE_OBJECT_KEY)
     expect(drive.roots?.[0]).toMatchObject({
       rootId: 'default',
@@ -250,13 +246,13 @@ describe('quickstart create', () => {
       const unixfsCall = applyWorldOp.mock.calls.find(
         (call) => call[0] === INIT_UNIXFS_OP_ID,
       )
-      expect(
-        InitUnixFSOp.fromBinary(unixfsCall?.[1] as Uint8Array).objectKey,
-      ).toBe(UNIXFS_OBJECT_KEY)
+      expect(InitUnixFSOp.fromBinary(unixfsCall?.[1]).objectKey).toBe(
+        UNIXFS_OBJECT_KEY,
+      )
       const driveCall = applyWorldOp.mock.calls.find(
         (call) => call[0] === INIT_DRIVE_OP_ID,
       )
-      const drive = InitDriveOp.fromBinary(driveCall?.[1] as Uint8Array)
+      const drive = InitDriveOp.fromBinary(driveCall?.[1])
       expect(drive.objectKey).toBe(DRIVE_OBJECT_KEY)
       expect(drive.roots?.[0]?.rootObjectKey).toBe(UNIXFS_OBJECT_KEY)
       const settingsIndex = applyWorldOp.mock.calls.findIndex(
