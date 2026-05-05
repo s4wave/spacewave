@@ -72,6 +72,13 @@ interface CommandContextValue {
 
 const CommandContext = createContext<CommandContextValue | null>(null)
 
+const commandWatchRetryOpts = {
+  errorCb(err: unknown) {
+    if (isCommandResourceLifecycleError(err)) return
+    console.warn('Retry: retrying after error', err)
+  },
+}
+
 // CommandProvider subscribes to the command registry and provides command
 // state and invocation to descendant components.
 export function CommandProvider({
@@ -102,7 +109,13 @@ export function CommandProvider({
   const watchState = useWatchStateRpc<
     WatchCommandsResponse,
     WatchCommandsRequest
-  >(watchFn, {}, WatchCommandsRequest.equals, WatchCommandsResponse.equals)
+  >(
+    watchFn,
+    {},
+    WatchCommandsRequest.equals,
+    WatchCommandsResponse.equals,
+    commandWatchRetryOpts,
+  )
 
   const service = useMemo<CommandRegistryResourceService | null>(() => {
     if (!root) return null
@@ -248,4 +261,9 @@ export function useOpenCommand(): CommandContextValue['openCommand'] {
 // useCommandService returns the command registry service client.
 export function useCommandService(): CommandRegistryResourceService | null {
   return useCommandContext().service
+}
+
+function isCommandResourceLifecycleError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false
+  return err.message.includes('resource or client was released')
 }
