@@ -230,12 +230,17 @@ func (f *AsyncFile) WriteAt(p []byte, off int64) (int, error) {
 }
 
 // WriteAtContext writes len(p) bytes to the file starting at byte offset off.
+//
+// The writable is opened with keepExistingData=true so partial writes preserve
+// bytes outside [off, off+len(p)). Without this, createWritable's draft starts
+// empty and close() truncates the source file to the highest-written offset,
+// destroying any other content.
 func (f *AsyncFile) WriteAtContext(ctx context.Context, p []byte, off int64) (int, error) {
 	ctx, task := trace.NewTask(ctx, "hydra/opfs/async-file/write-at")
 	defer task.End()
 
 	writeCtx, writeTask := trace.NewTask(ctx, "hydra/opfs/async-file/write-at/create-writable")
-	writable, err := openWritable(f.handle)
+	writable, err := openWritable(f.handle, true)
 	writeTask.End()
 	if err != nil {
 		return 0, err
@@ -298,8 +303,12 @@ func (f *AsyncFile) Size() (int64, error) {
 }
 
 // Truncate sets the file size via a writable stream.
+//
+// Opens the writable with keepExistingData=true so bytes in [0, size) are
+// preserved when growing or shrinking; otherwise the draft would start empty
+// and close() would replace the source file with a sparse zero-filled blob.
 func (f *AsyncFile) Truncate(size int64) error {
-	writable, err := openWritable(f.handle)
+	writable, err := openWritable(f.handle, true)
 	if err != nil {
 		return err
 	}
@@ -314,6 +323,9 @@ func (f *AsyncFile) Truncate(size int64) error {
 }
 
 // Stat returns file info.
+//
+// OPFS does not expose a modification time, so ModTime() on the returned
+// fs.FileInfo is always the zero Time. Do not rely on it for ordering.
 func (f *AsyncFile) Stat() (fs.FileInfo, error) {
 	size, err := f.Size()
 	if err != nil {
@@ -328,16 +340,35 @@ func (f *AsyncFile) Close() error {
 }
 
 // WriteFile creates or overwrites a file in the given directory.
+//
+// Performs the truncate, write, and close in a single createWritable session
+// with keepExistingData=false: the draft starts empty, the write at offset 0
+// produces the new contents, and close() commits a file of exactly len(data)
+// bytes (any prior file content is replaced). One Promise round-trip per
+// stage instead of two (vs separate Truncate then Write calls).
 func WriteFile(dir js.Value, name string, data []byte) error {
-	f, err := CreateAsyncFile(dir, name)
+	opts := js.Global().Get("Object").New()
+	opts.Set("create", true)
+	fileHandle, err := AwaitPromise(dir.Call("getFileHandle", name, opts))
+	if err != nil {
+		return errors.Wrap(err, "getFileHandle")
+	}
+	writable, err := openWritable(fileHandle, false)
 	if err != nil {
 		return err
 	}
-	if err := f.Truncate(0); err != nil {
-		return err
+	if len(data) > 0 {
+		arr := js.Global().Get("Uint8Array").New(len(data))
+		js.CopyBytesToJS(arr, data)
+		if _, err := AwaitPromise(writable.Call("write", arr)); err != nil {
+			AwaitPromise(writable.Call("close")) //nolint
+			return errors.Wrap(err, "write")
+		}
 	}
-	_, err = f.Write(data)
-	return err
+	if _, err := AwaitPromise(writable.Call("close")); err != nil {
+		return errors.Wrap(err, "close writable")
+	}
+	return nil
 }
 
 // ReadFile reads the contents of a file in the given directory.
@@ -590,10 +621,31 @@ func (f *SyncFile) WriteAt(p []byte, off int64) (int, error) {
 	return n, nil
 }
 
-func openWritable(fileHandle js.Value) (js.Value, error) {
+// openWritable creates a FileSystemWritableFileStream on fileHandle.
+//
+// keepExisting controls the createWritable() keepExistingData option:
+//   - true: the writable's draft starts as a copy of the source file. Required
+//     for partial writes (WriteAt with off>0) and for Truncate to a non-zero
+//     size; without it, close() replaces the source with a draft that only
+//     contains the bytes explicitly written, destroying every other byte.
+//   - false: the draft starts empty. Use only when the entire file content is
+//     about to be (re)written, since close() will commit exactly the bytes
+//     written and discard the prior file.
+func openWritable(fileHandle js.Value, keepExisting bool) (js.Value, error) {
+	var opts js.Value
+	if keepExisting {
+		opts = js.Global().Get("Object").New()
+		opts.Set("keepExistingData", true)
+	}
 	var lastErr error
 	for range syncAccessHandleRetries {
-		writable, err := AwaitPromise(fileHandle.Call("createWritable"))
+		var writable js.Value
+		var err error
+		if keepExisting {
+			writable, err = AwaitPromise(fileHandle.Call("createWritable", opts))
+		} else {
+			writable, err = AwaitPromise(fileHandle.Call("createWritable"))
+		}
 		if err == nil {
 			return writable, nil
 		}
@@ -637,6 +689,9 @@ func (f *SyncFile) Flush() {
 }
 
 // Stat returns file info.
+//
+// OPFS does not expose a modification time, so ModTime() on the returned
+// fs.FileInfo is always the zero Time. Do not rely on it for ordering.
 func (f *SyncFile) Stat() (fs.FileInfo, error) {
 	return &syncFileInfo{name: f.name, size: f.Size()}, nil
 }

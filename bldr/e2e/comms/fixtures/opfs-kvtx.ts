@@ -1,8 +1,8 @@
 // opfs-kvtx.ts - OPFS kvtx.Store verification fixture.
 //
-// Tests the key-value transaction operations that the Go store_kvtx_opfs
-// package implements: WebLock transactions, read/write/delete, prefix scan,
-// iteration, and crash recovery via .pending marker.
+// Pure-JS smoke that exercises the kvtx wire layout against OPFS:
+// WebLock transactions, read/write/delete, prefix scan, iteration, and
+// crash recovery via .pending marker.
 
 declare global {
   interface Window {

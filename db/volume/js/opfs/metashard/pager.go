@@ -43,6 +43,11 @@ func (p *OpfsPager) SetPageCount(count uint32) {
 func (p *OpfsPager) PageSize() int { return p.pgSize }
 
 // ReadPage reads a page by ID.
+//
+// In the async path the AsyncFile handle is opened lazily and cached on the
+// pager so subsequent ReadPage calls reuse it. Opening a fresh handle on every
+// page read costs an awaited getFileHandle round-trip per call, which turns
+// each B+tree traversal into O(depth) avoidable Promise hops.
 func (p *OpfsPager) ReadPage(id pagestore.PageID, buf []byte) error {
 	clear(buf)
 	off := int64(id) * int64(p.pgSize)
@@ -56,12 +61,14 @@ func (p *OpfsPager) ReadPage(id pagestore.PageID, buf []byte) error {
 		}
 		return nil
 	}
-	// Try async read first (no lock needed for sealed pages).
-	f, err := opfs.OpenAsyncFile(p.dir, p.filename)
-	if err != nil {
-		return errors.Wrap(err, "open page file for read")
+	if p.asyncFile == nil {
+		f, err := opfs.OpenAsyncFile(p.dir, p.filename)
+		if err != nil {
+			return errors.Wrap(err, "open page file for read")
+		}
+		p.asyncFile = f
 	}
-	n, err := f.ReadAt(buf[:p.pgSize], off)
+	n, err := p.asyncFile.ReadAt(buf[:p.pgSize], off)
 	if err != nil && err != io.EOF {
 		return errors.Wrap(err, "read page")
 	}
@@ -124,19 +131,26 @@ func (p *OpfsPager) Flush() {
 	}
 }
 
-// Close closes the sync file handle if open.
+// Close closes any open page-file handles.
+//
+// Both asyncFile and syncFile may be populated at once: ReadPage opens
+// asyncFile lazily and WritePage opens syncFile when sync access is
+// available. Close releases both and reports the first error.
 func (p *OpfsPager) Close() error {
+	var firstErr error
 	if p.asyncFile != nil {
-		err := p.asyncFile.Close()
+		if err := p.asyncFile.Close(); err != nil {
+			firstErr = err
+		}
 		p.asyncFile = nil
-		return err
 	}
 	if p.syncFile != nil {
-		err := p.syncFile.Close()
+		if err := p.syncFile.Close(); err != nil && firstErr == nil {
+			firstErr = err
+		}
 		p.syncFile = nil
-		return err
 	}
-	return nil
+	return firstErr
 }
 
 // LoadFreelist restores the free-page state from the committed freelist chain.

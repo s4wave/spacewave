@@ -126,80 +126,40 @@ func (e *Engine) ShardForKey(key []byte) int {
 // Put enqueues entries to the appropriate shard write actor.
 // Blocks until the entries are flushed to OPFS.
 func (e *Engine) Put(ctx context.Context, entries []segment.Entry) error {
-	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/put")
-	defer task.End()
-
-	if len(entries) == 0 {
-		return nil
-	}
-
-	// Partition by shard.
-	taskCtx, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/put/partition-by-shard")
-	buckets := make([][]segment.Entry, len(e.shards))
-	for i := range entries {
-		idx := e.ShardForKey(entries[i].Key)
-		buckets[idx] = append(buckets[idx], entries[i])
-	}
-	subtask.End()
-
-	// Dispatch to shard actors and collect results.
-	var wg sync.WaitGroup
-	errs := make([]error, len(e.shards))
-	for i, batch := range buckets {
-		if len(batch) == 0 {
-			continue
-		}
-		wg.Add(1)
-		go func(idx int, b []segment.Entry) {
-			defer wg.Done()
-			ch := make(chan error, 1)
-			reqCtx, reqTask := trace.NewTask(taskCtx, "hydra/opfs-blockshard/put/queue-request")
-			select {
-			case e.actors[idx] <- writeReq{entries: b, err: ch}:
-				reqTask.End()
-			case <-ctx.Done():
-				reqTask.End()
-				errs[idx] = ctx.Err()
-				return
-			}
-			_, waitTask := trace.NewTask(reqCtx, "hydra/opfs-blockshard/put/wait-request")
-			select {
-			case errs[idx] = <-ch:
-				waitTask.End()
-			case <-ctx.Done():
-				waitTask.End()
-				errs[idx] = ctx.Err()
-			}
-		}(i, batch)
-	}
-	wg.Wait()
-
-	for _, err := range errs {
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	return e.putToActors(ctx, e.actors, "hydra/opfs-blockshard/put", entries)
 }
 
 // PutBackground enqueues entries to the low-priority background channel.
 // Background requests are processed only when no foreground work is pending.
 // Used for GC block writes and other non-latency-sensitive operations.
 func (e *Engine) PutBackground(ctx context.Context, entries []segment.Entry) error {
-	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/put-background")
+	return e.putToActors(ctx, e.bgActors, "hydra/opfs-blockshard/put-background", entries)
+}
+
+// putToActors partitions entries by shard, dispatches them to dest, and waits
+// for all replies. dest must be one of e.actors or e.bgActors and have the
+// same length as e.shards. tracePrefix is the trace task name prefix used for
+// all sub-spans emitted by this call.
+func (e *Engine) putToActors(
+	ctx context.Context,
+	dest []chan writeReq,
+	tracePrefix string,
+	entries []segment.Entry,
+) error {
+	ctx, task := trace.NewTask(ctx, tracePrefix)
 	defer task.End()
 
 	if len(entries) == 0 {
 		return nil
 	}
 
-	_, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/put-background/partition-by-shard")
+	taskCtx, partitionTask := trace.NewTask(ctx, tracePrefix+"/partition-by-shard")
 	buckets := make([][]segment.Entry, len(e.shards))
 	for i := range entries {
 		idx := e.ShardForKey(entries[i].Key)
 		buckets[idx] = append(buckets[idx], entries[i])
 	}
-	subtask.End()
+	partitionTask.End()
 
 	var wg sync.WaitGroup
 	errs := make([]error, len(e.shards))
@@ -211,15 +171,21 @@ func (e *Engine) PutBackground(ctx context.Context, entries []segment.Entry) err
 		go func(idx int, b []segment.Entry) {
 			defer wg.Done()
 			ch := make(chan error, 1)
+			reqCtx, reqTask := trace.NewTask(taskCtx, tracePrefix+"/queue-request")
 			select {
-			case e.bgActors[idx] <- writeReq{entries: b, err: ch}:
+			case dest[idx] <- writeReq{entries: b, err: ch}:
+				reqTask.End()
 			case <-ctx.Done():
+				reqTask.End()
 				errs[idx] = ctx.Err()
 				return
 			}
+			_, waitTask := trace.NewTask(reqCtx, tracePrefix+"/wait-request")
 			select {
 			case errs[idx] = <-ch:
+				waitTask.End()
 			case <-ctx.Done():
+				waitTask.End()
 				errs[idx] = ctx.Err()
 			}
 		}(i, batch)
@@ -276,13 +242,8 @@ func (e *Engine) getFromShard(
 		lookup, err := shard.getLookup(taskCtx, seg)
 		subtask.End()
 		if err != nil {
-			if !retried && opfs.IsNotFound(err) {
-				taskCtx, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/get-from-shard/refresh-manifest/not-found-retry")
-				refreshed, refreshErr := e.refreshShardManifest(shardIdx)
-				subtask.End()
-				if refreshErr == nil && refreshed != nil && refreshed.Generation > m.Generation {
-					return e.getFromShard(ctx, shardIdx, key, true)
-				}
+			if e.shouldRetryAfterRefresh(ctx, shardIdx, m.Generation, retried, err) {
+				return e.getFromShard(ctx, shardIdx, key, true)
 			}
 			return nil, false, errors.Errorf("load segment %s lookup: %v", seg.Filename, err)
 		}
@@ -290,13 +251,8 @@ func (e *Engine) getFromShard(
 		f, err := shard.getSegmentFile(taskCtx, seg)
 		subtask.End()
 		if err != nil {
-			if !retried && opfs.IsNotFound(err) {
-				taskCtx, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/get-from-shard/refresh-manifest/not-found-retry")
-				refreshed, refreshErr := e.refreshShardManifest(shardIdx)
-				subtask.End()
-				if refreshErr == nil && refreshed != nil && refreshed.Generation > m.Generation {
-					return e.getFromShard(ctx, shardIdx, key, true)
-				}
+			if e.shouldRetryAfterRefresh(ctx, shardIdx, m.Generation, retried, err) {
+				return e.getFromShard(ctx, shardIdx, key, true)
 			}
 			return nil, false, errors.Errorf("open segment %s: %v", seg.Filename, err)
 		}
@@ -304,14 +260,11 @@ func (e *Engine) getFromShard(
 		val, found, tombstone, err := lookup.Locate(f, key, true)
 		subtask.End()
 		if err != nil {
-			if !retried && opfs.IsNotFound(err) {
+			if opfs.IsNotFound(err) {
 				shard.dropSegmentFile(seg.Filename)
-				taskCtx, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/get-from-shard/refresh-manifest/not-found-retry")
-				refreshed, refreshErr := e.refreshShardManifest(shardIdx)
-				subtask.End()
-				if refreshErr == nil && refreshed != nil && refreshed.Generation > m.Generation {
-					return e.getFromShard(ctx, shardIdx, key, true)
-				}
+			}
+			if e.shouldRetryAfterRefresh(ctx, shardIdx, m.Generation, retried, err) {
+				return e.getFromShard(ctx, shardIdx, key, true)
 			}
 			return nil, false, err
 		}
@@ -325,7 +278,37 @@ func (e *Engine) getFromShard(
 	return nil, false, nil
 }
 
+// shouldRetryAfterRefresh decides whether a retried call is warranted after
+// hitting err on a segment access.
+//
+// Returns true only when:
+//   - we have not already retried this call,
+//   - err is a NotFound (a segment file vanished, almost always because a
+//     concurrent compaction retired it), and
+//   - refreshing the shard manifest reveals a newer generation than the one
+//     used for the current attempt.
+//
+// Tracing for the refresh attempt is emitted under the caller-supplied ctx so
+// the retry shows up as a sibling span next to the original lookup/open/locate
+// task it replaced.
+func (e *Engine) shouldRetryAfterRefresh(
+	ctx context.Context,
+	shardIdx int,
+	currentGen uint64,
+	retried bool,
+	err error,
+) bool {
+	if retried || !opfs.IsNotFound(err) {
+		return false
+	}
+	_, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/refresh-manifest/not-found-retry")
+	refreshed, refreshErr := e.refreshShardManifest(shardIdx)
+	subtask.End()
+	return refreshErr == nil && refreshed != nil && refreshed.Generation > currentGen
+}
+
 func (e *Engine) getExistsFromShard(shardIdx int, key []byte, retried bool) (bool, error) {
+	ctx := context.Background()
 	shard := e.shards[shardIdx]
 	m := shard.Manifest()
 	if latestGen := shard.getLatestGeneration(); latestGen > m.Generation {
@@ -340,35 +323,30 @@ func (e *Engine) getExistsFromShard(shardIdx int, key []byte, retried bool) (boo
 		if string(key) < string(seg.MinKey) || string(key) > string(seg.MaxKey) {
 			continue
 		}
-		lookup, err := shard.getLookup(context.Background(), seg)
+		lookup, err := shard.getLookup(ctx, seg)
 		if err != nil {
-			if !retried && opfs.IsNotFound(err) {
+			if opfs.IsNotFound(err) {
 				shard.dropSegmentFile(seg.Filename)
-				refreshed, refreshErr := e.refreshShardManifest(shardIdx)
-				if refreshErr == nil && refreshed != nil && refreshed.Generation > m.Generation {
-					return e.getExistsFromShard(shardIdx, key, true)
-				}
+			}
+			if e.shouldRetryAfterRefresh(ctx, shardIdx, m.Generation, retried, err) {
+				return e.getExistsFromShard(shardIdx, key, true)
 			}
 			return false, errors.Errorf("load segment %s lookup: %v", seg.Filename, err)
 		}
-		f, err := shard.getSegmentFile(context.Background(), seg)
+		f, err := shard.getSegmentFile(ctx, seg)
 		if err != nil {
-			if !retried && opfs.IsNotFound(err) {
-				refreshed, refreshErr := e.refreshShardManifest(shardIdx)
-				if refreshErr == nil && refreshed != nil && refreshed.Generation > m.Generation {
-					return e.getExistsFromShard(shardIdx, key, true)
-				}
+			if e.shouldRetryAfterRefresh(ctx, shardIdx, m.Generation, retried, err) {
+				return e.getExistsFromShard(shardIdx, key, true)
 			}
 			return false, errors.Errorf("open segment %s: %v", seg.Filename, err)
 		}
 		_, found, tombstone, err := lookup.Locate(f, key, false)
 		if err != nil {
-			if !retried && opfs.IsNotFound(err) {
+			if opfs.IsNotFound(err) {
 				shard.dropSegmentFile(seg.Filename)
-				refreshed, refreshErr := e.refreshShardManifest(shardIdx)
-				if refreshErr == nil && refreshed != nil && refreshed.Generation > m.Generation {
-					return e.getExistsFromShard(shardIdx, key, true)
-				}
+			}
+			if e.shouldRetryAfterRefresh(ctx, shardIdx, m.Generation, retried, err) {
+				return e.getExistsFromShard(shardIdx, key, true)
 			}
 			return false, err
 		}
@@ -524,22 +502,18 @@ func (e *Engine) getExistsBatchFromShard(
 
 		lookup, err := shard.getLookup(ctx, seg)
 		if err != nil {
-			if !retried && opfs.IsNotFound(err) {
+			if opfs.IsNotFound(err) {
 				shard.dropSegmentFile(seg.Filename)
-				refreshed, refreshErr := e.refreshShardManifest(shardIdx)
-				if refreshErr == nil && refreshed != nil && refreshed.Generation > m.Generation {
-					return e.getExistsBatchFromShard(ctx, shardIdx, keys, true)
-				}
+			}
+			if e.shouldRetryAfterRefresh(ctx, shardIdx, m.Generation, retried, err) {
+				return e.getExistsBatchFromShard(ctx, shardIdx, keys, true)
 			}
 			return nil, errors.Errorf("load segment %s lookup: %v", seg.Filename, err)
 		}
 		f, err := shard.getSegmentFile(ctx, seg)
 		if err != nil {
-			if !retried && opfs.IsNotFound(err) {
-				refreshed, refreshErr := e.refreshShardManifest(shardIdx)
-				if refreshErr == nil && refreshed != nil && refreshed.Generation > m.Generation {
-					return e.getExistsBatchFromShard(ctx, shardIdx, keys, true)
-				}
+			if e.shouldRetryAfterRefresh(ctx, shardIdx, m.Generation, retried, err) {
+				return e.getExistsBatchFromShard(ctx, shardIdx, keys, true)
 			}
 			return nil, errors.Errorf("open segment %s: %v", seg.Filename, err)
 		}
@@ -551,12 +525,11 @@ func (e *Engine) getExistsBatchFromShard(
 			}
 			_, found, tombstone, err := lookup.Locate(f, keys[j], false)
 			if err != nil {
-				if !retried && opfs.IsNotFound(err) {
+				if opfs.IsNotFound(err) {
 					shard.dropSegmentFile(seg.Filename)
-					refreshed, refreshErr := e.refreshShardManifest(shardIdx)
-					if refreshErr == nil && refreshed != nil && refreshed.Generation > m.Generation {
-						return e.getExistsBatchFromShard(ctx, shardIdx, keys, true)
-					}
+				}
+				if e.shouldRetryAfterRefresh(ctx, shardIdx, m.Generation, retried, err) {
+					return e.getExistsBatchFromShard(ctx, shardIdx, keys, true)
 				}
 				return nil, err
 			}
