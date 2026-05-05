@@ -130,45 +130,6 @@ function StylesheetLink({ id, href, onLoad }: IStylesheetLinkProps) {
   )
 }
 
-function stylesheetLoaded(href: string | undefined) {
-  if (!href || typeof document === 'undefined') {
-    return false
-  }
-  const absoluteHref = new URL(href, document.baseURI).href
-  if (
-    Array.from(document.styleSheets).some((sheet) => sheet.href === absoluteHref)
-  ) {
-    return true
-  }
-  return Array.from(
-    document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'),
-  ).some((link) => link.href === absoluteHref && !!link.sheet)
-}
-
-function isStylesheetLink(link: IWebViewHtmlLink) {
-  return link.link.rel === 'stylesheet' && !!link.link.href
-}
-
-function markLoadedStylesheets(links: IWebViewHtmlLink[]) {
-  let changed = false
-  const nextLinks = links.map((link) => {
-    if (
-      isStylesheetLink(link) &&
-      !link.loaded &&
-      stylesheetLoaded(link.link.href)
-    ) {
-      changed = true
-      return { ...link, loaded: true }
-    }
-    return link
-  })
-  return changed ? nextLinks : links
-}
-
-function htmlLinksCssLoaded(links: IWebViewHtmlLink[]) {
-  return !links.some((link) => isStylesheetLink(link) && !link.loaded)
-}
-
 // WebView represents a portion of the page which the Go webDocument controls.
 // It is exposed as a WebView to the Go stack.
 export const WebView: React.FC<IWebViewProps> = (props) => {
@@ -212,11 +173,10 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
   const [isComponentReady, setIsComponentReady] = useState(false)
 
   // TODO: hack: improve this
-   
+
   useEffect(() => {
     setIsComponentReady(false)
   }, [webViewState.scriptPath, webViewState.refreshNonce])
-   
 
   // onRemoveRef is a ref to the latest onRemove callback
   const onRemoveRef = useLatestRef(props.onRemove)
@@ -290,18 +250,18 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
               removeLink(addID)
               const link = options.setLinks[addID]
               if (link) {
-                const href = link.href ?? ''
-                const loaded =
-                  prevLoadedHrefs.has(href) || stylesheetLoaded(href)
+                const loaded = prevLoadedHrefs.has(link.href ?? '')
                 links.push({ id: addID, link, loaded })
               }
             }
           }
-          const loadedLinks = markLoadedStylesheets(links)
+          const hasUnloadedStylesheets = links.some(
+            (l) => l.link.rel === 'stylesheet' && !l.loaded,
+          )
           return {
             ...prev,
-            htmlLinks: loadedLinks,
-            cssLoaded: htmlLinksCssLoaded(loadedLinks),
+            htmlLinks: links,
+            cssLoaded: !hasUnloadedStylesheets,
           }
         })
       },
@@ -358,36 +318,13 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
       const links = prev.htmlLinks.map((link) =>
         link.id === linkId ? { ...link, loaded: true } : link,
       )
-      return { ...prev, htmlLinks: links, cssLoaded: htmlLinksCssLoaded(links) }
+      const hasUnloadedStylesheets = links.some(
+        (l) => l.link.rel === 'stylesheet' && !l.loaded,
+      )
+      return { ...prev, htmlLinks: links, cssLoaded: !hasUnloadedStylesheets }
     })
   }, [])
 
-  useEffect(() => {
-    if (webViewState.cssLoaded) {
-      return
-    }
-    const reconcileLoadedStylesheets = () => {
-      setWebViewState((prev) => {
-        if (prev.cssLoaded) {
-          return prev
-        }
-        const links = markLoadedStylesheets(prev.htmlLinks)
-        if (links === prev.htmlLinks) {
-          return prev
-        }
-        return {
-          ...prev,
-          htmlLinks: links,
-          cssLoaded: htmlLinksCssLoaded(links),
-        }
-      })
-    }
-    reconcileLoadedStylesheets()
-    const frame = window.requestAnimationFrame(reconcileLoadedStylesheets)
-    return () => window.cancelAnimationFrame(frame)
-  }, [webViewState.cssLoaded, webViewState.htmlLinks])
-
-   
   useLayoutEffect(() => {
     let nextReg: WebViewRegistration | null = null
     if (bldrWebDocument) {
@@ -412,7 +349,6 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
       }
     }
   }, [uuid, bldrWebDocument, bldrWebView])
-   
 
   return (
     <BldrContext.Provider value={childContext}>
