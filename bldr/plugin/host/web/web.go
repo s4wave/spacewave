@@ -126,19 +126,33 @@ func (h *WebHost) ExecutePlugin(
 	if !strings.HasSuffix(entrypoint, ".mjs") && !strings.HasSuffix(entrypoint, ".js") {
 		return errors.Errorf("entrypoint must have a .mjs or .js extension: %q", entrypoint)
 	}
+	le := h.le.WithField("plugin-id", pluginID)
 
 	// double-check the entrypoint exists and is executable
 	entrypoint = filepath.Clean(entrypoint)
+	le.
+		WithField("entrypoint", entrypoint).
+		Debug("looking up web plugin entrypoint")
 	entrypointHandle, _, err := pluginDist.LookupPath(ctx, entrypoint)
 	if err != nil {
 		return errors.Wrapf(err, "entrypoint at %s", entrypoint)
 	}
+	le.
+		WithField("entrypoint", entrypoint).
+		Debug("web plugin entrypoint lookup complete")
 
+	le.
+		WithField("entrypoint", entrypoint).
+		Debug("reading web plugin entrypoint file info")
 	entrypointFi, err := entrypointHandle.GetFileInfo(ctx)
 	entrypointHandle.Release()
 	if err != nil {
 		return errors.Wrap(err, "entrypoint")
 	}
+	le.
+		WithField("entrypoint", entrypoint).
+		WithField("mode", entrypointFi.Mode().String()).
+		Debug("web plugin entrypoint file info ready")
 
 	entrypointFiMode := entrypointFi.Mode()
 	if !entrypointFiMode.IsRegular() {
@@ -162,11 +176,17 @@ func (h *WebHost) ExecutePlugin(
 	}
 	pluginWebWorkerPath := plugin.PluginDistHTTPPath(pluginID, entrypoint)
 
+	le.
+		WithField("web-runtime", h.webRuntimeID).
+		Debug("looking up web runtime for plugin")
 	webRuntime, _, webRuntimeRef, err := web_runtime.ExLookupWebRuntime(ctx, h.b, false, h.webRuntimeID)
 	if err != nil {
 		return err
 	}
 	defer webRuntimeRef.Release()
+	le.
+		WithField("web-runtime", h.webRuntimeID).
+		Debug("web runtime lookup complete for plugin")
 
 	h.le.
 		WithField("entrypoint", entrypoint).

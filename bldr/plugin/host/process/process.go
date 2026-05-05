@@ -137,15 +137,29 @@ func (h *ProcessHost) ExecutePlugin(
 
 	// double-check the entrypoint exists and is executable
 	entrypoint = filepath.Clean(entrypoint)
+	le := h.le.WithField("plugin-id", pluginID)
+	le.
+		WithField("entrypoint", entrypoint).
+		Debug("looking up native plugin entrypoint")
 	entrypointHandle, _, err := pluginDist.LookupPath(ctx, entrypoint)
 	if err != nil {
 		return errors.Wrap(err, "entrypoint")
 	}
+	le.
+		WithField("entrypoint", entrypoint).
+		Debug("native plugin entrypoint lookup complete")
+	le.
+		WithField("entrypoint", entrypoint).
+		Debug("reading native plugin entrypoint file info")
 	entrypointFi, err := entrypointHandle.GetFileInfo(ctx)
 	entrypointHandle.Release()
 	if err != nil {
 		return errors.Wrap(err, "entrypoint")
 	}
+	le.
+		WithField("entrypoint", entrypoint).
+		WithField("mode", entrypointFi.Mode().String()).
+		Debug("native plugin entrypoint file info ready")
 	entrypointFiMode := entrypointFi.Mode()
 	if !entrypointFiMode.IsRegular() {
 		return errors.Errorf("entrypoint must be an executable regular file: %s", entrypointFiMode.String())
@@ -162,6 +176,9 @@ func (h *ProcessHost) ExecutePlugin(
 	}
 
 	// checkout the plugin dist unixfs to the disk.
+	le.
+		WithField("dist-dir", pluginDistDir).
+		Debug("syncing native plugin dist to disk")
 	if err := unixfs_sync.Sync(
 		ctx,
 		pluginDistDir,
@@ -171,10 +188,16 @@ func (h *ProcessHost) ExecutePlugin(
 	); err != nil {
 		return err
 	}
+	le.
+		WithField("dist-dir", pluginDistDir).
+		Debug("native plugin dist sync complete")
 
 	// the "embed" io/fs will clear the permissions bits
 	// set the executable to chmod +x
 	entrypointPath := filepath.Join(pluginDistDir, entrypoint)
+	le.
+		WithField("entrypoint-path", entrypointPath).
+		Debug("setting native plugin entrypoint executable bit")
 	if err := os.Chmod(entrypointPath, 0o755); err != nil {
 		return err
 	}
@@ -210,7 +233,6 @@ func (h *ProcessHost) ExecutePlugin(
 	}
 
 	// stderr: pipe to debug log and capture last lines for error reporting.
-	le := h.le.WithField("plugin-id", pluginID)
 	debugWriter := le.WriterLevel(logrus.DebugLevel)
 	stderrTail := tailwriter.New(debugWriter, 20)
 	entrypointProc.Stderr = stderrTail

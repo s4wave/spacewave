@@ -202,19 +202,35 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 	if !strings.HasSuffix(entrypoint, ".mjs") && !strings.HasSuffix(entrypoint, ".js") {
 		return errors.Errorf("entrypoint must have a .mjs or .js extension: %q", entrypoint)
 	}
+	le := h.le.WithFields(logrus.Fields{
+		"plugin-id": pluginID,
+	})
 
 	// double-check the entrypoint exists and is executable
 	entrypoint = filepath.Clean(entrypoint)
+	le.
+		WithField("entrypoint", entrypoint).
+		Debug("looking up quickjs plugin entrypoint")
 	entrypointHandle, _, err := pluginDist.LookupPath(ctx, entrypoint)
 	if err != nil {
 		return errors.Wrapf(err, "entrypoint at %s", entrypoint)
 	}
+	le.
+		WithField("entrypoint", entrypoint).
+		Debug("quickjs plugin entrypoint lookup complete")
 
+	le.
+		WithField("entrypoint", entrypoint).
+		Debug("reading quickjs plugin entrypoint file info")
 	entrypointFi, err := entrypointHandle.GetFileInfo(ctx)
 	entrypointHandle.Release()
 	if err != nil {
 		return errors.Wrap(err, "entrypoint")
 	}
+	le.
+		WithField("entrypoint", entrypoint).
+		WithField("mode", entrypointFi.Mode().String()).
+		Debug("quickjs plugin entrypoint file info ready")
 
 	entrypointFiMode := entrypointFi.Mode()
 	if !entrypointFiMode.IsRegular() {
@@ -255,7 +271,7 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 	}
 	defer relRpcServiceCtrl()
 
-	le := h.le.WithFields(logrus.Fields{
+	le = h.le.WithFields(logrus.Fields{
 		"plugin-instance-id": pluginInstanceID,
 		"plugin-id":          pluginID,
 	})
@@ -263,6 +279,7 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 
 	// this restarts if the quickjs vm is reloaded or unloaded
 	return h.quickjsVmRc.Access(ctx, func(ctx context.Context, val *quickjsVm) error {
+		le.Debug("creating quickjs plugin runtime")
 		// Create a per-plugin runtime with the shared compilation cache.
 		// Each plugin gets its own runtime to avoid wazero module name collisions
 		// (the QuickJS library forces the module name to "qjs-wasi.wasm").
@@ -271,6 +288,7 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 			return errors.Wrap(err, "create plugin runtime")
 		}
 		defer r.Close(ctx)
+		le.Debug("quickjs plugin runtime ready")
 
 		// construct a filesystem with the plugin dist fs at /dist
 		// this makes /dist read-only which is what we want.
@@ -325,9 +343,11 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 		// Initialize the rpc client for calling the plugin.
 		openStreamFn := srpc.NewOpenStreamWithMuxedConn(muxedConn)
 		pluginRpcClient := srpc.NewClient(openStreamFn)
+		le.Debug("publishing quickjs plugin rpc client")
 		if err := rpcInit(pluginRpcClient); err != nil {
 			return err
 		}
+		le.Debug("quickjs plugin rpc client published")
 
 		// Execute the muxed conn on the server side (accept incoming streams).
 		var acceptStreamErr atomic.Pointer[error]
@@ -356,18 +376,25 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 
 		// Create a QuickJS instance using the pre-compiled module.
 		// This uses the reactor model which doesn't block in _start().
+		le.Debug("creating quickjs instance")
 		qjs, err := quickjs.NewQuickJSWithModule(ctx, r, compiled, moduleConfig)
 		if err != nil {
 			return errors.Wrap(err, "create quickjs instance")
 		}
 		defer qjs.Close(ctx)
+		le.Debug("quickjs instance created")
 
 		// Initialize QuickJS with CLI args to load the boot harness.
 		// The boot harness reads BLDR_SCRIPT_PATH and BLDR_PLUGIN_START_INFO from env.
 		bootScript := path.Join(BootFsMount, "plugin-quickjs.esm.js")
+		le.
+			WithField("boot-script", bootScript).
+			WithField("script-path", scriptPath).
+			Debug("initializing quickjs plugin")
 		if err := qjs.Init(ctx, []string{"qjs", "--std", bootScript}); err != nil {
 			return errors.Wrap(err, "init quickjs")
 		}
+		le.Debug("quickjs plugin initialized")
 
 		// Run the event loop with stdin polling.
 		// Unlike RunLoop which exits on idle, we need to wait for stdin data
