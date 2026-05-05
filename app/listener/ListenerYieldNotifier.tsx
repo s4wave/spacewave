@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react'
 import { isDesktop } from '@aptre/bldr'
 import { useWatchStateRpc } from '@aptre/bldr-react'
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
+import { LuTerminal, LuTriangleAlert } from 'react-icons/lu'
 
 import type { Root } from '@s4wave/sdk/root'
 import {
@@ -17,7 +18,6 @@ import {
   WatchRuntimeHandoffResponse,
 } from '@s4wave/sdk/root/root.pb.js'
 
-import { Button } from '@s4wave/web/ui/button.js'
 import {
   Dialog,
   DialogContent,
@@ -121,6 +121,9 @@ function ListenerYieldNotifierInner({
 
   const handoff = useHandoffState(service)
 
+  const requesterName = active?.requesterName?.trim() || 'unknown process'
+  const socketPath = active?.socketPath || ''
+
   return (
     <RuntimeHandoffProvider state={handoff}>
       {handoff?.active && (
@@ -128,50 +131,67 @@ function ListenerYieldNotifierInner({
       )}
 
       <Dialog open={active != null} onOpenChange={onOpenChange}>
-        <DialogContent showCloseButton={false} className="sm:max-w-md">
+        <DialogContent showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>Allow command-line takeover?</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <LuTriangleAlert className="text-warning h-5 w-5 shrink-0" />
+              Allow command-line takeover?
+            </DialogTitle>
             <DialogDescription>
-              A local process is asking the Spacewave desktop app to hand off
-              the shared runtime socket. If you allow it, this window will enter
-              a handed-off state until you reclaim the runtime.
+              A local process is asking to take over Spacewave's shared runtime
+              socket. If you allow it, that process will act with your runtime
+              authority until you reclaim it from this window. Only continue
+              if you started this process yourself.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="text-foreground-alt flex flex-col gap-2 text-sm">
-            <div className="flex items-start gap-2">
-              <span className="text-foreground-alt/60 shrink-0 font-medium">
-                Requesting runtime
-              </span>
-              <code className="bg-foreground/5 rounded px-1.5 py-0.5 font-mono text-xs">
-                {active?.requesterName || 'spacewave serve'}
-              </code>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="text-foreground-alt/60 shrink-0 font-medium">
-                Socket path
-              </span>
-              <code className="bg-foreground/5 truncate rounded px-1.5 py-0.5 font-mono text-xs">
-                {active?.socketPath || ''}
-              </code>
+          <div className="border-foreground/10 bg-background/30 rounded-lg border p-4">
+            <div className="flex items-start gap-3">
+              <div className="border-foreground/10 bg-background/60 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border">
+                <LuTerminal className="text-foreground-alt h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="space-y-0.5">
+                  <p className="text-foreground-alt/60 text-[0.65rem] font-medium tracking-wider uppercase select-none">
+                    Requesting runtime
+                  </p>
+                  <p className="text-foreground truncate text-sm font-medium">
+                    {requesterName}
+                  </p>
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-foreground-alt/60 text-[0.65rem] font-medium tracking-wider uppercase select-none">
+                    Socket path
+                  </p>
+                  <p className="text-foreground-alt truncate font-mono text-xs">
+                    {socketPath}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 
           <DialogFooter>
-            <Button
-              variant="outline"
-              disabled={pendingDecision != null}
+            <button
+              type="button"
               onClick={() => active && respond(active.promptId ?? '', false)}
-            >
-              Deny
-            </Button>
-            <Button
-              variant="default"
               disabled={pendingDecision != null}
-              onClick={() => active && respond(active.promptId ?? '', true)}
+              className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Allow
-            </Button>
+              {pendingDecision === 'deny' ? 'Denying...' : 'Deny'}
+            </button>
+            <button
+              type="button"
+              onClick={() => active && respond(active.promptId ?? '', true)}
+              disabled={pendingDecision != null}
+              className={cn(
+                'rounded-md border px-4 py-2 text-sm transition-all',
+                'border-warning/30 bg-warning/10 hover:bg-warning/20',
+                'disabled:cursor-not-allowed disabled:opacity-50',
+              )}
+            >
+              {pendingDecision === 'allow' ? 'Allowing...' : 'Allow takeover'}
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -222,33 +242,41 @@ function RuntimeHandoffBanner({
       .finally(() => setReclaiming(false))
   }, [service])
 
+  const requesterName = handoff.requesterName?.trim() || 'a local process'
+  const socketPath = handoff.socketPath || ''
+
   return (
     <div
       data-slot="runtime-handoff-banner"
-      className={cn(
-        'bg-amber-500/15 text-amber-900 dark:text-amber-200',
-        'border-b border-amber-500/40',
-        'flex w-full flex-wrap items-center justify-between gap-3 px-4 py-2 text-xs',
-      )}
+      className="border-warning/20 bg-warning/5 flex w-full flex-wrap items-center justify-between gap-3 border-b px-4 py-2.5"
     >
-      <div className="flex flex-col gap-0.5">
-        <span className="font-semibold tracking-tight">Runtime handed off</span>
-        <span className="text-foreground-alt/80">
-          {handoff.requesterName || 'spacewave serve'} is running against{' '}
-          <code className="bg-foreground/5 rounded px-1 py-0.5 font-mono text-[0.65rem]">
-            {handoff.socketPath || ''}
-          </code>
-          . Runtime actions are disabled until you reclaim.
-        </span>
+      <div className="flex min-w-0 items-start gap-2">
+        <LuTriangleAlert className="text-warning mt-0.5 h-4 w-4 shrink-0" />
+        <div className="min-w-0 space-y-0.5">
+          <p className="text-foreground text-sm font-medium select-none">
+            Runtime handed off
+          </p>
+          <p className="text-foreground-alt text-xs leading-relaxed">
+            {requesterName} is running against{' '}
+            <code className="bg-foreground/5 rounded px-1 py-0.5 font-mono text-[0.65rem]">
+              {socketPath}
+            </code>
+            . Runtime actions are disabled until you reclaim.
+          </p>
+        </div>
       </div>
-      <Button
-        variant="default"
-        size="sm"
-        disabled={reclaiming}
+      <button
+        type="button"
         onClick={onReclaim}
+        disabled={reclaiming}
+        className={cn(
+          'shrink-0 rounded-md border px-3 py-1.5 text-sm transition-colors',
+          'border-warning/20 bg-warning/10 hover:bg-warning/20',
+          'disabled:cursor-not-allowed disabled:opacity-50',
+        )}
       >
         {reclaiming ? 'Reclaiming...' : 'Reclaim runtime'}
-      </Button>
+      </button>
     </div>
   )
 }
