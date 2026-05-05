@@ -26,16 +26,23 @@ func AccessManifest(
 	) error,
 ) error {
 	_, bcs := bls.BuildTransaction(nil)
+	le.Debug("unmarshalling manifest")
 	manifest, err := UnmarshalManifest(ctx, bcs)
 	if err != nil {
 		return err
 	}
+	le.WithFields(logrus.Fields{
+		"assets-fs-ref": manifest.GetAssetsFsRef().MarshalLog(),
+		"dist-fs-ref":   manifest.GetDistFsRef().MarshalLog(),
+		"entrypoint":    manifest.GetEntrypoint(),
+	}).Debug("manifest unmarshalled")
 
 	// build unixfs_block_fs backed by the distribution fs
 	distBls := bls.Clone()
 	defer distBls.Release()
 
 	distBls.SetRootRef(manifest.GetDistFsRef())
+	le.Debug("building manifest dist filesystem handle")
 	distWriter := unixfs_block_fs.NewFSWriter()
 	distFS := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, distBls, distWriter)
 	distWriter.SetFS(distFS)
@@ -51,6 +58,7 @@ func AccessManifest(
 	assetsBls := bls.Clone()
 	defer assetsBls.Release()
 	assetsBls.SetRootRef(manifest.GetAssetsFsRef())
+	le.Debug("building manifest assets filesystem handle")
 	assetsWriter := unixfs_block_fs.NewFSWriter()
 	assetsFS := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, assetsBls, assetsWriter)
 	assetsWriter.SetFS(assetsFS)
@@ -61,5 +69,6 @@ func AccessManifest(
 	}
 	defer assetsUfs.Release()
 
+	le.Debug("calling manifest access callback")
 	return cb(ctx, bls, bcs, manifest, distUfs, assetsUfs)
 }
