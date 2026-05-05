@@ -200,6 +200,72 @@ func TestTypedObjectResource(t *testing.T) {
 		t.Logf("Successfully accessed typed object with type=%s resourceId=%d", resp.TypeId, resp.ResourceId)
 	})
 
+	t.Run("AccessTypedObjectFromWatchedWorldState", func(t *testing.T) {
+		resClient, engine, cleanup := setupWorldResourceClientWithObjectTypes(ctx, t, tb)
+		defer cleanup()
+
+		objectKey := "object-layout/watched-layout"
+		sdkTx, err := engine.NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatalf("NewTransaction failed: %v", err)
+		}
+
+		op := space_world_ops.NewInitObjectLayoutOp(objectKey, time.Now())
+		opData, err := op.MarshalBlock()
+		if err != nil {
+			sdkTx.Release()
+			t.Fatalf("MarshalBlock failed: %v", err)
+		}
+		_, _, err = sdkTx.ApplyWorldOp(ctx, space_world_ops.InitObjectLayoutOpId, opData, "")
+		if err != nil {
+			sdkTx.Release()
+			t.Fatalf("ApplyWorldOp failed: %v", err)
+		}
+		if err := sdkTx.Commit(ctx); err != nil {
+			sdkTx.Release()
+			t.Fatalf("Commit failed: %v", err)
+		}
+		sdkTx.Release()
+
+		stream, err := engine.WatchWorldState(ctx)
+		if err != nil {
+			t.Fatalf("WatchWorldState failed: %v", err)
+		}
+		defer stream.Close()
+
+		msg, err := stream.Recv()
+		if err != nil {
+			t.Fatalf("Recv failed: %v", err)
+		}
+		if msg.GetResourceId() == 0 {
+			t.Fatal("expected non-zero watched resource ID")
+		}
+
+		trackedRef := resClient.CreateResourceReference(msg.GetResourceId())
+		defer trackedRef.Release()
+		trackedClient, err := trackedRef.GetClient()
+		if err != nil {
+			t.Fatalf("GetClient failed: %v", err)
+		}
+
+		typedSvcClient := s4wave_world.NewSRPCTypedObjectResourceServiceClient(trackedClient)
+		resp, err := typedSvcClient.AccessTypedObject(ctx, &s4wave_world.AccessTypedObjectRequest{
+			ObjectKey: objectKey,
+		})
+		if err != nil {
+			t.Fatalf("AccessTypedObject from watched WorldState failed: %v", err)
+		}
+		if resp.GetTypeId() != s4wave_layout_world.ObjectLayoutTypeID {
+			t.Fatalf("expected type %q, got %q", s4wave_layout_world.ObjectLayoutTypeID, resp.GetTypeId())
+		}
+		if resp.GetResourceId() == 0 {
+			t.Fatal("expected non-zero typed resource ID")
+		}
+
+		typedRef := resClient.CreateResourceReference(resp.GetResourceId())
+		typedRef.Release()
+	})
+
 	t.Run("AccessTypedObjectGitRepo", func(t *testing.T) {
 		resClient, engine, cleanup := setupWorldResourceClientWithObjectTypes(ctx, t, tb)
 		defer cleanup()
