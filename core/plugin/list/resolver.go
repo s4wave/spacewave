@@ -7,18 +7,33 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
-	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 	plugin_approval "github.com/s4wave/spacewave/core/plugin/approval"
 )
 
 // checkPluginLoaded checks if a plugin is currently loaded and running.
-// Uses ExLoadPlugin with returnIfIdle=true for a non-blocking check.
+// Reads the plugin host scheduler status without perturbing LoadPlugin refs.
 func checkPluginLoaded(ctx context.Context, b bus.Bus, pluginID string) bool {
-	rp, _, ref, err := bldr_plugin.ExLoadPlugin(ctx, b, true, pluginID, nil)
-	if ref != nil {
-		ref.Release()
+	if err := ctx.Err(); err != nil {
+		return false
 	}
-	return err == nil && rp != nil
+	for _, ctrl := range b.GetControllers() {
+		scheduler, ok := ctrl.(*plugin_host_scheduler.Controller)
+		if !ok {
+			continue
+		}
+		snapshot := scheduler.GetPluginStatusCtr().GetValue()
+		if snapshot == nil {
+			return false
+		}
+		for _, plugin := range snapshot.Plugins {
+			if plugin.GetPluginId() == pluginID && plugin.GetRunning() {
+				return true
+			}
+		}
+		return false
+	}
+	return false
 }
 
 // fetchManifestInfo fetches manifest metadata for a plugin via FetchManifest.
