@@ -8,6 +8,7 @@ import { LayoutDebug } from '@s4wave/web/debug/LayoutDebug.js'
 import { LayoutColorsDebug } from '@s4wave/web/debug/LayoutColorsDebug.js'
 import { LoadingDebug } from '@s4wave/web/debug/LoadingDebug.js'
 import { SessionSettingsDebug } from '@s4wave/web/debug/SessionSettingsDebug.js'
+import { UnixFSBrowserDebug } from '@s4wave/web/debug/UnixFSBrowserDebug.js'
 
 // DebugRoutes contains routes for debug/development tools.
 export const DebugRoutes = (
@@ -35,6 +36,9 @@ export const DebugRoutes = (
     </Route>
     <Route path="/debug/ui/forge-viewer">
       <ForgeViewerDebug />
+    </Route>
+    <Route path="/debug/ui/unixfs-browser">
+      <UnixFSBrowserDebug />
     </Route>
   </>
 )
