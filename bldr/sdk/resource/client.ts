@@ -458,7 +458,7 @@ export class Client {
       controller.abort()
       const err = new Error(ackBody.value.error)
       if (ackBody.value.error === resourceAttachClientNotFound) {
-        this.invalidateConnectionState('connection-lost')
+        this.releaseAllResources('connection-lost')
         throw new ResourceClientError(
           'Resource attach client was released',
           'CONNECTION_FAILED',
@@ -1007,21 +1007,6 @@ export class Client {
     })
 
     // Increment generation and notify listeners so React can re-create resources
-    this._connectionGeneration++
-    this.connectionLostEvents.emit(undefined)
-  }
-
-  private invalidateConnectionState(reason: ResourceReleaseReason): void {
-    this.clearPendingResourceReleases()
-    this.clearAttachSession()
-    for (const [resourceId, refs] of this.resources.entries()) {
-      refs.forEach((ref) => ref._markReleased())
-      this.events.emit({ resourceId, reason })
-    }
-    this.resources.clear()
-    this.initState = null
-    this.initPromise = null
-    this._reconnectResolve = null
     this._connectionGeneration++
     this.connectionLostEvents.emit(undefined)
   }

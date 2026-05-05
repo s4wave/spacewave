@@ -130,7 +130,7 @@ describe('ResourceClient', () => {
     expect(client.connectionGeneration).toBe(1)
     expect(onConnectionLost).toHaveBeenCalledOnce()
     expect(Reflect.get(client, 'initState')).toBe(null)
-    expect(Reflect.get(client, 'initPromise')).toBe(null)
+    expect(Reflect.get(client, 'initPromise')).toBeInstanceOf(Promise)
   })
 
   it('retries queued resource releases after runtime ack timeouts', async () => {
