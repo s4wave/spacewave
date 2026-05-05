@@ -241,11 +241,17 @@ export function FileListEntry({
         <Spinner className="text-brand shrink-0" />
       : entry.isDir ?
         <LuFolder
-          className="text-file-folder-icon h-4 w-4 shrink-0"
+          className={cn(
+            'h-4 w-4 shrink-0',
+            selected ? 'text-brand' : 'text-foreground-alt/80',
+          )}
           style={iconStyle}
         />
       : <LuFile
-          className="text-foreground-alt h-4 w-4 shrink-0"
+          className={cn(
+            'h-4 w-4 shrink-0',
+            selected ? 'text-foreground' : 'text-foreground-alt/60',
+          )}
           style={iconStyle}
         />
       }
@@ -262,12 +268,12 @@ export function FileListEntry({
           path: currentPath ?? '/',
         })
       : defaultNode}
-      <div className="text-foreground-alt w-[140px] min-w-[100px] shrink text-xs opacity-70">
+      <div className="text-foreground-alt/50 w-[140px] min-w-[100px] shrink text-xs">
         {entryDetails?.modTime ?
           format(entryDetails.modTime, 'MMM dd, yyyy')
         : '—'}
       </div>
-      <div className="text-foreground-alt w-[70px] min-w-[50px] shrink text-right text-xs opacity-70">
+      <div className="text-foreground-alt/50 w-[70px] min-w-[50px] shrink text-right text-xs">
         {entryDetails?.size && !entry.isSymlink ?
           entry.isDir ?
             entryDetails.size
@@ -298,11 +304,12 @@ export function FileListEntry({
       aria-setsize={ariaAttributes['aria-setsize']}
       style={style}
       className={cn(
-        'group text-file-browser-row flex items-center px-3 py-1.5',
-        'hover:bg-outliner-selected-highlight cursor-pointer transition-colors select-none',
-        selected && 'bg-ui-selected hover:bg-ui-selected',
-        itemIndex % 2 === 1 && !selected && 'bg-file-row-alternate',
-        focused && 'ring-ui-outline-active ring-1 ring-inset',
+        'group relative flex items-center px-3 py-1.5 text-xs',
+        'cursor-pointer transition-colors select-none',
+        selected ?
+          'bg-brand/10 text-foreground'
+        : 'text-foreground/90 hover:bg-foreground/5',
+        focused && !selected && 'ring-brand/25 ring-1 ring-inset',
         isDropTargetActive && 'bg-brand/10 ring-brand/40 ring-1 ring-inset',
       )}
       draggable={dragEnvelope !== null || downloadDragTarget !== null}
@@ -315,6 +322,9 @@ export function FileListEntry({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
+      {selected && (
+        <span className="bg-brand/80 absolute top-1 bottom-1 left-0 w-[2px] rounded-r" />
+      )}
       {rowContent}
     </div>
   )

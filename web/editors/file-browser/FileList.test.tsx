@@ -71,7 +71,7 @@ describe('FileList', () => {
     await user.click(documentsEntry!)
 
     await waitFor(() => {
-      expect(documentsEntry?.className).toContain('bg-ui-selected')
+      expect(documentsEntry?.className).toContain('bg-brand/10')
     })
   })
 
@@ -348,7 +348,7 @@ describe('FileList', () => {
     await waitFor(() => {
       const rows = screen.getAllByRole('row')
       const hasSelection = rows.some((row) =>
-        row.className.includes('bg-ui-selected'),
+        row.className.includes('bg-brand/10'),
       )
       expect(hasSelection).toBe(true)
     })
@@ -358,7 +358,7 @@ describe('FileList', () => {
     await waitFor(() => {
       const rows = screen.getAllByRole('row')
       const selectedRows = rows.filter((row) =>
-        row.className.includes('bg-ui-selected'),
+        row.className.includes('bg-brand/10'),
       )
       expect(selectedRows.length).toBe(1)
     })
@@ -380,7 +380,7 @@ describe('FileList', () => {
     await waitFor(() => {
       const allEntries = screen.getAllByRole('row')
       allEntries.forEach((entry) => {
-        expect(entry.className).toContain('bg-ui-selected')
+        expect(entry.className).toContain('bg-brand/10')
       })
     })
   })
@@ -399,7 +399,7 @@ describe('FileList', () => {
     await user.click(documentsEntry!)
 
     await waitFor(() => {
-      expect(documentsEntry?.className).toContain('bg-ui-selected')
+      expect(documentsEntry?.className).toContain('bg-brand/10')
     })
 
     const readmeEntry = screen
@@ -412,7 +412,7 @@ describe('FileList', () => {
     await waitFor(() => {
       const selectedRows = screen
         .getAllByRole('row')
-        .filter((row) => row.className.includes('bg-ui-selected'))
+        .filter((row) => row.className.includes('bg-brand/10'))
       expect(selectedRows.length).toBeGreaterThan(1)
     })
   })
@@ -431,7 +431,7 @@ describe('FileList', () => {
     await user.click(documentsEntry!)
 
     await waitFor(() => {
-      expect(documentsEntry?.className).toContain('bg-ui-selected')
+      expect(documentsEntry?.className).toContain('bg-brand/10')
     })
 
     const picturesEntry = screen
@@ -444,7 +444,7 @@ describe('FileList', () => {
     await waitFor(() => {
       const selectedRows = screen
         .getAllByRole('row')
-        .filter((row) => row.className.includes('bg-ui-selected'))
+        .filter((row) => row.className.includes('bg-brand/10'))
       expect(selectedRows.length).toBe(2)
     })
   })
@@ -542,7 +542,7 @@ describe('FileList', () => {
     await user.click(fileEntry!)
 
     await waitFor(() => {
-      expect(fileEntry?.className).toContain('bg-ui-selected')
+      expect(fileEntry?.className).toContain('bg-brand/10')
     })
 
     // Ctrl+click README.md to add to selection
@@ -556,7 +556,7 @@ describe('FileList', () => {
     await waitFor(() => {
       const selectedRows = screen
         .getAllByRole('row')
-        .filter((row) => row.className.includes('bg-ui-selected'))
+        .filter((row) => row.className.includes('bg-brand/10'))
       expect(selectedRows.length).toBe(2)
     })
 
@@ -592,7 +592,7 @@ describe('FileList', () => {
     await user.click(documentsEntry!)
 
     await waitFor(() => {
-      expect(documentsEntry?.className).toContain('bg-ui-selected')
+      expect(documentsEntry?.className).toContain('bg-brand/10')
     })
 
     // Ctrl+click file.txt to add to selection
@@ -604,7 +604,7 @@ describe('FileList', () => {
     await waitFor(() => {
       const selectedRows = screen
         .getAllByRole('row')
-        .filter((row) => row.className.includes('bg-ui-selected'))
+        .filter((row) => row.className.includes('bg-brand/10'))
       expect(selectedRows.length).toBe(2)
     })
 

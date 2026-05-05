@@ -1,4 +1,10 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  type ReactNode,
+} from 'react'
 import {
   LuChevronLeft,
   LuChevronRight,
@@ -85,53 +91,27 @@ export function Toolbar({
   const showOverflow = collapseLevel !== 'none'
 
   return (
-    <PanelHeader
-      ref={toolbarRef}
-      className="bg-panel-header gap-1"
-      height={height}
-    >
+    <PanelHeader ref={toolbarRef} className="gap-1.5" height={height}>
       {showNav && (
-        <div className="flex">
-          <button
+        <div className="flex items-center gap-0.5">
+          <NavIconButton
+            icon={<LuChevronLeft className="h-4 w-4" />}
+            label="Back"
             onClick={onBack}
             disabled={!canGoBack}
-            title="Back"
-            aria-label="Back"
-            className={cn(
-              'rounded p-[2px]',
-              canGoBack ?
-                'hover:bg-pulldown-hover'
-              : 'cursor-default opacity-40',
-            )}
-          >
-            <LuChevronLeft className="text-foreground-alt h-4 w-4" />
-          </button>
-          <button
+          />
+          <NavIconButton
+            icon={<LuChevronRight className="h-4 w-4" />}
+            label="Forward"
             onClick={onForward}
             disabled={!canGoForward}
-            title="Forward"
-            aria-label="Forward"
-            className={cn(
-              'rounded p-[2px]',
-              canGoForward ?
-                'hover:bg-pulldown-hover'
-              : 'cursor-default opacity-40',
-            )}
-          >
-            <LuChevronRight className="text-foreground-alt h-4 w-4" />
-          </button>
-          <button
+          />
+          <NavIconButton
+            icon={<LuChevronUp className="h-4 w-4" />}
+            label="Up"
             onClick={onUp}
             disabled={!canGoUp}
-            title="Up"
-            aria-label="Up"
-            className={cn(
-              'rounded p-[2px]',
-              canGoUp ? 'hover:bg-pulldown-hover' : 'cursor-default opacity-40',
-            )}
-          >
-            <LuChevronUp className="text-foreground-alt h-4 w-4" />
-          </button>
+          />
         </div>
       )}
 
@@ -144,24 +124,20 @@ export function Toolbar({
       : <div className="flex-1" />}
 
       {(onNewFolder || onUploadFiles) && (
-        <div className="flex gap-1">
+        <div className="flex items-center gap-0.5">
           {onNewFolder && (
-            <button
+            <NavIconButton
+              icon={<LuFolderPlus className="h-4 w-4" />}
+              label="New folder"
               onClick={onNewFolder}
-              title="New folder"
-              className="hover:bg-pulldown-hover rounded p-[2px]"
-            >
-              <LuFolderPlus className="text-foreground-alt h-4 w-4" />
-            </button>
+            />
           )}
           {onUploadFiles && (
-            <button
+            <NavIconButton
+              icon={<LuUpload className="h-4 w-4" />}
+              label="Upload files"
               onClick={onUploadFiles}
-              title="Upload files"
-              className="hover:bg-pulldown-hover rounded p-[2px]"
-            >
-              <LuUpload className="text-foreground-alt h-4 w-4" />
-            </button>
+            />
           )}
         </div>
       )}
@@ -186,6 +162,35 @@ export function Toolbar({
 
       : <SearchBox placeholder="Search" />}
     </PanelHeader>
+  )
+}
+
+interface NavIconButtonProps {
+  icon: ReactNode
+  label: string
+  onClick?: () => void
+  disabled?: boolean
+}
+
+// NavIconButton renders a compact toolbar action with foreground-alt to
+// foreground hover, matching the design-system panel header convention.
+function NavIconButton({ icon, label, onClick, disabled }: NavIconButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={label}
+      aria-label={label}
+      className={cn(
+        'flex h-6 w-6 items-center justify-center rounded transition-colors',
+        disabled ?
+          'text-foreground-alt/30 cursor-default'
+        : 'text-foreground-alt hover:text-foreground hover:bg-foreground/5',
+      )}
+    >
+      {icon}
+    </button>
   )
 }
 
@@ -215,8 +220,12 @@ function OverflowMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="hover:bg-pulldown-hover rounded p-[2px]">
-          <LuEllipsisVertical className="text-foreground-alt h-4 w-4" />
+        <button
+          type="button"
+          aria-label="More actions"
+          className="text-foreground-alt hover:text-foreground hover:bg-foreground/5 flex h-6 w-6 items-center justify-center rounded transition-colors"
+        >
+          <LuEllipsisVertical className="h-4 w-4" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="text-ui min-w-[140px]">

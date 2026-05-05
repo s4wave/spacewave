@@ -34,7 +34,13 @@ import {
   DialogTitle,
 } from '@s4wave/web/ui/dialog.js'
 import { cn } from '@s4wave/web/style/utils.js'
-import { LuCheck, LuUpload, LuX } from 'react-icons/lu'
+import {
+  LuCheck,
+  LuCircleAlert,
+  LuRotateCw,
+  LuUpload,
+  LuX,
+} from 'react-icons/lu'
 import { useCommand } from '@s4wave/web/command/useCommand.js'
 import { useIsTabActive } from '@s4wave/web/contexts/TabActiveContext.js'
 import { useTabContext } from '@s4wave/web/object/TabContext.js'
@@ -1176,14 +1182,16 @@ export function UnixFSBrowser({
         </DialogHeader>
         <DialogFooter>
           <button
-            className="hover:bg-accent rounded-md px-4 py-2 text-xs"
+            type="button"
             onClick={handleCancelDelete}
+            className="text-foreground-alt hover:text-foreground h-7 rounded-md px-3 text-xs transition-colors"
           >
             Cancel
           </button>
           <button
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-md px-4 py-2 text-xs"
+            type="button"
             onClick={() => void handleConfirmDelete()}
+            className="border-destructive/30 bg-destructive/10 hover:border-destructive/50 hover:bg-destructive/15 text-foreground h-7 rounded-md border px-3 text-xs font-medium transition-all duration-150"
           >
             Delete
           </button>
@@ -1323,18 +1331,32 @@ export function UnixFSBrowser({
         data-testid="unixfs-browser"
         className="flex h-full w-full flex-col overflow-hidden"
       >
-        <div className="bg-file-back flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden">
-          <div className="text-destructive text-xs">Error loading files</div>
-          <div className="text-foreground-alt/70 mt-1 text-xs">
-            {error.message ?? 'Unknown error'}
-          </div>
+        <Toolbar
+          currentPath={displayPath}
+          onPathChange={handlePathChange}
+          onNavigate={handlePathChange}
+          onBack={handleBack}
+          onForward={handleForward}
+          onUp={handleUp}
+          canGoBack={history?.canGoBack ?? false}
+          canGoForward={history?.canGoForward ?? false}
+          canGoUp={displayPath !== '/'}
+        />
+        <div className="border-destructive/20 bg-destructive/5 flex items-center gap-2 border-b px-3 py-1.5">
+          <LuCircleAlert className="text-destructive h-3.5 w-3.5 shrink-0" />
+          <p className="text-foreground/80 min-w-0 flex-1 truncate text-xs">
+            Error loading files: {error.message ?? 'Unknown error'}
+          </p>
           <button
-            className="text-brand mt-2 text-xs underline"
+            type="button"
             onClick={handleRetry}
+            className="text-foreground-alt hover:text-foreground inline-flex items-center gap-1 text-xs font-medium transition-colors"
           >
+            <LuRotateCw className="h-3 w-3" />
             Retry
           </button>
         </div>
+        <div className="bg-file-back flex min-h-0 flex-1 overflow-hidden" />
       </div>
     )
   }
