@@ -6,9 +6,9 @@ import { RouterProvider } from '@s4wave/web/router/router.js'
 
 import { QuickstartLoading } from './QuickstartLoading.js'
 
-function renderQuickstartLoading() {
+function renderQuickstartLoading(path = '/quickstart/drive') {
   return render(
-    <RouterProvider path="/quickstart/drive" onNavigate={() => {}}>
+    <RouterProvider path={path} onNavigate={() => {}}>
       <StaticProvider>
         <QuickstartLoading />
       </StaticProvider>
@@ -38,5 +38,11 @@ describe('QuickstartLoading', () => {
     renderQuickstartLoading()
 
     expect(screen.getByText('Loading application...')).toBeTruthy()
+  })
+
+  it('treats dynamic quickstart ids as unknown public routes', () => {
+    renderQuickstartLoading('/quickstart/glados-workspace')
+
+    expect(screen.getByText('Unknown quickstart option.')).toBeTruthy()
   })
 })
