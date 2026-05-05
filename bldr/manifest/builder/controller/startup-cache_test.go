@@ -428,6 +428,45 @@ func TestControllerStartupMissingManifestRebuilds(t *testing.T) {
 	}
 }
 
+func TestControllerStartupManifestBucketMismatchRebuilds(t *testing.T) {
+	tmpDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	rootLogger := logrus.New()
+	rootLogger.SetLevel(logrus.DebugLevel)
+	tb, err := testbed.BuildTestbed(ctx, logrus.NewEntry(rootLogger))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+
+	builderControllerConfig := newTestBuilderControllerProto(t)
+	startupBuilderResult := buildStoredStartupBuilderResult(t, tb, tmpDir, builderControllerConfig)
+	startupBuilderResult.ManifestRef.ManifestRef = startupBuilderResult.GetManifestRef().GetManifestRef().CloneVT()
+	startupBuilderResult.ManifestRef.ManifestRef.BucketId = "other-bucket"
+
+	result, buildCalls := runStartupExecuteWithTestbed(
+		t,
+		tb,
+		tmpDir,
+		startupBuilderResult,
+		true,
+		nil,
+		tb.GetWorldEngineID(),
+	)
+	if buildCalls != 1 {
+		t.Fatalf("expected 1 build call, got %d", buildCalls)
+	}
+	if result.GetManifestRef().GetManifestRef().GetBucketId() != "built-bucket" {
+		t.Fatal("expected rebuilt result")
+	}
+}
+
 func buildStartupBuilderResult(
 	t *testing.T,
 	sourcePath string,

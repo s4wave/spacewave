@@ -20,7 +20,10 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/unixfs"
+	"github.com/s4wave/spacewave/db/volume"
+	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
 	"github.com/s4wave/spacewave/db/world"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 
@@ -105,6 +108,53 @@ func (c *Controller) validateStartupManifestAvailability(
 	}
 
 	ws := world.NewEngineWorldState(world.NewBusEngine(ctx, c.bus, engineID), false)
+	cachedBucketID := manifestRef.GetManifestRef().GetBucketId()
+	var currentVolumeID string
+	if builderConfig.GetPeerId() != "" {
+		peerID, err := peer.IDB58Decode(builderConfig.GetPeerId())
+		if err != nil {
+			return "", err
+		}
+		currentVolumeID = volume.NewVolumeID(volume_bolt.ControllerID, peerID)
+	}
+	var currentBucketID string
+	if currentVolumeID == "" {
+		storageCursor, err := ws.BuildStorageCursor(ctx)
+		if err != nil {
+			return "", err
+		}
+		defer storageCursor.Release()
+		currentVolumeID = storageCursor.GetOpArgs().GetVolumeId()
+		currentBucketID = storageCursor.GetRefWithOpArgs().GetBucketId()
+	}
+	if currentVolumeID != "" && cachedBucketID != "" {
+		le.WithFields(logrus.Fields{
+			"bucket-id": cachedBucketID,
+			"volume-id": currentVolumeID,
+		}).Debug("validating startup manifest bucket availability")
+		bh, _, bhRef, err := bucket.ExBuildBucketAPI(ctx, c.bus, true, cachedBucketID, currentVolumeID, nil)
+		if err != nil {
+			return "", err
+		}
+		if bhRef != nil {
+			defer bhRef.Release()
+		}
+		if bh == nil || !bh.GetExists() {
+			return errors.Errorf(
+				"startup manifest bucket %q is not in current world volume %q",
+				cachedBucketID,
+				currentVolumeID,
+			).Error(), nil
+		}
+	}
+	if currentBucketID != "" && cachedBucketID != "" && currentBucketID != cachedBucketID {
+		return errors.Errorf(
+			"startup manifest bucket changed: %q != %q",
+			cachedBucketID,
+			currentBucketID,
+		).Error(), nil
+	}
+
 	entrypoint := startupBuilderResult.GetManifest().GetEntrypoint()
 	err := bldr_manifest_world.AccessManifest(
 		ctx,
