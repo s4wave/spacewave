@@ -39,6 +39,7 @@ import {
   approveSpacePlugins,
   createDrive,
   createSpaceSettingsObject,
+  executeDynamicQuickstart,
   getQuickstartSpaceName,
   populateSpace,
 } from './create.js'
@@ -50,6 +51,10 @@ const seedMocks = vi.hoisted(() => ({
   createNotebookClientSide: vi.fn().mockResolvedValue(undefined),
 }))
 
+const quickstartRegistryMocks = vi.hoisted(() => ({
+  ExecuteQuickstart: vi.fn(),
+}))
+
 vi.mock('../../plugin/notes/blog-seed.js', () => ({
   createBlogClientSide: seedMocks.createBlogClientSide,
 }))
@@ -57,6 +62,12 @@ vi.mock('../../plugin/notes/blog-seed.js', () => ({
 vi.mock('../../plugin/notes/content-seed.js', () => ({
   createDocsClientSide: seedMocks.createDocsClientSide,
   createNotebookClientSide: seedMocks.createNotebookClientSide,
+}))
+
+vi.mock('@s4wave/sdk/quickstart/registry/registry_srpc.pb.js', () => ({
+  QuickstartRegistryResourceServiceClient: vi.fn(function () {
+    return quickstartRegistryMocks
+  }),
 }))
 
 type ApplyWorldOp = (
@@ -107,6 +118,51 @@ function getSettingsIndexPath(applyWorldOp: ReturnType<typeof vi.fn>) {
 }
 
 describe('quickstart create', () => {
+  it('executes dynamic quickstarts through the registry and applies returned routing', async () => {
+    quickstartRegistryMocks.ExecuteQuickstart.mockResolvedValue({
+      indexPath: 'glados/org-chart',
+      pluginIds: ['glados-core', 'glados-web'],
+    })
+    const { world, applyWorldOp } = buildQuickstartWorld()
+    const spaceContents = {
+      setPluginApproval: vi.fn().mockResolvedValue({}),
+    }
+
+    await executeDynamicQuickstart(
+      { client: {} } as never,
+      'glados-workspace',
+      {
+        space: { id: 42 },
+        spaceWorld: world,
+        spaceContents,
+      } as never,
+    )
+
+    expect(quickstartRegistryMocks.ExecuteQuickstart).toHaveBeenCalledWith(
+      { quickstartId: 'glados-workspace', spaceResourceId: 42 },
+      undefined,
+    )
+    expect(getSettingsIndexPath(applyWorldOp)).toBe('glados/org-chart')
+    const settingsCall = applyWorldOp.mock.calls.find(
+      (call) => call[0] === SET_SPACE_SETTINGS_OP_ID,
+    )
+    const settings = SetSpaceSettingsOp.fromBinary(
+      settingsCall?.[1] as Uint8Array,
+    ).settings
+    expect(settings?.pluginIds).toEqual(['glados-core', 'glados-web'])
+    expect(spaceContents.setPluginApproval).toHaveBeenCalledTimes(2)
+    expect(spaceContents.setPluginApproval).toHaveBeenCalledWith(
+      'glados-core',
+      true,
+      undefined,
+    )
+    expect(spaceContents.setPluginApproval).toHaveBeenCalledWith(
+      'glados-web',
+      true,
+      undefined,
+    )
+  })
+
   it('maps quickstarts to friendly seeded space names', () => {
     const cases: [QuickstartSpaceCreateId, string][] = [
       ['space', 'My Space'],

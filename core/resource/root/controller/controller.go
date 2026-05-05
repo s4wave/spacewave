@@ -14,6 +14,7 @@ import (
 	resource_command "github.com/s4wave/spacewave/core/resource/command"
 	resource_configtype_registry "github.com/s4wave/spacewave/core/resource/configtype/registry"
 	resource_objecttype_registry "github.com/s4wave/spacewave/core/resource/objecttype/registry"
+	resource_quickstart_registry "github.com/s4wave/spacewave/core/resource/quickstart/registry"
 	resource_root "github.com/s4wave/spacewave/core/resource/root"
 	resource_viewer_registry "github.com/s4wave/spacewave/core/resource/viewer/registry"
 	resource_worldop_registry "github.com/s4wave/spacewave/core/resource/worldop/registry"
@@ -22,6 +23,7 @@ import (
 	s4wave_command_registry "github.com/s4wave/spacewave/sdk/command/registry"
 	s4wave_configtype_registry "github.com/s4wave/spacewave/sdk/configtype/registry"
 	s4wave_objecttype_registry "github.com/s4wave/spacewave/sdk/objecttype/registry"
+	s4wave_quickstart_registry "github.com/s4wave/spacewave/sdk/quickstart/registry"
 	s4wave_root "github.com/s4wave/spacewave/sdk/root"
 	s4wave_viewer_registry "github.com/s4wave/spacewave/sdk/viewer/registry"
 	objecttype_controller "github.com/s4wave/spacewave/sdk/world/objecttype/controller"
@@ -56,6 +58,8 @@ type Controller struct {
 	worldOpRegistry *resource_worldop_registry.WorldOpRegistryResource
 	// configTypeRegistry is the ConfigType registry resource
 	configTypeRegistry *resource_configtype_registry.ConfigTypeRegistryResource
+	// quickstartRegistry is the Quickstart registry resource
+	quickstartRegistry *resource_quickstart_registry.QuickstartRegistryResource
 	// commandsManager is the commands manager resource
 	commandsManager *resource_command.CommandsManager
 }
@@ -117,6 +121,12 @@ func NewFactory(b bus.Bus) controller.Factory {
 			// create and register the ConfigType registry on the root resource mux
 			c.configTypeRegistry = resource_configtype_registry.NewConfigTypeRegistryResource()
 			if err := s4wave_configtype_registry.SRPCRegisterConfigTypeRegistryResourceService(c.rootResourceMux, c.configTypeRegistry); err != nil {
+				return nil, err
+			}
+
+			// create and register the Quickstart registry on the root resource mux
+			c.quickstartRegistry = resource_quickstart_registry.NewQuickstartRegistryResource(base.GetLogger(), b)
+			if err := s4wave_quickstart_registry.SRPCRegisterQuickstartRegistryResourceService(c.rootResourceMux, c.quickstartRegistry); err != nil {
 				return nil, err
 			}
 

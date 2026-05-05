@@ -1,0 +1,106 @@
+syntax = "proto3";
+package s4wave.quickstart.registry;
+
+service QuickstartRegistryResourceService {
+  rpc RegisterQuickstart(RegisterQuickstartRequest)
+    returns (RegisterQuickstartResponse);
+  rpc ListQuickstarts(ListQuickstartsRequest)
+    returns (ListQuickstartsResponse);
+  rpc WatchQuickstarts(WatchQuickstartsRequest)
+    returns (stream WatchQuickstartsResponse);
+  rpc ExecuteQuickstart(ExecuteQuickstartRequest)
+    returns (ExecuteQuickstartResponse);
+}
+
+service QuickstartHandlerService {
+  rpc SeedQuickstart(SeedQuickstartRequest)
+    returns (SeedQuickstartResponse);
+}
+
+// QuickstartRegistration is a plugin-registered Quickstart.
+message QuickstartRegistration {
+  // QuickstartId is the app-visible quickstart identifier.
+  string quickstart_id = 1;
+  // RegistrationId is the server-assigned ID for this registration.
+  uint32 registration_id = 2;
+  // PluginId is the registering plugin's ID.
+  string plugin_id = 3;
+  // Name is the human-readable name shown in the UI.
+  string name = 4;
+  // Description is the short UI description.
+  string description = 5;
+  // Category groups the Quickstart in app inventories.
+  string category = 6;
+  // IconName is the symbolic icon name used by the app.
+  string icon_name = 7;
+  // Hidden keeps the Quickstart out of visible app inventories.
+  bool hidden = 8;
+  // Experimental shows the Quickstart only when experimental creators are visible.
+  bool experimental = 9;
+  // SpaceName is the default Space name created for this Quickstart.
+  string space_name = 10;
+  // RequiredPluginIds are Space plugin manifest IDs this Quickstart declares.
+  repeated string required_plugin_ids = 11;
+}
+
+// RegisterQuickstartRequest is the request for RegisterQuickstart.
+message RegisterQuickstartRequest {
+  // Registration is the Quickstart registration to add.
+  QuickstartRegistration registration = 1;
+}
+
+// RegisterQuickstartResponse is the response for RegisterQuickstart.
+message RegisterQuickstartResponse {
+  // ResourceId is the registration resource. Releasing it unregisters the Quickstart.
+  uint32 resource_id = 1;
+}
+
+// ListQuickstartsRequest is the request for ListQuickstarts.
+message ListQuickstartsRequest {}
+
+// ListQuickstartsResponse is the response for ListQuickstarts.
+message ListQuickstartsResponse {
+  // Registrations is the current set of registered Quickstarts.
+  repeated QuickstartRegistration registrations = 1;
+}
+
+// WatchQuickstartsRequest is the request for WatchQuickstarts.
+message WatchQuickstartsRequest {}
+
+// WatchQuickstartsResponse is the response for WatchQuickstarts.
+message WatchQuickstartsResponse {
+  // Registrations is the current set of registered Quickstarts.
+  repeated QuickstartRegistration registrations = 1;
+}
+
+// ExecuteQuickstartRequest asks the registry to run a registered Quickstart.
+message ExecuteQuickstartRequest {
+  // QuickstartId is the registered Quickstart identifier to execute.
+  string quickstart_id = 1;
+  // SpaceResourceId is the mounted Space resource to seed.
+  uint32 space_resource_id = 2;
+}
+
+// ExecuteQuickstartResponse contains routing hints returned by the seed handler.
+message ExecuteQuickstartResponse {
+  // IndexPath is the Space index path the app should open after seeding.
+  string index_path = 1;
+  // PluginIds are additional Space plugin ids required by the seeded Space.
+  repeated string plugin_ids = 2;
+}
+
+// SeedQuickstartRequest is sent to the registering plugin's seed handler.
+message SeedQuickstartRequest {
+  // QuickstartId is the registered Quickstart identifier to seed.
+  string quickstart_id = 1;
+  // EngineResourceId is an attached world Engine resource for the target Space.
+  uint32 engine_resource_id = 2;
+}
+
+// SeedQuickstartResponse contains routing hints returned by the plugin.
+message SeedQuickstartResponse {
+  // IndexPath is the Space index path the app should open after seeding.
+  string index_path = 1;
+  // PluginIds are additional Space plugin ids required by the seeded Space.
+  repeated string plugin_ids = 2;
+}

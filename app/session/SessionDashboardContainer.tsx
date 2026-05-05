@@ -10,11 +10,8 @@ import { useNavigate } from '@s4wave/web/router/router.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { useMountAccount } from '@s4wave/web/hooks/useMountAccount.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
-import {
-  getQuickstartOption,
-  isQuickstartId,
-} from '@s4wave/app/quickstart/options.js'
 import { SelfEnrollmentGateState } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
+import { useVisibleQuickstartOptions } from '@s4wave/app/quickstart/useQuickstartOptions.js'
 
 import {
   type DashboardSpace,
@@ -153,6 +150,11 @@ export function SessionDashboardContainer() {
 
   const navigate = useNavigate()
   const navigateSession = useSessionNavigate()
+  const quickstartOptions = useVisibleQuickstartOptions()
+  const quickstartOptionById = useMemo(
+    () => new Map(quickstartOptions.map((opt) => [opt.id, opt])),
+    [quickstartOptions],
+  )
 
   const handleSpaceClick = useCallback(
     (space: DashboardSpace) => {
@@ -172,8 +174,8 @@ export function SessionDashboardContainer() {
       }
       // Options with a custom path are navigation actions, not space creators.
       // Pair navigates within the session context, others use their absolute path.
-      if (!isQuickstartId(quickstartId)) return
-      const opt = getQuickstartOption(quickstartId)
+      const opt = quickstartOptionById.get(quickstartId)
+      if (!opt) return
       if (opt.path) {
         if (quickstartId === 'pair') {
           navigateSession({ path: 'pair' })
@@ -191,7 +193,7 @@ export function SessionDashboardContainer() {
       }
       navigateSession({ path: `new/${quickstartId}` })
     },
-    [isReadOnly, navigate, navigateSession],
+    [isReadOnly, navigate, navigateSession, quickstartOptionById],
   )
 
   const handleUndoDelete = useCallback(async () => {

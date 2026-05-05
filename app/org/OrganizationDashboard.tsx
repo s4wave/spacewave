@@ -19,7 +19,7 @@ import {
   CommandItem,
   CommandList,
 } from '@s4wave/web/ui/command.js'
-import { VISIBLE_QUICKSTART_OPTIONS } from '@s4wave/app/quickstart/options.js'
+import { useVisibleQuickstartOptions } from '@s4wave/app/quickstart/useQuickstartOptions.js'
 import { useSessionNavigate } from '@s4wave/web/contexts/contexts.js'
 
 import { MissingBillingAccountBanner } from './MissingBillingAccountBanner.js'
@@ -73,15 +73,16 @@ export function OrganizationDashboard() {
   }, [navigateSession])
 
   const showMissingBillingBanner = !!orgState && !billingAccountId
+  const visibleQuickstartOptions = useVisibleQuickstartOptions()
 
   // Filter quickstart options to space-creating ones (no account/pair/local).
   const quickstartOptions = useMemo(
     () =>
-      VISIBLE_QUICKSTART_OPTIONS.filter(
+      visibleQuickstartOptions.filter(
         (opt) =>
           opt.id !== 'account' && opt.id !== 'pair' && opt.id !== 'local',
       ),
-    [],
+    [visibleQuickstartOptions],
   )
 
   return (

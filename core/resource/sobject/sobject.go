@@ -113,6 +113,7 @@ func (r *SharedObjectResource) MountSharedObjectBody(ctx context.Context, req *s
 
 	// TODO: we switch over shared object body types here. add a directive to look up the factory?
 	var resource srpc.Invoker
+	var resourceValue any
 	var relResource func()
 	bodyType := r.meta.GetBodyType()
 	switch bodyType {
@@ -128,6 +129,7 @@ func (r *SharedObjectResource) MountSharedObjectBody(ctx context.Context, req *s
 
 		spaceResource := resource_space.NewSpaceResource(r.le, r.b, mountedSpace.GetSharedObjectBody())
 		resource, relResource = spaceResource.GetMux(), mountedSpaceRef.Release
+		resourceValue = spaceResource
 	case cdn_sharedobject.CdnBodyType:
 		cdnSO, ok := r.sharedObject.(*cdn_sharedobject.CdnSharedObject)
 		if !ok {
@@ -143,6 +145,7 @@ func (r *SharedObjectResource) MountSharedObjectBody(ctx context.Context, req *s
 		body := cdn_sharedobject.NewCdnSpaceBody(cdnSO, we)
 		spaceResource := resource_space.NewSpaceResource(r.le, r.b, body)
 		resource, relResource = spaceResource.GetMux(), we.Release
+		resourceValue = spaceResource
 	case "":
 		return nil, sobject.WrapSharedObjectHealthError(
 			sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_BODY,
@@ -155,7 +158,7 @@ func (r *SharedObjectResource) MountSharedObjectBody(ctx context.Context, req *s
 		)
 	}
 
-	id, err := resourceCtx.AddResource(resource, relResource)
+	id, err := resourceCtx.AddResourceValue(resource, resourceValue, relResource)
 	if err != nil {
 		relResource()
 		return nil, err

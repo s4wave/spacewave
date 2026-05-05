@@ -37,6 +37,7 @@ import { ViewerRegistryProvider } from '@s4wave/web/hooks/useViewerRegistry.js'
 import { ConfigTypeRegistryProvider } from '@s4wave/web/configtype/ConfigTypeRegistryContext.js'
 import { getAllObjectViewers } from '@s4wave/app/viewers.js'
 import { staticConfigTypes } from '@s4wave/app/configtypes.js'
+import { QuickstartOptionsProvider } from '@s4wave/app/quickstart/useQuickstartOptions.js'
 import {
   StateNamespaceProvider,
   type StateAtomAccessor,
@@ -180,12 +181,14 @@ function AppAPIInner({
   return (
     <RootContext.Provider resource={rootResource}>
       <StateNamespaceProvider stateAtomAccessor={rootStateAccessor}>
-        <CommandProvider rootResource={rootResource}>
-          <UpdateNotifier rootResource={rootResource} />
-          <ListenerYieldNotifier rootResource={rootResource}>
-            {children}
-          </ListenerYieldNotifier>
-        </CommandProvider>
+        <QuickstartOptionsProvider rootResource={rootResource}>
+          <CommandProvider rootResource={rootResource}>
+            <UpdateNotifier rootResource={rootResource} />
+            <ListenerYieldNotifier rootResource={rootResource}>
+              {children}
+            </ListenerYieldNotifier>
+          </CommandProvider>
+        </QuickstartOptionsProvider>
       </StateNamespaceProvider>
     </RootContext.Provider>
   )

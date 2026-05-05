@@ -51,6 +51,21 @@ func (r *SpaceResource) GetMux() srpc.Invoker {
 	return r.mux
 }
 
+// GetWorldEngine returns the Space world engine.
+func (r *SpaceResource) GetWorldEngine() world.Engine {
+	return r.space.GetWorldEngine()
+}
+
+// GetWorldEngineID returns the Space world engine id.
+func (r *SpaceResource) GetWorldEngineID() string {
+	return r.space.GetWorldEngineID()
+}
+
+// GetWorldEngineBucketID returns the Space world engine bucket id.
+func (r *SpaceResource) GetWorldEngineBucketID() string {
+	return r.space.GetWorldEngineBucketID()
+}
+
 // WatchSpaceState watches the SpaceState for the component.
 func (r *SpaceResource) WatchSpaceState(
 	req *s4wave_space.WatchSpaceStateRequest,

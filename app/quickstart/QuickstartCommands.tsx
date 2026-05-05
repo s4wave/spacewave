@@ -3,7 +3,8 @@ import { useCallback } from 'react'
 import { useCommand } from '@s4wave/web/command/useCommand.js'
 import { useIsTabActive } from '@s4wave/web/contexts/TabActiveContext.js'
 
-import { VISIBLE_QUICKSTART_OPTIONS, type QuickstartOption } from './options.js'
+import type { QuickstartOption } from './options.js'
+import { useVisibleQuickstartOptions } from './useQuickstartOptions.js'
 
 interface QuickstartCommandsProps {
   onQuickstart: (opt: QuickstartOption) => void
@@ -12,19 +13,20 @@ interface QuickstartCommandsProps {
 // QuickstartCommands registers quickstart commands for landing and dashboard.
 export function QuickstartCommands({ onQuickstart }: QuickstartCommandsProps) {
   const isTabActive = useIsTabActive()
+  const quickstartOptions = useVisibleQuickstartOptions()
 
   return (
     <>
-      {VISIBLE_QUICKSTART_OPTIONS.filter(
-        (opt) => opt.category !== 'account',
-      ).map((opt) => (
-        <QuickstartCommand
-          key={opt.id}
-          opt={opt}
-          isTabActive={isTabActive}
-          onQuickstart={onQuickstart}
-        />
-      ))}
+      {quickstartOptions
+        .filter((opt) => opt.category !== 'account')
+        .map((opt) => (
+          <QuickstartCommand
+            key={opt.id}
+            opt={opt}
+            isTabActive={isTabActive}
+            onQuickstart={onQuickstart}
+          />
+        ))}
     </>
   )
 }

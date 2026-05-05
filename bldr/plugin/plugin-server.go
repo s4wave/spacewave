@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
+	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	bifrost_rpc_access "github.com/s4wave/spacewave/net/rpc/access"
 )
@@ -38,6 +39,7 @@ func (s *PluginServer) PluginRpc(rpcStream SRPCPlugin_PluginRpcStream) error {
 			}
 			baseRemoteServerID := PluginServerID(remotePluginID, "")
 			invoker := bifrost_rpc.NewInvoker(s.b, baseRemoteServerID, true)
+			rootMux := srpc.NewMux(invoker)
 			mux := srpc.NewMux(invoker)
 			accessRpcServiceServer := bifrost_rpc_access.NewAccessRpcServiceServer(
 				s.b,
@@ -47,6 +49,8 @@ func (s *PluginServer) PluginRpc(rpcStream SRPCPlugin_PluginRpcStream) error {
 				},
 			)
 			_ = bifrost_rpc_access.SRPCRegisterAccessRpcService(mux, accessRpcServiceServer)
+			resourceServer := resource_server.NewResourceServer(rootMux)
+			_ = resourceServer.Register(mux)
 			return mux, nil, nil
 		},
 	)

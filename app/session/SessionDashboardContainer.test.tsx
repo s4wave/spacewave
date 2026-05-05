@@ -17,6 +17,7 @@ const mockUseMountAccount = vi.hoisted(() => vi.fn())
 const mockUseRootResource = vi.hoisted(() => vi.fn())
 const mockUseSessionIndex = vi.hoisted(() => vi.fn<() => number>())
 const mockUseSessionNavigate = vi.hoisted(() => vi.fn())
+const mockUseVisibleQuickstartOptions = vi.hoisted(() => vi.fn())
 const renderedDashboard = vi.hoisted(
   () =>
     vi.fn() as unknown as ReturnType<
@@ -69,6 +70,10 @@ vi.mock('@s4wave/web/hooks/useRootResource.js', () => ({
   useRootResource: mockUseRootResource,
 }))
 
+vi.mock('@s4wave/app/quickstart/useQuickstartOptions.js', () => ({
+  useVisibleQuickstartOptions: mockUseVisibleQuickstartOptions,
+}))
+
 vi.mock('./SessionFrame.js', () => ({
   SessionFrame: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="session-frame">{children}</div>
@@ -79,12 +84,20 @@ vi.mock('./dashboard/SessionDashboard.js', () => ({
   SessionDashboard: (props: { onQuickstartClick?: (id: string) => void }) => {
     renderedDashboard(props)
     return (
-      <button
-        data-testid="quickstart-drive"
-        onClick={() => props.onQuickstartClick?.('drive')}
-      >
-        Drive
-      </button>
+      <>
+        <button
+          data-testid="quickstart-drive"
+          onClick={() => props.onQuickstartClick?.('drive')}
+        >
+          Drive
+        </button>
+        <button
+          data-testid="quickstart-glados"
+          onClick={() => props.onQuickstartClick?.('glados-workspace')}
+        >
+          Glados
+        </button>
+      </>
     )
   },
 }))
@@ -143,6 +156,16 @@ describe('SessionDashboardContainer', () => {
     mockUseRootResource.mockReturnValue({ value: null })
     mockUseSessionIndex.mockReturnValue(1)
     mockUseSessionNavigate.mockReset()
+    mockUseVisibleQuickstartOptions.mockReset()
+    mockUseVisibleQuickstartOptions.mockReturnValue([
+      {
+        id: 'drive',
+        name: 'Create a Drive',
+        description: 'Drive workspace',
+        category: 'storage',
+        icon: () => null,
+      },
+    ])
   })
 
   afterEach(() => {
@@ -161,6 +184,28 @@ describe('SessionDashboardContainer', () => {
       | undefined
     expect(props).toBeDefined()
     expect(props!.quickstartLoading).toBeUndefined()
+  })
+
+  it('navigates dynamic quickstarts from the watched inventory', () => {
+    mockUseVisibleQuickstartOptions.mockReturnValue([
+      {
+        id: 'glados-workspace',
+        name: 'Glados Workspace',
+        description: 'Operator workspace',
+        category: 'tools',
+        icon: () => null,
+        dynamic: true,
+        pluginId: 'glados-web',
+      },
+    ])
+
+    render(<SessionDashboardContainer />)
+    const tile = screen.getByTestId('quickstart-glados')
+    fireEvent.click(tile)
+
+    expect(mockUseSessionNavigate).toHaveBeenCalledWith({
+      path: 'new/glados-workspace',
+    })
   })
 
   it('blocks quickstart navigation for read-only accounts with a toast', () => {

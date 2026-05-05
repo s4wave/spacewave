@@ -3,6 +3,7 @@ import type { Root } from '@s4wave/sdk/root'
 import type { Session } from '@s4wave/sdk/session'
 import type { CreateSpaceResponse } from '@s4wave/sdk/session/session.pb.js'
 import type { CreateAccountResponse } from '@s4wave/sdk/provider/local/local.pb.js'
+import { QuickstartRegistryResourceServiceClient } from '@s4wave/sdk/quickstart/registry/registry_srpc.pb.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import { LocalProvider } from '@s4wave/sdk/provider/local/local.js'
 import { Space } from '@s4wave/sdk/space/space.js'
@@ -485,6 +486,34 @@ export async function approveSpacePlugins(
   const ids = Array.from(new Set(pluginIds.filter(Boolean)))
   for (const pluginId of ids) {
     await spaceContents.setPluginApproval(pluginId, true, abortSignal)
+  }
+}
+
+export async function executeDynamicQuickstart(
+  root: Root,
+  quickstartId: string,
+  setup: QuickstartSetup,
+  abortSignal?: AbortSignal,
+): Promise<void> {
+  const registry = new QuickstartRegistryResourceServiceClient(root.client)
+  const resp = await registry.ExecuteQuickstart(
+    {
+      quickstartId,
+      spaceResourceId: setup.space.id,
+    },
+    abortSignal,
+  )
+  const pluginIds = resp.pluginIds ?? []
+  if (resp.indexPath || pluginIds.length) {
+    await ensureSpacePlugins(
+      setup.spaceWorld,
+      pluginIds,
+      resp.indexPath || undefined,
+      abortSignal,
+    )
+  }
+  if (pluginIds.length) {
+    await approveSpacePlugins(setup.spaceContents, pluginIds, abortSignal)
   }
 }
 

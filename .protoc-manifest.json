@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "protocFlagsHash": "dd97acfa784afdb97e9b56d13aa4a2154eb3b83f4c36e04c0e3ea89c0befa3e1",
+  "protocFlagsHash": "1c28c09115aa511ff35b1be26994db5c0c847fc8e5879acca1694ab90f3ae614",
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.13.0,starpc=v0.49.7,protobuf-es-lite=1.0.2",
   "packages": {
     "github.com/s4wave/spacewave/auth/derive": {
@@ -4654,6 +4654,24 @@
       ],
       "protoFiles": [
         "sdk/provider/spacewave/spacewave.proto"
+      ]
+    },
+    "github.com/s4wave/spacewave/sdk/quickstart/registry": {
+      "hash": "44ef8145f742484cfdf1d2d959e700f1f6dca926c8d68585073e764e7a8d4c68",
+      "generatedFiles": [
+        "sdk/quickstart/registry/registry.pb.cc",
+        "sdk/quickstart/registry/registry.pb.go",
+        "sdk/quickstart/registry/registry.pb.h",
+        "sdk/quickstart/registry/registry.pb.rs",
+        "sdk/quickstart/registry/registry.pb.ts",
+        "sdk/quickstart/registry/registry_srpc.pb.cpp",
+        "sdk/quickstart/registry/registry_srpc.pb.go",
+        "sdk/quickstart/registry/registry_srpc.pb.hpp",
+        "sdk/quickstart/registry/registry_srpc.pb.rs",
+        "sdk/quickstart/registry/registry_srpc.pb.ts"
+      ],
+      "protoFiles": [
+        "sdk/quickstart/registry/registry.proto"
       ]
     },
     "github.com/s4wave/spacewave/sdk/root": {

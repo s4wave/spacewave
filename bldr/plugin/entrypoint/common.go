@@ -18,6 +18,7 @@ import (
 	plugin_host_configset "github.com/s4wave/spacewave/bldr/plugin/host/configset"
 	plugin_host_storage_volume "github.com/s4wave/spacewave/bldr/plugin/host/storage/volume"
 	vardef "github.com/s4wave/spacewave/bldr/plugin/vardef"
+	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	storage_controller "github.com/s4wave/spacewave/bldr/storage/controller"
 	web_fetch_service "github.com/s4wave/spacewave/bldr/web/fetch/service"
 	node_controller "github.com/s4wave/spacewave/db/node/controller"
@@ -205,7 +206,10 @@ func ExecutePluginEntrypoint(
 	}
 
 	// construct the rpc mux
-	rpcMux := srpc.NewMux(bifrost_rpc.NewInvoker(b, bldr_plugin.HostServerIDPrefix+"default", true))
+	rootResourceMux := srpc.NewMux(bifrost_rpc.NewInvoker(b, bldr_plugin.HostServerIDPrefix+"default", true))
+	rpcMux := srpc.NewMux(rootResourceMux)
+	resourceServer := resource_server.NewResourceServer(rootResourceMux)
+	_ = resourceServer.Register(rpcMux)
 
 	// handle ManifestFetch requests via bus ManifestFetch.
 	pluginFetchViaBus := manifest.NewManifestFetchViaBus(le, b)

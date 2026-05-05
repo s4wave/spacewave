@@ -28,6 +28,14 @@ export interface QuickstartOption {
   hidden?: boolean
   // experimental marks options only shown in dev builds (not release).
   experimental?: boolean
+  // dynamic marks plugin-registered app-only Quickstarts.
+  dynamic?: boolean
+  // pluginId is the registering plugin for dynamic Quickstarts.
+  pluginId?: string
+  // spaceName is the default Space name for dynamic Quickstarts.
+  spaceName?: string
+  // requiredPluginIds are Space plugin manifest IDs declared by this Quickstart.
+  requiredPluginIds?: string[]
 }
 
 export const QUICKSTART_OPTIONS = [

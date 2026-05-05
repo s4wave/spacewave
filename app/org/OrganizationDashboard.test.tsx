@@ -8,9 +8,14 @@ const mockNavigateSession = vi.fn()
 const mockUseOrgContainerState = vi.hoisted(() => vi.fn())
 const mockSetOpenMenu = vi.hoisted(() => vi.fn())
 const mockSetOpenSection = vi.hoisted(() => vi.fn())
+const mockUseVisibleQuickstartOptions = vi.hoisted(() => vi.fn())
 
 vi.mock('@s4wave/web/contexts/contexts.js', () => ({
   useSessionNavigate: () => mockNavigateSession,
+}))
+
+vi.mock('@s4wave/app/quickstart/useQuickstartOptions.js', () => ({
+  useVisibleQuickstartOptions: mockUseVisibleQuickstartOptions,
 }))
 
 vi.mock('@s4wave/web/frame/bottom-bar-context.js', () => ({
@@ -71,6 +76,16 @@ describe('OrganizationDashboard', () => {
     mockNavigateSession.mockReset()
     mockSetOpenMenu.mockReset()
     mockSetOpenSection.mockReset()
+    mockUseVisibleQuickstartOptions.mockReset()
+    mockUseVisibleQuickstartOptions.mockReturnValue([
+      {
+        id: 'drive',
+        name: 'Create a Drive',
+        description: 'Drive workspace',
+        category: 'storage',
+        icon: () => null,
+      },
+    ])
     mockUseOrgContainerState.mockReset()
     mockUseOrgContainerState.mockReturnValue({
       orgId: 'org-1',

@@ -24,9 +24,11 @@ const mockUseResourceValue = vi.hoisted(() => vi.fn())
 const mockToastError = vi.hoisted(() => vi.fn())
 const mockCreateSetup = vi.hoisted(() => vi.fn())
 const mockPopulateSpace = vi.hoisted(() => vi.fn())
+const mockExecuteDynamicQuickstart = vi.hoisted(() => vi.fn())
 const mockSessionCreateSpace = vi.hoisted(() => vi.fn())
 const mockSessionDeleteSpace = vi.hoisted(() => vi.fn())
 const mockUseRootResource = vi.hoisted(() => vi.fn())
+const mockUseVisibleQuickstartOptions = vi.hoisted(() => vi.fn())
 
 vi.mock('@s4wave/web/router/router.js', () => ({
   useParams: mockParams,
@@ -47,6 +49,10 @@ vi.mock('@aptre/bldr-sdk/hooks/useResource.js', () => ({
 
 vi.mock('@s4wave/web/hooks/useRootResource.js', () => ({
   useRootResource: mockUseRootResource,
+}))
+
+vi.mock('./useQuickstartOptions.js', () => ({
+  useVisibleQuickstartOptions: mockUseVisibleQuickstartOptions,
 }))
 
 vi.mock('@s4wave/app/session/setup/SetupPageLayout.js', () => ({
@@ -70,6 +76,7 @@ vi.mock('./create.js', async () => {
   return {
     ...actual,
     createQuickstartSetupFromSession: mockCreateSetup,
+    executeDynamicQuickstart: mockExecuteDynamicQuickstart,
     populateSpace: mockPopulateSpace,
   }
 })
@@ -112,14 +119,27 @@ describe('CreateSpaceRoute', () => {
     mockUseResourceValue.mockReset()
     mockCreateSetup.mockReset()
     mockPopulateSpace.mockReset()
+    mockExecuteDynamicQuickstart.mockReset()
     mockSessionCreateSpace.mockReset()
     mockSessionDeleteSpace.mockReset()
     mockUseRootResource.mockReset()
+    mockUseVisibleQuickstartOptions.mockReset()
 
     const session = makeSession()
     mockUseSessionContext.mockReturnValue({ value: session })
-    mockUseResourceValue.mockReturnValue(session)
-    mockUseRootResource.mockReturnValue({ value: {} })
+    mockUseResourceValue.mockImplementation(
+      (resource: { value?: unknown } | null | undefined) => resource?.value,
+    )
+    mockUseRootResource.mockReturnValue({ value: { client: {} } })
+    mockUseVisibleQuickstartOptions.mockReturnValue([
+      {
+        id: 'drive',
+        name: 'Create a Drive',
+        description: 'Drive workspace',
+        category: 'storage',
+        icon: () => null,
+      },
+    ])
   })
 
   afterEach(() => {
@@ -158,6 +178,66 @@ describe('CreateSpaceRoute', () => {
     expect(mockCreateSetup).toHaveBeenCalledTimes(1)
     expect(mockPopulateSpace).toHaveBeenCalledTimes(1)
     expect(mockPopulateSpace.mock.calls[0]?.[0]).toBe('drive')
+    expect(mockExecuteDynamicQuickstart).not.toHaveBeenCalled()
+  })
+
+  it('executes dynamic quickstart registrations after mounting the new space', async () => {
+    setParams({ quickstartId: 'glados-workspace' })
+    mockUseVisibleQuickstartOptions.mockReturnValue([
+      {
+        id: 'glados-workspace',
+        name: 'Glados Workspace',
+        description: 'Operator workspace',
+        category: 'tools',
+        icon: () => null,
+        dynamic: true,
+        pluginId: 'glados-web',
+        spaceName: 'Glados Workspace',
+      },
+    ])
+    const root = { client: {} }
+    const setup = {
+      space: { id: 42 },
+      spaceContents: {},
+      spaceWorld: {},
+      spaceWorldState: {},
+    }
+    const spaceResp = {
+      sharedObjectRef: { providerResourceRef: { id: '01HXYZ' } },
+    }
+    const rootResource = { value: root }
+    const sessionResource = { value: makeSession() }
+    mockUseSessionContext.mockReturnValue(sessionResource)
+    mockUseRootResource.mockReturnValue(rootResource)
+    mockUseResourceValue.mockImplementation((resource) => {
+      if (resource === rootResource) return root
+      return sessionResource.value
+    })
+    mockSessionCreateSpace.mockResolvedValue(spaceResp)
+    mockCreateSetup.mockResolvedValue(setup)
+    mockExecuteDynamicQuickstart.mockResolvedValue(undefined)
+
+    await act(async () => {
+      render(<CreateSpaceRoute />)
+    })
+
+    await waitFor(() => {
+      expect(mockUseSessionNavigate).toHaveBeenCalledWith({
+        path: 'so/01HXYZ',
+        replace: true,
+      })
+    })
+
+    expect(mockSessionCreateSpace.mock.calls[0]?.[0]).toEqual({
+      spaceName: 'Glados Workspace',
+    })
+    expect(mockExecuteDynamicQuickstart).toHaveBeenCalledWith(
+      root,
+      'glados-workspace',
+      expect.objectContaining({ space: setup.space }),
+      expect.any(AbortSignal),
+    )
+    expect(mockPopulateSpace).not.toHaveBeenCalled()
   })
 
   it('passes organization ownership when launched from an organization route', async () => {

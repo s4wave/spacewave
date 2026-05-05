@@ -22,10 +22,10 @@ import {
   useShellTabs,
 } from '@s4wave/app/ShellTabContext.js'
 import {
-  VISIBLE_QUICKSTART_OPTIONS,
   getQuickstartPath,
   type QuickstartOption,
 } from '@s4wave/app/quickstart/options.js'
+import { useVisibleQuickstartOptions } from '@s4wave/app/quickstart/useQuickstartOptions.js'
 import { downloadPemFile } from '@s4wave/web/download.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import {
@@ -95,6 +95,7 @@ export function SessionDashboard({
   const navigate = useNavigate()
   const isLoading = spaces === undefined
   const isEmpty = spaces?.length === 0
+  const quickstartOptions = useVisibleQuickstartOptions()
 
   const goToCommunity = useCallback(() => {
     navigate({ path: '/community' })
@@ -134,6 +135,7 @@ export function SessionDashboard({
             orgs={orgs}
             onSpaceClick={onSpaceClick}
             onQuickstartClick={readOnly ? undefined : onQuickstartClick}
+            quickstartOptions={quickstartOptions}
             isLoading={isLoading}
             isEmpty={isEmpty}
           />
@@ -321,7 +323,10 @@ function InlineSecureAccountSection(props: {
   const handleSetLockMode = useCallback(async () => {
     if (lock.mode === 'pin') {
       if (lock.pin.length < 4) {
-        dispatchLock({ type: 'set-error', error: 'PIN must be at least 4 digits' })
+        dispatchLock({
+          type: 'set-error',
+          error: 'PIN must be at least 4 digits',
+        })
         return
       }
       if (lock.pin !== lock.confirmPin) {
@@ -442,14 +447,18 @@ function InlineSecureAccountSection(props: {
               <div className="space-y-2">
                 <RadioOption
                   selected={lock.mode === 'auto'}
-                  onSelect={() => dispatchLock({ type: 'set-mode', mode: 'auto' })}
+                  onSelect={() =>
+                    dispatchLock({ type: 'set-mode', mode: 'auto' })
+                  }
                   icon={<LuLockOpen className="h-4 w-4" />}
                   label="Auto-unlock"
                   description="Key stored on disk. No PIN needed on launch."
                 />
                 <RadioOption
                   selected={lock.mode === 'pin'}
-                  onSelect={() => dispatchLock({ type: 'set-mode', mode: 'pin' })}
+                  onSelect={() =>
+                    dispatchLock({ type: 'set-mode', mode: 'pin' })
+                  }
                   icon={<LuLock className="h-4 w-4" />}
                   label="PIN lock"
                   description="Key encrypted with PIN. Enter PIN on each app launch."
@@ -613,6 +622,7 @@ interface DashboardCommandPaletteProps {
   orgs?: DashboardOrg[]
   onSpaceClick?: (space: DashboardSpace) => void
   onQuickstartClick?: (quickstartId: string) => void
+  quickstartOptions: QuickstartOption[]
   isLoading: boolean
   isEmpty: boolean
 }
@@ -622,6 +632,7 @@ function DashboardCommandPalette({
   orgs,
   onSpaceClick,
   onQuickstartClick,
+  quickstartOptions,
   isLoading,
   isEmpty,
 }: DashboardCommandPaletteProps) {
@@ -770,24 +781,24 @@ function DashboardCommandPalette({
           heading={isEmpty ? 'Get Started' : 'Create'}
           className="py-1"
         >
-          {VISIBLE_QUICKSTART_OPTIONS.filter(
-            (opt) => opt.id !== 'account' && opt.id !== 'pair',
-          ).map((opt) => (
-            <DashboardItem
-              key={opt.id}
-              value={`create-${opt.id}`}
-              icon={opt.icon}
-              iconTone="muted"
-              label={opt.name}
-              sublabel={opt.description}
-              experimental={'experimental' in opt && !!opt.experimental}
-              onSelect={() =>
-                onQuickstartClick ?
-                  onQuickstartClick(opt.id)
-                : navigate({ path: getQuickstartPath(opt) })
-              }
-            />
-          ))}
+          {quickstartOptions
+            .filter((opt) => opt.id !== 'account' && opt.id !== 'pair')
+            .map((opt) => (
+              <DashboardItem
+                key={opt.id}
+                value={`create-${opt.id}`}
+                icon={opt.icon}
+                iconTone="muted"
+                label={opt.name}
+                sublabel={opt.description}
+                experimental={'experimental' in opt && !!opt.experimental}
+                onSelect={() =>
+                  onQuickstartClick ?
+                    onQuickstartClick(opt.id)
+                  : navigate({ path: getQuickstartPath(opt) })
+                }
+              />
+            ))}
         </CommandGroup>
       </CommandList>
     </Command>

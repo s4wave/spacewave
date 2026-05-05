@@ -19,20 +19,29 @@ import { PhaseChecklist } from '@s4wave/app/session/setup/PhaseChecklist.js'
 import {
   getQuickstartOption,
   isQuickstartId,
+  type QuickstartOption,
   type QuickstartSpaceCreateId,
 } from './options.js'
 import {
   createQuickstartSetupFromSession,
+  executeDynamicQuickstart,
   getQuickstartSpaceName,
   populateSpace,
   type QuickstartSetup,
 } from './create.js'
+import { useVisibleQuickstartOptions } from './useQuickstartOptions.js'
 
 function isQuickstartSpaceCreateId(id: string): id is QuickstartSpaceCreateId {
   if (!isQuickstartId(id)) return false
   if (id === 'account' || id === 'pair' || id === 'local') return false
   const opt = getQuickstartOption(id)
   return !opt.path
+}
+
+function isSpaceCreatingOption(opt: QuickstartOption): boolean {
+  return (
+    !opt.path && opt.id !== 'account' && opt.id !== 'pair' && opt.id !== 'local'
+  )
 }
 
 type Phase = 'create' | 'mount' | 'populate' | 'done' | 'failed'
@@ -73,19 +82,35 @@ export function CreateSpaceRoute() {
   const session = useResourceValue(sessionResource)
   const rootResource = useRootResource()
   const root = useResourceValue(rootResource)
+  const quickstartOptions = useVisibleQuickstartOptions()
+  const backPath = useMemo(() => (orgId ? `org/${orgId}/` : ''), [orgId])
 
-  const validId: QuickstartSpaceCreateId | null = useMemo(
+  const selectedOption = useMemo(
+    () =>
+      quickstartOptions.find(
+        (opt) => opt.id === quickstartId && isSpaceCreatingOption(opt),
+      ) ?? null,
+    [quickstartId, quickstartOptions],
+  )
+  const staticId: QuickstartSpaceCreateId | null = useMemo(
     () => (isQuickstartSpaceCreateId(quickstartId) ? quickstartId : null),
     [quickstartId],
   )
-
-  const backPath = useMemo(() => (orgId ? `org/${orgId}/` : ''), [orgId])
+  const valid = !!selectedOption && (!!selectedOption.dynamic || !!staticId)
+  const spaceName =
+    staticId ?
+      getQuickstartSpaceName(staticId)
+    : selectedOption?.spaceName || selectedOption?.name || ''
 
   useEffect(() => {
-    if (validId) return
+    if (valid) return
     toast.error('Unknown quickstart: ' + quickstartId)
     navigateSession({ path: backPath, replace: true })
-  }, [backPath, navigateSession, quickstartId, validId])
+  }, [backPath, navigateSession, quickstartId, valid])
+
+  const selectedQuickstartId = selectedOption?.id ?? ''
+  const isDynamic = selectedOption?.dynamic ?? false
+  const staticQuickstartId = staticId
 
   const [state, dispatch] = useReducer(pipelineReducer, {
     phase: 'create',
@@ -95,7 +120,7 @@ export function CreateSpaceRoute() {
 
   useAbortSignalEffect(
     (signal) => {
-      if (!validId || !session || !root) return
+      if (!valid || !selectedQuickstartId || !session || !root) return
       const resources: Array<{ [Symbol.dispose](): void }> = []
       const cleanup: RegisterCleanup = (resource) => {
         if (resource) resources.push(resource)
@@ -116,7 +141,7 @@ export function CreateSpaceRoute() {
       const run = async (): Promise<void> => {
         const spaceResp = await session.createSpace(
           {
-            spaceName: getQuickstartSpaceName(validId),
+            spaceName,
             ...(orgId ? { ownerType: 'organization', ownerId: orgId } : {}),
           },
           signal,
@@ -133,11 +158,17 @@ export function CreateSpaceRoute() {
         if (signal.aborted) return
         dispatch({ type: 'advance', to: 'populate' })
 
-        await populateSpace(
-          validId,
-          { session, spaceResp, ...setup } as QuickstartSetup,
-          signal,
-        )
+        const fullSetup = { session, spaceResp, ...setup } as QuickstartSetup
+        if (isDynamic) {
+          await executeDynamicQuickstart(
+            root,
+            selectedQuickstartId,
+            fullSetup,
+            signal,
+          )
+        } else if (staticQuickstartId) {
+          await populateSpace(staticQuickstartId, fullSetup, signal)
+        }
         if (signal.aborted) return
 
         const spaceId = spaceResp.sharedObjectRef?.providerResourceRef?.id ?? ''
@@ -160,7 +191,18 @@ export function CreateSpaceRoute() {
 
       return disposeAll
     },
-    [navigateSession, orgId, session, root, validId, runId],
+    [
+      isDynamic,
+      navigateSession,
+      orgId,
+      root,
+      runId,
+      selectedQuickstartId,
+      session,
+      spaceName,
+      staticQuickstartId,
+      valid,
+    ],
   )
 
   const handleRetry = useCallback(() => {
@@ -172,9 +214,8 @@ export function CreateSpaceRoute() {
     navigateSession({ path: backPath })
   }, [backPath, navigateSession])
 
-  if (!validId) return null
+  if (!valid) return null
 
-  const spaceName = getQuickstartSpaceName(validId)
   const title =
     state.phase === 'failed' ?
       'Failed to create ' + spaceName
