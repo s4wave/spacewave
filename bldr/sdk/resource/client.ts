@@ -685,6 +685,7 @@ export class Client {
 
     await retryWithAbort(controller.signal, async (signal) => {
       const stream = this.service.ResourceClient({}, signal)
+      let initialized = false
 
       try {
         for await (const msg of stream) {
@@ -692,6 +693,7 @@ export class Client {
 
           // Handle initialization message
           if (msg.body?.case === 'init') {
+            initialized = true
             const clientHandleId = msg.body.value.clientHandleId ?? 0
             const rootResourceId = msg.body.value.rootResourceId ?? 0
 
@@ -743,6 +745,13 @@ export class Client {
         ) {
           this.releaseAllResources('connection-lost')
         }
+      }
+      if (!signal.aborted) {
+        throw new Error(
+          initialized ?
+            'ResourceClient stream closed'
+          : 'ResourceClient stream closed before init',
+        )
       }
     })
   }
