@@ -22,6 +22,7 @@ import (
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
+	"github.com/s4wave/spacewave/bldr/manifest/builder/resultworld"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
@@ -263,6 +264,16 @@ func (c *Controller) Execute(ctx context.Context) error {
 					WithField("resolved-refs", len(refs)).
 					Debug("resolved manifest dep refs for watching")
 			}
+			if result != nil {
+				if err := result.Validate(); err != nil {
+					le.WithError(err).Debug("skipping world-backed manifest build result")
+				} else if err := c.storeManifestBuildResult(ctx, le, result); err != nil {
+					resultPromise.SetResult(nil, err)
+					prevErr = err
+					buildCtxCancel()
+					return err
+				}
+			}
 			resultPromise.SetResult(result, nil)
 			prevResult = result
 		} else {
@@ -419,6 +430,33 @@ func (c *Controller) Execute(ctx context.Context) error {
 		le.Infof("re-building after %d filesystem events with %d changed files", len(happened), len(changedFiles))
 		buildCtxCancel()
 	}
+}
+
+// storeManifestBuildResult stores world-backed build provenance for startup reuse.
+func (c *Controller) storeManifestBuildResult(
+	ctx context.Context,
+	le *logrus.Entry,
+	result *bldr_manifest_builder.BuilderResult,
+) error {
+	builderConfig := c.c.GetBuilderConfig()
+	busEngine := world.NewBusEngine(ctx, c.bus, builderConfig.GetEngineId())
+	tx, err := busEngine.NewTransaction(ctx, true)
+	if err != nil {
+		return err
+	}
+	defer tx.Discard()
+
+	ref, err := resultworld.SetManifestBuildResult(ctx, tx, builderConfig.GetObjectKey(), result)
+	if err != nil {
+		return err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+	le.WithField("object-key", resultworld.ManifestBuildResultKey(builderConfig.GetObjectKey())).
+		WithField("ref", ref).
+		Debug("stored manifest build result in world")
+	return nil
 }
 
 // collectManifestRefs collects current refs for the given manifest IDs from the world.

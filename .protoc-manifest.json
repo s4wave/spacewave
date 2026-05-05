@@ -443,7 +443,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/project/controller": {
-      "hash": "6e4e62194624c24822622a2023861e25feebe7fd86d0559c03810c90059617b7",
+      "hash": "b3768d08368c879391f07395594ae43006224dbfb8d3fd08c22230ebd30154ad",
       "generatedFiles": [
         "bldr/project/controller/config.pb.cc",
         "bldr/project/controller/config.pb.go",

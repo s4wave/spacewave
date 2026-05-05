@@ -1,10 +1,12 @@
 package bldr_manifest_builder
 
 import (
+	"context"
 	"path"
 
 	"github.com/pkg/errors"
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 )
 
@@ -19,6 +21,16 @@ func NewBuilderResult(
 		ManifestRef:   manifest.NewManifestRef(resultManifest.GetMeta(), ref),
 		InputManifest: inputManifest,
 	}
+}
+
+// NewBuilderResultBlock constructs a new BuilderResult block.
+func NewBuilderResultBlock() block.Block {
+	return &BuilderResult{}
+}
+
+// UnmarshalBuilderResult unmarshals a BuilderResult block from the cursor.
+func UnmarshalBuilderResult(ctx context.Context, bcs *block.Cursor) (*BuilderResult, error) {
+	return block.UnmarshalBlock[*BuilderResult](ctx, bcs, NewBuilderResultBlock)
 }
 
 // Validate validates the BuilderResult.
@@ -36,6 +48,16 @@ func (r *BuilderResult) Validate() error {
 		return errors.Wrap(err, "input_manifest")
 	}
 	return nil
+}
+
+// MarshalBlock marshals the block to binary.
+func (r *BuilderResult) MarshalBlock() ([]byte, error) {
+	return r.MarshalVT()
+}
+
+// UnmarshalBlock unmarshals the block to the object.
+func (r *BuilderResult) UnmarshalBlock(data []byte) error {
+	return r.UnmarshalVT(data)
 }
 
 // Validate validates the InputManifest
@@ -74,3 +96,6 @@ func (m *InputManifest) Validate() error {
 	}
 	return nil
 }
+
+// _ is a type assertion
+var _ block.Block = ((*BuilderResult)(nil))

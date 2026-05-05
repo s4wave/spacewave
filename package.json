@@ -35,7 +35,7 @@
   "scripts": {
     "check": "bun run typecheck && bun run lint",
     "fecheck": "bun scripts/fecheck.js",
-    "clean": "rimraf ./dist ./.bldr/{devtool.db*,logs,src,plugin,build,cli} ./.bldr-dist ./.spacewave ./.tools ./bin ./bldr/bin",
+    "clean": "rimraf ./dist ./.bldr/{devtool.db*,logs,src,plugin,build,cli,cache} ./.bldr-dist ./.tools ./bin ./bldr/bin",
     "clean:full": "bun run clean && rimraf ./.bldr ./.tmp",
     "go:run": "cross-env GOOS= GOARCH= go run -v -mod=readonly",
     "go:aptre": "cross-env GOFLAGS=-mod=mod -tags=purego go run -mod=mod github.com/aperturerobotics/common/cmd/aptre",
@@ -98,7 +98,7 @@
     "test:browser:nobackend:ui": "cross-env BROWSER_TEST_UI=1 vitest --config=vitest.browser.config.ts --ui",
     "prerender:dev": "vite --config app/prerender/vite.config.ts",
     "bldr:check": "bun run bldr:typecheck && bun run bldr:lint",
-    "bldr:clean": "rimraf ./.bldr/build ./.bldr/plugin ./.bldr/devtool.db* ./.bldr-dist ./bldr/bin",
+    "bldr:clean": "rimraf ./.bldr/build ./.bldr/plugin ./.bldr/devtool.db* ./.bldr/cache ./.bldr-dist ./bldr/bin",
     "bldr:clean:full": "bun run bldr:clean && rimraf ./.bldr",
     "bldr:go:run": "cross-env GOOS= GOARCH= go run -v -mod=readonly",
     "bldr:bldr": "bun run bldr:go:run -- github.com/s4wave/spacewave/bldr/cmd/bldr --config=./bldr/bldr.yaml --bldr-src-path=../..",

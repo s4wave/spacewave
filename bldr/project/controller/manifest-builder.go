@@ -20,8 +20,10 @@ import (
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
 	manifest_builder_controller "github.com/s4wave/spacewave/bldr/manifest/builder/controller"
+	"github.com/s4wave/spacewave/bldr/manifest/builder/resultworld"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
+	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"
 )
 
@@ -153,24 +155,6 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 
 	// ctrlConf is the current controller config
 	ctrlConf := t.c.GetConfig()
-	var startupBuilderResult *bldr_manifest_builder.BuilderResult
-	startupBuildState, err := ReadManifestStartupBuildState(ctrlConf.GetWorkingPath(), t.conf)
-	if err != nil {
-		t.c.le.WithError(err).
-			WithField("manifest-id", t.conf.GetManifestId()).
-			Warn("failed to load startup build state, falling back to rebuild")
-	}
-	if startupBuildState != nil {
-		startupBuilderResult = startupBuildState.GetBuilderResult().CloneVT()
-		t.c.le.WithFields(logrus.Fields{
-			"manifest-id":   t.conf.GetManifestId(),
-			"manifest-rev":  startupBuildState.GetBuilderResult().GetManifest().GetMeta().GetRev(),
-			"build-type":    t.conf.GetBuildType(),
-			"platform-id":   t.conf.GetPlatformId(),
-			"remote-id":     t.conf.GetRemoteId(),
-			"startup-state": true,
-		}).Debug("loaded startup build state")
-	}
 
 	// build paths
 	buildWorkingPath := filepath.Join(ctrlConf.GetWorkingPath(), "build", platformIDPath, manifestID)
@@ -193,6 +177,7 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 	platformID := meta.GetPlatformId()
 	remoteConf := remoteRef.GetRemoteConfig()
 	storeObjKey, storeLinkObjKeys := remoteConf.CleanupLinkObjectKeys()
+	var startupBuilderResult *bldr_manifest_builder.BuilderResult
 
 	tx, err := worldEng.NewTransaction(ctx, true)
 	if err != nil {
@@ -219,10 +204,41 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 			[]string{platformID},
 			storeLinkObjKeys...,
 		)
-		tx.Discard()
 		if err != nil {
+			tx.Discard()
 			return err
 		}
+		if len(existingManifests) != 0 {
+			existingManifest := existingManifests[0]
+			worldBuildResult, _, err := resultworld.LookupManifestBuildResult(ctx, tx, existingManifest.ManifestKey)
+			if err != nil && !errors.Is(err, world.ErrObjectNotFound) {
+				t.c.le.WithError(err).
+					WithField("manifest-id", t.conf.GetManifestId()).
+					Warn("failed to load world-backed startup build result, falling back to rebuild")
+			}
+			if worldBuildResult != nil && !worldBuildResult.GetManifest().EqualVT(existingManifest.Manifest) {
+				t.c.le.WithField("manifest-id", t.conf.GetManifestId()).
+					Warn("world-backed startup build result manifest mismatch, falling back to rebuild")
+				worldBuildResult = nil
+			}
+			if worldBuildResult != nil && !worldBuildResult.GetManifestRef().GetManifestRef().EqualVT(existingManifest.ManifestRef) {
+				t.c.le.WithField("manifest-id", t.conf.GetManifestId()).
+					Warn("world-backed startup build result manifest ref mismatch, falling back to rebuild")
+				worldBuildResult = nil
+			}
+			if worldBuildResult != nil {
+				startupBuilderResult = worldBuildResult.CloneVT()
+				t.c.le.WithFields(logrus.Fields{
+					"manifest-id":   t.conf.GetManifestId(),
+					"manifest-rev":  startupBuilderResult.GetManifest().GetMeta().GetRev(),
+					"build-type":    t.conf.GetBuildType(),
+					"platform-id":   t.conf.GetPlatformId(),
+					"remote-id":     t.conf.GetRemoteId(),
+					"startup-state": "world",
+				}).Debug("loaded world-backed startup build result")
+			}
+		}
+		tx.Discard()
 	}
 
 	if len(existingManifests) != 0 {
@@ -283,19 +299,6 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 			if err != nil {
 				t.resultPromiseCtr.SetResult(nil, err)
 				return err
-			}
-			if result == nil {
-				if err := RemoveManifestStartupBuildState(ctrlConf.GetWorkingPath(), t.conf); err != nil {
-					t.resultPromiseCtr.SetResult(nil, err)
-					return err
-				}
-			}
-			if result != nil {
-				startupBuildState := NewManifestStartupBuildState(t.conf, result)
-				if err := startupBuildState.WriteFile(ctrlConf.GetWorkingPath()); err != nil {
-					t.resultPromiseCtr.SetResult(nil, err)
-					return err
-				}
 			}
 			t.resultPromiseCtr.SetResult(NewManifestBuilderResult(manifestBuilderConf, result), nil)
 		}
