@@ -1,7 +1,7 @@
 import { useLayoutEffect, useMemo } from 'react'
 import { useBldrContext } from '@aptre/bldr-react'
 import { createMux } from 'starpc'
-import type { WebView } from '@aptre/bldr'
+import type { WebView, WebViewRegistration } from '@aptre/bldr'
 
 import {
   createDebugBridgeHandler,
@@ -40,7 +40,16 @@ export function DebugBridgeProvider() {
     if (!doc || !webView) {
       return
     }
-    const reg = doc.registerWebView(webView)
+    let reg: WebViewRegistration
+    try {
+      reg = doc.registerWebView(webView)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      if (message === 'web document is closed') {
+        return
+      }
+      throw err
+    }
     return () => {
       reg.release()
     }
