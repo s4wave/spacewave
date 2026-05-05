@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from 'react'
+import { useCallback, useMemo } from 'react'
 
 import {
   SharedObjectContext,
@@ -10,6 +10,7 @@ import { useCommand } from '@s4wave/web/command/useCommand.js'
 import { useOpenCommand } from '@s4wave/web/command/CommandContext.js'
 import { useIsTabActive } from '@s4wave/web/contexts/TabActiveContext.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
+import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import { pluginPathPrefix } from '@s4wave/app/urls.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { downloadURL } from '@s4wave/web/download.js'
@@ -17,7 +18,6 @@ import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { CREATE_WIZARD_OBJECT_OP_ID } from '@s4wave/sdk/world/wizard/create-wizard.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import type { SubItemsCallback } from '@s4wave/web/command/CommandContext.js'
-import type { ObjectWizard } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { CREATE_BLOG_OP_ID } from '../../plugin/notes/proto/create-blog.js'
 import { createBlogClientSide } from '../../plugin/notes/blog-seed.js'
 import {
@@ -54,7 +54,15 @@ export function SpaceCommands({
   const { spaceState, spaceWorld, navigateToObjects } =
     SpaceContainerContext.useContext()
   const spaceResource = SpaceContext.useContext()
-  const space = useResourceValue(spaceResource)
+  const wizardState = useStreamingResource(
+    spaceResource,
+    useCallback((space, signal) => space.watchWizards(signal), []),
+    [],
+  )
+  const wizards = useMemo(
+    () => normalizeObjectWizards(wizardState.value?.wizards ?? []),
+    [wizardState.value?.wizards],
+  )
   const existingObjectKeys = useMemo(
     () =>
       spaceState.worldContents?.objects?.map((obj) => obj.objectKey ?? '') ??
@@ -109,17 +117,9 @@ export function SpaceCommands({
     handler: handleExportSpace,
   })
 
-  // Cache the wizard list so sub-item queries filter locally instead of re-fetching.
-  const wizardCache = useRef<ObjectWizard[] | null>(null)
   const createObjectSubItems: SubItemsCallback = useCallback(
     async (query, signal) => {
-      if (!space) return []
-      if (!wizardCache.current) {
-        wizardCache.current = normalizeObjectWizards(
-          await space.listWizards(signal),
-        )
-      }
-      const wizards = wizardCache.current
+      if (signal.aborted) return []
       const q = query.toLowerCase()
       return wizards
         .filter(
@@ -134,13 +134,11 @@ export function SpaceCommands({
           description: w.category,
         }))
     },
-    [space],
+    [wizards],
   )
 
   const createFromWizard = useCallback(
     async (typeId: string) => {
-      const wizards = wizardCache.current
-      if (!wizards) return
       const wizard = wizards.find((w) => w.typeId === typeId)
       if (!wizard) return
 
@@ -208,7 +206,7 @@ export function SpaceCommands({
       toast.success(`Created ${name}`)
       navigateToObjects([objectKey])
     },
-    [existingObjectKeys, spaceWorld, navigateToObjects],
+    [existingObjectKeys, spaceWorld, navigateToObjects, wizards],
   )
 
   const handleCreateObject = useCallback(

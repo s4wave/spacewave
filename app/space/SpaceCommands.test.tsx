@@ -1,5 +1,5 @@
 import React from 'react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, waitFor } from '@testing-library/react'
 
 import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
@@ -38,6 +38,7 @@ const h = vi.hoisted(() => ({
   navigate: vi.fn((_opts: unknown) => undefined),
   createNotebookClientSide: vi.fn().mockResolvedValue(undefined),
   createDocsClientSide: vi.fn().mockResolvedValue(undefined),
+  wizards: [] as unknown[],
 }))
 
 vi.mock('@s4wave/web/command/useCommand.js', () => ({
@@ -48,6 +49,15 @@ vi.mock('@s4wave/web/command/useCommand.js', () => ({
 
 vi.mock('@s4wave/web/command/CommandContext.js', () => ({
   useOpenCommand: () => h.openCommand,
+}))
+
+vi.mock('@aptre/bldr-sdk/hooks/useStreamingResource.js', () => ({
+  useStreamingResource: () => ({
+    value: { wizards: h.wizards },
+    loading: false,
+    error: null,
+    retry: vi.fn(),
+  }),
 }))
 
 vi.mock('@s4wave/web/contexts/TabActiveContext.js', () => ({
@@ -75,8 +85,10 @@ vi.mock('../../plugin/notes/content-seed.js', () => ({
 }))
 
 describe('SpaceCommands', () => {
-  const mockSpace = {
-    listWizards: vi.fn().mockResolvedValue([
+  const mockSpace = {}
+
+  beforeEach(() => {
+    h.wizards = [
       {
         typeId: 'notebook',
         displayName: 'Notebook',
@@ -131,8 +143,8 @@ describe('SpaceCommands', () => {
         wizardTypeId: 'wizard/forge/task',
         defaultNamePattern: 'Task',
       },
-    ]),
-  }
+    ]
+  })
 
   function renderCommands() {
     return render(
@@ -175,9 +187,9 @@ describe('SpaceCommands', () => {
   }
 
   function getCreateObjectCommandHandlers() {
-    const createObjectCommand = registeredCommands.find(
-      (cmd) => cmd.commandId === 'spacewave.create-object',
-    )
+    const createObjectCommand = [...registeredCommands]
+      .reverse()
+      .find((cmd) => cmd.commandId === 'spacewave.create-object')
     if (!createObjectCommand) {
       throw new Error('expected create-object command to be registered')
     }
