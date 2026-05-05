@@ -1,0 +1,4 @@
+# Client commands do not autostart a daemon unless explicitly requested.
+! spacewave --state-path $WORK/state status
+stderr "connect daemon"
+stderr "no daemon listening"

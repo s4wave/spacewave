@@ -1,0 +1,10 @@
+# Auth unlock exposes the PIN unlock command and reaches the PIN prompt before
+# any daemon work.
+spacewave auth unlock --help
+stdout "unlock a PIN-locked session"
+stdout "--state-path value"
+stdout "--session-index value"
+
+! spacewave auth unlock --state-path $WORK/state
+stderr "PIN:"
+stderr "read pin:"

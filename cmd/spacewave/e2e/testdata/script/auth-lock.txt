@@ -1,0 +1,13 @@
+# Auth lock commands expose the lock-mode surface and preserve connect-only
+# behavior when no daemon is running.
+spacewave auth lock --help
+stdout "lock the session (bare) or configure lock mode (pin, auto, status)"
+stdout "lock session with a PIN"
+stdout "set session to auto-unlock mode"
+stdout "show current lock mode and locked state"
+
+! spacewave auth lock --state-path $WORK/state
+stderr "no daemon listening"
+
+! spacewave auth lock status --state-path $WORK/state
+stderr "no daemon listening"

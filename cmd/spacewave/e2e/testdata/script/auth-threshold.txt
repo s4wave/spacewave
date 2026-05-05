@@ -1,0 +1,11 @@
+# Auth threshold exposes show/set and preserves connect-only behavior when no
+# daemon is running.
+spacewave auth threshold --help
+stdout "show or set the multi-sig auth threshold"
+stdout "set the multi-sig auth threshold"
+
+! spacewave auth threshold --state-path $WORK/state
+stderr "no daemon listening"
+
+! spacewave auth threshold set --state-path $WORK/state 2
+stderr "no daemon listening"

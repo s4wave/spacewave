@@ -1,0 +1,7 @@
+# The first CLI trajectory verifies the built binary is the real cmd/spacewave
+# entrypoint and exposes the expected command surface.
+spacewave --help
+stdout "spacewave CLI"
+stdout "COMMANDS:"
+stdout "status"
+stdout "space"

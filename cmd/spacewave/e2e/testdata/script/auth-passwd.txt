@@ -1,0 +1,10 @@
+# Auth passwd exposes the password-change command and reaches the current
+# password prompt before any daemon work.
+spacewave auth passwd --help
+stdout "change the account password"
+stdout "--state-path value"
+stdout "--session-index value"
+
+! spacewave auth passwd --state-path $WORK/state
+stderr "Current password:"
+stderr "read password:"

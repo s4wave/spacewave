@@ -1,0 +1,15 @@
+# Auth method commands expose list/add/remove and preserve connect-only
+# behavior when listing methods without a daemon.
+spacewave auth method --help
+stdout "manage auth methods (entity keypairs)"
+stdout "list registered entity keypairs"
+stdout "add an authentication method"
+stdout "remove an auth method by peer ID"
+
+spacewave auth method add --help
+stdout "add a new password-derived keypair"
+stdout "add a PEM backup key as an auth method"
+stdout "generate a backup key, register it, and save the PEM file"
+
+! spacewave auth method list --state-path $WORK/state
+stderr "no daemon listening"
