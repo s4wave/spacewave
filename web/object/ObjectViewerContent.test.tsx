@@ -1,6 +1,6 @@
 import { lazy, type ComponentType } from 'react'
 import { cleanup, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
@@ -36,6 +36,7 @@ function buildObjectInfo(): ObjectInfo {
 describe('ObjectViewerContent', () => {
   afterEach(() => {
     cleanup()
+    vi.restoreAllMocks()
   })
 
   it('contains lazy viewer suspension inside the object viewer pane', () => {
@@ -62,5 +63,39 @@ describe('ObjectViewerContent', () => {
 
     expect(screen.getByText('Loading object')).toBeDefined()
     expect(screen.queryByText('LlmSession loaded')).toBeNull()
+  })
+
+  it('contains lazy viewer import errors inside the object viewer pane', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const BrokenViewer = lazy(() =>
+      Promise.reject<{
+        default: ComponentType<ObjectViewerComponentProps>
+      }>(
+        new Error(
+          'Failed to fetch dynamically imported module: app://index.html/b/pa/glados-web/v/b/fe/web/workfront/WorkfrontViewer-DemfR9tb.mjs',
+        ),
+      ),
+    )
+    const component: ObjectViewerComponent = {
+      typeID: 'glados/workfront',
+      name: 'Workfront',
+      component: BrokenViewer,
+    }
+
+    render(
+      <ObjectViewerContent
+        objectInfo={buildObjectInfo()}
+        worldState={buildWorldState()}
+        typeID="glados/workfront"
+        component={component}
+      />,
+    )
+
+    expect(await screen.findByText('Failed to load module')).toBeDefined()
+    expect(
+      screen.getByText(
+        '/b/pa/glados-web/v/b/fe/web/workfront/WorkfrontViewer-DemfR9tb.mjs',
+      ),
+    ).toBeDefined()
   })
 })

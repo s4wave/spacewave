@@ -1,4 +1,5 @@
 import { Suspense } from 'react'
+import { WebViewErrorBoundary } from '@aptre/bldr-react'
 
 import { cn } from '@s4wave/web/style/utils.js'
 import type { IObjectState } from '@s4wave/sdk/world/object-state.js'
@@ -60,9 +61,11 @@ export function ObjectViewerContent({
         !disablePadding && 'p-[5px]',
       )}
     >
-      <Suspense fallback={<ObjectViewerLoadingState />}>
-        <Component {...props} />
-      </Suspense>
+      <WebViewErrorBoundary>
+        <Suspense fallback={<ObjectViewerLoadingState />}>
+          <Component {...props} />
+        </Suspense>
+      </WebViewErrorBoundary>
     </div>
   )
 }
