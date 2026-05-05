@@ -17,6 +17,7 @@ import (
 	"github.com/pkg/errors"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
+	"github.com/s4wave/spacewave/bldr/entrypoint/storagepath"
 	"github.com/s4wave/spacewave/bldr/util/logfile"
 	"github.com/sirupsen/logrus"
 )
@@ -116,7 +117,7 @@ func runCliMain(
 		&cli.StringFlag{
 			Name:        "log-level",
 			Usage:       "log level (debug, info, warn, error)",
-			EnvVars:     []string{"BLDR_LOG_LEVEL"},
+			EnvVars:     []string{storagepath.LogLevelEnvVar(projectID), "BLDR_LOG_LEVEL"},
 			Value:       logLevel.String(),
 			Destination: &logLevelName,
 		},
@@ -159,7 +160,28 @@ func runCliMain(
 				if err != nil {
 					return err
 				}
+				logfile.EnsureLoggerLevel(log, specs)
 				logFileCleanup = cleanup
+			}
+		}
+
+		// Auto-enable a DEBUG-level file hook under <storageRoot>/logs/.
+		// EnableAutoDefault no-ops when BLDR_LOG_FILE is set, so the
+		// explicit --log-file branch above takes precedence.
+		if logFileCleanup == nil {
+			if storageRoot, err := storagepath.DetermineStorageRoot(projectID); err == nil {
+				cleanup, err := logfile.EnableAutoDefault(
+					log,
+					storageRoot,
+					storagepath.LogRetentionDaysEnvVar(projectID),
+					time.Now(),
+				)
+				if err != nil {
+					le.WithError(err).Warn("failed to enable auto-default log file")
+				}
+				if cleanup != nil {
+					logFileCleanup = cleanup
+				}
 			}
 		}
 		return nil

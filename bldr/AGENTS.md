@@ -57,13 +57,46 @@ BLDR_LOG_FILE='level=WARN;path=/tmp/bldr-warn.log' bldr start web
 # Short form (path only, defaults to level=DEBUG;format=text)
 bldr --log-file '.bldr/logs/{ts}.log' start web
 
-# Disable auto-logging in dev mode
+# Disable auto-logging
 BLDR_LOG_FILE=none bldr start web
 ```
 
 In dev mode (`--build-type dev`), file logging is auto-enabled with
 `level=DEBUG;path=.bldr/logs/{ts}.log`. Log files are created under
-`.bldr/logs/` with session-stamped filenames. No auto-cleanup or rotation.
+`.bldr/logs/` with session-stamped filenames.
+
+### Distribution auto-default
+
+Distribution and CLI entrypoints (the dist top-level native host, the dist
+CLI surface, the bldr CLI `Main`, and the spacewave-cli daemon) auto-enable a
+DEBUG-level text log file when `BLDR_LOG_FILE` is unset. The path is
+`<storageRoot>/logs/{ts}.log`, where `<storageRoot>` is the same directory
+the binary uses for state (e.g. `~/.spacewave/`). The file is always written
+at DEBUG level regardless of the console verbosity, so support diagnostics
+do not lose detail when an operator runs the binary at INFO or WARN.
+
+| Env var | Effect |
+|---|---|
+| `BLDR_LOG_FILE=<spec>` | User-specified spec wins; auto-default does not fire. |
+| `BLDR_LOG_FILE=none` | Disables file logging entirely. |
+| `BLDR_LOG_FILE` unset | Auto-default fires at `<storageRoot>/logs/{ts}.log`. |
+| `<PROJECT>_LOG_LEVEL` (e.g. `SPACEWAVE_LOG_LEVEL`) | Overrides the console level only; the file always records DEBUG. |
+| `BLDR_LOG_LEVEL` | Same as above; checked after `<PROJECT>_LOG_LEVEL`. |
+| `<PROJECT>_LOG_RETENTION_DAYS` (e.g. `SPACEWAVE_LOG_RETENTION_DAYS`) | Override retention; default `7` (days). Non-positive or unparseable values fall back to the default. |
+
+Old `*.log` files in the same directory are pruned at startup before the new
+file is created. Pruning failures emit a warning and never abort startup.
+
+The console level and the file level are decoupled by `EnsureLoggerLevel`:
+the underlying logger is raised to DEBUG and console output is routed
+through a level-filtered hook so `--log-level warn` (or
+`<PROJECT>_LOG_LEVEL=warn`) only quiets the console.
+
+For the spacewave CLI specifically, the daemon child process inherits the
+parent CLI's environment, so any of `BLDR_LOG_FILE`, `BLDR_LOG_LEVEL`,
+`SPACEWAVE_LOG_LEVEL`, `SPACEWAVE_LOG_RETENTION_DAYS`, `SPACEWAVE_DATA_DIR`,
+or `BLDR_STATE_PATH` set on `spacewave-cli start` reaches the spawned
+daemon.
 
 ## Dist Sources (Embedded TypeScript Files)
 

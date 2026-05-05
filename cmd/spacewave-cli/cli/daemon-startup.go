@@ -53,6 +53,8 @@ func startDaemonProcess(ctx context.Context, statePath string) error {
 		exePath,
 		daemonServeArgs(statePath, pipeID)...,
 	)
+	// cmd.Env is left nil so the daemon inherits the parent's environment;
+	// the variables in daemonChildEnvForwarded propagate via that default.
 	if err := prepareDaemonStart(cmd); err != nil {
 		return err
 	}
@@ -89,6 +91,26 @@ func daemonServeArgs(statePath string, pipeID string) []string {
 		"serve",
 		"--daemon-startup-pipe-id", pipeID,
 	}
+}
+
+// daemonChildEnvForwarded names the env vars the parent CLI process
+// must forward to the spawned daemon child so log persistence and
+// storage configuration stay consistent across the parent/child
+// boundary.
+//
+// The list is the contract enforced by Test_DaemonChildEnvForwarded.
+// Production today relies on cmd.Env being left nil so the child
+// inherits the parent environment wholesale, which already covers
+// every entry. If a future change sets cmd.Env explicitly, it must
+// preserve these variables (including BLDR_LOG_FILE=none) by reading
+// them off os.Environ() and appending them to the child env.
+var daemonChildEnvForwarded = []string{
+	"BLDR_LOG_FILE",
+	"BLDR_LOG_LEVEL",
+	"BLDR_STATE_PATH",
+	"SPACEWAVE_LOG_LEVEL",
+	"SPACEWAVE_LOG_RETENTION_DAYS",
+	"SPACEWAVE_DATA_DIR",
 }
 
 // getDaemonStartupTimeout returns the configured daemon startup timeout.

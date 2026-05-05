@@ -17,6 +17,7 @@ import (
 	"github.com/s4wave/spacewave/bldr/banner"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
+	"github.com/s4wave/spacewave/bldr/entrypoint/storagepath"
 	"github.com/s4wave/spacewave/bldr/util/logfile"
 	"github.com/sirupsen/logrus"
 )
@@ -47,10 +48,24 @@ func Main(
 		DisableColors:    false,
 		DisableTimestamp: false,
 	})
-	log.SetLevel(logLevel)
+
+	distMeta, err := bldr_dist.UnmarshalDistMetaB58(distMetaB58)
+	if err != nil {
+		os.Stderr.WriteString(err.Error() + "\n")
+		os.Exit(1)
+	}
+	projectID := distMeta.GetProjectId()
+
+	// Resolve console log level from the env chain
+	// (<PROJECT>_LOG_LEVEL / BLDR_LOG_LEVEL / compiled-in default).
+	resolvedLevel := logfile.ResolveLogLevel(
+		[]string{storagepath.LogLevelEnvVar(projectID), "BLDR_LOG_LEVEL"},
+		logLevel,
+	)
+	log.SetLevel(resolvedLevel)
 	le := logrus.NewEntry(log)
 
-	// Attach log file hooks from BLDR_LOG_FILE env var.
+	// Attach log file hooks from BLDR_LOG_FILE env var when set.
 	if raw := os.Getenv("BLDR_LOG_FILE"); raw != "" {
 		parts := strings.Split(raw, ",")
 		specs, err := logfile.ParseLogFileSpecs(parts, time.Now())
@@ -63,30 +78,38 @@ func Main(
 				le.WithError(err).Warn("failed to attach log files")
 			}
 			if cleanup != nil {
+				logfile.EnsureLoggerLevel(log, specs)
 				defer cleanup()
 			}
+		}
+	}
+
+	// Auto-enable a DEBUG-level file hook under <storageRoot>/logs/.
+	// EnableAutoDefault no-ops when BLDR_LOG_FILE is set, so the explicit
+	// branch above takes precedence.
+	if storageRoot, err := storagepath.DetermineStorageRoot(projectID); err == nil {
+		cleanup, err := logfile.EnableAutoDefault(
+			log,
+			storageRoot,
+			storagepath.LogRetentionDaysEnvVar(projectID),
+			time.Now(),
+		)
+		if err != nil {
+			le.WithError(err).Warn("failed to enable auto-default log file")
+		}
+		if cleanup != nil {
+			defer cleanup()
 		}
 	}
 
 	ctx, ctxCancel := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
 	defer ctxCancel()
 
-	if err := func() error {
-		distMeta, err := bldr_dist.UnmarshalDistMetaB58(distMetaB58)
-		if err != nil {
-			return err
-		}
+	// Print banner
+	red := fcolor.New(fcolor.FgRed)
+	red.Fprint(os.Stderr, banner.FormatBanner()+"\n")
 
-		// Print banner
-		red := fcolor.New(fcolor.FgRed)
-		red.Fprint(os.Stderr, banner.FormatBanner()+"\n")
-
-		err = Run(ctx, le, distMeta, assetsFS, "", nil, nil)
-		if err != context.Canceled {
-			return err
-		}
-		return nil
-	}(); err != nil {
+	if err := Run(ctx, le, distMeta, assetsFS, "", nil, nil); err != nil && err != context.Canceled {
 		le.WithError(err).Error("exiting with fatal error")
 		ctxCancel()
 		<-time.After(time.Millisecond * 100)

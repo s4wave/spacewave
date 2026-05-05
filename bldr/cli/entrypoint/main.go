@@ -15,6 +15,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/bldr/entrypoint/storagepath"
 	"github.com/s4wave/spacewave/bldr/util/logfile"
 	"github.com/sirupsen/logrus"
 )
@@ -130,7 +131,7 @@ func Main(
 		&cli.StringFlag{
 			Name:        "log-level",
 			Usage:       "log level (debug, info, warn, error)",
-			EnvVars:     []string{"BLDR_LOG_LEVEL"},
+			EnvVars:     []string{storagepath.LogLevelEnvVar(projectID), "BLDR_LOG_LEVEL"},
 			Value:       "info",
 			Destination: &logLevel,
 		},
@@ -163,7 +164,7 @@ func Main(
 		log.SetLevel(lvl)
 		le = logrus.NewEntry(log)
 
-		// Attach log file hooks if configured.
+		// Attach log file hooks from --log-file / BLDR_LOG_FILE when set.
 		if raw := logFiles.Value(); len(raw) != 0 {
 			specs, err := logfile.ParseLogFileSpecs(raw, time.Now())
 			if err != nil {
@@ -174,7 +175,29 @@ func Main(
 				if err != nil {
 					return err
 				}
+				logfile.EnsureLoggerLevel(log, specs)
 				logFileCleanup = cleanup
+			}
+		}
+
+		// Auto-enable a DEBUG-level file hook under <storageRoot>/logs/.
+		// EnableAutoDefault no-ops when BLDR_LOG_FILE is set; the
+		// logFileCleanup guard covers the case where --log-file was
+		// passed on the command line without setting BLDR_LOG_FILE.
+		if logFileCleanup == nil {
+			if storageRoot, err := storagepath.DetermineStorageRoot(projectID); err == nil {
+				cleanup, err := logfile.EnableAutoDefault(
+					log,
+					storageRoot,
+					storagepath.LogRetentionDaysEnvVar(projectID),
+					time.Now(),
+				)
+				if err != nil {
+					le.WithError(err).Warn("failed to enable auto-default log file")
+				}
+				if cleanup != nil {
+					logFileCleanup = cleanup
+				}
 			}
 		}
 

@@ -4,6 +4,7 @@ package spacewave_cli
 
 import (
 	"slices"
+	"sort"
 	"testing"
 	"time"
 )
@@ -50,5 +51,25 @@ func TestGetDaemonStartupTimeoutInvalid(t *testing.T) {
 	_, err := getDaemonStartupTimeout()
 	if err == nil {
 		t.Fatal("expected error")
+	}
+}
+
+// TestDaemonChildEnvForwardedContract pins the env-var contract for
+// IC-4: any change to the daemon spawn path that sets cmd.Env
+// explicitly must continue to forward this exact list. The list is
+// kept sorted so additions are obvious in code review.
+func TestDaemonChildEnvForwardedContract(t *testing.T) {
+	want := []string{
+		"BLDR_LOG_FILE",
+		"BLDR_LOG_LEVEL",
+		"BLDR_STATE_PATH",
+		"SPACEWAVE_DATA_DIR",
+		"SPACEWAVE_LOG_LEVEL",
+		"SPACEWAVE_LOG_RETENTION_DAYS",
+	}
+	got := slices.Clone(daemonChildEnvForwarded)
+	sort.Strings(got)
+	if !slices.Equal(got, want) {
+		t.Fatalf("daemonChildEnvForwarded =\n  got  %#v\n  want %#v", got, want)
 	}
 }
