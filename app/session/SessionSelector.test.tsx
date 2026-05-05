@@ -30,10 +30,6 @@ vi.mock('@s4wave/web/router/NavigatePath.js', () => ({
   NavigatePath: () => null,
 }))
 
-vi.mock('@s4wave/web/ui/shooting-stars.js', () => ({
-  ShootingStars: () => null,
-}))
-
 vi.mock('@s4wave/app/landing/AnimatedLogo.js', () => ({
   default: () => <div data-testid="animated-logo" />,
 }))

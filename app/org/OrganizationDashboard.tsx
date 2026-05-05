@@ -20,7 +20,6 @@ import {
   CommandList,
 } from '@s4wave/web/ui/command.js'
 import { VISIBLE_QUICKSTART_OPTIONS } from '@s4wave/app/quickstart/options.js'
-import { ShootingStars } from '@s4wave/web/ui/shooting-stars.js'
 import { useSessionNavigate } from '@s4wave/web/contexts/contexts.js'
 
 import { MissingBillingAccountBanner } from './MissingBillingAccountBanner.js'
@@ -87,7 +86,6 @@ export function OrganizationDashboard() {
 
   return (
     <div className="bg-background-landing relative flex h-full w-full flex-col overflow-hidden">
-      <ShootingStars className="pointer-events-none absolute inset-0 opacity-60" />
       {degraded && (
         <button
           type="button"

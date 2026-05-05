@@ -2,7 +2,6 @@ import { useCallback, useMemo, useState } from 'react'
 import { LuMonitor, LuTerminal, LuCheck } from 'react-icons/lu'
 
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
-import { ShootingStars } from '@s4wave/web/ui/shooting-stars.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { useNavigate, useParams } from '@s4wave/web/router/router.js'
 import { LoginForm, type LoginResult } from '@s4wave/web/ui/login-form.js'
@@ -216,7 +215,6 @@ export function HandoffPage() {
   if (state === 'completing') {
     return (
       <div className="bg-background-landing relative flex flex-1 flex-col items-center justify-center gap-6 p-6">
-        <ShootingStars className="pointer-events-none fixed inset-0" />
         <div className="relative z-10 flex flex-col items-center gap-4">
           <Spinner size="xl" className="text-brand" />
           <h1 className="text-xl font-bold tracking-wide">
@@ -233,7 +231,6 @@ export function HandoffPage() {
   if (state === 'complete') {
     return (
       <div className="bg-background-landing relative flex flex-1 flex-col items-center justify-center gap-6 p-6">
-        <ShootingStars className="pointer-events-none fixed inset-0" />
         <div className="relative z-10 flex flex-col items-center gap-4">
           <div className="bg-brand/10 border-brand/30 flex h-16 w-16 items-center justify-center rounded-full border">
             <LuCheck className="text-brand h-8 w-8" />

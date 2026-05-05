@@ -2,7 +2,6 @@ import React, { useCallback } from 'react'
 import AnimatedLogo from './AnimatedLogo.js'
 import GetStarted from './GetStarted.js'
 import { NavigationLinks } from './NavigationLinks.js'
-import { ShootingStars } from '@s4wave/web/ui/shooting-stars.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import type { SessionListEntry } from '@s4wave/core/session/session.pb.js'
@@ -11,6 +10,7 @@ import { ExternalLink } from './ExternalLink.js'
 interface GetStartedSectionProps {
   homeRef: React.RefObject<HTMLDivElement | null>
   showScrollIndicator: boolean
+  animateScrollIndicator: boolean
   scrollDown: () => void
   sessions?: SessionListEntry[]
 }
@@ -18,6 +18,7 @@ interface GetStartedSectionProps {
 export function GetStartedSection({
   homeRef,
   showScrollIndicator,
+  animateScrollIndicator,
   scrollDown,
   sessions,
 }: GetStartedSectionProps) {
@@ -30,8 +31,6 @@ export function GetStartedSection({
       ref={homeRef}
       className="relative flex min-h-full w-full flex-col pt-6 @lg:pt-8 @2xl:pt-[2.84rem]"
     >
-      <ShootingStars className="pointer-events-none absolute inset-0" />
-
       {/* Spacer to center content on tall screens */}
       <div className="tall:block tall:flex-1 hidden" />
 
@@ -92,9 +91,12 @@ export function GetStartedSection({
         <div
           className={cn(
             'mt-2 mb-3 flex cursor-pointer flex-col items-center transition-opacity duration-300',
-            showScrollIndicator ?
-              'animate-[pulse_8s_ease-in-out_infinite] opacity-100'
-            : 'pointer-events-none opacity-0',
+            showScrollIndicator ? 'opacity-100' : (
+              'pointer-events-none opacity-0'
+            ),
+            showScrollIndicator &&
+              animateScrollIndicator &&
+              'animate-[pulse_8s_ease-in-out_infinite]',
           )}
           onClick={scrollDown}
         >

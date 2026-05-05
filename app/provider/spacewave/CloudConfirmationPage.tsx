@@ -26,7 +26,6 @@ import {
   OVERAGE_WRITE_PER_MILLION,
   OVERAGE_READ_PER_MILLION,
 } from '@s4wave/app/provider/spacewave/pricing.js'
-import { ShootingStars } from '@s4wave/web/ui/shooting-stars.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 
 const CLOUD_EXPANDED_FEATURES = [
@@ -272,7 +271,6 @@ export function PageWrapper({
 }) {
   return (
     <div className="bg-background-landing relative flex flex-1 flex-col items-center overflow-y-auto p-6 outline-none md:p-10">
-      <ShootingStars className="pointer-events-none fixed inset-0 opacity-60" />
       {backButton && (
         <div className="relative z-10 w-full max-w-2xl">{backButton}</div>
       )}

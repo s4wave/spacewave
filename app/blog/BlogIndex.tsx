@@ -1,7 +1,5 @@
 import { useCallback } from 'react'
 import { LuArrowLeft } from 'react-icons/lu'
-import { ShootingStars } from '@s4wave/web/ui/shooting-stars.js'
-import { useIsStaticMode } from '@s4wave/app/prerender/StaticContext.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { LegalFooter } from '@s4wave/app/landing/LegalFooter.js'
 import { HeroCard } from './HeroCard.js'
@@ -21,10 +19,9 @@ export interface BlogIndexProps {
   posts: BlogPost[]
 }
 
-// BlogIndex renders the /blog listing page with ShootingStars background.
+// BlogIndex renders the /blog listing page.
 export function BlogIndex({ posts }: BlogIndexProps) {
   const navigate = useNavigate()
-  const isStatic = useIsStaticMode()
   const goHome = useCallback(() => navigate({ path: '/' }), [navigate])
   const latest = posts[0]
   const rest = posts.slice(1)
@@ -33,10 +30,6 @@ export function BlogIndex({ posts }: BlogIndexProps) {
 
   return (
     <div className="bg-background-landing @container flex w-full flex-1 flex-col overflow-y-auto">
-      {!isStatic && (
-        <ShootingStars className="pointer-events-none fixed inset-0 opacity-40" />
-      )}
-
       {/* Back to home */}
       <button
         onClick={goHome}

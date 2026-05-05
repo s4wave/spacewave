@@ -1,7 +1,11 @@
 import { useMemo, useEffect, useState } from 'react'
-import { cn } from '@s4wave/web/style/utils.js'
+import { useDocumentVisibility } from '@aptre/bldr-react'
 import { useMouse } from '@uidotdev/usehooks'
+
+import { useIsTabActive } from '@s4wave/app/ShellTabContext.js'
+import { cn } from '@s4wave/web/style/utils.js'
 import spacewaveIcon from '@s4wave/web/images/spacewave-icon.png'
+
 import './AnimatedLogo.css'
 
 // extStyle accepts a style object with extended CSS properties (such as
@@ -21,10 +25,41 @@ const AnimatedLogo = ({
   followMouse?: boolean
 }) => {
   const [mouse, mouseRef] = useMouse<HTMLDivElement>()
+  const docVisible = useDocumentVisibility()
+  const isTabActive = useIsTabActive()
   const [elementRect, setElementRect] = useState<DOMRect | null>(null)
+  const [isOnScreen, setIsOnScreen] = useState(false)
+  const [hasMouse, setHasMouse] = useState(false)
+  const canRunAnimation = isOnScreen && docVisible === 'visible' && isTabActive
+  const canAnimate = followMouse && canRunAnimation && hasMouse
 
   useEffect(() => {
-    if (!followMouse || !mouseRef.current) return
+    const el = mouseRef.current
+    if (!el) return
+
+    const observer = new IntersectionObserver(([entry]) => {
+      setIsOnScreen(entry?.isIntersecting ?? false)
+    })
+    observer.observe(el)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [mouseRef])
+
+  useEffect(() => {
+    const query = window.matchMedia('(hover: hover) and (pointer: fine)')
+    const update = () => setHasMouse(query.matches)
+    update()
+    query.addEventListener('change', update)
+
+    return () => {
+      query.removeEventListener('change', update)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!canAnimate || !mouseRef.current) return
 
     const updateRect = () => {
       if (mouseRef.current) {
@@ -40,10 +75,10 @@ const AnimatedLogo = ({
     return () => {
       resizeObserver.disconnect()
     }
-  }, [followMouse, mouseRef])
+  }, [canAnimate, mouseRef])
 
   const mousePosition = useMemo(() => {
-    if (!followMouse || !elementRect) return { x: 0, y: 0, distance: 0 }
+    if (!canAnimate || !elementRect) return { x: 0, y: 0, distance: 0 }
 
     const elementCenterX = elementRect.left + elementRect.width / 2
     const elementCenterY = elementRect.top + elementRect.height / 2
@@ -56,15 +91,15 @@ const AnimatedLogo = ({
     const distance = Math.min(Math.hypot(dx, dy) / 1000, 1)
 
     return { x, y, distance }
-  }, [mouse.x, mouse.y, followMouse, elementRect])
+  }, [mouse.x, mouse.y, canAnimate, elementRect])
 
   const transform = useMemo(
     () => ({
-      rotateX: followMouse ? mousePosition.y * -9.262 : 0, // 8.42 * 1.1
-      rotateY: followMouse ? mousePosition.x * 8.42 : 0,
-      scale: followMouse ? 1 + mousePosition.distance * 0.002 : 1,
+      rotateX: canAnimate ? mousePosition.y * -9.262 : 0, // 8.42 * 1.1
+      rotateY: canAnimate ? mousePosition.x * 8.42 : 0,
+      scale: canAnimate ? 1 + mousePosition.distance * 0.002 : 1,
     }),
-    [mousePosition, followMouse],
+    [mousePosition, canAnimate],
   )
 
   return (
@@ -84,13 +119,14 @@ const AnimatedLogo = ({
           className={cn(
             'absolute -inset-[2px] z-[1] rounded-3xl opacity-50 blur-md transition duration-800 will-change-transform group-hover:scale-105 group-hover:opacity-55',
             'bg-[radial-gradient(circle_farthest-corner_at_100%_0,var(--color-brand),transparent),radial-gradient(circle_farthest-corner_at_0_100%,var(--color-logo-blue),transparent),radial-gradient(circle_farthest-corner_at_0_0,var(--color-brand),transparent),radial-gradient(circle_at_50%_50%,var(--color-logo-base)_10%,var(--color-logo-dark)_80%)]',
-            'animate-[pulse_10s_ease-in-out_infinite]',
+            canRunAnimation && 'animate-[pulse_10s_ease-in-out_infinite]',
           )}
           style={extStyle({
-            animationName: 'logoBlur',
+            animationName: canRunAnimation ? 'logoBlur' : 'none',
             animationDuration: '10s',
             animationIterationCount: 'infinite',
             animationTimingFunction: 'ease-in-out',
+            animationPlayState: canRunAnimation ? 'running' : 'paused',
             dynamicRangeLimit: 'no-limit',
           })}
         />

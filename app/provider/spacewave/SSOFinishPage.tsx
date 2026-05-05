@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { LuCheck, LuCircleAlert } from 'react-icons/lu'
 
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
-import { ShootingStars } from '@s4wave/web/ui/shooting-stars.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { useParams, useNavigate } from '@s4wave/web/router/router.js'
 import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
@@ -194,7 +193,6 @@ export function SSOFinishPage() {
   if (state.step === 'error') {
     return (
       <div className="bg-background-landing relative flex flex-1 flex-col items-center justify-center p-6">
-        <ShootingStars className="pointer-events-none fixed inset-0 opacity-60" />
         <div className="relative z-10 flex flex-col items-center gap-4 text-center">
           <LuCircleAlert className="text-destructive h-12 w-12" />
           <h2 className="text-foreground text-lg font-semibold">
@@ -254,7 +252,6 @@ export function SSOFinishPage() {
   // Loading/progress states.
   return (
     <div className="bg-background-landing relative flex flex-1 flex-col items-center justify-center p-6">
-      <ShootingStars className="pointer-events-none fixed inset-0 opacity-60" />
       <div className="relative z-10 flex flex-col items-center gap-4 text-center">
         <AnimatedLogo followMouse={false} />
         {state.step === 'complete' ?

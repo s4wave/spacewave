@@ -1,6 +1,5 @@
 import { LuCheck, LuX } from 'react-icons/lu'
 
-import { ShootingStars } from '@s4wave/web/ui/shooting-stars.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 
 // CheckoutResultPage renders a static checkout result for desktop app users.
@@ -9,7 +8,6 @@ import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 export function CheckoutResultPage({ success }: { success?: boolean }) {
   return (
     <div className="bg-background-landing relative flex flex-1 flex-col items-center justify-center p-6">
-      <ShootingStars className="pointer-events-none fixed inset-0 opacity-60" />
       <div className="relative z-10 flex flex-col items-center gap-6 text-center">
         <AnimatedLogo followMouse={false} />
         {success ?

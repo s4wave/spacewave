@@ -2,7 +2,6 @@ import Markdown from 'markdown-to-jsx'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import type { AnchorHTMLAttributes } from 'react'
 import { LuArrowLeft, LuChevronDown, LuGithub } from 'react-icons/lu'
-import { ShootingStars } from '@s4wave/web/ui/shooting-stars.js'
 import { Badge } from '@s4wave/web/ui/badge.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { LegalFooter } from './LegalFooter.js'
@@ -150,8 +149,6 @@ export function Changelog() {
       ref={scrollRef}
       className="bg-background-landing @container flex w-full flex-1 flex-col overflow-y-auto"
     >
-      <ShootingStars className="pointer-events-none fixed inset-0 opacity-40" />
-
       {/* Back button */}
       <div className="relative z-10 px-4 pt-6 @lg:px-8">
         <button

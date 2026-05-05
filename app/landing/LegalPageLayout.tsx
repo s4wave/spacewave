@@ -1,5 +1,4 @@
 import { LuArrowLeft } from 'react-icons/lu'
-import { ShootingStars } from '@s4wave/web/ui/shooting-stars.js'
 import { LegalFooter } from './LegalFooter.js'
 import { useLandingBackNavigation } from './useLandingBackNavigation.js'
 
@@ -26,8 +25,6 @@ export function LegalPageLayout({
 
   return (
     <div className="bg-background-landing @container flex w-full flex-1 flex-col overflow-y-auto">
-      <ShootingStars className="pointer-events-none fixed inset-0 opacity-40" />
-
       <div className="relative z-10 px-4 pt-6 @lg:px-8">
         <button
           onClick={goBack}

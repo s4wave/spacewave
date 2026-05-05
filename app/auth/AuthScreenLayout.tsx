@@ -2,7 +2,6 @@ import type React from 'react'
 import { forwardRef } from 'react'
 
 import { cn } from '@s4wave/web/style/utils.js'
-import { ShootingStars } from '@s4wave/web/ui/shooting-stars.js'
 import spacewaveIcon from '@s4wave/web/images/spacewave-icon.png'
 
 export interface AuthScreenLayoutProps extends React.ComponentPropsWithoutRef<'div'> {
@@ -45,8 +44,6 @@ export const AuthScreenLayout = forwardRef<
       )}
       {...props}
     >
-      <ShootingStars className="pointer-events-none fixed inset-0 opacity-60" />
-
       {topLeft && <div className="absolute top-4 left-4 z-20">{topLeft}</div>}
       {topRight && (
         <div className="absolute top-4 right-4 z-20">{topRight}</div>

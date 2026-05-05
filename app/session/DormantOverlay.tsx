@@ -5,7 +5,6 @@ import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
-import { ShootingStars } from '@s4wave/web/ui/shooting-stars.js'
 import { BackButton } from '@s4wave/web/ui/BackButton.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { cn } from '@s4wave/web/style/utils.js'
@@ -69,9 +68,6 @@ export function DormantOverlay({ metadata }: DormantOverlayProps) {
       <BackButton floating onClick={handleBack}>
         Sessions
       </BackButton>
-
-      <ShootingStars className="pointer-events-none fixed inset-0 opacity-60" />
-
       <div className="relative z-10 flex w-full max-w-sm flex-col gap-6">
         <div className="flex flex-col items-center gap-2">
           <AnimatedLogo followMouse={false} />

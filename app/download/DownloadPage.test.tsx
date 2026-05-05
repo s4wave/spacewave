@@ -3,10 +3,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { DownloadPage } from './DownloadPage.js'
 
-vi.mock('@s4wave/web/ui/shooting-stars.js', () => ({
-  ShootingStars: () => <div data-testid="shooting-stars" />,
-}))
-
 vi.mock('@s4wave/app/landing/LegalFooter.js', () => ({
   LegalFooter: () => <div data-testid="legal-footer" />,
 }))

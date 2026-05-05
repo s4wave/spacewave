@@ -18,10 +18,6 @@ vi.mock('./useLandingBackNavigation.js', () => ({
   useLandingBackNavigation: () => mockGoBack,
 }))
 
-vi.mock('@s4wave/web/ui/shooting-stars.js', () => ({
-  ShootingStars: () => <div data-testid="shooting-stars" />,
-}))
-
 vi.mock('./LegalFooter.js', () => ({
   LegalFooter: () => <div>footer</div>,
 }))

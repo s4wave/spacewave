@@ -1,4 +1,5 @@
 import { useCallback, useRef, useEffect, useState } from 'react'
+import { useDocumentVisibility } from '@aptre/bldr-react'
 
 import { QuickstartCommands } from '@s4wave/app/quickstart/QuickstartCommands.js'
 import {
@@ -97,6 +98,8 @@ export function Landing() {
   const containerRef = useRef<HTMLDivElement>(null)
   const isGridMode = useIsGridMode()
   const isTabActive = useIsTabActive()
+  const docVisible = useDocumentVisibility()
+  const pageActive = isTabActive && docVisible === 'visible'
   const sessionResource = useSessionList()
   const sessions = sessionResource.value?.sessions
   const [visibility, setVisibility] = useState({
@@ -109,11 +112,21 @@ export function Landing() {
   useEffect(() => {
     const handleScroll = (event: Event) => {
       const scrollTop = (event.target as Element).scrollTop
-      setVisibility((prev) => ({
-        ...prev,
-        scrollIndicator: scrollTop <= 100,
-        cornerTextScroll: scrollTop <= 20,
-      }))
+      setVisibility((prev) => {
+        const scrollIndicator = scrollTop <= 100
+        const cornerTextScroll = scrollTop <= 20
+        if (
+          prev.scrollIndicator === scrollIndicator &&
+          prev.cornerTextScroll === cornerTextScroll
+        ) {
+          return prev
+        }
+        return {
+          ...prev,
+          scrollIndicator,
+          cornerTextScroll,
+        }
+      })
     }
 
     const checkWidth = () => {
@@ -121,11 +134,21 @@ export function Landing() {
         containerRef.current?.clientWidth ?? window.innerWidth
       // Use window width for corner text since it's fixed-positioned to viewport
       const windowWidth = window.innerWidth
-      setVisibility((prev) => ({
-        ...prev,
-        cornerTextWidth: windowWidth >= MIN_WIDTH_CORNER_TEXT,
-        tooNarrow: containerWidth < MIN_WIDTH_CONTENT,
-      }))
+      setVisibility((prev) => {
+        const cornerTextWidth = windowWidth >= MIN_WIDTH_CORNER_TEXT
+        const tooNarrow = containerWidth < MIN_WIDTH_CONTENT
+        if (
+          prev.cornerTextWidth === cornerTextWidth &&
+          prev.tooNarrow === tooNarrow
+        ) {
+          return prev
+        }
+        return {
+          ...prev,
+          cornerTextWidth,
+          tooNarrow,
+        }
+      })
     }
 
     checkWidth()
@@ -169,7 +192,13 @@ export function Landing() {
       <QuickstartCommands onQuickstart={handleQuickstartCommand} />
       {visibility.tooNarrow && (
         <div className="bg-background/95 pointer-events-none absolute inset-0 z-50 flex flex-col items-center justify-center text-sm">
-          <span className="text-foreground-alt animate-[pulse_2s_ease-in-out_infinite]">
+          <span
+            className={
+              pageActive ?
+                'text-foreground-alt animate-[pulse_2s_ease-in-out_infinite]'
+              : 'text-foreground-alt'
+            }
+          >
             &larr; Wider please! &rarr;
           </span>
         </div>
@@ -187,6 +216,7 @@ export function Landing() {
       <GetStartedSection
         homeRef={homeRef}
         showScrollIndicator={visibility.scrollIndicator}
+        animateScrollIndicator={pageActive}
         scrollDown={scrollDown}
         sessions={sessions}
       />

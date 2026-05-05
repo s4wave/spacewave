@@ -6,7 +6,6 @@ import { useSessionAccountStatuses } from '@s4wave/app/hooks/useSessionAccountSt
 import { useSessionList } from '@s4wave/app/hooks/useSessionList.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { NavigatePath } from '@s4wave/web/router/NavigatePath.js'
-import { ShootingStars } from '@s4wave/web/ui/shooting-stars.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { BackButton } from '@s4wave/web/ui/BackButton.js'
 import { Button } from '@s4wave/web/ui/button.js'
@@ -69,8 +68,6 @@ export function SessionSelector() {
 
   return (
     <div className="bg-background-landing relative flex h-full w-full flex-col overflow-hidden">
-      <ShootingStars className="pointer-events-none absolute inset-0 opacity-60" />
-
       <BackButton floating onClick={handleHome}>
         Home
       </BackButton>

@@ -1,8 +1,6 @@
 import { useCallback } from 'react'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { LuArrowLeft } from 'react-icons/lu'
-import { ShootingStars } from '@s4wave/web/ui/shooting-stars.js'
-import { useIsStaticMode } from '@s4wave/app/prerender/StaticContext.js'
 import { LegalFooter } from '@s4wave/app/landing/LegalFooter.js'
 import { PostList } from './PostList.js'
 import type { BlogPost } from './types.js'
@@ -15,7 +13,6 @@ export interface BlogTagPageProps {
 
 // BlogTagPage renders a filtered listing of posts for a specific tag.
 export function BlogTagPage({ tag, posts }: BlogTagPageProps) {
-  const isStatic = useIsStaticMode()
   const navigate = useNavigate()
 
   const navigateBlog = useCallback(() => {
@@ -24,10 +21,6 @@ export function BlogTagPage({ tag, posts }: BlogTagPageProps) {
 
   return (
     <div className="bg-background-landing @container flex w-full flex-1 flex-col overflow-y-auto">
-      {!isStatic && (
-        <ShootingStars className="pointer-events-none fixed inset-0 opacity-40" />
-      )}
-
       <div className="relative z-10 mx-auto w-full max-w-5xl px-4 pt-6 @lg:px-8">
         <button
           onClick={navigateBlog}

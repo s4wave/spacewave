@@ -12,7 +12,6 @@ import {
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { inputClass } from '@s4wave/web/ui/credential/CredentialProofInput.js'
-import { ShootingStars } from '@s4wave/web/ui/shooting-stars.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { SessionFrame } from '@s4wave/app/session/SessionFrame.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
@@ -61,7 +60,6 @@ export function VerifyEmailPage() {
   return (
     <SessionFrame>
       <div className="bg-background-landing relative flex flex-1 flex-col items-center overflow-y-auto p-6 outline-none md:p-10">
-        <ShootingStars className="pointer-events-none fixed inset-0 opacity-60" />
         <div className="relative z-10 my-auto flex w-full max-w-lg flex-col gap-4">
           {/* Header */}
           <div className="flex flex-col items-center gap-2">

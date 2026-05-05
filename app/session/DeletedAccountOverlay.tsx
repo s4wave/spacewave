@@ -2,7 +2,6 @@ import { useCallback } from 'react'
 import { LuCircleAlert } from 'react-icons/lu'
 
 import { useNavigate } from '@s4wave/web/router/router.js'
-import { ShootingStars } from '@s4wave/web/ui/shooting-stars.js'
 import { BackButton } from '@s4wave/web/ui/BackButton.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { cn } from '@s4wave/web/style/utils.js'
@@ -38,9 +37,6 @@ export function DeletedAccountOverlay({
       <BackButton floating onClick={handleBack}>
         Sessions
       </BackButton>
-
-      <ShootingStars className="pointer-events-none fixed inset-0 opacity-60" />
-
       <div className="relative z-10 flex w-full max-w-sm flex-col gap-6">
         <div className="flex flex-col items-center gap-2">
           <AnimatedLogo followMouse={false} />

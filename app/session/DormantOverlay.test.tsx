@@ -43,10 +43,6 @@ vi.mock('@s4wave/web/router/router.js', () => ({
   useNavigate: () => mockNavigate,
 }))
 
-vi.mock('@s4wave/web/ui/shooting-stars.js', () => ({
-  ShootingStars: () => null,
-}))
-
 vi.mock('@s4wave/app/landing/AnimatedLogo.js', () => ({
   default: () => null,
 }))

@@ -7,10 +7,6 @@ vi.mock('@s4wave/web/router/router.js', () => ({
   useParams: vi.fn(() => ({ sessionIndex: '0' })),
 }))
 
-vi.mock('@s4wave/web/ui/shooting-stars.js', () => ({
-  ShootingStars: () => null,
-}))
-
 vi.mock('@s4wave/app/landing/AnimatedLogo.js', () => ({
   default: () => <div data-testid="animated-logo" />,
 }))

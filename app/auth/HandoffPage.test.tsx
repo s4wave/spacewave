@@ -55,10 +55,6 @@ vi.mock('@s4wave/app/auth/AuthScreenLayout.js', () => ({
   ),
 }))
 
-vi.mock('@s4wave/web/ui/shooting-stars.js', () => ({
-  ShootingStars: () => null,
-}))
-
 vi.mock('@s4wave/app/landing/AnimatedLogo.js', () => ({
   default: () => <div>logo</div>,
 }))

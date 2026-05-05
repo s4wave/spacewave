@@ -25,7 +25,6 @@ import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { cn } from '@s4wave/web/style/utils.js'
-import { ShootingStars } from '@s4wave/web/ui/shooting-stars.js'
 import { inputClass } from '@s4wave/web/ui/credential/CredentialProofInput.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { AccountLifecycleState } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
@@ -216,7 +215,6 @@ export function DeleteCloudAccountPage() {
   return (
     <SessionFrame>
       <div className="bg-background-landing relative flex flex-1 flex-col items-center overflow-y-auto p-6 outline-none md:p-10">
-        <ShootingStars className="pointer-events-none fixed inset-0 opacity-60" />
         <div className="relative z-10 my-auto flex w-full max-w-lg flex-col gap-4">
           <button
             onClick={handleBack}

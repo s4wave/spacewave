@@ -40,7 +40,6 @@ import { useNavigate } from '@s4wave/web/router/router.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { useBottomBarSetOpenMenu } from '@s4wave/web/frame/bottom-bar-context.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
-import { ShootingStars } from '@s4wave/web/ui/shooting-stars.js'
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
 import { RadioOption } from '@s4wave/web/ui/RadioOption.js'
 import { useSessionOnboardingState } from '@s4wave/app/session/setup/LocalSessionOnboardingContext.js'
@@ -111,8 +110,6 @@ export function SessionDashboard({
   return (
     <div className="bg-background-landing relative flex h-full w-full flex-col overflow-hidden">
       <QuickstartCommands onQuickstart={handleQuickstartCommand} />
-      <ShootingStars className="pointer-events-none absolute inset-0 opacity-60" />
-
       <div className="relative z-10 p-3">
         <DashboardNav />
       </div>
