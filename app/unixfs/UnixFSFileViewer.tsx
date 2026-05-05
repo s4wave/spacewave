@@ -44,22 +44,28 @@ export interface UnixFSFileViewerProps {
 }
 
 // FileIcon returns the appropriate icon for a mime type.
-function FileIcon({ mimeType }: { mimeType: string }) {
-  const className = 'h-4 w-4 text-foreground-alt'
+function FileIcon({
+  mimeType,
+  className,
+}: {
+  mimeType: string
+  className?: string
+}) {
+  const cls = className ?? 'text-foreground-alt h-4 w-4'
 
   if (isTextMimeType(mimeType)) {
-    return <LuFileText className={className} />
+    return <LuFileText className={cls} />
   }
   if (isImageMimeType(mimeType)) {
-    return <LuImage className={className} />
+    return <LuImage className={cls} />
   }
   if (isAudioMimeType(mimeType)) {
-    return <LuMusic className={className} />
+    return <LuMusic className={cls} />
   }
   if (isVideoMimeType(mimeType)) {
-    return <LuVideo className={className} />
+    return <LuVideo className={cls} />
   }
-  return <LuFile className={className} />
+  return <LuFile className={cls} />
 }
 
 // TextFileViewer displays text file content.
@@ -121,12 +127,29 @@ function TextFileViewer({
 // BinaryFileViewer displays a placeholder for binary files.
 function BinaryFileViewer({ mimeType }: { mimeType: string }) {
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center justify-center p-4">
-      <FileIcon mimeType={mimeType} />
-      <div className="text-foreground-alt mt-4 text-sm">
-        Binary file preview not available
+    <div className="flex min-h-0 flex-1 items-center justify-center p-6">
+      <div className="border-foreground/6 bg-background-card/30 w-full max-w-xs rounded-lg border p-4 backdrop-blur-sm">
+        <div className="flex items-start gap-2.5">
+          <span className="bg-foreground/5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md">
+            <FileIcon
+              mimeType={mimeType}
+              className="text-foreground-alt/70 h-4 w-4"
+            />
+          </span>
+          <div className="min-w-0">
+            <p className="text-foreground text-xs font-medium select-none">
+              Preview not available
+            </p>
+            <p className="text-foreground-alt/60 mt-0.5 text-[11px] leading-relaxed">
+              This file type can't be rendered inline. Download it to open in
+              another app.
+            </p>
+            <p className="text-foreground-alt/40 mt-1 font-mono text-[10px]">
+              {mimeType}
+            </p>
+          </div>
+        </div>
       </div>
-      <div className="text-foreground-alt/70 mt-1 text-xs">{mimeType}</div>
     </div>
   )
 }
@@ -163,26 +186,39 @@ function SymlinkViewer({
   onNavigate?: () => void
 }) {
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center justify-center p-4">
-      <LuLink className="text-foreground-alt h-5 w-5" />
-      <div className="text-foreground-alt mt-4 text-sm">Symbolic link</div>
-      {loading ?
-        <div className="text-foreground-alt/70 mt-1 text-sm">
-          Reading target...
+    <div className="flex min-h-0 flex-1 items-center justify-center p-6">
+      <div className="border-foreground/6 bg-background-card/30 w-full max-w-xs rounded-lg border p-4 backdrop-blur-sm">
+        <div className="flex items-start gap-2.5">
+          <span className="bg-foreground/5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md">
+            <LuLink className="text-foreground-alt/70 h-4 w-4" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-foreground text-xs font-medium select-none">
+              Symbolic link
+            </p>
+            {loading ?
+              <p className="text-foreground-alt/60 mt-0.5 text-[11px]">
+                Reading target...
+              </p>
+            : <p className="text-foreground-alt/70 mt-1 truncate font-mono text-[11px]">
+                {target}
+              </p>
+            }
+          </div>
         </div>
-      : <>
-          <div className="text-foreground mt-1 font-mono text-sm">{target}</div>
-          {onNavigate && (
+        {!loading && onNavigate && (
+          <div className="mt-3 flex justify-end">
             <button
-              className="text-brand mt-3 flex items-center gap-1 text-sm hover:underline"
+              type="button"
               onClick={onNavigate}
+              className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-all duration-150"
             >
               Go to target
-              <LuArrowRight className="h-3.5 w-3.5" />
+              <LuArrowRight className="h-3 w-3" />
             </button>
-          )}
-        </>
-      }
+          </div>
+        )}
+      </div>
     </div>
   )
 }
