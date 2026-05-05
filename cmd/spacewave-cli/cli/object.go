@@ -12,6 +12,7 @@ import (
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
 	git_world "github.com/s4wave/spacewave/db/git/world"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
+	world_types "github.com/s4wave/spacewave/db/world/types"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 )
 
@@ -274,10 +275,14 @@ func buildObjectCreateCommand(statePath *string, sessionIdx *uint, spaceID *stri
 		ArgsUsage: "<key>",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:     "type",
-				Usage:    "object type: fs, git, canvas, canvas-demo",
-				EnvVars:  []string{"SPACEWAVE_OBJECT_TYPE"},
-				Required: true,
+				Name:    "type",
+				Usage:   "object type: fs, git, canvas, canvas-demo",
+				EnvVars: []string{"SPACEWAVE_OBJECT_TYPE"},
+			},
+			&cli.StringFlag{
+				Name:    "object-type",
+				Usage:   "generic world ObjectType ID to assign to an empty object",
+				EnvVars: []string{"SPACEWAVE_OBJECT_TYPE_ID"},
 			},
 		},
 		Action: func(c *cli.Context) error {
@@ -293,6 +298,14 @@ func buildObjectCreateCommand(statePath *string, sessionIdx *uint, spaceID *stri
 
 			ctx := c.Context
 			objType := c.String("type")
+			objectTypeID := c.String("object-type")
+			if objType == "" && objectTypeID == "" {
+				return errors.New("either --type or --object-type is required")
+			}
+			if objType != "" && objectTypeID != "" {
+				return errors.New("--type and --object-type are mutually exclusive")
+			}
+
 			client, err := connectDaemonFromContext(ctx, c, *statePath)
 			if err != nil {
 				return err
@@ -329,6 +342,13 @@ func buildObjectCreateCommand(statePath *string, sessionIdx *uint, spaceID *stri
 			defer tx.Discard()
 
 			switch objType {
+			case "":
+				if _, err = tx.CreateObject(ctx, key, nil); err != nil {
+					return errors.Wrap(err, "create object")
+				}
+				if err := world_types.SetObjectType(ctx, tx, key, objectTypeID); err != nil {
+					return errors.Wrap(err, "set object type")
+				}
 			case "fs":
 				op := unixfs_world.NewFsInitOp(
 					key,
@@ -367,6 +387,9 @@ func buildObjectCreateCommand(statePath *string, sessionIdx *uint, spaceID *stri
 				return errors.Wrap(err, "commit transaction")
 			}
 
+			if objectTypeID != "" {
+				objType = objectTypeID
+			}
 			os.Stdout.WriteString("Created object \"" + key + "\" (type=" + objType + ").\n")
 			return nil
 		},
