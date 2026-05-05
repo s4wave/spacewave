@@ -352,4 +352,41 @@ describe('SpaceCommands', () => {
     expect(decoded.name).toBe('Repository')
     expect(h.navigateToObjects).toHaveBeenCalledWith([decoded.objectKey])
   })
+
+  it('launches a dynamic persistent wizard with an exact wizard type id', async () => {
+    h.wizards = [
+      ...h.wizards,
+      {
+        typeId: 'glados/workfront',
+        displayName: 'Workfront',
+        category: 'Glados',
+        persistent: true,
+        wizardTypeId: 'wizard/glados/workfront',
+        keyPrefix: 'glados/workfront/',
+        defaultNamePattern: 'Workfront',
+      },
+    ]
+    renderCommands()
+
+    const { subItems, handler } = getCreateObjectCommandHandlers()
+    const items = await subItems('workfront', new AbortController().signal)
+    expect(items.map((item) => item.id)).toContain('glados/workfront')
+
+    handler({ subItemId: 'glados/workfront' })
+
+    await waitFor(() => {
+      expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
+    })
+
+    const [opTypeId, opData] = h.applyWorldOp.mock.calls[0]
+    expect(opTypeId).toBe(CREATE_WIZARD_OBJECT_OP_ID)
+
+    const decoded = CreateWizardObjectOp.fromBinary(opData)
+    expect(decoded.objectKey).toBe('wizard/workfront-1')
+    expect(decoded.wizardTypeId).toBe('wizard/glados/workfront')
+    expect(decoded.targetTypeId).toBe('glados/workfront')
+    expect(decoded.targetKeyPrefix).toBe('glados/workfront/')
+    expect(decoded.name).toBe('Workfront')
+    expect(h.navigateToObjects).toHaveBeenCalledWith([decoded.objectKey])
+  })
 })
