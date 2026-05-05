@@ -184,13 +184,7 @@ func (r *QuickstartRegistryResource) ExecuteQuickstart(
 		lookupOp,
 		engineInfo,
 	)
-	engineMux := engineResource.GetMux()
-	engineRootMux := srpc.NewMux(engineMux)
-	engineResourceServer := resource_server.NewResourceServer(engineMux)
-	if err := engineResourceServer.Register(engineRootMux); err != nil {
-		return nil, err
-	}
-	engineResourceID, err := resources.Client.AttachResource(ctx, "quickstart-world-engine", engineRootMux)
+	engineResourceID, err := resources.Client.AttachResource(ctx, "quickstart-world-engine", engineResource.GetMux())
 	if err != nil {
 		return nil, errors.Wrap(err, "attach quickstart world engine")
 	}

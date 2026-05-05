@@ -8,7 +8,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver/v4"
-	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_world "github.com/s4wave/spacewave/core/resource/world"
 	"github.com/s4wave/spacewave/db/world"
 	s4wave_objecttype_registry "github.com/s4wave/spacewave/sdk/objecttype/registry"
@@ -129,14 +128,7 @@ func (r *bridgeResolver) invokePlugin(
 	var engineResourceID uint32
 	if engine != nil {
 		engineRes := resource_world.NewEngineResource(r.le, r.b, engine, nil, nil)
-		engineMux := engineRes.GetMux()
-		engineRootMux := srpc.NewMux(engineMux)
-		engineResourceServer := resource_server.NewResourceServer(engineMux)
-		if err := engineResourceServer.Register(engineRootMux); err != nil {
-			resources.Release()
-			return nil, nil, err
-		}
-		engineResourceID, err = resources.Client.AttachResource(ctx, "world-engine", engineRootMux)
+		engineResourceID, err = resources.Client.AttachResource(ctx, "world-engine", engineRes.GetMux())
 		if err != nil {
 			resources.Release()
 			return nil, nil, err
