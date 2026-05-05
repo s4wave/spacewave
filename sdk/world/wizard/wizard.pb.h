@@ -81,6 +81,14 @@ class ObjectWizard;
 struct ObjectWizardDefaultTypeInternal;
 extern ObjectWizardDefaultTypeInternal _ObjectWizard_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull ObjectWizard_class_data_;
+class RegisterWizardRequest;
+struct RegisterWizardRequestDefaultTypeInternal;
+extern RegisterWizardRequestDefaultTypeInternal _RegisterWizardRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull RegisterWizardRequest_class_data_;
+class RegisterWizardResponse;
+struct RegisterWizardResponseDefaultTypeInternal;
+extern RegisterWizardResponseDefaultTypeInternal _RegisterWizardResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull RegisterWizardResponse_class_data_;
 class StartGitCloneRequest;
 struct StartGitCloneRequestDefaultTypeInternal;
 extern StartGitCloneRequestDefaultTypeInternal _StartGitCloneRequest_default_instance_;
@@ -113,6 +121,14 @@ class WatchWizardStateResponse;
 struct WatchWizardStateResponseDefaultTypeInternal;
 extern WatchWizardStateResponseDefaultTypeInternal _WatchWizardStateResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull WatchWizardStateResponse_class_data_;
+class WatchWizardsRequest;
+struct WatchWizardsRequestDefaultTypeInternal;
+extern WatchWizardsRequestDefaultTypeInternal _WatchWizardsRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull WatchWizardsRequest_class_data_;
+class WatchWizardsResponse;
+struct WatchWizardsResponseDefaultTypeInternal;
+extern WatchWizardsResponseDefaultTypeInternal _WatchWizardsResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull WatchWizardsResponse_class_data_;
 class WizardState;
 struct WizardStateDefaultTypeInternal;
 extern WizardStateDefaultTypeInternal _WizardState_default_instance_;
@@ -228,7 +244,7 @@ class WizardState final : public ::google::protobuf::Message
     return *reinterpret_cast<const WizardState*>(
         &_WizardState_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 12;
+  static constexpr int kIndexInFileMessages = 16;
   friend void swap(WizardState& a, WizardState& b) { a.Swap(&b); }
   inline void Swap(WizardState* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -429,6 +445,140 @@ class WizardState final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull WizardState_class_data_;
+// -------------------------------------------------------------------
+
+class WatchWizardsRequest final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:s4wave.wizard.WatchWizardsRequest) */ {
+ public:
+  inline WatchWizardsRequest() : WatchWizardsRequest(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(WatchWizardsRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(WatchWizardsRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR WatchWizardsRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline WatchWizardsRequest(const WatchWizardsRequest& from) : WatchWizardsRequest(nullptr, from) {}
+  inline WatchWizardsRequest(WatchWizardsRequest&& from) noexcept
+      : WatchWizardsRequest(nullptr, ::std::move(from)) {}
+  inline WatchWizardsRequest& operator=(const WatchWizardsRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline WatchWizardsRequest& operator=(WatchWizardsRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const WatchWizardsRequest& default_instance() {
+    return *reinterpret_cast<const WatchWizardsRequest*>(
+        &_WatchWizardsRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 13;
+  friend void swap(WatchWizardsRequest& a, WatchWizardsRequest& b) { a.Swap(&b); }
+  inline void Swap(WatchWizardsRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(WatchWizardsRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  WatchWizardsRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<WatchWizardsRequest>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const WatchWizardsRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const WatchWizardsRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.wizard.WatchWizardsRequest"; }
+
+  explicit WatchWizardsRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  WatchWizardsRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const WatchWizardsRequest& from);
+  WatchWizardsRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, WatchWizardsRequest&& from) noexcept
+      : WatchWizardsRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:s4wave.wizard.WatchWizardsRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fwizard_2fwizard_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull WatchWizardsRequest_class_data_;
 // -------------------------------------------------------------------
 
 class WatchWizardStateRequest final : public ::google::protobuf::internal::ZeroFieldsBase
@@ -1181,6 +1331,196 @@ class StartGitCloneRequest final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull StartGitCloneRequest_class_data_;
 // -------------------------------------------------------------------
 
+class RegisterWizardResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.wizard.RegisterWizardResponse) */ {
+ public:
+  inline RegisterWizardResponse() : RegisterWizardResponse(nullptr) {}
+  ~RegisterWizardResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(RegisterWizardResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(RegisterWizardResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR RegisterWizardResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline RegisterWizardResponse(const RegisterWizardResponse& from) : RegisterWizardResponse(nullptr, from) {}
+  inline RegisterWizardResponse(RegisterWizardResponse&& from) noexcept
+      : RegisterWizardResponse(nullptr, ::std::move(from)) {}
+  inline RegisterWizardResponse& operator=(const RegisterWizardResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline RegisterWizardResponse& operator=(RegisterWizardResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const RegisterWizardResponse& default_instance() {
+    return *reinterpret_cast<const RegisterWizardResponse*>(
+        &_RegisterWizardResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 11;
+  friend void swap(RegisterWizardResponse& a, RegisterWizardResponse& b) { a.Swap(&b); }
+  inline void Swap(RegisterWizardResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(RegisterWizardResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  RegisterWizardResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<RegisterWizardResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const RegisterWizardResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const RegisterWizardResponse& from) { RegisterWizardResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(RegisterWizardResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.wizard.RegisterWizardResponse"; }
+
+  explicit RegisterWizardResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  RegisterWizardResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const RegisterWizardResponse& from);
+  RegisterWizardResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, RegisterWizardResponse&& from) noexcept
+      : RegisterWizardResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kResourceIdFieldNumber = 1,
+  };
+  // uint32 resource_id = 1;
+  void clear_resource_id() ;
+  ::uint32_t resource_id() const;
+  void set_resource_id(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_resource_id() const;
+  void _internal_set_resource_id(::uint32_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.wizard.RegisterWizardResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const RegisterWizardResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::uint32_t resource_id_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fwizard_2fwizard_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull RegisterWizardResponse_class_data_;
+// -------------------------------------------------------------------
+
 class ObjectWizard final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.wizard.ObjectWizard) */ {
  public:
@@ -1236,7 +1576,7 @@ class ObjectWizard final : public ::google::protobuf::Message
     return *reinterpret_cast<const ObjectWizard*>(
         &_ObjectWizard_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 11;
+  static constexpr int kIndexInFileMessages = 15;
   friend void swap(ObjectWizard& a, ObjectWizard& b) { a.Swap(&b); }
   inline void Swap(ObjectWizard* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1331,8 +1671,10 @@ class ObjectWizard final : public ::google::protobuf::Message
     kDefaultNamePatternFieldNumber = 6,
     kWizardTypeIdFieldNumber = 8,
     kKeyPrefixFieldNumber = 9,
+    kPluginIdFieldNumber = 12,
     kPersistentFieldNumber = 7,
     kExperimentalFieldNumber = 10,
+    kRegistrationIdFieldNumber = 11,
   };
   // string type_id = 1;
   void clear_type_id() ;
@@ -1454,6 +1796,21 @@ class ObjectWizard final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_key_prefix();
 
   public:
+  // string plugin_id = 12;
+  void clear_plugin_id() ;
+  const ::std::string& plugin_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_plugin_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_plugin_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_plugin_id();
+  void set_allocated_plugin_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_plugin_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_plugin_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_plugin_id();
+
+  public:
   // bool persistent = 7;
   void clear_persistent() ;
   bool persistent() const;
@@ -1474,12 +1831,22 @@ class ObjectWizard final : public ::google::protobuf::Message
   void _internal_set_experimental(bool value);
 
   public:
+  // uint32 registration_id = 11;
+  void clear_registration_id() ;
+  ::uint32_t registration_id() const;
+  void set_registration_id(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_registration_id() const;
+  void _internal_set_registration_id(::uint32_t value);
+
+  public:
   // @@protoc_insertion_point(class_scope:s4wave.wizard.ObjectWizard)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<4, 10,
-                                   0, 135,
+  static const ::google::protobuf::internal::TcParseTable<4, 12,
+                                   0, 144,
                                    2>
       _table_;
 
@@ -1508,8 +1875,10 @@ class ObjectWizard final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr default_name_pattern_;
     ::google::protobuf::internal::ArenaStringPtr wizard_type_id_;
     ::google::protobuf::internal::ArenaStringPtr key_prefix_;
+    ::google::protobuf::internal::ArenaStringPtr plugin_id_;
     bool persistent_;
     bool experimental_;
+    ::uint32_t registration_id_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -1892,6 +2261,203 @@ class GitCloneProgress final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull GitCloneProgress_class_data_;
+// -------------------------------------------------------------------
+
+class WatchWizardsResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.wizard.WatchWizardsResponse) */ {
+ public:
+  inline WatchWizardsResponse() : WatchWizardsResponse(nullptr) {}
+  ~WatchWizardsResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(WatchWizardsResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(WatchWizardsResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR WatchWizardsResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline WatchWizardsResponse(const WatchWizardsResponse& from) : WatchWizardsResponse(nullptr, from) {}
+  inline WatchWizardsResponse(WatchWizardsResponse&& from) noexcept
+      : WatchWizardsResponse(nullptr, ::std::move(from)) {}
+  inline WatchWizardsResponse& operator=(const WatchWizardsResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline WatchWizardsResponse& operator=(WatchWizardsResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const WatchWizardsResponse& default_instance() {
+    return *reinterpret_cast<const WatchWizardsResponse*>(
+        &_WatchWizardsResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 14;
+  friend void swap(WatchWizardsResponse& a, WatchWizardsResponse& b) { a.Swap(&b); }
+  inline void Swap(WatchWizardsResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(WatchWizardsResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  WatchWizardsResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<WatchWizardsResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const WatchWizardsResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const WatchWizardsResponse& from) { WatchWizardsResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(WatchWizardsResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.wizard.WatchWizardsResponse"; }
+
+  explicit WatchWizardsResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  WatchWizardsResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const WatchWizardsResponse& from);
+  WatchWizardsResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, WatchWizardsResponse&& from) noexcept
+      : WatchWizardsResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kWizardsFieldNumber = 1,
+  };
+  // repeated .s4wave.wizard.ObjectWizard wizards = 1;
+  int wizards_size() const;
+  private:
+  int _internal_wizards_size() const;
+
+  public:
+  void clear_wizards() ;
+  ::s4wave::wizard::ObjectWizard* PROTOBUF_NONNULL mutable_wizards(int index);
+  ::google::protobuf::RepeatedPtrField<::s4wave::wizard::ObjectWizard>* PROTOBUF_NONNULL mutable_wizards();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::s4wave::wizard::ObjectWizard>& _internal_wizards() const;
+  ::google::protobuf::RepeatedPtrField<::s4wave::wizard::ObjectWizard>* PROTOBUF_NONNULL _internal_mutable_wizards();
+  public:
+  const ::s4wave::wizard::ObjectWizard& wizards(int index) const;
+  ::s4wave::wizard::ObjectWizard* PROTOBUF_NONNULL add_wizards();
+  const ::google::protobuf::RepeatedPtrField<::s4wave::wizard::ObjectWizard>& wizards() const;
+  // @@protoc_insertion_point(class_scope:s4wave.wizard.WatchWizardsResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const WatchWizardsResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField< ::s4wave::wizard::ObjectWizard > wizards_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fwizard_2fwizard_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull WatchWizardsResponse_class_data_;
 // -------------------------------------------------------------------
 
 class WatchWizardStateResponse final : public ::google::protobuf::Message
@@ -2674,6 +3240,201 @@ class StartGitCloneResponse final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull StartGitCloneResponse_class_data_;
 // -------------------------------------------------------------------
 
+class RegisterWizardRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.wizard.RegisterWizardRequest) */ {
+ public:
+  inline RegisterWizardRequest() : RegisterWizardRequest(nullptr) {}
+  ~RegisterWizardRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(RegisterWizardRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(RegisterWizardRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR RegisterWizardRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline RegisterWizardRequest(const RegisterWizardRequest& from) : RegisterWizardRequest(nullptr, from) {}
+  inline RegisterWizardRequest(RegisterWizardRequest&& from) noexcept
+      : RegisterWizardRequest(nullptr, ::std::move(from)) {}
+  inline RegisterWizardRequest& operator=(const RegisterWizardRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline RegisterWizardRequest& operator=(RegisterWizardRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const RegisterWizardRequest& default_instance() {
+    return *reinterpret_cast<const RegisterWizardRequest*>(
+        &_RegisterWizardRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 10;
+  friend void swap(RegisterWizardRequest& a, RegisterWizardRequest& b) { a.Swap(&b); }
+  inline void Swap(RegisterWizardRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(RegisterWizardRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  RegisterWizardRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<RegisterWizardRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const RegisterWizardRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const RegisterWizardRequest& from) { RegisterWizardRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(RegisterWizardRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.wizard.RegisterWizardRequest"; }
+
+  explicit RegisterWizardRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  RegisterWizardRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const RegisterWizardRequest& from);
+  RegisterWizardRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, RegisterWizardRequest&& from) noexcept
+      : RegisterWizardRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kWizardFieldNumber = 1,
+  };
+  // .s4wave.wizard.ObjectWizard wizard = 1;
+  bool has_wizard() const;
+  void clear_wizard() ;
+  const ::s4wave::wizard::ObjectWizard& wizard() const;
+  [[nodiscard]] ::s4wave::wizard::ObjectWizard* PROTOBUF_NULLABLE release_wizard();
+  ::s4wave::wizard::ObjectWizard* PROTOBUF_NONNULL mutable_wizard();
+  void set_allocated_wizard(::s4wave::wizard::ObjectWizard* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_wizard(::s4wave::wizard::ObjectWizard* PROTOBUF_NULLABLE value);
+  ::s4wave::wizard::ObjectWizard* PROTOBUF_NULLABLE unsafe_arena_release_wizard();
+
+  private:
+  const ::s4wave::wizard::ObjectWizard& _internal_wizard() const;
+  ::s4wave::wizard::ObjectWizard* PROTOBUF_NONNULL _internal_mutable_wizard();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.wizard.RegisterWizardRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const RegisterWizardRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::s4wave::wizard::ObjectWizard* PROTOBUF_NULLABLE wizard_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fwizard_2fwizard_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull RegisterWizardRequest_class_data_;
+// -------------------------------------------------------------------
+
 class ListWizardsResponse final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.wizard.ListWizardsResponse) */ {
  public:
@@ -2729,7 +3490,7 @@ class ListWizardsResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ListWizardsResponse*>(
         &_ListWizardsResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 10;
+  static constexpr int kIndexInFileMessages = 12;
   friend void swap(ListWizardsResponse& a, ListWizardsResponse& b) { a.Swap(&b); }
   inline void Swap(ListWizardsResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2926,7 +3687,7 @@ class CreateWizardObjectOp final : public ::google::protobuf::Message
     return *reinterpret_cast<const CreateWizardObjectOp*>(
         &_CreateWizardObjectOp_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 13;
+  static constexpr int kIndexInFileMessages = 17;
   friend void swap(CreateWizardObjectOp& a, CreateWizardObjectOp& b) { a.Swap(&b); }
   inline void Swap(CreateWizardObjectOp* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4289,6 +5050,138 @@ inline void GitCloneProgress::set_allocated_object_key(::std::string* PROTOBUF_N
 
 // -------------------------------------------------------------------
 
+// RegisterWizardRequest
+
+// .s4wave.wizard.ObjectWizard wizard = 1;
+inline bool RegisterWizardRequest::has_wizard() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  PROTOBUF_ASSUME(!value || _impl_.wizard_ != nullptr);
+  return value;
+}
+inline void RegisterWizardRequest::clear_wizard() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.wizard_ != nullptr) _impl_.wizard_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::s4wave::wizard::ObjectWizard& RegisterWizardRequest::_internal_wizard() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::wizard::ObjectWizard* p = _impl_.wizard_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::wizard::ObjectWizard&>(::s4wave::wizard::_ObjectWizard_default_instance_);
+}
+inline const ::s4wave::wizard::ObjectWizard& RegisterWizardRequest::wizard() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.wizard.RegisterWizardRequest.wizard)
+  return _internal_wizard();
+}
+inline void RegisterWizardRequest::unsafe_arena_set_allocated_wizard(
+    ::s4wave::wizard::ObjectWizard* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.wizard_);
+  }
+  _impl_.wizard_ = reinterpret_cast<::s4wave::wizard::ObjectWizard*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.wizard.RegisterWizardRequest.wizard)
+}
+inline ::s4wave::wizard::ObjectWizard* PROTOBUF_NULLABLE RegisterWizardRequest::release_wizard() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::wizard::ObjectWizard* released = _impl_.wizard_;
+  _impl_.wizard_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::wizard::ObjectWizard* PROTOBUF_NULLABLE RegisterWizardRequest::unsafe_arena_release_wizard() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.wizard.RegisterWizardRequest.wizard)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::wizard::ObjectWizard* temp = _impl_.wizard_;
+  _impl_.wizard_ = nullptr;
+  return temp;
+}
+inline ::s4wave::wizard::ObjectWizard* PROTOBUF_NONNULL RegisterWizardRequest::_internal_mutable_wizard() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.wizard_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::wizard::ObjectWizard>(GetArena());
+    _impl_.wizard_ = reinterpret_cast<::s4wave::wizard::ObjectWizard*>(p);
+  }
+  return _impl_.wizard_;
+}
+inline ::s4wave::wizard::ObjectWizard* PROTOBUF_NONNULL RegisterWizardRequest::mutable_wizard()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::wizard::ObjectWizard* _msg = _internal_mutable_wizard();
+  // @@protoc_insertion_point(field_mutable:s4wave.wizard.RegisterWizardRequest.wizard)
+  return _msg;
+}
+inline void RegisterWizardRequest::set_allocated_wizard(::s4wave::wizard::ObjectWizard* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.wizard_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+
+  _impl_.wizard_ = reinterpret_cast<::s4wave::wizard::ObjectWizard*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.wizard.RegisterWizardRequest.wizard)
+}
+
+// -------------------------------------------------------------------
+
+// RegisterWizardResponse
+
+// uint32 resource_id = 1;
+inline void RegisterWizardResponse::clear_resource_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.resource_id_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::uint32_t RegisterWizardResponse::resource_id() const {
+  // @@protoc_insertion_point(field_get:s4wave.wizard.RegisterWizardResponse.resource_id)
+  return _internal_resource_id();
+}
+inline void RegisterWizardResponse::set_resource_id(::uint32_t value) {
+  _internal_set_resource_id(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_set:s4wave.wizard.RegisterWizardResponse.resource_id)
+}
+inline ::uint32_t RegisterWizardResponse::_internal_resource_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.resource_id_;
+}
+inline void RegisterWizardResponse::_internal_set_resource_id(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.resource_id_ = value;
+}
+
+// -------------------------------------------------------------------
+
 // ListWizardsResponse
 
 // repeated .s4wave.wizard.ObjectWizard wizards = 1;
@@ -4343,6 +5236,70 @@ ListWizardsResponse::_internal_wizards() const {
 }
 inline ::google::protobuf::RepeatedPtrField<::s4wave::wizard::ObjectWizard>* PROTOBUF_NONNULL
 ListWizardsResponse::_internal_mutable_wizards() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.wizards_;
+}
+
+// -------------------------------------------------------------------
+
+// WatchWizardsRequest
+
+// -------------------------------------------------------------------
+
+// WatchWizardsResponse
+
+// repeated .s4wave.wizard.ObjectWizard wizards = 1;
+inline int WatchWizardsResponse::_internal_wizards_size() const {
+  return _internal_wizards().size();
+}
+inline int WatchWizardsResponse::wizards_size() const {
+  return _internal_wizards_size();
+}
+inline void WatchWizardsResponse::clear_wizards() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.wizards_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::s4wave::wizard::ObjectWizard* PROTOBUF_NONNULL WatchWizardsResponse::mutable_wizards(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.wizard.WatchWizardsResponse.wizards)
+  return _internal_mutable_wizards()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::s4wave::wizard::ObjectWizard>* PROTOBUF_NONNULL WatchWizardsResponse::mutable_wizards()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.wizard.WatchWizardsResponse.wizards)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_wizards();
+}
+inline const ::s4wave::wizard::ObjectWizard& WatchWizardsResponse::wizards(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.wizard.WatchWizardsResponse.wizards)
+  return _internal_wizards().Get(index);
+}
+inline ::s4wave::wizard::ObjectWizard* PROTOBUF_NONNULL WatchWizardsResponse::add_wizards()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::s4wave::wizard::ObjectWizard* _add =
+      _internal_mutable_wizards()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:s4wave.wizard.WatchWizardsResponse.wizards)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::s4wave::wizard::ObjectWizard>& WatchWizardsResponse::wizards() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.wizard.WatchWizardsResponse.wizards)
+  return _internal_wizards();
+}
+inline const ::google::protobuf::RepeatedPtrField<::s4wave::wizard::ObjectWizard>&
+WatchWizardsResponse::_internal_wizards() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.wizards_;
+}
+inline ::google::protobuf::RepeatedPtrField<::s4wave::wizard::ObjectWizard>* PROTOBUF_NONNULL
+WatchWizardsResponse::_internal_mutable_wizards() {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return &_impl_.wizards_;
 }
@@ -4746,7 +5703,7 @@ inline void ObjectWizard::clear_persistent() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.persistent_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000100U);
+                  0x00000200U);
 }
 inline bool ObjectWizard::persistent() const {
   // @@protoc_insertion_point(field_get:s4wave.wizard.ObjectWizard.persistent)
@@ -4754,7 +5711,7 @@ inline bool ObjectWizard::persistent() const {
 }
 inline void ObjectWizard::set_persistent(bool value) {
   _internal_set_persistent(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
   // @@protoc_insertion_point(field_set:s4wave.wizard.ObjectWizard.persistent)
 }
 inline bool ObjectWizard::_internal_persistent() const {
@@ -4901,7 +5858,7 @@ inline void ObjectWizard::clear_experimental() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.experimental_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000200U);
+                  0x00000400U);
 }
 inline bool ObjectWizard::experimental() const {
   // @@protoc_insertion_point(field_get:s4wave.wizard.ObjectWizard.experimental)
@@ -4909,7 +5866,7 @@ inline bool ObjectWizard::experimental() const {
 }
 inline void ObjectWizard::set_experimental(bool value) {
   _internal_set_experimental(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
   // @@protoc_insertion_point(field_set:s4wave.wizard.ObjectWizard.experimental)
 }
 inline bool ObjectWizard::_internal_experimental() const {
@@ -4919,6 +5876,96 @@ inline bool ObjectWizard::_internal_experimental() const {
 inline void ObjectWizard::_internal_set_experimental(bool value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.experimental_ = value;
+}
+
+// uint32 registration_id = 11;
+inline void ObjectWizard::clear_registration_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.registration_id_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000800U);
+}
+inline ::uint32_t ObjectWizard::registration_id() const {
+  // @@protoc_insertion_point(field_get:s4wave.wizard.ObjectWizard.registration_id)
+  return _internal_registration_id();
+}
+inline void ObjectWizard::set_registration_id(::uint32_t value) {
+  _internal_set_registration_id(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000800U);
+  // @@protoc_insertion_point(field_set:s4wave.wizard.ObjectWizard.registration_id)
+}
+inline ::uint32_t ObjectWizard::_internal_registration_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.registration_id_;
+}
+inline void ObjectWizard::_internal_set_registration_id(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.registration_id_ = value;
+}
+
+// string plugin_id = 12;
+inline void ObjectWizard::clear_plugin_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.plugin_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000100U);
+}
+inline const ::std::string& ObjectWizard::plugin_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.wizard.ObjectWizard.plugin_id)
+  return _internal_plugin_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ObjectWizard::set_plugin_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  _impl_.plugin_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.wizard.ObjectWizard.plugin_id)
+}
+inline ::std::string* PROTOBUF_NONNULL ObjectWizard::mutable_plugin_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  ::std::string* _s = _internal_mutable_plugin_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.wizard.ObjectWizard.plugin_id)
+  return _s;
+}
+inline const ::std::string& ObjectWizard::_internal_plugin_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.plugin_id_.Get();
+}
+inline void ObjectWizard::_internal_set_plugin_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.plugin_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ObjectWizard::_internal_mutable_plugin_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.plugin_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ObjectWizard::release_plugin_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.wizard.ObjectWizard.plugin_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000100U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+  auto* released = _impl_.plugin_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.plugin_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ObjectWizard::set_allocated_plugin_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+  }
+  _impl_.plugin_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.plugin_id_.IsDefault()) {
+    _impl_.plugin_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.wizard.ObjectWizard.plugin_id)
 }
 
 // -------------------------------------------------------------------

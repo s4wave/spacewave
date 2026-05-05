@@ -12,7 +12,11 @@ import {
   ObjectWizardRegistryResourceService,
   ObjectWizardRegistryResourceServiceClient,
 } from '../world/wizard/wizard_srpc.pb.js'
-import type { ObjectWizard } from '../world/wizard/wizard.pb.js'
+import type {
+  ObjectWizard,
+  RegisterWizardResponse,
+  WatchWizardsResponse,
+} from '../world/wizard/wizard.pb.js'
 import {
   SpaceSharingState,
   SpaceState,
@@ -86,5 +90,20 @@ export class Space extends Resource {
   public async listWizards(abortSignal?: AbortSignal): Promise<ObjectWizard[]> {
     const response = await this.wizardService.ListWizards({}, abortSignal)
     return response.wizards ?? []
+  }
+
+  // watchWizards streams registered object creation wizards.
+  public watchWizards(
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<WatchWizardsResponse> {
+    return this.wizardService.WatchWizards({}, abortSignal)
+  }
+
+  // registerWizard registers a plugin-provided object creation wizard.
+  public async registerWizard(
+    wizard: ObjectWizard,
+    abortSignal?: AbortSignal,
+  ): Promise<RegisterWizardResponse> {
+    return await this.wizardService.RegisterWizard({ wizard }, abortSignal)
   }
 }

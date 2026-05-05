@@ -14,7 +14,11 @@ type SRPCObjectWizardRegistryResourceServiceClient interface {
 	// SRPCClient returns the underlying SRPC client.
 	SRPCClient() srpc.Client
 
+	RegisterWizard(ctx context.Context, in *RegisterWizardRequest) (*RegisterWizardResponse, error)
+
 	ListWizards(ctx context.Context, in *ListWizardsRequest) (*ListWizardsResponse, error)
+
+	WatchWizards(ctx context.Context, in *WatchWizardsRequest) (SRPCObjectWizardRegistryResourceService_WatchWizardsClient, error)
 }
 
 type srpcObjectWizardRegistryResourceServiceClient struct {
@@ -35,6 +39,15 @@ func NewSRPCObjectWizardRegistryResourceServiceClientWithServiceID(cc srpc.Clien
 
 func (c *srpcObjectWizardRegistryResourceServiceClient) SRPCClient() srpc.Client { return c.cc }
 
+func (c *srpcObjectWizardRegistryResourceServiceClient) RegisterWizard(ctx context.Context, in *RegisterWizardRequest) (*RegisterWizardResponse, error) {
+	out := new(RegisterWizardResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "RegisterWizard", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcObjectWizardRegistryResourceServiceClient) ListWizards(ctx context.Context, in *ListWizardsRequest) (*ListWizardsResponse, error) {
 	out := new(ListWizardsResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "ListWizards", in, out)
@@ -44,8 +57,46 @@ func (c *srpcObjectWizardRegistryResourceServiceClient) ListWizards(ctx context.
 	return out, nil
 }
 
+func (c *srpcObjectWizardRegistryResourceServiceClient) WatchWizards(ctx context.Context, in *WatchWizardsRequest) (SRPCObjectWizardRegistryResourceService_WatchWizardsClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "WatchWizards", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcObjectWizardRegistryResourceService_WatchWizardsClient{stream}
+	if err := strm.CloseSend(); err != nil {
+		return nil, err
+	}
+	return strm, nil
+}
+
+type SRPCObjectWizardRegistryResourceService_WatchWizardsClient interface {
+	srpc.Stream
+	Recv() (*WatchWizardsResponse, error)
+	RecvTo(*WatchWizardsResponse) error
+}
+
+type srpcObjectWizardRegistryResourceService_WatchWizardsClient struct {
+	srpc.Stream
+}
+
+func (x *srpcObjectWizardRegistryResourceService_WatchWizardsClient) Recv() (*WatchWizardsResponse, error) {
+	m := new(WatchWizardsResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcObjectWizardRegistryResourceService_WatchWizardsClient) RecvTo(m *WatchWizardsResponse) error {
+	return x.MsgRecv(m)
+}
+
 type SRPCObjectWizardRegistryResourceServiceServer interface {
+	RegisterWizard(context.Context, *RegisterWizardRequest) (*RegisterWizardResponse, error)
+
 	ListWizards(context.Context, *ListWizardsRequest) (*ListWizardsResponse, error)
+
+	WatchWizards(*WatchWizardsRequest, SRPCObjectWizardRegistryResourceService_WatchWizardsStream) error
 }
 
 const SRPCObjectWizardRegistryResourceServiceServiceID = "s4wave.wizard.ObjectWizardRegistryResourceService"
@@ -74,7 +125,9 @@ func (d *SRPCObjectWizardRegistryResourceServiceHandler) GetServiceID() string {
 
 func (SRPCObjectWizardRegistryResourceServiceHandler) GetMethodIDs() []string {
 	return []string{
+		"RegisterWizard",
 		"ListWizards",
+		"WatchWizards",
 	}
 }
 
@@ -87,11 +140,27 @@ func (d *SRPCObjectWizardRegistryResourceServiceHandler) InvokeMethod(
 	}
 
 	switch methodID {
+	case "RegisterWizard":
+		return true, d.InvokeMethod_RegisterWizard(d.impl, strm)
 	case "ListWizards":
 		return true, d.InvokeMethod_ListWizards(d.impl, strm)
+	case "WatchWizards":
+		return true, d.InvokeMethod_WatchWizards(d.impl, strm)
 	default:
 		return false, nil
 	}
+}
+
+func (SRPCObjectWizardRegistryResourceServiceHandler) InvokeMethod_RegisterWizard(impl SRPCObjectWizardRegistryResourceServiceServer, strm srpc.Stream) error {
+	req := new(RegisterWizardRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.RegisterWizard(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
 }
 
 func (SRPCObjectWizardRegistryResourceServiceHandler) InvokeMethod_ListWizards(impl SRPCObjectWizardRegistryResourceServiceServer, strm srpc.Stream) error {
@@ -106,12 +175,52 @@ func (SRPCObjectWizardRegistryResourceServiceHandler) InvokeMethod_ListWizards(i
 	return strm.MsgSend(out)
 }
 
+func (SRPCObjectWizardRegistryResourceServiceHandler) InvokeMethod_WatchWizards(impl SRPCObjectWizardRegistryResourceServiceServer, strm srpc.Stream) error {
+	req := new(WatchWizardsRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcObjectWizardRegistryResourceService_WatchWizardsStream{strm}
+	return impl.WatchWizards(req, serverStrm)
+}
+
+type SRPCObjectWizardRegistryResourceService_RegisterWizardStream interface {
+	srpc.Stream
+}
+
+type srpcObjectWizardRegistryResourceService_RegisterWizardStream struct {
+	srpc.Stream
+}
+
 type SRPCObjectWizardRegistryResourceService_ListWizardsStream interface {
 	srpc.Stream
 }
 
 type srpcObjectWizardRegistryResourceService_ListWizardsStream struct {
 	srpc.Stream
+}
+
+type SRPCObjectWizardRegistryResourceService_WatchWizardsStream interface {
+	srpc.Stream
+	Send(*WatchWizardsResponse) error
+	SendAndClose(*WatchWizardsResponse) error
+}
+
+type srpcObjectWizardRegistryResourceService_WatchWizardsStream struct {
+	srpc.Stream
+}
+
+func (x *srpcObjectWizardRegistryResourceService_WatchWizardsStream) Send(m *WatchWizardsResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcObjectWizardRegistryResourceService_WatchWizardsStream) SendAndClose(m *WatchWizardsResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
 }
 
 type SRPCWizardResourceServiceClient interface {

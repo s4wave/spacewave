@@ -3,12 +3,16 @@ package s4wave_wizard_test
 import (
 	"context"
 	"crypto/rand"
+	"net"
 	"testing"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/aperturerobotics/starpc/srpc"
+	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
+	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	forge_job_ops "github.com/s4wave/spacewave/core/forge/job"
 	forge_task_ops "github.com/s4wave/spacewave/core/forge/task"
 	s4wave_git "github.com/s4wave/spacewave/core/git"
@@ -25,6 +29,52 @@ import (
 	objecttype_controller "github.com/s4wave/spacewave/sdk/world/objecttype/controller"
 	s4wave_wizard "github.com/s4wave/spacewave/sdk/world/wizard"
 )
+
+func setupWizardRegistryClient(t *testing.T) (context.Context, *resource_client.Client) {
+	t.Helper()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	r := s4wave_wizard.NewWizardRegistryResource()
+	clientPipe, serverPipe := net.Pipe()
+
+	clientMp, err := srpc.NewMuxedConn(clientPipe, true, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	srpcClient := srpc.NewClientWithMuxedConn(clientMp)
+
+	resourceSrv := resource_server.NewResourceServer(r.GetMux())
+	serverMux := srpc.NewMux()
+	if err := resourceSrv.Register(serverMux); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	server := srpc.NewServer(serverMux)
+	serverMp, err := srpc.NewMuxedConn(serverPipe, false, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	go func() {
+		if err := server.AcceptMuxedConn(ctx, serverMp); err != nil && ctx.Err() == nil {
+			panic(err)
+		}
+	}()
+
+	resourceSvc := resource.NewSRPCResourceServiceClient(srpcClient)
+	client, err := resource_client.NewClient(ctx, resourceSvc)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	t.Cleanup(func() {
+		client.Release()
+		cancel()
+		clientPipe.Close()
+		serverPipe.Close()
+	})
+
+	return ctx, client
+}
 
 // setupWizardWorldEngine creates a world engine with the wizard object type
 // controller registered.
@@ -161,6 +211,154 @@ func recvWizardState(
 	}
 
 	return msg.GetState()
+}
+
+func TestWizardRegistryRegisterListWatchAndRelease(t *testing.T) {
+	ctx, client := setupWizardRegistryClient(t)
+	watchCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	rootRef := client.AccessRootResource()
+	t.Cleanup(rootRef.Release)
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	svc := s4wave_wizard.NewSRPCObjectWizardRegistryResourceServiceClient(rootClient)
+
+	watch, err := svc.WatchWizards(watchCtx, &s4wave_wizard.WatchWizardsRequest{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	first, err := watch.Recv()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	initialCount := len(first.GetWizards())
+	if initialCount == 0 {
+		t.Fatal("expected static object wizards")
+	}
+
+	resp, err := svc.RegisterWizard(ctx, &s4wave_wizard.RegisterWizardRequest{
+		Wizard: &s4wave_wizard.ObjectWizard{
+			TypeId:             "glados/org-chart",
+			PluginId:           "glados-web",
+			DisplayName:        "Org Chart",
+			Category:           "Glados",
+			IconName:           "LuBot",
+			DefaultNamePattern: "Org Chart",
+			Persistent:         true,
+			WizardTypeId:       "wizard/glados/org-chart",
+			KeyPrefix:          "glados/org-chart/",
+		},
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if resp.GetResourceId() == 0 {
+		t.Fatal("expected registration resource id")
+	}
+
+	list, err := svc.ListWizards(ctx, &s4wave_wizard.ListWizardsRequest{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(list.GetWizards()) != initialCount+1 {
+		t.Fatalf("expected %d wizards, got %d", initialCount+1, len(list.GetWizards()))
+	}
+	registered := list.GetWizards()[initialCount]
+	if registered.GetTypeId() != "glados/org-chart" {
+		t.Fatalf("expected glados/org-chart, got %s", registered.GetTypeId())
+	}
+	if registered.GetRegistrationId() == 0 {
+		t.Fatal("expected assigned registration id")
+	}
+
+	second, err := watch.Recv()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(second.GetWizards()) != initialCount+1 {
+		t.Fatalf("expected watched registration, got %d wizards", len(second.GetWizards()))
+	}
+
+	ref := client.CreateResourceReference(resp.GetResourceId())
+	ref.Release()
+
+	third, err := watch.Recv()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(third.GetWizards()) != initialCount {
+		t.Fatalf("expected release to remove wizard, got %d wizards", len(third.GetWizards()))
+	}
+}
+
+func TestWizardRegistryValidationAndDedupe(t *testing.T) {
+	r := s4wave_wizard.NewWizardRegistryResource()
+
+	_, err := r.RegisterWizard(context.Background(), &s4wave_wizard.RegisterWizardRequest{})
+	if err != s4wave_wizard.ErrWizardRequired {
+		t.Fatalf("expected ErrWizardRequired, got %v", err)
+	}
+
+	base := &s4wave_wizard.ObjectWizard{
+		TypeId:      "glados/workfront",
+		PluginId:    "glados-web",
+		DisplayName: "Workfront",
+	}
+	cases := []struct {
+		name   string
+		wizard *s4wave_wizard.ObjectWizard
+		err    error
+	}{
+		{
+			name:   "type id",
+			wizard: &s4wave_wizard.ObjectWizard{PluginId: base.GetPluginId(), DisplayName: base.GetDisplayName()},
+			err:    s4wave_wizard.ErrWizardTypeIDRequired,
+		},
+		{
+			name:   "plugin id",
+			wizard: &s4wave_wizard.ObjectWizard{TypeId: base.GetTypeId(), DisplayName: base.GetDisplayName()},
+			err:    s4wave_wizard.ErrWizardPluginIDRequired,
+		},
+		{
+			name:   "display name",
+			wizard: &s4wave_wizard.ObjectWizard{TypeId: base.GetTypeId(), PluginId: base.GetPluginId()},
+			err:    s4wave_wizard.ErrWizardNameRequired,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := r.RegisterWizard(context.Background(), &s4wave_wizard.RegisterWizardRequest{Wizard: tc.wizard})
+			if err != tc.err {
+				t.Fatalf("expected %v, got %v", tc.err, err)
+			}
+		})
+	}
+
+	ctx, client := setupWizardRegistryClient(t)
+	rootRef := client.AccessRootResource()
+	t.Cleanup(rootRef.Release)
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	svc := s4wave_wizard.NewSRPCObjectWizardRegistryResourceServiceClient(rootClient)
+	req := &s4wave_wizard.RegisterWizardRequest{Wizard: base}
+	resp, err := svc.RegisterWizard(ctx, req)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if resp.GetResourceId() == 0 {
+		t.Fatal("expected registration resource id")
+	}
+	_, err = svc.RegisterWizard(ctx, req)
+	if err != nil {
+		return
+	}
+	t.Fatal("expected duplicate wizard registration error")
 }
 
 // TestWizardResourcePersistsState verifies the persistent wizard flow for a

@@ -6,7 +6,9 @@ import "google/protobuf/timestamp.proto";
 option go_package = "github.com/s4wave/spacewave/sdk/world/wizard;s4wave_wizard";
 
 service ObjectWizardRegistryResourceService {
+  rpc RegisterWizard(RegisterWizardRequest) returns (RegisterWizardResponse);
   rpc ListWizards(ListWizardsRequest) returns (ListWizardsResponse);
+  rpc WatchWizards(WatchWizardsRequest) returns (stream WatchWizardsResponse);
 }
 
 service WizardResourceService {
@@ -97,8 +99,29 @@ enum GitCloneProgressState {
 // ListWizardsRequest is the request for ListWizards.
 message ListWizardsRequest {}
 
+// RegisterWizardRequest is the request for RegisterWizard.
+message RegisterWizardRequest {
+  // Wizard is the plugin-provided ObjectWizard to register.
+  ObjectWizard wizard = 1;
+}
+
+// RegisterWizardResponse is the response for RegisterWizard.
+message RegisterWizardResponse {
+  // ResourceId is the registration resource. Releasing it unregisters the wizard.
+  uint32 resource_id = 1;
+}
+
 // ListWizardsResponse contains all registered object wizards.
 message ListWizardsResponse {
+  // Wizards is the list of registered object wizards.
+  repeated ObjectWizard wizards = 1;
+}
+
+// WatchWizardsRequest is the request for WatchWizards.
+message WatchWizardsRequest {}
+
+// WatchWizardsResponse contains the current registered object wizards.
+message WatchWizardsResponse {
   // Wizards is the list of registered object wizards.
   repeated ObjectWizard wizards = 1;
 }
@@ -126,6 +149,10 @@ message ObjectWizard {
   string key_prefix = 9;
   // Experimental marks creators that are hidden in release builds.
   bool experimental = 10;
+  // RegistrationId is the server-assigned ID for plugin-provided wizards.
+  uint32 registration_id = 11;
+  // PluginId is the registering plugin's ID.
+  string plugin_id = 12;
 }
 
 // WizardState is the block state for a persistent wizard object.

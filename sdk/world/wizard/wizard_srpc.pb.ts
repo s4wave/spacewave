@@ -5,12 +5,16 @@
 import {
   ListWizardsRequest,
   ListWizardsResponse,
+  RegisterWizardRequest,
+  RegisterWizardResponse,
   StartGitCloneRequest,
   StartGitCloneResponse,
   UpdateWizardStateRequest,
   UpdateWizardStateResponse,
   WatchGitCloneProgressRequest,
   WatchGitCloneProgressResponse,
+  WatchWizardsRequest,
+  WatchWizardsResponse,
   WatchWizardStateRequest,
   WatchWizardStateResponse,
 } from './wizard.pb.js'
@@ -24,6 +28,15 @@ export const ObjectWizardRegistryResourceServiceDefinition = {
   typeName: 's4wave.wizard.ObjectWizardRegistryResourceService',
   methods: {
     /**
+     * @generated from rpc s4wave.wizard.ObjectWizardRegistryResourceService.RegisterWizard
+     */
+    RegisterWizard: {
+      name: 'RegisterWizard',
+      I: RegisterWizardRequest,
+      O: RegisterWizardResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
      * @generated from rpc s4wave.wizard.ObjectWizardRegistryResourceService.ListWizards
      */
     ListWizards: {
@@ -31,6 +44,15 @@ export const ObjectWizardRegistryResourceServiceDefinition = {
       I: ListWizardsRequest,
       O: ListWizardsResponse,
       kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.wizard.ObjectWizardRegistryResourceService.WatchWizards
+     */
+    WatchWizards: {
+      name: 'WatchWizards',
+      I: WatchWizardsRequest,
+      O: WatchWizardsResponse,
+      kind: MethodKind.ServerStreaming,
     },
   },
 } as const
@@ -40,12 +62,28 @@ export const ObjectWizardRegistryResourceServiceDefinition = {
  */
 export interface ObjectWizardRegistryResourceService {
   /**
+   * @generated from rpc s4wave.wizard.ObjectWizardRegistryResourceService.RegisterWizard
+   */
+  RegisterWizard(
+    request: RegisterWizardRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<RegisterWizardResponse>
+
+  /**
    * @generated from rpc s4wave.wizard.ObjectWizardRegistryResourceService.ListWizards
    */
   ListWizards(
     request: ListWizardsRequest,
     abortSignal?: AbortSignal,
   ): Promise<ListWizardsResponse>
+
+  /**
+   * @generated from rpc s4wave.wizard.ObjectWizardRegistryResourceService.WatchWizards
+   */
+  WatchWizards(
+    request: WatchWizardsRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchWizardsResponse>
 }
 
 export const ObjectWizardRegistryResourceServiceServiceName =
@@ -58,8 +96,27 @@ export class ObjectWizardRegistryResourceServiceClient implements ObjectWizardRe
     this.service =
       opts?.service || ObjectWizardRegistryResourceServiceServiceName
     this.rpc = rpc
+    this.RegisterWizard = this.RegisterWizard.bind(this)
     this.ListWizards = this.ListWizards.bind(this)
+    this.WatchWizards = this.WatchWizards.bind(this)
   }
+  /**
+   * @generated from rpc s4wave.wizard.ObjectWizardRegistryResourceService.RegisterWizard
+   */
+  async RegisterWizard(
+    request: RegisterWizardRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<RegisterWizardResponse> {
+    const requestMsg = RegisterWizardRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      ObjectWizardRegistryResourceServiceDefinition.methods.RegisterWizard.name,
+      RegisterWizardRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return RegisterWizardResponse.fromBinary(result)
+  }
+
   /**
    * @generated from rpc s4wave.wizard.ObjectWizardRegistryResourceService.ListWizards
    */
@@ -75,6 +132,23 @@ export class ObjectWizardRegistryResourceServiceClient implements ObjectWizardRe
       abortSignal || undefined,
     )
     return ListWizardsResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.wizard.ObjectWizardRegistryResourceService.WatchWizards
+   */
+  WatchWizards(
+    request: WatchWizardsRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchWizardsResponse> {
+    const requestMsg = WatchWizardsRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      ObjectWizardRegistryResourceServiceDefinition.methods.WatchWizards.name,
+      WatchWizardsRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(WatchWizardsResponse)(result)
   }
 }
 /**

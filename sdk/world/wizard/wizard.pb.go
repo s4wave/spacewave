@@ -315,6 +315,46 @@ func (x *ListWizardsRequest) Reset() {
 
 func (*ListWizardsRequest) ProtoMessage() {}
 
+// RegisterWizardRequest is the request for RegisterWizard.
+type RegisterWizardRequest struct {
+	unknownFields []byte
+	// Wizard is the plugin-provided ObjectWizard to register.
+	Wizard *ObjectWizard `protobuf:"bytes,1,opt,name=wizard,proto3" json:"wizard,omitempty"`
+}
+
+func (x *RegisterWizardRequest) Reset() {
+	*x = RegisterWizardRequest{}
+}
+
+func (*RegisterWizardRequest) ProtoMessage() {}
+
+func (x *RegisterWizardRequest) GetWizard() *ObjectWizard {
+	if x != nil {
+		return x.Wizard
+	}
+	return nil
+}
+
+// RegisterWizardResponse is the response for RegisterWizard.
+type RegisterWizardResponse struct {
+	unknownFields []byte
+	// ResourceId is the registration resource. Releasing it unregisters the wizard.
+	ResourceId uint32 `protobuf:"varint,1,opt,name=resource_id,json=resourceId,proto3" json:"resourceId,omitempty"`
+}
+
+func (x *RegisterWizardResponse) Reset() {
+	*x = RegisterWizardResponse{}
+}
+
+func (*RegisterWizardResponse) ProtoMessage() {}
+
+func (x *RegisterWizardResponse) GetResourceId() uint32 {
+	if x != nil {
+		return x.ResourceId
+	}
+	return 0
+}
+
 // ListWizardsResponse contains all registered object wizards.
 type ListWizardsResponse struct {
 	unknownFields []byte
@@ -329,6 +369,37 @@ func (x *ListWizardsResponse) Reset() {
 func (*ListWizardsResponse) ProtoMessage() {}
 
 func (x *ListWizardsResponse) GetWizards() []*ObjectWizard {
+	if x != nil {
+		return x.Wizards
+	}
+	return nil
+}
+
+// WatchWizardsRequest is the request for WatchWizards.
+type WatchWizardsRequest struct {
+	unknownFields []byte
+}
+
+func (x *WatchWizardsRequest) Reset() {
+	*x = WatchWizardsRequest{}
+}
+
+func (*WatchWizardsRequest) ProtoMessage() {}
+
+// WatchWizardsResponse contains the current registered object wizards.
+type WatchWizardsResponse struct {
+	unknownFields []byte
+	// Wizards is the list of registered object wizards.
+	Wizards []*ObjectWizard `protobuf:"bytes,1,rep,name=wizards,proto3" json:"wizards,omitempty"`
+}
+
+func (x *WatchWizardsResponse) Reset() {
+	*x = WatchWizardsResponse{}
+}
+
+func (*WatchWizardsResponse) ProtoMessage() {}
+
+func (x *WatchWizardsResponse) GetWizards() []*ObjectWizard {
 	if x != nil {
 		return x.Wizards
 	}
@@ -359,6 +430,10 @@ type ObjectWizard struct {
 	KeyPrefix string `protobuf:"bytes,9,opt,name=key_prefix,json=keyPrefix,proto3" json:"keyPrefix,omitempty"`
 	// Experimental marks creators that are hidden in release builds.
 	Experimental bool `protobuf:"varint,10,opt,name=experimental,proto3" json:"experimental,omitempty"`
+	// RegistrationId is the server-assigned ID for plugin-provided wizards.
+	RegistrationId uint32 `protobuf:"varint,11,opt,name=registration_id,json=registrationId,proto3" json:"registrationId,omitempty"`
+	// PluginId is the registering plugin's ID.
+	PluginId string `protobuf:"bytes,12,opt,name=plugin_id,json=pluginId,proto3" json:"pluginId,omitempty"`
 }
 
 func (x *ObjectWizard) Reset() {
@@ -435,6 +510,20 @@ func (x *ObjectWizard) GetExperimental() bool {
 		return x.Experimental
 	}
 	return false
+}
+
+func (x *ObjectWizard) GetRegistrationId() uint32 {
+	if x != nil {
+		return x.RegistrationId
+	}
+	return 0
+}
+
+func (x *ObjectWizard) GetPluginId() string {
+	if x != nil {
+		return x.PluginId
+	}
+	return ""
 }
 
 // WizardState is the block state for a persistent wizard object.
@@ -747,6 +836,38 @@ func (m *ListWizardsRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *RegisterWizardRequest) CloneVT() *RegisterWizardRequest {
+	if m == nil {
+		return (*RegisterWizardRequest)(nil)
+	}
+	r := new(RegisterWizardRequest)
+	r.Wizard = m.Wizard.CloneVT()
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RegisterWizardRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RegisterWizardResponse) CloneVT() *RegisterWizardResponse {
+	if m == nil {
+		return (*RegisterWizardResponse)(nil)
+	}
+	r := new(RegisterWizardResponse)
+	r.ResourceId = m.ResourceId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RegisterWizardResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *ListWizardsResponse) CloneVT() *ListWizardsResponse {
 	if m == nil {
 		return (*ListWizardsResponse)(nil)
@@ -768,6 +889,42 @@ func (m *ListWizardsResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *WatchWizardsRequest) CloneVT() *WatchWizardsRequest {
+	if m == nil {
+		return (*WatchWizardsRequest)(nil)
+	}
+	r := new(WatchWizardsRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchWizardsRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WatchWizardsResponse) CloneVT() *WatchWizardsResponse {
+	if m == nil {
+		return (*WatchWizardsResponse)(nil)
+	}
+	r := new(WatchWizardsResponse)
+	if rhs := m.Wizards; rhs != nil {
+		r.Wizards = make([]*ObjectWizard, len(rhs))
+		for k, v := range rhs {
+			r.Wizards[k] = v.CloneVT()
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchWizardsResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *ObjectWizard) CloneVT() *ObjectWizard {
 	if m == nil {
 		return (*ObjectWizard)(nil)
@@ -783,6 +940,8 @@ func (m *ObjectWizard) CloneVT() *ObjectWizard {
 	r.WizardTypeId = m.WizardTypeId
 	r.KeyPrefix = m.KeyPrefix
 	r.Experimental = m.Experimental
+	r.RegistrationId = m.RegistrationId
+	r.PluginId = m.PluginId
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1060,6 +1219,46 @@ func (this *ListWizardsRequest) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *RegisterWizardRequest) EqualVT(that *RegisterWizardRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.Wizard.EqualVT(that.Wizard) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RegisterWizardRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RegisterWizardRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RegisterWizardResponse) EqualVT(that *RegisterWizardResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ResourceId != that.ResourceId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RegisterWizardResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RegisterWizardResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 func (this *ListWizardsResponse) EqualVT(that *ListWizardsResponse) bool {
 	if this == that {
 		return true
@@ -1088,6 +1287,57 @@ func (this *ListWizardsResponse) EqualVT(that *ListWizardsResponse) bool {
 
 func (this *ListWizardsResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*ListWizardsResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WatchWizardsRequest) EqualVT(that *WatchWizardsRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchWizardsRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchWizardsRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WatchWizardsResponse) EqualVT(that *WatchWizardsResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if len(this.Wizards) != len(that.Wizards) {
+		return false
+	}
+	for i, vx := range this.Wizards {
+		vy := that.Wizards[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &ObjectWizard{}
+			}
+			if q == nil {
+				q = &ObjectWizard{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchWizardsResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchWizardsResponse)
 	if !ok {
 		return false
 	}
@@ -1128,6 +1378,12 @@ func (this *ObjectWizard) EqualVT(that *ObjectWizard) bool {
 		return false
 	}
 	if this.Experimental != that.Experimental {
+		return false
+	}
+	if this.RegistrationId != that.RegistrationId {
+		return false
+	}
+	if this.PluginId != that.PluginId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1726,6 +1982,94 @@ func (x *ListWizardsRequest) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the RegisterWizardRequest message to JSON.
+func (x *RegisterWizardRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Wizard != nil || s.HasField("wizard") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("wizard")
+		x.Wizard.MarshalProtoJSON(s.WithField("wizard"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RegisterWizardRequest to JSON.
+func (x *RegisterWizardRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RegisterWizardRequest message from JSON.
+func (x *RegisterWizardRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "wizard":
+			if s.ReadNil() {
+				x.Wizard = nil
+				return
+			}
+			x.Wizard = &ObjectWizard{}
+			x.Wizard.UnmarshalProtoJSON(s.WithField("wizard", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RegisterWizardRequest from JSON.
+func (x *RegisterWizardRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RegisterWizardResponse message to JSON.
+func (x *RegisterWizardResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ResourceId != 0 || s.HasField("resourceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("resourceId")
+		s.WriteUint32(x.ResourceId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RegisterWizardResponse to JSON.
+func (x *RegisterWizardResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RegisterWizardResponse message from JSON.
+func (x *RegisterWizardResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "resource_id", "resourceId":
+			s.AddField("resource_id")
+			x.ResourceId = s.ReadUint32()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RegisterWizardResponse from JSON.
+func (x *RegisterWizardResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the ListWizardsResponse message to JSON.
 func (x *ListWizardsResponse) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -1789,6 +2133,99 @@ func (x *ListWizardsResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the WatchWizardsRequest message to JSON.
+func (x *WatchWizardsRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchWizardsRequest to JSON.
+func (x *WatchWizardsRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchWizardsRequest message from JSON.
+func (x *WatchWizardsRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchWizardsRequest from JSON.
+func (x *WatchWizardsRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WatchWizardsResponse message to JSON.
+func (x *WatchWizardsResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Wizards) > 0 || s.HasField("wizards") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("wizards")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Wizards {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("wizards"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchWizardsResponse to JSON.
+func (x *WatchWizardsResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchWizardsResponse message from JSON.
+func (x *WatchWizardsResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "wizards":
+			s.AddField("wizards")
+			if s.ReadNil() {
+				x.Wizards = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Wizards = append(x.Wizards, nil)
+					return
+				}
+				v := &ObjectWizard{}
+				v.UnmarshalProtoJSON(s.WithField("wizards", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Wizards = append(x.Wizards, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchWizardsResponse from JSON.
+func (x *WatchWizardsResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the ObjectWizard message to JSON.
 func (x *ObjectWizard) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -1847,6 +2284,16 @@ func (x *ObjectWizard) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("experimental")
 		s.WriteBool(x.Experimental)
 	}
+	if x.RegistrationId != 0 || s.HasField("registrationId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("registrationId")
+		s.WriteUint32(x.RegistrationId)
+	}
+	if x.PluginId != "" || s.HasField("pluginId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pluginId")
+		s.WriteString(x.PluginId)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1894,6 +2341,12 @@ func (x *ObjectWizard) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "experimental":
 			s.AddField("experimental")
 			x.Experimental = s.ReadBool()
+		case "registration_id", "registrationId":
+			s.AddField("registration_id")
+			x.RegistrationId = s.ReadUint32()
+		case "plugin_id", "pluginId":
+			s.AddField("plugin_id")
+			x.PluginId = s.ReadString()
 		}
 	})
 }
@@ -2532,6 +2985,87 @@ func (m *ListWizardsRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *RegisterWizardRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RegisterWizardRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RegisterWizardRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Wizard != nil {
+		size, err := m.Wizard.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RegisterWizardResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RegisterWizardResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RegisterWizardResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.ResourceId != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ResourceId))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *ListWizardsResponse) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -2551,6 +3085,84 @@ func (m *ListWizardsResponse) MarshalToVT(dAtA []byte) (int, error) {
 }
 
 func (m *ListWizardsResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Wizards) > 0 {
+		for iNdEx := len(m.Wizards) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Wizards[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WatchWizardsRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchWizardsRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchWizardsRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WatchWizardsResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchWizardsResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchWizardsResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -2606,6 +3218,18 @@ func (m *ObjectWizard) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.PluginId) > 0 {
+		i -= len(m.PluginId)
+		copy(dAtA[i:], m.PluginId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.PluginId)))
+		i--
+		dAtA[i] = 0x62
+	}
+	if m.RegistrationId != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.RegistrationId))
+		i--
+		dAtA[i] = 0x58
 	}
 	if m.Experimental {
 		i--
@@ -3003,7 +3627,60 @@ func (m *ListWizardsRequest) SizeVT() (n int) {
 	return n
 }
 
+func (m *RegisterWizardRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Wizard != nil {
+		l = m.Wizard.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RegisterWizardResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.ResourceId != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.ResourceId))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *ListWizardsResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Wizards) > 0 {
+		for _, e := range m.Wizards {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WatchWizardsRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WatchWizardsResponse) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -3062,6 +3739,13 @@ func (m *ObjectWizard) SizeVT() (n int) {
 	}
 	if m.Experimental {
 		n += 2
+	}
+	if m.RegistrationId != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.RegistrationId))
+	}
+	l = len(m.PluginId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -3369,6 +4053,42 @@ func (x *ListWizardsRequest) String() string {
 	return x.MarshalProtoText()
 }
 
+func (x *RegisterWizardRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("RegisterWizardRequest {")
+	if x.Wizard != nil {
+		if sb.Len() > 23 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("wizard: ")
+		sb.WriteString(x.Wizard.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *RegisterWizardRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RegisterWizardResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("RegisterWizardResponse {")
+	if x.ResourceId != 0 {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("resource_id: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.ResourceId), 10))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *RegisterWizardResponse) String() string {
+	return x.MarshalProtoText()
+}
+
 func (x *ListWizardsResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ListWizardsResponse {")
@@ -3390,6 +4110,41 @@ func (x *ListWizardsResponse) MarshalProtoText() string {
 }
 
 func (x *ListWizardsResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WatchWizardsRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("WatchWizardsRequest {")
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *WatchWizardsRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WatchWizardsResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("WatchWizardsResponse {")
+	if len(x.Wizards) > 0 {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("wizards: [")
+		for i, v := range x.Wizards {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *WatchWizardsResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -3465,6 +4220,20 @@ func (x *ObjectWizard) MarshalProtoText() string {
 		}
 		sb.WriteString("experimental: ")
 		sb.WriteString(strconv.FormatBool(x.Experimental))
+	}
+	if x.RegistrationId != 0 {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("registration_id: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.RegistrationId), 10))
+	}
+	if x.PluginId != "" {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("plugin_id: ")
+		sb.WriteString(strconv.Quote(x.PluginId))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -4371,6 +5140,129 @@ func (m *ListWizardsRequest) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
+func (m *RegisterWizardRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RegisterWizardRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RegisterWizardRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Wizard", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Wizard == nil {
+				m.Wizard = &ObjectWizard{}
+			}
+			if err := m.Wizard.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RegisterWizardResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RegisterWizardResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RegisterWizardResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ResourceId", wireType)
+			}
+			m.ResourceId = 0
+			m.ResourceId, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
 func (m *ListWizardsResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -4389,6 +5281,118 @@ func (m *ListWizardsResponse) UnmarshalVT(dAtA []byte) error {
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: ListWizardsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Wizards", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Wizards = append(m.Wizards, &ObjectWizard{})
+			if err := m.Wizards[len(m.Wizards)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchWizardsRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchWizardsRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchWizardsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchWizardsResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchWizardsResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchWizardsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -4660,6 +5664,37 @@ func (m *ObjectWizard) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Experimental = bool(v != 0)
+		case 11:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RegistrationId", wireType)
+			}
+			m.RegistrationId = 0
+			m.RegistrationId, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PluginId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PluginId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

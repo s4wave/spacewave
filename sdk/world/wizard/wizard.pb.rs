@@ -88,9 +88,34 @@ pub struct GitCloneProgress {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListWizardsRequest {
 }
+/// RegisterWizardRequest is the request for RegisterWizard.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RegisterWizardRequest {
+    /// Wizard is the plugin-provided ObjectWizard to register.
+    #[prost(message, optional, tag="1")]
+    pub wizard: ::core::option::Option<ObjectWizard>,
+}
+/// RegisterWizardResponse is the response for RegisterWizard.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RegisterWizardResponse {
+    /// ResourceId is the registration resource. Releasing it unregisters the wizard.
+    #[prost(uint32, tag="1")]
+    pub resource_id: u32,
+}
 /// ListWizardsResponse contains all registered object wizards.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListWizardsResponse {
+    /// Wizards is the list of registered object wizards.
+    #[prost(message, repeated, tag="1")]
+    pub wizards: ::prost::alloc::vec::Vec<ObjectWizard>,
+}
+/// WatchWizardsRequest is the request for WatchWizards.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WatchWizardsRequest {
+}
+/// WatchWizardsResponse contains the current registered object wizards.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct WatchWizardsResponse {
     /// Wizards is the list of registered object wizards.
     #[prost(message, repeated, tag="1")]
     pub wizards: ::prost::alloc::vec::Vec<ObjectWizard>,
@@ -129,6 +154,12 @@ pub struct ObjectWizard {
     /// Experimental marks creators that are hidden in release builds.
     #[prost(bool, tag="10")]
     pub experimental: bool,
+    /// RegistrationId is the server-assigned ID for plugin-provided wizards.
+    #[prost(uint32, tag="11")]
+    pub registration_id: u32,
+    /// PluginId is the registering plugin's ID.
+    #[prost(string, tag="12")]
+    pub plugin_id: ::prost::alloc::string::String,
 }
 /// WizardState is the block state for a persistent wizard object.
 /// Stored as the world object block for wizard/* type objects.

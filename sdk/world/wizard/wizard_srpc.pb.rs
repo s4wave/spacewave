@@ -8,11 +8,26 @@ use starpc::StreamExt;
 /// Service ID for ObjectWizardRegistryResourceService.
 pub const OBJECT_WIZARD_REGISTRY_RESOURCE_SERVICE_SERVICE_ID: &str = "s4wave.wizard.ObjectWizardRegistryResourceService";
 
+/// Stream trait for ObjectWizardRegistryResourceService.WatchWizards.
+#[starpc::async_trait]
+pub trait ObjectWizardRegistryResourceServiceWatchWizardsStream: Send + Sync {
+    /// Returns the context for this stream.
+    fn context(&self) -> &starpc::Context;
+    /// Receives a message from the stream.
+    async fn recv(&self) -> starpc::Result<WatchWizardsResponse>;
+    /// Closes the stream.
+    async fn close(&self) -> starpc::Result<()>;
+}
+
 /// Client trait for ObjectWizardRegistryResourceService.
 #[starpc::async_trait]
 pub trait ObjectWizardRegistryResourceServiceClient: Send + Sync {
+    /// RegisterWizard.
+    async fn register_wizard(&self, request: &RegisterWizardRequest) -> starpc::Result<RegisterWizardResponse>;
     /// ListWizards.
     async fn list_wizards(&self, request: &ListWizardsRequest) -> starpc::Result<ListWizardsResponse>;
+    /// WatchWizards.
+    async fn watch_wizards(&self, request: &WatchWizardsRequest) -> starpc::Result<Box<dyn ObjectWizardRegistryResourceServiceWatchWizardsStream>>;
 }
 
 /// Client implementation for ObjectWizardRegistryResourceService.
@@ -29,20 +44,53 @@ impl<C: starpc::Client> ObjectWizardRegistryResourceServiceClientImpl<C> {
 
 #[starpc::async_trait]
 impl<C: starpc::Client + 'static> ObjectWizardRegistryResourceServiceClient for ObjectWizardRegistryResourceServiceClientImpl<C> {
+    async fn register_wizard(&self, request: &RegisterWizardRequest) -> starpc::Result<RegisterWizardResponse> {
+        self.client.exec_call("s4wave.wizard.ObjectWizardRegistryResourceService", "RegisterWizard", request).await
+    }
     async fn list_wizards(&self, request: &ListWizardsRequest) -> starpc::Result<ListWizardsResponse> {
         self.client.exec_call("s4wave.wizard.ObjectWizardRegistryResourceService", "ListWizards", request).await
+    }
+    async fn watch_wizards(&self, request: &WatchWizardsRequest) -> starpc::Result<Box<dyn ObjectWizardRegistryResourceServiceWatchWizardsStream>> {
+        use starpc::ProstMessage;
+        let data = request.encode_to_vec();
+        let stream = self.client.new_stream("s4wave.wizard.ObjectWizardRegistryResourceService", "WatchWizards", Some(&data)).await?;
+        stream.close_send().await?;
+        Ok(Box::new(ObjectWizardRegistryResourceServiceWatchWizardsStreamImpl { stream }))
+    }
+}
+
+struct ObjectWizardRegistryResourceServiceWatchWizardsStreamImpl {
+    stream: Box<dyn starpc::Stream>,
+}
+
+#[starpc::async_trait]
+impl ObjectWizardRegistryResourceServiceWatchWizardsStream for ObjectWizardRegistryResourceServiceWatchWizardsStreamImpl {
+    fn context(&self) -> &starpc::Context {
+        self.stream.context()
+    }
+    async fn recv(&self) -> starpc::Result<WatchWizardsResponse> {
+        self.stream.msg_recv().await
+    }
+    async fn close(&self) -> starpc::Result<()> {
+        self.stream.close().await
     }
 }
 
 /// Server trait for ObjectWizardRegistryResourceService.
 #[starpc::async_trait]
 pub trait ObjectWizardRegistryResourceServiceServer: Send + Sync {
+    /// RegisterWizard.
+    async fn register_wizard(&self, request: RegisterWizardRequest) -> starpc::Result<RegisterWizardResponse>;
     /// ListWizards.
     async fn list_wizards(&self, request: ListWizardsRequest) -> starpc::Result<ListWizardsResponse>;
+    /// WatchWizards.
+    async fn watch_wizards(&self, request: WatchWizardsRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
 }
 
 const OBJECT_WIZARD_REGISTRY_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
+    "RegisterWizard",
     "ListWizards",
+    "WatchWizards",
 ];
 
 /// Handler for ObjectWizardRegistryResourceService.
@@ -71,6 +119,21 @@ impl<S: ObjectWizardRegistryResourceServiceServer + 'static> starpc::Invoker for
         stream: Box<dyn starpc::Stream>,
     ) -> (bool, starpc::Result<()>) {
         match method_id {
+            "RegisterWizard" => {
+                let request: RegisterWizardRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.register_wizard(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
             "ListWizards" => {
                 let request: ListWizardsRequest = match stream.msg_recv().await {
                     Ok(r) => r,
@@ -85,6 +148,13 @@ impl<S: ObjectWizardRegistryResourceServiceServer + 'static> starpc::Invoker for
                     }
                     Err(e) => (true, Err(e)),
                 }
+            }
+            "WatchWizards" => {
+                let request: WatchWizardsRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                (true, self.server.watch_wizards(request, stream).await)
             }
             _ => (false, Err(starpc::Error::Unimplemented)),
         }

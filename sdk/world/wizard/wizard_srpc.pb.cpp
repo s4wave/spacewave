@@ -8,13 +8,31 @@
 
 namespace s4wave::wizard {
 
+starpc::Error SRPCObjectWizardRegistryResourceServiceClientImpl::RegisterWizard(const s4wave::wizard::RegisterWizardRequest& in, s4wave::wizard::RegisterWizardResponse* out) {
+  return cc_->ExecCall(service_id_, "RegisterWizard", in, out);
+}
+
 starpc::Error SRPCObjectWizardRegistryResourceServiceClientImpl::ListWizards(const s4wave::wizard::ListWizardsRequest& in, s4wave::wizard::ListWizardsResponse* out) {
   return cc_->ExecCall(service_id_, "ListWizards", in, out);
 }
 
+std::pair<std::unique_ptr<SRPCObjectWizardRegistryResourceService_WatchWizardsClient>, starpc::Error> SRPCObjectWizardRegistryResourceServiceClientImpl::WatchWizards(const s4wave::wizard::WatchWizardsRequest& in) {
+  auto [strm, err] = cc_->NewStream(service_id_, "WatchWizards", &in);
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  err = strm->CloseSend();
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  return {std::make_unique<SRPCObjectWizardRegistryResourceService_WatchWizardsClient>(std::move(strm)), starpc::Error::OK};
+}
+
 std::vector<std::string> SRPCObjectWizardRegistryResourceServiceHandler::GetMethodIDs() const {
   return {
+    "RegisterWizard",
     "ListWizards",
+    "WatchWizards",
   };
 }
 
@@ -26,7 +44,15 @@ std::pair<bool, starpc::Error> SRPCObjectWizardRegistryResourceServiceHandler::I
     return {false, starpc::Error::OK};
   }
 
-  if (method_id == "ListWizards") {
+  if (method_id == "RegisterWizard") {
+    s4wave::wizard::RegisterWizardRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::wizard::RegisterWizardResponse resp;
+    err = impl_->RegisterWizard(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "ListWizards") {
     s4wave::wizard::ListWizardsRequest req;
     starpc::Error err = strm->MsgRecv(&req);
     if (err != starpc::Error::OK) return {true, err};
@@ -34,6 +60,12 @@ std::pair<bool, starpc::Error> SRPCObjectWizardRegistryResourceServiceHandler::I
     err = impl_->ListWizards(req, &resp);
     if (err != starpc::Error::OK) return {true, err};
     return {true, strm->MsgSend(resp)};
+  } else if (method_id == "WatchWizards") {
+    s4wave::wizard::WatchWizardsRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    SRPCObjectWizardRegistryResourceService_WatchWizardsStream serverStrm(strm);
+    return {true, impl_->WatchWizards(req, &serverStrm)};
   }
 
   return {false, starpc::Error::OK};

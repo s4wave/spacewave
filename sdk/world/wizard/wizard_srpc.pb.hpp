@@ -20,6 +20,8 @@ namespace s4wave::wizard {
 // Service ID for ObjectWizardRegistryResourceService
 constexpr const char* kSRPCObjectWizardRegistryResourceServiceServiceID = "s4wave.wizard.ObjectWizardRegistryResourceService";
 
+class SRPCObjectWizardRegistryResourceService_WatchWizardsClient;
+class SRPCObjectWizardRegistryResourceService_WatchWizardsStream;
 
 // SRPCObjectWizardRegistryResourceServiceClient is the client API for ObjectWizardRegistryResourceService service.
 class SRPCObjectWizardRegistryResourceServiceClient {
@@ -29,8 +31,12 @@ class SRPCObjectWizardRegistryResourceServiceClient {
   // SRPCClient returns the underlying SRPC client.
   virtual starpc::Client* SRPCClient() = 0;
 
+  // RegisterWizard
+  virtual starpc::Error RegisterWizard(const s4wave::wizard::RegisterWizardRequest& in, s4wave::wizard::RegisterWizardResponse* out) = 0;
   // ListWizards
   virtual starpc::Error ListWizards(const s4wave::wizard::ListWizardsRequest& in, s4wave::wizard::ListWizardsResponse* out) = 0;
+  // WatchWizards
+  virtual std::pair<std::unique_ptr<SRPCObjectWizardRegistryResourceService_WatchWizardsClient>, starpc::Error> WatchWizards(const s4wave::wizard::WatchWizardsRequest& in) = 0;
 };
 
 // SRPCObjectWizardRegistryResourceServiceClientImpl implements SRPCObjectWizardRegistryResourceServiceClient.
@@ -41,8 +47,12 @@ class SRPCObjectWizardRegistryResourceServiceClientImpl : public SRPCObjectWizar
 
   starpc::Client* SRPCClient() override { return cc_; }
 
+  // RegisterWizard
+  virtual starpc::Error RegisterWizard(const s4wave::wizard::RegisterWizardRequest& in, s4wave::wizard::RegisterWizardResponse* out) override;
   // ListWizards
   virtual starpc::Error ListWizards(const s4wave::wizard::ListWizardsRequest& in, s4wave::wizard::ListWizardsResponse* out) override;
+  // WatchWizards
+  virtual std::pair<std::unique_ptr<SRPCObjectWizardRegistryResourceService_WatchWizardsClient>, starpc::Error> WatchWizards(const s4wave::wizard::WatchWizardsRequest& in) override;
 
  private:
   starpc::Client* cc_;
@@ -59,8 +69,12 @@ class SRPCObjectWizardRegistryResourceServiceServer {
  public:
   virtual ~SRPCObjectWizardRegistryResourceServiceServer() = default;
 
+  // RegisterWizard
+  virtual starpc::Error RegisterWizard(const s4wave::wizard::RegisterWizardRequest& req, s4wave::wizard::RegisterWizardResponse* resp) = 0;
   // ListWizards
   virtual starpc::Error ListWizards(const s4wave::wizard::ListWizardsRequest& req, s4wave::wizard::ListWizardsResponse* resp) = 0;
+  // WatchWizards
+  virtual starpc::Error WatchWizards(const s4wave::wizard::WatchWizardsRequest& req, SRPCObjectWizardRegistryResourceService_WatchWizardsStream* strm) = 0;
 };
 
 // SRPCObjectWizardRegistryResourceServiceHandler implements starpc::Handler for ObjectWizardRegistryResourceService.
@@ -96,6 +110,41 @@ inline std::pair<std::unique_ptr<SRPCObjectWizardRegistryResourceServiceHandler>
   }
   return {std::move(handler), starpc::Error::OK};
 }
+
+// SRPCObjectWizardRegistryResourceService_WatchWizardsClient is the client stream for WatchWizards.
+class SRPCObjectWizardRegistryResourceService_WatchWizardsClient {
+ public:
+  explicit SRPCObjectWizardRegistryResourceService_WatchWizardsClient(std::unique_ptr<starpc::Stream> strm) : strm_(std::move(strm)) {}
+
+  starpc::Error Recv(s4wave::wizard::WatchWizardsResponse* msg) {
+    return strm_->MsgRecv(msg);
+  }
+
+  starpc::Error CloseSend() { return strm_->CloseSend(); }
+  starpc::Error Close() { return strm_->Close(); }
+
+ private:
+  std::unique_ptr<starpc::Stream> strm_;
+};
+
+// SRPCObjectWizardRegistryResourceService_WatchWizardsStream is the server stream for WatchWizards.
+class SRPCObjectWizardRegistryResourceService_WatchWizardsStream {
+ public:
+  explicit SRPCObjectWizardRegistryResourceService_WatchWizardsStream(starpc::Stream* strm) : strm_(strm) {}
+
+  starpc::Error Send(const s4wave::wizard::WatchWizardsResponse& msg) {
+    return strm_->MsgSend(msg);
+  }
+
+  starpc::Error SendAndClose(const s4wave::wizard::WatchWizardsResponse& msg) {
+    starpc::Error err = strm_->MsgSend(msg);
+    if (err != starpc::Error::OK) return err;
+    return strm_->CloseSend();
+  }
+
+ private:
+  starpc::Stream* strm_;
+};
 
 // Service ID for WizardResourceService
 constexpr const char* kSRPCWizardResourceServiceServiceID = "s4wave.wizard.WizardResourceService";

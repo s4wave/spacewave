@@ -453,6 +453,18 @@ export interface ObjectWizard {
    * @generated from field: bool experimental = 10;
    */
   experimental?: boolean
+  /**
+   * RegistrationId is the server-assigned ID for plugin-provided wizards.
+   *
+   * @generated from field: uint32 registration_id = 11;
+   */
+  registrationId?: number
+  /**
+   * PluginId is the registering plugin's ID.
+   *
+   * @generated from field: string plugin_id = 12;
+   */
+  pluginId?: string
 }
 
 // ObjectWizard contains the message type declaration for ObjectWizard.
@@ -474,9 +486,59 @@ export const ObjectWizard: MessageType<ObjectWizard> = createMessageType({
     { no: 8, name: 'wizard_type_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 9, name: 'key_prefix', kind: 'scalar', T: ScalarType.STRING },
     { no: 10, name: 'experimental', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 11, name: 'registration_id', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 12, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
+
+/**
+ * RegisterWizardRequest is the request for RegisterWizard.
+ *
+ * @generated from message s4wave.wizard.RegisterWizardRequest
+ */
+export interface RegisterWizardRequest {
+  /**
+   * Wizard is the plugin-provided ObjectWizard to register.
+   *
+   * @generated from field: s4wave.wizard.ObjectWizard wizard = 1;
+   */
+  wizard?: ObjectWizard
+}
+
+// RegisterWizardRequest contains the message type declaration for RegisterWizardRequest.
+export const RegisterWizardRequest: MessageType<RegisterWizardRequest> =
+  createMessageType({
+    typeName: 's4wave.wizard.RegisterWizardRequest',
+    fields: [
+      { no: 1, name: 'wizard', kind: 'message', T: () => ObjectWizard },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * RegisterWizardResponse is the response for RegisterWizard.
+ *
+ * @generated from message s4wave.wizard.RegisterWizardResponse
+ */
+export interface RegisterWizardResponse {
+  /**
+   * ResourceId is the registration resource. Releasing it unregisters the wizard.
+   *
+   * @generated from field: uint32 resource_id = 1;
+   */
+  resourceId?: number
+}
+
+// RegisterWizardResponse contains the message type declaration for RegisterWizardResponse.
+export const RegisterWizardResponse: MessageType<RegisterWizardResponse> =
+  createMessageType({
+    typeName: 's4wave.wizard.RegisterWizardResponse',
+    fields: [
+      { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * ListWizardsResponse contains all registered object wizards.
@@ -496,6 +558,51 @@ export interface ListWizardsResponse {
 export const ListWizardsResponse: MessageType<ListWizardsResponse> =
   createMessageType({
     typeName: 's4wave.wizard.ListWizardsResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'wizards',
+        kind: 'message',
+        T: () => ObjectWizard,
+        repeated: true,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * WatchWizardsRequest is the request for WatchWizards.
+ *
+ * @generated from message s4wave.wizard.WatchWizardsRequest
+ */
+export interface WatchWizardsRequest {}
+
+// WatchWizardsRequest contains the message type declaration for WatchWizardsRequest.
+export const WatchWizardsRequest: MessageType<WatchWizardsRequest> =
+  createMessageType({
+    typeName: 's4wave.wizard.WatchWizardsRequest',
+    fields: [] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * WatchWizardsResponse contains the current registered object wizards.
+ *
+ * @generated from message s4wave.wizard.WatchWizardsResponse
+ */
+export interface WatchWizardsResponse {
+  /**
+   * Wizards is the list of registered object wizards.
+   *
+   * @generated from field: repeated s4wave.wizard.ObjectWizard wizards = 1;
+   */
+  wizards?: ObjectWizard[]
+}
+
+// WatchWizardsResponse contains the message type declaration for WatchWizardsResponse.
+export const WatchWizardsResponse: MessageType<WatchWizardsResponse> =
+  createMessageType({
+    typeName: 's4wave.wizard.WatchWizardsResponse',
     fields: [
       {
         no: 1,

@@ -66,6 +66,24 @@ struct WizardStateDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WizardStateDefaultTypeInternal _WizardState_default_instance_;
 template <typename>
+PROTOBUF_CONSTEXPR WatchWizardsRequest::WatchWizardsRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(WatchWizardsRequest_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct WatchWizardsRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR WatchWizardsRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~WatchWizardsRequestDefaultTypeInternal() {}
+  union {
+    WatchWizardsRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WatchWizardsRequestDefaultTypeInternal _WatchWizardsRequest_default_instance_;
+template <typename>
 PROTOBUF_CONSTEXPR WatchWizardStateRequest::WatchWizardStateRequest(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
     : ::google::protobuf::internal::ZeroFieldsBase(WatchWizardStateRequest_class_data_.base()){}
@@ -170,6 +188,31 @@ struct StartGitCloneRequestDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 StartGitCloneRequestDefaultTypeInternal _StartGitCloneRequest_default_instance_;
 
+inline constexpr RegisterWizardResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        resource_id_{0u} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR RegisterWizardResponse::RegisterWizardResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(RegisterWizardResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct RegisterWizardResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR RegisterWizardResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~RegisterWizardResponseDefaultTypeInternal() {}
+  union {
+    RegisterWizardResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RegisterWizardResponseDefaultTypeInternal _RegisterWizardResponse_default_instance_;
+
 inline constexpr ObjectWizard::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -197,8 +240,12 @@ inline constexpr ObjectWizard::Impl_::Impl_(
         key_prefix_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
+        plugin_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
         persistent_{false},
-        experimental_{false} {}
+        experimental_{false},
+        registration_id_{0u} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR ObjectWizard::ObjectWizard(::_pbi::ConstantInitialized)
@@ -271,6 +318,31 @@ struct GitCloneProgressDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GitCloneProgressDefaultTypeInternal _GitCloneProgress_default_instance_;
+
+inline constexpr WatchWizardsResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        wizards_{} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR WatchWizardsResponse::WatchWizardsResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(WatchWizardsResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct WatchWizardsResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR WatchWizardsResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~WatchWizardsResponseDefaultTypeInternal() {}
+  union {
+    WatchWizardsResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WatchWizardsResponseDefaultTypeInternal _WatchWizardsResponse_default_instance_;
 
 inline constexpr WatchWizardStateResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -371,6 +443,31 @@ struct StartGitCloneResponseDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 StartGitCloneResponseDefaultTypeInternal _StartGitCloneResponse_default_instance_;
+
+inline constexpr RegisterWizardRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        wizard_{nullptr} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR RegisterWizardRequest::RegisterWizardRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(RegisterWizardRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct RegisterWizardRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR RegisterWizardRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~RegisterWizardRequestDefaultTypeInternal() {}
+  union {
+    RegisterWizardRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RegisterWizardRequestDefaultTypeInternal _RegisterWizardRequest_default_instance_;
 
 inline constexpr ListWizardsResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -506,13 +603,29 @@ const ::uint32_t
         2,
         0x000, // bitmap
         0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::wizard::RegisterWizardRequest, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::wizard::RegisterWizardRequest, _impl_.wizard_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::wizard::RegisterWizardResponse, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::wizard::RegisterWizardResponse, _impl_.resource_id_),
+        0,
+        0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::wizard::ListWizardsResponse, _impl_._has_bits_),
         4, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::wizard::ListWizardsResponse, _impl_.wizards_),
         0,
+        0x000, // bitmap
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::wizard::WatchWizardsResponse, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::wizard::WatchWizardsResponse, _impl_.wizards_),
+        0,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::wizard::ObjectWizard, _impl_._has_bits_),
-        13, // hasbit index offset
+        15, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::wizard::ObjectWizard, _impl_.type_id_),
         PROTOBUF_FIELD_OFFSET(::s4wave::wizard::ObjectWizard, _impl_.display_name_),
         PROTOBUF_FIELD_OFFSET(::s4wave::wizard::ObjectWizard, _impl_.category_),
@@ -523,16 +636,20 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::s4wave::wizard::ObjectWizard, _impl_.wizard_type_id_),
         PROTOBUF_FIELD_OFFSET(::s4wave::wizard::ObjectWizard, _impl_.key_prefix_),
         PROTOBUF_FIELD_OFFSET(::s4wave::wizard::ObjectWizard, _impl_.experimental_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::wizard::ObjectWizard, _impl_.registration_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::wizard::ObjectWizard, _impl_.plugin_id_),
         0,
         1,
         2,
         3,
         4,
         5,
-        8,
+        9,
         6,
         7,
-        9,
+        10,
+        11,
+        8,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::wizard::WizardState, _impl_._has_bits_),
         8, // hasbit index offset
@@ -579,10 +696,14 @@ static const ::_pbi::MigrationSchema
         {39, sizeof(::s4wave::wizard::WatchGitCloneProgressResponse)},
         {44, sizeof(::s4wave::wizard::GitCloneProgress)},
         {55, sizeof(::s4wave::wizard::ListWizardsRequest)},
-        {56, sizeof(::s4wave::wizard::ListWizardsResponse)},
-        {61, sizeof(::s4wave::wizard::ObjectWizard)},
-        {84, sizeof(::s4wave::wizard::WizardState)},
-        {97, sizeof(::s4wave::wizard::CreateWizardObjectOp)},
+        {56, sizeof(::s4wave::wizard::RegisterWizardRequest)},
+        {61, sizeof(::s4wave::wizard::RegisterWizardResponse)},
+        {66, sizeof(::s4wave::wizard::ListWizardsResponse)},
+        {71, sizeof(::s4wave::wizard::WatchWizardsRequest)},
+        {72, sizeof(::s4wave::wizard::WatchWizardsResponse)},
+        {77, sizeof(::s4wave::wizard::ObjectWizard)},
+        {104, sizeof(::s4wave::wizard::WizardState)},
+        {117, sizeof(::s4wave::wizard::CreateWizardObjectOp)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::wizard::_WatchWizardStateRequest_default_instance_._instance,
@@ -595,7 +716,11 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::wizard::_WatchGitCloneProgressResponse_default_instance_._instance,
     &::s4wave::wizard::_GitCloneProgress_default_instance_._instance,
     &::s4wave::wizard::_ListWizardsRequest_default_instance_._instance,
+    &::s4wave::wizard::_RegisterWizardRequest_default_instance_._instance,
+    &::s4wave::wizard::_RegisterWizardResponse_default_instance_._instance,
     &::s4wave::wizard::_ListWizardsResponse_default_instance_._instance,
+    &::s4wave::wizard::_WatchWizardsRequest_default_instance_._instance,
+    &::s4wave::wizard::_WatchWizardsResponse_default_instance_._instance,
     &::s4wave::wizard::_ObjectWizard_default_instance_._instance,
     &::s4wave::wizard::_WizardState_default_instance_._instance,
     &::s4wave::wizard::_CreateWizardObjectOp_default_instance_._instance,
@@ -622,43 +747,54 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fw
     "eProgress\0223\n\005state\030\001 \001(\0162$.s4wave.wizard"
     ".GitCloneProgressState\022\017\n\007message\030\002 \001(\t\022"
     "\r\n\005error\030\003 \001(\t\022\022\n\nobject_key\030\004 \001(\t\"\024\n\022Li"
-    "stWizardsRequest\"C\n\023ListWizardsResponse\022"
-    ",\n\007wizards\030\001 \003(\0132\033.s4wave.wizard.ObjectW"
-    "izard\"\344\001\n\014ObjectWizard\022\017\n\007type_id\030\001 \001(\t\022"
-    "\024\n\014display_name\030\002 \001(\t\022\020\n\010category\030\003 \001(\t\022"
-    "\021\n\ticon_name\030\004 \001(\t\022\024\n\014create_op_id\030\005 \001(\t"
-    "\022\034\n\024default_name_pattern\030\006 \001(\t\022\022\n\npersis"
-    "tent\030\007 \001(\010\022\026\n\016wizard_type_id\030\010 \001(\t\022\022\n\nke"
-    "y_prefix\030\t \001(\t\022\024\n\014experimental\030\n \001(\010\"q\n\013"
-    "WizardState\022\014\n\004step\030\001 \001(\005\022\026\n\016target_type"
-    "_id\030\002 \001(\t\022\031\n\021target_key_prefix\030\003 \001(\t\022\014\n\004"
-    "name\030\004 \001(\t\022\023\n\013config_data\030\005 \001(\014\"\345\001\n\024Crea"
-    "teWizardObjectOp\022\022\n\nobject_key\030\001 \001(\t\022\026\n\016"
-    "wizard_type_id\030\002 \001(\t\022\026\n\016target_type_id\030\003"
-    " \001(\t\022\031\n\021target_key_prefix\030\004 \001(\t\022\014\n\004name\030"
-    "\005 \001(\t\022-\n\ttimestamp\030\006 \001(\0132\032.google.protob"
-    "uf.Timestamp\022\024\n\014initial_step\030\007 \001(\005\022\033\n\023in"
-    "itial_config_data\030\010 \001(\014*\250\001\n\025GitCloneProg"
-    "ressState\022!\n\035GIT_CLONE_PROGRESS_STATE_ID"
-    "LE\020\000\022$\n GIT_CLONE_PROGRESS_STATE_RUNNING"
-    "\020\001\022!\n\035GIT_CLONE_PROGRESS_STATE_DONE\020\002\022#\n"
-    "\037GIT_CLONE_PROGRESS_STATE_FAILED\020\0032{\n#Ob"
-    "jectWizardRegistryResourceService\022T\n\013Lis"
-    "tWizards\022!.s4wave.wizard.ListWizardsRequ"
-    "est\032\".s4wave.wizard.ListWizardsResponse2"
-    "\270\003\n\025WizardResourceService\022e\n\020WatchWizard"
-    "State\022&.s4wave.wizard.WatchWizardStateRe"
-    "quest\032\'.s4wave.wizard.WatchWizardStateRe"
-    "sponse0\001\022f\n\021UpdateWizardState\022\'.s4wave.w"
-    "izard.UpdateWizardStateRequest\032(.s4wave."
-    "wizard.UpdateWizardStateResponse\022Z\n\rStar"
-    "tGitClone\022#.s4wave.wizard.StartGitCloneR"
-    "equest\032$.s4wave.wizard.StartGitCloneResp"
-    "onse\022t\n\025WatchGitCloneProgress\022+.s4wave.w"
-    "izard.WatchGitCloneProgressRequest\032,.s4w"
-    "ave.wizard.WatchGitCloneProgressResponse"
-    "0\001B<Z:github.com/s4wave/spacewave/sdk/wo"
-    "rld/wizard;s4wave_wizardb\006proto3"
+    "stWizardsRequest\"D\n\025RegisterWizardReques"
+    "t\022+\n\006wizard\030\001 \001(\0132\033.s4wave.wizard.Object"
+    "Wizard\"-\n\026RegisterWizardResponse\022\023\n\013reso"
+    "urce_id\030\001 \001(\r\"C\n\023ListWizardsResponse\022,\n\007"
+    "wizards\030\001 \003(\0132\033.s4wave.wizard.ObjectWiza"
+    "rd\"\025\n\023WatchWizardsRequest\"D\n\024WatchWizard"
+    "sResponse\022,\n\007wizards\030\001 \003(\0132\033.s4wave.wiza"
+    "rd.ObjectWizard\"\220\002\n\014ObjectWizard\022\017\n\007type"
+    "_id\030\001 \001(\t\022\024\n\014display_name\030\002 \001(\t\022\020\n\010categ"
+    "ory\030\003 \001(\t\022\021\n\ticon_name\030\004 \001(\t\022\024\n\014create_o"
+    "p_id\030\005 \001(\t\022\034\n\024default_name_pattern\030\006 \001(\t"
+    "\022\022\n\npersistent\030\007 \001(\010\022\026\n\016wizard_type_id\030\010"
+    " \001(\t\022\022\n\nkey_prefix\030\t \001(\t\022\024\n\014experimental"
+    "\030\n \001(\010\022\027\n\017registration_id\030\013 \001(\r\022\021\n\tplugi"
+    "n_id\030\014 \001(\t\"q\n\013WizardState\022\014\n\004step\030\001 \001(\005\022"
+    "\026\n\016target_type_id\030\002 \001(\t\022\031\n\021target_key_pr"
+    "efix\030\003 \001(\t\022\014\n\004name\030\004 \001(\t\022\023\n\013config_data\030"
+    "\005 \001(\014\"\345\001\n\024CreateWizardObjectOp\022\022\n\nobject"
+    "_key\030\001 \001(\t\022\026\n\016wizard_type_id\030\002 \001(\t\022\026\n\016ta"
+    "rget_type_id\030\003 \001(\t\022\031\n\021target_key_prefix\030"
+    "\004 \001(\t\022\014\n\004name\030\005 \001(\t\022-\n\ttimestamp\030\006 \001(\0132\032"
+    ".google.protobuf.Timestamp\022\024\n\014initial_st"
+    "ep\030\007 \001(\005\022\033\n\023initial_config_data\030\010 \001(\014*\250\001"
+    "\n\025GitCloneProgressState\022!\n\035GIT_CLONE_PRO"
+    "GRESS_STATE_IDLE\020\000\022$\n GIT_CLONE_PROGRESS"
+    "_STATE_RUNNING\020\001\022!\n\035GIT_CLONE_PROGRESS_S"
+    "TATE_DONE\020\002\022#\n\037GIT_CLONE_PROGRESS_STATE_"
+    "FAILED\020\0032\265\002\n#ObjectWizardRegistryResourc"
+    "eService\022]\n\016RegisterWizard\022$.s4wave.wiza"
+    "rd.RegisterWizardRequest\032%.s4wave.wizard"
+    ".RegisterWizardResponse\022T\n\013ListWizards\022!"
+    ".s4wave.wizard.ListWizardsRequest\032\".s4wa"
+    "ve.wizard.ListWizardsResponse\022Y\n\014WatchWi"
+    "zards\022\".s4wave.wizard.WatchWizardsReques"
+    "t\032#.s4wave.wizard.WatchWizardsResponse0\001"
+    "2\270\003\n\025WizardResourceService\022e\n\020WatchWizar"
+    "dState\022&.s4wave.wizard.WatchWizardStateR"
+    "equest\032\'.s4wave.wizard.WatchWizardStateR"
+    "esponse0\001\022f\n\021UpdateWizardState\022\'.s4wave."
+    "wizard.UpdateWizardStateRequest\032(.s4wave"
+    ".wizard.UpdateWizardStateResponse\022Z\n\rSta"
+    "rtGitClone\022#.s4wave.wizard.StartGitClone"
+    "Request\032$.s4wave.wizard.StartGitCloneRes"
+    "ponse\022t\n\025WatchGitCloneProgress\022+.s4wave."
+    "wizard.WatchGitCloneProgressRequest\032,.s4"
+    "wave.wizard.WatchGitCloneProgressRespons"
+    "e0\001B<Z:github.com/s4wave/spacewave/sdk/w"
+    "orld/wizard;s4wave_wizardb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fwizard_2fwizard_2eproto_deps[1] = {
@@ -668,13 +804,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fwizard_2fwizard_2eproto = {
     false,
     false,
-    2272,
+    2713,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fwizard_2fwizard_2eproto,
     "github.com/s4wave/spacewave/sdk/world/wizard/wizard.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fwizard_2fwizard_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fwizard_2fwizard_2eproto_deps,
     1,
-    14,
+    18,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fwizard_2fwizard_2eproto::offsets,
@@ -3284,6 +3420,525 @@ ListWizardsRequest::_table_ = {
 }
 // ===================================================================
 
+class RegisterWizardRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<RegisterWizardRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(RegisterWizardRequest, _impl_._has_bits_);
+};
+
+RegisterWizardRequest::RegisterWizardRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, RegisterWizardRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.wizard.RegisterWizardRequest)
+}
+PROTOBUF_NDEBUG_INLINE RegisterWizardRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::wizard::RegisterWizardRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0} {}
+
+RegisterWizardRequest::RegisterWizardRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const RegisterWizardRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, RegisterWizardRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  RegisterWizardRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.wizard_ = (CheckHasBit(cached_has_bits, 0x00000001U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.wizard_)
+                : nullptr;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.wizard.RegisterWizardRequest)
+}
+PROTOBUF_NDEBUG_INLINE RegisterWizardRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void RegisterWizardRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.wizard_ = {};
+}
+RegisterWizardRequest::~RegisterWizardRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.wizard.RegisterWizardRequest)
+  SharedDtor(*this);
+}
+inline void RegisterWizardRequest::SharedDtor(MessageLite& self) {
+  RegisterWizardRequest& this_ = static_cast<RegisterWizardRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  delete this_._impl_.wizard_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL RegisterWizardRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) RegisterWizardRequest(arena);
+}
+constexpr auto RegisterWizardRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(RegisterWizardRequest),
+                                            alignof(RegisterWizardRequest));
+}
+constexpr auto RegisterWizardRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_RegisterWizardRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &RegisterWizardRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<RegisterWizardRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &RegisterWizardRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<RegisterWizardRequest>(), &RegisterWizardRequest::ByteSizeLong,
+              &RegisterWizardRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(RegisterWizardRequest, _impl_._cached_size_),
+          false,
+      },
+      &RegisterWizardRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fwizard_2fwizard_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull RegisterWizardRequest_class_data_ =
+        RegisterWizardRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+RegisterWizardRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&RegisterWizardRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(RegisterWizardRequest_class_data_.tc_table);
+  return RegisterWizardRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 1, 0, 2>
+RegisterWizardRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(RegisterWizardRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    RegisterWizardRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::wizard::RegisterWizardRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .s4wave.wizard.ObjectWizard wizard = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(RegisterWizardRequest, _impl_.wizard_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .s4wave.wizard.ObjectWizard wizard = 1;
+    {PROTOBUF_FIELD_OFFSET(RegisterWizardRequest, _impl_.wizard_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::wizard::ObjectWizard>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void RegisterWizardRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.wizard.RegisterWizardRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    ABSL_DCHECK(_impl_.wizard_ != nullptr);
+    _impl_.wizard_->Clear();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL RegisterWizardRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const RegisterWizardRequest& this_ = static_cast<const RegisterWizardRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL RegisterWizardRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const RegisterWizardRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.wizard.RegisterWizardRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .s4wave.wizard.ObjectWizard wizard = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        1, *this_._impl_.wizard_, this_._impl_.wizard_->GetCachedSize(), target,
+        stream);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.wizard.RegisterWizardRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t RegisterWizardRequest::ByteSizeLong(const MessageLite& base) {
+  const RegisterWizardRequest& this_ = static_cast<const RegisterWizardRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t RegisterWizardRequest::ByteSizeLong() const {
+  const RegisterWizardRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.wizard.RegisterWizardRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // .s4wave.wizard.ObjectWizard wizard = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.wizard_);
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void RegisterWizardRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<RegisterWizardRequest*>(&to_msg);
+  auto& from = static_cast<const RegisterWizardRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.wizard.RegisterWizardRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    ABSL_DCHECK(from._impl_.wizard_ != nullptr);
+    if (_this->_impl_.wizard_ == nullptr) {
+      _this->_impl_.wizard_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.wizard_);
+    } else {
+      _this->_impl_.wizard_->MergeFrom(*from._impl_.wizard_);
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void RegisterWizardRequest::CopyFrom(const RegisterWizardRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.wizard.RegisterWizardRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void RegisterWizardRequest::InternalSwap(RegisterWizardRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.wizard_, other->_impl_.wizard_);
+}
+
+::google::protobuf::Metadata RegisterWizardRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class RegisterWizardResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<RegisterWizardResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(RegisterWizardResponse, _impl_._has_bits_);
+};
+
+RegisterWizardResponse::RegisterWizardResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, RegisterWizardResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.wizard.RegisterWizardResponse)
+}
+RegisterWizardResponse::RegisterWizardResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const RegisterWizardResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, RegisterWizardResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(from._impl_) {
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+PROTOBUF_NDEBUG_INLINE RegisterWizardResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void RegisterWizardResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.resource_id_ = {};
+}
+RegisterWizardResponse::~RegisterWizardResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.wizard.RegisterWizardResponse)
+  SharedDtor(*this);
+}
+inline void RegisterWizardResponse::SharedDtor(MessageLite& self) {
+  RegisterWizardResponse& this_ = static_cast<RegisterWizardResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL RegisterWizardResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) RegisterWizardResponse(arena);
+}
+constexpr auto RegisterWizardResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(RegisterWizardResponse),
+                                            alignof(RegisterWizardResponse));
+}
+constexpr auto RegisterWizardResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_RegisterWizardResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &RegisterWizardResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<RegisterWizardResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &RegisterWizardResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<RegisterWizardResponse>(), &RegisterWizardResponse::ByteSizeLong,
+              &RegisterWizardResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(RegisterWizardResponse, _impl_._cached_size_),
+          false,
+      },
+      &RegisterWizardResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fwizard_2fwizard_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull RegisterWizardResponse_class_data_ =
+        RegisterWizardResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+RegisterWizardResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&RegisterWizardResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(RegisterWizardResponse_class_data_.tc_table);
+  return RegisterWizardResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 0, 0, 2>
+RegisterWizardResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(RegisterWizardResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    RegisterWizardResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::wizard::RegisterWizardResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // uint32 resource_id = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(RegisterWizardResponse, _impl_.resource_id_), 0>(),
+     {8, 0, 0,
+      PROTOBUF_FIELD_OFFSET(RegisterWizardResponse, _impl_.resource_id_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // uint32 resource_id = 1;
+    {PROTOBUF_FIELD_OFFSET(RegisterWizardResponse, _impl_.resource_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+  }},
+  // no aux_entries
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void RegisterWizardResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.wizard.RegisterWizardResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.resource_id_ = 0u;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL RegisterWizardResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const RegisterWizardResponse& this_ = static_cast<const RegisterWizardResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL RegisterWizardResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const RegisterWizardResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.wizard.RegisterWizardResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // uint32 resource_id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (this_._internal_resource_id() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          1, this_._internal_resource_id(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.wizard.RegisterWizardResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t RegisterWizardResponse::ByteSizeLong(const MessageLite& base) {
+  const RegisterWizardResponse& this_ = static_cast<const RegisterWizardResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t RegisterWizardResponse::ByteSizeLong() const {
+  const RegisterWizardResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.wizard.RegisterWizardResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // uint32 resource_id = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (this_._internal_resource_id() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_resource_id());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void RegisterWizardResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<RegisterWizardResponse*>(&to_msg);
+  auto& from = static_cast<const RegisterWizardResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.wizard.RegisterWizardResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (from._internal_resource_id() != 0) {
+      _this->_impl_.resource_id_ = from._impl_.resource_id_;
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void RegisterWizardResponse::CopyFrom(const RegisterWizardResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.wizard.RegisterWizardResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void RegisterWizardResponse::InternalSwap(RegisterWizardResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.resource_id_, other->_impl_.resource_id_);
+}
+
+::google::protobuf::Metadata RegisterWizardResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
 class ListWizardsResponse::_Internal {
  public:
   using HasBits =
@@ -3568,6 +4223,399 @@ void ListWizardsResponse::InternalSwap(ListWizardsResponse* PROTOBUF_RESTRICT PR
 }
 // ===================================================================
 
+class WatchWizardsRequest::_Internal {
+ public:
+};
+
+WatchWizardsRequest::WatchWizardsRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, WatchWizardsRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(arena_constructor:s4wave.wizard.WatchWizardsRequest)
+}
+WatchWizardsRequest::WatchWizardsRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const WatchWizardsRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, WatchWizardsRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  WatchWizardsRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.wizard.WatchWizardsRequest)
+}
+
+inline void* PROTOBUF_NONNULL WatchWizardsRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) WatchWizardsRequest(arena);
+}
+constexpr auto WatchWizardsRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(WatchWizardsRequest),
+                                            alignof(WatchWizardsRequest));
+}
+constexpr auto WatchWizardsRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_WatchWizardsRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &WatchWizardsRequest::MergeImpl,
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<WatchWizardsRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &WatchWizardsRequest::SharedDtor,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<WatchWizardsRequest>(), &WatchWizardsRequest::ByteSizeLong,
+              &WatchWizardsRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(WatchWizardsRequest, _impl_._cached_size_),
+          false,
+      },
+      &WatchWizardsRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fwizard_2fwizard_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull WatchWizardsRequest_class_data_ =
+        WatchWizardsRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+WatchWizardsRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&WatchWizardsRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(WatchWizardsRequest_class_data_.tc_table);
+  return WatchWizardsRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+WatchWizardsRequest::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    0, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    WatchWizardsRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::wizard::WatchWizardsRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, // no field_entries, or aux_entries
+  {{
+  }},
+};
+
+
+
+
+
+
+
+::google::protobuf::Metadata WatchWizardsRequest::GetMetadata() const {
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class WatchWizardsResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<WatchWizardsResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(WatchWizardsResponse, _impl_._has_bits_);
+};
+
+WatchWizardsResponse::WatchWizardsResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, WatchWizardsResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.wizard.WatchWizardsResponse)
+}
+PROTOBUF_NDEBUG_INLINE WatchWizardsResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::wizard::WatchWizardsResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        wizards_{visibility, arena, from.wizards_} {}
+
+WatchWizardsResponse::WatchWizardsResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const WatchWizardsResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, WatchWizardsResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  WatchWizardsResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.wizard.WatchWizardsResponse)
+}
+PROTOBUF_NDEBUG_INLINE WatchWizardsResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        wizards_{visibility, arena} {}
+
+inline void WatchWizardsResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+WatchWizardsResponse::~WatchWizardsResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.wizard.WatchWizardsResponse)
+  SharedDtor(*this);
+}
+inline void WatchWizardsResponse::SharedDtor(MessageLite& self) {
+  WatchWizardsResponse& this_ = static_cast<WatchWizardsResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL WatchWizardsResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) WatchWizardsResponse(arena);
+}
+constexpr auto WatchWizardsResponse::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(WatchWizardsResponse, _impl_.wizards_) +
+          decltype(WatchWizardsResponse::_impl_.wizards_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::ZeroInit(
+        sizeof(WatchWizardsResponse), alignof(WatchWizardsResponse), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&WatchWizardsResponse::PlacementNew_,
+                                 sizeof(WatchWizardsResponse),
+                                 alignof(WatchWizardsResponse));
+  }
+}
+constexpr auto WatchWizardsResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_WatchWizardsResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &WatchWizardsResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<WatchWizardsResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &WatchWizardsResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<WatchWizardsResponse>(), &WatchWizardsResponse::ByteSizeLong,
+              &WatchWizardsResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(WatchWizardsResponse, _impl_._cached_size_),
+          false,
+      },
+      &WatchWizardsResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fwizard_2fwizard_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull WatchWizardsResponse_class_data_ =
+        WatchWizardsResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+WatchWizardsResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&WatchWizardsResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(WatchWizardsResponse_class_data_.tc_table);
+  return WatchWizardsResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 1, 0, 2>
+WatchWizardsResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(WatchWizardsResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    WatchWizardsResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::wizard::WatchWizardsResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // repeated .s4wave.wizard.ObjectWizard wizards = 1;
+    {::_pbi::TcParser::FastMtR1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(WatchWizardsResponse, _impl_.wizards_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // repeated .s4wave.wizard.ObjectWizard wizards = 1;
+    {PROTOBUF_FIELD_OFFSET(WatchWizardsResponse, _impl_.wizards_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::wizard::ObjectWizard>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void WatchWizardsResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.wizard.WatchWizardsResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    _impl_.wizards_.Clear();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL WatchWizardsResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const WatchWizardsResponse& this_ = static_cast<const WatchWizardsResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL WatchWizardsResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const WatchWizardsResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.wizard.WatchWizardsResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // repeated .s4wave.wizard.ObjectWizard wizards = 1;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_wizards_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_wizards().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              1, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.wizard.WatchWizardsResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t WatchWizardsResponse::ByteSizeLong(const MessageLite& base) {
+  const WatchWizardsResponse& this_ = static_cast<const WatchWizardsResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t WatchWizardsResponse::ByteSizeLong() const {
+  const WatchWizardsResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.wizard.WatchWizardsResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+   {
+    // repeated .s4wave.wizard.ObjectWizard wizards = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size += 1UL * this_._internal_wizards_size();
+      for (const auto& msg : this_._internal_wizards()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void WatchWizardsResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<WatchWizardsResponse*>(&to_msg);
+  auto& from = static_cast<const WatchWizardsResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.wizard.WatchWizardsResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    _this->_internal_mutable_wizards()->InternalMergeFromWithArena(
+        ::google::protobuf::MessageLite::internal_visibility(), arena,
+        from._internal_wizards());
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void WatchWizardsResponse::CopyFrom(const WatchWizardsResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.wizard.WatchWizardsResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void WatchWizardsResponse::InternalSwap(WatchWizardsResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.wizards_.InternalSwap(&other->_impl_.wizards_);
+}
+
+::google::protobuf::Metadata WatchWizardsResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
 class ObjectWizard::_Internal {
  public:
   using HasBits =
@@ -3598,7 +4646,8 @@ PROTOBUF_NDEBUG_INLINE ObjectWizard::Impl_::Impl_(
         create_op_id_(arena, from.create_op_id_),
         default_name_pattern_(arena, from.default_name_pattern_),
         wizard_type_id_(arena, from.wizard_type_id_),
-        key_prefix_(arena, from.key_prefix_) {}
+        key_prefix_(arena, from.key_prefix_),
+        plugin_id_(arena, from.plugin_id_) {}
 
 ObjectWizard::ObjectWizard(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -3617,9 +4666,9 @@ ObjectWizard::ObjectWizard(
                offsetof(Impl_, persistent_),
            reinterpret_cast<const char*>(&from._impl_) +
                offsetof(Impl_, persistent_),
-           offsetof(Impl_, experimental_) -
+           offsetof(Impl_, registration_id_) -
                offsetof(Impl_, persistent_) +
-               sizeof(Impl_::experimental_));
+               sizeof(Impl_::registration_id_));
 
   // @@protoc_insertion_point(copy_constructor:s4wave.wizard.ObjectWizard)
 }
@@ -3634,16 +4683,17 @@ PROTOBUF_NDEBUG_INLINE ObjectWizard::Impl_::Impl_(
         create_op_id_(arena),
         default_name_pattern_(arena),
         wizard_type_id_(arena),
-        key_prefix_(arena) {}
+        key_prefix_(arena),
+        plugin_id_(arena) {}
 
 inline void ObjectWizard::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, persistent_),
            0,
-           offsetof(Impl_, experimental_) -
+           offsetof(Impl_, registration_id_) -
                offsetof(Impl_, persistent_) +
-               sizeof(Impl_::experimental_));
+               sizeof(Impl_::registration_id_));
 }
 ObjectWizard::~ObjectWizard() {
   // @@protoc_insertion_point(destructor:s4wave.wizard.ObjectWizard)
@@ -3664,6 +4714,7 @@ inline void ObjectWizard::SharedDtor(MessageLite& self) {
   this_._impl_.default_name_pattern_.Destroy();
   this_._impl_.wizard_type_id_.Destroy();
   this_._impl_.key_prefix_.Destroy();
+  this_._impl_.plugin_id_.Destroy();
   this_._impl_.~Impl_();
 }
 
@@ -3710,16 +4761,16 @@ ObjectWizard::GetClassData() const {
   return ObjectWizard_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<4, 10, 0, 135, 2>
+const ::_pbi::TcParseTable<4, 12, 0, 144, 2>
 ObjectWizard::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_._has_bits_),
     0, // no _extensions_
-    10, 120,  // max_field_number, fast_idx_mask
+    12, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294966272,  // skipmap
+    4294963200,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    10,  // num_field_entries
+    12,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     ObjectWizard_class_data_.base(),
@@ -3755,8 +4806,8 @@ ObjectWizard::_table_ = {
      {50, 5, 0,
       PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.default_name_pattern_)}},
     // bool persistent = 7;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(ObjectWizard, _impl_.persistent_), 8>(),
-     {56, 8, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(ObjectWizard, _impl_.persistent_), 9>(),
+     {56, 9, 0,
       PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.persistent_)}},
     // string wizard_type_id = 8;
     {::_pbi::TcParser::FastUS1,
@@ -3767,11 +4818,17 @@ ObjectWizard::_table_ = {
      {74, 7, 0,
       PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.key_prefix_)}},
     // bool experimental = 10;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(ObjectWizard, _impl_.experimental_), 9>(),
-     {80, 9, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(ObjectWizard, _impl_.experimental_), 10>(),
+     {80, 10, 0,
       PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.experimental_)}},
-    {::_pbi::TcParser::MiniParse, {}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // uint32 registration_id = 11;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(ObjectWizard, _impl_.registration_id_), 11>(),
+     {88, 11, 0,
+      PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.registration_id_)}},
+    // string plugin_id = 12;
+    {::_pbi::TcParser::FastUS1,
+     {98, 8, 0,
+      PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.plugin_id_)}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
@@ -3791,17 +4848,21 @@ ObjectWizard::_table_ = {
     // string default_name_pattern = 6;
     {PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.default_name_pattern_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // bool persistent = 7;
-    {PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.persistent_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.persistent_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // string wizard_type_id = 8;
     {PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.wizard_type_id_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string key_prefix = 9;
     {PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.key_prefix_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // bool experimental = 10;
-    {PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.experimental_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.experimental_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // uint32 registration_id = 11;
+    {PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.registration_id_), _Internal::kHasBitsOffset + 11, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // string plugin_id = 12;
+    {PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.plugin_id_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   // no aux_entries
   {{
-    "\32\7\14\10\11\14\24\0\16\12\0\0\0\0\0\0"
+    "\32\7\14\10\11\14\24\0\16\12\0\0\11\0\0\0"
     "s4wave.wizard.ObjectWizard"
     "type_id"
     "display_name"
@@ -3811,6 +4872,7 @@ ObjectWizard::_table_ = {
     "default_name_pattern"
     "wizard_type_id"
     "key_prefix"
+    "plugin_id"
   }},
 };
 PROTOBUF_NOINLINE void ObjectWizard::Clear() {
@@ -3847,9 +4909,14 @@ PROTOBUF_NOINLINE void ObjectWizard::Clear() {
       _impl_.key_prefix_.ClearNonDefaultToEmpty();
     }
   }
-  ::memset(&_impl_.persistent_, 0, static_cast<::size_t>(
-      reinterpret_cast<char*>(&_impl_.experimental_) -
-      reinterpret_cast<char*>(&_impl_.persistent_)) + sizeof(_impl_.experimental_));
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    _impl_.plugin_id_.ClearNonDefaultToEmpty();
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000e00U)) {
+    ::memset(&_impl_.persistent_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.registration_id_) -
+        reinterpret_cast<char*>(&_impl_.persistent_)) + sizeof(_impl_.registration_id_));
+  }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -3934,7 +5001,7 @@ PROTOBUF_NOINLINE void ObjectWizard::Clear() {
   }
 
   // bool persistent = 7;
-  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
     if (this_._internal_persistent() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
@@ -3963,11 +5030,30 @@ PROTOBUF_NOINLINE void ObjectWizard::Clear() {
   }
 
   // bool experimental = 10;
-  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000400U)) {
     if (this_._internal_experimental() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
           10, this_._internal_experimental(), target);
+    }
+  }
+
+  // uint32 registration_id = 11;
+  if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+    if (this_._internal_registration_id() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          11, this_._internal_registration_id(), target);
+    }
+  }
+
+  // string plugin_id = 12;
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (!this_._internal_plugin_id().empty()) {
+      const ::std::string& _s = this_._internal_plugin_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.wizard.ObjectWizard.plugin_id");
+      target = stream->WriteStringMaybeAliased(12, _s, target);
     }
   }
 
@@ -4054,17 +5140,31 @@ PROTOBUF_NOINLINE void ObjectWizard::Clear() {
       }
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
-    // bool persistent = 7;
+  if (BatchCheckHasBit(cached_has_bits, 0x00000f00U)) {
+    // string plugin_id = 12;
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      if (!this_._internal_plugin_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_plugin_id());
+      }
+    }
+    // bool persistent = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
       if (this_._internal_persistent() != 0) {
         total_size += 2;
       }
     }
     // bool experimental = 10;
-    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
       if (this_._internal_experimental() != 0) {
         total_size += 2;
+      }
+    }
+    // uint32 registration_id = 11;
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+      if (this_._internal_registration_id() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_registration_id());
       }
     }
   }
@@ -4160,15 +5260,29 @@ void ObjectWizard::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000f00U)) {
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      if (!from._internal_plugin_id().empty()) {
+        _this->_internal_set_plugin_id(from._internal_plugin_id());
+      } else {
+        if (_this->_impl_.plugin_id_.IsDefault()) {
+          _this->_internal_set_plugin_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
       if (from._internal_persistent() != 0) {
         _this->_impl_.persistent_ = from._impl_.persistent_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
       if (from._internal_experimental() != 0) {
         _this->_impl_.experimental_ = from._impl_.experimental_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+      if (from._internal_registration_id() != 0) {
+        _this->_impl_.registration_id_ = from._impl_.registration_id_;
       }
     }
   }
@@ -4199,9 +5313,10 @@ void ObjectWizard::InternalSwap(ObjectWizard* PROTOBUF_RESTRICT PROTOBUF_NONNULL
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.default_name_pattern_, &other->_impl_.default_name_pattern_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.wizard_type_id_, &other->_impl_.wizard_type_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.key_prefix_, &other->_impl_.key_prefix_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.plugin_id_, &other->_impl_.plugin_id_, arena);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.experimental_)
-      + sizeof(ObjectWizard::_impl_.experimental_)
+      PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.registration_id_)
+      + sizeof(ObjectWizard::_impl_.registration_id_)
       - PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.persistent_)>(
           reinterpret_cast<char*>(&_impl_.persistent_),
           reinterpret_cast<char*>(&other->_impl_.persistent_));
