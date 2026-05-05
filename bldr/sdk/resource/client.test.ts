@@ -116,7 +116,9 @@ describe('ResourceClient', () => {
     const client = new Client(service, new AbortController().signal)
     const onConnectionLost = vi.fn()
     client.onConnectionLost(onConnectionLost)
+    const connectionController = new AbortController()
     Reflect.set(client, 'initState', { clientHandleId: 7, rootResourceId: 1 })
+    Reflect.set(client, 'connectionController', connectionController)
     const ref = client.createResourceReference(1)
 
     await expect(client.attachResource('test-handler', vi.fn())).rejects.toEqual(
@@ -129,8 +131,10 @@ describe('ResourceClient', () => {
     expect(ref.released).toBe(true)
     expect(client.connectionGeneration).toBe(1)
     expect(onConnectionLost).toHaveBeenCalledOnce()
+    expect(connectionController.signal.aborted).toBe(true)
+    expect(Reflect.get(client, 'connectionController')).toBe(null)
     expect(Reflect.get(client, 'initState')).toBe(null)
-    expect(Reflect.get(client, 'initPromise')).toBeInstanceOf(Promise)
+    expect(Reflect.get(client, 'initPromise')).toBe(null)
   })
 
   it('retries queued resource releases after runtime ack timeouts', async () => {
