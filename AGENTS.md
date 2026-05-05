@@ -433,6 +433,12 @@ flows.
 - Plugins import from `@s4wave/web/` only.
 - Plugins must never import from `@s4wave/app/`.
 - `app/` may import from both `@s4wave/web/` and `@s4wave/app/`.
+- When adding plugin-importable files under `web/`, update the nearest
+  `index.ts` barrel so `@s4wave/web` exposes the new API through the package
+  entrypoint that `spacewave-web` bundles. Prefer plugin imports from these
+  barrels, such as `@s4wave/web/contexts/index.js`, over direct file subpaths
+  unless the direct subpath is intentionally configured as its own web package
+  entrypoint.
 - Verify boundary violations with:
 
   ```bash
