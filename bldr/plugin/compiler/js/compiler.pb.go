@@ -406,14 +406,16 @@ type JsModule struct {
 	// DisableProjectConfig disables searching for the vite.config.ts in the project root for this module's bundle.
 	// Overrides the top-level vite_disable_project_config if set to true.
 	DisableProjectConfig bool `protobuf:"varint,4,opt,name=disable_project_config,json=disableProjectConfig,proto3" json:"disableProjectConfig,omitempty"`
-	// DisableEntrypoint disables adding an entrypoint for this module.
-	// If true, no BackendEntrypoint or FrontendEntrypoint will be automatically created.
-	DisableEntrypoint bool `protobuf:"varint,5,opt,name=disable_entrypoint,json=disableEntrypoint,proto3" json:"disableEntrypoint,omitempty"`
+	// Entrypoint enables adding an entrypoint for this module.
+	// If false, no BackendEntrypoint or FrontendEntrypoint will be automatically created.
+	Entrypoint bool `protobuf:"varint,5,opt,name=entrypoint,proto3" json:"entrypoint,omitempty"`
 	// WebViewId filters by web view id for FRONTEND modules.
-	// Propagated to the auto-generated FrontendEntrypoint.
+	// Frontend modules only create a FrontendEntrypoint when WebViewId or
+	// WebViewParentId is set.
 	WebViewId *filter.StringFilter `protobuf:"bytes,6,opt,name=web_view_id,json=webViewId,proto3" json:"webViewId,omitempty"`
 	// WebViewParentId filters by web view parent id for FRONTEND modules.
-	// Propagated to the auto-generated FrontendEntrypoint.
+	// Frontend modules only create a FrontendEntrypoint when WebViewId or
+	// WebViewParentId is set.
 	WebViewParentId *filter.StringFilter `protobuf:"bytes,7,opt,name=web_view_parent_id,json=webViewParentId,proto3" json:"webViewParentId,omitempty"`
 }
 
@@ -451,9 +453,9 @@ func (x *JsModule) GetDisableProjectConfig() bool {
 	return false
 }
 
-func (x *JsModule) GetDisableEntrypoint() bool {
+func (x *JsModule) GetEntrypoint() bool {
 	if x != nil {
-		return x.DisableEntrypoint
+		return x.Entrypoint
 	}
 	return false
 }
@@ -795,7 +797,7 @@ func (m *JsModule) CloneVT() *JsModule {
 	r.Kind = m.Kind
 	r.Path = m.Path
 	r.DisableProjectConfig = m.DisableProjectConfig
-	r.DisableEntrypoint = m.DisableEntrypoint
+	r.Entrypoint = m.Entrypoint
 	if rhs := m.ViteConfigPaths; rhs != nil {
 		r.ViteConfigPaths = slices.Clone(rhs)
 	}
@@ -837,8 +839,12 @@ func (m *FrontendEntrypoint) CloneVT() *FrontendEntrypoint {
 		return (*FrontendEntrypoint)(nil)
 	}
 	r := new(FrontendEntrypoint)
-	r.SetRenderMode = m.SetRenderMode.CloneVT()
-	r.SetHtmlLinks = m.SetHtmlLinks.CloneVT()
+	if rhs := m.SetRenderMode; rhs != nil {
+		r.SetRenderMode = rhs.CloneVT()
+	}
+	if rhs := m.SetHtmlLinks; rhs != nil {
+		r.SetHtmlLinks = rhs.CloneVT()
+	}
 	if rhs := m.WebViewId; rhs != nil {
 		r.WebViewId = rhs.CloneVT()
 	}
@@ -1248,7 +1254,7 @@ func (this *JsModule) EqualVT(that *JsModule) bool {
 	if this.DisableProjectConfig != that.DisableProjectConfig {
 		return false
 	}
-	if this.DisableEntrypoint != that.DisableEntrypoint {
+	if this.Entrypoint != that.Entrypoint {
 		return false
 	}
 	if !this.WebViewId.EqualVT(that.WebViewId) {
@@ -2172,10 +2178,10 @@ func (x *JsModule) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("disableProjectConfig")
 		s.WriteBool(x.DisableProjectConfig)
 	}
-	if x.DisableEntrypoint || s.HasField("disableEntrypoint") {
+	if x.Entrypoint || s.HasField("entrypoint") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("disableEntrypoint")
-		s.WriteBool(x.DisableEntrypoint)
+		s.WriteObjectField("entrypoint")
+		s.WriteBool(x.Entrypoint)
 	}
 	if x.WebViewId != nil || s.HasField("webViewId") {
 		s.WriteMoreIf(&wroteField)
@@ -2220,9 +2226,9 @@ func (x *JsModule) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "disable_project_config", "disableProjectConfig":
 			s.AddField("disable_project_config")
 			x.DisableProjectConfig = s.ReadBool()
-		case "disable_entrypoint", "disableEntrypoint":
-			s.AddField("disable_entrypoint")
-			x.DisableEntrypoint = s.ReadBool()
+		case "entrypoint":
+			s.AddField("entrypoint")
+			x.Entrypoint = s.ReadBool()
 		case "web_view_id", "webViewId":
 			if s.ReadNil() {
 				x.WebViewId = nil
@@ -2827,9 +2833,9 @@ func (m *JsModule) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x32
 	}
-	if m.DisableEntrypoint {
+	if m.Entrypoint {
 		i--
-		if m.DisableEntrypoint {
+		if m.Entrypoint {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
@@ -3199,7 +3205,7 @@ func (m *JsModule) SizeVT() (n int) {
 	if m.DisableProjectConfig {
 		n += 2
 	}
-	if m.DisableEntrypoint {
+	if m.Entrypoint {
 		n += 2
 	}
 	if m.WebViewId != nil {
@@ -3701,12 +3707,12 @@ func (x *JsModule) MarshalProtoText() string {
 		sb.WriteString("disable_project_config: ")
 		sb.WriteString(strconv.FormatBool(x.DisableProjectConfig))
 	}
-	if x.DisableEntrypoint != false {
+	if x.Entrypoint != false {
 		if sb.Len() > 10 {
 			sb.WriteString(" ")
 		}
-		sb.WriteString("disable_entrypoint: ")
-		sb.WriteString(strconv.FormatBool(x.DisableEntrypoint))
+		sb.WriteString("entrypoint: ")
+		sb.WriteString(strconv.FormatBool(x.Entrypoint))
 	}
 	if x.WebViewId != nil {
 		if sb.Len() > 10 {
@@ -4799,7 +4805,7 @@ func (m *JsModule) UnmarshalVT(dAtA []byte) error {
 			m.DisableProjectConfig = bool(v != 0)
 		case 5:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DisableEntrypoint", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Entrypoint", wireType)
 			}
 			var v int
 			var _v uint64
@@ -4808,7 +4814,7 @@ func (m *JsModule) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			m.DisableEntrypoint = bool(v != 0)
+			m.Entrypoint = bool(v != 0)
 		case 6:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field WebViewId", wireType)

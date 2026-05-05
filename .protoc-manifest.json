@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "protocFlagsHash": "1c28c09115aa511ff35b1be26994db5c0c847fc8e5879acca1694ab90f3ae614",
+  "protocFlagsHash": "dd97acfa784afdb97e9b56d13aa4a2154eb3b83f4c36e04c0e3ea89c0befa3e1",
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.13.0,starpc=v0.49.7,protobuf-es-lite=1.0.2",
   "packages": {
     "github.com/s4wave/spacewave/auth/derive": {
@@ -261,7 +261,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/plugin/compiler/js": {
-      "hash": "ff5c0432b22dfaac0f3c1d3a13d925f4b60546a23278a97c13f033c6ea4d5c6f",
+      "hash": "510010b3bb7f3fbd2d1b7aa4b9cc506e90a98b0c89dcb1828edd4bdc963c5de7",
       "generatedFiles": [
         "bldr/plugin/compiler/js/compiler.pb.cc",
         "bldr/plugin/compiler/js/compiler.pb.go",

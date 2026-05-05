@@ -1,35 +1,0 @@
-
-"
-root-resource
-resource/root
-Ä
-
-store-peerÒ
-object/peerﬂ{"objectStoreId":"s4wave-peer","volumeId":"plugin-host","transformConf":{"steps":[{"id":"hydra/transform/blockenc","config":{"blockEnc":"BlockEnc_XCHACHA20_POLY1305","key":"KY8Lo3c7L+bXa8BFZcU/YFfHysRdl4aZqmDd9TeZ+p4="}}]}}
-b
-resource-listenerM
-resource/listener6{"listenerSocketPath":"git:.spacewave/spacewave.sock"}
-
-export
-space/http/export
-
-	blocktype
-db/blocktype
-#
-download
-space/http/download
-&
-space-world-ops
-space/world/ops
-5
-space-sobject$
-space/sobject{"verbose":false}
-§
-provider-spacewaveç
-provider/spacewaveu{"endpoint":"https://spacewave.app","accountEndpoint":"https://account.spacewave.app","signingEnvPrefix":"spacewave"}
-$
-provider-local
-provider/local
-
-session-list
-session

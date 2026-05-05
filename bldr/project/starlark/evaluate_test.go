@@ -106,7 +106,7 @@ build("release-desktop-darwin-arm64",
     targets=["desktop/darwin/arm64"],
     manifestOverrides={
         "spacewave-dist": dist_compiler_config(
-            cliPkgs=["./cmd/spacewave-cli/cli"],
+            cliPkgs=["./cmd/spacewave/cli"],
             embedManifests=[
                 {"manifestId": "spacewave-launcher", "platformId": "desktop/darwin/arm64"},
                 {"manifestId": "spacewave-loader", "platformId": "desktop/darwin/arm64"},
@@ -152,7 +152,7 @@ build("release-desktop-darwin-arm64",
 	if !strings.Contains(cfg, `"cliPkgs"`) {
 		t.Fatalf("expected override config to contain cliPkgs, got %s", cfg)
 	}
-	if !strings.Contains(cfg, `"./cmd/spacewave-cli/cli"`) {
+	if !strings.Contains(cfg, `"./cmd/spacewave/cli"`) {
 		t.Fatalf("expected override config to contain CLI package path, got %s", cfg)
 	}
 }

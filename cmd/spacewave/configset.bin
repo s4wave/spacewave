@@ -1,35 +1,35 @@
 
-5
-space-sobject$
-space/sobject{"verbose":false}
-
-session-list
-session
+#
+download
+space/http/download
 
 	blocktype
 db/blocktype
 &
 space-world-ops
 space/world/ops
-§
-provider-spacewaveç
-provider/spacewaveu{"endpoint":"https://spacewave.app","accountEndpoint":"https://account.spacewave.app","signingEnvPrefix":"spacewave"}
+5
+space-sobject$
+space/sobject{"verbose":false}
 $
 provider-local
 provider/local
+
+session-list
+session
 "
 root-resource
 resource/root
-Ä
-
-store-peerÒ
-object/peerﬂ{"objectStoreId":"s4wave-peer","volumeId":"plugin-host","transformConf":{"steps":[{"id":"hydra/transform/blockenc","config":{"blockEnc":"BlockEnc_XCHACHA20_POLY1305","key":"KY8Lo3c7L+bXa8BFZcU/YFfHysRdl4aZqmDd9TeZ+p4="}}]}}
 b
 resource-listenerM
 resource/listener6{"listenerSocketPath":"git:.spacewave/spacewave.sock"}
 
 export
 space/http/export
-#
-download
-space/http/download
+§
+provider-spacewaveç
+provider/spacewaveu{"endpoint":"https://spacewave.app","accountEndpoint":"https://account.spacewave.app","signingEnvPrefix":"spacewave"}
+Ä
+
+store-peerÒ
+object/peerﬂ{"objectStoreId":"s4wave-peer","volumeId":"plugin-host","transformConf":{"steps":[{"id":"hydra/transform/blockenc","config":{"blockEnc":"BlockEnc_XCHACHA20_POLY1305","key":"KY8Lo3c7L+bXa8BFZcU/YFfHysRdl4aZqmDd9TeZ+p4="}}]}}

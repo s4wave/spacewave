@@ -19,7 +19,7 @@ The `build` section of the bldr project config defines named targets that combin
 | `bun run build:release` | release | All platforms |
 | `bun run build:release:web` | release-web | Browser WASM bundle |
 | `bun run build:release:desktop` | release-desktop | Native desktop binary |
-| `bun run build:cli` | CLI | `bin/spacewave-cli` |
+| `bun run build:cli` | CLI | `bin/spacewave` |
 
 Debug builds skip minification for faster iteration. Release builds produce optimized, content-addressed artifacts.
 
@@ -60,7 +60,7 @@ Browser E2E tests run the full WASM stack in Playwright. They exercise the real 
 
 ## CLI Packaging
 
-The CLI is built with `bun run build:cli`, which compiles the Go binary and copies it to `bin/spacewave-cli`. The CLI shares the same Go codebase as the WASM runtime but runs as a native process with direct filesystem access.
+The CLI is built with `bun run build:cli`, which compiles the Go binary and copies it to `bin/spacewave`. The CLI shares the same Go codebase as the WASM runtime but runs as a native process with direct filesystem access.
 
 ## Next Steps
 

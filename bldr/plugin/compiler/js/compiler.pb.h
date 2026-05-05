@@ -529,7 +529,7 @@ class JsModule final : public ::google::protobuf::Message
     kWebViewParentIdFieldNumber = 7,
     kKindFieldNumber = 1,
     kDisableProjectConfigFieldNumber = 4,
-    kDisableEntrypointFieldNumber = 5,
+    kEntrypointFieldNumber = 5,
   };
   // repeated string vite_config_paths = 3;
   int vite_config_paths_size() const;
@@ -618,14 +618,14 @@ class JsModule final : public ::google::protobuf::Message
   void _internal_set_disable_project_config(bool value);
 
   public:
-  // bool disable_entrypoint = 5;
-  void clear_disable_entrypoint() ;
-  bool disable_entrypoint() const;
-  void set_disable_entrypoint(bool value);
+  // bool entrypoint = 5;
+  void clear_entrypoint() ;
+  bool entrypoint() const;
+  void set_entrypoint(bool value);
 
   private:
-  bool _internal_disable_entrypoint() const;
-  void _internal_set_disable_entrypoint(bool value);
+  bool _internal_entrypoint() const;
+  void _internal_set_entrypoint(bool value);
 
   public:
   // @@protoc_insertion_point(class_scope:bldr.plugin.compiler.js.JsModule)
@@ -660,7 +660,7 @@ class JsModule final : public ::google::protobuf::Message
     ::filter::StringFilter* PROTOBUF_NULLABLE web_view_parent_id_;
     int kind_;
     bool disable_project_config_;
-    bool disable_entrypoint_;
+    bool entrypoint_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -3558,29 +3558,29 @@ inline void JsModule::_internal_set_disable_project_config(bool value) {
   _impl_.disable_project_config_ = value;
 }
 
-// bool disable_entrypoint = 5;
-inline void JsModule::clear_disable_entrypoint() {
+// bool entrypoint = 5;
+inline void JsModule::clear_entrypoint() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.disable_entrypoint_ = false;
+  _impl_.entrypoint_ = false;
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000040U);
 }
-inline bool JsModule::disable_entrypoint() const {
-  // @@protoc_insertion_point(field_get:bldr.plugin.compiler.js.JsModule.disable_entrypoint)
-  return _internal_disable_entrypoint();
+inline bool JsModule::entrypoint() const {
+  // @@protoc_insertion_point(field_get:bldr.plugin.compiler.js.JsModule.entrypoint)
+  return _internal_entrypoint();
 }
-inline void JsModule::set_disable_entrypoint(bool value) {
-  _internal_set_disable_entrypoint(value);
+inline void JsModule::set_entrypoint(bool value) {
+  _internal_set_entrypoint(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000040U);
-  // @@protoc_insertion_point(field_set:bldr.plugin.compiler.js.JsModule.disable_entrypoint)
+  // @@protoc_insertion_point(field_set:bldr.plugin.compiler.js.JsModule.entrypoint)
 }
-inline bool JsModule::_internal_disable_entrypoint() const {
+inline bool JsModule::_internal_entrypoint() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.disable_entrypoint_;
+  return _impl_.entrypoint_;
 }
-inline void JsModule::_internal_set_disable_entrypoint(bool value) {
+inline void JsModule::_internal_set_entrypoint(bool value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.disable_entrypoint_ = value;
+  _impl_.entrypoint_ = value;
 }
 
 // .filter.StringFilter web_view_id = 6;

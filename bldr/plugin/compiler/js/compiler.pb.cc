@@ -72,7 +72,7 @@ inline constexpr JsModule::Impl_::Impl_(
         web_view_parent_id_{nullptr},
         kind_{static_cast< ::bldr::plugin::compiler::js::JsModuleKind >(0)},
         disable_project_config_{false},
-        disable_entrypoint_{false} {}
+        entrypoint_{false} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR JsModule::JsModule(::_pbi::ConstantInitialized)
@@ -374,7 +374,7 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::js::JsModule, _impl_.path_),
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::js::JsModule, _impl_.vite_config_paths_),
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::js::JsModule, _impl_.disable_project_config_),
-        PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::js::JsModule, _impl_.disable_entrypoint_),
+        PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::js::JsModule, _impl_.entrypoint_),
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::js::JsModule, _impl_.web_view_id_),
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::js::JsModule, _impl_.web_view_parent_id_),
         4,
@@ -486,24 +486,23 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2f
     "_paths\030\007 \003(\t\022;\n\014vite_outputs\030\010 \003(\0132%.bld"
     "r.web.bundler.vite.ViteOutputMeta\022#\n\033vit"
     "e_disable_project_config\030\t \001(\010\022 \n\030compil"
-    "ed_entrypoint_path\030\n \001(\t\"\201\002\n\010JsModule\0223\n"
+    "ed_entrypoint_path\030\n \001(\t\"\371\001\n\010JsModule\0223\n"
     "\004kind\030\001 \001(\0162%.bldr.plugin.compiler.js.Js"
     "ModuleKind\022\014\n\004path\030\002 \001(\t\022\031\n\021vite_config_"
     "paths\030\003 \003(\t\022\036\n\026disable_project_config\030\004 "
-    "\001(\010\022\032\n\022disable_entrypoint\030\005 \001(\010\022)\n\013web_v"
-    "iew_id\030\006 \001(\0132\024.filter.StringFilter\0220\n\022we"
-    "b_view_parent_id\030\007 \001(\0132\024.filter.StringFi"
-    "lter\"=\n\021BackendEntrypoint\022\023\n\013import_path"
-    "\030\001 \001(\t\022\023\n\013import_name\030\002 \001(\t\"\341\001\n\022Frontend"
-    "Entrypoint\0227\n\017set_render_mode\030\001 \001(\0132\036.we"
-    "b.view.SetRenderModeRequest\0225\n\016set_html_"
-    "links\030\002 \001(\0132\035.web.view.SetHtmlLinksReque"
-    "st\022)\n\013web_view_id\030\003 \001(\0132\024.filter.StringF"
-    "ilter\0220\n\022web_view_parent_id\030\004 \001(\0132\024.filt"
-    "er.StringFilter*c\n\014JsModuleKind\022\032\n\026JS_MO"
-    "DULE_KIND_INVALID\020\000\022\032\n\026JS_MODULE_KIND_BA"
-    "CKEND\020\001\022\033\n\027JS_MODULE_KIND_FRONTEND\020\002b\006pr"
-    "oto3"
+    "\001(\010\022\022\n\nentrypoint\030\005 \001(\010\022)\n\013web_view_id\030\006"
+    " \001(\0132\024.filter.StringFilter\0220\n\022web_view_p"
+    "arent_id\030\007 \001(\0132\024.filter.StringFilter\"=\n\021"
+    "BackendEntrypoint\022\023\n\013import_path\030\001 \001(\t\022\023"
+    "\n\013import_name\030\002 \001(\t\"\341\001\n\022FrontendEntrypoi"
+    "nt\0227\n\017set_render_mode\030\001 \001(\0132\036.web.view.S"
+    "etRenderModeRequest\0225\n\016set_html_links\030\002 "
+    "\001(\0132\035.web.view.SetHtmlLinksRequest\022)\n\013we"
+    "b_view_id\030\003 \001(\0132\024.filter.StringFilter\0220\n"
+    "\022web_view_parent_id\030\004 \001(\0132\024.filter.Strin"
+    "gFilter*c\n\014JsModuleKind\022\032\n\026JS_MODULE_KIN"
+    "D_INVALID\020\000\022\032\n\026JS_MODULE_KIND_BACKEND\020\001\022"
+    "\033\n\027JS_MODULE_KIND_FRONTEND\020\002b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto_deps[9] = {
@@ -521,7 +520,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbl
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto = {
     false,
     false,
-    2964,
+    2956,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto,
     "github.com/s4wave/spacewave/bldr/plugin/compiler/js/compiler.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto_once,
@@ -2783,9 +2782,9 @@ JsModule::JsModule(
                offsetof(Impl_, kind_),
            reinterpret_cast<const char*>(&from._impl_) +
                offsetof(Impl_, kind_),
-           offsetof(Impl_, disable_entrypoint_) -
+           offsetof(Impl_, entrypoint_) -
                offsetof(Impl_, kind_) +
-               sizeof(Impl_::disable_entrypoint_));
+               sizeof(Impl_::entrypoint_));
 
   // @@protoc_insertion_point(copy_constructor:bldr.plugin.compiler.js.JsModule)
 }
@@ -2801,9 +2800,9 @@ inline void JsModule::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, web_view_id_),
            0,
-           offsetof(Impl_, disable_entrypoint_) -
+           offsetof(Impl_, entrypoint_) -
                offsetof(Impl_, web_view_id_) +
-               sizeof(Impl_::disable_entrypoint_));
+               sizeof(Impl_::entrypoint_));
 }
 JsModule::~JsModule() {
   // @@protoc_insertion_point(destructor:bldr.plugin.compiler.js.JsModule)
@@ -2913,10 +2912,10 @@ JsModule::_table_ = {
     {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(JsModule, _impl_.disable_project_config_), 5>(),
      {32, 5, 0,
       PROTOBUF_FIELD_OFFSET(JsModule, _impl_.disable_project_config_)}},
-    // bool disable_entrypoint = 5;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(JsModule, _impl_.disable_entrypoint_), 6>(),
+    // bool entrypoint = 5;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(JsModule, _impl_.entrypoint_), 6>(),
      {40, 6, 0,
-      PROTOBUF_FIELD_OFFSET(JsModule, _impl_.disable_entrypoint_)}},
+      PROTOBUF_FIELD_OFFSET(JsModule, _impl_.entrypoint_)}},
     // .filter.StringFilter web_view_id = 6;
     {::_pbi::TcParser::FastMtS1,
      {50, 2, 0,
@@ -2936,8 +2935,8 @@ JsModule::_table_ = {
     {PROTOBUF_FIELD_OFFSET(JsModule, _impl_.vite_config_paths_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
     // bool disable_project_config = 4;
     {PROTOBUF_FIELD_OFFSET(JsModule, _impl_.disable_project_config_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
-    // bool disable_entrypoint = 5;
-    {PROTOBUF_FIELD_OFFSET(JsModule, _impl_.disable_entrypoint_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // bool entrypoint = 5;
+    {PROTOBUF_FIELD_OFFSET(JsModule, _impl_.entrypoint_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // .filter.StringFilter web_view_id = 6;
     {PROTOBUF_FIELD_OFFSET(JsModule, _impl_.web_view_id_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // .filter.StringFilter web_view_parent_id = 7;
@@ -2980,8 +2979,8 @@ PROTOBUF_NOINLINE void JsModule::Clear() {
   }
   if (BatchCheckHasBit(cached_has_bits, 0x00000070U)) {
     ::memset(&_impl_.kind_, 0, static_cast<::size_t>(
-        reinterpret_cast<char*>(&_impl_.disable_entrypoint_) -
-        reinterpret_cast<char*>(&_impl_.kind_)) + sizeof(_impl_.disable_entrypoint_));
+        reinterpret_cast<char*>(&_impl_.entrypoint_) -
+        reinterpret_cast<char*>(&_impl_.kind_)) + sizeof(_impl_.entrypoint_));
   }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
@@ -3044,12 +3043,12 @@ PROTOBUF_NOINLINE void JsModule::Clear() {
     }
   }
 
-  // bool disable_entrypoint = 5;
+  // bool entrypoint = 5;
   if (CheckHasBit(cached_has_bits, 0x00000040U)) {
-    if (this_._internal_disable_entrypoint() != 0) {
+    if (this_._internal_entrypoint() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
-          5, this_._internal_disable_entrypoint(), target);
+          5, this_._internal_entrypoint(), target);
     }
   }
 
@@ -3132,9 +3131,9 @@ PROTOBUF_NOINLINE void JsModule::Clear() {
         total_size += 2;
       }
     }
-    // bool disable_entrypoint = 5;
+    // bool entrypoint = 5;
     if (CheckHasBit(cached_has_bits, 0x00000040U)) {
-      if (this_._internal_disable_entrypoint() != 0) {
+      if (this_._internal_entrypoint() != 0) {
         total_size += 2;
       }
     }
@@ -3200,8 +3199,8 @@ void JsModule::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000040U)) {
-      if (from._internal_disable_entrypoint() != 0) {
-        _this->_impl_.disable_entrypoint_ = from._impl_.disable_entrypoint_;
+      if (from._internal_entrypoint() != 0) {
+        _this->_impl_.entrypoint_ = from._impl_.entrypoint_;
       }
     }
   }
@@ -3227,8 +3226,8 @@ void JsModule::InternalSwap(JsModule* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) 
   _impl_.vite_config_paths_.InternalSwap(&other->_impl_.vite_config_paths_);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.path_, &other->_impl_.path_, arena);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(JsModule, _impl_.disable_entrypoint_)
-      + sizeof(JsModule::_impl_.disable_entrypoint_)
+      PROTOBUF_FIELD_OFFSET(JsModule, _impl_.entrypoint_)
+      + sizeof(JsModule::_impl_.entrypoint_)
       - PROTOBUF_FIELD_OFFSET(JsModule, _impl_.web_view_id_)>(
           reinterpret_cast<char*>(&_impl_.web_view_id_),
           reinterpret_cast<char*>(&other->_impl_.web_view_id_));

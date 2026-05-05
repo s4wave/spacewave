@@ -176,16 +176,18 @@ pub struct JsModule {
     /// Overrides the top-level vite_disable_project_config if set to true.
     #[prost(bool, tag="4")]
     pub disable_project_config: bool,
-    /// DisableEntrypoint disables adding an entrypoint for this module.
-    /// If true, no BackendEntrypoint or FrontendEntrypoint will be automatically created.
+    /// Entrypoint enables adding an entrypoint for this module.
+    /// If false, no BackendEntrypoint or FrontendEntrypoint will be automatically created.
     #[prost(bool, tag="5")]
-    pub disable_entrypoint: bool,
+    pub entrypoint: bool,
     /// WebViewId filters by web view id for FRONTEND modules.
-    /// Propagated to the auto-generated FrontendEntrypoint.
+    /// Frontend modules only create a FrontendEntrypoint when WebViewId or
+    /// WebViewParentId is set.
     #[prost(message, optional, tag="6")]
     pub web_view_id: ::core::option::Option<super::super::super::super::filter::StringFilter>,
     /// WebViewParentId filters by web view parent id for FRONTEND modules.
-    /// Propagated to the auto-generated FrontendEntrypoint.
+    /// Frontend modules only create a FrontendEntrypoint when WebViewId or
+    /// WebViewParentId is set.
     #[prost(message, optional, tag="7")]
     pub web_view_parent_id: ::core::option::Option<super::super::super::super::filter::StringFilter>,
 }

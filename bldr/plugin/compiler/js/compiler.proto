@@ -185,14 +185,16 @@ message JsModule {
   // DisableProjectConfig disables searching for the vite.config.ts in the project root for this module's bundle.
   // Overrides the top-level vite_disable_project_config if set to true.
   bool disable_project_config = 4;
-  // DisableEntrypoint disables adding an entrypoint for this module.
-  // If true, no BackendEntrypoint or FrontendEntrypoint will be automatically created.
-  bool disable_entrypoint = 5;
+  // Entrypoint enables adding an entrypoint for this module.
+  // If false, no BackendEntrypoint or FrontendEntrypoint will be automatically created.
+  bool entrypoint = 5;
   // WebViewId filters by web view id for FRONTEND modules.
-  // Propagated to the auto-generated FrontendEntrypoint.
+  // Frontend modules only create a FrontendEntrypoint when WebViewId or
+  // WebViewParentId is set.
   .filter.StringFilter web_view_id = 6;
   // WebViewParentId filters by web view parent id for FRONTEND modules.
-  // Propagated to the auto-generated FrontendEntrypoint.
+  // Frontend modules only create a FrontendEntrypoint when WebViewId or
+  // WebViewParentId is set.
   .filter.StringFilter web_view_parent_id = 7;
 }
 

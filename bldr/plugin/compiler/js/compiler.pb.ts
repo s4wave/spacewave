@@ -100,22 +100,24 @@ export interface JsModule {
    */
   disableProjectConfig?: boolean
   /**
-   * DisableEntrypoint disables adding an entrypoint for this module.
-   * If true, no BackendEntrypoint or FrontendEntrypoint will be automatically created.
+   * Entrypoint enables adding an entrypoint for this module.
+   * If false, no BackendEntrypoint or FrontendEntrypoint will be automatically created.
    *
-   * @generated from field: bool disable_entrypoint = 5;
+   * @generated from field: bool entrypoint = 5;
    */
-  disableEntrypoint?: boolean
+  entrypoint?: boolean
   /**
    * WebViewId filters by web view id for FRONTEND modules.
-   * Propagated to the auto-generated FrontendEntrypoint.
+   * Frontend modules only create a FrontendEntrypoint when WebViewId or
+   * WebViewParentId is set.
    *
    * @generated from field: filter.StringFilter web_view_id = 6;
    */
   webViewId?: StringFilter
   /**
    * WebViewParentId filters by web view parent id for FRONTEND modules.
-   * Propagated to the auto-generated FrontendEntrypoint.
+   * Frontend modules only create a FrontendEntrypoint when WebViewId or
+   * WebViewParentId is set.
    *
    * @generated from field: filter.StringFilter web_view_parent_id = 7;
    */
@@ -141,7 +143,7 @@ export const JsModule: MessageType<JsModule> = createMessageType({
       kind: 'scalar',
       T: ScalarType.BOOL,
     },
-    { no: 5, name: 'disable_entrypoint', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 5, name: 'entrypoint', kind: 'scalar', T: ScalarType.BOOL },
     { no: 6, name: 'web_view_id', kind: 'message', T: () => StringFilter },
     {
       no: 7,

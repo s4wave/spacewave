@@ -197,14 +197,14 @@ Creates a JS module entry dict. First two args are positional.
 ```python
 js_module("JS_MODULE_KIND_FRONTEND", "./web/App.tsx")
 js_module("JS_MODULE_KIND_BACKEND", "./server/main.ts",
-          disableEntrypoint=True, webViewParentId={"empty": True})
+          entrypoint=True, webViewParentId={"empty": True})
 ```
 
 | Arg/Kwarg | Type | Description |
 |---|---|---|
 | `kind` | string | `"JS_MODULE_KIND_FRONTEND"` or `"JS_MODULE_KIND_BACKEND"` (required) |
 | `path` | string | Module path (required) |
-| `**kwargs` | any | Additional fields passed through to the dict (e.g. `disableEntrypoint`, `webViewParentId`) |
+| `**kwargs` | any | Additional fields passed through to the dict (e.g. `entrypoint`, `webViewParentId`) |
 
 ## Typed Builder Constructors
 
@@ -252,7 +252,7 @@ For builder `bldr/plugin/compiler/js`.
 ```python
 js_plugin_config(
     webPluginId="web",
-    modules=[js_module("JS_MODULE_KIND_FRONTEND", "./web/entry.ts")],
+    modules=[js_module("JS_MODULE_KIND_FRONTEND", "./web/entry.ts", entrypoint=True)],
     webPkgs=[web_pkg("@my/pkg", exclude=True)],
 )
 ```

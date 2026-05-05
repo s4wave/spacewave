@@ -8,8 +8,10 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	auth_method_password "github.com/s4wave/spacewave/auth/method/password"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
+	plugin_host_configset "github.com/s4wave/spacewave/bldr/plugin/host/configset"
+	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 	storage_volume "github.com/s4wave/spacewave/bldr/storage/volume"
-	cli "github.com/s4wave/spacewave/cmd/spacewave-cli/cli"
+	cli "github.com/s4wave/spacewave/cmd/spacewave/cli"
 	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
@@ -21,10 +23,14 @@ import (
 	space_http_export "github.com/s4wave/spacewave/core/space/http/export"
 	space_sobject "github.com/s4wave/spacewave/core/space/sobject"
 	optypes "github.com/s4wave/spacewave/core/space/world/optypes"
+	block_store_bucket "github.com/s4wave/spacewave/db/block/store/bucket"
+	block_store_rpc "github.com/s4wave/spacewave/db/block/store/rpc"
+	block_store_rpc_server "github.com/s4wave/spacewave/db/block/store/rpc/server"
 	blocktype_controller_factory "github.com/s4wave/spacewave/db/blocktype/controller-factory"
 	dex_solicit "github.com/s4wave/spacewave/db/dex/solicit"
 	object_peer "github.com/s4wave/spacewave/db/object/peer"
 	unixfs_access_http "github.com/s4wave/spacewave/db/unixfs/access/http"
+	volume_rpc_server "github.com/s4wave/spacewave/db/volume/rpc/server"
 	cluster_controller "github.com/s4wave/spacewave/forge/cluster/controller"
 	execution_controller "github.com/s4wave/spacewave/forge/execution/controller"
 	forge_lib_git_clone "github.com/s4wave/spacewave/forge/lib/git/clone"
@@ -48,6 +54,12 @@ var configSetFS embed.FS
 var factories = []cli_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{auth_method_password.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
+	return []controller.Factory{block_store_bucket.NewFactory(b)}
+}, func(b bus.Bus) []controller.Factory {
+	return []controller.Factory{block_store_rpc.NewFactory(b)}
+}, func(b bus.Bus) []controller.Factory {
+	return []controller.Factory{block_store_rpc_server.NewFactory(b)}
+}, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{blocktype_controller_factory.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{cluster_controller.NewFactory(b)}
@@ -69,6 +81,10 @@ var factories = []cli_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Fac
 	return []controller.Factory{pass_controller.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{peer_controller.NewFactory(b)}
+}, func(b bus.Bus) []controller.Factory {
+	return []controller.Factory{plugin_host_configset.NewFactory(b)}
+}, func(b bus.Bus) []controller.Factory {
+	return []controller.Factory{plugin_host_scheduler.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{plugin_space.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
@@ -97,6 +113,8 @@ var factories = []cli_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Fac
 	return []controller.Factory{task_controller.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{unixfs_access_http.NewFactory(b)}
+}, func(b bus.Bus) []controller.Factory {
+	return []controller.Factory{volume_rpc_server.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{webrtc.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {

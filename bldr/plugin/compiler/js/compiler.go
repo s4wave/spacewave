@@ -583,8 +583,8 @@ func CreateEntrypointsFromViteOutputs(
 		inputPath := path.Clean(mod.GetPath())
 		modKind := mod.GetKind()
 
-		// Skip if entrypoint is disabled
-		if mod.GetDisableEntrypoint() {
+		// Skip modules that should only be bundled as assets.
+		if !mod.GetEntrypoint() {
 			continue
 		}
 

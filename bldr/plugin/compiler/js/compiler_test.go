@@ -85,8 +85,9 @@ func TestPluginCompilerJs(t *testing.T) {
 		1,
 		&bldr_plugin_compiler_js.Config{
 			Modules: []*bldr_plugin_compiler_js.JsModule{{
-				Kind: bldr_plugin_compiler_js.JsModuleKind_JS_MODULE_KIND_BACKEND,
-				Path: "./bldr/plugin/host/wazero-quickjs/plugin-quickjs_test.ts",
+				Kind:       bldr_plugin_compiler_js.JsModuleKind_JS_MODULE_KIND_BACKEND,
+				Path:       "./bldr/plugin/host/wazero-quickjs/plugin-quickjs_test.ts",
+				Entrypoint: true,
 			}},
 		},
 	), false)
@@ -183,8 +184,9 @@ func TestPluginCompilerJs(t *testing.T) {
 func TestCreateEntrypointsFromViteOutputsBackendImportPath(t *testing.T) {
 	backend, frontend := bldr_plugin_compiler_js.CreateEntrypointsFromViteOutputs(
 		[]*bldr_plugin_compiler_js.JsModule{{
-			Kind: bldr_plugin_compiler_js.JsModuleKind_JS_MODULE_KIND_BACKEND,
-			Path: "./plugin/notes/backend.ts",
+			Kind:       bldr_plugin_compiler_js.JsModuleKind_JS_MODULE_KIND_BACKEND,
+			Path:       "./plugin/notes/backend.ts",
+			Entrypoint: true,
 		}},
 		[]*bldr_web_bundler_vite.ViteOutputMeta{{
 			EntrypointPath: "plugin/notes/backend.ts",

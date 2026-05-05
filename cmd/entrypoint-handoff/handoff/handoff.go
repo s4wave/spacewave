@@ -853,10 +853,9 @@ func writeJSONField(b *strings.Builder, key, value string, comma bool) {
 	b.WriteByte('\n')
 }
 
-// buildCliEntrypoints cross-compiles the standalone spacewave-cli binary
+// buildCliEntrypoints cross-compiles the standalone spacewave binary
 // for each requested platform and stages the result at
-// .tmp/dist-cli/<platform>/spacewave[.exe]. The archive payload uses the
-// public command name even though the internal build target is spacewave-cli.
+// .tmp/dist-cli/<platform>/spacewave[.exe].
 func buildCliEntrypoints(ctx context.Context, repoDir string, platforms []string) error {
 	for _, platform := range platforms {
 		goos, goarch := splitPlatform(platform)
@@ -865,7 +864,7 @@ func buildCliEntrypoints(ctx context.Context, repoDir string, platforms []string
 			return errors.Wrap(err, "run bldr "+platform)
 		}
 
-		srcBinName := "spacewave-cli"
+		srcBinName := "spacewave"
 		dstBinName := "spacewave"
 		if goos == "windows" {
 			srcBinName += ".exe"
@@ -873,7 +872,7 @@ func buildCliEntrypoints(ctx context.Context, repoDir string, platforms []string
 		}
 		srcBin := filepath.Join(
 			repoDir, ".bldr", "build", "desktop", goos, goarch,
-			"spacewave-cli", "dist", srcBinName,
+			"spacewave", "dist", srcBinName,
 		)
 		dstDir := filepath.Join(repoDir, ".tmp", "dist-cli", platform)
 		dstBin := filepath.Join(dstDir, dstBinName)

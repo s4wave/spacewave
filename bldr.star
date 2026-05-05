@@ -215,17 +215,7 @@ manifest("spacewave",
     builder="bldr/cli/compiler",
     config={
         "goPkgs": CORE_GO_PKGS,
-        "cliPkgs": ["./cmd/spacewave-cli/cli"],
-        "configSet": core_config_set(),
-        "projectId": "spacewave",
-    },
-)
-
-manifest("spacewave-cli",
-    builder="bldr/cli/compiler",
-    config={
-        "goPkgs": CORE_GO_PKGS,
-        "cliPkgs": ["./cmd/spacewave-cli/cli"],
+        "cliPkgs": ["./cmd/spacewave/cli"],
         "configSet": core_config_set(),
         "projectId": "spacewave",
     },
@@ -237,8 +227,7 @@ manifest("spacewave-web",
     config={
         "webPluginId": "web",
         "modules": [
-            js_module("JS_MODULE_KIND_FRONTEND", "./web/entry.ts",
-                      disableEntrypoint=True),
+            js_module("JS_MODULE_KIND_FRONTEND", "./web/entry.ts"),
         ],
         "webPkgs": [
             web_pkg("@s4wave/web", entrypoints=[
@@ -270,9 +259,12 @@ def js_plugin(name, rev, modules, extra_web_pkgs=None):
 
 js_plugin("spacewave-app", rev=221, modules=[
     js_module("JS_MODULE_KIND_FRONTEND", "./app/App.tsx",
+              entrypoint=True,
               webViewParentId={"empty": True}),
-    js_module("JS_MODULE_KIND_BACKEND", "./plugin/notes/backend.ts"),
-    js_module("JS_MODULE_KIND_BACKEND", "./plugin/vm/backend.ts"),
+    js_module("JS_MODULE_KIND_BACKEND", "./plugin/notes/backend.ts",
+              entrypoint=True),
+    js_module("JS_MODULE_KIND_BACKEND", "./plugin/vm/backend.ts",
+              entrypoint=True),
 ])
 
 DESKTOP_RELEASE_LOAD_PLUGINS = [
@@ -290,7 +282,7 @@ BROWSER_RELEASE_LOAD_PLUGINS = [
 
 def dist_release_config(embed_manifests, load_plugins):
     return dist_compiler_config(
-        cliPkgs=["./cmd/spacewave-cli/cli"],
+        cliPkgs=["./cmd/spacewave/cli"],
         embedManifests=embed_manifests,
         loadPlugins=load_plugins,
         loadWebStartup=WEB_STARTUP,
@@ -357,7 +349,7 @@ build("release-web",
         ),
     },
 )
-build("cli",         manifests=["spacewave", "spacewave-cli"])
+build("cli",         manifests=["spacewave"])
 
 # plugin-release-browser builds the browser-side plugin channel surface: the
 # wasm spacewave-core manifest plus the JS plugin manifests that live in the
@@ -412,7 +404,7 @@ for host_key, platform_id in RELEASE_HOSTS:
 
 # Per-host CLI-only release builds. Each (host_key, platform_id) pair drives
 # one `release-cli-<host_key>` build target that produces a standalone
-# `spacewave-cli` binary for the matching host. Release automation packages
+# `spacewave` binary for the matching host. Release automation packages
 # the binary into the platform-specific archive (macOS/Windows: `.zip`, Linux:
 # `.tar.gz`) advertised in the `/download` page CLI manifest. The host_key uses
 # the Go GOOS naming (`darwin`, `linux`, `windows`) to match the existing
@@ -424,7 +416,7 @@ for host_key, platform_id in RELEASE_HOSTS:
 for host_key, platform_id in RELEASE_HOSTS:
     cli_host_key = host_key.replace("desktop-", "")
     build("release-cli-" + cli_host_key,
-        manifests=["spacewave-cli"],
+        manifests=["spacewave"],
         platform_ids=[platform_id],
     )
 
