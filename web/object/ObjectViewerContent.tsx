@@ -1,13 +1,17 @@
+import { Suspense } from 'react'
+
 import { cn } from '@s4wave/web/style/utils.js'
+import type { IObjectState } from '@s4wave/sdk/world/object-state.js'
+import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
+import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
+
 import type {
   ObjectViewerComponent,
   ObjectViewerComponentProps,
 } from './object.js'
 import { getObjectKey } from './object.js'
-import type { IObjectState } from '@s4wave/sdk/world/object-state.js'
-import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
-import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { ObjectInfo } from './object.pb.js'
+import { ObjectViewerLoadingState } from './ObjectViewerLoadingState.js'
 
 interface ObjectViewerContentProps {
   objectInfo: ObjectInfo
@@ -56,7 +60,9 @@ export function ObjectViewerContent({
         !disablePadding && 'p-[5px]',
       )}
     >
-      <Component {...props} />
+      <Suspense fallback={<ObjectViewerLoadingState />}>
+        <Component {...props} />
+      </Suspense>
     </div>
   )
 }
