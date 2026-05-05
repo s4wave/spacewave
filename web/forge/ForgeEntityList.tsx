@@ -1,6 +1,9 @@
 import { useCallback, type ReactNode } from 'react'
+
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
+import { cn } from '@s4wave/web/style/utils.js'
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
+
 import type { ForgeLinkedEntity } from './useForgeLinkedEntities.js'
 
 interface ForgeEntityListProps {
@@ -22,8 +25,15 @@ export function ForgeEntityList({
 }: ForgeEntityListProps) {
   if (loading && entities.length === 0) {
     return (
-      <div className="flex items-center justify-center py-3">
-        <LoadingInline label={loadingLabel} tone="muted" size="sm" />
+      <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
+        <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
+          <LoadingInline
+            label={loadingLabel}
+            tone="muted"
+            size="sm"
+            className="text-foreground-alt/40"
+          />
+        </div>
       </div>
     )
   }
@@ -57,8 +67,9 @@ function DenseEntityRow({ entity, icon }: DenseEntityRowProps) {
   const onClick = useCallback(() => {
     container?.navigateToObjects([entity.objectKey])
   }, [container, entity.objectKey])
-  const className =
-    'hover:bg-foreground/5 flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors first:rounded-t-lg last:rounded-b-lg'
+  const className = cn(
+    'hover:bg-background-card/50 hover:border-foreground/12 flex w-full items-center gap-2.5 border border-transparent px-3 py-2 text-left transition-all duration-150 first:rounded-t-lg last:rounded-b-lg',
+  )
   if (!container) {
     return (
       <div className={className}>

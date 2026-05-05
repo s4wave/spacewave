@@ -33,7 +33,7 @@ export function ForgeValueSetDisplay({
   return (
     <InfoCard title={title}>
       {rows.length === 0 && (
-        <div className="text-muted-foreground text-xs">{emptyLabel}</div>
+        <div className="text-foreground-alt/40 text-xs">{emptyLabel}</div>
       )}
       {rows.length > 0 && (
         <div className="space-y-2">
@@ -45,7 +45,7 @@ export function ForgeValueSetDisplay({
               <div className="text-foreground text-xs font-medium">
                 {value.name || `value-${index + 1}`}
               </div>
-              <div className="text-muted-foreground text-xs">
+              <div className="text-foreground-alt/50 text-xs">
                 {describeValue(value)}
               </div>
             </div>

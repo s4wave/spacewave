@@ -18,7 +18,7 @@ export function ProcessBindingList({
 }: ProcessBindingListProps) {
   if (bindings.length === 0) {
     return (
-      <div className="text-muted-foreground text-sm">
+      <div className="text-foreground-alt/40 text-sm">
         No process bindings configured.
       </div>
     )
@@ -56,12 +56,12 @@ function ProcessBindingRow({ binding, onToggle }: ProcessBindingRowProps) {
       <div className="flex flex-col gap-0.5">
         <span className="text-foreground text-sm font-medium">{objectKey}</span>
         {binding.typeId && (
-          <span className="text-muted-foreground text-xs">
+          <span className="text-foreground-alt/50 text-xs">
             {binding.typeId}
           </span>
         )}
         {binding.decidedAt && (
-          <span className="text-muted-foreground text-xs">
+          <span className="text-foreground-alt/50 text-xs">
             {binding.decidedAt.toLocaleString()}
           </span>
         )}

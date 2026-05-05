@@ -1,5 +1,11 @@
 import { useCallback, useMemo, useState } from 'react'
-import { LuBriefcase, LuGitBranch, LuListTodo, LuPlus } from 'react-icons/lu'
+import {
+  LuBriefcase,
+  LuGitBranch,
+  LuList,
+  LuListTodo,
+  LuPlus,
+} from 'react-icons/lu'
 
 import { Job, State } from '@go/github.com/s4wave/spacewave/forge/job/job.pb.js'
 import {
@@ -18,9 +24,10 @@ import {
 import { ForgeEntityList } from '@s4wave/web/forge/ForgeEntityList.js'
 import { PRED_JOB_TO_TASK } from '@s4wave/web/forge/predicates.js'
 import { StateBadge } from '@s4wave/web/forge/StateBadge.js'
+import { cn } from '@s4wave/web/style/utils.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
-import { Button } from '@s4wave/web/ui/button.js'
+import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
@@ -139,9 +146,7 @@ export function ForgeJobViewer({
           <ForgeEntityList
             entities={tasks}
             loading
-            icon={
-              <LuListTodo className="text-muted-foreground h-3 w-3 shrink-0" />
-            }
+            icon={<LuListTodo className="h-3 w-3 shrink-0" />}
             loadingLabel="Loading tasks..."
             emptyLabel="No tasks in job"
           />
@@ -152,9 +157,7 @@ export function ForgeJobViewer({
           <ForgeEntityList
             entities={tasks}
             loading={tasksLoading}
-            icon={
-              <LuListTodo className="text-muted-foreground h-3 w-3 shrink-0" />
-            }
+            icon={<LuListTodo className="h-3 w-3 shrink-0" />}
             loadingLabel="Loading tasks..."
             emptyLabel="No tasks in job"
           />
@@ -298,34 +301,44 @@ export function ForgeJobViewer({
         content: (
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-2">
-              <div className="flex gap-2">
-                <Button
-                  variant={tasksView === 'list' ? 'default' : 'outline'}
-                  size="sm"
+              <div className="bg-foreground/5 inline-flex gap-1 rounded-md p-1">
+                <button
+                  type="button"
                   onClick={() => setTasksView('list')}
+                  className={cn(
+                    'flex items-center gap-1 rounded border px-2.5 py-1 text-xs font-medium transition-all duration-150 select-none',
+                    tasksView === 'list' ?
+                      'border-brand/30 bg-brand/10 text-foreground'
+                    : 'text-foreground-alt/60 hover:text-foreground hover:bg-foreground/5 border-transparent',
+                  )}
                 >
+                  <LuList className="h-3.5 w-3.5" />
                   List
-                </Button>
-                <Button
-                  variant={tasksView === 'dag' ? 'default' : 'outline'}
-                  size="sm"
+                </button>
+                <button
+                  type="button"
                   onClick={() => setTasksView('dag')}
+                  className={cn(
+                    'flex items-center gap-1 rounded border px-2.5 py-1 text-xs font-medium transition-all duration-150 select-none',
+                    tasksView === 'dag' ?
+                      'border-brand/30 bg-brand/10 text-foreground'
+                    : 'text-foreground-alt/60 hover:text-foreground hover:bg-foreground/5 border-transparent',
+                  )}
                 >
+                  <LuGitBranch className="h-3.5 w-3.5" />
                   DAG
-                </Button>
+                </button>
               </div>
               {canCreateTask && (
-                <Button
-                  variant="outline"
-                  size="sm"
+                <DashboardButton
+                  icon={<LuPlus className="h-3.5 w-3.5" />}
                   onClick={() => {
                     void handleAddTask()
                   }}
                   disabled={creatingTask}
                 >
-                  <LuPlus className="h-3.5 w-3.5" />
                   {creatingTask ? 'Adding...' : 'Add Task'}
-                </Button>
+                </DashboardButton>
               )}
             </div>
             {tasksContent}

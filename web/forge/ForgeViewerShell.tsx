@@ -1,7 +1,15 @@
 import { type ReactNode, useCallback, useMemo } from 'react'
+
 import { cn } from '@s4wave/web/style/utils.js'
-import { StateBadge } from './StateBadge.js'
 import { useStateNamespace, useStateAtom } from '@s4wave/web/state/index.js'
+import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@s4wave/web/ui/tooltip.js'
+
+import { StateBadge } from './StateBadge.js'
 
 export interface ForgeViewerTab {
   id: string
@@ -72,17 +80,18 @@ export function ForgeViewerShell({
 
       {/* Tab bar */}
       {tabs && tabs.length > 1 && (
-        <div className="border-foreground/8 flex shrink-0 items-center border-b px-3 py-1.5">
+        <div className="border-foreground/8 flex shrink-0 items-center border-b px-4 py-1.5">
           <div className="bg-foreground/5 inline-flex gap-1 rounded-md p-1">
             {tabs.map((tab) => (
               <button
+                type="button"
                 key={tab.id}
                 onClick={() => onTabClick(tab.id)}
                 className={cn(
-                  'rounded px-2.5 py-1 text-xs font-medium transition-colors',
+                  'rounded border px-2.5 py-1 text-xs font-medium transition-all duration-150 select-none',
                   resolvedTab?.id === tab.id ?
-                    'bg-brand/10 text-foreground border-brand/20 border'
-                  : 'text-foreground-alt/60 hover:text-foreground-alt/90 border border-transparent',
+                    'border-brand/30 bg-brand/10 text-foreground'
+                  : 'text-foreground-alt/60 hover:text-foreground hover:bg-foreground/5 border-transparent',
                 )}
               >
                 {tab.label}
@@ -101,21 +110,23 @@ export function ForgeViewerShell({
       {actions && actions.length > 0 && (
         <div className="border-foreground/8 flex h-10 shrink-0 items-center gap-2 border-t px-4">
           {actions.map((action) => (
-            <button
-              key={action.label}
-              onClick={action.onClick}
-              disabled={action.disabled}
-              className={cn(
-                'flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition-colors',
-                'disabled:pointer-events-none disabled:opacity-40',
-                action.variant === 'destructive' ?
-                  'text-red-400 hover:bg-red-500/10'
-                : 'text-foreground/80 hover:bg-foreground/5',
-              )}
-            >
-              {action.icon}
-              {action.label}
-            </button>
+            <Tooltip key={action.label}>
+              <TooltipTrigger asChild>
+                <DashboardButton
+                  icon={action.icon}
+                  onClick={action.onClick}
+                  disabled={action.disabled}
+                  className={cn(
+                    'disabled:cursor-not-allowed disabled:opacity-50',
+                    action.variant === 'destructive' &&
+                      'text-destructive hover:text-destructive hover:bg-destructive/8 hover:border-destructive/30',
+                  )}
+                >
+                  {action.label}
+                </DashboardButton>
+              </TooltipTrigger>
+              <TooltipContent side="top">{action.label}</TooltipContent>
+            </Tooltip>
           ))}
         </div>
       )}

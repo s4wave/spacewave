@@ -33,7 +33,7 @@ import { StateBadge } from '@s4wave/web/forge/StateBadge.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { StatCard } from '@s4wave/web/ui/StatCard.js'
 import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
-import { Button } from '@s4wave/web/ui/button.js'
+import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
@@ -243,9 +243,7 @@ export function ForgeClusterViewer({
             <ForgeEntityList
               entities={workers}
               loading={workersLoading || snapshotLoading}
-              icon={
-                <LuCpu className="text-muted-foreground h-3 w-3 shrink-0" />
-              }
+              icon={<LuCpu className="h-3 w-3 shrink-0" />}
               loadingLabel="Loading workers..."
               emptyLabel="No workers assigned"
             />
@@ -281,26 +279,22 @@ export function ForgeClusterViewer({
           <div className="space-y-3">
             {canCreateJob && (
               <div className="flex justify-end">
-                <Button
-                  variant="outline"
-                  size="sm"
+                <DashboardButton
+                  icon={<LuPlus className="h-3.5 w-3.5" />}
                   onClick={() => {
                     void handleCreateJob()
                   }}
                   disabled={creatingJob}
                 >
-                  <LuPlus className="h-3.5 w-3.5" />
                   {creatingJob ? 'Creating...' : 'Create Job'}
-                </Button>
+                </DashboardButton>
               </div>
             )}
             {snapshot.jobs.length === 0 ?
               <ForgeEntityList
                 entities={jobs}
                 loading={jobsLoading || snapshotLoading}
-                icon={
-                  <LuBriefcase className="text-muted-foreground h-3 w-3 shrink-0" />
-                }
+                icon={<LuBriefcase className="h-3 w-3 shrink-0" />}
                 loadingLabel="Loading jobs..."
                 emptyLabel="No jobs in cluster"
               />
@@ -347,16 +341,14 @@ export function ForgeClusterViewer({
                       </div>
                       {startable && (
                         <div className="flex justify-end">
-                          <Button
-                            variant="outline"
-                            size="sm"
+                          <DashboardButton
+                            icon={<LuPlay className="h-3.5 w-3.5" />}
                             onClick={() => {
                               void handleStartJob(job.objectKey)
                             }}
                           >
-                            <LuPlay className="h-3.5 w-3.5" />
                             Start Job
-                          </Button>
+                          </DashboardButton>
                         </div>
                       )}
                     </div>

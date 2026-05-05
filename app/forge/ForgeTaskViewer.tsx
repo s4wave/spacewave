@@ -149,7 +149,7 @@ export function ForgeTaskViewer({
             />
             <InfoCard
               icon={
-                <LuActivity className="text-muted-foreground h-3.5 w-3.5" />
+                <LuActivity className="text-foreground-alt/60 h-3.5 w-3.5" />
               }
               title="Current Execution"
             >
@@ -226,9 +226,7 @@ export function ForgeTaskViewer({
               <ForgeEntityList
                 entities={passes}
                 loading={passesLoading || decodedPassesLoading}
-                icon={
-                  <LuPlay className="text-muted-foreground h-3 w-3 shrink-0" />
-                }
+                icon={<LuPlay className="h-3 w-3 shrink-0" />}
                 loadingLabel="Loading passes..."
                 emptyLabel="No passes yet"
               />

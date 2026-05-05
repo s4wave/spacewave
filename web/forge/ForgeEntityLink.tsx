@@ -1,5 +1,7 @@
 import { useCallback, type ReactNode } from 'react'
+
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
+import { cn } from '@s4wave/web/style/utils.js'
 
 interface ForgeEntityLinkProps {
   objectKey: string
@@ -30,11 +32,12 @@ export function ForgeEntityLink({
 
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={
+      className={cn(
         className ??
-        'bg-muted hover:bg-muted/70 flex w-full items-center gap-2 rounded px-3 py-1.5 text-left transition-colors'
-      }
+          'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 flex w-full items-center gap-2 rounded-lg border px-3 py-1.5 text-left transition-all duration-150',
+      )}
     >
       {icon}
       <span className="text-foreground flex-1 truncate font-mono text-xs">
