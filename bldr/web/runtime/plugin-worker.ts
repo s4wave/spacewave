@@ -120,7 +120,7 @@ export class PluginWorker {
     console.log(
       `PluginWorker: ${this.workerId}: no WebDocument available, exiting!`,
     )
-    this.shutdown()
+    await this.shutdown()
   }
 
   // armWorkerLock acquires a worker-scoped liveness lock before runtime registration.
@@ -154,10 +154,11 @@ export class PluginWorker {
   }
 
   // shutdown tears down the worker, releasing the liveness lock first.
-  private shutdown() {
+  private async shutdown() {
     this.lockAbortController?.abort()
     this.lockAbortController = undefined
     this.webDocumentTracker.close()
+    await timeoutPromise(0)
     this.global.close()
   }
 

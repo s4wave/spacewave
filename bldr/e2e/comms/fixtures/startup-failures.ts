@@ -2,6 +2,7 @@ import { PluginStartInfo } from '../../../plugin/plugin.pb.js'
 import { WebRuntime } from '../../../web/bldr/web-runtime.js'
 import { WebDocumentTracker } from '../../../web/bldr/web-document-tracker.js'
 import { timeoutPromise } from '../../../web/bldr/timeout.js'
+import { PLUGIN_STARTUP_FAILURE_SHUTDOWN_DELAY_MS } from '../../../web/runtime/plugin-worker.js'
 import { buildWebWorkerLockName } from '../../../web/runtime/runtime.js'
 import { WebRuntimeClientType } from '../../../web/runtime/runtime.pb.js'
 
@@ -23,6 +24,9 @@ interface StartupResult {
   ok: boolean
   detail: string
 }
+
+const importFailureCloseTimeoutMs =
+  PLUGIN_STARTUP_FAILURE_SHUTDOWN_DELAY_MS + 3000
 
 function encodeStartInfo(): Uint8Array {
   const json = PluginStartInfo.toJsonString({})
@@ -252,7 +256,7 @@ async function runImportFailureScenario(): Promise<{
       (data): data is { close: true } => {
         return typeof data === 'object' && !!data?.close
       },
-      3000,
+      importFailureCloseTimeoutMs,
     )
     await timeoutPromise(50)
     return {
