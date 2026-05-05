@@ -70,11 +70,12 @@ export function ListRow<T>({
       aria-setsize={ariaAttributes['aria-setsize']}
       style={style}
       className={cn(
-        'text-ui flex items-center px-2 py-[1px] leading-tight',
-        'hover:bg-outliner-selected-highlight cursor-pointer transition-colors select-none',
-        selected && 'bg-ui-selected hover:bg-ui-selected',
-        itemIndex % 2 === 1 && !selected && 'bg-file-row-alternate',
-        focused && 'ring-ui-outline-active ring-1 ring-inset',
+        'flex items-center px-2 py-[1px] text-xs leading-tight',
+        'cursor-pointer transition-colors select-none',
+        selected ?
+          'bg-brand/10 text-foreground'
+        : 'text-foreground/90 hover:bg-foreground/5',
+        focused && !selected && 'ring-brand/25 ring-1 ring-inset',
       )}
       onClick={handleClick}
       onContextMenu={handleContextMenu}
