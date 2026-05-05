@@ -458,7 +458,7 @@ export class Client {
       controller.abort()
       const err = new Error(ackBody.value.error)
       if (ackBody.value.error === resourceAttachClientNotFound) {
-        this.releaseAllResources('connection-lost')
+        this.restartConnectionAfterStaleAttachClient()
         throw new ResourceClientError(
           'Resource attach client was released',
           'CONNECTION_FAILED',
@@ -675,14 +675,15 @@ export class Client {
     onError: (error: Error) => void,
     markInitialized: () => void,
   ): Promise<void> {
-    if (!this.connectionController) {
+    const controller = this.connectionController
+    if (!controller) {
       throw new ResourceClientError(
         'No connection controller',
         'CONNECTION_FAILED',
       )
     }
 
-    await retryWithAbort(this.connectionController.signal, async (signal) => {
+    await retryWithAbort(controller.signal, async (signal) => {
       const stream = this.service.ResourceClient({}, signal)
 
       try {
@@ -736,7 +737,10 @@ export class Client {
         }
       } finally {
         // Release all resources when connection ends (disconnect/error/reconnect).
-        if (this.resources.size > 0) {
+        if (
+          this.connectionController === controller &&
+          this.resources.size > 0
+        ) {
           this.releaseAllResources('connection-lost')
         }
       }
@@ -1007,6 +1011,24 @@ export class Client {
     })
 
     // Increment generation and notify listeners so React can re-create resources
+    this._connectionGeneration++
+    this.connectionLostEvents.emit(undefined)
+  }
+
+  private restartConnectionAfterStaleAttachClient(): void {
+    const controller = this.connectionController
+    this.connectionController = null
+    this.clearPendingResourceReleases()
+    this.clearAttachSession()
+    for (const [resourceId, refs] of this.resources.entries()) {
+      refs.forEach((ref) => ref._markReleased())
+      this.events.emit({ resourceId, reason: 'connection-lost' })
+    }
+    this.resources.clear()
+    this.initState = null
+    this.initPromise = null
+    this._reconnectResolve = null
+    controller?.abort()
     this._connectionGeneration++
     this.connectionLostEvents.emit(undefined)
   }
