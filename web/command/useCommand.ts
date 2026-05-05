@@ -1,6 +1,7 @@
 import { useEffect, useEffectEvent, useState } from 'react'
 import { createHandler } from 'starpc'
 import { newResourceMux } from '@aptre/bldr-sdk/resource/server/index.js'
+import { ResourceClientError } from '@aptre/bldr-sdk/resource/client.js'
 
 import {
   useCommandContext,
@@ -113,7 +114,10 @@ export function useCommand(opts: UseCommandOpts): void {
         setRegistrationResourceId(registrationId)
       })
       .catch((err) => {
-        if (!abort.signal.aborted) {
+        if (
+          !abort.signal.aborted &&
+          !isCommandRegistrationLifecycleError(err)
+        ) {
           console.error('RegisterCommand failed:', opts.commandId, err)
         }
       })
@@ -174,4 +178,18 @@ export function useCommand(opts: UseCommandOpts): void {
       abort.abort()
     }
   }, [service, registrationResourceId, opts.commandId, enabled])
+}
+
+function isCommandRegistrationLifecycleError(err: unknown): boolean {
+  if (
+    err instanceof ResourceClientError &&
+    err.code === 'CONNECTION_FAILED'
+  ) {
+    return true
+  }
+  if (!(err instanceof Error)) return false
+  return (
+    err.message.includes('client not found') ||
+    err.message.includes('resource or client was released')
+  )
 }

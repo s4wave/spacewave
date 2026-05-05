@@ -60,6 +60,8 @@ const releasedResourceClient: ReleasedResourceClient = new Proxy(
   },
 )
 
+const resourceAttachClientNotFound = 'client not found'
+
 /**
  * A reference to a remote resource that can be used to communicate with it.
  * Each resource has a unique ID and must be explicitly released when no longer needed.
@@ -454,7 +456,16 @@ export class Client {
     if (ackBody.value.error) {
       outgoing.end()
       controller.abort()
-      throw new Error(ackBody.value.error)
+      const err = new Error(ackBody.value.error)
+      if (ackBody.value.error === resourceAttachClientNotFound) {
+        this.invalidateConnectionState('connection-lost')
+        throw new ResourceClientError(
+          'Resource attach client was released',
+          'CONNECTION_FAILED',
+          err,
+        )
+      }
+      throw err
     }
 
     const sess: AttachSession = {
@@ -996,6 +1007,21 @@ export class Client {
     })
 
     // Increment generation and notify listeners so React can re-create resources
+    this._connectionGeneration++
+    this.connectionLostEvents.emit(undefined)
+  }
+
+  private invalidateConnectionState(reason: ResourceReleaseReason): void {
+    this.clearPendingResourceReleases()
+    this.clearAttachSession()
+    for (const [resourceId, refs] of this.resources.entries()) {
+      refs.forEach((ref) => ref._markReleased())
+      this.events.emit({ resourceId, reason })
+    }
+    this.resources.clear()
+    this.initState = null
+    this.initPromise = null
+    this._reconnectResolve = null
     this._connectionGeneration++
     this.connectionLostEvents.emit(undefined)
   }

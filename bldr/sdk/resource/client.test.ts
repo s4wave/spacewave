@@ -101,6 +101,38 @@ describe('ResourceClient', () => {
     })
   })
 
+  it('invalidates cached resources when attach reports a missing client', async () => {
+    const service = buildUnusedService()
+    service.ResourceAttach = async function* (request) {
+      await request[Symbol.asyncIterator]().next()
+      yield {
+        body: {
+          case: 'ack' as const,
+          value: { error: 'client not found' },
+        },
+      }
+    }
+
+    const client = new Client(service, new AbortController().signal)
+    const onConnectionLost = vi.fn()
+    client.onConnectionLost(onConnectionLost)
+    Reflect.set(client, 'initState', { clientHandleId: 7, rootResourceId: 1 })
+    const ref = client.createResourceReference(1)
+
+    await expect(client.attachResource('test-handler', vi.fn())).rejects.toEqual(
+      expect.objectContaining({
+        code: 'CONNECTION_FAILED',
+        cause: expect.objectContaining({ message: 'client not found' }),
+      }),
+    )
+
+    expect(ref.released).toBe(true)
+    expect(client.connectionGeneration).toBe(1)
+    expect(onConnectionLost).toHaveBeenCalledOnce()
+    expect(Reflect.get(client, 'initState')).toBe(null)
+    expect(Reflect.get(client, 'initPromise')).toBe(null)
+  })
+
   it('retries queued resource releases after runtime ack timeouts', async () => {
     vi.useFakeTimers()
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
