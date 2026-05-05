@@ -13,30 +13,86 @@ type WebPkgRefSlice []*WebPkgRef
 //
 // Returns true if any changes were made.
 func (sl WebPkgRefSlice) AppendWebPkgRef(webPkgID, webPkgRoot, importPath string) (WebPkgRefSlice, bool) {
-	// check if the ref already exists
-	var ref *WebPkgRef
-	var dirty bool
-	for _, sref := range sl {
-		if sref.WebPkgId == webPkgID {
-			ref = sref
-			break
-		}
+	sl, dirty := sl.AppendWebPkgRoot(webPkgID, webPkgRoot)
+	ref, _ := FindWebPkgRef(sl, webPkgID)
+	if ref == nil || importPath == "" {
+		return sl, dirty
 	}
 
+	if !slices.Contains(ref.Imports, importPath) {
+		ref.Imports = append(ref.Imports, importPath)
+		slices.Sort(ref.Imports)
+		dirty = true
+	}
+
+	return sl, dirty
+}
+
+// AppendWebPkgRoot appends a web pkg root to the slice.
+// Merges with any existing definition for that web pkg id.
+//
+// Returns true if any changes were made.
+func (sl WebPkgRefSlice) AppendWebPkgRoot(webPkgID, webPkgRoot string) (WebPkgRefSlice, bool) {
+	if webPkgID == "" {
+		return sl, false
+	}
+
+	ref, _ := FindWebPkgRef(sl, webPkgID)
 	if ref == nil {
-		ref = &WebPkgRef{
+		sl = append(sl, &WebPkgRef{
 			WebPkgId:   webPkgID,
 			WebPkgRoot: webPkgRoot,
-			Imports:    []string{importPath},
-		}
-		sl = append(sl, ref)
+		})
 		slices.SortFunc(sl, func(a *WebPkgRef, b *WebPkgRef) int {
 			return strings.Compare(a.WebPkgId, b.WebPkgId)
 		})
+		return sl, true
+	}
+
+	if webPkgRoot == "" || ref.WebPkgRoot == webPkgRoot {
+		return sl, false
+	}
+
+	ref.WebPkgRoot = webPkgRoot
+	return sl, true
+}
+
+// AppendWebPkgRefValue appends a web pkg ref value to the slice.
+// Merges roots, imports, and cross refs with any existing definition.
+//
+// Returns true if any changes were made.
+func (sl WebPkgRefSlice) AppendWebPkgRefValue(add *WebPkgRef) (WebPkgRefSlice, bool) {
+	if add == nil {
+		return sl, false
+	}
+
+	sl, dirty := sl.AppendWebPkgRoot(add.GetWebPkgId(), add.GetWebPkgRoot())
+	ref, _ := FindWebPkgRef(sl, add.GetWebPkgId())
+	if ref == nil {
+		return sl, dirty
+	}
+
+	for _, imp := range add.GetImports() {
+		if slices.Contains(ref.Imports, imp) {
+			continue
+		}
+		ref.Imports = append(ref.Imports, imp)
 		dirty = true
-	} else if !slices.Contains(ref.Imports, importPath) {
-		ref.Imports = append(ref.Imports, importPath)
+	}
+	if dirty {
 		slices.Sort(ref.Imports)
+	}
+
+	crossRefsDirty := false
+	for _, crossRef := range add.GetCrossRefs() {
+		if slices.Contains(ref.CrossRefs, crossRef) {
+			continue
+		}
+		ref.CrossRefs = append(ref.CrossRefs, crossRef)
+		crossRefsDirty = true
+	}
+	if crossRefsDirty {
+		slices.Sort(ref.CrossRefs)
 		dirty = true
 	}
 

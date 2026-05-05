@@ -778,11 +778,14 @@ func (c *Controller) performFullRebuild(
 	}
 
 	// Merge config-resolved web pkg refs into the build result so they appear
-	// in the input manifest. The Vite plugin only discovers refs for packages
-	// actually imported by the bundle source code. Packages listed in config
-	// but not directly imported (e.g. sonner provided for sibling plugins)
-	// would otherwise be missing from the manifest, causing 404s at runtime.
-	viteBuildResult.webPkgRefs = append(viteBuildResult.webPkgRefs, buildableWebPkgRefs...)
+	// in the input manifest. The Vite plugin discovers package roots, while
+	// the Go-side config resolver supplies the explicit entrypoint imports.
+	for _, ref := range buildableWebPkgRefs {
+		viteBuildResult.webPkgRefs, _ = web_pkg.
+			WebPkgRefSlice(viteBuildResult.webPkgRefs).
+			AppendWebPkgRefValue(ref)
+	}
+	web_pkg.SortWebPkgRefs(viteBuildResult.webPkgRefs)
 
 	// Build the input manifest
 	return c.buildInputManifest(

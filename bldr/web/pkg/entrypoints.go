@@ -340,7 +340,9 @@ func ResolveWebPkgRefsFromConfig(
 		// Determine package root.
 		pkgRoot := rootsByID[pkgID]
 		if pkgRoot == "" {
-			// Try node_modules fallback.
+			pkgRoot = resolveTSConfigWebPkgRoot(codeRootPath, pkgID)
+		}
+		if pkgRoot == "" {
 			candidate := filepath.Join(codeRootPath, "node_modules", pkgID)
 			if info, err := os.Stat(candidate); err == nil && info.IsDir() {
 				pkgRoot = candidate
@@ -368,6 +370,62 @@ func ResolveWebPkgRefsFromConfig(
 
 	SortWebPkgRefs(refs)
 	return refs, nil
+}
+
+func resolveTSConfigWebPkgRoot(codeRootPath, pkgID string) string {
+	tsConfigPath := filepath.Join(codeRootPath, "tsconfig.json")
+	tsConfigData, err := os.ReadFile(tsConfigPath)
+	if err != nil {
+		return ""
+	}
+
+	var p fastjson.Parser
+	v, err := p.ParseBytes(tsConfigData)
+	if err != nil {
+		return ""
+	}
+
+	paths := v.Get("compilerOptions", "paths")
+	if paths == nil {
+		return ""
+	}
+
+	if root := resolveTSConfigPathTarget(codeRootPath, paths.Get(pkgID)); root != "" {
+		return root
+	}
+	return resolveTSConfigPathTarget(codeRootPath, paths.Get(pkgID+"/*"))
+}
+
+func resolveTSConfigPathTarget(codeRootPath string, raw *fastjson.Value) string {
+	if raw == nil {
+		return ""
+	}
+	values := raw.GetArray()
+	if len(values) == 0 {
+		return ""
+	}
+
+	target := strings.TrimSpace(string(values[0].GetStringBytes()))
+	if target == "" {
+		return ""
+	}
+	target = strings.TrimSuffix(target, "/*")
+	target = strings.TrimSuffix(target, "*")
+	target = strings.TrimSuffix(target, "/")
+	if target == "" {
+		return ""
+	}
+
+	if !filepath.IsAbs(target) {
+		target = filepath.Join(codeRootPath, target)
+	}
+	target = filepath.Clean(target)
+
+	info, err := os.Stat(target)
+	if err != nil || !info.IsDir() {
+		return ""
+	}
+	return target
 }
 
 // WebPkgResolveConfig holds the config needed to resolve a web package.

@@ -401,6 +401,10 @@ func BuildViteBundle(
 		pkgID := ref.GetPkgId()
 		pkgRoot := ref.GetPkgRoot()
 
+		webPkgRefs, _ = web_pkg.
+			WebPkgRefSlice(webPkgRefs).
+			AppendWebPkgRoot(pkgID, pkgRoot)
+
 		// Add each subpath to webPkgRefs
 		for _, subPath := range ref.GetSubPaths() {
 			webPkgRefs, _ = web_pkg.
