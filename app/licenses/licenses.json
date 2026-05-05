@@ -2305,7 +2305,7 @@
     },
     {
       "name": "workbox-window",
-      "version": "7.4.0",
+      "version": "7.4.1",
       "spdx": "MIT",
       "source": "js",
       "copyrightNotice": "Copyright 2018 Google LLC"
