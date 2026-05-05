@@ -179,7 +179,11 @@ export function isQuickstartOptionPublic(
   option: QuickstartOption,
   isDev = !!import.meta.env?.DEV,
 ): boolean {
-  return !option.path && isQuickstartOptionVisible(option, isDev)
+  return (
+    !(option.dynamic ?? false) &&
+    !option.path &&
+    isQuickstartOptionVisible(option, isDev)
+  )
 }
 
 // getVisibleQuickstartOptions returns the in-app quickstart inventory for the

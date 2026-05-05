@@ -1,4 +1,4 @@
-import { QUICKSTART_OPTIONS, type QuickstartOption } from './options.js'
+import { PUBLIC_QUICKSTART_OPTIONS, type QuickstartOption } from './options.js'
 import { useBrowserBootStatus } from '@s4wave/app/prerender/boot-status.js'
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
 import { usePath } from '@s4wave/web/router/router.js'
@@ -10,7 +10,7 @@ import { usePath } from '@s4wave/web/router/router.js'
 export function QuickstartLoading() {
   const path = usePath()
   const id = path.split('/').pop() ?? ''
-  const option = QUICKSTART_OPTIONS.find((o) => o.id === id)
+  const option = PUBLIC_QUICKSTART_OPTIONS.find((o) => o.id === id)
   const landingHref = useStaticHref('/')
   const boot = useBrowserBootStatus()
 

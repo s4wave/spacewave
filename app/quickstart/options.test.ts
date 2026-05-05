@@ -36,7 +36,7 @@ describe('quickstart options', () => {
     )
   })
 
-  it('keeps hidden and path-based quickstarts out of public prerender pages', () => {
+  it('keeps hidden, dynamic, and path-based quickstarts out of public prerender pages', () => {
     expect(isQuickstartOptionPublic(getQuickstartOption('drive'), false)).toBe(
       true,
     )
@@ -48,6 +48,16 @@ describe('quickstart options', () => {
     )
     expect(
       isQuickstartOptionPublic(getQuickstartOption('notebook'), false),
+    ).toBe(false)
+    expect(
+      isQuickstartOptionPublic(
+        {
+          ...getQuickstartOption('drive'),
+          id: 'glados-workspace',
+          dynamic: true,
+        },
+        false,
+      ),
     ).toBe(false)
   })
 
