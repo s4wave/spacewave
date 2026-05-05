@@ -25,6 +25,65 @@ func TestShouldLoadManagedBillingSummaryDormant(t *testing.T) {
 	}
 }
 
+func TestShouldEmitOnboardingStatusFirstEmissionGate(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name          string
+		stateLoaded   bool
+		accountStatus provider.ProviderAccountStatus
+		expected      bool
+	}{
+		{
+			name:          "holds none without account state",
+			accountStatus: provider.ProviderAccountStatus_ProviderAccountStatus_NONE,
+		},
+		{
+			name:          "holds pending without account state",
+			accountStatus: provider.ProviderAccountStatus_ProviderAccountStatus_PENDING,
+		},
+		{
+			name:          "holds ready without account state",
+			accountStatus: provider.ProviderAccountStatus_ProviderAccountStatus_READY,
+		},
+		{
+			name:          "emits unauthenticated without account state",
+			accountStatus: provider.ProviderAccountStatus_ProviderAccountStatus_UNAUTHENTICATED,
+			expected:      true,
+		},
+		{
+			name:          "emits deleted without account state",
+			accountStatus: provider.ProviderAccountStatus_ProviderAccountStatus_DELETED,
+			expected:      true,
+		},
+		{
+			name:          "emits dormant without account state",
+			accountStatus: provider.ProviderAccountStatus_ProviderAccountStatus_DORMANT,
+			expected:      true,
+		},
+		{
+			name:          "emits failed without account state",
+			accountStatus: provider.ProviderAccountStatus_ProviderAccountStatus_FAILED,
+			expected:      true,
+		},
+		{
+			name:          "emits once account state loaded",
+			stateLoaded:   true,
+			accountStatus: provider.ProviderAccountStatus_ProviderAccountStatus_PENDING,
+			expected:      true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := shouldEmitOnboardingStatus(tt.stateLoaded, tt.accountStatus)
+			if got != tt.expected {
+				t.Fatalf("expected %v, got %v", tt.expected, got)
+			}
+		})
+	}
+}
+
 func TestBuildBillingUsageInfoIncludesStorageOverageFields(t *testing.T) {
 	usage := buildBillingUsageInfo(&api.BillingUsageResponse{
 		StorageBytes:                             123,

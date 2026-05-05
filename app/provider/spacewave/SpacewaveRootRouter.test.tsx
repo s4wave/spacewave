@@ -130,6 +130,24 @@ describe('SpacewaveRootRouter', () => {
     expect(mockBillingStateProvider).toHaveBeenCalledTimes(1)
   })
 
+  it('renders the loading card before the first onboarding status emission', () => {
+    mockUseContextSafe.mockReturnValue({
+      onboarding: null,
+      isLapsed: false,
+      hasActiveBilling: false,
+      emailVerified: false,
+    })
+
+    render(<SpacewaveRootRouter />)
+
+    expect(screen.getByTestId('session-loading')).toBeTruthy()
+    expect(screen.getByTestId('loading-card').textContent).toBe(
+      'Fetching account status.',
+    )
+    expect(screen.queryByTestId('redirect')).toBeNull()
+    expect(screen.queryByTestId('dashboard')).toBeNull()
+  })
+
   it('renders the loading card while the cloud account snapshot is still loading', () => {
     mockUseContextSafe.mockReturnValue(
       buildContext({
