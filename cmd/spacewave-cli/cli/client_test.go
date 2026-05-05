@@ -16,7 +16,43 @@ import (
 	s4wave_space_core "github.com/s4wave/spacewave/core/space"
 )
 
-func TestConnectDaemonStartsDaemonAfterDialFailure(t *testing.T) {
+func TestConnectDaemonDoesNotAutostartAfterDialFailure(t *testing.T) {
+	oldDial := connectDaemonDial
+	oldBuildClient := connectDaemonBuildClient
+	oldStart := connectDaemonStart
+	t.Cleanup(func() {
+		connectDaemonDial = oldDial
+		connectDaemonBuildClient = oldBuildClient
+		connectDaemonStart = oldStart
+	})
+
+	var dialCalls int
+	connectDaemonDial = func(ctx context.Context, sockPath string) (net.Conn, error) {
+		dialCalls++
+		return nil, context.DeadlineExceeded
+	}
+	connectDaemonStart = func(ctx context.Context, statePath string) error {
+		t.Fatal("connectDaemon must not autostart")
+		return nil
+	}
+	connectDaemonBuildClient = func(ctx context.Context, conn net.Conn) (*sdkClient, error) {
+		t.Fatal("unexpected build client call")
+		return nil, nil
+	}
+
+	_, err := connectDaemon(context.Background(), "/tmp/state")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "no daemon listening") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if dialCalls != 1 {
+		t.Fatalf("expected 1 dial attempt, got %d", dialCalls)
+	}
+}
+
+func TestConnectDaemonWithAutostartStartsDaemonAfterDialFailure(t *testing.T) {
 	oldDial := connectDaemonDial
 	oldBuildClient := connectDaemonBuildClient
 	oldStart := connectDaemonStart
@@ -55,7 +91,7 @@ func TestConnectDaemonStartsDaemonAfterDialFailure(t *testing.T) {
 		return &sdkClient{conn: conn}, nil
 	}
 
-	client, err := connectDaemon(context.Background(), "/tmp/state")
+	client, err := connectDaemonWithAutostart(context.Background(), "/tmp/state")
 	if err != nil {
 		t.Fatalf("connect daemon: %v", err)
 	}
@@ -70,7 +106,7 @@ func TestConnectDaemonStartsDaemonAfterDialFailure(t *testing.T) {
 	}
 }
 
-func TestConnectDaemonDoesNotAutostartOverExistingSocketAfterTransientDialFailure(t *testing.T) {
+func TestConnectDaemonWithAutostartDoesNotAutostartOverExistingSocketAfterTransientDialFailure(t *testing.T) {
 	oldDial := connectDaemonDial
 	oldBuildClient := connectDaemonBuildClient
 	oldStart := connectDaemonStart
@@ -98,7 +134,7 @@ func TestConnectDaemonDoesNotAutostartOverExistingSocketAfterTransientDialFailur
 		return nil, nil
 	}
 
-	_, err := connectDaemon(context.Background(), statePath)
+	_, err := connectDaemonWithAutostart(context.Background(), statePath)
 	if err == nil {
 		t.Fatal("expected dial error")
 	}
@@ -107,7 +143,7 @@ func TestConnectDaemonDoesNotAutostartOverExistingSocketAfterTransientDialFailur
 	}
 }
 
-func TestConnectDaemonAutostartsAfterRemovingStaleSocket(t *testing.T) {
+func TestConnectDaemonWithAutostartRemovesStaleSocket(t *testing.T) {
 	oldDial := connectDaemonDial
 	oldBuildClient := connectDaemonBuildClient
 	oldStart := connectDaemonStart
@@ -146,7 +182,7 @@ func TestConnectDaemonAutostartsAfterRemovingStaleSocket(t *testing.T) {
 		return &sdkClient{conn: conn}, nil
 	}
 
-	client, err := connectDaemon(context.Background(), statePath)
+	client, err := connectDaemonWithAutostart(context.Background(), statePath)
 	if err != nil {
 		t.Fatalf("connect daemon: %v", err)
 	}
@@ -197,7 +233,7 @@ func TestConnectDaemonSkipsAutostartWhenDialSucceeds(t *testing.T) {
 	}
 }
 
-func TestConnectDaemonReturnsAutostartFailure(t *testing.T) {
+func TestConnectDaemonWithAutostartReturnsAutostartFailure(t *testing.T) {
 	oldDial := connectDaemonDial
 	oldBuildClient := connectDaemonBuildClient
 	oldStart := connectDaemonStart
@@ -218,7 +254,7 @@ func TestConnectDaemonReturnsAutostartFailure(t *testing.T) {
 		return nil, nil
 	}
 
-	_, err := connectDaemon(context.Background(), "/tmp/state")
+	_, err := connectDaemonWithAutostart(context.Background(), "/tmp/state")
 	if err == nil {
 		t.Fatal("expected error")
 	}

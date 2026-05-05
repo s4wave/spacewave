@@ -106,6 +106,11 @@ func clientFlags(statePath *string, sessionIdx *uint) []cli.Flag {
 			Usage:   "connect to an existing daemon socket at this exact path",
 			EnvVars: socketPathEnvVars,
 		},
+		&cli.BoolFlag{
+			Name:    "autostart",
+			Usage:   "start a CLI-owned daemon if no daemon is reachable",
+			EnvVars: autostartEnvVars,
+		},
 		&cli.UintFlag{
 			Name:        "session-index",
 			Usage:       "session index to use",

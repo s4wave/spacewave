@@ -19,7 +19,7 @@ spacewave-cli login local
 # Check status
 spacewave-cli status
 
-# Start the daemon explicitly (optional)
+# Start the daemon explicitly
 spacewave-cli serve
 
 # Create a space and start working
@@ -39,7 +39,9 @@ spacewave-cli fs write /u/1/so/SPACE_ID/-/docs/-/hello.txt --from hello.txt
 | `--log-file` | `BLDR_LOG_FILE` | File logging spec |
 
 Many commands also accept `--session-index` (default: 1) to select which
-session to operate on.
+session to operate on. Client commands connect to an existing daemon by
+default. Use `--autostart` or `SPACEWAVE_CLI_AUTOSTART=true` only when you want
+the CLI to start a background daemon if none is reachable.
 
 ## Command Reference
 
@@ -63,14 +65,16 @@ provides the password non-interactively. Use `login browser` or `login
 
 ```
 spacewave-cli serve              Start daemon and listen for CLI connections
+spacewave-cli serve --takeover   Ask an existing runtime to yield its socket
 spacewave-cli start              Start daemon in foreground without socket
 ```
 
 `serve` listens on a Unix socket at `STATE_PATH/spacewave.sock`. Runtime-dependent
-commands auto-start this background daemon when the socket is absent, so
-explicit `serve` is mainly for foreground inspection or keeping the daemon
-running yourself. `start` runs the bus inline without a socket (for development
-and testing).
+commands connect to that socket as clients and do not start or take over a
+daemon unless `--autostart` is set. If another runtime already owns the socket,
+plain `serve` fails instead of taking it over; use `serve --takeover` only when
+you intentionally want that runtime to yield. `start` runs the bus inline
+without a socket (for development and testing).
 
 ### Auth
 

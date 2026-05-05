@@ -44,6 +44,10 @@ var statePathEnvVars = cli_entrypoint.StatePathEnvVars(projectID)
 // When set, the CLI dials this exact socket path without joining a state directory.
 var socketPathEnvVars = []string{"SPACEWAVE_SOCKET_PATH"}
 
+// autostartEnvVars are the environment variables that opt client commands into
+// starting a CLI-owned daemon when no daemon is reachable.
+var autostartEnvVars = []string{"SPACEWAVE_CLI_AUTOSTART"}
+
 // socketName is the name of the Unix socket within the state path.
 const socketName = "spacewave.sock"
 
@@ -65,9 +69,25 @@ var (
 )
 
 // connectDaemon connects to the running daemon via Unix socket.
-// It joins statePath with the canonical socket name and autostarts a
-// CLI-owned daemon in statePath on dial failure.
+// It joins statePath with the canonical socket name and never starts or
+// takes over a daemon implicitly.
 func connectDaemon(ctx context.Context, statePath string) (*sdkClient, error) {
+	sockPath := filepath.Join(statePath, socketName)
+	conn, err := connectDaemonDial(ctx, sockPath)
+	if err != nil {
+		return nil, connectDaemonNotListeningError(sockPath)
+	}
+	client, err := connectDaemonBuildClient(ctx, conn)
+	if err != nil {
+		conn.Close()
+		return nil, err
+	}
+	return client, nil
+}
+
+// connectDaemonWithAutostart connects to a running daemon or starts a
+// CLI-owned daemon in statePath when no daemon is reachable.
+func connectDaemonWithAutostart(ctx context.Context, statePath string) (*sdkClient, error) {
 	sockPath := filepath.Join(statePath, socketName)
 	_, statErr := os.Stat(sockPath)
 	conn, err := connectDaemonDial(ctx, sockPath)
@@ -88,7 +108,12 @@ func connectDaemon(ctx context.Context, statePath string) (*sdkClient, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "connect to %s", sockPath)
 	}
-	return connectDaemonBuildClient(ctx, conn)
+	client, err := connectDaemonBuildClient(ctx, conn)
+	if err != nil {
+		conn.Close()
+		return nil, err
+	}
+	return client, nil
 }
 
 // connectDaemonAtSocket dials an existing daemon socket at the exact given
@@ -100,20 +125,21 @@ func connectDaemon(ctx context.Context, statePath string) (*sdkClient, error) {
 func connectDaemonAtSocket(ctx context.Context, sockPath string) (*sdkClient, error) {
 	conn, err := connectDaemonDial(ctx, sockPath)
 	if err != nil {
-		return nil, errors.Errorf(
-			"no daemon listening at %s: start the Spacewave desktop app or run "+
-				"`spacewave serve` with a matching --state-path; see the Command Line "+
-				"settings page in the app for guidance",
-			sockPath,
-		)
+		return nil, connectDaemonNotListeningError(sockPath)
 	}
-	return connectDaemonBuildClient(ctx, conn)
+	client, err := connectDaemonBuildClient(ctx, conn)
+	if err != nil {
+		conn.Close()
+		return nil, err
+	}
+	return client, nil
 }
 
 // connectDaemonFromContext picks the right connection path based on CLI
 // flags visible in the context lineage. If --socket-path (or its env var)
-// is set, dial that socket directly with no autostart. Otherwise resolve
-// the state path and fall back to state-path joining with autostart.
+// is set, dial that socket directly. Otherwise resolve the state path and
+// connect to its daemon socket. Autostart is opt-in via --autostart or
+// SPACEWAVE_CLI_AUTOSTART.
 func connectDaemonFromContext(ctx context.Context, c *cli.Context, statePathFallback string) (*sdkClient, error) {
 	if sockPath := effectiveSocketPath(c, ""); sockPath != "" {
 		return connectDaemonAtSocket(ctx, sockPath)
@@ -122,16 +148,33 @@ func connectDaemonFromContext(ctx context.Context, c *cli.Context, statePathFall
 	if err != nil {
 		return nil, err
 	}
+	if effectiveAutostart(c) {
+		return connectDaemonWithAutostart(ctx, resolved)
+	}
 	return connectDaemon(ctx, resolved)
 }
 
 // connectDaemonWithResolvedFallback honors --socket-path when present,
-// otherwise connects to an already-resolved state path.
+// otherwise connects to an already-resolved state path. Autostart is opt-in
+// via --autostart or SPACEWAVE_CLI_AUTOSTART.
 func connectDaemonWithResolvedFallback(ctx context.Context, c *cli.Context, resolved string) (*sdkClient, error) {
 	if sockPath := effectiveSocketPath(c, ""); sockPath != "" {
 		return connectDaemonAtSocket(ctx, sockPath)
 	}
+	if effectiveAutostart(c) {
+		return connectDaemonWithAutostart(ctx, resolved)
+	}
 	return connectDaemon(ctx, resolved)
+}
+
+// connectDaemonNotListeningError returns the connect-only daemon error.
+func connectDaemonNotListeningError(sockPath string) error {
+	return errors.Errorf(
+		"no daemon listening at %s: start the Spacewave desktop app or run "+
+			"`spacewave serve` with a matching --state-path; see the Command Line "+
+			"settings page in the app for guidance",
+		sockPath,
+	)
 }
 
 // buildSDKClient constructs the Resource SDK client over an accepted daemon connection.
@@ -466,6 +509,28 @@ func effectiveSocketPath(c *cli.Context, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+// effectiveAutostart returns true when a client command explicitly opted into
+// daemon autostart via --autostart or SPACEWAVE_CLI_AUTOSTART.
+func effectiveAutostart(c *cli.Context) bool {
+	for _, name := range autostartEnvVars {
+		if value := os.Getenv(name); value == "1" || value == "true" || value == "TRUE" {
+			return true
+		}
+	}
+	if c == nil {
+		return false
+	}
+	for _, ctx := range c.Lineage() {
+		if !hasLocalFlag(ctx, "autostart") {
+			continue
+		}
+		if ctx.Bool("autostart") {
+			return true
+		}
+	}
+	return false
 }
 
 func hasLocalFlag(c *cli.Context, name string) bool {

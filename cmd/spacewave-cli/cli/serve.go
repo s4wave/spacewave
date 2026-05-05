@@ -26,10 +26,16 @@ import (
 // with a resource service socket listener.
 func newServeCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 	var startupPipeID string
+	var takeover bool
 	return &cli.Command{
 		Name:  "serve",
 		Usage: "start the daemon and listen for CLI connections",
 		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:        "takeover",
+				Usage:       "ask any existing runtime on the socket to yield",
+				Destination: &takeover,
+			},
 			&cli.StringFlag{
 				Name:        "daemon-startup-pipe-id",
 				Usage:       "internal startup pipe identifier",
@@ -61,10 +67,6 @@ func newServeCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 			}()
 
 			sockPath := filepath.Join(resolved, socketName)
-			if err := takeoverDaemonSocket(ctx, le, sockPath); err != nil {
-				return err
-			}
-
 			cliBus := getBus()
 			if cliBus == nil {
 				return errors.New("bus not initialized")
@@ -88,14 +90,19 @@ func newServeCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 			}
 			defer invokerRef.Release()
 
-			_ = os.Remove(sockPath)
+			if takeover {
+				if err := takeoverDaemonSocket(ctx, le, sockPath); err != nil {
+					return err
+				}
+				_ = os.Remove(sockPath)
+			}
 			if err := os.MkdirAll(resolved, 0o755); err != nil {
 				return err
 			}
 
 			lis, err := net.Listen("unix", sockPath)
 			if err != nil {
-				return err
+				return errors.Wrapf(err, "listen on daemon socket %s; use --takeover only if you intend to ask another runtime to yield", sockPath)
 			}
 			defer func() {
 				lis.Close()

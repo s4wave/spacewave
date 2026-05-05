@@ -109,6 +109,7 @@ func TestConnectDaemonAtSocketSkipsAutostart(t *testing.T) {
 func TestConnectDaemonFromContextUsesSocketPath(t *testing.T) {
 	clearStatePathEnv(t)
 	clearSocketPathEnv(t)
+	clearAutostartEnv(t)
 
 	oldDial := connectDaemonDial
 	oldBuildClient := connectDaemonBuildClient
@@ -167,11 +168,11 @@ func TestConnectDaemonFromContextUsesSocketPath(t *testing.T) {
 }
 
 // TestConnectDaemonFromContextFallsBackToStatePath asserts no
-// --socket-path falls through to the state-path resolve + autostart
-// flow.
+// --socket-path falls through to connect-only state-path resolution.
 func TestConnectDaemonFromContextFallsBackToStatePath(t *testing.T) {
 	clearStatePathEnv(t)
 	clearSocketPathEnv(t)
+	clearAutostartEnv(t)
 
 	oldDial := connectDaemonDial
 	oldBuildClient := connectDaemonBuildClient
@@ -194,6 +195,7 @@ func TestConnectDaemonFromContextFallsBackToStatePath(t *testing.T) {
 		return connA, nil
 	}
 	connectDaemonStart = func(ctx context.Context, statePath string) error {
+		t.Fatal("autostart must not run by default")
 		return nil
 	}
 	connectDaemonBuildClient = func(ctx context.Context, conn net.Conn) (*sdkClient, error) {
@@ -227,6 +229,77 @@ func TestConnectDaemonFromContextFallsBackToStatePath(t *testing.T) {
 	}
 	if dialedSocket != want {
 		t.Fatalf("dialed %s, want %s", dialedSocket, want)
+	}
+}
+
+// TestConnectDaemonFromContextAutostartFlag asserts --autostart opts the
+// state-path flow into launching a daemon after an initial dial failure.
+func TestConnectDaemonFromContextAutostartFlag(t *testing.T) {
+	clearStatePathEnv(t)
+	clearSocketPathEnv(t)
+	clearAutostartEnv(t)
+
+	oldDial := connectDaemonDial
+	oldBuildClient := connectDaemonBuildClient
+	oldStart := connectDaemonStart
+	t.Cleanup(func() {
+		connectDaemonDial = oldDial
+		connectDaemonBuildClient = oldBuildClient
+		connectDaemonStart = oldStart
+	})
+
+	connA, connB := net.Pipe()
+	t.Cleanup(func() {
+		connA.Close()
+		connB.Close()
+	})
+
+	var dialCalls int
+	var startStatePath string
+	connectDaemonDial = func(ctx context.Context, sockPath string) (net.Conn, error) {
+		dialCalls++
+		if dialCalls == 1 {
+			return nil, context.DeadlineExceeded
+		}
+		return connA, nil
+	}
+	connectDaemonStart = func(ctx context.Context, statePath string) error {
+		startStatePath = statePath
+		return nil
+	}
+	connectDaemonBuildClient = func(ctx context.Context, conn net.Conn) (*sdkClient, error) {
+		return &sdkClient{conn: conn}, nil
+	}
+
+	statePath := filepath.Join(t.TempDir(), "state")
+
+	var commandStatePath string
+	var commandSessionIdx uint
+	var rootStatePath string
+	app := cli.NewApp()
+	app.Name = "spacewave"
+	app.HideVersion = true
+	app.Flags = []cli.Flag{statePathFlag(&rootStatePath)}
+	app.Commands = []*cli.Command{{
+		Name:  "check",
+		Flags: clientFlags(&commandStatePath, &commandSessionIdx),
+		Action: func(c *cli.Context) error {
+			client, err := connectDaemonFromContext(c.Context, c, commandStatePath)
+			if err != nil {
+				return err
+			}
+			client.conn.Close()
+			return nil
+		},
+	}}
+	if err := app.RunContext(context.Background(), []string{"spacewave", "--state-path", statePath, "check", "--autostart"}); err != nil {
+		t.Fatalf("run: %v", err)
+	}
+	if startStatePath != statePath {
+		t.Fatalf("started with %s, want %s", startStatePath, statePath)
+	}
+	if dialCalls != 2 {
+		t.Fatalf("expected 2 dial attempts, got %d", dialCalls)
 	}
 }
 
@@ -365,6 +438,24 @@ func clearSocketPathEnv(t *testing.T) {
 	t.Helper()
 
 	for _, name := range socketPathEnvVars {
+		value, ok := os.LookupEnv(name)
+		if err := os.Unsetenv(name); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() {
+			if ok {
+				_ = os.Setenv(name, value)
+				return
+			}
+			_ = os.Unsetenv(name)
+		})
+	}
+}
+
+func clearAutostartEnv(t *testing.T) {
+	t.Helper()
+
+	for _, name := range autostartEnvVars {
 		value, ok := os.LookupEnv(name)
 		if err := os.Unsetenv(name); err != nil {
 			t.Fatal(err)
