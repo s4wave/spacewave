@@ -70,6 +70,8 @@ type Controller struct {
 
 	// bcast guards resolvers and pluginIDs.
 	bcast broadcast.Broadcast
+	// resolverBcast fires when the resolver set changes.
+	resolverBcast broadcast.Broadcast
 	// resolvers is the set of active FetchManifest resolvers.
 	resolvers map[*resolverEntry]struct{}
 	// pluginIDs is the current set of plugin IDs from SpaceSettings.
@@ -86,9 +88,8 @@ type Controller struct {
 // NotifyChanged wakes the watch loop to reconcile approval-backed state.
 func (c *Controller) NotifyChanged() {
 	var watchLoop *world_control.WatchLoop
-	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		watchLoop = c.watchLoop
-		broadcast()
 	})
 	if watchLoop != nil {
 		watchLoop.Wake()
@@ -184,9 +185,15 @@ func (c *Controller) resolveFetchManifest(
 			c.resolvers[entry] = struct{}{}
 			broadcast()
 		})
+		c.resolverBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			broadcast()
+		})
 		defer func() {
 			c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 				delete(c.resolvers, entry)
+				broadcast()
+			})
+			c.resolverBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 				broadcast()
 			})
 		}()
@@ -238,7 +245,7 @@ func (c *Controller) runWorldWatchLoop(ctx context.Context, engineID string) err
 	go func() {
 		for {
 			var ch <-chan struct{}
-			c.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			c.resolverBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 				ch = getWaitCh()
 			})
 			select {

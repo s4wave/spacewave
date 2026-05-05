@@ -451,21 +451,52 @@ func splitLeafEntries(entries []LeafEntry, pageSize int) ([]LeafEntry, []LeafEnt
 	if len(entries) < 2 {
 		return nil, nil, errors.New("cannot split fewer than two leaf entries")
 	}
-	buf := make([]byte, pageSize)
-	for i := 1; i < len(entries); i++ {
-		left := entries[:i]
-		right := entries[i:]
-		clear(buf)
-		if EncodeLeafPage(buf, left) != len(left) {
-			continue
+	sizes := make([]int, len(entries))
+	total := 0
+	for i := range entries {
+		size := LeafEntryOverhead + len(entries[i].Key)
+		if entries[i].OverflowLen != 0 {
+			size += 8
 		}
-		clear(buf)
-		if EncodeLeafPage(buf, right) != len(right) {
-			continue
+		if entries[i].OverflowLen == 0 {
+			size += len(entries[i].Value)
 		}
-		return left, right, nil
+		if PageHeaderSize+size > pageSize {
+			return nil, nil, errors.New("leaf entry exceeds page size")
+		}
+		sizes[i] = size
+		total += size
 	}
-	return nil, nil, errors.New("leaf entries exceed page size")
+
+	leftBytes := PageHeaderSize
+	best := 1
+	bestDelta := total
+	for i := 1; i < len(entries); i++ {
+		leftBytes += sizes[i-1]
+		rightBytes := PageHeaderSize + total - (leftBytes - PageHeaderSize)
+		if leftBytes > pageSize || rightBytes > pageSize {
+			continue
+		}
+		delta := leftBytes - rightBytes
+		if delta < 0 {
+			delta = -delta
+		}
+		if delta < bestDelta {
+			best = i
+			bestDelta = delta
+		}
+	}
+	left := entries[:best]
+	right := entries[best:]
+	if !leafEntriesFit(left, pageSize) || !leafEntriesFit(right, pageSize) {
+		return nil, nil, errors.New("leaf entries exceed page size")
+	}
+	return left, right, nil
+}
+
+func leafEntriesFit(entries []LeafEntry, pageSize int) bool {
+	buf := make([]byte, pageSize)
+	return EncodeLeafPage(buf, entries) == len(entries)
 }
 
 func (t *Tree) writeBranchPage(entries []BranchEntry) (PageID, error) {
