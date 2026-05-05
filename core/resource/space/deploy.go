@@ -177,22 +177,32 @@ func copyBlockWithTransform(
 	if err != nil {
 		return errors.Wrapf(err, "check block exists: %s", refStr)
 	}
+
+	var data []byte
 	if exists {
-		return nil
-	}
+		var found bool
+		data, found, err = dest.GetBlock(ctx, ref)
+		if err != nil {
+			return errors.Wrapf(err, "get existing block: %s", refStr)
+		}
+		if !found {
+			return errors.Wrapf(block.ErrNotFound, "existing block: %s", refStr)
+		}
+	} else {
+		var found bool
+		// Read raw (possibly compressed) data from source.
+		data, found, err = src.GetBlock(ctx, ref)
+		if err != nil {
+			return errors.Wrapf(err, "get block: %s", refStr)
+		}
+		if !found {
+			return errors.Wrapf(block.ErrNotFound, "block: %s", refStr)
+		}
 
-	// Read raw (possibly compressed) data from source.
-	data, found, err := src.GetBlock(ctx, ref)
-	if err != nil {
-		return errors.Wrapf(err, "get block: %s", refStr)
-	}
-	if !found {
-		return errors.Wrapf(block.ErrNotFound, "block: %s", refStr)
-	}
-
-	// Write raw data to dest (preserves block refs).
-	if _, _, err := dest.PutBlock(ctx, data, nil); err != nil {
-		return errors.Wrapf(err, "put block: %s", refStr)
+		// Write raw data to dest (preserves block refs).
+		if _, _, err := dest.PutBlock(ctx, data, nil); err != nil {
+			return errors.Wrapf(err, "put block: %s", refStr)
+		}
 	}
 
 	// No constructor means we can't traverse children (leaf copy).
@@ -214,46 +224,41 @@ func copyBlockWithTransform(
 		return errors.Wrapf(err, "unmarshal block: %s", refStr)
 	}
 
-	// Follow child block refs.
-	if err := followRefsWithTransform(ctx, blk, src, dest, xfrm, visited); err != nil {
-		return err
-	}
-
-	// Check sub-blocks for refs too.
-	if withSubBlocks, ok := blk.(block.BlockWithSubBlocks); ok {
-		for _, sub := range withSubBlocks.GetSubBlocks() {
-			if sub == nil || sub.IsNil() {
-				continue
-			}
-			if err := followRefsWithTransform(ctx, sub, src, dest, xfrm, visited); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
+	return followBlockGraphWithTransform(ctx, blk, src, dest, xfrm, visited)
 }
 
-// followRefsWithTransform checks if blk implements BlockWithRefs and recursively copies children.
-func followRefsWithTransform(
+// followBlockGraphWithTransform follows refs on a block or sub-block and then
+// descends through any nested sub-blocks. UnixFS directory children sit behind
+// FSNode -> DirentSlice -> Dirent -> NodeRef, so checking only one sub-block
+// level drops file nodes from deployed manifests.
+func followBlockGraphWithTransform(
 	ctx context.Context,
 	blk any,
 	src, dest block.StoreOps,
 	xfrm block.Transformer,
 	visited map[string]bool,
 ) error {
-	withRefs, ok := blk.(block.BlockWithRefs)
-	if !ok {
-		return nil
+	if withRefs, ok := blk.(block.BlockWithRefs); ok {
+		refs, err := withRefs.GetBlockRefs()
+		if err != nil {
+			return errors.Wrap(err, "get block refs")
+		}
+		for id, childRef := range refs {
+			childCtor := withRefs.GetBlockRefCtor(id)
+			if err := copyBlockWithTransform(ctx, childRef, childCtor, src, dest, xfrm, visited); err != nil {
+				return err
+			}
+		}
 	}
-	refs, err := withRefs.GetBlockRefs()
-	if err != nil {
-		return errors.Wrap(err, "get block refs")
-	}
-	for id, childRef := range refs {
-		childCtor := withRefs.GetBlockRefCtor(id)
-		if err := copyBlockWithTransform(ctx, childRef, childCtor, src, dest, xfrm, visited); err != nil {
-			return err
+
+	if withSubBlocks, ok := blk.(block.BlockWithSubBlocks); ok {
+		for _, sub := range withSubBlocks.GetSubBlocks() {
+			if sub == nil || sub.IsNil() {
+				continue
+			}
+			if err := followBlockGraphWithTransform(ctx, sub, src, dest, xfrm, visited); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

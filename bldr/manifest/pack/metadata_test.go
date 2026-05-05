@@ -139,7 +139,7 @@ func testManifestPackMetadata(t *testing.T) *ManifestPackMetadata {
 			RootRef: rootRef,
 		},
 		Pack: &packfile.PackfileEntry{
-			Id:                 "pfv1_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+			Id:                 "pfv1_11111111111111111111111111111111",
 			BloomFilter:        []byte{1, 2, 3},
 			BlockCount:         3,
 			SizeBytes:          1024,

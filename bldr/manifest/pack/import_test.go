@@ -7,12 +7,14 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/go-git/go-billy/v6/memfs"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/testbed"
+	"github.com/s4wave/spacewave/db/unixfs"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	"github.com/s4wave/spacewave/net/peer"
@@ -45,7 +47,7 @@ func TestImportManifestPackReconstructsCollectableManifest(t *testing.T) {
 
 func TestImportManifestPackIncludesBucketScopedManifestRoot(t *testing.T) {
 	ctx := context.Background()
-	dest, meta, tuple := importTestManifestPackWithOptions(t, ctx, true)
+	dest, meta, tuple := importTestManifestPackWithOptions(t, ctx, true, false)
 	if err := VerifyImportedManifests(ctx, dest, meta); err != nil {
 		t.Fatal(err)
 	}
@@ -64,6 +66,45 @@ func TestImportManifestPackIncludesBucketScopedManifestRoot(t *testing.T) {
 	}
 	if len(got) != 1 {
 		t.Fatalf("manifest count = %d", len(got))
+	}
+}
+
+func TestImportManifestPackIncludesManifestFileTrees(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+	dest, meta, tuple := importTestManifestPackWithOptions(t, ctx, false, true)
+	if err := VerifyImportedManifests(ctx, dest, meta); err != nil {
+		t.Fatal(err)
+	}
+	got, errs, err := bldr_manifest_world.CollectManifestsForManifestID(
+		ctx,
+		dest,
+		tuple.GetManifestId(),
+		[]string{tuple.GetPlatformId()},
+		tuple.GetLinkObjectKeys()[0],
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(errs) != 0 {
+		t.Fatalf("manifest errors = %v", errs)
+	}
+	if len(got) != 1 {
+		t.Fatalf("manifest count = %d", len(got))
+	}
+	err = bldr_manifest_world.AccessManifest(ctx, le, dest.AccessWorldState, got[0].ManifestRef, func(
+		ctx context.Context,
+		bls *bucket_lookup.Cursor,
+		bcs *block.Cursor,
+		manifest *bldr_manifest.Manifest,
+		distFS *unixfs.FSHandle,
+		assetsFS *unixfs.FSHandle,
+	) error {
+		_, _, err := distFS.LookupPath(ctx, manifest.GetEntrypoint())
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -108,13 +149,14 @@ func importTestManifestPack(
 	ctx context.Context,
 ) (world.WorldState, *ManifestPackMetadata, *ManifestTuple) {
 	t.Helper()
-	return importTestManifestPackWithOptions(t, ctx, false)
+	return importTestManifestPackWithOptions(t, ctx, false, false)
 }
 
 func importTestManifestPackWithOptions(
 	t *testing.T,
 	ctx context.Context,
 	bucketScopedManifest bool,
+	withDist bool,
 ) (world.WorldState, *ManifestPackMetadata, *ManifestTuple) {
 	t.Helper()
 	le := logrus.NewEntry(logrus.New())
@@ -134,7 +176,7 @@ func importTestManifestPackWithOptions(
 	if _, err := bldr_manifest_world.CreateManifestStore(ctx, dest, tuple.GetLinkObjectKeys()[0]); err != nil {
 		t.Fatal(err)
 	}
-	manifestRef := storeTestManifest(t, ctx, source, tuple, bucketScopedManifest)
+	manifestRef := storeTestManifest(t, ctx, source, tuple, bucketScopedManifest, withDist)
 	_, bundleRef, err := StoreManifestBundle(ctx, source, sender, tuple, manifestRef, timestamppb.Now())
 	if err != nil {
 		t.Fatal(err)
@@ -194,6 +236,7 @@ func storeTestManifest(
 	ws world.WorldState,
 	tuple *ManifestTuple,
 	bucketScopedManifest bool,
+	withDist bool,
 ) *bldr_manifest.ManifestRef {
 	t.Helper()
 	meta := &bldr_manifest.ManifestMeta{
@@ -212,9 +255,25 @@ func storeTestManifest(
 			t.Fatal(err)
 		}
 	}
+	entrypoint := "entrypoint"
 	manifestRef, err := world.AccessObject(ctx, ws.AccessWorldState, initRef, func(bcs *block.Cursor) error {
-		bcs.SetBlock(bldr_manifest.NewManifest(meta, "entrypoint"), true)
-		return nil
+		if !withDist {
+			bcs.SetBlock(bldr_manifest.NewManifest(meta, entrypoint), true)
+			return nil
+		}
+		distFS := memfs.New()
+		f, err := distFS.Create(entrypoint)
+		if err != nil {
+			return err
+		}
+		if _, err := f.Write([]byte("console.log('packed')\n")); err != nil {
+			return err
+		}
+		if err := f.Close(); err != nil {
+			return err
+		}
+		_, err = bldr_manifest.CreateManifestWithBilly(ctx, bcs, meta, entrypoint, distFS, nil, timestamppb.Now())
+		return err
 	})
 	if err != nil {
 		t.Fatal(err)
