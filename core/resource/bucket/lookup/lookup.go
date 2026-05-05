@@ -171,8 +171,14 @@ func (r *BucketLookupCursorResource) Unmarshal(ctx context.Context, req *s4wave_
 	ref := req.GetRef()
 
 	// If no data provided, fetch the block
-	if len(data) == 0 && ref != nil {
+	if len(data) == 0 {
+		if ref == nil {
+			ref = r.cursor.GetRef()
+		}
 		rootRef := ref.GetRootRef()
+		if rootRef.GetEmpty() {
+			return &s4wave_bucket_lookup.UnmarshalResponse{Found: false}, nil
+		}
 		var found bool
 		var err error
 		data, found, err = r.cursor.GetBlock(ctx, rootRef)
