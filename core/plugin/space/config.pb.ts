@@ -62,6 +62,21 @@ export interface Config {
    * @generated from field: string session_peer_id = 7;
    */
   sessionPeerId?: string
+  /**
+   * WorldBucketId is the bucket ID backing the mounted Space world.
+   * If set, the controller forwards this block store to the plugin host.
+   *
+   * @generated from field: string world_bucket_id = 8;
+   */
+  worldBucketId?: string
+  /**
+   * HostPluginId is the plugin ID of the host that mounts this Space.
+   * Required when world_bucket_id is set so the forwarded block store
+   * configset registers under the correct plugin service prefix.
+   *
+   * @generated from field: string host_plugin_id = 9;
+   */
+  hostPluginId?: string
 }
 
 // Config contains the message type declaration for Config.
@@ -87,6 +102,8 @@ export const Config: MessageType<Config> = createMessageType({
       repeated: true,
     },
     { no: 7, name: 'session_peer_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 8, name: 'world_bucket_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 9, name: 'host_plugin_id', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

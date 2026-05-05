@@ -48,6 +48,12 @@ inline constexpr Config::Impl_::Impl_(
             ::_pbi::ConstantInitialized()),
         session_peer_id_(
             &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        world_bucket_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        host_plugin_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()) {}
 
 template <typename>
@@ -80,7 +86,7 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::plugin::space::Config, _impl_._has_bits_),
-        10, // hasbit index offset
+        12, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::plugin::space::Config, _impl_.space_id_),
         PROTOBUF_FIELD_OFFSET(::plugin::space::Config, _impl_.plugin_ids_),
         PROTOBUF_FIELD_OFFSET(::plugin::space::Config, _impl_.volume_id_),
@@ -88,6 +94,8 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::plugin::space::Config, _impl_.engine_id_),
         PROTOBUF_FIELD_OFFSET(::plugin::space::Config, _impl_.object_keys_),
         PROTOBUF_FIELD_OFFSET(::plugin::space::Config, _impl_.session_peer_id_),
+        PROTOBUF_FIELD_OFFSET(::plugin::space::Config, _impl_.world_bucket_id_),
+        PROTOBUF_FIELD_OFFSET(::plugin::space::Config, _impl_.host_plugin_id_),
         2,
         0,
         3,
@@ -95,6 +103,8 @@ const ::uint32_t
         5,
         1,
         6,
+        7,
+        8,
 };
 
 static const ::_pbi::MigrationSchema
@@ -107,17 +117,19 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
 const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2fplugin_2fspace_2fconfig_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
     "\n:github.com/s4wave/spacewave/core/plugi"
-    "n/space/config.proto\022\014plugin.space\"\233\001\n\006C"
+    "n/space/config.proto\022\014plugin.space\"\314\001\n\006C"
     "onfig\022\020\n\010space_id\030\001 \001(\t\022\022\n\nplugin_ids\030\002 "
     "\003(\t\022\021\n\tvolume_id\030\003 \001(\t\022\027\n\017object_store_i"
     "d\030\004 \001(\t\022\021\n\tengine_id\030\005 \001(\t\022\023\n\013object_key"
-    "s\030\006 \003(\t\022\027\n\017session_peer_id\030\007 \001(\tb\006proto3"
+    "s\030\006 \003(\t\022\027\n\017session_peer_id\030\007 \001(\t\022\027\n\017worl"
+    "d_bucket_id\030\010 \001(\t\022\026\n\016host_plugin_id\030\t \001("
+    "\tb\006proto3"
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fplugin_2fspace_2fconfig_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fplugin_2fspace_2fconfig_2eproto = {
     false,
     false,
-    240,
+    289,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2fplugin_2fspace_2fconfig_2eproto,
     "github.com/s4wave/spacewave/core/plugin/space/config.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fplugin_2fspace_2fconfig_2eproto_once,
@@ -163,7 +175,9 @@ PROTOBUF_NDEBUG_INLINE Config::Impl_::Impl_(
         volume_id_(arena, from.volume_id_),
         object_store_id_(arena, from.object_store_id_),
         engine_id_(arena, from.engine_id_),
-        session_peer_id_(arena, from.session_peer_id_) {}
+        session_peer_id_(arena, from.session_peer_id_),
+        world_bucket_id_(arena, from.world_bucket_id_),
+        host_plugin_id_(arena, from.host_plugin_id_) {}
 
 Config::Config(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -191,7 +205,9 @@ PROTOBUF_NDEBUG_INLINE Config::Impl_::Impl_(
         volume_id_(arena),
         object_store_id_(arena),
         engine_id_(arena),
-        session_peer_id_(arena) {}
+        session_peer_id_(arena),
+        world_bucket_id_(arena),
+        host_plugin_id_(arena) {}
 
 inline void Config::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -212,6 +228,8 @@ inline void Config::SharedDtor(MessageLite& self) {
   this_._impl_.object_store_id_.Destroy();
   this_._impl_.engine_id_.Destroy();
   this_._impl_.session_peer_id_.Destroy();
+  this_._impl_.world_bucket_id_.Destroy();
+  this_._impl_.host_plugin_id_.Destroy();
   this_._impl_.~Impl_();
 }
 
@@ -274,16 +292,16 @@ Config::GetClassData() const {
   return Config_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 7, 0, 105, 2>
+const ::_pbi::TcParseTable<4, 9, 0, 142, 2>
 Config::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(Config, _impl_._has_bits_),
     0, // no _extensions_
-    7, 56,  // max_field_number, fast_idx_mask
+    9, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967168,  // skipmap
+    4294966784,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    7,  // num_field_entries
+    9,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     Config_class_data_.base(),
@@ -322,6 +340,20 @@ Config::_table_ = {
     {::_pbi::TcParser::FastUS1,
      {58, 6, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.session_peer_id_)}},
+    // string world_bucket_id = 8;
+    {::_pbi::TcParser::FastUS1,
+     {66, 7, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.world_bucket_id_)}},
+    // string host_plugin_id = 9;
+    {::_pbi::TcParser::FastUS1,
+     {74, 8, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.host_plugin_id_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
   }}, {{
@@ -339,10 +371,14 @@ Config::_table_ = {
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.object_keys_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
     // string session_peer_id = 7;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.session_peer_id_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string world_bucket_id = 8;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.world_bucket_id_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string host_plugin_id = 9;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.host_plugin_id_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   // no aux_entries
   {{
-    "\23\10\12\11\17\11\13\17"
+    "\23\10\12\11\17\11\13\17\17\16\0\0\0\0\0\0"
     "plugin.space.Config"
     "space_id"
     "plugin_ids"
@@ -351,6 +387,8 @@ Config::_table_ = {
     "engine_id"
     "object_keys"
     "session_peer_id"
+    "world_bucket_id"
+    "host_plugin_id"
   }},
 };
 PROTOBUF_NOINLINE void Config::Clear() {
@@ -361,7 +399,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       _impl_.plugin_ids_.Clear();
     }
@@ -383,6 +421,12 @@ PROTOBUF_NOINLINE void Config::Clear() {
     if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       _impl_.session_peer_id_.ClearNonDefaultToEmpty();
     }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      _impl_.world_bucket_id_.ClearNonDefaultToEmpty();
+    }
+  }
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    _impl_.host_plugin_id_.ClearNonDefaultToEmpty();
   }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
@@ -477,6 +521,26 @@ PROTOBUF_NOINLINE void Config::Clear() {
     }
   }
 
+  // string world_bucket_id = 8;
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (!this_._internal_world_bucket_id().empty()) {
+      const ::std::string& _s = this_._internal_world_bucket_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "plugin.space.Config.world_bucket_id");
+      target = stream->WriteStringMaybeAliased(8, _s, target);
+    }
+  }
+
+  // string host_plugin_id = 9;
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (!this_._internal_host_plugin_id().empty()) {
+      const ::std::string& _s = this_._internal_host_plugin_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "plugin.space.Config.host_plugin_id");
+      target = stream->WriteStringMaybeAliased(9, _s, target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -502,7 +566,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
     // repeated string plugin_ids = 2;
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       total_size +=
@@ -556,6 +620,22 @@ PROTOBUF_NOINLINE void Config::Clear() {
                                         this_._internal_session_peer_id());
       }
     }
+    // string world_bucket_id = 8;
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (!this_._internal_world_bucket_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_world_bucket_id());
+      }
+    }
+  }
+   {
+    // string host_plugin_id = 9;
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      if (!this_._internal_host_plugin_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_host_plugin_id());
+      }
+    }
   }
   return this_.MaybeComputeUnknownFieldsSize(total_size,
                                              &this_._impl_._cached_size_);
@@ -576,7 +656,7 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       _this->_internal_mutable_plugin_ids()->InternalMergeFromWithArena(
           ::google::protobuf::MessageLite::internal_visibility(), arena,
@@ -632,6 +712,24 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
         }
       }
     }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (!from._internal_world_bucket_id().empty()) {
+        _this->_internal_set_world_bucket_id(from._internal_world_bucket_id());
+      } else {
+        if (_this->_impl_.world_bucket_id_.IsDefault()) {
+          _this->_internal_set_world_bucket_id("");
+        }
+      }
+    }
+  }
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (!from._internal_host_plugin_id().empty()) {
+      _this->_internal_set_host_plugin_id(from._internal_host_plugin_id());
+    } else {
+      if (_this->_impl_.host_plugin_id_.IsDefault()) {
+        _this->_internal_set_host_plugin_id("");
+      }
+    }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
   _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
@@ -659,6 +757,8 @@ void Config::InternalSwap(Config* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.object_store_id_, &other->_impl_.object_store_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.engine_id_, &other->_impl_.engine_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.session_peer_id_, &other->_impl_.session_peer_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.world_bucket_id_, &other->_impl_.world_bucket_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.host_plugin_id_, &other->_impl_.host_plugin_id_, arena);
 }
 
 ::google::protobuf::Metadata Config::GetMetadata() const {

@@ -39,6 +39,13 @@ type Config struct {
 	// Used by ObjectType factories that need session-scoped behavior
 	// (e.g., ForgeWorkerFactory checks if this session should run the worker).
 	SessionPeerId string `protobuf:"bytes,7,opt,name=session_peer_id,json=sessionPeerId,proto3" json:"sessionPeerId,omitempty"`
+	// WorldBucketId is the bucket ID backing the mounted Space world.
+	// If set, the controller forwards this block store to the plugin host.
+	WorldBucketId string `protobuf:"bytes,8,opt,name=world_bucket_id,json=worldBucketId,proto3" json:"worldBucketId,omitempty"`
+	// HostPluginId is the plugin ID of the host that mounts this Space.
+	// Required when world_bucket_id is set so the forwarded block store
+	// configset registers under the correct plugin service prefix.
+	HostPluginId string `protobuf:"bytes,9,opt,name=host_plugin_id,json=hostPluginId,proto3" json:"hostPluginId,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -96,6 +103,20 @@ func (x *Config) GetSessionPeerId() string {
 	return ""
 }
 
+func (x *Config) GetWorldBucketId() string {
+	if x != nil {
+		return x.WorldBucketId
+	}
+	return ""
+}
+
+func (x *Config) GetHostPluginId() string {
+	if x != nil {
+		return x.HostPluginId
+	}
+	return ""
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -106,6 +127,8 @@ func (m *Config) CloneVT() *Config {
 	r.ObjectStoreId = m.ObjectStoreId
 	r.EngineId = m.EngineId
 	r.SessionPeerId = m.SessionPeerId
+	r.WorldBucketId = m.WorldBucketId
+	r.HostPluginId = m.HostPluginId
 	if rhs := m.PluginIds; rhs != nil {
 		r.PluginIds = slices.Clone(rhs)
 	}
@@ -159,6 +182,12 @@ func (this *Config) EqualVT(that *Config) bool {
 		}
 	}
 	if this.SessionPeerId != that.SessionPeerId {
+		return false
+	}
+	if this.WorldBucketId != that.WorldBucketId {
+		return false
+	}
+	if this.HostPluginId != that.HostPluginId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -215,6 +244,16 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("sessionPeerId")
 		s.WriteString(x.SessionPeerId)
 	}
+	if x.WorldBucketId != "" || s.HasField("worldBucketId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("worldBucketId")
+		s.WriteString(x.WorldBucketId)
+	}
+	if x.HostPluginId != "" || s.HasField("hostPluginId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("hostPluginId")
+		s.WriteString(x.HostPluginId)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -261,6 +300,12 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "session_peer_id", "sessionPeerId":
 			s.AddField("session_peer_id")
 			x.SessionPeerId = s.ReadString()
+		case "world_bucket_id", "worldBucketId":
+			s.AddField("world_bucket_id")
+			x.WorldBucketId = s.ReadString()
+		case "host_plugin_id", "hostPluginId":
+			s.AddField("host_plugin_id")
+			x.HostPluginId = s.ReadString()
 		}
 	})
 }
@@ -299,6 +344,20 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.HostPluginId) > 0 {
+		i -= len(m.HostPluginId)
+		copy(dAtA[i:], m.HostPluginId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.HostPluginId)))
+		i--
+		dAtA[i] = 0x4a
+	}
+	if len(m.WorldBucketId) > 0 {
+		i -= len(m.WorldBucketId)
+		copy(dAtA[i:], m.WorldBucketId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.WorldBucketId)))
+		i--
+		dAtA[i] = 0x42
 	}
 	if len(m.SessionPeerId) > 0 {
 		i -= len(m.SessionPeerId)
@@ -394,6 +453,14 @@ func (m *Config) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	l = len(m.WorldBucketId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.HostPluginId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -461,6 +528,20 @@ func (x *Config) MarshalProtoText() string {
 		}
 		sb.WriteString("session_peer_id: ")
 		sb.WriteString(strconv.Quote(x.SessionPeerId))
+	}
+	if x.WorldBucketId != "" {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("world_bucket_id: ")
+		sb.WriteString(strconv.Quote(x.WorldBucketId))
+	}
+	if x.HostPluginId != "" {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("host_plugin_id: ")
+		sb.WriteString(strconv.Quote(x.HostPluginId))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -643,6 +724,50 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.SessionPeerId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WorldBucketId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.WorldBucketId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field HostPluginId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.HostPluginId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

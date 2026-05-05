@@ -48,6 +48,11 @@ func PluginServerID(pluginID, remoteServerID string) string {
 // my.Service service on the plugin with ID "foo".
 const PluginServiceIDPrefix = "plugin/"
 
+// PluginServiceID constructs a service id for routing to a service on a plugin.
+func PluginServiceID(pluginID, serviceID string) string {
+	return PluginServiceIDPrefix + pluginID + "/" + serviceID
+}
+
 // HostVolumeServiceIDPrefix is the service ID prefix for the host ProxyVolume.
 const HostVolumeServiceIDPrefix = "host-volume/"
 

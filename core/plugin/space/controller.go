@@ -11,6 +11,7 @@ import (
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/keyed"
+	"github.com/aperturerobotics/util/routine"
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
@@ -83,6 +84,9 @@ type Controller struct {
 	processes *keyed.Keyed[string, processConfig]
 	// watchLoop is the active world watch loop while Execute is running.
 	watchLoop *world_control.WatchLoop
+	// cloudForwarding runs the cloud block store forwarding routine.
+	// Started in Execute when world_bucket_id is set in the config.
+	cloudForwarding *routine.RoutineContainer
 }
 
 // NotifyChanged wakes the watch loop to reconcile approval-backed state.
@@ -118,6 +122,11 @@ func NewFactory(b bus.Bus) controller.Factory {
 				base.GetLogger().WithField("subsystem", "process"),
 				keyed.WithRetry[string, processConfig](processRetryBackoff),
 			)
+			c.cloudForwarding = routine.NewRoutineContainerWithLogger(
+				base.GetLogger().WithField("subsystem", "cloud-block-store-forwarding"),
+				routine.WithRetry(processRetryBackoff),
+			)
+			c.cloudForwarding.SetRoutine(c.runCloudBlockStoreForwarding)
 			return c, nil
 		},
 	)
@@ -131,6 +140,10 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return nil
 	}
 
+	if conf.GetWorldBucketId() != "" {
+		c.cloudForwarding.SetContext(ctx, true)
+		defer c.cloudForwarding.ClearContext()
+	}
 	return c.runWorldWatchLoop(ctx, engineID)
 }
 

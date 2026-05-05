@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/ccontainer"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
 	provider "github.com/s4wave/spacewave/core/provider"
@@ -258,11 +259,28 @@ func (r *SpaceResource) MountSpaceContents(
 	// Create the contents sub-resource.
 	contentsResource := NewSpaceContentsResource(r.le, r.b, r.space.GetWorldEngine(), spaceID, engineID)
 
+	// Resolve the host plugin id from the request context. The Space resource
+	// runs inside a plugin host; cloud block store forwarding registers under
+	// that host's plugin service prefix.
+	var hostPluginID string
+	if info := bldr_plugin.GetPluginContextInfo(ctx); info != nil {
+		hostPluginID = info.GetPluginMeta().GetPluginId()
+	}
+
+	worldBucketID := r.space.GetWorldEngineBucketID()
+	if worldBucketID != "" && hostPluginID == "" {
+		// Without a host plugin id we cannot route the forwarded block store.
+		// Skip forwarding rather than registering under a guessed prefix.
+		worldBucketID = ""
+	}
+
 	// Start the plugin/space controller so plugins load immediately.
 	conf := &plugin_space.Config{
 		SpaceId:       spaceID,
 		EngineId:      engineID,
 		SessionPeerId: r.space.GetSharedObject().GetPeerID().String(),
+		WorldBucketId: worldBucketID,
+		HostPluginId:  hostPluginID,
 	}
 	ctrl, _, ctrlRef, err := plugin_space.StartControllerWithConfig(ctx, r.b, conf, func() {})
 	if err != nil {

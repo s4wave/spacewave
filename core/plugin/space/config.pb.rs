@@ -31,5 +31,14 @@ pub struct Config {
     /// (e.g., ForgeWorkerFactory checks if this session should run the worker).
     #[prost(string, tag="7")]
     pub session_peer_id: ::prost::alloc::string::String,
+    /// WorldBucketId is the bucket ID backing the mounted Space world.
+    /// If set, the controller forwards this block store to the plugin host.
+    #[prost(string, tag="8")]
+    pub world_bucket_id: ::prost::alloc::string::String,
+    /// HostPluginId is the plugin ID of the host that mounts this Space.
+    /// Required when world_bucket_id is set so the forwarded block store
+    /// configset registers under the correct plugin service prefix.
+    #[prost(string, tag="9")]
+    pub host_plugin_id: ::prost::alloc::string::String,
 }
 // @@protoc_insertion_point(module)

@@ -24,4 +24,11 @@ message Config {
   // Used by ObjectType factories that need session-scoped behavior
   // (e.g., ForgeWorkerFactory checks if this session should run the worker).
   string session_peer_id = 7;
+  // WorldBucketId is the bucket ID backing the mounted Space world.
+  // If set, the controller forwards this block store to the plugin host.
+  string world_bucket_id = 8;
+  // HostPluginId is the plugin ID of the host that mounts this Space.
+  // Required when world_bucket_id is set so the forwarded block store
+  // configset registers under the correct plugin service prefix.
+  string host_plugin_id = 9;
 }

@@ -224,6 +224,8 @@ class Config final : public ::google::protobuf::Message
     kObjectStoreIdFieldNumber = 4,
     kEngineIdFieldNumber = 5,
     kSessionPeerIdFieldNumber = 7,
+    kWorldBucketIdFieldNumber = 8,
+    kHostPluginIdFieldNumber = 9,
   };
   // repeated string plugin_ids = 2;
   int plugin_ids_size() const;
@@ -344,12 +346,42 @@ class Config final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_session_peer_id();
 
   public:
+  // string world_bucket_id = 8;
+  void clear_world_bucket_id() ;
+  const ::std::string& world_bucket_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_world_bucket_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_world_bucket_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_world_bucket_id();
+  void set_allocated_world_bucket_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_world_bucket_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_world_bucket_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_world_bucket_id();
+
+  public:
+  // string host_plugin_id = 9;
+  void clear_host_plugin_id() ;
+  const ::std::string& host_plugin_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_host_plugin_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_host_plugin_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_host_plugin_id();
+  void set_allocated_host_plugin_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_host_plugin_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_host_plugin_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_host_plugin_id();
+
+  public:
   // @@protoc_insertion_point(class_scope:plugin.space.Config)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 7,
-                                   0, 105,
+  static const ::google::protobuf::internal::TcParseTable<4, 9,
+                                   0, 142,
                                    2>
       _table_;
 
@@ -377,6 +409,8 @@ class Config final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr object_store_id_;
     ::google::protobuf::internal::ArenaStringPtr engine_id_;
     ::google::protobuf::internal::ArenaStringPtr session_peer_id_;
+    ::google::protobuf::internal::ArenaStringPtr world_bucket_id_;
+    ::google::protobuf::internal::ArenaStringPtr host_plugin_id_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -868,6 +902,136 @@ inline void Config::set_allocated_session_peer_id(::std::string* PROTOBUF_NULLAB
     _impl_.session_peer_id_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:plugin.space.Config.session_peer_id)
+}
+
+// string world_bucket_id = 8;
+inline void Config::clear_world_bucket_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.world_bucket_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000080U);
+}
+inline const ::std::string& Config::world_bucket_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:plugin.space.Config.world_bucket_id)
+  return _internal_world_bucket_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void Config::set_world_bucket_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  _impl_.world_bucket_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:plugin.space.Config.world_bucket_id)
+}
+inline ::std::string* PROTOBUF_NONNULL Config::mutable_world_bucket_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  ::std::string* _s = _internal_mutable_world_bucket_id();
+  // @@protoc_insertion_point(field_mutable:plugin.space.Config.world_bucket_id)
+  return _s;
+}
+inline const ::std::string& Config::_internal_world_bucket_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.world_bucket_id_.Get();
+}
+inline void Config::_internal_set_world_bucket_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.world_bucket_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL Config::_internal_mutable_world_bucket_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.world_bucket_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE Config::release_world_bucket_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:plugin.space.Config.world_bucket_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000080U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  auto* released = _impl_.world_bucket_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.world_bucket_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void Config::set_allocated_world_bucket_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  }
+  _impl_.world_bucket_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.world_bucket_id_.IsDefault()) {
+    _impl_.world_bucket_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:plugin.space.Config.world_bucket_id)
+}
+
+// string host_plugin_id = 9;
+inline void Config::clear_host_plugin_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.host_plugin_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000100U);
+}
+inline const ::std::string& Config::host_plugin_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:plugin.space.Config.host_plugin_id)
+  return _internal_host_plugin_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void Config::set_host_plugin_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  _impl_.host_plugin_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:plugin.space.Config.host_plugin_id)
+}
+inline ::std::string* PROTOBUF_NONNULL Config::mutable_host_plugin_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  ::std::string* _s = _internal_mutable_host_plugin_id();
+  // @@protoc_insertion_point(field_mutable:plugin.space.Config.host_plugin_id)
+  return _s;
+}
+inline const ::std::string& Config::_internal_host_plugin_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.host_plugin_id_.Get();
+}
+inline void Config::_internal_set_host_plugin_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.host_plugin_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL Config::_internal_mutable_host_plugin_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.host_plugin_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE Config::release_host_plugin_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:plugin.space.Config.host_plugin_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000100U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+  auto* released = _impl_.host_plugin_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.host_plugin_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void Config::set_allocated_host_plugin_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+  }
+  _impl_.host_plugin_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.host_plugin_id_.IsDefault()) {
+    _impl_.host_plugin_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:plugin.space.Config.host_plugin_id)
 }
 
 #ifdef __GNUC__
