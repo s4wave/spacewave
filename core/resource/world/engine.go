@@ -182,7 +182,7 @@ func (r *EngineResource) WatchWorldState(
 		trackedWs := NewTrackedWorldState(wtx, seqno, ctx)
 
 		// Register as a resource
-		trackedResource := NewWorldStateResource(r.le, r.b, trackedWs, r.lookupOp)
+		trackedResource := NewEngineWorldStateResource(r.le, r.b, trackedWs, r.lookupOp, r.engine)
 		resourceId, err := resourceCtx.AddResource(trackedResource.GetMux(), func() {
 			trackedWs.Close()
 		})

@@ -28,11 +28,40 @@ type WorldStateResource struct {
 //
 // lookupOp may be nil
 func NewWorldStateResource(le *logrus.Entry, b bus.Bus, ws world.WorldState, lookupOp world.LookupOp) *WorldStateResource {
+	return newWorldStateResource(le, b, ws, lookupOp, nil)
+}
+
+// NewEngineWorldStateResource creates a WorldStateResource with typed object access.
+func NewEngineWorldStateResource(
+	le *logrus.Entry,
+	b bus.Bus,
+	ws world.WorldState,
+	lookupOp world.LookupOp,
+	engine world.Engine,
+) *WorldStateResource {
+	return newWorldStateResource(le, b, ws, lookupOp, engine)
+}
+
+func newWorldStateResource(
+	le *logrus.Entry,
+	b bus.Bus,
+	ws world.WorldState,
+	lookupOp world.LookupOp,
+	engine world.Engine,
+) *WorldStateResource {
 	wsResource := &WorldStateResource{le: le, b: b, ws: ws, lookupOp: lookupOp}
-	mux := srpc.NewMux()
-	_ = s4wave_world.SRPCRegisterWorldStateResourceService(mux, wsResource)
-	// Note: TypedObjectResource is not registered here because it requires an Engine
-	// for write operations. Use EngineResource.AccessTypedObject instead.
+	register := []func(srpc.Mux) error{
+		func(mux srpc.Mux) error {
+			return s4wave_world.SRPCRegisterWorldStateResourceService(mux, wsResource)
+		},
+	}
+	if engine != nil {
+		typedResource := NewTypedObjectResource(le, b, ws, engine)
+		register = append(register, func(mux srpc.Mux) error {
+			return s4wave_world.SRPCRegisterTypedObjectResourceService(mux, typedResource)
+		})
+	}
+	mux := resource_server.NewResourceMux(register...)
 	wsResource.mux = mux
 	return wsResource
 }
