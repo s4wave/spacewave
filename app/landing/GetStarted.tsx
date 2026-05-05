@@ -121,7 +121,7 @@ function StaticGetStarted({ className }: { className?: string }) {
           <span className="whitespace-nowrap">
             Where would you like to start?
           </span>
-          <span className="hidden @lg:inline">
+          <span className="hidden sm:inline">
             {' '}
             Type here to get started instantly.
           </span>
