@@ -1154,6 +1154,7 @@ export function UnixFSBrowser({
       ref={fileInputRef}
       type="file"
       multiple
+      data-testid="unixfs-upload-input"
       className="hidden"
       onChange={handleFileInputChange}
     />
@@ -1248,6 +1249,7 @@ export function UnixFSBrowser({
           onUploadFiles={handleUploadFiles}
         />
         <div
+          data-testid="unixfs-upload-drop-target"
           className="bg-file-back relative flex min-h-0 flex-1 flex-col overflow-hidden"
           onContextMenu={handleBackgroundContextMenu}
           onDragOver={handleDragOver}
@@ -1423,6 +1425,7 @@ export function UnixFSBrowser({
       />
 
       <div
+        data-testid="unixfs-upload-drop-target"
         className={cn(
           'bg-file-back relative flex min-h-0 flex-1 flex-col overflow-hidden',
         )}

@@ -20,15 +20,6 @@ func readVideoFixture(t testing.TB, name string) []byte {
 	return b
 }
 
-func uploadDriveFiles(t testing.TB, page playwright.Page, files []playwright.InputFile) {
-	t.Helper()
-
-	err := page.Locator("input[type='file']").First().SetInputFiles(files)
-	if err != nil {
-		t.Fatalf("upload drive files: %v", err)
-	}
-}
-
 func waitForDriveEntry(t testing.TB, page playwright.Page, name string) {
 	t.Helper()
 
@@ -168,7 +159,7 @@ func TestQuickstartDriveVideoPreview(t *testing.T) {
 
 	mp4Name := "video-preview.mp4"
 	webmName := "video-preview.webm"
-	uploadDriveFiles(t, page, []playwright.InputFile{
+	UploadViaPicker(t, page, []playwright.InputFile{
 		{
 			Name:     mp4Name,
 			MimeType: "video/mp4",
