@@ -21,7 +21,7 @@ export function CornerText({ show }: CornerTextProps) {
   const buildInfo = useAppBuildInfo()
   const showTabHint = isStatic || isDesktop
   const baseClasses =
-    'text-foreground-alt pointer-events-none z-50 text-[10px] transition-opacity duration-300 select-none'
+    'text-foreground-alt pointer-events-none z-50 text-[10px] transition-opacity duration-300 select-none narrow:hidden'
   const opacityClass = show ? 'opacity-30' : 'opacity-0'
 
   // Desktop offsets account for window chrome (traffic lights on mac)

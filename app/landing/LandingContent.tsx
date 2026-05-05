@@ -36,7 +36,10 @@ import { PiRocketLaunchDuotone, PiAppStoreLogoBold } from 'react-icons/pi'
 import { isDesktop } from '@aptre/bldr'
 import { GITHUB_REPO_URL } from '@s4wave/app/github.js'
 import { useNavLinks } from '@s4wave/app/nav-links.js'
-import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
+import {
+  useIsStaticMode,
+  useStaticHref,
+} from '@s4wave/app/prerender/StaticContext.js'
 import { ExternalLink } from './ExternalLink.js'
 
 // Section provides consistent section styling with optional scroll-reveal.
@@ -54,16 +57,18 @@ function Section({
   reveal?: boolean
 }) {
   const { ref, visible } = useScrollReveal(0.08)
+  const isStatic = useIsStaticMode()
+  const isVisible = visible || isStatic
   return (
     <section
       id={id}
-      ref={reveal ? ref : undefined}
+      ref={reveal && !isStatic ? ref : undefined}
       className={cn(
         'relative w-full px-4 py-20 @lg:px-8 @2xl:px-12',
         reveal &&
           cn(
             'transition-all duration-700',
-            visible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0',
+            isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0',
           ),
         className,
       )}
@@ -1259,6 +1264,11 @@ interface FeatureItem {
 }
 
 const ComparisonChart: React.FC = () => {
+  const columns = {
+    gridTemplateColumns:
+      'minmax(0, 1fr) clamp(5.5rem, 24%, 12rem) clamp(3.25rem, 16%, 12rem)',
+  }
+
   // Features organized by key benefits and capabilities
   const features: FeatureItem[] = [
     // Core features
@@ -1325,15 +1335,18 @@ const ComparisonChart: React.FC = () => {
   )
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="mx-auto max-w-4xl text-base @md:text-lg">
       <div className="border-foreground/10 bg-background-card-alt overflow-hidden rounded-lg border backdrop-blur-sm">
         {/* Header */}
-        <div className="border-foreground/10 grid grid-cols-[60%_20%_20%] border-b">
+        <div
+          className="border-foreground/10 grid border-b"
+          style={columns}
+        >
           <div className="p-4 font-medium">Feature</div>
-          <div className="p-4 text-center font-medium text-white">
+          <div className="px-1 py-4 text-center text-sm font-medium text-white @md:p-4 @md:text-base">
             Spacewave
           </div>
-          <div className="text-foreground-alt p-4 text-center font-medium">
+          <div className="text-foreground-alt px-1 py-4 text-center text-sm font-medium @md:p-4 @md:text-base">
             Cloud
           </div>
         </div>
@@ -1343,7 +1356,8 @@ const ComparisonChart: React.FC = () => {
           {features.map((feature, index) => (
             <div
               key={index}
-              className="grid grid-cols-[60%_20%_20%] items-center"
+              className="grid items-center"
+              style={columns}
             >
               <div className="flex items-center gap-2 p-4">
                 <span className="text-foreground-alt flex-shrink-0">
@@ -1351,14 +1365,14 @@ const ComparisonChart: React.FC = () => {
                 </span>
                 <span>{feature.name}</span>
               </div>
-              <div className="flex justify-center p-4">
+              <div className="flex justify-center px-2 py-4 @md:p-4">
                 {feature.spacewave === true ?
                   <LuCheck className="text-success h-6 w-6 font-bold" />
                 : feature.spacewave === 'partial' ?
                   <div className="bg-partial h-5 w-5 rounded-full" />
                 : <LuX className="h-5 w-5 text-red-400" />}
               </div>
-              <div className="flex justify-center p-4">
+              <div className="flex justify-center px-2 py-4 @md:p-4">
                 {feature.traditional === true ?
                   <LuCheck className="text-success h-6 w-6 font-bold" />
                 : feature.traditional === 'partial' ?

@@ -111,17 +111,23 @@ function StaticGetStarted({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        'border-foreground/20 bg-background-get-started relative flex min-h-[200px] flex-1 flex-col overflow-hidden rounded-lg border shadow-lg backdrop-blur-sm',
-        'tall:max-h-[min(55vh,650px)] tall:flex-initial @lg:max-h-[min(38vh,450px)] @2xl:max-h-[min(50vh,550px)]',
+        'border-foreground/20 bg-background-get-started relative flex min-h-[200px] flex-col rounded-lg border shadow-lg backdrop-blur-sm @lg:flex-1 @lg:overflow-hidden',
+        '@lg:max-h-[min(38vh,450px)] @lg:flex-initial @2xl:max-h-[min(50vh,550px)]',
         className,
       )}
     >
       <div className="placeholder:text-foreground/70 border-foreground/10 flex items-center gap-2 border-b px-3 py-2.5">
         <span className="text-foreground/70 text-sm">
-          Where would you like to start? Type here to get started instantly.
+          <span className="whitespace-nowrap">
+            Where would you like to start?
+          </span>
+          <span className="hidden @lg:inline">
+            {' '}
+            Type here to get started instantly.
+          </span>
         </span>
       </div>
-      <div className="bg-background-get-started min-h-0 flex-1 overflow-y-auto pb-2">
+      <div className="bg-background-get-started flex-1 pb-2 @lg:min-h-0 @lg:overflow-y-auto">
         {itemsByCategory.map(({ category, items }) => (
           <div key={category} className="mb-0 py-0">
             <div className="text-foreground/50 px-4 py-1.5 text-xs font-medium">
@@ -202,7 +208,7 @@ const GetStarted = ({ className, sessions }: GetStartedProps) => {
     <Command
       className={cn(
         'border-foreground/20 bg-background-get-started relative flex min-h-[200px] flex-1 flex-col overflow-hidden rounded-lg border shadow-lg backdrop-blur-sm',
-        'tall:max-h-[min(55vh,650px)] tall:flex-initial @lg:max-h-[min(38vh,450px)] @2xl:max-h-[min(50vh,550px)]',
+        '@lg:max-h-[min(38vh,450px)] @lg:flex-initial @2xl:max-h-[min(50vh,550px)]',
         className,
       )}
     >
