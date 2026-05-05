@@ -22,6 +22,10 @@ if (typeof BLDR_DEBUG === 'boolean' && BLDR_DEBUG) {
   // enables pasting in the devtools without "allow pasting"
   // https://github.com/electron/electron/issues/40995
   app.commandLine.appendSwitch('--unsafely-disable-devtools-self-xss-warnings')
+  const remoteDebuggingPort = process.env['BLDR_ELECTRON_REMOTE_DEBUGGING_PORT']
+  if (remoteDebuggingPort) {
+    app.commandLine.appendSwitch('remote-debugging-port', remoteDebuggingPort)
+  }
 }
 
 // Decode ElectronInit from base64-encoded env var

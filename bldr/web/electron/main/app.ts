@@ -31,6 +31,8 @@ export const isMac = os.platform() === 'darwin'
 declare const BLDR_DEBUG: boolean | undefined
 export const isDebug = BLDR_DEBUG ?? false
 const proxyFetchHeaderTimeoutMs = 30_000
+const logRendererEvents =
+  isDebug && process.env.BLDR_ELECTRON_LOG_RENDERER === '1'
 
 // BldrElectronApp manages the main process for an Electron app.
 export class BldrElectronApp {
@@ -258,6 +260,18 @@ export class BldrElectronApp {
 
     if (isDebug && init.devTools) {
       nwindow.webContents.openDevTools()
+    }
+    if (logRendererEvents) {
+      const label = webDocumentId ?? 'main'
+      nwindow.webContents.on('console-message', (event) => {
+        const { level, message, sourceId, lineNumber } = event
+        console.log(
+          `[renderer:${label}:console:${level}] ${message} (${sourceId}:${lineNumber})`,
+        )
+      })
+      nwindow.webContents.on('did-navigate-in-page', (_event, url) => {
+        console.log(`[renderer:${label}:navigate-in-page] ${url}`)
+      })
     }
     nwindow.webContents.once('did-finish-load', () => {
       if (!nwindow.isDestroyed()) {
