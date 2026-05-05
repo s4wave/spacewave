@@ -1,6 +1,7 @@
 import { HandleStreamFunc } from 'starpc'
 
 import { WebDocumentTracker } from '../bldr/web-document-tracker.js'
+import { timeoutPromise } from '../bldr/timeout.js'
 import type { WorkerCommsDetectResult } from '../bldr/worker-comms-detect.js'
 import {
   buildWebWorkerLockName,
@@ -10,6 +11,12 @@ import {
 import { WebRuntimeClientType } from './runtime.pb.js'
 import { PluginStartInfo } from '../../plugin/plugin.pb.js'
 import { installWebRTCShim, setBridgePort } from './wasm/webrtc-bridge.js'
+
+export const PLUGIN_STARTUP_FAILURE_SHUTDOWN_DELAY_MS = 5000
+
+export function waitPluginStartupFailureShutdownDelay(): Promise<void> {
+  return timeoutPromise(PLUGIN_STARTUP_FAILURE_SHUTDOWN_DELAY_MS)
+}
 
 export function checkSharedWorker(
   scope: SharedWorkerGlobalScope | DedicatedWorkerGlobalScope,
@@ -247,7 +254,7 @@ export class PluginWorker {
           `PluginWorker: ${this.workerId}: startup failed, exiting!`,
           err,
         )
-        this.shutdown()
+        void waitPluginStartupFailureShutdownDelay().then(() => this.shutdown())
       })
     }
   }
