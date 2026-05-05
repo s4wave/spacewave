@@ -149,15 +149,26 @@ func (r *SpaceContentsResource) WatchState(
 
 		// Build plugin statuses.
 		plugins := make([]*s4wave_space.SpacePluginStatus, 0, len(pluginIDs))
+		loadedIDs := map[string]struct{}{}
+		var loadedCh <-chan struct{}
+		if r.ctrl != nil {
+			var ids []string
+			ids, loadedCh = r.ctrl.GetLoadedPluginIDsAndWaitCh()
+			for _, pid := range ids {
+				loadedIDs[pid] = struct{}{}
+			}
+		}
 		for _, pid := range pluginIDs {
 			state, err := plugin_approval.GetApprovalState(ctx, r.b, "", "", r.spaceID, pid)
 			if err != nil {
 				r.le.WithError(err).Warnf("failed to get approval state for plugin %s", pid)
 				state = plugin_approval.PluginApprovalState_PluginApprovalState_UNSPECIFIED
 			}
+			_, loaded := loadedIDs[pid]
 			plugins = append(plugins, &s4wave_space.SpacePluginStatus{
 				PluginId:      pid,
 				ApprovalState: state,
+				Loaded:        loaded,
 				Description:   descriptions[pid],
 			})
 		}
@@ -183,6 +194,8 @@ func (r *SpaceContentsResource) WatchState(
 		go func() {
 			select {
 			case <-ch:
+				waitCancel()
+			case <-loadedCh:
 				waitCancel()
 			case <-waitCtx.Done():
 			}

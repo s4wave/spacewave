@@ -67,9 +67,9 @@ export const QUICKSTART_OPTIONS = [
   {
     id: 'drive',
     name: 'Create a Drive',
-    description: 'File browser with folders, uploads, and downloads',
+    description: 'Drive workspace with folders, uploads, and downloads',
     seoDescription:
-      'Create a Spacewave Drive with folders, uploads, downloads, and local-first file browsing for private device-to-device storage.',
+      'Create a Spacewave Drive workspace with folders, uploads, downloads, and local-first file browsing for private device-to-device storage.',
     category: 'storage',
     icon: LuHardDrive,
   },

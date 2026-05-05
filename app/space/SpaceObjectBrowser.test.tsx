@@ -267,6 +267,39 @@ describe('SpaceObjectBrowser', () => {
     expect(settingsOp.settings?.pluginIds).toEqual(['spacewave-app'])
   })
 
+  it('sets the selected object as the index while preserving existing plugin settings', async () => {
+    const pluginState: SpaceState = {
+      ready: true,
+      worldContents: {
+        objects: [
+          { objectKey: 'repo-1', objectType: 'git/repo' },
+          { objectKey: 'files', objectType: 'unixfs/fs-node' },
+        ],
+      },
+      settings: { indexPath: 'repo-1', pluginIds: ['spacewave-app'] },
+    }
+    renderBrowser(pluginState)
+
+    const node = await screen.findByText('files')
+    fireEvent.contextMenu(node, { clientX: 120, clientY: 140 })
+    const menuItem = screen.getByText('Set as Index').closest('button')
+    if (!menuItem) {
+      throw new Error('expected Set as Index menu item')
+    }
+    fireEvent.click(menuItem)
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+
+    await waitFor(() => {
+      expect(mockSpaceWorld.applyWorldOp).toHaveBeenCalledTimes(1)
+    })
+    const settingsData = vi.mocked(mockSpaceWorld.applyWorldOp).mock
+      .calls[0]?.[1]
+    expect(settingsData).toBeInstanceOf(Uint8Array)
+    const settingsOp = SetSpaceSettingsOp.fromBinary(settingsData as Uint8Array)
+    expect(settingsOp.settings?.indexPath).toBe('files')
+    expect(settingsOp.settings?.pluginIds).toEqual(['spacewave-app'])
+  })
+
   it('anchors the context menu in document.body at the click position', async () => {
     renderBrowser()
 

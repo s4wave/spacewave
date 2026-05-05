@@ -74,6 +74,8 @@ export function SpacePlugins() {
         const approval =
           plugin.approvalState ??
           PluginApprovalState.PluginApprovalState_UNSPECIFIED
+        const approved =
+          approval === PluginApprovalState.PluginApprovalState_APPROVED
         const desc = plugin.description ?? ''
 
         return (
@@ -91,6 +93,7 @@ export function SpacePlugins() {
             </div>
             <div className="flex items-center gap-2">
               <ApprovalBadge state={approval} />
+              {approved && <LoadBadge loaded={plugin.loaded ?? false} />}
               {pendingDeny === id ?
                 <div className="flex items-center gap-2">
                   <span className="text-foreground-alt text-xs">
@@ -112,8 +115,7 @@ export function SpacePlugins() {
                   </button>
                 </div>
               : <>
-                  {approval !==
-                    PluginApprovalState.PluginApprovalState_APPROVED && (
+                  {!approved && (
                     <button
                       className="rounded bg-green-700 px-2 py-1 text-xs text-white hover:bg-green-600"
                       onClick={() => void handleApprove(id)}
@@ -159,6 +161,21 @@ function ApprovalBadge({ state }: { state: PluginApprovalState }) {
   return (
     <span className="rounded-full bg-amber-900/50 px-2 py-0.5 text-xs text-amber-400">
       Pending
+    </span>
+  )
+}
+
+function LoadBadge({ loaded }: { loaded: boolean }) {
+  if (loaded) {
+    return (
+      <span className="rounded-full bg-blue-900/50 px-2 py-0.5 text-xs text-blue-300">
+        Loaded
+      </span>
+    )
+  }
+  return (
+    <span className="rounded-full bg-slate-800/70 px-2 py-0.5 text-xs text-slate-300">
+      Loading
     </span>
   )
 }

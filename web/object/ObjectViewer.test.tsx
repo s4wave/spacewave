@@ -35,8 +35,16 @@ vi.mock('@s4wave/web/router/HistoryRouter.js', () => ({
 }))
 
 vi.mock('@s4wave/web/state', () => ({
-  StateNamespaceProvider: ({ children }: { children?: ReactNode }) => (
-    <>{children}</>
+  StateNamespaceProvider: ({
+    namespace,
+    children,
+  }: {
+    namespace?: string[]
+    children?: ReactNode
+  }) => (
+    <div data-testid="state-namespace" data-namespace={namespace?.join('/')}>
+      {children}
+    </div>
   ),
 }))
 
@@ -318,5 +326,51 @@ describe('ObjectViewer', () => {
     expect(screen.getByTestId('bottom-bar-root')).toBeDefined()
     expect(screen.getByTestId('viewer-frame')).toBeDefined()
     expect(screen.getByTestId('content-standalone').textContent).toBe('true')
+  })
+
+  it('wraps primary viewer content in the explicit state namespace', () => {
+    mockUseObjectViewer.mockReturnValue(
+      buildViewerResult({
+        typeID: 'spacewave/drive',
+        selectedComponent: {
+          typeID: 'spacewave/drive',
+          name: 'Drive',
+          component: () => null,
+        },
+        objectState: {
+          value: { id: 'drive-object' },
+          loading: false,
+          error: null,
+          retry: vi.fn(),
+        },
+      }),
+    )
+
+    const objectInfo: ObjectInfo = {
+      info: {
+        case: 'worldObjectInfo',
+        value: {
+          objectKey: 'drive',
+          objectType: 'spacewave/drive',
+        },
+      },
+    }
+    const stateNamespace = ['objectViewer', 'drive']
+
+    render(
+      <ObjectViewer
+        objectInfo={objectInfo}
+        worldState={buildWorldState({} as IWorldState)}
+        stateNamespace={stateNamespace}
+      />,
+    )
+
+    expect(mockUseObjectViewer).toHaveBeenCalledWith(
+      expect.objectContaining({ stateNamespace }),
+    )
+    expect(screen.getByTestId('state-namespace').dataset.namespace).toBe(
+      'objectViewer/drive',
+    )
+    expect(screen.queryByTestId('bottom-bar-root')).toBeNull()
   })
 })

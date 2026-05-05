@@ -17,6 +17,7 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/s4wave/spacewave/net/util/confparse"
+	space_uri "github.com/s4wave/spacewave/sdk/space"
 )
 
 // WizardResource implements the WizardResourceService SRPC interface.
@@ -323,7 +324,7 @@ func (r *WizardResource) runGitClone(ctx context.Context, req *StartGitCloneRequ
 		return
 	}
 
-	if err := r.setSpaceIndex(ctx, ws, req.GetObjectKey()); err != nil {
+	if err := r.replaceSpaceIndexIfWizardIsCurrent(ctx, ws, req.GetObjectKey()); err != nil {
 		r.setGitCloneProgress(&GitCloneProgress{
 			State:     GitCloneProgressState_GIT_CLONE_PROGRESS_STATE_FAILED,
 			Message:   "Repository was cloned, but space index update failed.",
@@ -350,7 +351,7 @@ func (r *WizardResource) runGitClone(ctx context.Context, req *StartGitCloneRequ
 	})
 }
 
-func (r *WizardResource) setSpaceIndex(
+func (r *WizardResource) replaceSpaceIndexIfWizardIsCurrent(
 	ctx context.Context,
 	ws world.WorldState,
 	objectKey string,
@@ -364,6 +365,9 @@ func (r *WizardResource) setSpaceIndex(
 	}
 	if settings == nil {
 		settings = &space_world.SpaceSettings{}
+	}
+	if space_uri.ParseObjectURI(settings.GetIndexPath()).ObjectKey != r.objKey {
+		return nil
 	}
 	settings.IndexPath = objectKey
 	_, _, err = world.AccessWorldObject(

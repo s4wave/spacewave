@@ -102,4 +102,25 @@ describe('SpaceIndex', () => {
 
     expect(screen.getByText('Empty Space')).toBeDefined()
   })
+
+  it('renders the empty state without repair when a stale index has no visible replacement', () => {
+    const navigateToSubPath = vi.fn()
+    const applyWorldOp = vi.fn()
+    mockUseSpaceContainer.mockReturnValue({
+      spaceState: {
+        settings: { indexPath: 'missing' },
+        worldContents: {
+          objects: [{ objectKey: 'settings', objectType: 'space/settings' }],
+        },
+      },
+      spaceWorld: { applyWorldOp },
+      navigateToSubPath,
+    })
+
+    render(<SpaceIndex />)
+
+    expect(screen.getByText('Empty Space')).toBeDefined()
+    expect(navigateToSubPath).not.toHaveBeenCalled()
+    expect(applyWorldOp).not.toHaveBeenCalled()
+  })
 })

@@ -115,17 +115,18 @@ export function ObjectViewer({
       {content}
     </ObjectViewerProvider>
   )
+  const namespacedInner =
+    stateNamespace ?
+      <StateNamespaceProvider namespace={stateNamespace}>
+        {inner}
+      </StateNamespaceProvider>
+    : inner
 
   const [openMenu, setOpenMenu] = useState('')
   const handleSetOpenMenu = useCallback((id: string) => setOpenMenu(id), [])
 
   if (standalone) {
-    const frameContent =
-      stateNamespace ?
-        <StateNamespaceProvider namespace={stateNamespace}>
-          <ViewerFrame>{inner}</ViewerFrame>
-        </StateNamespaceProvider>
-      : <ViewerFrame>{inner}</ViewerFrame>
+    const frameContent = <ViewerFrame>{namespacedInner}</ViewerFrame>
 
     return (
       <div className="flex h-full w-full flex-col">
@@ -154,7 +155,7 @@ export function ObjectViewer({
       overlayKey={viewer.overlayKeyValue}
       onBreadcrumbClick={onBreadcrumbClick}
     >
-      {inner}
+      {namespacedInner}
     </BottomBarLevel>
   )
 }

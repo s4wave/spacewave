@@ -14,6 +14,8 @@ interface CapturedObjectViewerProps {
     }
   }
   path?: string
+  onNavigate?: (to: { path: string }) => void
+  stateNamespace?: string[]
 }
 
 const h = vi.hoisted(() => ({
@@ -56,5 +58,17 @@ describe('SpaceObjectContainer', () => {
     expect(props?.objectInfo?.info?.case).toBe('worldObjectInfo')
     expect(props?.objectInfo?.info?.value?.objectKey).toBe('repo/demo')
     expect(props?.path).toBe('/')
+    expect(props?.stateNamespace).toEqual(['objectViewer', 'repo/demo'])
+  })
+
+  it('keeps child viewer navigation scoped under the current object key', () => {
+    render(<SpaceObjectContainer />)
+
+    const props = h.objectViewer.mock.calls[0]?.[0]
+    props?.onNavigate?.({ path: 'docs/readme.md' })
+
+    expect(h.navigateToSubPath).toHaveBeenCalledWith(
+      'repo/demo/-/docs/readme.md',
+    )
   })
 })

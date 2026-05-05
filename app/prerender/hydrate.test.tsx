@@ -89,4 +89,38 @@ describe('hydrate root hash boot', () => {
 
     expect(boot).toHaveBeenCalledWith('#/login')
   })
+
+  it('auto-boots a prerendered quickstart page into the app quickstart route', async () => {
+    const ready = createReady()
+    globalThis.__swReady = ready.promise
+    window.history.replaceState({}, '', '/quickstart/drive')
+
+    await import('./hydrate.js')
+    expect(mockHydrateRoot).toHaveBeenCalledTimes(1)
+
+    const boot = vi.fn()
+    globalThis.__swBoot = boot
+    ready.resolve()
+    await globalThis.__swReady
+    await Promise.resolve()
+
+    expect(boot).toHaveBeenCalledWith('#/quickstart/drive')
+  })
+
+  it('boots returning root visitors into the app without hydrating the landing page', async () => {
+    const ready = createReady()
+    globalThis.__swReady = ready.promise
+    localStorage.setItem('spacewave-has-session', '1')
+
+    await import('./hydrate.js')
+    expect(mockHydrateRoot).not.toHaveBeenCalled()
+
+    const boot = vi.fn()
+    globalThis.__swBoot = boot
+    ready.resolve()
+    await globalThis.__swReady
+    await Promise.resolve()
+
+    expect(boot).toHaveBeenCalledWith('')
+  })
 })

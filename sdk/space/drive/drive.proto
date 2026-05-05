@@ -1,0 +1,57 @@
+syntax = "proto3";
+package s4wave.drive;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/s4wave/spacewave/sdk/space/drive;s4wave_drive";
+
+service DriveResourceService {
+  rpc WatchDriveState(WatchDriveStateRequest) returns (stream WatchDriveStateResponse);
+}
+
+// Drive is the app-surface state for a Spacewave Drive.
+message Drive {
+  // DisplayName is the user-visible drive name.
+  string display_name = 1;
+  // Roots is the ordered list of storage roots shown by this Drive.
+  repeated DriveRoot roots = 2;
+  // CreatedAt is when this Drive was created.
+  .google.protobuf.Timestamp created_at = 3;
+  // UpdatedAt is when this Drive was last updated.
+  .google.protobuf.Timestamp updated_at = 4;
+}
+
+// DriveRoot points at one storage object inside a Drive.
+message DriveRoot {
+  // RootId is the stable route and metadata identifier for this root.
+  string root_id = 1;
+  // Name is the user-visible root label.
+  string name = 2;
+  // RootObjectKey is the world object key for the backing storage root.
+  string root_object_key = 3;
+  // RootType is the object type of the backing root.
+  string root_type = 4;
+  // AddedAt is when this root was added to the Drive.
+  .google.protobuf.Timestamp added_at = 5;
+}
+
+// InitDriveOp creates a Drive world object.
+message InitDriveOp {
+  // ObjectKey is the world object key for the Drive.
+  string object_key = 1;
+  // DisplayName is the initial user-visible Drive name.
+  string display_name = 2;
+  // Roots is the initial ordered root list.
+  repeated DriveRoot roots = 3;
+  // Timestamp is the creation timestamp.
+  .google.protobuf.Timestamp timestamp = 4;
+}
+
+// WatchDriveStateRequest is a request to watch Drive state.
+message WatchDriveStateRequest {}
+
+// WatchDriveStateResponse contains the current Drive state.
+message WatchDriveStateResponse {
+  // State is the current Drive state.
+  Drive state = 1;
+}

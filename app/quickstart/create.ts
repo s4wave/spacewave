@@ -37,11 +37,17 @@ import {
   INIT_CHAT_DEMO_OP_ID,
   CHAT_DEMO_CHANNEL_KEY,
 } from '@s4wave/sdk/chat/init-chat-demo.js'
+import { InitDriveOp } from '@s4wave/sdk/space/drive/drive.pb.js'
+import {
+  DRIVE_OBJECT_KEY,
+  INIT_DRIVE_OP_ID,
+} from '@s4wave/sdk/space/drive/drive.js'
 import { createBlogClientSide } from '../../plugin/notes/blog-seed.js'
 import {
   createDocsClientSide,
   createNotebookClientSide,
 } from '../../plugin/notes/content-seed.js'
+import { UnixFSTypeID } from '@s4wave/web/hooks/useUnixFSHandle.js'
 import { V86WizardConfig } from '@s4wave/sdk/vm/v86-wizard.pb.js'
 import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { CREATE_WIZARD_OBJECT_OP_ID } from '@s4wave/sdk/world/wizard/create-wizard.js'
@@ -567,6 +573,28 @@ export async function initCanvasDemo(
   await spaceWorld.applyWorldOp(INIT_CANVAS_DEMO_OP_ID, opData, '', abortSignal)
 }
 
+// initDrive initializes a Drive object backed by the starter UnixFS root.
+export async function initDrive(
+  spaceWorld: EngineWorldState,
+  abortSignal?: AbortSignal,
+): Promise<void> {
+  const op: InitDriveOp = {
+    objectKey: DRIVE_OBJECT_KEY,
+    displayName: 'Drive',
+    roots: [
+      {
+        rootId: 'default',
+        name: 'My Files',
+        rootObjectKey: UNIXFS_OBJECT_KEY,
+        rootType: UnixFSTypeID,
+      },
+    ],
+    timestamp: new Date(),
+  }
+  const opData = InitDriveOp.toBinary(op)
+  await spaceWorld.applyWorldOp(INIT_DRIVE_OP_ID, opData, '', abortSignal)
+}
+
 // populateSpace populates the space based on the quickstart type.
 export async function populateSpace(
   quickstartId: QuickstartSpaceCreateId,
@@ -588,13 +616,13 @@ export async function populateSpace(
       await initNotebookQuickstart(setup.spaceWorld, abortSignal)
       break
     case 'canvas':
+      await initUnixFS(setup.spaceWorld, abortSignal)
+      await initCanvasDemo(setup.spaceWorld, abortSignal)
       await createSpaceSettingsObject(
         setup.spaceWorld,
         abortSignal,
         CANVAS_DEMO_OBJECT_KEY,
       )
-      await initUnixFS(setup.spaceWorld, abortSignal)
-      await initCanvasDemo(setup.spaceWorld, abortSignal)
       break
     case 'chat':
       await initChatQuickstart(setup.spaceWorld, abortSignal)
@@ -624,7 +652,6 @@ async function initNotebookQuickstart(
   spaceWorld: EngineWorldState,
   abortSignal?: AbortSignal,
 ): Promise<void> {
-  await createSpaceSettingsObject(spaceWorld, abortSignal, NOTEBOOK_OBJECT_KEY)
   await createNotebookClientSide(
     spaceWorld,
     NOTEBOOK_OBJECT_KEY,
@@ -633,6 +660,7 @@ async function initNotebookQuickstart(
     new Date(),
     abortSignal,
   )
+  await createSpaceSettingsObject(spaceWorld, abortSignal, NOTEBOOK_OBJECT_KEY)
 }
 
 // createDrive sets up a drive with UnixFS content.
@@ -641,11 +669,14 @@ export async function createDrive(
   abortSignal?: AbortSignal,
   timing?: QuickstartSetupTiming,
 ): Promise<void> {
-  await timeQuickstartPhase(timing, 'create-drive-settings', () =>
-    createSpaceSettingsObject(spaceWorld, abortSignal, UNIXFS_OBJECT_KEY),
-  )
   await timeQuickstartPhase(timing, 'init-drive-unixfs', () =>
     initUnixFS(spaceWorld, abortSignal),
+  )
+  await timeQuickstartPhase(timing, 'init-drive-object', () =>
+    initDrive(spaceWorld, abortSignal),
+  )
+  await timeQuickstartPhase(timing, 'create-drive-settings', () =>
+    createSpaceSettingsObject(spaceWorld, abortSignal, DRIVE_OBJECT_KEY),
   )
 }
 
@@ -700,7 +731,6 @@ async function initDocsQuickstart(
   abortSignal?: AbortSignal,
 ): Promise<void> {
   const objectKey = 'documentation'
-  await createSpaceSettingsObject(spaceWorld, abortSignal, objectKey)
   await createDocsClientSide(
     spaceWorld,
     objectKey,
@@ -709,6 +739,7 @@ async function initDocsQuickstart(
     new Date(),
     abortSignal,
   )
+  await createSpaceSettingsObject(spaceWorld, abortSignal, objectKey)
 }
 
 // initBlogQuickstart creates a blog in the space.

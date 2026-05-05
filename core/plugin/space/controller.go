@@ -78,6 +78,9 @@ type Controller struct {
 	// pluginIDs is the current set of plugin IDs from SpaceSettings.
 	// Updated each world watch cycle. Protected by bcast.
 	pluginIDs []string
+	// loadedPluginIDs is the set of plugin IDs with active LoadPlugin refs.
+	// Protected by bcast.
+	loadedPluginIDs []string
 	// processConfigs tracks the current approved process configuration by object key.
 	processConfigs map[string]processConfig
 	// processes tracks active process routines by object key.
@@ -98,6 +101,17 @@ func (c *Controller) NotifyChanged() {
 	if watchLoop != nil {
 		watchLoop.Wake()
 	}
+}
+
+// GetLoadedPluginIDsAndWaitCh returns loaded plugin IDs and a channel closed on controller state change.
+func (c *Controller) GetLoadedPluginIDsAndWaitCh() ([]string, <-chan struct{}) {
+	var ids []string
+	var ch <-chan struct{}
+	c.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		ids = slices.Clone(c.loadedPluginIDs)
+		ch = getWaitCh()
+	})
+	return ids, ch
 }
 
 // NewFactory constructs the component factory.
@@ -228,6 +242,7 @@ func (c *Controller) runWorldWatchLoop(ctx context.Context, engineID string) err
 		for _, ref := range refs {
 			ref.Release()
 		}
+		c.setLoadedPluginIDs(nil)
 	}()
 	c.processes.SetContext(ctx, true)
 
@@ -352,6 +367,23 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 			delete(refs, pid)
 		}
 	}
+	loaded := make([]string, 0, len(refs))
+	for _, pid := range ids {
+		if _, ok := refs[pid]; ok {
+			loaded = append(loaded, pid)
+		}
+	}
+	c.setLoadedPluginIDs(loaded)
+}
+
+func (c *Controller) setLoadedPluginIDs(ids []string) {
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if slices.Equal(c.loadedPluginIDs, ids) {
+			return
+		}
+		c.loadedPluginIDs = slices.Clone(ids)
+		broadcast()
+	})
 }
 
 // checkApproval checks if a manifest ID is approved for the configured space.

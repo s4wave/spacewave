@@ -32,6 +32,7 @@ const h = vi.hoisted(() => ({
 let currentStep = 0
 let localName = 'Repository'
 let currentProgress: GitCloneProgress | null = null
+let spaceSettingsIndexPath = 'wizard/git/repo/test'
 let configValue: CreateGitRepoWizardOp = {
   clone: true,
   cloneOpts: { url: 'https://github.com/urfave/cli' },
@@ -41,6 +42,8 @@ vi.mock('@aptre/bldr', () => ({
   get isDesktop() {
     return h.isDesktop
   },
+  cleanPath: (path: string) =>
+    ('/' + path.split('/').filter(Boolean).join('/')).replace(/^\/$/, '/'),
 }))
 
 vi.mock('@aptre/bldr-sdk/hooks/useStreamingResource.js', () => ({
@@ -65,7 +68,7 @@ vi.mock('./useWizardState.js', () => ({
       deleteObject: h.deleteObject,
     },
     spaceSettings: {
-      indexPath: 'wizard/git/repo/test',
+      indexPath: spaceSettingsIndexPath,
       pluginIds: ['spacewave-web'],
     },
     existingObjectKeys: [],
@@ -103,6 +106,7 @@ describe('GitRepoWizardViewer', () => {
     currentStep = 0
     localName = 'Repository'
     currentProgress = null
+    spaceSettingsIndexPath = 'wizard/git/repo/test'
     configValue = {
       clone: true,
       cloneOpts: { url: 'https://github.com/urfave/cli' },
@@ -247,6 +251,33 @@ describe('GitRepoWizardViewer', () => {
     )
     expect(settingsOp.settings?.indexPath).toBe('cli-1')
     expect(settingsOp.settings?.pluginIds).toEqual(['spacewave-web'])
+    expect(h.deleteObject).toHaveBeenCalledWith('wizard/git/repo/test')
+    expect(h.navigateToObjects).toHaveBeenCalledWith(['cli-1'])
+  })
+
+  it('does not promote a created repo when the wizard is not the indexed surface', async () => {
+    const user = userEvent.setup()
+    currentStep = 1
+    localName = 'cli'
+    spaceSettingsIndexPath = 'canvas/main'
+    configValue = { clone: false }
+
+    render(
+      <GitRepoWizardViewer
+        objectInfo={{}}
+        worldState={{
+          value: {} as never,
+          loading: false,
+          error: null,
+          retry: vi.fn(),
+        }}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: /create/i }))
+
+    expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
+    expect(h.applyWorldOp.mock.calls[0]?.[0]).toBe('spacewave/git/repo/create')
     expect(h.deleteObject).toHaveBeenCalledWith('wizard/git/repo/test')
     expect(h.navigateToObjects).toHaveBeenCalledWith(['cli-1'])
   })

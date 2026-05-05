@@ -19,6 +19,7 @@ import (
 	s4wave_layout_world "github.com/s4wave/spacewave/sdk/layout/world"
 	s4wave_org "github.com/s4wave/spacewave/sdk/org"
 	s4wave_org_world "github.com/s4wave/spacewave/sdk/org/world"
+	s4wave_drive_world "github.com/s4wave/spacewave/sdk/space/drive/world"
 	s4wave_unixfs_world "github.com/s4wave/spacewave/sdk/unixfs/world"
 	s4wave_vm "github.com/s4wave/spacewave/sdk/vm"
 	s4wave_vm_world "github.com/s4wave/spacewave/sdk/vm/world"
@@ -32,6 +33,8 @@ func LookupObjectType(ctx context.Context, typeID string) (objecttype.ObjectType
 	switch typeID {
 	case s4wave_layout_world.ObjectLayoutTypeID:
 		return s4wave_layout_world.ObjectLayoutType, nil
+	case s4wave_drive_world.DriveTypeID:
+		return s4wave_drive_world.DriveType, nil
 	case s4wave_unixfs_world.UnixFSTypeID:
 		return s4wave_unixfs_world.UnixFSType, nil
 	case s4wave_git_world.GitRepoTypeID:
