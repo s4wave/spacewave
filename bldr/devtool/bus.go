@@ -620,6 +620,31 @@ func (d *DevtoolBus) StartProjectController(
 	directive.Reference,
 	error,
 ) {
+	return d.StartProjectControllerWithStartup(
+		ctx,
+		b,
+		repoRoot,
+		configPath,
+		startWithRemote,
+		extraPlugins,
+		startWithRemote != "",
+	)
+}
+
+// StartProjectControllerWithStartup reads the config file and starts the project controller.
+func (d *DevtoolBus) StartProjectControllerWithStartup(
+	ctx context.Context,
+	b bus.Bus,
+	repoRoot,
+	configPath string,
+	startWithRemote string,
+	extraPlugins []string,
+	start bool,
+) (
+	*bldr_project_watcher.Controller,
+	directive.Reference,
+	error,
+) {
 	absConfigPath := filepath.Join(repoRoot, configPath)
 
 	// Validate the config file upfront so parse errors surface immediately
@@ -661,7 +686,7 @@ func (d *DevtoolBus) StartProjectController(
 		d.GetStateRoot(),
 		baseProjectConfig,
 		d.watch,
-		startWithRemote != "",
+		start,
 	)
 	projCtrlConf.FetchManifestRemote = startWithRemote
 	projWatcherConfig := &bldr_project_watcher.Config{

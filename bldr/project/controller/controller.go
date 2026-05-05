@@ -321,11 +321,17 @@ func (c *Controller) Execute(ctx context.Context) error {
 	c.manifestBuilders.SetContext(ctx, true)
 	c.remotes.SetContext(ctx, true)
 
-	// load the startup plugins, if configured
-	c.startup.SetContext(ctx, true)
-	c.startup.SetState(c.GetConfig().GetProjectConfig().GetStart())
+	if c.GetConfig().GetStart() {
+		c.StartStartup(ctx)
+	}
 
 	return nil
+}
+
+// StartStartup loads the plugins in the project start config while ctx is active.
+func (c *Controller) StartStartup(ctx context.Context) {
+	c.startup.SetContext(ctx, true)
+	c.startup.SetState(c.GetConfig().GetProjectConfig().GetStart())
 }
 
 // HandleDirective asks if the handler can resolve the directive.

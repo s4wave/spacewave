@@ -64,13 +64,14 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) error {
 
 	// execute the project controller
 	// the web plugin will start the appropriate runtime based on BLDR_WEB_RENDERER
-	projWatcher, projCtrlRef, err := b.StartProjectController(
+	projWatcher, projCtrlRef, err := b.StartProjectControllerWithStartup(
 		ctx,
 		b.GetBus(),
 		repoRoot,
 		a.ConfigPath,
 		a.Remote,
 		a.StartPlugins.Value(),
+		false,
 	)
 	if err != nil {
 		return err
@@ -131,6 +132,8 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) error {
 	if relPluginHost != nil {
 		defer relPluginHost()
 	}
+
+	projCtrl.StartStartup(ctx)
 
 	<-b.GetContext().Done()
 	return nil
