@@ -140,8 +140,8 @@ type InvokeObjectTypeRequest struct {
 	TypeId string `protobuf:"bytes,1,opt,name=type_id,json=typeId,proto3" json:"typeId,omitempty"`
 	// ObjectKey is the world object key.
 	ObjectKey string `protobuf:"bytes,2,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
-	// EngineResourceId gives World access to the handler.
-	EngineResourceId uint32 `protobuf:"varint,3,opt,name=engine_resource_id,json=engineResourceId,proto3" json:"engineResourceId,omitempty"`
+	// AttachedEngineResourceId gives World Engine access to the handler.
+	AttachedEngineResourceId uint32 `protobuf:"varint,3,opt,name=attached_engine_resource_id,json=attachedEngineResourceId,proto3" json:"attachedEngineResourceId,omitempty"`
 }
 
 func (x *InvokeObjectTypeRequest) Reset() {
@@ -164,9 +164,9 @@ func (x *InvokeObjectTypeRequest) GetObjectKey() string {
 	return ""
 }
 
-func (x *InvokeObjectTypeRequest) GetEngineResourceId() uint32 {
+func (x *InvokeObjectTypeRequest) GetAttachedEngineResourceId() uint32 {
 	if x != nil {
-		return x.EngineResourceId
+		return x.AttachedEngineResourceId
 	}
 	return 0
 }
@@ -285,7 +285,7 @@ func (m *InvokeObjectTypeRequest) CloneVT() *InvokeObjectTypeRequest {
 	r := new(InvokeObjectTypeRequest)
 	r.TypeId = m.TypeId
 	r.ObjectKey = m.ObjectKey
-	r.EngineResourceId = m.EngineResourceId
+	r.AttachedEngineResourceId = m.AttachedEngineResourceId
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -444,7 +444,7 @@ func (this *InvokeObjectTypeRequest) EqualVT(that *InvokeObjectTypeRequest) bool
 	if this.ObjectKey != that.ObjectKey {
 		return false
 	}
-	if this.EngineResourceId != that.EngineResourceId {
+	if this.AttachedEngineResourceId != that.AttachedEngineResourceId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -739,10 +739,10 @@ func (x *InvokeObjectTypeRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("objectKey")
 		s.WriteString(x.ObjectKey)
 	}
-	if x.EngineResourceId != 0 || s.HasField("engineResourceId") {
+	if x.AttachedEngineResourceId != 0 || s.HasField("attachedEngineResourceId") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("engineResourceId")
-		s.WriteUint32(x.EngineResourceId)
+		s.WriteObjectField("attachedEngineResourceId")
+		s.WriteUint32(x.AttachedEngineResourceId)
 	}
 	s.WriteObjectEnd()
 }
@@ -767,9 +767,9 @@ func (x *InvokeObjectTypeRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "object_key", "objectKey":
 			s.AddField("object_key")
 			x.ObjectKey = s.ReadString()
-		case "engine_resource_id", "engineResourceId":
-			s.AddField("engine_resource_id")
-			x.EngineResourceId = s.ReadUint32()
+		case "attached_engine_resource_id", "attachedEngineResourceId":
+			s.AddField("attached_engine_resource_id")
+			x.AttachedEngineResourceId = s.ReadUint32()
 		}
 	})
 }
@@ -1066,8 +1066,8 @@ func (m *InvokeObjectTypeRequest) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if m.EngineResourceId != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.EngineResourceId))
+	if m.AttachedEngineResourceId != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.AttachedEngineResourceId))
 		i--
 		dAtA[i] = 0x18
 	}
@@ -1218,8 +1218,8 @@ func (m *InvokeObjectTypeRequest) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
-	if m.EngineResourceId != 0 {
-		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.EngineResourceId))
+	if m.AttachedEngineResourceId != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.AttachedEngineResourceId))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -1365,12 +1365,12 @@ func (x *InvokeObjectTypeRequest) MarshalProtoText() string {
 		sb.WriteString("object_key: ")
 		sb.WriteString(strconv.Quote(x.ObjectKey))
 	}
-	if x.EngineResourceId != 0 {
+	if x.AttachedEngineResourceId != 0 {
 		if sb.Len() > 25 {
 			sb.WriteString(" ")
 		}
-		sb.WriteString("engine_resource_id: ")
-		sb.WriteString(strconv.FormatUint(uint64(x.EngineResourceId), 10))
+		sb.WriteString("attached_engine_resource_id: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.AttachedEngineResourceId), 10))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -1811,10 +1811,10 @@ func (m *InvokeObjectTypeRequest) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 3:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EngineResourceId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field AttachedEngineResourceId", wireType)
 			}
-			m.EngineResourceId = 0
-			m.EngineResourceId, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			m.AttachedEngineResourceId = 0
+			m.AttachedEngineResourceId, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

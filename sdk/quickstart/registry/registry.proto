@@ -93,8 +93,8 @@ message ExecuteQuickstartResponse {
 message SeedQuickstartRequest {
   // QuickstartId is the registered Quickstart identifier to seed.
   string quickstart_id = 1;
-  // EngineResourceId is an attached world Engine resource for the target Space.
-  uint32 engine_resource_id = 2;
+  // AttachedEngineResourceId is an attached world Engine resource for the target Space.
+  uint32 attached_engine_resource_id = 2;
 }
 
 // SeedQuickstartResponse contains routing hints returned by the plugin.

@@ -82,7 +82,7 @@ inline constexpr SeedQuickstartRequest::Impl_::Impl_(
         quickstart_id_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
-        engine_resource_id_{0u} {}
+        attached_engine_resource_id_{0u} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR SeedQuickstartRequest::SeedQuickstartRequest(::_pbi::ConstantInitialized)
@@ -401,7 +401,7 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::s4wave::quickstart::registry::SeedQuickstartRequest, _impl_._has_bits_),
         5, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::quickstart::registry::SeedQuickstartRequest, _impl_.quickstart_id_),
-        PROTOBUF_FIELD_OFFSET(::s4wave::quickstart::registry::SeedQuickstartRequest, _impl_.engine_resource_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::quickstart::registry::SeedQuickstartRequest, _impl_.attached_engine_resource_id_),
         0,
         1,
         0x081, // bitmap
@@ -464,35 +464,35 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fq
     "n\"L\n\030ExecuteQuickstartRequest\022\025\n\rquickst"
     "art_id\030\001 \001(\t\022\031\n\021space_resource_id\030\002 \001(\r\""
     "C\n\031ExecuteQuickstartResponse\022\022\n\nindex_pa"
-    "th\030\001 \001(\t\022\022\n\nplugin_ids\030\002 \003(\t\"J\n\025SeedQuic"
-    "kstartRequest\022\025\n\rquickstart_id\030\001 \001(\t\022\032\n\022"
-    "engine_resource_id\030\002 \001(\r\"@\n\026SeedQuicksta"
-    "rtResponse\022\022\n\nindex_path\030\001 \001(\t\022\022\n\nplugin"
-    "_ids\030\002 \003(\t2\251\004\n!QuickstartRegistryResourc"
-    "eService\022\203\001\n\022RegisterQuickstart\0225.s4wave"
-    ".quickstart.registry.RegisterQuickstartR"
-    "equest\0326.s4wave.quickstart.registry.Regi"
-    "sterQuickstartResponse\022z\n\017ListQuickstart"
-    "s\0222.s4wave.quickstart.registry.ListQuick"
-    "startsRequest\0323.s4wave.quickstart.regist"
-    "ry.ListQuickstartsResponse\022\177\n\020WatchQuick"
-    "starts\0223.s4wave.quickstart.registry.Watc"
-    "hQuickstartsRequest\0324.s4wave.quickstart."
-    "registry.WatchQuickstartsResponse0\001\022\200\001\n\021"
-    "ExecuteQuickstart\0224.s4wave.quickstart.re"
-    "gistry.ExecuteQuickstartRequest\0325.s4wave"
-    ".quickstart.registry.ExecuteQuickstartRe"
-    "sponse2\223\001\n\030QuickstartHandlerService\022w\n\016S"
-    "eedQuickstart\0221.s4wave.quickstart.regist"
-    "ry.SeedQuickstartRequest\0322.s4wave.quicks"
-    "tart.registry.SeedQuickstartResponseb\006pr"
-    "oto3"
+    "th\030\001 \001(\t\022\022\n\nplugin_ids\030\002 \003(\t\"S\n\025SeedQuic"
+    "kstartRequest\022\025\n\rquickstart_id\030\001 \001(\t\022#\n\033"
+    "attached_engine_resource_id\030\002 \001(\r\"@\n\026See"
+    "dQuickstartResponse\022\022\n\nindex_path\030\001 \001(\t\022"
+    "\022\n\nplugin_ids\030\002 \003(\t2\251\004\n!QuickstartRegist"
+    "ryResourceService\022\203\001\n\022RegisterQuickstart"
+    "\0225.s4wave.quickstart.registry.RegisterQu"
+    "ickstartRequest\0326.s4wave.quickstart.regi"
+    "stry.RegisterQuickstartResponse\022z\n\017ListQ"
+    "uickstarts\0222.s4wave.quickstart.registry."
+    "ListQuickstartsRequest\0323.s4wave.quicksta"
+    "rt.registry.ListQuickstartsResponse\022\177\n\020W"
+    "atchQuickstarts\0223.s4wave.quickstart.regi"
+    "stry.WatchQuickstartsRequest\0324.s4wave.qu"
+    "ickstart.registry.WatchQuickstartsRespon"
+    "se0\001\022\200\001\n\021ExecuteQuickstart\0224.s4wave.quic"
+    "kstart.registry.ExecuteQuickstartRequest"
+    "\0325.s4wave.quickstart.registry.ExecuteQui"
+    "ckstartResponse2\223\001\n\030QuickstartHandlerSer"
+    "vice\022w\n\016SeedQuickstart\0221.s4wave.quicksta"
+    "rt.registry.SeedQuickstartRequest\0322.s4wa"
+    "ve.quickstart.registry.SeedQuickstartRes"
+    "ponseb\006proto3"
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fquickstart_2fregistry_2fregistry_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fquickstart_2fregistry_2fregistry_2eproto = {
     false,
     false,
-    1764,
+    1773,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fquickstart_2fregistry_2fregistry_2eproto,
     "github.com/s4wave/spacewave/sdk/quickstart/registry/registry.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fquickstart_2fregistry_2fregistry_2eproto_once,
@@ -3174,7 +3174,7 @@ SeedQuickstartRequest::SeedQuickstartRequest(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
-  _impl_.engine_resource_id_ = from._impl_.engine_resource_id_;
+  _impl_.attached_engine_resource_id_ = from._impl_.attached_engine_resource_id_;
 
   // @@protoc_insertion_point(copy_constructor:s4wave.quickstart.registry.SeedQuickstartRequest)
 }
@@ -3186,7 +3186,7 @@ PROTOBUF_NDEBUG_INLINE SeedQuickstartRequest::Impl_::Impl_(
 
 inline void SeedQuickstartRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
-  _impl_.engine_resource_id_ = {};
+  _impl_.attached_engine_resource_id_ = {};
 }
 SeedQuickstartRequest::~SeedQuickstartRequest() {
   // @@protoc_insertion_point(destructor:s4wave.quickstart.registry.SeedQuickstartRequest)
@@ -3265,10 +3265,10 @@ SeedQuickstartRequest::_table_ = {
     ::_pbi::TcParser::GetTable<::s4wave::quickstart::registry::SeedQuickstartRequest>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // uint32 engine_resource_id = 2;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(SeedQuickstartRequest, _impl_.engine_resource_id_), 1>(),
+    // uint32 attached_engine_resource_id = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(SeedQuickstartRequest, _impl_.attached_engine_resource_id_), 1>(),
      {16, 1, 0,
-      PROTOBUF_FIELD_OFFSET(SeedQuickstartRequest, _impl_.engine_resource_id_)}},
+      PROTOBUF_FIELD_OFFSET(SeedQuickstartRequest, _impl_.attached_engine_resource_id_)}},
     // string quickstart_id = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
@@ -3278,8 +3278,8 @@ SeedQuickstartRequest::_table_ = {
   }}, {{
     // string quickstart_id = 1;
     {PROTOBUF_FIELD_OFFSET(SeedQuickstartRequest, _impl_.quickstart_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // uint32 engine_resource_id = 2;
-    {PROTOBUF_FIELD_OFFSET(SeedQuickstartRequest, _impl_.engine_resource_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // uint32 attached_engine_resource_id = 2;
+    {PROTOBUF_FIELD_OFFSET(SeedQuickstartRequest, _impl_.attached_engine_resource_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
   }},
   // no aux_entries
   {{
@@ -3299,7 +3299,7 @@ PROTOBUF_NOINLINE void SeedQuickstartRequest::Clear() {
   if (CheckHasBit(cached_has_bits, 0x00000001U)) {
     _impl_.quickstart_id_.ClearNonDefaultToEmpty();
   }
-  _impl_.engine_resource_id_ = 0u;
+  _impl_.attached_engine_resource_id_ = 0u;
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -3333,12 +3333,12 @@ PROTOBUF_NOINLINE void SeedQuickstartRequest::Clear() {
     }
   }
 
-  // uint32 engine_resource_id = 2;
+  // uint32 attached_engine_resource_id = 2;
   if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-    if (this_._internal_engine_resource_id() != 0) {
+    if (this_._internal_attached_engine_resource_id() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
-          2, this_._internal_engine_resource_id(), target);
+          2, this_._internal_attached_engine_resource_id(), target);
     }
   }
 
@@ -3375,11 +3375,11 @@ PROTOBUF_NOINLINE void SeedQuickstartRequest::Clear() {
                                         this_._internal_quickstart_id());
       }
     }
-    // uint32 engine_resource_id = 2;
+    // uint32 attached_engine_resource_id = 2;
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-      if (this_._internal_engine_resource_id() != 0) {
+      if (this_._internal_attached_engine_resource_id() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
-            this_._internal_engine_resource_id());
+            this_._internal_attached_engine_resource_id());
       }
     }
   }
@@ -3412,8 +3412,8 @@ void SeedQuickstartRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-      if (from._internal_engine_resource_id() != 0) {
-        _this->_impl_.engine_resource_id_ = from._impl_.engine_resource_id_;
+      if (from._internal_attached_engine_resource_id() != 0) {
+        _this->_impl_.attached_engine_resource_id_ = from._impl_.attached_engine_resource_id_;
       }
     }
   }
@@ -3437,7 +3437,7 @@ void SeedQuickstartRequest::InternalSwap(SeedQuickstartRequest* PROTOBUF_RESTRIC
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.quickstart_id_, &other->_impl_.quickstart_id_, arena);
-  swap(_impl_.engine_resource_id_, other->_impl_.engine_resource_id_);
+  swap(_impl_.attached_engine_resource_id_, other->_impl_.attached_engine_resource_id_);
 }
 
 ::google::protobuf::Metadata SeedQuickstartRequest::GetMetadata() const {

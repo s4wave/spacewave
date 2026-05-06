@@ -103,15 +103,15 @@ describe('ObjectTypeRegistry SDK class', () => {
 })
 
 describe('ObjectTypeHandlerService proto types', () => {
-  it('InvokeObjectTypeRequest has typeId, objectKey, engineResourceId', () => {
+  it('InvokeObjectTypeRequest has typeId, objectKey, attachedEngineResourceId', () => {
     const req = InvokeObjectTypeRequest.create({
       typeId: 'notes/notebook',
       objectKey: 'obj-123',
-      engineResourceId: 5,
+      attachedEngineResourceId: 5,
     })
     expect(req.typeId).toBe('notes/notebook')
     expect(req.objectKey).toBe('obj-123')
-    expect(req.engineResourceId).toBe(5)
+    expect(req.attachedEngineResourceId).toBe(5)
   })
 
   it('InvokeObjectTypeResponse has resourceId', () => {
@@ -123,12 +123,12 @@ describe('ObjectTypeHandlerService proto types', () => {
     const original = InvokeObjectTypeRequest.create({
       typeId: 'canvas/board',
       objectKey: 'world-obj-456',
-      engineResourceId: 88,
+      attachedEngineResourceId: 88,
     })
     const bytes = InvokeObjectTypeRequest.toBinary(original)
     const decoded = InvokeObjectTypeRequest.fromBinary(bytes)
     expect(decoded.typeId).toBe('canvas/board')
     expect(decoded.objectKey).toBe('world-obj-456')
-    expect(decoded.engineResourceId).toBe(88)
+    expect(decoded.attachedEngineResourceId).toBe(88)
   })
 })

@@ -56,8 +56,8 @@ message ApplyWorldOpRequest {
   string operation_type_id = 1;
   // OpData is the serialized operation proto bytes.
   bytes op_data = 2;
-  // EngineResourceId gives World access to the handler.
-  uint32 engine_resource_id = 3;
+  // AttachedWorldStateResourceId gives WorldState access to the handler.
+  uint32 attached_world_state_resource_id = 3;
 }
 
 // ApplyWorldOpResponse is the response for ApplyWorldOp.
@@ -74,8 +74,8 @@ message ApplyWorldObjectOpRequest {
   bytes op_data = 2;
   // ObjectKey is the target object key.
   string object_key = 3;
-  // EngineResourceId gives World access to the handler.
-  uint32 engine_resource_id = 4;
+  // AttachedObjectStateResourceId gives ObjectState access to the handler.
+  uint32 attached_object_state_resource_id = 4;
 }
 
 // ApplyWorldObjectOpResponse is the response for ApplyWorldObjectOp.

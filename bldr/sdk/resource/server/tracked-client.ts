@@ -28,14 +28,11 @@ const releasedAttachedClient: ReleasedResourceClient = new Proxy(
   },
 )
 
-// createAttachedResourceRef builds a ClientResourceRef backed by an
-// attached resource's srpc.Client. The ref does not need
-// ResourceRefRelease -- attached resources are released when the
-// attach stream closes.
-function createAttachedResourceRef(
+// createRawAttachedResourceRef builds a leaf ClientResourceRef backed by a
+// single attached resource's srpc.Client. It cannot create child refs.
+function createRawAttachedResourceRef(
   id: number,
-  client: SRPCClient,
-  signal: AbortSignal,
+  attached: AttachedResource,
 ): ClientResourceRef {
   let released = false
 
@@ -48,19 +45,66 @@ function createAttachedResourceRef(
       return id
     },
     get released() {
-      return released || signal.aborted
+      return released || attached.signal.aborted
     },
     get client(): SRPCClient | ReleasedResourceClient {
-      if (released || signal.aborted) {
+      if (released || attached.signal.aborted) {
         return releasedAttachedClient
       }
-      return client
+      return attached.client
+    },
+    createRef(): ClientResourceRef {
+      throw new Error(`Cannot create child ref from raw attached resource ${id}`)
+    },
+    createResource<T>(): T {
+      throw new Error(`Cannot create child resource from raw attached resource ${id}`)
+    },
+    release,
+    [Symbol.dispose]: release,
+  }
+
+  return ref
+}
+
+// createAttachedResourceRef builds a ClientResourceRef backed by an attached
+// resource tree. Child refs resolve by child resource id through the owning
+// RemoteResourceClient instead of reusing the parent routed client.
+function createAttachedResourceRef(
+  id: number,
+  owner: RemoteResourceClient,
+): ClientResourceRef {
+  let released = false
+
+  const release = () => {
+    if (released) return
+    released = true
+    owner.releaseResource(id)
+  }
+
+  const ref: ClientResourceRef = {
+    get resourceId() {
+      return id
+    },
+    get released() {
+      const attached = owner.attachedResources.get(id)
+      return released || !attached || attached.signal.aborted
+    },
+    get client(): SRPCClient | ReleasedResourceClient {
+      const attached = owner.attachedResources.get(id)
+      if (released || !attached || attached.signal.aborted) {
+        return releasedAttachedClient
+      }
+      return attached.client
     },
     createRef(newId: number): ClientResourceRef {
-      if (released || signal.aborted) {
+      const attached = owner.attachedResources.get(id)
+      if (released || !attached || attached.signal.aborted) {
         throw new Error(`Cannot create ref from released attached resource ${id}`)
       }
-      return createAttachedResourceRef(newId, client, signal)
+      if (!owner.attachedResources.has(newId)) {
+        throw new Error(`attached child resource ${newId} not found`)
+      }
+      return createAttachedResourceRef(newId, owner)
     },
     createResource<T, Args extends unknown[]>(
       newId: number,
@@ -135,7 +179,26 @@ class RemoteResourceClient {
     if (!attached) {
       throw new Error(`attached resource ${id} not found`)
     }
-    return createAttachedResourceRef(id, attached.client, attached.signal)
+    return createAttachedResourceRef(id, this)
+  }
+
+  // getRawAttachedRef returns a leaf ref for callback-style attached resources.
+  // Raw attached refs cannot create child refs.
+  getRawAttachedRef(id: number): ClientResourceRef {
+    const attached = this.attachedResources.get(id)
+    if (!attached) {
+      throw new Error(`attached resource ${id} not found`)
+    }
+    return createRawAttachedResourceRef(id, attached)
+  }
+
+  // getRawAttachedClient returns the raw SRPC client for a leaf callback.
+  getRawAttachedClient(id: number): SRPCClient {
+    const attached = this.attachedResources.get(id)
+    if (!attached) {
+      throw new Error(`attached resource ${id} not found`)
+    }
+    return attached.client
   }
 
   // releaseResource releases a resource server-side and queues
@@ -143,7 +206,14 @@ class RemoteResourceClient {
   releaseResource(resourceID: number): boolean {
     if (this.released) return false
     const resource = this.resources.get(resourceID)
-    if (!resource) return false
+    if (!resource) {
+      const attached = this.attachedResources.get(resourceID)
+      if (!attached) return false
+      this.attachedResources.delete(resourceID)
+      attached.release?.()
+      attached.controller.abort()
+      return true
+    }
     this.resources.delete(resourceID)
     this.pushMessage({
       body: {

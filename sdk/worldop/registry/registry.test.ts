@@ -105,30 +105,30 @@ describe('WorldOpRegistry SDK class', () => {
 })
 
 describe('WorldOpHandlerService proto types', () => {
-  it('ApplyWorldOpRequest has operationTypeId, opData, engineResourceId', () => {
+  it('ApplyWorldOpRequest has operationTypeId, opData, attachedWorldStateResourceId', () => {
     const data = new Uint8Array([1, 2, 3])
     const req = ApplyWorldOpRequest.create({
       operationTypeId: 'create-object',
       opData: data,
-      engineResourceId: 12,
+      attachedWorldStateResourceId: 12,
     })
     expect(req.operationTypeId).toBe('create-object')
     expect(req.opData).toEqual(data)
-    expect(req.engineResourceId).toBe(12)
+    expect(req.attachedWorldStateResourceId).toBe(12)
   })
 
-  it('ApplyWorldObjectOpRequest has operationTypeId, opData, objectKey, engineResourceId', () => {
+  it('ApplyWorldObjectOpRequest has operationTypeId, opData, objectKey, attachedObjectStateResourceId', () => {
     const data = new Uint8Array([4, 5, 6])
     const req = ApplyWorldObjectOpRequest.create({
       operationTypeId: 'update-field',
       opData: data,
       objectKey: 'obj-789',
-      engineResourceId: 20,
+      attachedObjectStateResourceId: 20,
     })
     expect(req.operationTypeId).toBe('update-field')
     expect(req.opData).toEqual(data)
     expect(req.objectKey).toBe('obj-789')
-    expect(req.engineResourceId).toBe(20)
+    expect(req.attachedObjectStateResourceId).toBe(20)
   })
 
   it('ValidateOpRequest has operationTypeId, opData', () => {
@@ -156,12 +156,12 @@ describe('WorldOpHandlerService proto types', () => {
     const original = ApplyWorldOpRequest.create({
       operationTypeId: 'batch-update',
       opData: data,
-      engineResourceId: 77,
+      attachedWorldStateResourceId: 77,
     })
     const bytes = ApplyWorldOpRequest.toBinary(original)
     const decoded = ApplyWorldOpRequest.fromBinary(bytes)
     expect(decoded.operationTypeId).toBe('batch-update')
     expect(decoded.opData).toEqual(data)
-    expect(decoded.engineResourceId).toBe(77)
+    expect(decoded.attachedWorldStateResourceId).toBe(77)
   })
 })

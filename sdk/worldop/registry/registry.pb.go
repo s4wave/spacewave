@@ -141,8 +141,8 @@ type ApplyWorldOpRequest struct {
 	OperationTypeId string `protobuf:"bytes,1,opt,name=operation_type_id,json=operationTypeId,proto3" json:"operationTypeId,omitempty"`
 	// OpData is the serialized operation proto bytes.
 	OpData []byte `protobuf:"bytes,2,opt,name=op_data,json=opData,proto3" json:"opData,omitempty"`
-	// EngineResourceId gives World access to the handler.
-	EngineResourceId uint32 `protobuf:"varint,3,opt,name=engine_resource_id,json=engineResourceId,proto3" json:"engineResourceId,omitempty"`
+	// AttachedWorldStateResourceId gives WorldState access to the handler.
+	AttachedWorldStateResourceId uint32 `protobuf:"varint,3,opt,name=attached_world_state_resource_id,json=attachedWorldStateResourceId,proto3" json:"attachedWorldStateResourceId,omitempty"`
 }
 
 func (x *ApplyWorldOpRequest) Reset() {
@@ -165,9 +165,9 @@ func (x *ApplyWorldOpRequest) GetOpData() []byte {
 	return nil
 }
 
-func (x *ApplyWorldOpRequest) GetEngineResourceId() uint32 {
+func (x *ApplyWorldOpRequest) GetAttachedWorldStateResourceId() uint32 {
 	if x != nil {
-		return x.EngineResourceId
+		return x.AttachedWorldStateResourceId
 	}
 	return 0
 }
@@ -201,8 +201,8 @@ type ApplyWorldObjectOpRequest struct {
 	OpData []byte `protobuf:"bytes,2,opt,name=op_data,json=opData,proto3" json:"opData,omitempty"`
 	// ObjectKey is the target object key.
 	ObjectKey string `protobuf:"bytes,3,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
-	// EngineResourceId gives World access to the handler.
-	EngineResourceId uint32 `protobuf:"varint,4,opt,name=engine_resource_id,json=engineResourceId,proto3" json:"engineResourceId,omitempty"`
+	// AttachedObjectStateResourceId gives ObjectState access to the handler.
+	AttachedObjectStateResourceId uint32 `protobuf:"varint,4,opt,name=attached_object_state_resource_id,json=attachedObjectStateResourceId,proto3" json:"attachedObjectStateResourceId,omitempty"`
 }
 
 func (x *ApplyWorldObjectOpRequest) Reset() {
@@ -232,9 +232,9 @@ func (x *ApplyWorldObjectOpRequest) GetObjectKey() string {
 	return ""
 }
 
-func (x *ApplyWorldObjectOpRequest) GetEngineResourceId() uint32 {
+func (x *ApplyWorldObjectOpRequest) GetAttachedObjectStateResourceId() uint32 {
 	if x != nil {
-		return x.EngineResourceId
+		return x.AttachedObjectStateResourceId
 	}
 	return 0
 }
@@ -401,7 +401,7 @@ func (m *ApplyWorldOpRequest) CloneVT() *ApplyWorldOpRequest {
 	}
 	r := new(ApplyWorldOpRequest)
 	r.OperationTypeId = m.OperationTypeId
-	r.EngineResourceId = m.EngineResourceId
+	r.AttachedWorldStateResourceId = m.AttachedWorldStateResourceId
 	if rhs := m.OpData; rhs != nil {
 		r.OpData = slices.Clone(rhs)
 	}
@@ -438,7 +438,7 @@ func (m *ApplyWorldObjectOpRequest) CloneVT() *ApplyWorldObjectOpRequest {
 	r := new(ApplyWorldObjectOpRequest)
 	r.OperationTypeId = m.OperationTypeId
 	r.ObjectKey = m.ObjectKey
-	r.EngineResourceId = m.EngineResourceId
+	r.AttachedObjectStateResourceId = m.AttachedObjectStateResourceId
 	if rhs := m.OpData; rhs != nil {
 		r.OpData = slices.Clone(rhs)
 	}
@@ -635,7 +635,7 @@ func (this *ApplyWorldOpRequest) EqualVT(that *ApplyWorldOpRequest) bool {
 	if string(this.OpData) != string(that.OpData) {
 		return false
 	}
-	if this.EngineResourceId != that.EngineResourceId {
+	if this.AttachedWorldStateResourceId != that.AttachedWorldStateResourceId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -684,7 +684,7 @@ func (this *ApplyWorldObjectOpRequest) EqualVT(that *ApplyWorldObjectOpRequest) 
 	if this.ObjectKey != that.ObjectKey {
 		return false
 	}
-	if this.EngineResourceId != that.EngineResourceId {
+	if this.AttachedObjectStateResourceId != that.AttachedObjectStateResourceId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1022,10 +1022,10 @@ func (x *ApplyWorldOpRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("opData")
 		s.WriteBytes(x.OpData)
 	}
-	if x.EngineResourceId != 0 || s.HasField("engineResourceId") {
+	if x.AttachedWorldStateResourceId != 0 || s.HasField("attachedWorldStateResourceId") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("engineResourceId")
-		s.WriteUint32(x.EngineResourceId)
+		s.WriteObjectField("attachedWorldStateResourceId")
+		s.WriteUint32(x.AttachedWorldStateResourceId)
 	}
 	s.WriteObjectEnd()
 }
@@ -1050,9 +1050,9 @@ func (x *ApplyWorldOpRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "op_data", "opData":
 			s.AddField("op_data")
 			x.OpData = s.ReadBytes()
-		case "engine_resource_id", "engineResourceId":
-			s.AddField("engine_resource_id")
-			x.EngineResourceId = s.ReadUint32()
+		case "attached_world_state_resource_id", "attachedWorldStateResourceId":
+			s.AddField("attached_world_state_resource_id")
+			x.AttachedWorldStateResourceId = s.ReadUint32()
 		}
 	})
 }
@@ -1127,10 +1127,10 @@ func (x *ApplyWorldObjectOpRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("objectKey")
 		s.WriteString(x.ObjectKey)
 	}
-	if x.EngineResourceId != 0 || s.HasField("engineResourceId") {
+	if x.AttachedObjectStateResourceId != 0 || s.HasField("attachedObjectStateResourceId") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("engineResourceId")
-		s.WriteUint32(x.EngineResourceId)
+		s.WriteObjectField("attachedObjectStateResourceId")
+		s.WriteUint32(x.AttachedObjectStateResourceId)
 	}
 	s.WriteObjectEnd()
 }
@@ -1158,9 +1158,9 @@ func (x *ApplyWorldObjectOpRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "object_key", "objectKey":
 			s.AddField("object_key")
 			x.ObjectKey = s.ReadString()
-		case "engine_resource_id", "engineResourceId":
-			s.AddField("engine_resource_id")
-			x.EngineResourceId = s.ReadUint32()
+		case "attached_object_state_resource_id", "attachedObjectStateResourceId":
+			s.AddField("attached_object_state_resource_id")
+			x.AttachedObjectStateResourceId = s.ReadUint32()
 		}
 	})
 }
@@ -1549,8 +1549,8 @@ func (m *ApplyWorldOpRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if m.EngineResourceId != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.EngineResourceId))
+	if m.AttachedWorldStateResourceId != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.AttachedWorldStateResourceId))
 		i--
 		dAtA[i] = 0x18
 	}
@@ -1644,8 +1644,8 @@ func (m *ApplyWorldObjectOpRequest) MarshalToSizedBufferVT(dAtA []byte) (int, er
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if m.EngineResourceId != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.EngineResourceId))
+	if m.AttachedObjectStateResourceId != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.AttachedObjectStateResourceId))
 		i--
 		dAtA[i] = 0x20
 	}
@@ -1895,8 +1895,8 @@ func (m *ApplyWorldOpRequest) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
-	if m.EngineResourceId != 0 {
-		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.EngineResourceId))
+	if m.AttachedWorldStateResourceId != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.AttachedWorldStateResourceId))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -1933,8 +1933,8 @@ func (m *ApplyWorldObjectOpRequest) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
-	if m.EngineResourceId != 0 {
-		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.EngineResourceId))
+	if m.AttachedObjectStateResourceId != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.AttachedObjectStateResourceId))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -2114,12 +2114,12 @@ func (x *ApplyWorldOpRequest) MarshalProtoText() string {
 		sb.WriteString(base64.StdEncoding.EncodeToString(x.OpData))
 		sb.WriteString("\"")
 	}
-	if x.EngineResourceId != 0 {
+	if x.AttachedWorldStateResourceId != 0 {
 		if sb.Len() > 21 {
 			sb.WriteString(" ")
 		}
-		sb.WriteString("engine_resource_id: ")
-		sb.WriteString(strconv.FormatUint(uint64(x.EngineResourceId), 10))
+		sb.WriteString("attached_world_state_resource_id: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.AttachedWorldStateResourceId), 10))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -2173,12 +2173,12 @@ func (x *ApplyWorldObjectOpRequest) MarshalProtoText() string {
 		sb.WriteString("object_key: ")
 		sb.WriteString(strconv.Quote(x.ObjectKey))
 	}
-	if x.EngineResourceId != 0 {
+	if x.AttachedObjectStateResourceId != 0 {
 		if sb.Len() > 27 {
 			sb.WriteString(" ")
 		}
-		sb.WriteString("engine_resource_id: ")
-		sb.WriteString(strconv.FormatUint(uint64(x.EngineResourceId), 10))
+		sb.WriteString("attached_object_state_resource_id: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.AttachedObjectStateResourceId), 10))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -2668,10 +2668,10 @@ func (m *ApplyWorldOpRequest) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 3:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EngineResourceId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field AttachedWorldStateResourceId", wireType)
 			}
-			m.EngineResourceId = 0
-			m.EngineResourceId, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			m.AttachedWorldStateResourceId = 0
+			m.AttachedWorldStateResourceId, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
@@ -2845,10 +2845,10 @@ func (m *ApplyWorldObjectOpRequest) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 4:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EngineResourceId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field AttachedObjectStateResourceId", wireType)
 			}
-			m.EngineResourceId = 0
-			m.EngineResourceId, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			m.AttachedObjectStateResourceId = 0
+			m.AttachedObjectStateResourceId, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

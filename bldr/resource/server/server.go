@@ -228,7 +228,7 @@ func (s *ResourceServer) ResourceRefRelease(
 
 	var found bool
 	var isRootResource bool
-	var attachedCancel context.CancelFunc
+	var attachedClient *RemoteResourceClient
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		client := s.clients[clientID]
 		if client == nil || client.released {
@@ -254,14 +254,13 @@ func (s *ResourceServer) ResourceRefRelease(
 			return
 		}
 		if ar := client.attachedResources[resourceID]; ar != nil {
-			attachedCancel = ar.cancel
-			delete(client.attachedResources, resourceID)
+			attachedClient = client
 			found = true
 		}
 	})
 
-	if attachedCancel != nil {
-		attachedCancel()
+	if attachedClient != nil {
+		attachedClient.ReleaseResource(resourceID)
 	}
 
 	if !found {
@@ -287,6 +286,12 @@ func (s *ResourceServer) ResourceAttach(
 		return errors.New("expected init packet")
 	}
 	clientHandleID := init.GetClientHandleId()
+	var sendMtx sync.Mutex
+	send := func(resp *resource.ResourceAttachResponse) error {
+		sendMtx.Lock()
+		defer sendMtx.Unlock()
+		return strm.Send(resp)
+	}
 
 	// Find owning client.
 	var client *RemoteResourceClient
@@ -294,7 +299,7 @@ func (s *ResourceServer) ResourceAttach(
 		client = s.clients[clientHandleID]
 	})
 	if client == nil {
-		_ = strm.Send(&resource.ResourceAttachResponse{
+		_ = send(&resource.ResourceAttachResponse{
 			Body: &resource.ResourceAttachResponse_Ack{
 				Ack: &resource.ResourceAttachAck{Error: "client not found"},
 			},
@@ -303,7 +308,7 @@ func (s *ResourceServer) ResourceAttach(
 	}
 
 	// Send session Ack.
-	if err := strm.Send(&resource.ResourceAttachResponse{
+	if err := send(&resource.ResourceAttachResponse{
 		Body: &resource.ResourceAttachResponse_Ack{
 			Ack: &resource.ResourceAttachAck{},
 		},
@@ -320,7 +325,7 @@ func (s *ResourceServer) ResourceAttach(
 	var attachedIDs []uint32
 	defer func() {
 		for _, id := range attachedIDs {
-			client.RemoveAttachedResource(id)
+			client.removeAttachedResource(id, false)
 		}
 	}()
 
@@ -367,9 +372,17 @@ func (s *ResourceServer) ResourceAttach(
 			_, resCancel := context.WithCancel(attachCtx)
 
 			// Register on client.
-			addErr := client.AddAttachedResource(resourceID, label, resCancel, resClient)
+			addErr := client.AddAttachedResource(resourceID, label, resCancel, resClient, func() {
+				_ = send(&resource.ResourceAttachResponse{
+					Body: &resource.ResourceAttachResponse_DetachAck{
+						DetachAck: &resource.ResourceAttachDetachAck{
+							ResourceId: resourceID,
+						},
+					},
+				})
+			})
 			if addErr != nil {
-				_ = strm.Send(&resource.ResourceAttachResponse{
+				_ = send(&resource.ResourceAttachResponse{
 					Body: &resource.ResourceAttachResponse_AddAck{
 						AddAck: &resource.ResourceAttachAddAck{
 							AttachId: attachID,
@@ -381,7 +394,7 @@ func (s *ResourceServer) ResourceAttach(
 			}
 			attachedIDs = append(attachedIDs, resourceID)
 
-			_ = strm.Send(&resource.ResourceAttachResponse{
+			_ = send(&resource.ResourceAttachResponse{
 				Body: &resource.ResourceAttachResponse_AddAck{
 					AddAck: &resource.ResourceAttachAddAck{
 						AttachId:   attachID,
@@ -392,7 +405,7 @@ func (s *ResourceServer) ResourceAttach(
 
 		case *resource.ResourceAttachRequest_Detach:
 			resourceID := body.Detach.GetResourceId()
-			client.RemoveAttachedResource(resourceID)
+			client.removeAttachedResource(resourceID, false)
 			// Remove from our cleanup list.
 			for i, id := range attachedIDs {
 				if id == resourceID {
@@ -400,7 +413,7 @@ func (s *ResourceServer) ResourceAttach(
 					break
 				}
 			}
-			_ = strm.Send(&resource.ResourceAttachResponse{
+			_ = send(&resource.ResourceAttachResponse{
 				Body: &resource.ResourceAttachResponse_DetachAck{
 					DetachAck: &resource.ResourceAttachDetachAck{
 						ResourceId: resourceID,
@@ -414,7 +427,7 @@ func (s *ResourceServer) ResourceAttach(
 	// The recv loop runs inside Read(), dispatching control messages via onControl.
 	rwc := resource.NewAttachMuxDataRwc(
 		func(data []byte) error {
-			return strm.Send(&resource.ResourceAttachResponse{
+			return send(&resource.ResourceAttachResponse{
 				Body: &resource.ResourceAttachResponse_MuxData{MuxData: data},
 			})
 		},

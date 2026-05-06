@@ -336,11 +336,11 @@ export interface SeedQuickstartRequest {
    */
   quickstartId?: string
   /**
-   * EngineResourceId is an attached world Engine resource for the target Space.
+   * AttachedEngineResourceId is an attached world Engine resource for the target Space.
    *
-   * @generated from field: uint32 engine_resource_id = 2;
+   * @generated from field: uint32 attached_engine_resource_id = 2;
    */
-  engineResourceId?: number
+  attachedEngineResourceId?: number
 }
 
 // SeedQuickstartRequest contains the message type declaration for SeedQuickstartRequest.
@@ -351,7 +351,7 @@ export const SeedQuickstartRequest: MessageType<SeedQuickstartRequest> =
       { no: 1, name: 'quickstart_id', kind: 'scalar', T: ScalarType.STRING },
       {
         no: 2,
-        name: 'engine_resource_id',
+        name: 'attached_engine_resource_id',
         kind: 'scalar',
         T: ScalarType.UINT32,
       },

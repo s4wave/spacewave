@@ -174,11 +174,11 @@ export interface ApplyWorldOpRequest {
    */
   opData?: Uint8Array
   /**
-   * EngineResourceId gives World access to the handler.
+   * AttachedWorldStateResourceId gives WorldState access to the handler.
    *
-   * @generated from field: uint32 engine_resource_id = 3;
+   * @generated from field: uint32 attached_world_state_resource_id = 3;
    */
-  engineResourceId?: number
+  attachedWorldStateResourceId?: number
 }
 
 // ApplyWorldOpRequest contains the message type declaration for ApplyWorldOpRequest.
@@ -195,7 +195,7 @@ export const ApplyWorldOpRequest: MessageType<ApplyWorldOpRequest> =
       { no: 2, name: 'op_data', kind: 'scalar', T: ScalarType.BYTES },
       {
         no: 3,
-        name: 'engine_resource_id',
+        name: 'attached_world_state_resource_id',
         kind: 'scalar',
         T: ScalarType.UINT32,
       },
@@ -252,11 +252,11 @@ export interface ApplyWorldObjectOpRequest {
    */
   objectKey?: string
   /**
-   * EngineResourceId gives World access to the handler.
+   * AttachedObjectStateResourceId gives ObjectState access to the handler.
    *
-   * @generated from field: uint32 engine_resource_id = 4;
+   * @generated from field: uint32 attached_object_state_resource_id = 4;
    */
-  engineResourceId?: number
+  attachedObjectStateResourceId?: number
 }
 
 // ApplyWorldObjectOpRequest contains the message type declaration for ApplyWorldObjectOpRequest.
@@ -274,7 +274,7 @@ export const ApplyWorldObjectOpRequest: MessageType<ApplyWorldObjectOpRequest> =
       { no: 3, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       {
         no: 4,
-        name: 'engine_resource_id',
+        name: 'attached_object_state_resource_id',
         kind: 'scalar',
         T: ScalarType.UINT32,
       },

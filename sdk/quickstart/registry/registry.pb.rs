@@ -99,9 +99,9 @@ pub struct SeedQuickstartRequest {
     /// QuickstartId is the registered Quickstart identifier to seed.
     #[prost(string, tag="1")]
     pub quickstart_id: ::prost::alloc::string::String,
-    /// EngineResourceId is an attached world Engine resource for the target Space.
+    /// AttachedEngineResourceId is an attached world Engine resource for the target Space.
     #[prost(uint32, tag="2")]
-    pub engine_resource_id: u32,
+    pub attached_engine_resource_id: u32,
 }
 /// SeedQuickstartResponse contains routing hints returned by the plugin.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

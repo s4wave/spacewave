@@ -50,9 +50,9 @@ pub struct InvokeObjectTypeRequest {
     /// ObjectKey is the world object key.
     #[prost(string, tag="2")]
     pub object_key: ::prost::alloc::string::String,
-    /// EngineResourceId gives World access to the handler.
+    /// AttachedEngineResourceId gives World Engine access to the handler.
     #[prost(uint32, tag="3")]
-    pub engine_resource_id: u32,
+    pub attached_engine_resource_id: u32,
 }
 /// InvokeObjectTypeResponse is the response for InvokeObjectType.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]

@@ -13,6 +13,8 @@ type attachedResource struct {
 	label string
 	// cancel cancels this resource's derived context without affecting the yamux session.
 	cancel context.CancelFunc
+	// releaseFn notifies the owning endpoint that this attached resource was released.
+	releaseFn func()
 	// srpcClient is the client for server-side handlers to invoke the attached resource.
 	srpcClient srpc.Client
 }

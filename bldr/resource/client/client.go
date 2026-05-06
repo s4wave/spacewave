@@ -254,6 +254,7 @@ type attachSession struct {
 	router      *resource.RoutedInvoker
 	attachIDCtr uint32
 	pending     map[uint32]*pendingAttach // attachID -> pending attach
+	releaseFns  map[uint32]func()
 	sendCh      chan *attachSendRequest
 	mu          sync.Mutex
 }
@@ -280,6 +281,27 @@ type attachSendRequest struct {
 	req *resource.ResourceAttachRequest
 	// errCh receives the send result
 	errCh chan error
+}
+
+// AttachRawInvoker provides a leaf callback mux that server-side handlers can
+// invoke. Raw invokers are not resource trees; handlers should use
+// GetAttachedResource for this shape.
+func (c *Client) AttachRawInvoker(
+	ctx context.Context,
+	label string,
+	mux srpc.Invoker,
+) (uint32, error) {
+	return c.AttachResource(ctx, label, mux)
+}
+
+// AttachResourceTree provides a Resource SDK tree root that server-side
+// handlers can wrap as a resource reference and use to call child resources.
+func (c *Client) AttachResourceTree(
+	ctx context.Context,
+	label string,
+	mux srpc.Invoker,
+) (uint32, error) {
+	return c.AttachResource(ctx, label, mux)
 }
 
 // AttachResource provides a mux that server-side handlers can invoke.
@@ -368,7 +390,7 @@ func (c *Client) DetachResource(ctx context.Context, resourceID uint32) error {
 		return err
 	}
 
-	sess.router.RemoveMux(resourceID)
+	sess.releaseAttachedResource(resourceID)
 	return nil
 }
 
@@ -390,10 +412,7 @@ func (o *attachedResourceOwner) AddResourceValue(mux srpc.Invoker, _ any, releas
 		return 0, err
 	}
 	if releaseFn != nil {
-		go func() {
-			<-o.client.ctx.Done()
-			releaseFn()
-		}()
+		o.client.setAttachedRelease(resourceID, releaseFn)
 	}
 	return resourceID, nil
 }
@@ -489,11 +508,12 @@ func (c *Client) openAttachSession() (*attachSession, error) {
 		return resource_server.WithResourceClientContext(ctx, owner)
 	})
 	sess := &attachSession{
-		ctx:     c.ctx,
-		strm:    strm,
-		router:  router,
-		pending: make(map[uint32]*pendingAttach),
-		sendCh:  make(chan *attachSendRequest),
+		ctx:        c.ctx,
+		strm:       strm,
+		router:     router,
+		pending:    make(map[uint32]*pendingAttach),
+		releaseFns: make(map[uint32]func()),
+		sendCh:     make(chan *attachSendRequest),
 	}
 	go sess.executeSendLoop()
 
@@ -538,6 +558,7 @@ func (c *Client) openAttachSession() (*attachSession, error) {
 				}
 				return nil, nil
 			case *resource.ResourceAttachResponse_DetachAck:
+				sess.releaseAttachedResource(body.DetachAck.GetResourceId())
 				return nil, nil
 			case *resource.ResourceAttachResponse_MuxData:
 				return body.MuxData, nil
@@ -559,6 +580,7 @@ func (c *Client) openAttachSession() (*attachSession, error) {
 	go func() {
 		_ = srv.AcceptMuxedConn(c.ctx, mc)
 		c.clearAttachSession(sess)
+		sess.releaseAllAttachedResources()
 	}()
 
 	return sess, nil
@@ -571,6 +593,47 @@ func (c *Client) clearAttachSession(sess *attachSession) {
 
 	if c.attachSess == sess {
 		c.attachSess = nil
+	}
+}
+
+func (c *Client) setAttachedRelease(resourceID uint32, releaseFn func()) {
+	c.mtx.Lock()
+	sess := c.attachSess
+	c.mtx.Unlock()
+	if sess == nil || releaseFn == nil {
+		return
+	}
+	sess.mu.Lock()
+	sess.releaseFns[resourceID] = releaseFn
+	sess.mu.Unlock()
+}
+
+func (s *attachSession) releaseAttachedResource(resourceID uint32) {
+	s.mu.Lock()
+	releaseFn := s.releaseFns[resourceID]
+	delete(s.releaseFns, resourceID)
+	s.mu.Unlock()
+
+	s.router.RemoveMux(resourceID)
+	if releaseFn != nil {
+		releaseFn()
+	}
+}
+
+func (s *attachSession) releaseAllAttachedResources() {
+	s.mu.Lock()
+	releaseFns := make([]func(), 0, len(s.releaseFns))
+	for id, releaseFn := range s.releaseFns {
+		delete(s.releaseFns, id)
+		s.router.RemoveMux(id)
+		if releaseFn != nil {
+			releaseFns = append(releaseFns, releaseFn)
+		}
+	}
+	s.mu.Unlock()
+
+	for _, releaseFn := range releaseFns {
+		releaseFn()
 	}
 }
 

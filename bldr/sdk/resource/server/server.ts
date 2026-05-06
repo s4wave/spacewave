@@ -253,6 +253,14 @@ class ResourceServer implements ResourceService {
           client: resClient,
           signal: resController.signal,
           controller: resController,
+          release: () => {
+            outgoing.push({
+              body: {
+                case: 'detachAck' as const,
+                value: { resourceId },
+              },
+            })
+          },
         })
         attachedIds.push(resourceId)
 
@@ -348,6 +356,9 @@ class ResourceServer implements ResourceService {
 
     const resource = client.resources.get(resourceID)
     if (!resource) {
+      if (client.releaseResource(resourceID)) {
+        return {}
+      }
       throw new Error('resource not found')
     }
 

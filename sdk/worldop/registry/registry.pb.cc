@@ -225,7 +225,7 @@ inline constexpr ApplyWorldOpRequest::Impl_::Impl_(
         op_data_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
-        engine_resource_id_{0u} {}
+        attached_world_state_resource_id_{0u} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR ApplyWorldOpRequest::ApplyWorldOpRequest(::_pbi::ConstantInitialized)
@@ -284,7 +284,7 @@ inline constexpr ApplyWorldObjectOpRequest::Impl_::Impl_(
         object_key_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
-        engine_resource_id_{0u} {}
+        attached_object_state_resource_id_{0u} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR ApplyWorldObjectOpRequest::ApplyWorldObjectOpRequest(::_pbi::ConstantInitialized)
@@ -372,7 +372,7 @@ const ::uint32_t
         6, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::worldop::registry::ApplyWorldOpRequest, _impl_.operation_type_id_),
         PROTOBUF_FIELD_OFFSET(::s4wave::worldop::registry::ApplyWorldOpRequest, _impl_.op_data_),
-        PROTOBUF_FIELD_OFFSET(::s4wave::worldop::registry::ApplyWorldOpRequest, _impl_.engine_resource_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::worldop::registry::ApplyWorldOpRequest, _impl_.attached_world_state_resource_id_),
         0,
         1,
         2,
@@ -387,7 +387,7 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::s4wave::worldop::registry::ApplyWorldObjectOpRequest, _impl_.operation_type_id_),
         PROTOBUF_FIELD_OFFSET(::s4wave::worldop::registry::ApplyWorldObjectOpRequest, _impl_.op_data_),
         PROTOBUF_FIELD_OFFSET(::s4wave::worldop::registry::ApplyWorldObjectOpRequest, _impl_.object_key_),
-        PROTOBUF_FIELD_OFFSET(::s4wave::worldop::registry::ApplyWorldObjectOpRequest, _impl_.engine_resource_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::worldop::registry::ApplyWorldObjectOpRequest, _impl_.attached_object_state_resource_id_),
         0,
         1,
         2,
@@ -450,39 +450,40 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fw
     "nse\022\023\n\013resource_id\030\001 \001(\r\"\026\n\024WatchWorldOp"
     "sRequest\"\\\n\025WatchWorldOpsResponse\022C\n\rreg"
     "istrations\030\001 \003(\0132,.s4wave.worldop.regist"
-    "ry.WorldOpRegistration\"]\n\023ApplyWorldOpRe"
+    "ry.WorldOpRegistration\"k\n\023ApplyWorldOpRe"
     "quest\022\031\n\021operation_type_id\030\001 \001(\t\022\017\n\007op_d"
-    "ata\030\002 \001(\014\022\032\n\022engine_resource_id\030\003 \001(\r\",\n"
-    "\024ApplyWorldOpResponse\022\024\n\014system_error\030\001 "
-    "\001(\010\"w\n\031ApplyWorldObjectOpRequest\022\031\n\021oper"
-    "ation_type_id\030\001 \001(\t\022\017\n\007op_data\030\002 \001(\014\022\022\n\n"
-    "object_key\030\003 \001(\t\022\032\n\022engine_resource_id\030\004"
-    " \001(\r\"2\n\032ApplyWorldObjectOpResponse\022\024\n\014sy"
-    "stem_error\030\001 \001(\010\"\?\n\021ValidateOpRequest\022\031\n"
-    "\021operation_type_id\030\001 \001(\t\022\017\n\007op_data\030\002 \001("
-    "\014\"#\n\022ValidateOpResponse\022\r\n\005error\030\001 \001(\t2\210"
-    "\002\n\036WorldOpRegistryResourceService\022t\n\017Reg"
-    "isterWorldOp\022/.s4wave.worldop.registry.R"
-    "egisterWorldOpRequest\0320.s4wave.worldop.r"
-    "egistry.RegisterWorldOpResponse\022p\n\rWatch"
-    "WorldOps\022-.s4wave.worldop.registry.Watch"
-    "WorldOpsRequest\032..s4wave.worldop.registr"
-    "y.WatchWorldOpsResponse0\0012\352\002\n\025WorldOpHan"
-    "dlerService\022k\n\014ApplyWorldOp\022,.s4wave.wor"
-    "ldop.registry.ApplyWorldOpRequest\032-.s4wa"
-    "ve.worldop.registry.ApplyWorldOpResponse"
-    "\022}\n\022ApplyWorldObjectOp\0222.s4wave.worldop."
-    "registry.ApplyWorldObjectOpRequest\0323.s4w"
-    "ave.worldop.registry.ApplyWorldObjectOpR"
-    "esponse\022e\n\nValidateOp\022*.s4wave.worldop.r"
-    "egistry.ValidateOpRequest\032+.s4wave.world"
-    "op.registry.ValidateOpResponseb\006proto3"
+    "ata\030\002 \001(\014\022(\n attached_world_state_resour"
+    "ce_id\030\003 \001(\r\",\n\024ApplyWorldOpResponse\022\024\n\014s"
+    "ystem_error\030\001 \001(\010\"\206\001\n\031ApplyWorldObjectOp"
+    "Request\022\031\n\021operation_type_id\030\001 \001(\t\022\017\n\007op"
+    "_data\030\002 \001(\014\022\022\n\nobject_key\030\003 \001(\t\022)\n!attac"
+    "hed_object_state_resource_id\030\004 \001(\r\"2\n\032Ap"
+    "plyWorldObjectOpResponse\022\024\n\014system_error"
+    "\030\001 \001(\010\"\?\n\021ValidateOpRequest\022\031\n\021operation"
+    "_type_id\030\001 \001(\t\022\017\n\007op_data\030\002 \001(\014\"#\n\022Valid"
+    "ateOpResponse\022\r\n\005error\030\001 \001(\t2\210\002\n\036WorldOp"
+    "RegistryResourceService\022t\n\017RegisterWorld"
+    "Op\022/.s4wave.worldop.registry.RegisterWor"
+    "ldOpRequest\0320.s4wave.worldop.registry.Re"
+    "gisterWorldOpResponse\022p\n\rWatchWorldOps\022-"
+    ".s4wave.worldop.registry.WatchWorldOpsRe"
+    "quest\032..s4wave.worldop.registry.WatchWor"
+    "ldOpsResponse0\0012\352\002\n\025WorldOpHandlerServic"
+    "e\022k\n\014ApplyWorldOp\022,.s4wave.worldop.regis"
+    "try.ApplyWorldOpRequest\032-.s4wave.worldop"
+    ".registry.ApplyWorldOpResponse\022}\n\022ApplyW"
+    "orldObjectOp\0222.s4wave.worldop.registry.A"
+    "pplyWorldObjectOpRequest\0323.s4wave.worldo"
+    "p.registry.ApplyWorldObjectOpResponse\022e\n"
+    "\nValidateOp\022*.s4wave.worldop.registry.Va"
+    "lidateOpRequest\032+.s4wave.worldop.registr"
+    "y.ValidateOpResponseb\006proto3"
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworldop_2fregistry_2fregistry_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworldop_2fregistry_2fregistry_2eproto = {
     false,
     false,
-    1478,
+    1508,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworldop_2fregistry_2fregistry_2eproto,
     "github.com/s4wave/spacewave/sdk/worldop/registry/registry.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworldop_2fregistry_2fregistry_2eproto_once,
@@ -1852,7 +1853,7 @@ ApplyWorldOpRequest::ApplyWorldOpRequest(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
-  _impl_.engine_resource_id_ = from._impl_.engine_resource_id_;
+  _impl_.attached_world_state_resource_id_ = from._impl_.attached_world_state_resource_id_;
 
   // @@protoc_insertion_point(copy_constructor:s4wave.worldop.registry.ApplyWorldOpRequest)
 }
@@ -1865,7 +1866,7 @@ PROTOBUF_NDEBUG_INLINE ApplyWorldOpRequest::Impl_::Impl_(
 
 inline void ApplyWorldOpRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
-  _impl_.engine_resource_id_ = {};
+  _impl_.attached_world_state_resource_id_ = {};
 }
 ApplyWorldOpRequest::~ApplyWorldOpRequest() {
   // @@protoc_insertion_point(destructor:s4wave.worldop.registry.ApplyWorldOpRequest)
@@ -1954,10 +1955,10 @@ ApplyWorldOpRequest::_table_ = {
     {::_pbi::TcParser::FastBS1,
      {18, 1, 0,
       PROTOBUF_FIELD_OFFSET(ApplyWorldOpRequest, _impl_.op_data_)}},
-    // uint32 engine_resource_id = 3;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(ApplyWorldOpRequest, _impl_.engine_resource_id_), 2>(),
+    // uint32 attached_world_state_resource_id = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(ApplyWorldOpRequest, _impl_.attached_world_state_resource_id_), 2>(),
      {24, 2, 0,
-      PROTOBUF_FIELD_OFFSET(ApplyWorldOpRequest, _impl_.engine_resource_id_)}},
+      PROTOBUF_FIELD_OFFSET(ApplyWorldOpRequest, _impl_.attached_world_state_resource_id_)}},
   }}, {{
     65535, 65535
   }}, {{
@@ -1965,8 +1966,8 @@ ApplyWorldOpRequest::_table_ = {
     {PROTOBUF_FIELD_OFFSET(ApplyWorldOpRequest, _impl_.operation_type_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // bytes op_data = 2;
     {PROTOBUF_FIELD_OFFSET(ApplyWorldOpRequest, _impl_.op_data_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
-    // uint32 engine_resource_id = 3;
-    {PROTOBUF_FIELD_OFFSET(ApplyWorldOpRequest, _impl_.engine_resource_id_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // uint32 attached_world_state_resource_id = 3;
+    {PROTOBUF_FIELD_OFFSET(ApplyWorldOpRequest, _impl_.attached_world_state_resource_id_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
   }},
   // no aux_entries
   {{
@@ -1991,7 +1992,7 @@ PROTOBUF_NOINLINE void ApplyWorldOpRequest::Clear() {
       _impl_.op_data_.ClearNonDefaultToEmpty();
     }
   }
-  _impl_.engine_resource_id_ = 0u;
+  _impl_.attached_world_state_resource_id_ = 0u;
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -2033,12 +2034,12 @@ PROTOBUF_NOINLINE void ApplyWorldOpRequest::Clear() {
     }
   }
 
-  // uint32 engine_resource_id = 3;
+  // uint32 attached_world_state_resource_id = 3;
   if (CheckHasBit(cached_has_bits, 0x00000004U)) {
-    if (this_._internal_engine_resource_id() != 0) {
+    if (this_._internal_attached_world_state_resource_id() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
-          3, this_._internal_engine_resource_id(), target);
+          3, this_._internal_attached_world_state_resource_id(), target);
     }
   }
 
@@ -2082,11 +2083,11 @@ PROTOBUF_NOINLINE void ApplyWorldOpRequest::Clear() {
                                         this_._internal_op_data());
       }
     }
-    // uint32 engine_resource_id = 3;
+    // uint32 attached_world_state_resource_id = 3;
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
-      if (this_._internal_engine_resource_id() != 0) {
+      if (this_._internal_attached_world_state_resource_id() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
-            this_._internal_engine_resource_id());
+            this_._internal_attached_world_state_resource_id());
       }
     }
   }
@@ -2128,8 +2129,8 @@ void ApplyWorldOpRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
-      if (from._internal_engine_resource_id() != 0) {
-        _this->_impl_.engine_resource_id_ = from._impl_.engine_resource_id_;
+      if (from._internal_attached_world_state_resource_id() != 0) {
+        _this->_impl_.attached_world_state_resource_id_ = from._impl_.attached_world_state_resource_id_;
       }
     }
   }
@@ -2154,7 +2155,7 @@ void ApplyWorldOpRequest::InternalSwap(ApplyWorldOpRequest* PROTOBUF_RESTRICT PR
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.operation_type_id_, &other->_impl_.operation_type_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.op_data_, &other->_impl_.op_data_, arena);
-  swap(_impl_.engine_resource_id_, other->_impl_.engine_resource_id_);
+  swap(_impl_.attached_world_state_resource_id_, other->_impl_.attached_world_state_resource_id_);
 }
 
 ::google::protobuf::Metadata ApplyWorldOpRequest::GetMetadata() const {
@@ -2449,7 +2450,7 @@ ApplyWorldObjectOpRequest::ApplyWorldObjectOpRequest(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
-  _impl_.engine_resource_id_ = from._impl_.engine_resource_id_;
+  _impl_.attached_object_state_resource_id_ = from._impl_.attached_object_state_resource_id_;
 
   // @@protoc_insertion_point(copy_constructor:s4wave.worldop.registry.ApplyWorldObjectOpRequest)
 }
@@ -2463,7 +2464,7 @@ PROTOBUF_NDEBUG_INLINE ApplyWorldObjectOpRequest::Impl_::Impl_(
 
 inline void ApplyWorldObjectOpRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
-  _impl_.engine_resource_id_ = {};
+  _impl_.attached_object_state_resource_id_ = {};
 }
 ApplyWorldObjectOpRequest::~ApplyWorldObjectOpRequest() {
   // @@protoc_insertion_point(destructor:s4wave.worldop.registry.ApplyWorldObjectOpRequest)
@@ -2544,10 +2545,10 @@ ApplyWorldObjectOpRequest::_table_ = {
     ::_pbi::TcParser::GetTable<::s4wave::worldop::registry::ApplyWorldObjectOpRequest>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // uint32 engine_resource_id = 4;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(ApplyWorldObjectOpRequest, _impl_.engine_resource_id_), 3>(),
+    // uint32 attached_object_state_resource_id = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(ApplyWorldObjectOpRequest, _impl_.attached_object_state_resource_id_), 3>(),
      {32, 3, 0,
-      PROTOBUF_FIELD_OFFSET(ApplyWorldObjectOpRequest, _impl_.engine_resource_id_)}},
+      PROTOBUF_FIELD_OFFSET(ApplyWorldObjectOpRequest, _impl_.attached_object_state_resource_id_)}},
     // string operation_type_id = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
@@ -2569,8 +2570,8 @@ ApplyWorldObjectOpRequest::_table_ = {
     {PROTOBUF_FIELD_OFFSET(ApplyWorldObjectOpRequest, _impl_.op_data_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
     // string object_key = 3;
     {PROTOBUF_FIELD_OFFSET(ApplyWorldObjectOpRequest, _impl_.object_key_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // uint32 engine_resource_id = 4;
-    {PROTOBUF_FIELD_OFFSET(ApplyWorldObjectOpRequest, _impl_.engine_resource_id_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // uint32 attached_object_state_resource_id = 4;
+    {PROTOBUF_FIELD_OFFSET(ApplyWorldObjectOpRequest, _impl_.attached_object_state_resource_id_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
   }},
   // no aux_entries
   {{
@@ -2599,7 +2600,7 @@ PROTOBUF_NOINLINE void ApplyWorldObjectOpRequest::Clear() {
       _impl_.object_key_.ClearNonDefaultToEmpty();
     }
   }
-  _impl_.engine_resource_id_ = 0u;
+  _impl_.attached_object_state_resource_id_ = 0u;
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -2651,12 +2652,12 @@ PROTOBUF_NOINLINE void ApplyWorldObjectOpRequest::Clear() {
     }
   }
 
-  // uint32 engine_resource_id = 4;
+  // uint32 attached_object_state_resource_id = 4;
   if (CheckHasBit(cached_has_bits, 0x00000008U)) {
-    if (this_._internal_engine_resource_id() != 0) {
+    if (this_._internal_attached_object_state_resource_id() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
-          4, this_._internal_engine_resource_id(), target);
+          4, this_._internal_attached_object_state_resource_id(), target);
     }
   }
 
@@ -2707,11 +2708,11 @@ PROTOBUF_NOINLINE void ApplyWorldObjectOpRequest::Clear() {
                                         this_._internal_object_key());
       }
     }
-    // uint32 engine_resource_id = 4;
+    // uint32 attached_object_state_resource_id = 4;
     if (CheckHasBit(cached_has_bits, 0x00000008U)) {
-      if (this_._internal_engine_resource_id() != 0) {
+      if (this_._internal_attached_object_state_resource_id() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
-            this_._internal_engine_resource_id());
+            this_._internal_attached_object_state_resource_id());
       }
     }
   }
@@ -2762,8 +2763,8 @@ void ApplyWorldObjectOpRequest::MergeImpl(::google::protobuf::MessageLite& to_ms
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000008U)) {
-      if (from._internal_engine_resource_id() != 0) {
-        _this->_impl_.engine_resource_id_ = from._impl_.engine_resource_id_;
+      if (from._internal_attached_object_state_resource_id() != 0) {
+        _this->_impl_.attached_object_state_resource_id_ = from._impl_.attached_object_state_resource_id_;
       }
     }
   }
@@ -2789,7 +2790,7 @@ void ApplyWorldObjectOpRequest::InternalSwap(ApplyWorldObjectOpRequest* PROTOBUF
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.operation_type_id_, &other->_impl_.operation_type_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.op_data_, &other->_impl_.op_data_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.object_key_, &other->_impl_.object_key_, arena);
-  swap(_impl_.engine_resource_id_, other->_impl_.engine_resource_id_);
+  swap(_impl_.attached_object_state_resource_id_, other->_impl_.attached_object_state_resource_id_);
 }
 
 ::google::protobuf::Metadata ApplyWorldObjectOpRequest::GetMetadata() const {

@@ -615,7 +615,7 @@ class SeedQuickstartRequest final : public ::google::protobuf::Message
   // accessors -------------------------------------------------------
   enum : int {
     kQuickstartIdFieldNumber = 1,
-    kEngineResourceIdFieldNumber = 2,
+    kAttachedEngineResourceIdFieldNumber = 2,
   };
   // string quickstart_id = 1;
   void clear_quickstart_id() ;
@@ -632,14 +632,14 @@ class SeedQuickstartRequest final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_quickstart_id();
 
   public:
-  // uint32 engine_resource_id = 2;
-  void clear_engine_resource_id() ;
-  ::uint32_t engine_resource_id() const;
-  void set_engine_resource_id(::uint32_t value);
+  // uint32 attached_engine_resource_id = 2;
+  void clear_attached_engine_resource_id() ;
+  ::uint32_t attached_engine_resource_id() const;
+  void set_attached_engine_resource_id(::uint32_t value);
 
   private:
-  ::uint32_t _internal_engine_resource_id() const;
-  void _internal_set_engine_resource_id(::uint32_t value);
+  ::uint32_t _internal_attached_engine_resource_id() const;
+  void _internal_set_attached_engine_resource_id(::uint32_t value);
 
   public:
   // @@protoc_insertion_point(class_scope:s4wave.quickstart.registry.SeedQuickstartRequest)
@@ -669,7 +669,7 @@ class SeedQuickstartRequest final : public ::google::protobuf::Message
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::internal::ArenaStringPtr quickstart_id_;
-    ::uint32_t engine_resource_id_;
+    ::uint32_t attached_engine_resource_id_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -3556,29 +3556,29 @@ inline void SeedQuickstartRequest::set_allocated_quickstart_id(::std::string* PR
   // @@protoc_insertion_point(field_set_allocated:s4wave.quickstart.registry.SeedQuickstartRequest.quickstart_id)
 }
 
-// uint32 engine_resource_id = 2;
-inline void SeedQuickstartRequest::clear_engine_resource_id() {
+// uint32 attached_engine_resource_id = 2;
+inline void SeedQuickstartRequest::clear_attached_engine_resource_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.engine_resource_id_ = 0u;
+  _impl_.attached_engine_resource_id_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000002U);
 }
-inline ::uint32_t SeedQuickstartRequest::engine_resource_id() const {
-  // @@protoc_insertion_point(field_get:s4wave.quickstart.registry.SeedQuickstartRequest.engine_resource_id)
-  return _internal_engine_resource_id();
+inline ::uint32_t SeedQuickstartRequest::attached_engine_resource_id() const {
+  // @@protoc_insertion_point(field_get:s4wave.quickstart.registry.SeedQuickstartRequest.attached_engine_resource_id)
+  return _internal_attached_engine_resource_id();
 }
-inline void SeedQuickstartRequest::set_engine_resource_id(::uint32_t value) {
-  _internal_set_engine_resource_id(value);
+inline void SeedQuickstartRequest::set_attached_engine_resource_id(::uint32_t value) {
+  _internal_set_attached_engine_resource_id(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  // @@protoc_insertion_point(field_set:s4wave.quickstart.registry.SeedQuickstartRequest.engine_resource_id)
+  // @@protoc_insertion_point(field_set:s4wave.quickstart.registry.SeedQuickstartRequest.attached_engine_resource_id)
 }
-inline ::uint32_t SeedQuickstartRequest::_internal_engine_resource_id() const {
+inline ::uint32_t SeedQuickstartRequest::_internal_attached_engine_resource_id() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.engine_resource_id_;
+  return _impl_.attached_engine_resource_id_;
 }
-inline void SeedQuickstartRequest::_internal_set_engine_resource_id(::uint32_t value) {
+inline void SeedQuickstartRequest::_internal_set_attached_engine_resource_id(::uint32_t value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.engine_resource_id_ = value;
+  _impl_.attached_engine_resource_id_ = value;
 }
 
 // -------------------------------------------------------------------

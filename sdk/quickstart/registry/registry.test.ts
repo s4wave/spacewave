@@ -78,7 +78,7 @@ describe('QuickstartRegistry proto types', () => {
     })
     const seedReq = SeedQuickstartRequest.create({
       quickstartId: 'glados-workspace',
-      engineResourceId: 77,
+      attachedEngineResourceId: 77,
     })
     const seedResp = SeedQuickstartResponse.create({
       indexPath: 'glados/org-chart',
@@ -86,7 +86,7 @@ describe('QuickstartRegistry proto types', () => {
     })
     expect(executeReq.spaceResourceId).toBe(42)
     expect(executeResp.pluginIds).toEqual(['glados-core', 'glados-web'])
-    expect(seedReq.engineResourceId).toBe(77)
+    expect(seedReq.attachedEngineResourceId).toBe(77)
     expect(seedResp.indexPath).toBe('glados/org-chart')
   })
 

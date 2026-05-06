@@ -50,9 +50,9 @@ pub struct ApplyWorldOpRequest {
     /// OpData is the serialized operation proto bytes.
     #[prost(bytes="vec", tag="2")]
     pub op_data: ::prost::alloc::vec::Vec<u8>,
-    /// EngineResourceId gives World access to the handler.
+    /// AttachedWorldStateResourceId gives WorldState access to the handler.
     #[prost(uint32, tag="3")]
-    pub engine_resource_id: u32,
+    pub attached_world_state_resource_id: u32,
 }
 /// ApplyWorldOpResponse is the response for ApplyWorldOp.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
@@ -73,9 +73,9 @@ pub struct ApplyWorldObjectOpRequest {
     /// ObjectKey is the target object key.
     #[prost(string, tag="3")]
     pub object_key: ::prost::alloc::string::String,
-    /// EngineResourceId gives World access to the handler.
+    /// AttachedObjectStateResourceId gives ObjectState access to the handler.
     #[prost(uint32, tag="4")]
-    pub engine_resource_id: u32,
+    pub attached_object_state_resource_id: u32,
 }
 /// ApplyWorldObjectOpResponse is the response for ApplyWorldObjectOp.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]

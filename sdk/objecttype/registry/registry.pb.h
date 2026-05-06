@@ -1197,7 +1197,7 @@ class InvokeObjectTypeRequest final : public ::google::protobuf::Message
   enum : int {
     kTypeIdFieldNumber = 1,
     kObjectKeyFieldNumber = 2,
-    kEngineResourceIdFieldNumber = 3,
+    kAttachedEngineResourceIdFieldNumber = 3,
   };
   // string type_id = 1;
   void clear_type_id() ;
@@ -1229,14 +1229,14 @@ class InvokeObjectTypeRequest final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_object_key();
 
   public:
-  // uint32 engine_resource_id = 3;
-  void clear_engine_resource_id() ;
-  ::uint32_t engine_resource_id() const;
-  void set_engine_resource_id(::uint32_t value);
+  // uint32 attached_engine_resource_id = 3;
+  void clear_attached_engine_resource_id() ;
+  ::uint32_t attached_engine_resource_id() const;
+  void set_attached_engine_resource_id(::uint32_t value);
 
   private:
-  ::uint32_t _internal_engine_resource_id() const;
-  void _internal_set_engine_resource_id(::uint32_t value);
+  ::uint32_t _internal_attached_engine_resource_id() const;
+  void _internal_set_attached_engine_resource_id(::uint32_t value);
 
   public:
   // @@protoc_insertion_point(class_scope:s4wave.objecttype.registry.InvokeObjectTypeRequest)
@@ -1267,7 +1267,7 @@ class InvokeObjectTypeRequest final : public ::google::protobuf::Message
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::internal::ArenaStringPtr type_id_;
     ::google::protobuf::internal::ArenaStringPtr object_key_;
-    ::uint32_t engine_resource_id_;
+    ::uint32_t attached_engine_resource_id_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -2005,29 +2005,29 @@ inline void InvokeObjectTypeRequest::set_allocated_object_key(::std::string* PRO
   // @@protoc_insertion_point(field_set_allocated:s4wave.objecttype.registry.InvokeObjectTypeRequest.object_key)
 }
 
-// uint32 engine_resource_id = 3;
-inline void InvokeObjectTypeRequest::clear_engine_resource_id() {
+// uint32 attached_engine_resource_id = 3;
+inline void InvokeObjectTypeRequest::clear_attached_engine_resource_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.engine_resource_id_ = 0u;
+  _impl_.attached_engine_resource_id_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000004U);
 }
-inline ::uint32_t InvokeObjectTypeRequest::engine_resource_id() const {
-  // @@protoc_insertion_point(field_get:s4wave.objecttype.registry.InvokeObjectTypeRequest.engine_resource_id)
-  return _internal_engine_resource_id();
+inline ::uint32_t InvokeObjectTypeRequest::attached_engine_resource_id() const {
+  // @@protoc_insertion_point(field_get:s4wave.objecttype.registry.InvokeObjectTypeRequest.attached_engine_resource_id)
+  return _internal_attached_engine_resource_id();
 }
-inline void InvokeObjectTypeRequest::set_engine_resource_id(::uint32_t value) {
-  _internal_set_engine_resource_id(value);
+inline void InvokeObjectTypeRequest::set_attached_engine_resource_id(::uint32_t value) {
+  _internal_set_attached_engine_resource_id(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000004U);
-  // @@protoc_insertion_point(field_set:s4wave.objecttype.registry.InvokeObjectTypeRequest.engine_resource_id)
+  // @@protoc_insertion_point(field_set:s4wave.objecttype.registry.InvokeObjectTypeRequest.attached_engine_resource_id)
 }
-inline ::uint32_t InvokeObjectTypeRequest::_internal_engine_resource_id() const {
+inline ::uint32_t InvokeObjectTypeRequest::_internal_attached_engine_resource_id() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.engine_resource_id_;
+  return _impl_.attached_engine_resource_id_;
 }
-inline void InvokeObjectTypeRequest::_internal_set_engine_resource_id(::uint32_t value) {
+inline void InvokeObjectTypeRequest::_internal_set_attached_engine_resource_id(::uint32_t value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.engine_resource_id_ = value;
+  _impl_.attached_engine_resource_id_ = value;
 }
 
 // -------------------------------------------------------------------

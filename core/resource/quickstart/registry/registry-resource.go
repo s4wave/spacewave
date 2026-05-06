@@ -202,11 +202,17 @@ func (r *QuickstartRegistryResource) ExecuteQuickstart(
 
 	handler := s4wave_quickstart_registry.NewSRPCQuickstartHandlerServiceClient(rootClient)
 	resp, err := handler.SeedQuickstart(ctx, &s4wave_quickstart_registry.SeedQuickstartRequest{
-		QuickstartId:     quickstartID,
-		EngineResourceId: engineResourceID,
+		QuickstartId:             quickstartID,
+		AttachedEngineResourceId: engineResourceID,
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(
+			err,
+			"seed quickstart plugin_id=%s capability=engine attached_root_id=%d path=SeedQuickstart quickstart_id=%s",
+			reg.GetPluginId(),
+			engineResourceID,
+			quickstartID,
+		)
 	}
 
 	return &s4wave_quickstart_registry.ExecuteQuickstartResponse{

@@ -246,6 +246,7 @@ interface AttachSession {
   outgoing: Pushable<ResourceAttachRequest>
   attachIdCtr: number
   muxes: Map<number, LookupMethod>
+  releaseFns: Map<number, () => void>
   pending: Map<
     number,
     {
@@ -339,6 +340,29 @@ export class Client {
     return this.createResourceReference(state.rootResourceId)
   }
 
+  // attachRawInvoker provides a leaf callback mux. Raw attached invokers are
+  // not resource trees and server handlers must not create child refs from
+  // them.
+  async attachRawInvoker(
+    label: string,
+    mux: LookupMethod,
+    signal?: AbortSignal,
+  ): Promise<{ resourceId: number; cleanup: () => void }> {
+    return this.attachResource(label, mux, signal)
+  }
+
+  // attachResourceTree provides a Resource SDK tree root. Server handlers may
+  // wrap the returned id as an attached resource tree and call child resources
+  // returned from that tree.
+  async attachResourceTree(
+    label: string,
+    mux: LookupMethod,
+    signal?: AbortSignal,
+    releaseFn?: () => void,
+  ): Promise<{ resourceId: number; cleanup: () => void }> {
+    return this.attachResource(label, mux, signal, releaseFn)
+  }
+
   // attachResource provides a mux that server-side handlers can
   // invoke. The mux is served over a yamux session inside the
   // ResourceAttach bidi stream. Multiple resources share one session.
@@ -347,6 +371,7 @@ export class Client {
     label: string,
     mux: LookupMethod,
     signal?: AbortSignal,
+    releaseFn?: () => void,
   ): Promise<{ resourceId: number; cleanup: () => void }> {
     let attempt = 0
 
@@ -380,9 +405,12 @@ export class Client {
 
         // Register the mux for routed dispatch.
         sess.muxes.set(resourceId, mux)
+        if (releaseFn) {
+          sess.releaseFns.set(resourceId, releaseFn)
+        }
 
         const cleanup = () => {
-          sess.muxes.delete(resourceId)
+          this.releaseAttachedResource(sess, resourceId)
           // Send Detach (best-effort).
           sess.outgoing.push({
             body: {
@@ -489,6 +517,7 @@ export class Client {
       outgoing,
       attachIdCtr: 0,
       muxes: new Map(),
+      releaseFns: new Map(),
       pending: new Map(),
     }
 
@@ -544,7 +573,9 @@ export class Client {
             pending.reject(new Error(addAck.error))
           }
         }
-        // detachAck: no action needed.
+        if (body?.case === 'detachAck') {
+          this.releaseAttachedResource(sess, body.value.resourceId ?? 0)
+        }
       }
     })()
 
@@ -1086,7 +1117,23 @@ export class Client {
       pending.reject(new Error('attach session closed'))
     }
     current.pending.clear()
-    current.muxes.clear()
+    this.releaseAllAttachedResources(current)
+  }
+
+  private releaseAttachedResource(sess: AttachSession, resourceId: number): void {
+    const releaseFn = sess.releaseFns.get(resourceId)
+    sess.releaseFns.delete(resourceId)
+    sess.muxes.delete(resourceId)
+    releaseFn?.()
+  }
+
+  private releaseAllAttachedResources(sess: AttachSession): void {
+    const releaseFns = [...sess.releaseFns.values()]
+    sess.releaseFns.clear()
+    sess.muxes.clear()
+    for (const releaseFn of releaseFns) {
+      releaseFn()
+    }
   }
 
   // clearPendingResourceReleases aborts any queued release retry work.

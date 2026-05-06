@@ -1085,6 +1085,69 @@ describe('ResourceAttach handler', () => {
       )
     })
 
+    it('raw attached ref rejects child refs', () => {
+      const client = new RemoteResourceClient(() => 1, 1)
+      const controller = new AbortController()
+      client.attachedResources.set(10, {
+        label: 'raw',
+        client: buildMockSRPCClient(),
+        signal: controller.signal,
+        controller,
+      })
+
+      const ref = client.getRawAttachedRef(10)
+      expect(() => ref.createRef(11)).toThrow(
+        'Cannot create child ref from raw attached resource 10',
+      )
+    })
+
+    it('attached tree child refs resolve through child resource id', () => {
+      const client = new RemoteResourceClient(() => 1, 1)
+      const rootController = new AbortController()
+      const childController = new AbortController()
+      const rootClient = buildMockSRPCClient()
+      const childClient = buildMockSRPCClient()
+      client.attachedResources.set(10, {
+        label: 'root',
+        client: rootClient,
+        signal: rootController.signal,
+        controller: rootController,
+      })
+      client.attachedResources.set(11, {
+        label: 'child',
+        client: childClient,
+        signal: childController.signal,
+        controller: childController,
+      })
+
+      const rootRef = client.getAttachedRef(10)
+      const childRef = rootRef.createRef(11)
+
+      expect(rootRef.client).toBe(rootClient)
+      expect(childRef.client).toBe(childClient)
+    })
+
+    it('attached tree ref release notifies owner and aborts attached signal', () => {
+      const client = new RemoteResourceClient(() => 1, 1)
+      const controller = new AbortController()
+      const release = vi.fn()
+      client.attachedResources.set(10, {
+        label: 'tree',
+        client: buildMockSRPCClient(),
+        signal: controller.signal,
+        controller,
+        release,
+      })
+
+      const ref = client.getAttachedRef(10)
+      ref.release()
+
+      expect(release).toHaveBeenCalledOnce()
+      expect(controller.signal.aborted).toBe(true)
+      expect(client.attachedResources.has(10)).toBe(false)
+      expect(ref.released).toBe(true)
+    })
+
     it('attached ref becomes released when attach stream ends', async () => {
       const server = new ResourceServer(createMux())
       const { clientController, clientIter, clientHandleId, client } =
@@ -1270,6 +1333,48 @@ describe('ResourceAttach handler', () => {
       await clientIter.next()
     })
 
+    it('ResourceRefRelease releases attached resource and notifies owner', async () => {
+      const server = new ResourceServer(createMux())
+      const { clientController, clientIter, clientHandleId, client } =
+        await setupClientSession(server)
+
+      const stream = createControllableStream()
+      stream.push({
+        body: {
+          case: 'init' as const,
+          value: { clientHandleId },
+        },
+      })
+
+      const attachGen = server.ResourceAttach(stream.iterable)
+      const attachIter = attachGen[Symbol.asyncIterator]()
+      await attachIter.next()
+
+      const resourceId = await sendAddAndGetResourceId(
+        stream,
+        attachIter,
+        'release-attached',
+      )
+      const attached = client.attachedResources.get(resourceId)!
+      expect(attached.signal.aborted).toBe(false)
+
+      await server.ResourceRefRelease({
+        clientHandleId,
+        resourceId,
+      })
+      const detachAck = await readNextControl(attachIter, 'detachAck')
+      expect(detachAck.body?.case).toBe('detachAck')
+      expect(attached.signal.aborted).toBe(true)
+      expect(client.attachedResources.has(resourceId)).toBe(false)
+
+      stream.end()
+      for await (const _ of { [Symbol.asyncIterator]: () => attachIter }) {
+        // consume
+      }
+      clientController.abort()
+      await clientIter.next()
+    })
+
     it('session close aborts all per-resource signals', async () => {
       const server = new ResourceServer(createMux())
       const { clientController, clientIter, clientHandleId, client } =
@@ -1315,3 +1420,12 @@ describe('ResourceAttach handler', () => {
     })
   })
 })
+
+function buildMockSRPCClient() {
+  return {
+    request: vi.fn(),
+    clientStreamingRequest: vi.fn(),
+    serverStreamingRequest: vi.fn(),
+    bidirectionalStreamingRequest: vi.fn(),
+  } as never
+}

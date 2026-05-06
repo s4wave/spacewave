@@ -121,7 +121,7 @@ class NotesObjectTypeHandler {
     _abortSignal?: AbortSignal,
   ): Promise<InvokeObjectTypeResponse> {
     const typeId = request.typeId ?? ''
-    const engineId = request.engineResourceId ?? 0
+    const engineId = request.attachedEngineResourceId ?? 0
     const objectKey = request.objectKey ?? ''
     const { resourceId } = constructChildResource(() => {
       // If engineId is provided, get an attached ref to the world engine.
@@ -215,9 +215,9 @@ class NotesWorldOpHandler {
   private async applyInitNotebook(
     request: ApplyWorldOpRequest,
   ): Promise<ApplyWorldOpResponse> {
-    const engineId = request.engineResourceId ?? 0
+    const engineId = request.attachedWorldStateResourceId ?? 0
     if (!engineId) {
-      throw new Error('engineResourceId is required')
+      throw new Error('attachedWorldStateResourceId is required')
     }
 
     // Deserialize the operation data.
@@ -282,9 +282,9 @@ class NotesWorldOpHandler {
   private async applyCreateBlog(
     request: ApplyWorldOpRequest,
   ): Promise<ApplyWorldOpResponse> {
-    const engineId = request.engineResourceId ?? 0
+    const engineId = request.attachedWorldStateResourceId ?? 0
     if (!engineId) {
-      throw new Error('engineResourceId is required')
+      throw new Error('attachedWorldStateResourceId is required')
     }
 
     // Deserialize the operation data.
@@ -321,9 +321,9 @@ class NotesWorldOpHandler {
   private async applyCreateDocs(
     request: ApplyWorldOpRequest,
   ): Promise<ApplyWorldOpResponse> {
-    const engineId = request.engineResourceId ?? 0
+    const engineId = request.attachedWorldStateResourceId ?? 0
     if (!engineId) {
-      throw new Error('engineResourceId is required')
+      throw new Error('attachedWorldStateResourceId is required')
     }
 
     // Deserialize the operation data.

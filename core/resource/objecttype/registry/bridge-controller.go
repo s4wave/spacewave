@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver/v4"
+	"github.com/pkg/errors"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_world "github.com/s4wave/spacewave/core/resource/world"
 	"github.com/s4wave/spacewave/db/world"
@@ -114,7 +115,7 @@ func (r *bridgeResolver) Resolve(ctx context.Context, handler directive.Resolver
 
 // invokePlugin connects to the source plugin and creates a proxy invoker.
 // If engine is non-nil, it is attached as a resource so the TS handler
-// can access the world via getAttachedRef(engineResourceId).
+// can access the world via getAttachedRef(attachedEngineResourceId).
 func (r *bridgeResolver) invokePlugin(
 	ctx context.Context,
 	objectKey string,
@@ -146,14 +147,21 @@ func (r *bridgeResolver) invokePlugin(
 	if err != nil {
 		rootRef.Release()
 		resources.Release()
-		return nil, nil, err
+		return nil, nil, errors.Wrapf(
+			err,
+			"invoke objecttype plugin_id=%s capability=engine attached_root_id=%d path=InvokeObjectType type_id=%s object_key=%s",
+			r.reg.GetPluginId(),
+			engineResourceID,
+			r.reg.GetTypeId(),
+			objectKey,
+		)
 	}
 
 	handlerSvc := s4wave_objecttype_registry.NewSRPCObjectTypeHandlerServiceClient(rootClient)
 	resp, err := handlerSvc.InvokeObjectType(ctx, &s4wave_objecttype_registry.InvokeObjectTypeRequest{
-		TypeId:           r.reg.GetTypeId(),
-		ObjectKey:        objectKey,
-		EngineResourceId: engineResourceID,
+		TypeId:                   r.reg.GetTypeId(),
+		ObjectKey:                objectKey,
+		AttachedEngineResourceId: engineResourceID,
 	})
 	if err != nil {
 		rootRef.Release()

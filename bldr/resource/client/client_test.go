@@ -452,6 +452,7 @@ func TestAttachedResourceCanPublishCallableChild(t *testing.T) {
 	}
 	defer client.Release()
 
+	childReleased := make(chan struct{}, 1)
 	rootID, err := client.AttachResource(t.Context(), "test-root", srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
 		if serviceID != "test.Root" || methodID != "CreateChild" {
 			return false, nil
@@ -471,7 +472,9 @@ func TestAttachedResourceCanPublishCallableChild(t *testing.T) {
 				return true, err
 			}
 			return true, strm.MsgSend(&resource.ResourceRefReleaseResponse{})
-		}), nil)
+		}), func() {
+			childReleased <- struct{}{}
+		})
 		if err != nil {
 			return true, err
 		}
@@ -496,13 +499,19 @@ func TestAttachedResourceCanPublishCallableChild(t *testing.T) {
 	}
 
 	childRef := client.CreateResourceReference(child.GetResourceId())
-	defer childRef.Release()
 	childClient, err := childRef.GetClient()
 	if err != nil {
 		t.Fatalf("child client: %v", err)
 	}
 	if err := childClient.ExecCall(t.Context(), "test.Child", "Ping", &resource.ResourceRefReleaseRequest{}, &resource.ResourceRefReleaseResponse{}); err != nil {
 		t.Fatalf("Ping child: %v", err)
+	}
+
+	childRef.Release()
+	select {
+	case <-childReleased:
+	case <-time.After(time.Second):
+		t.Fatal("attached child release callback was not called")
 	}
 }
 

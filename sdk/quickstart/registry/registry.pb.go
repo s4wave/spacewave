@@ -290,8 +290,8 @@ type SeedQuickstartRequest struct {
 	unknownFields []byte
 	// QuickstartId is the registered Quickstart identifier to seed.
 	QuickstartId string `protobuf:"bytes,1,opt,name=quickstart_id,json=quickstartId,proto3" json:"quickstartId,omitempty"`
-	// EngineResourceId is an attached world Engine resource for the target Space.
-	EngineResourceId uint32 `protobuf:"varint,2,opt,name=engine_resource_id,json=engineResourceId,proto3" json:"engineResourceId,omitempty"`
+	// AttachedEngineResourceId is an attached world Engine resource for the target Space.
+	AttachedEngineResourceId uint32 `protobuf:"varint,2,opt,name=attached_engine_resource_id,json=attachedEngineResourceId,proto3" json:"attachedEngineResourceId,omitempty"`
 }
 
 func (x *SeedQuickstartRequest) Reset() {
@@ -307,9 +307,9 @@ func (x *SeedQuickstartRequest) GetQuickstartId() string {
 	return ""
 }
 
-func (x *SeedQuickstartRequest) GetEngineResourceId() uint32 {
+func (x *SeedQuickstartRequest) GetAttachedEngineResourceId() uint32 {
 	if x != nil {
-		return x.EngineResourceId
+		return x.AttachedEngineResourceId
 	}
 	return 0
 }
@@ -517,7 +517,7 @@ func (m *SeedQuickstartRequest) CloneVT() *SeedQuickstartRequest {
 	}
 	r := new(SeedQuickstartRequest)
 	r.QuickstartId = m.QuickstartId
-	r.EngineResourceId = m.EngineResourceId
+	r.AttachedEngineResourceId = m.AttachedEngineResourceId
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -806,7 +806,7 @@ func (this *SeedQuickstartRequest) EqualVT(that *SeedQuickstartRequest) bool {
 	if this.QuickstartId != that.QuickstartId {
 		return false
 	}
-	if this.EngineResourceId != that.EngineResourceId {
+	if this.AttachedEngineResourceId != that.AttachedEngineResourceId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1366,10 +1366,10 @@ func (x *SeedQuickstartRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("quickstartId")
 		s.WriteString(x.QuickstartId)
 	}
-	if x.EngineResourceId != 0 || s.HasField("engineResourceId") {
+	if x.AttachedEngineResourceId != 0 || s.HasField("attachedEngineResourceId") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("engineResourceId")
-		s.WriteUint32(x.EngineResourceId)
+		s.WriteObjectField("attachedEngineResourceId")
+		s.WriteUint32(x.AttachedEngineResourceId)
 	}
 	s.WriteObjectEnd()
 }
@@ -1391,9 +1391,9 @@ func (x *SeedQuickstartRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "quickstart_id", "quickstartId":
 			s.AddField("quickstart_id")
 			x.QuickstartId = s.ReadString()
-		case "engine_resource_id", "engineResourceId":
-			s.AddField("engine_resource_id")
-			x.EngineResourceId = s.ReadUint32()
+		case "attached_engine_resource_id", "attachedEngineResourceId":
+			s.AddField("attached_engine_resource_id")
+			x.AttachedEngineResourceId = s.ReadUint32()
 		}
 	})
 }
@@ -1934,8 +1934,8 @@ func (m *SeedQuickstartRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if m.EngineResourceId != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.EngineResourceId))
+	if m.AttachedEngineResourceId != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.AttachedEngineResourceId))
 		i--
 		dAtA[i] = 0x10
 	}
@@ -2177,8 +2177,8 @@ func (m *SeedQuickstartRequest) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
-	if m.EngineResourceId != 0 {
-		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.EngineResourceId))
+	if m.AttachedEngineResourceId != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.AttachedEngineResourceId))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -2470,12 +2470,12 @@ func (x *SeedQuickstartRequest) MarshalProtoText() string {
 		sb.WriteString("quickstart_id: ")
 		sb.WriteString(strconv.Quote(x.QuickstartId))
 	}
-	if x.EngineResourceId != 0 {
+	if x.AttachedEngineResourceId != 0 {
 		if sb.Len() > 23 {
 			sb.WriteString(" ")
 		}
-		sb.WriteString("engine_resource_id: ")
-		sb.WriteString(strconv.FormatUint(uint64(x.EngineResourceId), 10))
+		sb.WriteString("attached_engine_resource_id: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.AttachedEngineResourceId), 10))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -3320,10 +3320,10 @@ func (m *SeedQuickstartRequest) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EngineResourceId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field AttachedEngineResourceId", wireType)
 			}
-			m.EngineResourceId = 0
-			m.EngineResourceId, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			m.AttachedEngineResourceId = 0
+			m.AttachedEngineResourceId, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

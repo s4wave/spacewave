@@ -1620,7 +1620,7 @@ class ApplyWorldOpRequest final : public ::google::protobuf::Message
   enum : int {
     kOperationTypeIdFieldNumber = 1,
     kOpDataFieldNumber = 2,
-    kEngineResourceIdFieldNumber = 3,
+    kAttachedWorldStateResourceIdFieldNumber = 3,
   };
   // string operation_type_id = 1;
   void clear_operation_type_id() ;
@@ -1652,14 +1652,14 @@ class ApplyWorldOpRequest final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_op_data();
 
   public:
-  // uint32 engine_resource_id = 3;
-  void clear_engine_resource_id() ;
-  ::uint32_t engine_resource_id() const;
-  void set_engine_resource_id(::uint32_t value);
+  // uint32 attached_world_state_resource_id = 3;
+  void clear_attached_world_state_resource_id() ;
+  ::uint32_t attached_world_state_resource_id() const;
+  void set_attached_world_state_resource_id(::uint32_t value);
 
   private:
-  ::uint32_t _internal_engine_resource_id() const;
-  void _internal_set_engine_resource_id(::uint32_t value);
+  ::uint32_t _internal_attached_world_state_resource_id() const;
+  void _internal_set_attached_world_state_resource_id(::uint32_t value);
 
   public:
   // @@protoc_insertion_point(class_scope:s4wave.worldop.registry.ApplyWorldOpRequest)
@@ -1690,7 +1690,7 @@ class ApplyWorldOpRequest final : public ::google::protobuf::Message
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::internal::ArenaStringPtr operation_type_id_;
     ::google::protobuf::internal::ArenaStringPtr op_data_;
-    ::uint32_t engine_resource_id_;
+    ::uint32_t attached_world_state_resource_id_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -2035,7 +2035,7 @@ class ApplyWorldObjectOpRequest final : public ::google::protobuf::Message
     kOperationTypeIdFieldNumber = 1,
     kOpDataFieldNumber = 2,
     kObjectKeyFieldNumber = 3,
-    kEngineResourceIdFieldNumber = 4,
+    kAttachedObjectStateResourceIdFieldNumber = 4,
   };
   // string operation_type_id = 1;
   void clear_operation_type_id() ;
@@ -2082,14 +2082,14 @@ class ApplyWorldObjectOpRequest final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_object_key();
 
   public:
-  // uint32 engine_resource_id = 4;
-  void clear_engine_resource_id() ;
-  ::uint32_t engine_resource_id() const;
-  void set_engine_resource_id(::uint32_t value);
+  // uint32 attached_object_state_resource_id = 4;
+  void clear_attached_object_state_resource_id() ;
+  ::uint32_t attached_object_state_resource_id() const;
+  void set_attached_object_state_resource_id(::uint32_t value);
 
   private:
-  ::uint32_t _internal_engine_resource_id() const;
-  void _internal_set_engine_resource_id(::uint32_t value);
+  ::uint32_t _internal_attached_object_state_resource_id() const;
+  void _internal_set_attached_object_state_resource_id(::uint32_t value);
 
   public:
   // @@protoc_insertion_point(class_scope:s4wave.worldop.registry.ApplyWorldObjectOpRequest)
@@ -2121,7 +2121,7 @@ class ApplyWorldObjectOpRequest final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr operation_type_id_;
     ::google::protobuf::internal::ArenaStringPtr op_data_;
     ::google::protobuf::internal::ArenaStringPtr object_key_;
-    ::uint32_t engine_resource_id_;
+    ::uint32_t attached_object_state_resource_id_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -2859,29 +2859,29 @@ inline void ApplyWorldOpRequest::set_allocated_op_data(::std::string* PROTOBUF_N
   // @@protoc_insertion_point(field_set_allocated:s4wave.worldop.registry.ApplyWorldOpRequest.op_data)
 }
 
-// uint32 engine_resource_id = 3;
-inline void ApplyWorldOpRequest::clear_engine_resource_id() {
+// uint32 attached_world_state_resource_id = 3;
+inline void ApplyWorldOpRequest::clear_attached_world_state_resource_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.engine_resource_id_ = 0u;
+  _impl_.attached_world_state_resource_id_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000004U);
 }
-inline ::uint32_t ApplyWorldOpRequest::engine_resource_id() const {
-  // @@protoc_insertion_point(field_get:s4wave.worldop.registry.ApplyWorldOpRequest.engine_resource_id)
-  return _internal_engine_resource_id();
+inline ::uint32_t ApplyWorldOpRequest::attached_world_state_resource_id() const {
+  // @@protoc_insertion_point(field_get:s4wave.worldop.registry.ApplyWorldOpRequest.attached_world_state_resource_id)
+  return _internal_attached_world_state_resource_id();
 }
-inline void ApplyWorldOpRequest::set_engine_resource_id(::uint32_t value) {
-  _internal_set_engine_resource_id(value);
+inline void ApplyWorldOpRequest::set_attached_world_state_resource_id(::uint32_t value) {
+  _internal_set_attached_world_state_resource_id(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000004U);
-  // @@protoc_insertion_point(field_set:s4wave.worldop.registry.ApplyWorldOpRequest.engine_resource_id)
+  // @@protoc_insertion_point(field_set:s4wave.worldop.registry.ApplyWorldOpRequest.attached_world_state_resource_id)
 }
-inline ::uint32_t ApplyWorldOpRequest::_internal_engine_resource_id() const {
+inline ::uint32_t ApplyWorldOpRequest::_internal_attached_world_state_resource_id() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.engine_resource_id_;
+  return _impl_.attached_world_state_resource_id_;
 }
-inline void ApplyWorldOpRequest::_internal_set_engine_resource_id(::uint32_t value) {
+inline void ApplyWorldOpRequest::_internal_set_attached_world_state_resource_id(::uint32_t value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.engine_resource_id_ = value;
+  _impl_.attached_world_state_resource_id_ = value;
 }
 
 // -------------------------------------------------------------------
@@ -3112,29 +3112,29 @@ inline void ApplyWorldObjectOpRequest::set_allocated_object_key(::std::string* P
   // @@protoc_insertion_point(field_set_allocated:s4wave.worldop.registry.ApplyWorldObjectOpRequest.object_key)
 }
 
-// uint32 engine_resource_id = 4;
-inline void ApplyWorldObjectOpRequest::clear_engine_resource_id() {
+// uint32 attached_object_state_resource_id = 4;
+inline void ApplyWorldObjectOpRequest::clear_attached_object_state_resource_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.engine_resource_id_ = 0u;
+  _impl_.attached_object_state_resource_id_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000008U);
 }
-inline ::uint32_t ApplyWorldObjectOpRequest::engine_resource_id() const {
-  // @@protoc_insertion_point(field_get:s4wave.worldop.registry.ApplyWorldObjectOpRequest.engine_resource_id)
-  return _internal_engine_resource_id();
+inline ::uint32_t ApplyWorldObjectOpRequest::attached_object_state_resource_id() const {
+  // @@protoc_insertion_point(field_get:s4wave.worldop.registry.ApplyWorldObjectOpRequest.attached_object_state_resource_id)
+  return _internal_attached_object_state_resource_id();
 }
-inline void ApplyWorldObjectOpRequest::set_engine_resource_id(::uint32_t value) {
-  _internal_set_engine_resource_id(value);
+inline void ApplyWorldObjectOpRequest::set_attached_object_state_resource_id(::uint32_t value) {
+  _internal_set_attached_object_state_resource_id(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000008U);
-  // @@protoc_insertion_point(field_set:s4wave.worldop.registry.ApplyWorldObjectOpRequest.engine_resource_id)
+  // @@protoc_insertion_point(field_set:s4wave.worldop.registry.ApplyWorldObjectOpRequest.attached_object_state_resource_id)
 }
-inline ::uint32_t ApplyWorldObjectOpRequest::_internal_engine_resource_id() const {
+inline ::uint32_t ApplyWorldObjectOpRequest::_internal_attached_object_state_resource_id() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.engine_resource_id_;
+  return _impl_.attached_object_state_resource_id_;
 }
-inline void ApplyWorldObjectOpRequest::_internal_set_engine_resource_id(::uint32_t value) {
+inline void ApplyWorldObjectOpRequest::_internal_set_attached_object_state_resource_id(::uint32_t value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.engine_resource_id_ = value;
+  _impl_.attached_object_state_resource_id_ = value;
 }
 
 // -------------------------------------------------------------------

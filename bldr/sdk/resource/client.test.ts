@@ -15,6 +15,7 @@ describe('ResourceClient', () => {
       outgoing: { end, push: vi.fn() },
       attachIdCtr: 1,
       muxes: new Map([[1, vi.fn()]]),
+      releaseFns: new Map(),
       pending: new Map([[1, { resolve: vi.fn(), reject }]]),
     })
 
@@ -36,6 +37,7 @@ describe('ResourceClient', () => {
       outgoing: { end, push: vi.fn() },
       attachIdCtr: 1,
       muxes: new Map(),
+      releaseFns: new Map(),
       pending: new Map(),
     })
 
@@ -99,6 +101,44 @@ describe('ResourceClient', () => {
         value: { resourceId: 73 },
       },
     })
+  })
+
+  it('attachResourceTree cleanup runs release callback', async () => {
+    const client = new Client(buildUnusedService(), new AbortController().signal)
+    const sess = buildAttachSession()
+    vi.spyOn(
+      client as unknown as { ensureAttachSession: () => Promise<unknown> },
+      'ensureAttachSession',
+    ).mockResolvedValue(sess)
+
+    sess.outgoing.push.mockImplementation((pkt) => {
+      if (pkt.body?.case === 'add') {
+        queueMicrotask(() => {
+          const pending = sess.pending.get(1)
+          sess.pending.delete(1)
+          pending?.resolve(73)
+        })
+      }
+    })
+
+    const release = vi.fn()
+    const result = await client.attachResourceTree(
+      'tree-handler',
+      vi.fn(),
+      undefined,
+      release,
+    )
+
+    expect(result.resourceId).toBe(73)
+    expect(release).not.toHaveBeenCalled()
+    expect(sess.muxes.has(73)).toBe(true)
+    expect(sess.releaseFns.has(73)).toBe(true)
+
+    result.cleanup()
+
+    expect(release).toHaveBeenCalledOnce()
+    expect(sess.muxes.has(73)).toBe(false)
+    expect(sess.releaseFns.has(73)).toBe(false)
   })
 
   it('invalidates cached resources when attach reports a missing client', async () => {
@@ -310,5 +350,6 @@ function buildAttachSession() {
       number,
       { resolve: (resourceId: number) => void; reject: (err: Error) => void }
     >(),
+    releaseFns: new Map<number, () => void>(),
   }
 }

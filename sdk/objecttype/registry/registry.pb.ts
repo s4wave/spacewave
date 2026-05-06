@@ -164,11 +164,11 @@ export interface InvokeObjectTypeRequest {
    */
   objectKey?: string
   /**
-   * EngineResourceId gives World access to the handler.
+   * AttachedEngineResourceId gives World Engine access to the handler.
    *
-   * @generated from field: uint32 engine_resource_id = 3;
+   * @generated from field: uint32 attached_engine_resource_id = 3;
    */
-  engineResourceId?: number
+  attachedEngineResourceId?: number
 }
 
 // InvokeObjectTypeRequest contains the message type declaration for InvokeObjectTypeRequest.
@@ -180,7 +180,7 @@ export const InvokeObjectTypeRequest: MessageType<InvokeObjectTypeRequest> =
       { no: 2, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       {
         no: 3,
-        name: 'engine_resource_id',
+        name: 'attached_engine_resource_id',
         kind: 'scalar',
         T: ScalarType.UINT32,
       },

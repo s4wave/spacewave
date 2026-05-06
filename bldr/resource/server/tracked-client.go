@@ -103,6 +103,7 @@ func (c *RemoteResourceClient) GetResourceValue(resourceID uint32) (any, error) 
 func (c *RemoteResourceClient) ReleaseResource(resourceID uint32) bool {
 	var released bool
 	var releaseFn func()
+	var attachedCancel func()
 
 	c.server.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		if c.released {
@@ -111,6 +112,15 @@ func (c *RemoteResourceClient) ReleaseResource(resourceID uint32) bool {
 
 		res, ok := c.resources[resourceID]
 		if !ok {
+			ar := c.attachedResources[resourceID]
+			if ar == nil {
+				return
+			}
+			delete(c.attachedResources, resourceID)
+			attachedCancel = ar.cancel
+			releaseFn = ar.releaseFn
+			released = true
+			broadcast()
 			return
 		}
 
@@ -134,6 +144,9 @@ func (c *RemoteResourceClient) ReleaseResource(resourceID uint32) bool {
 	if releaseFn != nil {
 		releaseFn()
 	}
+	if attachedCancel != nil {
+		attachedCancel()
+	}
 
 	return released
 }
@@ -145,6 +158,7 @@ func (c *RemoteResourceClient) AddAttachedResource(
 	label string,
 	cancel context.CancelFunc,
 	srpcClient srpc.Client,
+	releaseFn func(),
 ) error {
 	var released bool
 	c.server.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -158,6 +172,7 @@ func (c *RemoteResourceClient) AddAttachedResource(
 		c.attachedResources[id] = &attachedResource{
 			label:      label,
 			cancel:     cancel,
+			releaseFn:  releaseFn,
 			srpcClient: srpcClient,
 		}
 	})
@@ -169,15 +184,26 @@ func (c *RemoteResourceClient) AddAttachedResource(
 
 // RemoveAttachedResource removes an attached resource and cancels its context.
 func (c *RemoteResourceClient) RemoveAttachedResource(id uint32) {
+	c.removeAttachedResource(id, true)
+}
+
+func (c *RemoteResourceClient) removeAttachedResource(id uint32, notify bool) {
 	var cancel context.CancelFunc
+	var releaseFn func()
 	c.server.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		ar, ok := c.attachedResources[id]
 		if !ok {
 			return
 		}
 		cancel = ar.cancel
+		if notify {
+			releaseFn = ar.releaseFn
+		}
 		delete(c.attachedResources, id)
 	})
+	if releaseFn != nil {
+		releaseFn()
+	}
 	if cancel != nil {
 		cancel()
 	}

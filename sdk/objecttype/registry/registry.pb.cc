@@ -168,7 +168,7 @@ inline constexpr InvokeObjectTypeRequest::Impl_::Impl_(
         object_key_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
-        engine_resource_id_{0u} {}
+        attached_engine_resource_id_{0u} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR InvokeObjectTypeRequest::InvokeObjectTypeRequest(::_pbi::ConstantInitialized)
@@ -256,7 +256,7 @@ const ::uint32_t
         6, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::objecttype::registry::InvokeObjectTypeRequest, _impl_.type_id_),
         PROTOBUF_FIELD_OFFSET(::s4wave::objecttype::registry::InvokeObjectTypeRequest, _impl_.object_key_),
-        PROTOBUF_FIELD_OFFSET(::s4wave::objecttype::registry::InvokeObjectTypeRequest, _impl_.engine_resource_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::objecttype::registry::InvokeObjectTypeRequest, _impl_.attached_engine_resource_id_),
         0,
         1,
         2,
@@ -298,28 +298,29 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fo
     "\n\013resource_id\030\001 \001(\r\"\031\n\027WatchObjectTypesR"
     "equest\"e\n\030WatchObjectTypesResponse\022I\n\rre"
     "gistrations\030\001 \003(\01322.s4wave.objecttype.re"
-    "gistry.ObjectTypeRegistration\"Z\n\027InvokeO"
+    "gistry.ObjectTypeRegistration\"c\n\027InvokeO"
     "bjectTypeRequest\022\017\n\007type_id\030\001 \001(\t\022\022\n\nobj"
-    "ect_key\030\002 \001(\t\022\032\n\022engine_resource_id\030\003 \001("
-    "\r\"/\n\030InvokeObjectTypeResponse\022\023\n\013resourc"
-    "e_id\030\001 \001(\r2\252\002\n!ObjectTypeRegistryResourc"
-    "eService\022\203\001\n\022RegisterObjectType\0225.s4wave"
-    ".objecttype.registry.RegisterObjectTypeR"
-    "equest\0326.s4wave.objecttype.registry.Regi"
-    "sterObjectTypeResponse\022\177\n\020WatchObjectTyp"
-    "es\0223.s4wave.objecttype.registry.WatchObj"
-    "ectTypesRequest\0324.s4wave.objecttype.regi"
-    "stry.WatchObjectTypesResponse0\0012\231\001\n\030Obje"
-    "ctTypeHandlerService\022}\n\020InvokeObjectType"
-    "\0223.s4wave.objecttype.registry.InvokeObje"
-    "ctTypeRequest\0324.s4wave.objecttype.regist"
-    "ry.InvokeObjectTypeResponseb\006proto3"
+    "ect_key\030\002 \001(\t\022#\n\033attached_engine_resourc"
+    "e_id\030\003 \001(\r\"/\n\030InvokeObjectTypeResponse\022\023"
+    "\n\013resource_id\030\001 \001(\r2\252\002\n!ObjectTypeRegist"
+    "ryResourceService\022\203\001\n\022RegisterObjectType"
+    "\0225.s4wave.objecttype.registry.RegisterOb"
+    "jectTypeRequest\0326.s4wave.objecttype.regi"
+    "stry.RegisterObjectTypeResponse\022\177\n\020Watch"
+    "ObjectTypes\0223.s4wave.objecttype.registry"
+    ".WatchObjectTypesRequest\0324.s4wave.object"
+    "type.registry.WatchObjectTypesResponse0\001"
+    "2\231\001\n\030ObjectTypeHandlerService\022}\n\020InvokeO"
+    "bjectType\0223.s4wave.objecttype.registry.I"
+    "nvokeObjectTypeRequest\0324.s4wave.objectty"
+    "pe.registry.InvokeObjectTypeResponseb\006pr"
+    "oto3"
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fobjecttype_2fregistry_2fregistry_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fobjecttype_2fregistry_2fregistry_2eproto = {
     false,
     false,
-    1035,
+    1044,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fobjecttype_2fregistry_2fregistry_2eproto,
     "github.com/s4wave/spacewave/sdk/objecttype/registry/registry.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fobjecttype_2fregistry_2fregistry_2eproto_once,
@@ -1689,7 +1690,7 @@ InvokeObjectTypeRequest::InvokeObjectTypeRequest(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
-  _impl_.engine_resource_id_ = from._impl_.engine_resource_id_;
+  _impl_.attached_engine_resource_id_ = from._impl_.attached_engine_resource_id_;
 
   // @@protoc_insertion_point(copy_constructor:s4wave.objecttype.registry.InvokeObjectTypeRequest)
 }
@@ -1702,7 +1703,7 @@ PROTOBUF_NDEBUG_INLINE InvokeObjectTypeRequest::Impl_::Impl_(
 
 inline void InvokeObjectTypeRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
-  _impl_.engine_resource_id_ = {};
+  _impl_.attached_engine_resource_id_ = {};
 }
 InvokeObjectTypeRequest::~InvokeObjectTypeRequest() {
   // @@protoc_insertion_point(destructor:s4wave.objecttype.registry.InvokeObjectTypeRequest)
@@ -1791,10 +1792,10 @@ InvokeObjectTypeRequest::_table_ = {
     {::_pbi::TcParser::FastUS1,
      {18, 1, 0,
       PROTOBUF_FIELD_OFFSET(InvokeObjectTypeRequest, _impl_.object_key_)}},
-    // uint32 engine_resource_id = 3;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(InvokeObjectTypeRequest, _impl_.engine_resource_id_), 2>(),
+    // uint32 attached_engine_resource_id = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(InvokeObjectTypeRequest, _impl_.attached_engine_resource_id_), 2>(),
      {24, 2, 0,
-      PROTOBUF_FIELD_OFFSET(InvokeObjectTypeRequest, _impl_.engine_resource_id_)}},
+      PROTOBUF_FIELD_OFFSET(InvokeObjectTypeRequest, _impl_.attached_engine_resource_id_)}},
   }}, {{
     65535, 65535
   }}, {{
@@ -1802,8 +1803,8 @@ InvokeObjectTypeRequest::_table_ = {
     {PROTOBUF_FIELD_OFFSET(InvokeObjectTypeRequest, _impl_.type_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string object_key = 2;
     {PROTOBUF_FIELD_OFFSET(InvokeObjectTypeRequest, _impl_.object_key_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // uint32 engine_resource_id = 3;
-    {PROTOBUF_FIELD_OFFSET(InvokeObjectTypeRequest, _impl_.engine_resource_id_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // uint32 attached_engine_resource_id = 3;
+    {PROTOBUF_FIELD_OFFSET(InvokeObjectTypeRequest, _impl_.attached_engine_resource_id_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
   }},
   // no aux_entries
   {{
@@ -1829,7 +1830,7 @@ PROTOBUF_NOINLINE void InvokeObjectTypeRequest::Clear() {
       _impl_.object_key_.ClearNonDefaultToEmpty();
     }
   }
-  _impl_.engine_resource_id_ = 0u;
+  _impl_.attached_engine_resource_id_ = 0u;
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -1873,12 +1874,12 @@ PROTOBUF_NOINLINE void InvokeObjectTypeRequest::Clear() {
     }
   }
 
-  // uint32 engine_resource_id = 3;
+  // uint32 attached_engine_resource_id = 3;
   if (CheckHasBit(cached_has_bits, 0x00000004U)) {
-    if (this_._internal_engine_resource_id() != 0) {
+    if (this_._internal_attached_engine_resource_id() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
-          3, this_._internal_engine_resource_id(), target);
+          3, this_._internal_attached_engine_resource_id(), target);
     }
   }
 
@@ -1922,11 +1923,11 @@ PROTOBUF_NOINLINE void InvokeObjectTypeRequest::Clear() {
                                         this_._internal_object_key());
       }
     }
-    // uint32 engine_resource_id = 3;
+    // uint32 attached_engine_resource_id = 3;
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
-      if (this_._internal_engine_resource_id() != 0) {
+      if (this_._internal_attached_engine_resource_id() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
-            this_._internal_engine_resource_id());
+            this_._internal_attached_engine_resource_id());
       }
     }
   }
@@ -1968,8 +1969,8 @@ void InvokeObjectTypeRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
-      if (from._internal_engine_resource_id() != 0) {
-        _this->_impl_.engine_resource_id_ = from._impl_.engine_resource_id_;
+      if (from._internal_attached_engine_resource_id() != 0) {
+        _this->_impl_.attached_engine_resource_id_ = from._impl_.attached_engine_resource_id_;
       }
     }
   }
@@ -1994,7 +1995,7 @@ void InvokeObjectTypeRequest::InternalSwap(InvokeObjectTypeRequest* PROTOBUF_RES
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.type_id_, &other->_impl_.type_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.object_key_, &other->_impl_.object_key_, arena);
-  swap(_impl_.engine_resource_id_, other->_impl_.engine_resource_id_);
+  swap(_impl_.attached_engine_resource_id_, other->_impl_.attached_engine_resource_id_);
 }
 
 ::google::protobuf::Metadata InvokeObjectTypeRequest::GetMetadata() const {

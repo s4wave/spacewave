@@ -52,8 +52,8 @@ message InvokeObjectTypeRequest {
   string type_id = 1;
   // ObjectKey is the world object key.
   string object_key = 2;
-  // EngineResourceId gives World access to the handler.
-  uint32 engine_resource_id = 3;
+  // AttachedEngineResourceId gives World Engine access to the handler.
+  uint32 attached_engine_resource_id = 3;
 }
 
 // InvokeObjectTypeResponse is the response for InvokeObjectType.

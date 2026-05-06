@@ -138,7 +138,12 @@ func (o *bridgeOperation) ApplyWorldOp(
 ) (bool, error) {
 	resources, err := o.connectPlugin(ctx)
 	if err != nil {
-		return true, err
+		return true, errors.Wrapf(
+			err,
+			"apply world op plugin_id=%s capability=world_state path=ApplyWorldOp operation_type_id=%s",
+			o.reg.GetPluginId(),
+			o.opTypeID,
+		)
 	}
 	defer resources.Release()
 
@@ -147,24 +152,30 @@ func (o *bridgeOperation) ApplyWorldOp(
 	// recursively (e.g. to init UnixFS objects).
 	lookupOp := world.BuildLookupWorldOpFunc(o.b, o.le, o.engineID)
 	wsResource := resource_world.NewWorldStateResource(o.le, o.b, ws, lookupOp)
-	engineResourceID, err := resources.Client.AttachResource(ctx, "world-state", wsResource.GetMux())
+	worldStateResourceID, err := resources.Client.AttachResource(ctx, "world-state", wsResource.GetMux())
 	if err != nil {
 		return true, errors.Wrap(err, "attach world state resource")
 	}
 	defer func() {
-		_ = resources.Client.DetachResource(ctx, engineResourceID)
+		_ = resources.Client.DetachResource(ctx, worldStateResourceID)
 	}()
 
 	svc, cleanup, err := o.getHandlerService(resources)
 	if err != nil {
-		return true, err
+		return true, errors.Wrapf(
+			err,
+			"apply world op plugin_id=%s capability=world_state attached_root_id=%d path=ApplyWorldOp operation_type_id=%s",
+			o.reg.GetPluginId(),
+			worldStateResourceID,
+			o.opTypeID,
+		)
 	}
 	defer cleanup()
 
 	resp, err := svc.ApplyWorldOp(ctx, &s4wave_worldop_registry.ApplyWorldOpRequest{
-		OperationTypeId:  o.opTypeID,
-		OpData:           o.opData,
-		EngineResourceId: engineResourceID,
+		OperationTypeId:              o.opTypeID,
+		OpData:                       o.opData,
+		AttachedWorldStateResourceId: worldStateResourceID,
 	})
 	if err != nil {
 		return true, err
@@ -187,12 +198,12 @@ func (o *bridgeOperation) ApplyWorldObjectOp(
 
 	// Attach an ObjectStateResource so the TS handler can mutate the object.
 	objResource := resource_world.NewObjectStateResource(o.le, o.b, os, nil)
-	engineResourceID, err := resources.Client.AttachResource(ctx, "object-state", objResource.GetMux())
+	objectStateResourceID, err := resources.Client.AttachResource(ctx, "object-state", objResource.GetMux())
 	if err != nil {
 		return true, errors.Wrap(err, "attach object state resource")
 	}
 	defer func() {
-		_ = resources.Client.DetachResource(ctx, engineResourceID)
+		_ = resources.Client.DetachResource(ctx, objectStateResourceID)
 	}()
 
 	svc, cleanup, err := o.getHandlerService(resources)
@@ -202,10 +213,10 @@ func (o *bridgeOperation) ApplyWorldObjectOp(
 	defer cleanup()
 
 	resp, err := svc.ApplyWorldObjectOp(ctx, &s4wave_worldop_registry.ApplyWorldObjectOpRequest{
-		OperationTypeId:  o.opTypeID,
-		OpData:           o.opData,
-		ObjectKey:        os.GetKey(),
-		EngineResourceId: engineResourceID,
+		OperationTypeId:               o.opTypeID,
+		OpData:                        o.opData,
+		ObjectKey:                     os.GetKey(),
+		AttachedObjectStateResourceId: objectStateResourceID,
 	})
 	if err != nil {
 		return true, err
