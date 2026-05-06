@@ -8,6 +8,7 @@ import (
 	provider "github.com/s4wave/spacewave/core/provider"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
+	"github.com/s4wave/spacewave/core/session"
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 )
 
@@ -46,6 +47,14 @@ func (r *SessionResource) WatchSyncStatus(
 			return err
 		}
 	}
+}
+
+// BuildSyncStatusSnapshot returns the session sync snapshot and change channels.
+func BuildSyncStatusSnapshot(
+	sess session.Session,
+	now time.Time,
+) (*s4wave_session.WatchSyncStatusResponse, []<-chan struct{}) {
+	return (&SessionResource{session: sess}).buildSyncStatusSnapshot(nil, now)
 }
 
 func (r *SessionResource) buildSyncStatusSnapshot(

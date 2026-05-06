@@ -3,6 +3,7 @@ package statusprojector
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/util/ccontainer"
@@ -10,9 +11,11 @@ import (
 	"github.com/s4wave/spacewave/core/cdn"
 	"github.com/s4wave/spacewave/core/provider"
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
+	resource_session "github.com/s4wave/spacewave/core/resource/session"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/core/space"
+	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 )
 
 type sessionAccountProjection struct {
@@ -31,6 +34,7 @@ type sessionSelfEnrollmentProjection struct {
 type sessionRuntimeProjection struct {
 	account sessionAccountProjection
 	spaces  []*space.SpaceSoListEntry
+	sync    *s4wave_session.WatchSyncStatusResponse
 }
 
 func snapshotSessionProjection(
@@ -57,6 +61,7 @@ func snapshotSessionProjection(
 
 	rows := make([]*sessionProjectionRow, 0, len(entries))
 	spaceRows := []*spaceProjectionRow{}
+	activityRows := []*activityProjectionRow{}
 	releases := make([]func(), 0, len(entries))
 	waitChs := []<-chan struct{}{sessionWaitCh}
 	for _, entry := range entries {
@@ -86,10 +91,17 @@ func snapshotSessionProjection(
 			sessionLabel(row),
 			runtime.spaces,
 		)
+		activityRows = appendActivityProjectionRow(
+			activityRows,
+			entry.GetSessionIndex(),
+			sessionLabel(row),
+			runtime.sync,
+		)
 	}
 
 	projection := buildSessionProjection(rows)
 	projection.Spaces = buildSpaceProjection(spaceRows)
+	projection.Activity = buildActivityProjection(activityRows)
 	return projection, waitChs, releases, nil
 }
 
@@ -134,6 +146,10 @@ func snapshotSessionRuntimeProjection(
 	proj.spaces = spaces
 	releases = append(releases, spaceReleases...)
 	waitChs = append(waitChs, spaceWaitChs...)
+
+	syncStatus, syncWaitChs := resource_session.BuildSyncStatusSnapshot(sess, time.Now())
+	proj.sync = syncStatus
+	waitChs = append(waitChs, syncWaitChs...)
 	return proj, waitChs, releases, nil
 }
 

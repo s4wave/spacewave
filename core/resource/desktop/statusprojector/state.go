@@ -16,6 +16,8 @@ const maxProjectedSessions = 5
 type SessionProjection struct {
 	Sessions       []*desktop_runtime.DesktopRuntimeNavigationItem
 	Spaces         []*desktop_runtime.DesktopRuntimeNavigationItem
+	Activity       []*desktop_runtime.DesktopRuntimeActivityItem
+	Update         *desktop_runtime.DesktopRuntimeUpdateStatus
 	AttentionItems []*desktop_runtime.DesktopRuntimeAttentionItem
 }
 
@@ -46,10 +48,13 @@ func BuildDesktopRuntimeState(
 		Listener:       buildDesktopRuntimeListenerStatus(status),
 		Sessions:       projection.Sessions,
 		Spaces:         projection.Spaces,
-		Activity:       []*desktop_runtime.DesktopRuntimeActivityItem{},
-		Update:         &desktop_runtime.DesktopRuntimeUpdateStatus{},
+		Activity:       projection.Activity,
+		Update:         projection.Update,
 		AttentionItems: projection.AttentionItems,
 		Actions:        []*desktop_runtime.DesktopRuntimeActionItem{},
+	}
+	if state.Update == nil {
+		state.Update = &desktop_runtime.DesktopRuntimeUpdateStatus{}
 	}
 	if status.Listening {
 		state.StatusText = "Running"
@@ -60,12 +65,27 @@ func BuildDesktopRuntimeState(
 		state.Health = desktop_runtime.DesktopRuntimeHealth_DESKTOP_RUNTIME_HEALTH_DISCONNECTED
 		state.Lifecycle = desktop_runtime.DesktopRuntimeLifecycle_DESKTOP_RUNTIME_LIFECYCLE_DISCONNECTED
 	}
-	if len(state.GetAttentionItems()) != 0 &&
+	if hasRunningActivity(state.GetActivity()) &&
 		state.GetHealth() == desktop_runtime.DesktopRuntimeHealth_DESKTOP_RUNTIME_HEALTH_HEALTHY {
+		state.StatusText = "Syncing"
+		state.Health = desktop_runtime.DesktopRuntimeHealth_DESKTOP_RUNTIME_HEALTH_ACTIVE
+	}
+	if len(state.GetAttentionItems()) != 0 &&
+		(state.GetHealth() == desktop_runtime.DesktopRuntimeHealth_DESKTOP_RUNTIME_HEALTH_HEALTHY ||
+			state.GetHealth() == desktop_runtime.DesktopRuntimeHealth_DESKTOP_RUNTIME_HEALTH_ACTIVE) {
 		state.StatusText = "Needs attention"
 		state.Health = desktop_runtime.DesktopRuntimeHealth_DESKTOP_RUNTIME_HEALTH_NEEDS_ATTENTION
 	}
 	return state
+}
+
+func hasRunningActivity(items []*desktop_runtime.DesktopRuntimeActivityItem) bool {
+	for _, item := range items {
+		if item.GetState() == desktop_runtime.DesktopRuntimeActivityState_DESKTOP_RUNTIME_ACTIVITY_STATE_RUNNING {
+			return true
+		}
+	}
+	return false
 }
 
 func buildSessionProjection(rows []*sessionProjectionRow) *SessionProjection {

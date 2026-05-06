@@ -206,6 +206,26 @@ func TestBuildSessionProjectionFlagsStepUp(t *testing.T) {
 	}
 }
 
+func TestBuildDesktopRuntimeStateMarksRunningActivity(t *testing.T) {
+	state := BuildDesktopRuntimeState(resource_listener.ListenerStatus{
+		SocketPath: "/run/spacewave.sock",
+		Listening:  true,
+	}, &SessionProjection{
+		Activity: []*desktop_runtime.DesktopRuntimeActivityItem{
+			{
+				Label: "Uploading changes",
+				State: desktop_runtime.DesktopRuntimeActivityState_DESKTOP_RUNTIME_ACTIVITY_STATE_RUNNING,
+			},
+		},
+	})
+	if state.GetHealth() != desktop_runtime.DesktopRuntimeHealth_DESKTOP_RUNTIME_HEALTH_ACTIVE {
+		t.Fatalf("health = %v, want active", state.GetHealth())
+	}
+	if state.GetStatusText() != "Syncing" {
+		t.Fatalf("status text = %q, want Syncing", state.GetStatusText())
+	}
+}
+
 func TestBuildSessionProjectionBoundsSessionRows(t *testing.T) {
 	rows := make([]*sessionProjectionRow, 0, maxProjectedSessions+1)
 	for i := uint32(1); i <= maxProjectedSessions+1; i++ {

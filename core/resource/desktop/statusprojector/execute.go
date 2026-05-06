@@ -60,7 +60,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 
 	service := desktop_runtime.NewSRPCDesktopRuntimeResourceServiceClient(rootClient)
-	return projectRuntimeStatus(ctx, c.GetBus(), resource_listener.GetProcessStatusBroker(), sessionCtrl, service)
+	launcher := newLauncherInfoWatcher(ctx, c.GetBus())
+	return projectRuntimeStatus(ctx, c.GetBus(), resource_listener.GetProcessStatusBroker(), sessionCtrl, launcher, service)
 }
 
 func projectRuntimeStatus(
@@ -68,6 +69,7 @@ func projectRuntimeStatus(
 	b bus.Bus,
 	broker *resource_listener.StatusBroker,
 	sessionCtrl session.SessionController,
+	launcher *launcherInfoWatcher,
 	service desktopRuntimePublisher,
 ) error {
 	var prev *desktop_runtime.DesktopRuntimeState
@@ -81,8 +83,16 @@ func projectRuntimeStatus(
 			}
 			return errors.Wrap(err, "snapshot session projection")
 		}
-		waitChs := make([]<-chan struct{}, 0, len(sessionWaitChs)+1)
+		launcherInfo, launcherWaitCh := launcher.Snapshot()
+		update, updateAttention := buildUpdateProjection(launcherInfo)
+		projection.Update = update
+		if updateAttention != nil {
+			projection.AttentionItems = append(projection.AttentionItems, updateAttention)
+		}
+
+		waitChs := make([]<-chan struct{}, 0, len(sessionWaitChs)+2)
 		waitChs = append(waitChs, listenerWaitCh)
+		waitChs = append(waitChs, launcherWaitCh)
 		waitChs = append(waitChs, sessionWaitChs...)
 
 		current := BuildDesktopRuntimeState(snapshot, projection)
