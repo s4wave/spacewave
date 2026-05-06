@@ -1,18 +1,21 @@
 import { EventEmitter } from 'events'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type {
+  DesktopRuntimeState,
+  WatchDesktopStateResponse,
+} from '../desktop-runtime/desktop-runtime.pb.js'
+
 const platformState = { value: 'linux' }
 const menuTemplates: Electron.MenuItemConstructorOptions[][] = []
 const trayInstances: MockTray[] = []
 const mockResource = {
-  getState: vi.fn(() => ({
-    mainWindowOpen: false,
-    quitting: false,
-    statusText: 'Running',
-  })),
-  OpenOrFocusMainWindow: vi.fn(async () => ({})),
-  QuitDesktopRuntime: vi.fn(async () => ({})),
+  WatchDesktopState: vi.fn(),
+  getState: vi.fn(() => defaultRuntimeState()),
+  OpenOrFocusMainWindow: vi.fn(() => Promise.resolve({})),
+  QuitDesktopRuntime: vi.fn(() => Promise.resolve({})),
 }
+let emitState: (state: DesktopRuntimeState) => void = () => {}
 
 class MockNativeImage {
   public readonly setTemplateImage = vi.fn()
@@ -65,6 +68,10 @@ describe('DesktopTrayController', () => {
     menuTemplates.length = 0
     trayInstances.length = 0
     vi.clearAllMocks()
+    mockResource.getState.mockReturnValue(defaultRuntimeState())
+    const stream = new TestStateStream()
+    emitState = (state: DesktopRuntimeState) => stream.emit({ state })
+    mockResource.WatchDesktopState.mockReturnValue(stream)
   })
 
   it('keeps one native tray item for the process lifetime', async () => {
@@ -82,6 +89,33 @@ describe('DesktopTrayController', () => {
     expect(trayInstances[0]?.setContextMenu).toHaveBeenCalledTimes(1)
     expect(menuTemplates[0]).toContainEqual({
       label: 'Status: Running',
+      enabled: false,
+    })
+    expect(mockResource.WatchDesktopState).toHaveBeenCalledTimes(1)
+  })
+
+  it('rebuilds the native menu from desktop runtime state updates', async () => {
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+    controller.init()
+
+    await Promise.resolve()
+    expect(trayInstances[0]?.setContextMenu).toHaveBeenCalledTimes(1)
+
+    const disconnected = {
+      ...defaultRuntimeState(),
+      statusText: 'Disconnected',
+    }
+    mockResource.getState.mockReturnValue(disconnected)
+    emitState(disconnected)
+    await Promise.resolve()
+
+    expect(trayInstances[0]?.setContextMenu).toHaveBeenCalledTimes(2)
+    expect(menuTemplates[1]).toContainEqual({
+      label: 'Status: Disconnected',
       enabled: false,
     })
   })
@@ -146,4 +180,44 @@ async function clickMenuItem(label: string): Promise<void> {
   }
   Reflect.apply(item.click, undefined, [])
   await Promise.resolve()
+}
+
+function defaultRuntimeState(): DesktopRuntimeState {
+  return {
+    mainWindowOpen: false,
+    quitting: false,
+    statusText: 'Running',
+  }
+}
+
+class TestStateStream implements AsyncIterable<WatchDesktopStateResponse> {
+  private queue: WatchDesktopStateResponse[] = []
+  private resolveNext?: (value: IteratorResult<WatchDesktopStateResponse>) => void
+
+  public emit(response: WatchDesktopStateResponse): void {
+    if (this.resolveNext) {
+      const resolve = this.resolveNext
+      this.resolveNext = undefined
+      resolve({ value: response, done: false })
+      return
+    }
+    this.queue.push(response)
+  }
+
+  public [Symbol.asyncIterator](): AsyncIterator<WatchDesktopStateResponse> {
+    return {
+      next: () => this.next(),
+      return: () => Promise.resolve({ value: undefined, done: true }),
+    }
+  }
+
+  private next(): Promise<IteratorResult<WatchDesktopStateResponse>> {
+    const response = this.queue.shift()
+    if (response) {
+      return Promise.resolve({ value: response, done: false })
+    }
+    return new Promise((resolve) => {
+      this.resolveNext = resolve
+    })
+  }
 }
