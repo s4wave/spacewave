@@ -10,14 +10,22 @@ import {
   DesktopRuntimeResourceServiceDefinition,
   type DesktopRuntimeResourceService,
 } from '../desktop-runtime/desktop-runtime_srpc.pb.js'
-import type {
-  DesktopRuntimeState,
-  OpenOrFocusMainWindowRequest,
-  OpenOrFocusMainWindowResponse,
-  QuitDesktopRuntimeRequest,
-  QuitDesktopRuntimeResponse,
-  WatchDesktopStateRequest,
-  WatchDesktopStateResponse,
+import {
+  DesktopRuntimeHealth,
+  DesktopRuntimeLifecycle,
+  DesktopRuntimeReachability,
+  type DesktopRuntimeActivityItem,
+  type DesktopRuntimeAttentionItem,
+  type DesktopRuntimeListenerStatus,
+  type DesktopRuntimeNavigationItem,
+  type DesktopRuntimeState,
+  type DesktopRuntimeUpdateStatus,
+  type OpenOrFocusMainWindowRequest,
+  type OpenOrFocusMainWindowResponse,
+  type QuitDesktopRuntimeRequest,
+  type QuitDesktopRuntimeResponse,
+  type WatchDesktopStateRequest,
+  type WatchDesktopStateResponse,
 } from '../desktop-runtime/desktop-runtime.pb.js'
 
 interface DesktopRuntimeResourceOpts {
@@ -27,11 +35,7 @@ interface DesktopRuntimeResourceOpts {
 
 // DesktopRuntimeResource owns Electron main desktop-shell lifecycle state.
 export class DesktopRuntimeResource implements DesktopRuntimeResourceService {
-  private state: DesktopRuntimeState = {
-    mainWindowOpen: false,
-    quitting: false,
-    statusText: 'Running',
-  }
+  private state: DesktopRuntimeState = buildInitialDesktopRuntimeState()
   private readonly stateStream = new ItState<WatchDesktopStateResponse>(
     async () => this.buildStateResponse(),
     { mostRecentOnly: true },
@@ -75,14 +79,31 @@ export class DesktopRuntimeResource implements DesktopRuntimeResourceService {
     this.pushState()
   }
 
+  public setDesktopState(state: DesktopRuntimeState): void {
+    this.state = cloneDesktopRuntimeState(state)
+    this.pushState()
+  }
+
   public setQuitting(quitting: boolean): void {
     if (this.state.quitting === quitting) return
-    this.state = { ...this.state, quitting }
+    let health = DesktopRuntimeHealth.HEALTHY
+    let lifecycle = DesktopRuntimeLifecycle.RUNNING
+    if (quitting) {
+      health = DesktopRuntimeHealth.QUITTING
+      lifecycle = DesktopRuntimeLifecycle.QUITTING
+    }
+    this.state = {
+      ...this.state,
+      quitting,
+      statusText: quitting ? 'Quitting' : 'Running',
+      health,
+      lifecycle,
+    }
     this.pushState()
   }
 
   public getState(): DesktopRuntimeState {
-    return { ...this.state }
+    return cloneDesktopRuntimeState(this.state)
   }
 
   private buildStateResponse(): WatchDesktopStateResponse {
@@ -92,6 +113,68 @@ export class DesktopRuntimeResource implements DesktopRuntimeResourceService {
   private pushState(): void {
     this.stateStream.pushChangeEvent(this.buildStateResponse())
   }
+}
+
+function buildInitialDesktopRuntimeState(): DesktopRuntimeState {
+  return {
+    mainWindowOpen: false,
+    quitting: false,
+    statusText: 'Running',
+    health: DesktopRuntimeHealth.HEALTHY,
+    lifecycle: DesktopRuntimeLifecycle.RUNNING,
+    listener: {
+      reachability: DesktopRuntimeReachability.UNSPECIFIED,
+    },
+    sessions: [],
+    spaces: [],
+    activity: [],
+    update: {},
+    attentionItems: [],
+  }
+}
+
+function cloneDesktopRuntimeState(state: DesktopRuntimeState): DesktopRuntimeState {
+  return {
+    ...state,
+    listener: cloneListener(state.listener),
+    sessions: cloneNavigationItems(state.sessions),
+    spaces: cloneNavigationItems(state.spaces),
+    activity: cloneActivityItems(state.activity),
+    update: cloneUpdate(state.update),
+    attentionItems: cloneAttentionItems(state.attentionItems),
+  }
+}
+
+function cloneListener(
+  listener: DesktopRuntimeListenerStatus | undefined,
+): DesktopRuntimeListenerStatus | undefined {
+  if (!listener) return undefined
+  return { ...listener }
+}
+
+function cloneNavigationItems(
+  items: DesktopRuntimeNavigationItem[] | undefined,
+): DesktopRuntimeNavigationItem[] | undefined {
+  return items?.map((item) => ({ ...item }))
+}
+
+function cloneActivityItems(
+  items: DesktopRuntimeActivityItem[] | undefined,
+): DesktopRuntimeActivityItem[] | undefined {
+  return items?.map((item) => ({ ...item }))
+}
+
+function cloneUpdate(
+  update: DesktopRuntimeUpdateStatus | undefined,
+): DesktopRuntimeUpdateStatus | undefined {
+  if (!update) return undefined
+  return { ...update }
+}
+
+function cloneAttentionItems(
+  items: DesktopRuntimeAttentionItem[] | undefined,
+): DesktopRuntimeAttentionItem[] | undefined {
+  return items?.map((item) => ({ ...item }))
 }
 
 export type { DesktopRuntimeResourceOpts }

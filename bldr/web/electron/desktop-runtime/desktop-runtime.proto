@@ -23,6 +23,188 @@ message DesktopRuntimeState {
   bool quitting = 2;
   // StatusText is short display text for native status surfaces.
   string status_text = 3;
+  // Health summarizes the status icon state.
+  DesktopRuntimeHealth health = 4;
+  // Lifecycle describes the native runtime process lifecycle.
+  DesktopRuntimeLifecycle lifecycle = 5;
+  // Listener describes background listener and CLI reachability.
+  DesktopRuntimeListenerStatus listener = 6;
+  // Sessions contains bounded session rows for native status surfaces.
+  repeated DesktopRuntimeNavigationItem sessions = 7;
+  // Spaces contains bounded Space rows for native status surfaces.
+  repeated DesktopRuntimeNavigationItem spaces = 8;
+  // Activity contains bounded recent activity rows.
+  repeated DesktopRuntimeActivityItem activity = 9;
+  // Update describes native runtime update readiness.
+  DesktopRuntimeUpdateStatus update = 10;
+  // AttentionItems contains user-actionable attention rows.
+  repeated DesktopRuntimeAttentionItem attention_items = 11;
+}
+
+// DesktopRuntimeHealth describes the collapsed tray icon status.
+enum DesktopRuntimeHealth {
+  // DESKTOP_RUNTIME_HEALTH_UNSPECIFIED leaves the icon status unset.
+  DESKTOP_RUNTIME_HEALTH_UNSPECIFIED = 0;
+  // DESKTOP_RUNTIME_HEALTH_STARTING indicates the runtime is starting.
+  DESKTOP_RUNTIME_HEALTH_STARTING = 1;
+  // DESKTOP_RUNTIME_HEALTH_HEALTHY indicates the runtime is reachable.
+  DESKTOP_RUNTIME_HEALTH_HEALTHY = 2;
+  // DESKTOP_RUNTIME_HEALTH_ACTIVE indicates useful background activity.
+  DESKTOP_RUNTIME_HEALTH_ACTIVE = 3;
+  // DESKTOP_RUNTIME_HEALTH_NEEDS_ATTENTION indicates user action is needed.
+  DESKTOP_RUNTIME_HEALTH_NEEDS_ATTENTION = 4;
+  // DESKTOP_RUNTIME_HEALTH_DISCONNECTED indicates the runtime is unreachable.
+  DESKTOP_RUNTIME_HEALTH_DISCONNECTED = 5;
+  // DESKTOP_RUNTIME_HEALTH_QUITTING indicates explicit shutdown is running.
+  DESKTOP_RUNTIME_HEALTH_QUITTING = 6;
+}
+
+// DesktopRuntimeLifecycle describes native runtime process state.
+enum DesktopRuntimeLifecycle {
+  // DESKTOP_RUNTIME_LIFECYCLE_UNSPECIFIED leaves lifecycle state unset.
+  DESKTOP_RUNTIME_LIFECYCLE_UNSPECIFIED = 0;
+  // DESKTOP_RUNTIME_LIFECYCLE_STARTING indicates startup is in progress.
+  DESKTOP_RUNTIME_LIFECYCLE_STARTING = 1;
+  // DESKTOP_RUNTIME_LIFECYCLE_RUNNING indicates the runtime is active.
+  DESKTOP_RUNTIME_LIFECYCLE_RUNNING = 2;
+  // DESKTOP_RUNTIME_LIFECYCLE_DISCONNECTED indicates the runtime is detached.
+  DESKTOP_RUNTIME_LIFECYCLE_DISCONNECTED = 3;
+  // DESKTOP_RUNTIME_LIFECYCLE_QUITTING indicates explicit shutdown is running.
+  DESKTOP_RUNTIME_LIFECYCLE_QUITTING = 4;
+}
+
+// DesktopRuntimeReachability describes a reachable runtime endpoint.
+enum DesktopRuntimeReachability {
+  // DESKTOP_RUNTIME_REACHABILITY_UNSPECIFIED leaves reachability unset.
+  DESKTOP_RUNTIME_REACHABILITY_UNSPECIFIED = 0;
+  // DESKTOP_RUNTIME_REACHABILITY_STARTING indicates binding is in progress.
+  DESKTOP_RUNTIME_REACHABILITY_STARTING = 1;
+  // DESKTOP_RUNTIME_REACHABILITY_REACHABLE indicates the endpoint is reachable.
+  DESKTOP_RUNTIME_REACHABILITY_REACHABLE = 2;
+  // DESKTOP_RUNTIME_REACHABILITY_UNREACHABLE indicates the endpoint failed.
+  DESKTOP_RUNTIME_REACHABILITY_UNREACHABLE = 3;
+}
+
+// DesktopRuntimeActivityState describes a runtime activity row.
+enum DesktopRuntimeActivityState {
+  // DESKTOP_RUNTIME_ACTIVITY_STATE_UNSPECIFIED leaves activity state unset.
+  DESKTOP_RUNTIME_ACTIVITY_STATE_UNSPECIFIED = 0;
+  // DESKTOP_RUNTIME_ACTIVITY_STATE_IDLE indicates no active work.
+  DESKTOP_RUNTIME_ACTIVITY_STATE_IDLE = 1;
+  // DESKTOP_RUNTIME_ACTIVITY_STATE_RUNNING indicates work is active.
+  DESKTOP_RUNTIME_ACTIVITY_STATE_RUNNING = 2;
+  // DESKTOP_RUNTIME_ACTIVITY_STATE_DONE indicates work completed.
+  DESKTOP_RUNTIME_ACTIVITY_STATE_DONE = 3;
+  // DESKTOP_RUNTIME_ACTIVITY_STATE_ATTENTION indicates work needs attention.
+  DESKTOP_RUNTIME_ACTIVITY_STATE_ATTENTION = 4;
+  // DESKTOP_RUNTIME_ACTIVITY_STATE_ERROR indicates work failed.
+  DESKTOP_RUNTIME_ACTIVITY_STATE_ERROR = 5;
+}
+
+// DesktopRuntimeAttentionKind describes user-actionable attention categories.
+enum DesktopRuntimeAttentionKind {
+  // DESKTOP_RUNTIME_ATTENTION_KIND_UNSPECIFIED leaves attention kind unset.
+  DESKTOP_RUNTIME_ATTENTION_KIND_UNSPECIFIED = 0;
+  // DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_STARTING indicates startup status.
+  DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_STARTING = 1;
+  // DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_DISCONNECTED indicates runtime loss.
+  DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_DISCONNECTED = 2;
+  // DESKTOP_RUNTIME_ATTENTION_KIND_LISTENER_UNAVAILABLE indicates listener loss.
+  DESKTOP_RUNTIME_ATTENTION_KIND_LISTENER_UNAVAILABLE = 3;
+  // DESKTOP_RUNTIME_ATTENTION_KIND_AUTH_REQUIRED indicates session auth is needed.
+  DESKTOP_RUNTIME_ATTENTION_KIND_AUTH_REQUIRED = 4;
+  // DESKTOP_RUNTIME_ATTENTION_KIND_STEP_UP_REQUIRED indicates step-up auth is needed.
+  DESKTOP_RUNTIME_ATTENTION_KIND_STEP_UP_REQUIRED = 5;
+  // DESKTOP_RUNTIME_ATTENTION_KIND_SYNC_ERROR indicates sync or listener failure.
+  DESKTOP_RUNTIME_ATTENTION_KIND_SYNC_ERROR = 6;
+  // DESKTOP_RUNTIME_ATTENTION_KIND_UPDATE_READY indicates a native update is ready.
+  DESKTOP_RUNTIME_ATTENTION_KIND_UPDATE_READY = 7;
+  // DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_RESTARTING indicates restart progress.
+  DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_RESTARTING = 8;
+  // DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_QUITTING indicates shutdown progress.
+  DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_QUITTING = 9;
+}
+
+// DesktopRuntimeSeverity describes row urgency.
+enum DesktopRuntimeSeverity {
+  // DESKTOP_RUNTIME_SEVERITY_UNSPECIFIED leaves severity unset.
+  DESKTOP_RUNTIME_SEVERITY_UNSPECIFIED = 0;
+  // DESKTOP_RUNTIME_SEVERITY_INFO marks informational status.
+  DESKTOP_RUNTIME_SEVERITY_INFO = 1;
+  // DESKTOP_RUNTIME_SEVERITY_WARNING marks a recoverable warning.
+  DESKTOP_RUNTIME_SEVERITY_WARNING = 2;
+  // DESKTOP_RUNTIME_SEVERITY_CRITICAL marks a blocking issue.
+  DESKTOP_RUNTIME_SEVERITY_CRITICAL = 3;
+}
+
+// DesktopRuntimeListenerStatus describes background listener and CLI state.
+message DesktopRuntimeListenerStatus {
+  // Reachability describes whether the endpoint can be used.
+  DesktopRuntimeReachability reachability = 1;
+  // Label is short display text for the listener.
+  string label = 2;
+  // Detail is secondary display text for the listener.
+  string detail = 3;
+  // SocketPath is the local CLI socket path when known.
+  string socket_path = 4;
+  // ConnectedClients is the number of active CLI clients when known.
+  uint32 connected_clients = 5;
+}
+
+// DesktopRuntimeNavigationItem describes a bounded navigable status row.
+message DesktopRuntimeNavigationItem {
+  // Id identifies the row within the projected state.
+  string id = 1;
+  // Label is primary display text.
+  string label = 2;
+  // Detail is secondary display text.
+  string detail = 3;
+  // Route is the app route to open when selected.
+  string route = 4;
+  // Active is set when the row describes active foreground work.
+  bool active = 5;
+  // StatusText is compact status text for the row.
+  string status_text = 6;
+}
+
+// DesktopRuntimeActivityItem describes a bounded activity row.
+message DesktopRuntimeActivityItem {
+  // Id identifies the activity row.
+  string id = 1;
+  // Label is primary display text.
+  string label = 2;
+  // Detail is secondary display text.
+  string detail = 3;
+  // State describes the current activity state.
+  DesktopRuntimeActivityState state = 4;
+  // UpdatedAtUnixMs records the latest activity update time.
+  int64 updated_at_unix_ms = 5;
+}
+
+// DesktopRuntimeUpdateStatus describes native runtime update state.
+message DesktopRuntimeUpdateStatus {
+  // Ready is set when a native update is ready to apply.
+  bool ready = 1;
+  // Version is the available version when known.
+  string version = 2;
+  // Label is primary display text.
+  string label = 3;
+  // Detail is secondary display text.
+  string detail = 4;
+}
+
+// DesktopRuntimeAttentionItem describes a user-actionable attention row.
+message DesktopRuntimeAttentionItem {
+  // Kind describes the attention category.
+  DesktopRuntimeAttentionKind kind = 1;
+  // Severity describes the attention urgency.
+  DesktopRuntimeSeverity severity = 2;
+  // Label is primary display text.
+  string label = 3;
+  // Detail is secondary display text.
+  string detail = 4;
+  // Route is the app route that can resolve the item when available.
+  string route = 5;
 }
 
 // WatchDesktopStateRequest is the request for WatchDesktopState.

@@ -3,9 +3,670 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import {
+  createEnumType,
+  createMessageType,
+  ScalarType,
+} from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'electron.desktop_runtime'
+
+/**
+ * DesktopRuntimeHealth describes the collapsed tray icon status.
+ *
+ * @generated from enum electron.desktop_runtime.DesktopRuntimeHealth
+ */
+export enum DesktopRuntimeHealth {
+  /**
+   * DESKTOP_RUNTIME_HEALTH_UNSPECIFIED leaves the icon status unset.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_HEALTH_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * DESKTOP_RUNTIME_HEALTH_STARTING indicates the runtime is starting.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_HEALTH_STARTING = 1;
+   */
+  STARTING = 1,
+
+  /**
+   * DESKTOP_RUNTIME_HEALTH_HEALTHY indicates the runtime is reachable.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_HEALTH_HEALTHY = 2;
+   */
+  HEALTHY = 2,
+
+  /**
+   * DESKTOP_RUNTIME_HEALTH_ACTIVE indicates useful background activity.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_HEALTH_ACTIVE = 3;
+   */
+  ACTIVE = 3,
+
+  /**
+   * DESKTOP_RUNTIME_HEALTH_NEEDS_ATTENTION indicates user action is needed.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_HEALTH_NEEDS_ATTENTION = 4;
+   */
+  NEEDS_ATTENTION = 4,
+
+  /**
+   * DESKTOP_RUNTIME_HEALTH_DISCONNECTED indicates the runtime is unreachable.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_HEALTH_DISCONNECTED = 5;
+   */
+  DISCONNECTED = 5,
+
+  /**
+   * DESKTOP_RUNTIME_HEALTH_QUITTING indicates explicit shutdown is running.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_HEALTH_QUITTING = 6;
+   */
+  QUITTING = 6,
+}
+
+// DesktopRuntimeHealth_Enum is the enum type for DesktopRuntimeHealth.
+export const DesktopRuntimeHealth_Enum = createEnumType(
+  'electron.desktop_runtime.DesktopRuntimeHealth',
+  [
+    { no: 0, name: 'DESKTOP_RUNTIME_HEALTH_UNSPECIFIED' },
+    { no: 1, name: 'DESKTOP_RUNTIME_HEALTH_STARTING' },
+    { no: 2, name: 'DESKTOP_RUNTIME_HEALTH_HEALTHY' },
+    { no: 3, name: 'DESKTOP_RUNTIME_HEALTH_ACTIVE' },
+    { no: 4, name: 'DESKTOP_RUNTIME_HEALTH_NEEDS_ATTENTION' },
+    { no: 5, name: 'DESKTOP_RUNTIME_HEALTH_DISCONNECTED' },
+    { no: 6, name: 'DESKTOP_RUNTIME_HEALTH_QUITTING' },
+  ],
+)
+
+/**
+ * DesktopRuntimeLifecycle describes native runtime process state.
+ *
+ * @generated from enum electron.desktop_runtime.DesktopRuntimeLifecycle
+ */
+export enum DesktopRuntimeLifecycle {
+  /**
+   * DESKTOP_RUNTIME_LIFECYCLE_UNSPECIFIED leaves lifecycle state unset.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_LIFECYCLE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * DESKTOP_RUNTIME_LIFECYCLE_STARTING indicates startup is in progress.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_LIFECYCLE_STARTING = 1;
+   */
+  STARTING = 1,
+
+  /**
+   * DESKTOP_RUNTIME_LIFECYCLE_RUNNING indicates the runtime is active.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_LIFECYCLE_RUNNING = 2;
+   */
+  RUNNING = 2,
+
+  /**
+   * DESKTOP_RUNTIME_LIFECYCLE_DISCONNECTED indicates the runtime is detached.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_LIFECYCLE_DISCONNECTED = 3;
+   */
+  DISCONNECTED = 3,
+
+  /**
+   * DESKTOP_RUNTIME_LIFECYCLE_QUITTING indicates explicit shutdown is running.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_LIFECYCLE_QUITTING = 4;
+   */
+  QUITTING = 4,
+}
+
+// DesktopRuntimeLifecycle_Enum is the enum type for DesktopRuntimeLifecycle.
+export const DesktopRuntimeLifecycle_Enum = createEnumType(
+  'electron.desktop_runtime.DesktopRuntimeLifecycle',
+  [
+    { no: 0, name: 'DESKTOP_RUNTIME_LIFECYCLE_UNSPECIFIED' },
+    { no: 1, name: 'DESKTOP_RUNTIME_LIFECYCLE_STARTING' },
+    { no: 2, name: 'DESKTOP_RUNTIME_LIFECYCLE_RUNNING' },
+    { no: 3, name: 'DESKTOP_RUNTIME_LIFECYCLE_DISCONNECTED' },
+    { no: 4, name: 'DESKTOP_RUNTIME_LIFECYCLE_QUITTING' },
+  ],
+)
+
+/**
+ * DesktopRuntimeReachability describes a reachable runtime endpoint.
+ *
+ * @generated from enum electron.desktop_runtime.DesktopRuntimeReachability
+ */
+export enum DesktopRuntimeReachability {
+  /**
+   * DESKTOP_RUNTIME_REACHABILITY_UNSPECIFIED leaves reachability unset.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_REACHABILITY_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * DESKTOP_RUNTIME_REACHABILITY_STARTING indicates binding is in progress.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_REACHABILITY_STARTING = 1;
+   */
+  STARTING = 1,
+
+  /**
+   * DESKTOP_RUNTIME_REACHABILITY_REACHABLE indicates the endpoint is reachable.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_REACHABILITY_REACHABLE = 2;
+   */
+  REACHABLE = 2,
+
+  /**
+   * DESKTOP_RUNTIME_REACHABILITY_UNREACHABLE indicates the endpoint failed.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_REACHABILITY_UNREACHABLE = 3;
+   */
+  UNREACHABLE = 3,
+}
+
+// DesktopRuntimeReachability_Enum is the enum type for DesktopRuntimeReachability.
+export const DesktopRuntimeReachability_Enum = createEnumType(
+  'electron.desktop_runtime.DesktopRuntimeReachability',
+  [
+    { no: 0, name: 'DESKTOP_RUNTIME_REACHABILITY_UNSPECIFIED' },
+    { no: 1, name: 'DESKTOP_RUNTIME_REACHABILITY_STARTING' },
+    { no: 2, name: 'DESKTOP_RUNTIME_REACHABILITY_REACHABLE' },
+    { no: 3, name: 'DESKTOP_RUNTIME_REACHABILITY_UNREACHABLE' },
+  ],
+)
+
+/**
+ * DesktopRuntimeActivityState describes a runtime activity row.
+ *
+ * @generated from enum electron.desktop_runtime.DesktopRuntimeActivityState
+ */
+export enum DesktopRuntimeActivityState {
+  /**
+   * DESKTOP_RUNTIME_ACTIVITY_STATE_UNSPECIFIED leaves activity state unset.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_ACTIVITY_STATE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * DESKTOP_RUNTIME_ACTIVITY_STATE_IDLE indicates no active work.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_ACTIVITY_STATE_IDLE = 1;
+   */
+  IDLE = 1,
+
+  /**
+   * DESKTOP_RUNTIME_ACTIVITY_STATE_RUNNING indicates work is active.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_ACTIVITY_STATE_RUNNING = 2;
+   */
+  RUNNING = 2,
+
+  /**
+   * DESKTOP_RUNTIME_ACTIVITY_STATE_DONE indicates work completed.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_ACTIVITY_STATE_DONE = 3;
+   */
+  DONE = 3,
+
+  /**
+   * DESKTOP_RUNTIME_ACTIVITY_STATE_ATTENTION indicates work needs attention.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_ACTIVITY_STATE_ATTENTION = 4;
+   */
+  ATTENTION = 4,
+
+  /**
+   * DESKTOP_RUNTIME_ACTIVITY_STATE_ERROR indicates work failed.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_ACTIVITY_STATE_ERROR = 5;
+   */
+  ERROR = 5,
+}
+
+// DesktopRuntimeActivityState_Enum is the enum type for DesktopRuntimeActivityState.
+export const DesktopRuntimeActivityState_Enum = createEnumType(
+  'electron.desktop_runtime.DesktopRuntimeActivityState',
+  [
+    { no: 0, name: 'DESKTOP_RUNTIME_ACTIVITY_STATE_UNSPECIFIED' },
+    { no: 1, name: 'DESKTOP_RUNTIME_ACTIVITY_STATE_IDLE' },
+    { no: 2, name: 'DESKTOP_RUNTIME_ACTIVITY_STATE_RUNNING' },
+    { no: 3, name: 'DESKTOP_RUNTIME_ACTIVITY_STATE_DONE' },
+    { no: 4, name: 'DESKTOP_RUNTIME_ACTIVITY_STATE_ATTENTION' },
+    { no: 5, name: 'DESKTOP_RUNTIME_ACTIVITY_STATE_ERROR' },
+  ],
+)
+
+/**
+ * DesktopRuntimeAttentionKind describes user-actionable attention categories.
+ *
+ * @generated from enum electron.desktop_runtime.DesktopRuntimeAttentionKind
+ */
+export enum DesktopRuntimeAttentionKind {
+  /**
+   * DESKTOP_RUNTIME_ATTENTION_KIND_UNSPECIFIED leaves attention kind unset.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_ATTENTION_KIND_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_STARTING indicates startup status.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_STARTING = 1;
+   */
+  RUNTIME_STARTING = 1,
+
+  /**
+   * DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_DISCONNECTED indicates runtime loss.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_DISCONNECTED = 2;
+   */
+  RUNTIME_DISCONNECTED = 2,
+
+  /**
+   * DESKTOP_RUNTIME_ATTENTION_KIND_LISTENER_UNAVAILABLE indicates listener loss.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_ATTENTION_KIND_LISTENER_UNAVAILABLE = 3;
+   */
+  LISTENER_UNAVAILABLE = 3,
+
+  /**
+   * DESKTOP_RUNTIME_ATTENTION_KIND_AUTH_REQUIRED indicates session auth is needed.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_ATTENTION_KIND_AUTH_REQUIRED = 4;
+   */
+  AUTH_REQUIRED = 4,
+
+  /**
+   * DESKTOP_RUNTIME_ATTENTION_KIND_STEP_UP_REQUIRED indicates step-up auth is needed.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_ATTENTION_KIND_STEP_UP_REQUIRED = 5;
+   */
+  STEP_UP_REQUIRED = 5,
+
+  /**
+   * DESKTOP_RUNTIME_ATTENTION_KIND_SYNC_ERROR indicates sync or listener failure.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_ATTENTION_KIND_SYNC_ERROR = 6;
+   */
+  SYNC_ERROR = 6,
+
+  /**
+   * DESKTOP_RUNTIME_ATTENTION_KIND_UPDATE_READY indicates a native update is ready.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_ATTENTION_KIND_UPDATE_READY = 7;
+   */
+  UPDATE_READY = 7,
+
+  /**
+   * DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_RESTARTING indicates restart progress.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_RESTARTING = 8;
+   */
+  RUNTIME_RESTARTING = 8,
+
+  /**
+   * DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_QUITTING indicates shutdown progress.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_QUITTING = 9;
+   */
+  RUNTIME_QUITTING = 9,
+}
+
+// DesktopRuntimeAttentionKind_Enum is the enum type for DesktopRuntimeAttentionKind.
+export const DesktopRuntimeAttentionKind_Enum = createEnumType(
+  'electron.desktop_runtime.DesktopRuntimeAttentionKind',
+  [
+    { no: 0, name: 'DESKTOP_RUNTIME_ATTENTION_KIND_UNSPECIFIED' },
+    { no: 1, name: 'DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_STARTING' },
+    { no: 2, name: 'DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_DISCONNECTED' },
+    { no: 3, name: 'DESKTOP_RUNTIME_ATTENTION_KIND_LISTENER_UNAVAILABLE' },
+    { no: 4, name: 'DESKTOP_RUNTIME_ATTENTION_KIND_AUTH_REQUIRED' },
+    { no: 5, name: 'DESKTOP_RUNTIME_ATTENTION_KIND_STEP_UP_REQUIRED' },
+    { no: 6, name: 'DESKTOP_RUNTIME_ATTENTION_KIND_SYNC_ERROR' },
+    { no: 7, name: 'DESKTOP_RUNTIME_ATTENTION_KIND_UPDATE_READY' },
+    { no: 8, name: 'DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_RESTARTING' },
+    { no: 9, name: 'DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_QUITTING' },
+  ],
+)
+
+/**
+ * DesktopRuntimeSeverity describes row urgency.
+ *
+ * @generated from enum electron.desktop_runtime.DesktopRuntimeSeverity
+ */
+export enum DesktopRuntimeSeverity {
+  /**
+   * DESKTOP_RUNTIME_SEVERITY_UNSPECIFIED leaves severity unset.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_SEVERITY_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * DESKTOP_RUNTIME_SEVERITY_INFO marks informational status.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_SEVERITY_INFO = 1;
+   */
+  INFO = 1,
+
+  /**
+   * DESKTOP_RUNTIME_SEVERITY_WARNING marks a recoverable warning.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_SEVERITY_WARNING = 2;
+   */
+  WARNING = 2,
+
+  /**
+   * DESKTOP_RUNTIME_SEVERITY_CRITICAL marks a blocking issue.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_SEVERITY_CRITICAL = 3;
+   */
+  CRITICAL = 3,
+}
+
+// DesktopRuntimeSeverity_Enum is the enum type for DesktopRuntimeSeverity.
+export const DesktopRuntimeSeverity_Enum = createEnumType(
+  'electron.desktop_runtime.DesktopRuntimeSeverity',
+  [
+    { no: 0, name: 'DESKTOP_RUNTIME_SEVERITY_UNSPECIFIED' },
+    { no: 1, name: 'DESKTOP_RUNTIME_SEVERITY_INFO' },
+    { no: 2, name: 'DESKTOP_RUNTIME_SEVERITY_WARNING' },
+    { no: 3, name: 'DESKTOP_RUNTIME_SEVERITY_CRITICAL' },
+  ],
+)
+
+/**
+ * DesktopRuntimeListenerStatus describes background listener and CLI state.
+ *
+ * @generated from message electron.desktop_runtime.DesktopRuntimeListenerStatus
+ */
+export interface DesktopRuntimeListenerStatus {
+  /**
+   * Reachability describes whether the endpoint can be used.
+   *
+   * @generated from field: electron.desktop_runtime.DesktopRuntimeReachability reachability = 1;
+   */
+  reachability?: DesktopRuntimeReachability
+  /**
+   * Label is short display text for the listener.
+   *
+   * @generated from field: string label = 2;
+   */
+  label?: string
+  /**
+   * Detail is secondary display text for the listener.
+   *
+   * @generated from field: string detail = 3;
+   */
+  detail?: string
+  /**
+   * SocketPath is the local CLI socket path when known.
+   *
+   * @generated from field: string socket_path = 4;
+   */
+  socketPath?: string
+  /**
+   * ConnectedClients is the number of active CLI clients when known.
+   *
+   * @generated from field: uint32 connected_clients = 5;
+   */
+  connectedClients?: number
+}
+
+// DesktopRuntimeListenerStatus contains the message type declaration for DesktopRuntimeListenerStatus.
+export const DesktopRuntimeListenerStatus: MessageType<DesktopRuntimeListenerStatus> =
+  createMessageType({
+    typeName: 'electron.desktop_runtime.DesktopRuntimeListenerStatus',
+    fields: [
+      {
+        no: 1,
+        name: 'reachability',
+        kind: 'enum',
+        T: DesktopRuntimeReachability_Enum,
+      },
+      { no: 2, name: 'label', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'detail', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'socket_path', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 5,
+        name: 'connected_clients',
+        kind: 'scalar',
+        T: ScalarType.UINT32,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * DesktopRuntimeNavigationItem describes a bounded navigable status row.
+ *
+ * @generated from message electron.desktop_runtime.DesktopRuntimeNavigationItem
+ */
+export interface DesktopRuntimeNavigationItem {
+  /**
+   * Id identifies the row within the projected state.
+   *
+   * @generated from field: string id = 1;
+   */
+  id?: string
+  /**
+   * Label is primary display text.
+   *
+   * @generated from field: string label = 2;
+   */
+  label?: string
+  /**
+   * Detail is secondary display text.
+   *
+   * @generated from field: string detail = 3;
+   */
+  detail?: string
+  /**
+   * Route is the app route to open when selected.
+   *
+   * @generated from field: string route = 4;
+   */
+  route?: string
+  /**
+   * Active is set when the row describes active foreground work.
+   *
+   * @generated from field: bool active = 5;
+   */
+  active?: boolean
+  /**
+   * StatusText is compact status text for the row.
+   *
+   * @generated from field: string status_text = 6;
+   */
+  statusText?: string
+}
+
+// DesktopRuntimeNavigationItem contains the message type declaration for DesktopRuntimeNavigationItem.
+export const DesktopRuntimeNavigationItem: MessageType<DesktopRuntimeNavigationItem> =
+  createMessageType({
+    typeName: 'electron.desktop_runtime.DesktopRuntimeNavigationItem',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'label', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'detail', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'route', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'active', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 6, name: 'status_text', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * DesktopRuntimeActivityItem describes a bounded activity row.
+ *
+ * @generated from message electron.desktop_runtime.DesktopRuntimeActivityItem
+ */
+export interface DesktopRuntimeActivityItem {
+  /**
+   * Id identifies the activity row.
+   *
+   * @generated from field: string id = 1;
+   */
+  id?: string
+  /**
+   * Label is primary display text.
+   *
+   * @generated from field: string label = 2;
+   */
+  label?: string
+  /**
+   * Detail is secondary display text.
+   *
+   * @generated from field: string detail = 3;
+   */
+  detail?: string
+  /**
+   * State describes the current activity state.
+   *
+   * @generated from field: electron.desktop_runtime.DesktopRuntimeActivityState state = 4;
+   */
+  state?: DesktopRuntimeActivityState
+  /**
+   * UpdatedAtUnixMs records the latest activity update time.
+   *
+   * @generated from field: int64 updated_at_unix_ms = 5;
+   */
+  updatedAtUnixMs?: bigint
+}
+
+// DesktopRuntimeActivityItem contains the message type declaration for DesktopRuntimeActivityItem.
+export const DesktopRuntimeActivityItem: MessageType<DesktopRuntimeActivityItem> =
+  createMessageType({
+    typeName: 'electron.desktop_runtime.DesktopRuntimeActivityItem',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'label', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'detail', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 4,
+        name: 'state',
+        kind: 'enum',
+        T: DesktopRuntimeActivityState_Enum,
+      },
+      {
+        no: 5,
+        name: 'updated_at_unix_ms',
+        kind: 'scalar',
+        T: ScalarType.INT64,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * DesktopRuntimeUpdateStatus describes native runtime update state.
+ *
+ * @generated from message electron.desktop_runtime.DesktopRuntimeUpdateStatus
+ */
+export interface DesktopRuntimeUpdateStatus {
+  /**
+   * Ready is set when a native update is ready to apply.
+   *
+   * @generated from field: bool ready = 1;
+   */
+  ready?: boolean
+  /**
+   * Version is the available version when known.
+   *
+   * @generated from field: string version = 2;
+   */
+  version?: string
+  /**
+   * Label is primary display text.
+   *
+   * @generated from field: string label = 3;
+   */
+  label?: string
+  /**
+   * Detail is secondary display text.
+   *
+   * @generated from field: string detail = 4;
+   */
+  detail?: string
+}
+
+// DesktopRuntimeUpdateStatus contains the message type declaration for DesktopRuntimeUpdateStatus.
+export const DesktopRuntimeUpdateStatus: MessageType<DesktopRuntimeUpdateStatus> =
+  createMessageType({
+    typeName: 'electron.desktop_runtime.DesktopRuntimeUpdateStatus',
+    fields: [
+      { no: 1, name: 'ready', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 2, name: 'version', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'label', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'detail', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * DesktopRuntimeAttentionItem describes a user-actionable attention row.
+ *
+ * @generated from message electron.desktop_runtime.DesktopRuntimeAttentionItem
+ */
+export interface DesktopRuntimeAttentionItem {
+  /**
+   * Kind describes the attention category.
+   *
+   * @generated from field: electron.desktop_runtime.DesktopRuntimeAttentionKind kind = 1;
+   */
+  kind?: DesktopRuntimeAttentionKind
+  /**
+   * Severity describes the attention urgency.
+   *
+   * @generated from field: electron.desktop_runtime.DesktopRuntimeSeverity severity = 2;
+   */
+  severity?: DesktopRuntimeSeverity
+  /**
+   * Label is primary display text.
+   *
+   * @generated from field: string label = 3;
+   */
+  label?: string
+  /**
+   * Detail is secondary display text.
+   *
+   * @generated from field: string detail = 4;
+   */
+  detail?: string
+  /**
+   * Route is the app route that can resolve the item when available.
+   *
+   * @generated from field: string route = 5;
+   */
+  route?: string
+}
+
+// DesktopRuntimeAttentionItem contains the message type declaration for DesktopRuntimeAttentionItem.
+export const DesktopRuntimeAttentionItem: MessageType<DesktopRuntimeAttentionItem> =
+  createMessageType({
+    typeName: 'electron.desktop_runtime.DesktopRuntimeAttentionItem',
+    fields: [
+      {
+        no: 1,
+        name: 'kind',
+        kind: 'enum',
+        T: DesktopRuntimeAttentionKind_Enum,
+      },
+      { no: 2, name: 'severity', kind: 'enum', T: DesktopRuntimeSeverity_Enum },
+      { no: 3, name: 'label', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'detail', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'route', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * DesktopRuntimeState describes Electron main desktop-shell state.
@@ -31,6 +692,54 @@ export interface DesktopRuntimeState {
    * @generated from field: string status_text = 3;
    */
   statusText?: string
+  /**
+   * Health summarizes the status icon state.
+   *
+   * @generated from field: electron.desktop_runtime.DesktopRuntimeHealth health = 4;
+   */
+  health?: DesktopRuntimeHealth
+  /**
+   * Lifecycle describes the native runtime process lifecycle.
+   *
+   * @generated from field: electron.desktop_runtime.DesktopRuntimeLifecycle lifecycle = 5;
+   */
+  lifecycle?: DesktopRuntimeLifecycle
+  /**
+   * Listener describes background listener and CLI reachability.
+   *
+   * @generated from field: electron.desktop_runtime.DesktopRuntimeListenerStatus listener = 6;
+   */
+  listener?: DesktopRuntimeListenerStatus
+  /**
+   * Sessions contains bounded session rows for native status surfaces.
+   *
+   * @generated from field: repeated electron.desktop_runtime.DesktopRuntimeNavigationItem sessions = 7;
+   */
+  sessions?: DesktopRuntimeNavigationItem[]
+  /**
+   * Spaces contains bounded Space rows for native status surfaces.
+   *
+   * @generated from field: repeated electron.desktop_runtime.DesktopRuntimeNavigationItem spaces = 8;
+   */
+  spaces?: DesktopRuntimeNavigationItem[]
+  /**
+   * Activity contains bounded recent activity rows.
+   *
+   * @generated from field: repeated electron.desktop_runtime.DesktopRuntimeActivityItem activity = 9;
+   */
+  activity?: DesktopRuntimeActivityItem[]
+  /**
+   * Update describes native runtime update readiness.
+   *
+   * @generated from field: electron.desktop_runtime.DesktopRuntimeUpdateStatus update = 10;
+   */
+  update?: DesktopRuntimeUpdateStatus
+  /**
+   * AttentionItems contains user-actionable attention rows.
+   *
+   * @generated from field: repeated electron.desktop_runtime.DesktopRuntimeAttentionItem attention_items = 11;
+   */
+  attentionItems?: DesktopRuntimeAttentionItem[]
 }
 
 // DesktopRuntimeState contains the message type declaration for DesktopRuntimeState.
@@ -41,6 +750,53 @@ export const DesktopRuntimeState: MessageType<DesktopRuntimeState> =
       { no: 1, name: 'main_window_open', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'quitting', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'status_text', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'health', kind: 'enum', T: DesktopRuntimeHealth_Enum },
+      {
+        no: 5,
+        name: 'lifecycle',
+        kind: 'enum',
+        T: DesktopRuntimeLifecycle_Enum,
+      },
+      {
+        no: 6,
+        name: 'listener',
+        kind: 'message',
+        T: () => DesktopRuntimeListenerStatus,
+      },
+      {
+        no: 7,
+        name: 'sessions',
+        kind: 'message',
+        T: () => DesktopRuntimeNavigationItem,
+        repeated: true,
+      },
+      {
+        no: 8,
+        name: 'spaces',
+        kind: 'message',
+        T: () => DesktopRuntimeNavigationItem,
+        repeated: true,
+      },
+      {
+        no: 9,
+        name: 'activity',
+        kind: 'message',
+        T: () => DesktopRuntimeActivityItem,
+        repeated: true,
+      },
+      {
+        no: 10,
+        name: 'update',
+        kind: 'message',
+        T: () => DesktopRuntimeUpdateStatus,
+      },
+      {
+        no: 11,
+        name: 'attention_items',
+        kind: 'message',
+        T: () => DesktopRuntimeAttentionItem,
+        repeated: true,
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

@@ -119,14 +119,201 @@ struct OpenOrFocusMainWindowRequestDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 OpenOrFocusMainWindowRequestDefaultTypeInternal _OpenOrFocusMainWindowRequest_default_instance_;
 
-inline constexpr DesktopRuntimeState::Impl_::Impl_(
+inline constexpr DesktopRuntimeUpdateStatus::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
+        version_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        label_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        detail_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        ready_{false} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR DesktopRuntimeUpdateStatus::DesktopRuntimeUpdateStatus(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(DesktopRuntimeUpdateStatus_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct DesktopRuntimeUpdateStatusDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR DesktopRuntimeUpdateStatusDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~DesktopRuntimeUpdateStatusDefaultTypeInternal() {}
+  union {
+    DesktopRuntimeUpdateStatus _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DesktopRuntimeUpdateStatusDefaultTypeInternal _DesktopRuntimeUpdateStatus_default_instance_;
+
+inline constexpr DesktopRuntimeNavigationItem::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        label_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        detail_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        route_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
         status_text_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
+        active_{false} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR DesktopRuntimeNavigationItem::DesktopRuntimeNavigationItem(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(DesktopRuntimeNavigationItem_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct DesktopRuntimeNavigationItemDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR DesktopRuntimeNavigationItemDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~DesktopRuntimeNavigationItemDefaultTypeInternal() {}
+  union {
+    DesktopRuntimeNavigationItem _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DesktopRuntimeNavigationItemDefaultTypeInternal _DesktopRuntimeNavigationItem_default_instance_;
+
+inline constexpr DesktopRuntimeListenerStatus::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        label_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        detail_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        socket_path_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        reachability_{static_cast< ::electron::desktop_runtime::DesktopRuntimeReachability >(0)},
+        connected_clients_{0u} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR DesktopRuntimeListenerStatus::DesktopRuntimeListenerStatus(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(DesktopRuntimeListenerStatus_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct DesktopRuntimeListenerStatusDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR DesktopRuntimeListenerStatusDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~DesktopRuntimeListenerStatusDefaultTypeInternal() {}
+  union {
+    DesktopRuntimeListenerStatus _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DesktopRuntimeListenerStatusDefaultTypeInternal _DesktopRuntimeListenerStatus_default_instance_;
+
+inline constexpr DesktopRuntimeAttentionItem::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        label_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        detail_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        route_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        kind_{static_cast< ::electron::desktop_runtime::DesktopRuntimeAttentionKind >(0)},
+        severity_{static_cast< ::electron::desktop_runtime::DesktopRuntimeSeverity >(0)} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR DesktopRuntimeAttentionItem::DesktopRuntimeAttentionItem(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(DesktopRuntimeAttentionItem_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct DesktopRuntimeAttentionItemDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR DesktopRuntimeAttentionItemDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~DesktopRuntimeAttentionItemDefaultTypeInternal() {}
+  union {
+    DesktopRuntimeAttentionItem _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DesktopRuntimeAttentionItemDefaultTypeInternal _DesktopRuntimeAttentionItem_default_instance_;
+
+inline constexpr DesktopRuntimeActivityItem::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        label_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        detail_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        updated_at_unix_ms_{::int64_t{0}},
+        state_{static_cast< ::electron::desktop_runtime::DesktopRuntimeActivityState >(0)} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR DesktopRuntimeActivityItem::DesktopRuntimeActivityItem(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(DesktopRuntimeActivityItem_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct DesktopRuntimeActivityItemDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR DesktopRuntimeActivityItemDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~DesktopRuntimeActivityItemDefaultTypeInternal() {}
+  union {
+    DesktopRuntimeActivityItem _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DesktopRuntimeActivityItemDefaultTypeInternal _DesktopRuntimeActivityItem_default_instance_;
+
+inline constexpr DesktopRuntimeState::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        sessions_{},
+        spaces_{},
+        activity_{},
+        attention_items_{},
+        status_text_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        listener_{nullptr},
+        update_{nullptr},
         main_window_open_{false},
-        quitting_{false} {}
+        quitting_{false},
+        health_{static_cast< ::electron::desktop_runtime::DesktopRuntimeHealth >(0)},
+        lifecycle_{static_cast< ::electron::desktop_runtime::DesktopRuntimeLifecycle >(0)} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR DesktopRuntimeState::DesktopRuntimeState(::_pbi::ConstantInitialized)
@@ -174,8 +361,8 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WatchDesktopStateResponseDefaultTypeInternal _WatchDesktopStateResponse_default_instance_;
 }  // namespace desktop_runtime
 }  // namespace electron
-static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto = nullptr;
+static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto[6];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
     file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto = nullptr;
 const ::uint32_t
@@ -183,13 +370,94 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeState, _impl_._has_bits_),
-        6, // hasbit index offset
+        14, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeState, _impl_.main_window_open_),
         PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeState, _impl_.quitting_),
         PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeState, _impl_.status_text_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeState, _impl_.health_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeState, _impl_.lifecycle_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeState, _impl_.listener_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeState, _impl_.sessions_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeState, _impl_.spaces_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeState, _impl_.activity_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeState, _impl_.update_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeState, _impl_.attention_items_),
+        7,
+        8,
+        4,
+        9,
+        10,
+        5,
+        0,
         1,
         2,
+        6,
+        3,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeListenerStatus, _impl_._has_bits_),
+        8, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeListenerStatus, _impl_.reachability_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeListenerStatus, _impl_.label_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeListenerStatus, _impl_.detail_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeListenerStatus, _impl_.socket_path_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeListenerStatus, _impl_.connected_clients_),
+        3,
         0,
+        1,
+        2,
+        4,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeNavigationItem, _impl_._has_bits_),
+        9, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeNavigationItem, _impl_.id_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeNavigationItem, _impl_.label_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeNavigationItem, _impl_.detail_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeNavigationItem, _impl_.route_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeNavigationItem, _impl_.active_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeNavigationItem, _impl_.status_text_),
+        0,
+        1,
+        2,
+        3,
+        5,
+        4,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeActivityItem, _impl_._has_bits_),
+        8, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeActivityItem, _impl_.id_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeActivityItem, _impl_.label_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeActivityItem, _impl_.detail_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeActivityItem, _impl_.state_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeActivityItem, _impl_.updated_at_unix_ms_),
+        0,
+        1,
+        2,
+        4,
+        3,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeUpdateStatus, _impl_._has_bits_),
+        7, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeUpdateStatus, _impl_.ready_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeUpdateStatus, _impl_.version_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeUpdateStatus, _impl_.label_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeUpdateStatus, _impl_.detail_),
+        3,
+        0,
+        1,
+        2,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeAttentionItem, _impl_._has_bits_),
+        8, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeAttentionItem, _impl_.kind_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeAttentionItem, _impl_.severity_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeAttentionItem, _impl_.label_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeAttentionItem, _impl_.detail_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeAttentionItem, _impl_.route_),
+        3,
+        4,
+        0,
+        1,
+        2,
         0x000, // bitmap
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::WatchDesktopStateResponse, _impl_._has_bits_),
@@ -205,15 +473,25 @@ const ::uint32_t
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::electron::desktop_runtime::DesktopRuntimeState)},
-        {9, sizeof(::electron::desktop_runtime::WatchDesktopStateRequest)},
-        {10, sizeof(::electron::desktop_runtime::WatchDesktopStateResponse)},
-        {15, sizeof(::electron::desktop_runtime::OpenOrFocusMainWindowRequest)},
-        {16, sizeof(::electron::desktop_runtime::OpenOrFocusMainWindowResponse)},
-        {17, sizeof(::electron::desktop_runtime::QuitDesktopRuntimeRequest)},
-        {18, sizeof(::electron::desktop_runtime::QuitDesktopRuntimeResponse)},
+        {25, sizeof(::electron::desktop_runtime::DesktopRuntimeListenerStatus)},
+        {38, sizeof(::electron::desktop_runtime::DesktopRuntimeNavigationItem)},
+        {53, sizeof(::electron::desktop_runtime::DesktopRuntimeActivityItem)},
+        {66, sizeof(::electron::desktop_runtime::DesktopRuntimeUpdateStatus)},
+        {77, sizeof(::electron::desktop_runtime::DesktopRuntimeAttentionItem)},
+        {90, sizeof(::electron::desktop_runtime::WatchDesktopStateRequest)},
+        {91, sizeof(::electron::desktop_runtime::WatchDesktopStateResponse)},
+        {96, sizeof(::electron::desktop_runtime::OpenOrFocusMainWindowRequest)},
+        {97, sizeof(::electron::desktop_runtime::OpenOrFocusMainWindowResponse)},
+        {98, sizeof(::electron::desktop_runtime::QuitDesktopRuntimeRequest)},
+        {99, sizeof(::electron::desktop_runtime::QuitDesktopRuntimeResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::electron::desktop_runtime::_DesktopRuntimeState_default_instance_._instance,
+    &::electron::desktop_runtime::_DesktopRuntimeListenerStatus_default_instance_._instance,
+    &::electron::desktop_runtime::_DesktopRuntimeNavigationItem_default_instance_._instance,
+    &::electron::desktop_runtime::_DesktopRuntimeActivityItem_default_instance_._instance,
+    &::electron::desktop_runtime::_DesktopRuntimeUpdateStatus_default_instance_._instance,
+    &::electron::desktop_runtime::_DesktopRuntimeAttentionItem_default_instance_._instance,
     &::electron::desktop_runtime::_WatchDesktopStateRequest_default_instance_._instance,
     &::electron::desktop_runtime::_WatchDesktopStateResponse_default_instance_._instance,
     &::electron::desktop_runtime::_OpenOrFocusMainWindowRequest_default_instance_._instance,
@@ -225,41 +503,119 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2f
     protodesc_cold) = {
     "\nSgithub.com/s4wave/spacewave/bldr/web/e"
     "lectron/desktop-runtime/desktop-runtime."
-    "proto\022\030electron.desktop_runtime\"V\n\023Deskt"
-    "opRuntimeState\022\030\n\020main_window_open\030\001 \001(\010"
-    "\022\020\n\010quitting\030\002 \001(\010\022\023\n\013status_text\030\003 \001(\t\""
-    "\032\n\030WatchDesktopStateRequest\"Y\n\031WatchDesk"
-    "topStateResponse\022<\n\005state\030\001 \001(\0132-.electr"
-    "on.desktop_runtime.DesktopRuntimeState\"\036"
-    "\n\034OpenOrFocusMainWindowRequest\"\037\n\035OpenOr"
-    "FocusMainWindowResponse\"\033\n\031QuitDesktopRu"
-    "ntimeRequest\"\034\n\032QuitDesktopRuntimeRespon"
-    "se2\253\003\n\035DesktopRuntimeResourceService\022~\n\021"
-    "WatchDesktopState\0222.electron.desktop_run"
-    "time.WatchDesktopStateRequest\0323.electron"
-    ".desktop_runtime.WatchDesktopStateRespon"
-    "se0\001\022\210\001\n\025OpenOrFocusMainWindow\0226.electro"
-    "n.desktop_runtime.OpenOrFocusMainWindowR"
-    "equest\0327.electron.desktop_runtime.OpenOr"
-    "FocusMainWindowResponse\022\177\n\022QuitDesktopRu"
-    "ntime\0223.electron.desktop_runtime.QuitDes"
-    "ktopRuntimeRequest\0324.electron.desktop_ru"
-    "ntime.QuitDesktopRuntimeResponseBOZMgith"
-    "ub.com/s4wave/spacewave/bldr/web/electro"
-    "n/desktop-runtime;desktop_runtimeb\006proto"
-    "3"
+    "proto\022\030electron.desktop_runtime\"\226\005\n\023Desk"
+    "topRuntimeState\022\030\n\020main_window_open\030\001 \001("
+    "\010\022\020\n\010quitting\030\002 \001(\010\022\023\n\013status_text\030\003 \001(\t"
+    "\022>\n\006health\030\004 \001(\0162..electron.desktop_runt"
+    "ime.DesktopRuntimeHealth\022D\n\tlifecycle\030\005 "
+    "\001(\01621.electron.desktop_runtime.DesktopRu"
+    "ntimeLifecycle\022H\n\010listener\030\006 \001(\01326.elect"
+    "ron.desktop_runtime.DesktopRuntimeListen"
+    "erStatus\022H\n\010sessions\030\007 \003(\01326.electron.de"
+    "sktop_runtime.DesktopRuntimeNavigationIt"
+    "em\022F\n\006spaces\030\010 \003(\01326.electron.desktop_ru"
+    "ntime.DesktopRuntimeNavigationItem\022F\n\010ac"
+    "tivity\030\t \003(\01324.electron.desktop_runtime."
+    "DesktopRuntimeActivityItem\022D\n\006update\030\n \001"
+    "(\01324.electron.desktop_runtime.DesktopRun"
+    "timeUpdateStatus\022N\n\017attention_items\030\013 \003("
+    "\01325.electron.desktop_runtime.DesktopRunt"
+    "imeAttentionItem\"\271\001\n\034DesktopRuntimeListe"
+    "nerStatus\022J\n\014reachability\030\001 \001(\01624.electr"
+    "on.desktop_runtime.DesktopRuntimeReachab"
+    "ility\022\r\n\005label\030\002 \001(\t\022\016\n\006detail\030\003 \001(\t\022\023\n\013"
+    "socket_path\030\004 \001(\t\022\031\n\021connected_clients\030\005"
+    " \001(\r\"}\n\034DesktopRuntimeNavigationItem\022\n\n\002"
+    "id\030\001 \001(\t\022\r\n\005label\030\002 \001(\t\022\016\n\006detail\030\003 \001(\t\022"
+    "\r\n\005route\030\004 \001(\t\022\016\n\006active\030\005 \001(\010\022\023\n\013status"
+    "_text\030\006 \001(\t\"\251\001\n\032DesktopRuntimeActivityIt"
+    "em\022\n\n\002id\030\001 \001(\t\022\r\n\005label\030\002 \001(\t\022\016\n\006detail\030"
+    "\003 \001(\t\022D\n\005state\030\004 \001(\01625.electron.desktop_"
+    "runtime.DesktopRuntimeActivityState\022\032\n\022u"
+    "pdated_at_unix_ms\030\005 \001(\003\"[\n\032DesktopRuntim"
+    "eUpdateStatus\022\r\n\005ready\030\001 \001(\010\022\017\n\007version\030"
+    "\002 \001(\t\022\r\n\005label\030\003 \001(\t\022\016\n\006detail\030\004 \001(\t\"\324\001\n"
+    "\033DesktopRuntimeAttentionItem\022C\n\004kind\030\001 \001"
+    "(\01625.electron.desktop_runtime.DesktopRun"
+    "timeAttentionKind\022B\n\010severity\030\002 \001(\01620.el"
+    "ectron.desktop_runtime.DesktopRuntimeSev"
+    "erity\022\r\n\005label\030\003 \001(\t\022\016\n\006detail\030\004 \001(\t\022\r\n\005"
+    "route\030\005 \001(\t\"\032\n\030WatchDesktopStateRequest\""
+    "Y\n\031WatchDesktopStateResponse\022<\n\005state\030\001 "
+    "\001(\0132-.electron.desktop_runtime.DesktopRu"
+    "ntimeState\"\036\n\034OpenOrFocusMainWindowReque"
+    "st\"\037\n\035OpenOrFocusMainWindowResponse\"\033\n\031Q"
+    "uitDesktopRuntimeRequest\"\034\n\032QuitDesktopR"
+    "untimeResponse*\244\002\n\024DesktopRuntimeHealth\022"
+    "&\n\"DESKTOP_RUNTIME_HEALTH_UNSPECIFIED\020\000\022"
+    "#\n\037DESKTOP_RUNTIME_HEALTH_STARTING\020\001\022\"\n\036"
+    "DESKTOP_RUNTIME_HEALTH_HEALTHY\020\002\022!\n\035DESK"
+    "TOP_RUNTIME_HEALTH_ACTIVE\020\003\022*\n&DESKTOP_R"
+    "UNTIME_HEALTH_NEEDS_ATTENTION\020\004\022\'\n#DESKT"
+    "OP_RUNTIME_HEALTH_DISCONNECTED\020\005\022#\n\037DESK"
+    "TOP_RUNTIME_HEALTH_QUITTING\020\006*\347\001\n\027Deskto"
+    "pRuntimeLifecycle\022)\n%DESKTOP_RUNTIME_LIF"
+    "ECYCLE_UNSPECIFIED\020\000\022&\n\"DESKTOP_RUNTIME_"
+    "LIFECYCLE_STARTING\020\001\022%\n!DESKTOP_RUNTIME_"
+    "LIFECYCLE_RUNNING\020\002\022*\n&DESKTOP_RUNTIME_L"
+    "IFECYCLE_DISCONNECTED\020\003\022&\n\"DESKTOP_RUNTI"
+    "ME_LIFECYCLE_QUITTING\020\004*\317\001\n\032DesktopRunti"
+    "meReachability\022,\n(DESKTOP_RUNTIME_REACHA"
+    "BILITY_UNSPECIFIED\020\000\022)\n%DESKTOP_RUNTIME_"
+    "REACHABILITY_STARTING\020\001\022*\n&DESKTOP_RUNTI"
+    "ME_REACHABILITY_REACHABLE\020\002\022,\n(DESKTOP_R"
+    "UNTIME_REACHABILITY_UNREACHABLE\020\003*\243\002\n\033De"
+    "sktopRuntimeActivityState\022.\n*DESKTOP_RUN"
+    "TIME_ACTIVITY_STATE_UNSPECIFIED\020\000\022\'\n#DES"
+    "KTOP_RUNTIME_ACTIVITY_STATE_IDLE\020\001\022*\n&DE"
+    "SKTOP_RUNTIME_ACTIVITY_STATE_RUNNING\020\002\022\'"
+    "\n#DESKTOP_RUNTIME_ACTIVITY_STATE_DONE\020\003\022"
+    ",\n(DESKTOP_RUNTIME_ACTIVITY_STATE_ATTENT"
+    "ION\020\004\022(\n$DESKTOP_RUNTIME_ACTIVITY_STATE_"
+    "ERROR\020\005*\247\004\n\033DesktopRuntimeAttentionKind\022"
+    ".\n*DESKTOP_RUNTIME_ATTENTION_KIND_UNSPEC"
+    "IFIED\020\000\0223\n/DESKTOP_RUNTIME_ATTENTION_KIN"
+    "D_RUNTIME_STARTING\020\001\0227\n3DESKTOP_RUNTIME_"
+    "ATTENTION_KIND_RUNTIME_DISCONNECTED\020\002\0227\n"
+    "3DESKTOP_RUNTIME_ATTENTION_KIND_LISTENER"
+    "_UNAVAILABLE\020\003\0220\n,DESKTOP_RUNTIME_ATTENT"
+    "ION_KIND_AUTH_REQUIRED\020\004\0223\n/DESKTOP_RUNT"
+    "IME_ATTENTION_KIND_STEP_UP_REQUIRED\020\005\022-\n"
+    ")DESKTOP_RUNTIME_ATTENTION_KIND_SYNC_ERR"
+    "OR\020\006\022/\n+DESKTOP_RUNTIME_ATTENTION_KIND_U"
+    "PDATE_READY\020\007\0225\n1DESKTOP_RUNTIME_ATTENTI"
+    "ON_KIND_RUNTIME_RESTARTING\020\010\0223\n/DESKTOP_"
+    "RUNTIME_ATTENTION_KIND_RUNTIME_QUITTING\020"
+    "\t*\262\001\n\026DesktopRuntimeSeverity\022(\n$DESKTOP_"
+    "RUNTIME_SEVERITY_UNSPECIFIED\020\000\022!\n\035DESKTO"
+    "P_RUNTIME_SEVERITY_INFO\020\001\022$\n DESKTOP_RUN"
+    "TIME_SEVERITY_WARNING\020\002\022%\n!DESKTOP_RUNTI"
+    "ME_SEVERITY_CRITICAL\020\0032\253\003\n\035DesktopRuntim"
+    "eResourceService\022~\n\021WatchDesktopState\0222."
+    "electron.desktop_runtime.WatchDesktopSta"
+    "teRequest\0323.electron.desktop_runtime.Wat"
+    "chDesktopStateResponse0\001\022\210\001\n\025OpenOrFocus"
+    "MainWindow\0226.electron.desktop_runtime.Op"
+    "enOrFocusMainWindowRequest\0327.electron.de"
+    "sktop_runtime.OpenOrFocusMainWindowRespo"
+    "nse\022\177\n\022QuitDesktopRuntime\0223.electron.des"
+    "ktop_runtime.QuitDesktopRuntimeRequest\0324"
+    ".electron.desktop_runtime.QuitDesktopRun"
+    "timeResponseBOZMgithub.com/s4wave/spacew"
+    "ave/bldr/web/electron/desktop-runtime;de"
+    "sktop_runtimeb\006proto3"
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto = {
     false,
     false,
-    961,
+    4101,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto,
     "github.com/s4wave/spacewave/bldr/web/electron/desktop-runtime/desktop-runtime.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto_once,
     nullptr,
     0,
-    7,
+    12,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto::offsets,
@@ -268,6 +624,42 @@ PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2
 };
 namespace electron {
 namespace desktop_runtime {
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DesktopRuntimeHealth_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto[0];
+}
+PROTOBUF_CONSTINIT const uint32_t DesktopRuntimeHealth_internal_data_[] = {
+    458752u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DesktopRuntimeLifecycle_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto[1];
+}
+PROTOBUF_CONSTINIT const uint32_t DesktopRuntimeLifecycle_internal_data_[] = {
+    327680u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DesktopRuntimeReachability_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto[2];
+}
+PROTOBUF_CONSTINIT const uint32_t DesktopRuntimeReachability_internal_data_[] = {
+    262144u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DesktopRuntimeActivityState_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto[3];
+}
+PROTOBUF_CONSTINIT const uint32_t DesktopRuntimeActivityState_internal_data_[] = {
+    393216u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DesktopRuntimeAttentionKind_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto[4];
+}
+PROTOBUF_CONSTINIT const uint32_t DesktopRuntimeAttentionKind_internal_data_[] = {
+    655360u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DesktopRuntimeSeverity_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto[5];
+}
+PROTOBUF_CONSTINIT const uint32_t DesktopRuntimeSeverity_internal_data_[] = {
+    262144u, 0u, };
 // ===================================================================
 
 class DesktopRuntimeState::_Internal {
@@ -293,6 +685,10 @@ PROTOBUF_NDEBUG_INLINE DesktopRuntimeState::Impl_::Impl_(
     [[maybe_unused]] const ::electron::desktop_runtime::DesktopRuntimeState& from_msg)
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
+        sessions_{visibility, arena, from.sessions_},
+        spaces_{visibility, arena, from.spaces_},
+        activity_{visibility, arena, from.activity_},
+        attention_items_{visibility, arena, from.attention_items_},
         status_text_(arena, from.status_text_) {}
 
 DesktopRuntimeState::DesktopRuntimeState(
@@ -308,13 +704,20 @@ DesktopRuntimeState::DesktopRuntimeState(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.listener_ = (CheckHasBit(cached_has_bits, 0x00000020U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.listener_)
+                : nullptr;
+  _impl_.update_ = (CheckHasBit(cached_has_bits, 0x00000040U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.update_)
+                : nullptr;
   ::memcpy(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, main_window_open_),
            reinterpret_cast<const char*>(&from._impl_) +
                offsetof(Impl_, main_window_open_),
-           offsetof(Impl_, quitting_) -
+           offsetof(Impl_, lifecycle_) -
                offsetof(Impl_, main_window_open_) +
-               sizeof(Impl_::quitting_));
+               sizeof(Impl_::lifecycle_));
 
   // @@protoc_insertion_point(copy_constructor:electron.desktop_runtime.DesktopRuntimeState)
 }
@@ -322,16 +725,20 @@ PROTOBUF_NDEBUG_INLINE DesktopRuntimeState::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
+        sessions_{visibility, arena},
+        spaces_{visibility, arena},
+        activity_{visibility, arena},
+        attention_items_{visibility, arena},
         status_text_(arena) {}
 
 inline void DesktopRuntimeState::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
   ::memset(reinterpret_cast<char*>(&_impl_) +
-               offsetof(Impl_, main_window_open_),
+               offsetof(Impl_, listener_),
            0,
-           offsetof(Impl_, quitting_) -
-               offsetof(Impl_, main_window_open_) +
-               sizeof(Impl_::quitting_));
+           offsetof(Impl_, lifecycle_) -
+               offsetof(Impl_, listener_) +
+               sizeof(Impl_::lifecycle_));
 }
 DesktopRuntimeState::~DesktopRuntimeState() {
   // @@protoc_insertion_point(destructor:electron.desktop_runtime.DesktopRuntimeState)
@@ -345,6 +752,8 @@ inline void DesktopRuntimeState::SharedDtor(MessageLite& self) {
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
   this_._impl_.status_text_.Destroy();
+  delete this_._impl_.listener_;
+  delete this_._impl_.update_;
   this_._impl_.~Impl_();
 }
 
@@ -354,8 +763,32 @@ inline void* PROTOBUF_NONNULL DesktopRuntimeState::PlacementNew_(
   return ::new (mem) DesktopRuntimeState(arena);
 }
 constexpr auto DesktopRuntimeState::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(DesktopRuntimeState),
-                                            alignof(DesktopRuntimeState));
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.sessions_) +
+          decltype(DesktopRuntimeState::_impl_.sessions_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.spaces_) +
+          decltype(DesktopRuntimeState::_impl_.spaces_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.activity_) +
+          decltype(DesktopRuntimeState::_impl_.activity_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.attention_items_) +
+          decltype(DesktopRuntimeState::_impl_.attention_items_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
+        sizeof(DesktopRuntimeState), alignof(DesktopRuntimeState), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&DesktopRuntimeState::PlacementNew_,
+                                 sizeof(DesktopRuntimeState),
+                                 alignof(DesktopRuntimeState));
+  }
 }
 constexpr auto DesktopRuntimeState::InternalGenerateClassData_() {
   return ::google::protobuf::internal::ClassDataFull{
@@ -391,18 +824,18 @@ DesktopRuntimeState::GetClassData() const {
   return DesktopRuntimeState_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<2, 3, 0, 64, 2>
+const ::_pbi::TcParseTable<4, 11, 6, 72, 2>
 DesktopRuntimeState::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_._has_bits_),
     0, // no _extensions_
-    3, 24,  // max_field_number, fast_idx_mask
+    11, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967288,  // skipmap
+    4294965248,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    3,  // num_field_entries
-    0,  // num_aux_entries
-    offsetof(decltype(_table_), field_names),  // no aux_entries
+    11,  // num_field_entries
+    6,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
     DesktopRuntimeState_class_data_.base(),
     nullptr,  // post_loop_handler
     ::_pbi::TcParser::GenericFallback,  // fallback
@@ -412,30 +845,89 @@ DesktopRuntimeState::_table_ = {
   }, {{
     {::_pbi::TcParser::MiniParse, {}},
     // bool main_window_open = 1;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(DesktopRuntimeState, _impl_.main_window_open_), 1>(),
-     {8, 1, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(DesktopRuntimeState, _impl_.main_window_open_), 7>(),
+     {8, 7, 0,
       PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.main_window_open_)}},
     // bool quitting = 2;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(DesktopRuntimeState, _impl_.quitting_), 2>(),
-     {16, 2, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(DesktopRuntimeState, _impl_.quitting_), 8>(),
+     {16, 8, 0,
       PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.quitting_)}},
     // string status_text = 3;
     {::_pbi::TcParser::FastUS1,
-     {26, 0, 0,
+     {26, 4, 0,
       PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.status_text_)}},
+    // .electron.desktop_runtime.DesktopRuntimeHealth health = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DesktopRuntimeState, _impl_.health_), 9>(),
+     {32, 9, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.health_)}},
+    // .electron.desktop_runtime.DesktopRuntimeLifecycle lifecycle = 5;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DesktopRuntimeState, _impl_.lifecycle_), 10>(),
+     {40, 10, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.lifecycle_)}},
+    // .electron.desktop_runtime.DesktopRuntimeListenerStatus listener = 6;
+    {::_pbi::TcParser::FastMtS1,
+     {50, 5, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.listener_)}},
+    // repeated .electron.desktop_runtime.DesktopRuntimeNavigationItem sessions = 7;
+    {::_pbi::TcParser::FastMtR1,
+     {58, 0, 1,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.sessions_)}},
+    // repeated .electron.desktop_runtime.DesktopRuntimeNavigationItem spaces = 8;
+    {::_pbi::TcParser::FastMtR1,
+     {66, 1, 2,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.spaces_)}},
+    // repeated .electron.desktop_runtime.DesktopRuntimeActivityItem activity = 9;
+    {::_pbi::TcParser::FastMtR1,
+     {74, 2, 3,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.activity_)}},
+    // .electron.desktop_runtime.DesktopRuntimeUpdateStatus update = 10;
+    {::_pbi::TcParser::FastMtS1,
+     {82, 6, 4,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.update_)}},
+    // repeated .electron.desktop_runtime.DesktopRuntimeAttentionItem attention_items = 11;
+    {::_pbi::TcParser::FastMtR1,
+     {90, 3, 5,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.attention_items_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
   }}, {{
     // bool main_window_open = 1;
-    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.main_window_open_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.main_window_open_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // bool quitting = 2;
-    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.quitting_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.quitting_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // string status_text = 3;
-    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.status_text_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.status_text_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .electron.desktop_runtime.DesktopRuntimeHealth health = 4;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.health_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // .electron.desktop_runtime.DesktopRuntimeLifecycle lifecycle = 5;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.lifecycle_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // .electron.desktop_runtime.DesktopRuntimeListenerStatus listener = 6;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.listener_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // repeated .electron.desktop_runtime.DesktopRuntimeNavigationItem sessions = 7;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.sessions_), _Internal::kHasBitsOffset + 0, 1, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    // repeated .electron.desktop_runtime.DesktopRuntimeNavigationItem spaces = 8;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.spaces_), _Internal::kHasBitsOffset + 1, 2, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    // repeated .electron.desktop_runtime.DesktopRuntimeActivityItem activity = 9;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.activity_), _Internal::kHasBitsOffset + 2, 3, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .electron.desktop_runtime.DesktopRuntimeUpdateStatus update = 10;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.update_), _Internal::kHasBitsOffset + 6, 4, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // repeated .electron.desktop_runtime.DesktopRuntimeAttentionItem attention_items = 11;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.attention_items_), _Internal::kHasBitsOffset + 3, 5, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
-  // no aux_entries
   {{
-    "\54\0\0\13\0\0\0\0"
+      {::_pbi::TcParser::GetTable<::electron::desktop_runtime::DesktopRuntimeListenerStatus>()},
+      {::_pbi::TcParser::GetTable<::electron::desktop_runtime::DesktopRuntimeNavigationItem>()},
+      {::_pbi::TcParser::GetTable<::electron::desktop_runtime::DesktopRuntimeNavigationItem>()},
+      {::_pbi::TcParser::GetTable<::electron::desktop_runtime::DesktopRuntimeActivityItem>()},
+      {::_pbi::TcParser::GetTable<::electron::desktop_runtime::DesktopRuntimeUpdateStatus>()},
+      {::_pbi::TcParser::GetTable<::electron::desktop_runtime::DesktopRuntimeAttentionItem>()},
+  }},
+  {{
+    "\54\0\0\13\0\0\0\0\0\0\0\0\0\0\0\0"
     "electron.desktop_runtime.DesktopRuntimeState"
     "status_text"
   }},
@@ -448,12 +940,37 @@ PROTOBUF_NOINLINE void DesktopRuntimeState::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    _impl_.status_text_.ClearNonDefaultToEmpty();
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.sessions_.Clear();
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      _impl_.spaces_.Clear();
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
+      _impl_.activity_.Clear();
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+      _impl_.attention_items_.Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      _impl_.status_text_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      ABSL_DCHECK(_impl_.listener_ != nullptr);
+      _impl_.listener_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      ABSL_DCHECK(_impl_.update_ != nullptr);
+      _impl_.update_->Clear();
+    }
   }
-  ::memset(&_impl_.main_window_open_, 0, static_cast<::size_t>(
-      reinterpret_cast<char*>(&_impl_.quitting_) -
-      reinterpret_cast<char*>(&_impl_.main_window_open_)) + sizeof(_impl_.quitting_));
+  _impl_.main_window_open_ = false;
+  if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
+    ::memset(&_impl_.quitting_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.lifecycle_) -
+        reinterpret_cast<char*>(&_impl_.quitting_)) + sizeof(_impl_.lifecycle_));
+  }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -478,7 +995,7 @@ PROTOBUF_NOINLINE void DesktopRuntimeState::Clear() {
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // bool main_window_open = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
     if (this_._internal_main_window_open() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
@@ -487,7 +1004,7 @@ PROTOBUF_NOINLINE void DesktopRuntimeState::Clear() {
   }
 
   // bool quitting = 2;
-  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
     if (this_._internal_quitting() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
@@ -496,12 +1013,96 @@ PROTOBUF_NOINLINE void DesktopRuntimeState::Clear() {
   }
 
   // string status_text = 3;
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
     if (!this_._internal_status_text().empty()) {
       const ::std::string& _s = this_._internal_status_text();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
           _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopRuntimeState.status_text");
       target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // .electron.desktop_runtime.DesktopRuntimeHealth health = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+    if (this_._internal_health() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          4, this_._internal_health(), target);
+    }
+  }
+
+  // .electron.desktop_runtime.DesktopRuntimeLifecycle lifecycle = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+    if (this_._internal_lifecycle() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          5, this_._internal_lifecycle(), target);
+    }
+  }
+
+  // .electron.desktop_runtime.DesktopRuntimeListenerStatus listener = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        6, *this_._impl_.listener_, this_._impl_.listener_->GetCachedSize(), target,
+        stream);
+  }
+
+  // repeated .electron.desktop_runtime.DesktopRuntimeNavigationItem sessions = 7;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_sessions_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_sessions().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              7, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  // repeated .electron.desktop_runtime.DesktopRuntimeNavigationItem spaces = 8;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_spaces_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_spaces().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              8, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  // repeated .electron.desktop_runtime.DesktopRuntimeActivityItem activity = 9;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_activity_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_activity().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              9, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  // .electron.desktop_runtime.DesktopRuntimeUpdateStatus update = 10;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        10, *this_._impl_.update_, this_._impl_.update_->GetCachedSize(), target,
+        stream);
+  }
+
+  // repeated .electron.desktop_runtime.DesktopRuntimeAttentionItem attention_items = 11;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_attention_items_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_attention_items().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              11, repfield, repfield.GetCachedSize(),
+              target, stream);
     }
   }
 
@@ -530,24 +1131,78 @@ PROTOBUF_NOINLINE void DesktopRuntimeState::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    // repeated .electron.desktop_runtime.DesktopRuntimeNavigationItem sessions = 7;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size += 1UL * this_._internal_sessions_size();
+      for (const auto& msg : this_._internal_sessions()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+    // repeated .electron.desktop_runtime.DesktopRuntimeNavigationItem spaces = 8;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      total_size += 1UL * this_._internal_spaces_size();
+      for (const auto& msg : this_._internal_spaces()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+    // repeated .electron.desktop_runtime.DesktopRuntimeActivityItem activity = 9;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
+      total_size += 1UL * this_._internal_activity_size();
+      for (const auto& msg : this_._internal_activity()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+    // repeated .electron.desktop_runtime.DesktopRuntimeAttentionItem attention_items = 11;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+      total_size += 1UL * this_._internal_attention_items_size();
+      for (const auto& msg : this_._internal_attention_items()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
     // string status_text = 3;
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (!this_._internal_status_text().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_status_text());
       }
     }
+    // .electron.desktop_runtime.DesktopRuntimeListenerStatus listener = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.listener_);
+    }
+    // .electron.desktop_runtime.DesktopRuntimeUpdateStatus update = 10;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.update_);
+    }
     // bool main_window_open = 1;
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
       if (this_._internal_main_window_open() != 0) {
         total_size += 2;
       }
     }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
     // bool quitting = 2;
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (this_._internal_quitting() != 0) {
         total_size += 2;
+      }
+    }
+    // .electron.desktop_runtime.DesktopRuntimeHealth health = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (this_._internal_health() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_health());
+      }
+    }
+    // .electron.desktop_runtime.DesktopRuntimeLifecycle lifecycle = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      if (this_._internal_lifecycle() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_lifecycle());
       }
     }
   }
@@ -563,14 +1218,35 @@ void DesktopRuntimeState::MergeImpl(::google::protobuf::MessageLite& to_msg,
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     from.CheckHasBitConsistency();
   }
+  ::google::protobuf::Arena* arena = _this->GetArena();
   // @@protoc_insertion_point(class_specific_merge_from_start:electron.desktop_runtime.DesktopRuntimeState)
   ABSL_DCHECK_NE(&from, _this);
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_sessions()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_sessions());
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      _this->_internal_mutable_spaces()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_spaces());
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
+      _this->_internal_mutable_activity()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_activity());
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+      _this->_internal_mutable_attention_items()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_attention_items());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (!from._internal_status_text().empty()) {
         _this->_internal_set_status_text(from._internal_status_text());
       } else {
@@ -579,14 +1255,42 @@ void DesktopRuntimeState::MergeImpl(::google::protobuf::MessageLite& to_msg,
         }
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      ABSL_DCHECK(from._impl_.listener_ != nullptr);
+      if (_this->_impl_.listener_ == nullptr) {
+        _this->_impl_.listener_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.listener_);
+      } else {
+        _this->_impl_.listener_->MergeFrom(*from._impl_.listener_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      ABSL_DCHECK(from._impl_.update_ != nullptr);
+      if (_this->_impl_.update_ == nullptr) {
+        _this->_impl_.update_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.update_);
+      } else {
+        _this->_impl_.update_->MergeFrom(*from._impl_.update_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
       if (from._internal_main_window_open() != 0) {
         _this->_impl_.main_window_open_ = from._impl_.main_window_open_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (from._internal_quitting() != 0) {
         _this->_impl_.quitting_ = from._impl_.quitting_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (from._internal_health() != 0) {
+        _this->_impl_.health_ = from._impl_.health_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      if (from._internal_lifecycle() != 0) {
+        _this->_impl_.lifecycle_ = from._impl_.lifecycle_;
       }
     }
   }
@@ -609,16 +1313,2205 @@ void DesktopRuntimeState::InternalSwap(DesktopRuntimeState* PROTOBUF_RESTRICT PR
   ABSL_DCHECK_EQ(arena, other->GetArena());
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.sessions_.InternalSwap(&other->_impl_.sessions_);
+  _impl_.spaces_.InternalSwap(&other->_impl_.spaces_);
+  _impl_.activity_.InternalSwap(&other->_impl_.activity_);
+  _impl_.attention_items_.InternalSwap(&other->_impl_.attention_items_);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.status_text_, &other->_impl_.status_text_, arena);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.quitting_)
-      + sizeof(DesktopRuntimeState::_impl_.quitting_)
-      - PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.main_window_open_)>(
-          reinterpret_cast<char*>(&_impl_.main_window_open_),
-          reinterpret_cast<char*>(&other->_impl_.main_window_open_));
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.lifecycle_)
+      + sizeof(DesktopRuntimeState::_impl_.lifecycle_)
+      - PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.listener_)>(
+          reinterpret_cast<char*>(&_impl_.listener_),
+          reinterpret_cast<char*>(&other->_impl_.listener_));
 }
 
 ::google::protobuf::Metadata DesktopRuntimeState::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class DesktopRuntimeListenerStatus::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<DesktopRuntimeListenerStatus>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(DesktopRuntimeListenerStatus, _impl_._has_bits_);
+};
+
+DesktopRuntimeListenerStatus::DesktopRuntimeListenerStatus(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, DesktopRuntimeListenerStatus_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:electron.desktop_runtime.DesktopRuntimeListenerStatus)
+}
+PROTOBUF_NDEBUG_INLINE DesktopRuntimeListenerStatus::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::electron::desktop_runtime::DesktopRuntimeListenerStatus& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        label_(arena, from.label_),
+        detail_(arena, from.detail_),
+        socket_path_(arena, from.socket_path_) {}
+
+DesktopRuntimeListenerStatus::DesktopRuntimeListenerStatus(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const DesktopRuntimeListenerStatus& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, DesktopRuntimeListenerStatus_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  DesktopRuntimeListenerStatus* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, reachability_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, reachability_),
+           offsetof(Impl_, connected_clients_) -
+               offsetof(Impl_, reachability_) +
+               sizeof(Impl_::connected_clients_));
+
+  // @@protoc_insertion_point(copy_constructor:electron.desktop_runtime.DesktopRuntimeListenerStatus)
+}
+PROTOBUF_NDEBUG_INLINE DesktopRuntimeListenerStatus::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        label_(arena),
+        detail_(arena),
+        socket_path_(arena) {}
+
+inline void DesktopRuntimeListenerStatus::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, reachability_),
+           0,
+           offsetof(Impl_, connected_clients_) -
+               offsetof(Impl_, reachability_) +
+               sizeof(Impl_::connected_clients_));
+}
+DesktopRuntimeListenerStatus::~DesktopRuntimeListenerStatus() {
+  // @@protoc_insertion_point(destructor:electron.desktop_runtime.DesktopRuntimeListenerStatus)
+  SharedDtor(*this);
+}
+inline void DesktopRuntimeListenerStatus::SharedDtor(MessageLite& self) {
+  DesktopRuntimeListenerStatus& this_ = static_cast<DesktopRuntimeListenerStatus&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.label_.Destroy();
+  this_._impl_.detail_.Destroy();
+  this_._impl_.socket_path_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL DesktopRuntimeListenerStatus::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) DesktopRuntimeListenerStatus(arena);
+}
+constexpr auto DesktopRuntimeListenerStatus::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(DesktopRuntimeListenerStatus),
+                                            alignof(DesktopRuntimeListenerStatus));
+}
+constexpr auto DesktopRuntimeListenerStatus::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_DesktopRuntimeListenerStatus_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &DesktopRuntimeListenerStatus::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<DesktopRuntimeListenerStatus>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &DesktopRuntimeListenerStatus::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<DesktopRuntimeListenerStatus>(), &DesktopRuntimeListenerStatus::ByteSizeLong,
+              &DesktopRuntimeListenerStatus::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(DesktopRuntimeListenerStatus, _impl_._cached_size_),
+          false,
+      },
+      &DesktopRuntimeListenerStatus::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull DesktopRuntimeListenerStatus_class_data_ =
+        DesktopRuntimeListenerStatus::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+DesktopRuntimeListenerStatus::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&DesktopRuntimeListenerStatus_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(DesktopRuntimeListenerStatus_class_data_.tc_table);
+  return DesktopRuntimeListenerStatus_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 5, 0, 84, 2>
+DesktopRuntimeListenerStatus::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(DesktopRuntimeListenerStatus, _impl_._has_bits_),
+    0, // no _extensions_
+    5, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967264,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    5,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    DesktopRuntimeListenerStatus_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::electron::desktop_runtime::DesktopRuntimeListenerStatus>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // .electron.desktop_runtime.DesktopRuntimeReachability reachability = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DesktopRuntimeListenerStatus, _impl_.reachability_), 3>(),
+     {8, 3, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeListenerStatus, _impl_.reachability_)}},
+    // string label = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 0, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeListenerStatus, _impl_.label_)}},
+    // string detail = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 1, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeListenerStatus, _impl_.detail_)}},
+    // string socket_path = 4;
+    {::_pbi::TcParser::FastUS1,
+     {34, 2, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeListenerStatus, _impl_.socket_path_)}},
+    // uint32 connected_clients = 5;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DesktopRuntimeListenerStatus, _impl_.connected_clients_), 4>(),
+     {40, 4, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeListenerStatus, _impl_.connected_clients_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .electron.desktop_runtime.DesktopRuntimeReachability reachability = 1;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeListenerStatus, _impl_.reachability_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // string label = 2;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeListenerStatus, _impl_.label_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string detail = 3;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeListenerStatus, _impl_.detail_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string socket_path = 4;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeListenerStatus, _impl_.socket_path_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // uint32 connected_clients = 5;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeListenerStatus, _impl_.connected_clients_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+  }},
+  // no aux_entries
+  {{
+    "\65\0\5\6\13\0\0\0"
+    "electron.desktop_runtime.DesktopRuntimeListenerStatus"
+    "label"
+    "detail"
+    "socket_path"
+  }},
+};
+PROTOBUF_NOINLINE void DesktopRuntimeListenerStatus::Clear() {
+// @@protoc_insertion_point(message_clear_start:electron.desktop_runtime.DesktopRuntimeListenerStatus)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.label_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.detail_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.socket_path_.ClearNonDefaultToEmpty();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000018U)) {
+    ::memset(&_impl_.reachability_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.connected_clients_) -
+        reinterpret_cast<char*>(&_impl_.reachability_)) + sizeof(_impl_.connected_clients_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL DesktopRuntimeListenerStatus::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const DesktopRuntimeListenerStatus& this_ = static_cast<const DesktopRuntimeListenerStatus&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL DesktopRuntimeListenerStatus::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const DesktopRuntimeListenerStatus& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:electron.desktop_runtime.DesktopRuntimeListenerStatus)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .electron.desktop_runtime.DesktopRuntimeReachability reachability = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (this_._internal_reachability() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          1, this_._internal_reachability(), target);
+    }
+  }
+
+  // string label = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_label().empty()) {
+      const ::std::string& _s = this_._internal_label();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopRuntimeListenerStatus.label");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // string detail = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_detail().empty()) {
+      const ::std::string& _s = this_._internal_detail();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopRuntimeListenerStatus.detail");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // string socket_path = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_socket_path().empty()) {
+      const ::std::string& _s = this_._internal_socket_path();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopRuntimeListenerStatus.socket_path");
+      target = stream->WriteStringMaybeAliased(4, _s, target);
+    }
+  }
+
+  // uint32 connected_clients = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (this_._internal_connected_clients() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          5, this_._internal_connected_clients(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:electron.desktop_runtime.DesktopRuntimeListenerStatus)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t DesktopRuntimeListenerStatus::ByteSizeLong(const MessageLite& base) {
+  const DesktopRuntimeListenerStatus& this_ = static_cast<const DesktopRuntimeListenerStatus&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t DesktopRuntimeListenerStatus::ByteSizeLong() const {
+  const DesktopRuntimeListenerStatus& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:electron.desktop_runtime.DesktopRuntimeListenerStatus)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    // string label = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_label().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_label());
+      }
+    }
+    // string detail = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_detail().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_detail());
+      }
+    }
+    // string socket_path = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_socket_path().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_socket_path());
+      }
+    }
+    // .electron.desktop_runtime.DesktopRuntimeReachability reachability = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (this_._internal_reachability() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_reachability());
+      }
+    }
+    // uint32 connected_clients = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (this_._internal_connected_clients() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_connected_clients());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void DesktopRuntimeListenerStatus::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<DesktopRuntimeListenerStatus*>(&to_msg);
+  auto& from = static_cast<const DesktopRuntimeListenerStatus&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:electron.desktop_runtime.DesktopRuntimeListenerStatus)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_label().empty()) {
+        _this->_internal_set_label(from._internal_label());
+      } else {
+        if (_this->_impl_.label_.IsDefault()) {
+          _this->_internal_set_label("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_detail().empty()) {
+        _this->_internal_set_detail(from._internal_detail());
+      } else {
+        if (_this->_impl_.detail_.IsDefault()) {
+          _this->_internal_set_detail("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_socket_path().empty()) {
+        _this->_internal_set_socket_path(from._internal_socket_path());
+      } else {
+        if (_this->_impl_.socket_path_.IsDefault()) {
+          _this->_internal_set_socket_path("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (from._internal_reachability() != 0) {
+        _this->_impl_.reachability_ = from._impl_.reachability_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (from._internal_connected_clients() != 0) {
+        _this->_impl_.connected_clients_ = from._impl_.connected_clients_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void DesktopRuntimeListenerStatus::CopyFrom(const DesktopRuntimeListenerStatus& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:electron.desktop_runtime.DesktopRuntimeListenerStatus)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void DesktopRuntimeListenerStatus::InternalSwap(DesktopRuntimeListenerStatus* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.label_, &other->_impl_.label_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.detail_, &other->_impl_.detail_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.socket_path_, &other->_impl_.socket_path_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeListenerStatus, _impl_.connected_clients_)
+      + sizeof(DesktopRuntimeListenerStatus::_impl_.connected_clients_)
+      - PROTOBUF_FIELD_OFFSET(DesktopRuntimeListenerStatus, _impl_.reachability_)>(
+          reinterpret_cast<char*>(&_impl_.reachability_),
+          reinterpret_cast<char*>(&other->_impl_.reachability_));
+}
+
+::google::protobuf::Metadata DesktopRuntimeListenerStatus::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class DesktopRuntimeNavigationItem::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<DesktopRuntimeNavigationItem>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(DesktopRuntimeNavigationItem, _impl_._has_bits_);
+};
+
+DesktopRuntimeNavigationItem::DesktopRuntimeNavigationItem(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, DesktopRuntimeNavigationItem_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:electron.desktop_runtime.DesktopRuntimeNavigationItem)
+}
+PROTOBUF_NDEBUG_INLINE DesktopRuntimeNavigationItem::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::electron::desktop_runtime::DesktopRuntimeNavigationItem& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        id_(arena, from.id_),
+        label_(arena, from.label_),
+        detail_(arena, from.detail_),
+        route_(arena, from.route_),
+        status_text_(arena, from.status_text_) {}
+
+DesktopRuntimeNavigationItem::DesktopRuntimeNavigationItem(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const DesktopRuntimeNavigationItem& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, DesktopRuntimeNavigationItem_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  DesktopRuntimeNavigationItem* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.active_ = from._impl_.active_;
+
+  // @@protoc_insertion_point(copy_constructor:electron.desktop_runtime.DesktopRuntimeNavigationItem)
+}
+PROTOBUF_NDEBUG_INLINE DesktopRuntimeNavigationItem::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        id_(arena),
+        label_(arena),
+        detail_(arena),
+        route_(arena),
+        status_text_(arena) {}
+
+inline void DesktopRuntimeNavigationItem::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.active_ = {};
+}
+DesktopRuntimeNavigationItem::~DesktopRuntimeNavigationItem() {
+  // @@protoc_insertion_point(destructor:electron.desktop_runtime.DesktopRuntimeNavigationItem)
+  SharedDtor(*this);
+}
+inline void DesktopRuntimeNavigationItem::SharedDtor(MessageLite& self) {
+  DesktopRuntimeNavigationItem& this_ = static_cast<DesktopRuntimeNavigationItem&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.id_.Destroy();
+  this_._impl_.label_.Destroy();
+  this_._impl_.detail_.Destroy();
+  this_._impl_.route_.Destroy();
+  this_._impl_.status_text_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL DesktopRuntimeNavigationItem::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) DesktopRuntimeNavigationItem(arena);
+}
+constexpr auto DesktopRuntimeNavigationItem::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(DesktopRuntimeNavigationItem),
+                                            alignof(DesktopRuntimeNavigationItem));
+}
+constexpr auto DesktopRuntimeNavigationItem::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_DesktopRuntimeNavigationItem_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &DesktopRuntimeNavigationItem::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<DesktopRuntimeNavigationItem>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &DesktopRuntimeNavigationItem::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<DesktopRuntimeNavigationItem>(), &DesktopRuntimeNavigationItem::ByteSizeLong,
+              &DesktopRuntimeNavigationItem::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(DesktopRuntimeNavigationItem, _impl_._cached_size_),
+          false,
+      },
+      &DesktopRuntimeNavigationItem::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull DesktopRuntimeNavigationItem_class_data_ =
+        DesktopRuntimeNavigationItem::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+DesktopRuntimeNavigationItem::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&DesktopRuntimeNavigationItem_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(DesktopRuntimeNavigationItem_class_data_.tc_table);
+  return DesktopRuntimeNavigationItem_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 6, 0, 91, 2>
+DesktopRuntimeNavigationItem::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(DesktopRuntimeNavigationItem, _impl_._has_bits_),
+    0, // no _extensions_
+    6, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967232,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    6,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    DesktopRuntimeNavigationItem_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::electron::desktop_runtime::DesktopRuntimeNavigationItem>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // string id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeNavigationItem, _impl_.id_)}},
+    // string label = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeNavigationItem, _impl_.label_)}},
+    // string detail = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 2, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeNavigationItem, _impl_.detail_)}},
+    // string route = 4;
+    {::_pbi::TcParser::FastUS1,
+     {34, 3, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeNavigationItem, _impl_.route_)}},
+    // bool active = 5;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(DesktopRuntimeNavigationItem, _impl_.active_), 5>(),
+     {40, 5, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeNavigationItem, _impl_.active_)}},
+    // string status_text = 6;
+    {::_pbi::TcParser::FastUS1,
+     {50, 4, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeNavigationItem, _impl_.status_text_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string id = 1;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeNavigationItem, _impl_.id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string label = 2;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeNavigationItem, _impl_.label_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string detail = 3;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeNavigationItem, _impl_.detail_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string route = 4;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeNavigationItem, _impl_.route_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // bool active = 5;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeNavigationItem, _impl_.active_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // string status_text = 6;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeNavigationItem, _impl_.status_text_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\65\2\5\6\5\0\13\0"
+    "electron.desktop_runtime.DesktopRuntimeNavigationItem"
+    "id"
+    "label"
+    "detail"
+    "route"
+    "status_text"
+  }},
+};
+PROTOBUF_NOINLINE void DesktopRuntimeNavigationItem::Clear() {
+// @@protoc_insertion_point(message_clear_start:electron.desktop_runtime.DesktopRuntimeNavigationItem)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.label_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.detail_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.route_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      _impl_.status_text_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_.active_ = false;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL DesktopRuntimeNavigationItem::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const DesktopRuntimeNavigationItem& this_ = static_cast<const DesktopRuntimeNavigationItem&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL DesktopRuntimeNavigationItem::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const DesktopRuntimeNavigationItem& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:electron.desktop_runtime.DesktopRuntimeNavigationItem)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_id().empty()) {
+      const ::std::string& _s = this_._internal_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopRuntimeNavigationItem.id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string label = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_label().empty()) {
+      const ::std::string& _s = this_._internal_label();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopRuntimeNavigationItem.label");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // string detail = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_detail().empty()) {
+      const ::std::string& _s = this_._internal_detail();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopRuntimeNavigationItem.detail");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // string route = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_route().empty()) {
+      const ::std::string& _s = this_._internal_route();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopRuntimeNavigationItem.route");
+      target = stream->WriteStringMaybeAliased(4, _s, target);
+    }
+  }
+
+  // bool active = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (this_._internal_active() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          5, this_._internal_active(), target);
+    }
+  }
+
+  // string status_text = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (!this_._internal_status_text().empty()) {
+      const ::std::string& _s = this_._internal_status_text();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopRuntimeNavigationItem.status_text");
+      target = stream->WriteStringMaybeAliased(6, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:electron.desktop_runtime.DesktopRuntimeNavigationItem)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t DesktopRuntimeNavigationItem::ByteSizeLong(const MessageLite& base) {
+  const DesktopRuntimeNavigationItem& this_ = static_cast<const DesktopRuntimeNavigationItem&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t DesktopRuntimeNavigationItem::ByteSizeLong() const {
+  const DesktopRuntimeNavigationItem& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:electron.desktop_runtime.DesktopRuntimeNavigationItem)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+    // string id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_id());
+      }
+    }
+    // string label = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_label().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_label());
+      }
+    }
+    // string detail = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_detail().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_detail());
+      }
+    }
+    // string route = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_route().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_route());
+      }
+    }
+    // string status_text = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!this_._internal_status_text().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_status_text());
+      }
+    }
+    // bool active = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (this_._internal_active() != 0) {
+        total_size += 2;
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void DesktopRuntimeNavigationItem::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<DesktopRuntimeNavigationItem*>(&to_msg);
+  auto& from = static_cast<const DesktopRuntimeNavigationItem&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:electron.desktop_runtime.DesktopRuntimeNavigationItem)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_id().empty()) {
+        _this->_internal_set_id(from._internal_id());
+      } else {
+        if (_this->_impl_.id_.IsDefault()) {
+          _this->_internal_set_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_label().empty()) {
+        _this->_internal_set_label(from._internal_label());
+      } else {
+        if (_this->_impl_.label_.IsDefault()) {
+          _this->_internal_set_label("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_detail().empty()) {
+        _this->_internal_set_detail(from._internal_detail());
+      } else {
+        if (_this->_impl_.detail_.IsDefault()) {
+          _this->_internal_set_detail("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_route().empty()) {
+        _this->_internal_set_route(from._internal_route());
+      } else {
+        if (_this->_impl_.route_.IsDefault()) {
+          _this->_internal_set_route("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!from._internal_status_text().empty()) {
+        _this->_internal_set_status_text(from._internal_status_text());
+      } else {
+        if (_this->_impl_.status_text_.IsDefault()) {
+          _this->_internal_set_status_text("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (from._internal_active() != 0) {
+        _this->_impl_.active_ = from._impl_.active_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void DesktopRuntimeNavigationItem::CopyFrom(const DesktopRuntimeNavigationItem& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:electron.desktop_runtime.DesktopRuntimeNavigationItem)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void DesktopRuntimeNavigationItem::InternalSwap(DesktopRuntimeNavigationItem* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.id_, &other->_impl_.id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.label_, &other->_impl_.label_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.detail_, &other->_impl_.detail_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.route_, &other->_impl_.route_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.status_text_, &other->_impl_.status_text_, arena);
+  swap(_impl_.active_, other->_impl_.active_);
+}
+
+::google::protobuf::Metadata DesktopRuntimeNavigationItem::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class DesktopRuntimeActivityItem::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<DesktopRuntimeActivityItem>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(DesktopRuntimeActivityItem, _impl_._has_bits_);
+};
+
+DesktopRuntimeActivityItem::DesktopRuntimeActivityItem(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, DesktopRuntimeActivityItem_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:electron.desktop_runtime.DesktopRuntimeActivityItem)
+}
+PROTOBUF_NDEBUG_INLINE DesktopRuntimeActivityItem::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::electron::desktop_runtime::DesktopRuntimeActivityItem& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        id_(arena, from.id_),
+        label_(arena, from.label_),
+        detail_(arena, from.detail_) {}
+
+DesktopRuntimeActivityItem::DesktopRuntimeActivityItem(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const DesktopRuntimeActivityItem& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, DesktopRuntimeActivityItem_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  DesktopRuntimeActivityItem* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, updated_at_unix_ms_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, updated_at_unix_ms_),
+           offsetof(Impl_, state_) -
+               offsetof(Impl_, updated_at_unix_ms_) +
+               sizeof(Impl_::state_));
+
+  // @@protoc_insertion_point(copy_constructor:electron.desktop_runtime.DesktopRuntimeActivityItem)
+}
+PROTOBUF_NDEBUG_INLINE DesktopRuntimeActivityItem::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        id_(arena),
+        label_(arena),
+        detail_(arena) {}
+
+inline void DesktopRuntimeActivityItem::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, updated_at_unix_ms_),
+           0,
+           offsetof(Impl_, state_) -
+               offsetof(Impl_, updated_at_unix_ms_) +
+               sizeof(Impl_::state_));
+}
+DesktopRuntimeActivityItem::~DesktopRuntimeActivityItem() {
+  // @@protoc_insertion_point(destructor:electron.desktop_runtime.DesktopRuntimeActivityItem)
+  SharedDtor(*this);
+}
+inline void DesktopRuntimeActivityItem::SharedDtor(MessageLite& self) {
+  DesktopRuntimeActivityItem& this_ = static_cast<DesktopRuntimeActivityItem&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.id_.Destroy();
+  this_._impl_.label_.Destroy();
+  this_._impl_.detail_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL DesktopRuntimeActivityItem::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) DesktopRuntimeActivityItem(arena);
+}
+constexpr auto DesktopRuntimeActivityItem::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(DesktopRuntimeActivityItem),
+                                            alignof(DesktopRuntimeActivityItem));
+}
+constexpr auto DesktopRuntimeActivityItem::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_DesktopRuntimeActivityItem_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &DesktopRuntimeActivityItem::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<DesktopRuntimeActivityItem>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &DesktopRuntimeActivityItem::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<DesktopRuntimeActivityItem>(), &DesktopRuntimeActivityItem::ByteSizeLong,
+              &DesktopRuntimeActivityItem::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(DesktopRuntimeActivityItem, _impl_._cached_size_),
+          false,
+      },
+      &DesktopRuntimeActivityItem::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull DesktopRuntimeActivityItem_class_data_ =
+        DesktopRuntimeActivityItem::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+DesktopRuntimeActivityItem::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&DesktopRuntimeActivityItem_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(DesktopRuntimeActivityItem_class_data_.tc_table);
+  return DesktopRuntimeActivityItem_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 5, 0, 73, 2>
+DesktopRuntimeActivityItem::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(DesktopRuntimeActivityItem, _impl_._has_bits_),
+    0, // no _extensions_
+    5, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967264,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    5,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    DesktopRuntimeActivityItem_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::electron::desktop_runtime::DesktopRuntimeActivityItem>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // string id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeActivityItem, _impl_.id_)}},
+    // string label = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeActivityItem, _impl_.label_)}},
+    // string detail = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 2, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeActivityItem, _impl_.detail_)}},
+    // .electron.desktop_runtime.DesktopRuntimeActivityState state = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DesktopRuntimeActivityItem, _impl_.state_), 4>(),
+     {32, 4, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeActivityItem, _impl_.state_)}},
+    // int64 updated_at_unix_ms = 5;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(DesktopRuntimeActivityItem, _impl_.updated_at_unix_ms_), 3>(),
+     {40, 3, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeActivityItem, _impl_.updated_at_unix_ms_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string id = 1;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeActivityItem, _impl_.id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string label = 2;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeActivityItem, _impl_.label_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string detail = 3;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeActivityItem, _impl_.detail_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .electron.desktop_runtime.DesktopRuntimeActivityState state = 4;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeActivityItem, _impl_.state_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // int64 updated_at_unix_ms = 5;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeActivityItem, _impl_.updated_at_unix_ms_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt64)},
+  }},
+  // no aux_entries
+  {{
+    "\63\2\5\6\0\0\0\0"
+    "electron.desktop_runtime.DesktopRuntimeActivityItem"
+    "id"
+    "label"
+    "detail"
+  }},
+};
+PROTOBUF_NOINLINE void DesktopRuntimeActivityItem::Clear() {
+// @@protoc_insertion_point(message_clear_start:electron.desktop_runtime.DesktopRuntimeActivityItem)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.label_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.detail_.ClearNonDefaultToEmpty();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000018U)) {
+    ::memset(&_impl_.updated_at_unix_ms_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.state_) -
+        reinterpret_cast<char*>(&_impl_.updated_at_unix_ms_)) + sizeof(_impl_.state_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL DesktopRuntimeActivityItem::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const DesktopRuntimeActivityItem& this_ = static_cast<const DesktopRuntimeActivityItem&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL DesktopRuntimeActivityItem::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const DesktopRuntimeActivityItem& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:electron.desktop_runtime.DesktopRuntimeActivityItem)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_id().empty()) {
+      const ::std::string& _s = this_._internal_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopRuntimeActivityItem.id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string label = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_label().empty()) {
+      const ::std::string& _s = this_._internal_label();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopRuntimeActivityItem.label");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // string detail = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_detail().empty()) {
+      const ::std::string& _s = this_._internal_detail();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopRuntimeActivityItem.detail");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // .electron.desktop_runtime.DesktopRuntimeActivityState state = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (this_._internal_state() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          4, this_._internal_state(), target);
+    }
+  }
+
+  // int64 updated_at_unix_ms = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (this_._internal_updated_at_unix_ms() != 0) {
+      target =
+          ::google::protobuf::internal::WireFormatLite::WriteInt64ToArrayWithField<5>(
+              stream, this_._internal_updated_at_unix_ms(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:electron.desktop_runtime.DesktopRuntimeActivityItem)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t DesktopRuntimeActivityItem::ByteSizeLong(const MessageLite& base) {
+  const DesktopRuntimeActivityItem& this_ = static_cast<const DesktopRuntimeActivityItem&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t DesktopRuntimeActivityItem::ByteSizeLong() const {
+  const DesktopRuntimeActivityItem& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:electron.desktop_runtime.DesktopRuntimeActivityItem)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    // string id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_id());
+      }
+    }
+    // string label = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_label().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_label());
+      }
+    }
+    // string detail = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_detail().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_detail());
+      }
+    }
+    // int64 updated_at_unix_ms = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (this_._internal_updated_at_unix_ms() != 0) {
+        total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(
+            this_._internal_updated_at_unix_ms());
+      }
+    }
+    // .electron.desktop_runtime.DesktopRuntimeActivityState state = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (this_._internal_state() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_state());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void DesktopRuntimeActivityItem::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<DesktopRuntimeActivityItem*>(&to_msg);
+  auto& from = static_cast<const DesktopRuntimeActivityItem&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:electron.desktop_runtime.DesktopRuntimeActivityItem)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_id().empty()) {
+        _this->_internal_set_id(from._internal_id());
+      } else {
+        if (_this->_impl_.id_.IsDefault()) {
+          _this->_internal_set_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_label().empty()) {
+        _this->_internal_set_label(from._internal_label());
+      } else {
+        if (_this->_impl_.label_.IsDefault()) {
+          _this->_internal_set_label("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_detail().empty()) {
+        _this->_internal_set_detail(from._internal_detail());
+      } else {
+        if (_this->_impl_.detail_.IsDefault()) {
+          _this->_internal_set_detail("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (from._internal_updated_at_unix_ms() != 0) {
+        _this->_impl_.updated_at_unix_ms_ = from._impl_.updated_at_unix_ms_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (from._internal_state() != 0) {
+        _this->_impl_.state_ = from._impl_.state_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void DesktopRuntimeActivityItem::CopyFrom(const DesktopRuntimeActivityItem& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:electron.desktop_runtime.DesktopRuntimeActivityItem)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void DesktopRuntimeActivityItem::InternalSwap(DesktopRuntimeActivityItem* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.id_, &other->_impl_.id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.label_, &other->_impl_.label_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.detail_, &other->_impl_.detail_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeActivityItem, _impl_.state_)
+      + sizeof(DesktopRuntimeActivityItem::_impl_.state_)
+      - PROTOBUF_FIELD_OFFSET(DesktopRuntimeActivityItem, _impl_.updated_at_unix_ms_)>(
+          reinterpret_cast<char*>(&_impl_.updated_at_unix_ms_),
+          reinterpret_cast<char*>(&other->_impl_.updated_at_unix_ms_));
+}
+
+::google::protobuf::Metadata DesktopRuntimeActivityItem::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class DesktopRuntimeUpdateStatus::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<DesktopRuntimeUpdateStatus>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(DesktopRuntimeUpdateStatus, _impl_._has_bits_);
+};
+
+DesktopRuntimeUpdateStatus::DesktopRuntimeUpdateStatus(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, DesktopRuntimeUpdateStatus_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:electron.desktop_runtime.DesktopRuntimeUpdateStatus)
+}
+PROTOBUF_NDEBUG_INLINE DesktopRuntimeUpdateStatus::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::electron::desktop_runtime::DesktopRuntimeUpdateStatus& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        version_(arena, from.version_),
+        label_(arena, from.label_),
+        detail_(arena, from.detail_) {}
+
+DesktopRuntimeUpdateStatus::DesktopRuntimeUpdateStatus(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const DesktopRuntimeUpdateStatus& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, DesktopRuntimeUpdateStatus_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  DesktopRuntimeUpdateStatus* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.ready_ = from._impl_.ready_;
+
+  // @@protoc_insertion_point(copy_constructor:electron.desktop_runtime.DesktopRuntimeUpdateStatus)
+}
+PROTOBUF_NDEBUG_INLINE DesktopRuntimeUpdateStatus::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        version_(arena),
+        label_(arena),
+        detail_(arena) {}
+
+inline void DesktopRuntimeUpdateStatus::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.ready_ = {};
+}
+DesktopRuntimeUpdateStatus::~DesktopRuntimeUpdateStatus() {
+  // @@protoc_insertion_point(destructor:electron.desktop_runtime.DesktopRuntimeUpdateStatus)
+  SharedDtor(*this);
+}
+inline void DesktopRuntimeUpdateStatus::SharedDtor(MessageLite& self) {
+  DesktopRuntimeUpdateStatus& this_ = static_cast<DesktopRuntimeUpdateStatus&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.version_.Destroy();
+  this_._impl_.label_.Destroy();
+  this_._impl_.detail_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL DesktopRuntimeUpdateStatus::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) DesktopRuntimeUpdateStatus(arena);
+}
+constexpr auto DesktopRuntimeUpdateStatus::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(DesktopRuntimeUpdateStatus),
+                                            alignof(DesktopRuntimeUpdateStatus));
+}
+constexpr auto DesktopRuntimeUpdateStatus::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_DesktopRuntimeUpdateStatus_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &DesktopRuntimeUpdateStatus::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<DesktopRuntimeUpdateStatus>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &DesktopRuntimeUpdateStatus::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<DesktopRuntimeUpdateStatus>(), &DesktopRuntimeUpdateStatus::ByteSizeLong,
+              &DesktopRuntimeUpdateStatus::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(DesktopRuntimeUpdateStatus, _impl_._cached_size_),
+          false,
+      },
+      &DesktopRuntimeUpdateStatus::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull DesktopRuntimeUpdateStatus_class_data_ =
+        DesktopRuntimeUpdateStatus::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+DesktopRuntimeUpdateStatus::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&DesktopRuntimeUpdateStatus_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(DesktopRuntimeUpdateStatus_class_data_.tc_table);
+  return DesktopRuntimeUpdateStatus_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 4, 0, 78, 2>
+DesktopRuntimeUpdateStatus::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(DesktopRuntimeUpdateStatus, _impl_._has_bits_),
+    0, // no _extensions_
+    4, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967280,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    4,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    DesktopRuntimeUpdateStatus_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::electron::desktop_runtime::DesktopRuntimeUpdateStatus>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string detail = 4;
+    {::_pbi::TcParser::FastUS1,
+     {34, 2, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeUpdateStatus, _impl_.detail_)}},
+    // bool ready = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(DesktopRuntimeUpdateStatus, _impl_.ready_), 3>(),
+     {8, 3, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeUpdateStatus, _impl_.ready_)}},
+    // string version = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 0, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeUpdateStatus, _impl_.version_)}},
+    // string label = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 1, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeUpdateStatus, _impl_.label_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // bool ready = 1;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeUpdateStatus, _impl_.ready_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // string version = 2;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeUpdateStatus, _impl_.version_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string label = 3;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeUpdateStatus, _impl_.label_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string detail = 4;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeUpdateStatus, _impl_.detail_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\63\0\7\5\6\0\0\0"
+    "electron.desktop_runtime.DesktopRuntimeUpdateStatus"
+    "version"
+    "label"
+    "detail"
+  }},
+};
+PROTOBUF_NOINLINE void DesktopRuntimeUpdateStatus::Clear() {
+// @@protoc_insertion_point(message_clear_start:electron.desktop_runtime.DesktopRuntimeUpdateStatus)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.version_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.label_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.detail_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_.ready_ = false;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL DesktopRuntimeUpdateStatus::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const DesktopRuntimeUpdateStatus& this_ = static_cast<const DesktopRuntimeUpdateStatus&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL DesktopRuntimeUpdateStatus::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const DesktopRuntimeUpdateStatus& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:electron.desktop_runtime.DesktopRuntimeUpdateStatus)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // bool ready = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (this_._internal_ready() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          1, this_._internal_ready(), target);
+    }
+  }
+
+  // string version = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_version().empty()) {
+      const ::std::string& _s = this_._internal_version();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopRuntimeUpdateStatus.version");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // string label = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_label().empty()) {
+      const ::std::string& _s = this_._internal_label();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopRuntimeUpdateStatus.label");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // string detail = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_detail().empty()) {
+      const ::std::string& _s = this_._internal_detail();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopRuntimeUpdateStatus.detail");
+      target = stream->WriteStringMaybeAliased(4, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:electron.desktop_runtime.DesktopRuntimeUpdateStatus)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t DesktopRuntimeUpdateStatus::ByteSizeLong(const MessageLite& base) {
+  const DesktopRuntimeUpdateStatus& this_ = static_cast<const DesktopRuntimeUpdateStatus&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t DesktopRuntimeUpdateStatus::ByteSizeLong() const {
+  const DesktopRuntimeUpdateStatus& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:electron.desktop_runtime.DesktopRuntimeUpdateStatus)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    // string version = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_version().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_version());
+      }
+    }
+    // string label = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_label().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_label());
+      }
+    }
+    // string detail = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_detail().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_detail());
+      }
+    }
+    // bool ready = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (this_._internal_ready() != 0) {
+        total_size += 2;
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void DesktopRuntimeUpdateStatus::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<DesktopRuntimeUpdateStatus*>(&to_msg);
+  auto& from = static_cast<const DesktopRuntimeUpdateStatus&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:electron.desktop_runtime.DesktopRuntimeUpdateStatus)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_version().empty()) {
+        _this->_internal_set_version(from._internal_version());
+      } else {
+        if (_this->_impl_.version_.IsDefault()) {
+          _this->_internal_set_version("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_label().empty()) {
+        _this->_internal_set_label(from._internal_label());
+      } else {
+        if (_this->_impl_.label_.IsDefault()) {
+          _this->_internal_set_label("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_detail().empty()) {
+        _this->_internal_set_detail(from._internal_detail());
+      } else {
+        if (_this->_impl_.detail_.IsDefault()) {
+          _this->_internal_set_detail("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (from._internal_ready() != 0) {
+        _this->_impl_.ready_ = from._impl_.ready_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void DesktopRuntimeUpdateStatus::CopyFrom(const DesktopRuntimeUpdateStatus& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:electron.desktop_runtime.DesktopRuntimeUpdateStatus)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void DesktopRuntimeUpdateStatus::InternalSwap(DesktopRuntimeUpdateStatus* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.version_, &other->_impl_.version_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.label_, &other->_impl_.label_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.detail_, &other->_impl_.detail_, arena);
+  swap(_impl_.ready_, other->_impl_.ready_);
+}
+
+::google::protobuf::Metadata DesktopRuntimeUpdateStatus::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class DesktopRuntimeAttentionItem::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<DesktopRuntimeAttentionItem>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(DesktopRuntimeAttentionItem, _impl_._has_bits_);
+};
+
+DesktopRuntimeAttentionItem::DesktopRuntimeAttentionItem(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, DesktopRuntimeAttentionItem_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:electron.desktop_runtime.DesktopRuntimeAttentionItem)
+}
+PROTOBUF_NDEBUG_INLINE DesktopRuntimeAttentionItem::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::electron::desktop_runtime::DesktopRuntimeAttentionItem& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        label_(arena, from.label_),
+        detail_(arena, from.detail_),
+        route_(arena, from.route_) {}
+
+DesktopRuntimeAttentionItem::DesktopRuntimeAttentionItem(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const DesktopRuntimeAttentionItem& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, DesktopRuntimeAttentionItem_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  DesktopRuntimeAttentionItem* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, kind_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, kind_),
+           offsetof(Impl_, severity_) -
+               offsetof(Impl_, kind_) +
+               sizeof(Impl_::severity_));
+
+  // @@protoc_insertion_point(copy_constructor:electron.desktop_runtime.DesktopRuntimeAttentionItem)
+}
+PROTOBUF_NDEBUG_INLINE DesktopRuntimeAttentionItem::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        label_(arena),
+        detail_(arena),
+        route_(arena) {}
+
+inline void DesktopRuntimeAttentionItem::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, kind_),
+           0,
+           offsetof(Impl_, severity_) -
+               offsetof(Impl_, kind_) +
+               sizeof(Impl_::severity_));
+}
+DesktopRuntimeAttentionItem::~DesktopRuntimeAttentionItem() {
+  // @@protoc_insertion_point(destructor:electron.desktop_runtime.DesktopRuntimeAttentionItem)
+  SharedDtor(*this);
+}
+inline void DesktopRuntimeAttentionItem::SharedDtor(MessageLite& self) {
+  DesktopRuntimeAttentionItem& this_ = static_cast<DesktopRuntimeAttentionItem&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.label_.Destroy();
+  this_._impl_.detail_.Destroy();
+  this_._impl_.route_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL DesktopRuntimeAttentionItem::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) DesktopRuntimeAttentionItem(arena);
+}
+constexpr auto DesktopRuntimeAttentionItem::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(DesktopRuntimeAttentionItem),
+                                            alignof(DesktopRuntimeAttentionItem));
+}
+constexpr auto DesktopRuntimeAttentionItem::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_DesktopRuntimeAttentionItem_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &DesktopRuntimeAttentionItem::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<DesktopRuntimeAttentionItem>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &DesktopRuntimeAttentionItem::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<DesktopRuntimeAttentionItem>(), &DesktopRuntimeAttentionItem::ByteSizeLong,
+              &DesktopRuntimeAttentionItem::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(DesktopRuntimeAttentionItem, _impl_._cached_size_),
+          false,
+      },
+      &DesktopRuntimeAttentionItem::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull DesktopRuntimeAttentionItem_class_data_ =
+        DesktopRuntimeAttentionItem::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+DesktopRuntimeAttentionItem::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&DesktopRuntimeAttentionItem_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(DesktopRuntimeAttentionItem_class_data_.tc_table);
+  return DesktopRuntimeAttentionItem_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 5, 0, 77, 2>
+DesktopRuntimeAttentionItem::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(DesktopRuntimeAttentionItem, _impl_._has_bits_),
+    0, // no _extensions_
+    5, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967264,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    5,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    DesktopRuntimeAttentionItem_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::electron::desktop_runtime::DesktopRuntimeAttentionItem>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // .electron.desktop_runtime.DesktopRuntimeAttentionKind kind = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DesktopRuntimeAttentionItem, _impl_.kind_), 3>(),
+     {8, 3, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeAttentionItem, _impl_.kind_)}},
+    // .electron.desktop_runtime.DesktopRuntimeSeverity severity = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DesktopRuntimeAttentionItem, _impl_.severity_), 4>(),
+     {16, 4, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeAttentionItem, _impl_.severity_)}},
+    // string label = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 0, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeAttentionItem, _impl_.label_)}},
+    // string detail = 4;
+    {::_pbi::TcParser::FastUS1,
+     {34, 1, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeAttentionItem, _impl_.detail_)}},
+    // string route = 5;
+    {::_pbi::TcParser::FastUS1,
+     {42, 2, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeAttentionItem, _impl_.route_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .electron.desktop_runtime.DesktopRuntimeAttentionKind kind = 1;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeAttentionItem, _impl_.kind_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // .electron.desktop_runtime.DesktopRuntimeSeverity severity = 2;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeAttentionItem, _impl_.severity_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // string label = 3;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeAttentionItem, _impl_.label_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string detail = 4;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeAttentionItem, _impl_.detail_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string route = 5;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeAttentionItem, _impl_.route_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\64\0\0\5\6\5\0\0"
+    "electron.desktop_runtime.DesktopRuntimeAttentionItem"
+    "label"
+    "detail"
+    "route"
+  }},
+};
+PROTOBUF_NOINLINE void DesktopRuntimeAttentionItem::Clear() {
+// @@protoc_insertion_point(message_clear_start:electron.desktop_runtime.DesktopRuntimeAttentionItem)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.label_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.detail_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.route_.ClearNonDefaultToEmpty();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000018U)) {
+    ::memset(&_impl_.kind_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.severity_) -
+        reinterpret_cast<char*>(&_impl_.kind_)) + sizeof(_impl_.severity_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL DesktopRuntimeAttentionItem::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const DesktopRuntimeAttentionItem& this_ = static_cast<const DesktopRuntimeAttentionItem&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL DesktopRuntimeAttentionItem::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const DesktopRuntimeAttentionItem& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:electron.desktop_runtime.DesktopRuntimeAttentionItem)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .electron.desktop_runtime.DesktopRuntimeAttentionKind kind = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (this_._internal_kind() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          1, this_._internal_kind(), target);
+    }
+  }
+
+  // .electron.desktop_runtime.DesktopRuntimeSeverity severity = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (this_._internal_severity() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          2, this_._internal_severity(), target);
+    }
+  }
+
+  // string label = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_label().empty()) {
+      const ::std::string& _s = this_._internal_label();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopRuntimeAttentionItem.label");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // string detail = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_detail().empty()) {
+      const ::std::string& _s = this_._internal_detail();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopRuntimeAttentionItem.detail");
+      target = stream->WriteStringMaybeAliased(4, _s, target);
+    }
+  }
+
+  // string route = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_route().empty()) {
+      const ::std::string& _s = this_._internal_route();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopRuntimeAttentionItem.route");
+      target = stream->WriteStringMaybeAliased(5, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:electron.desktop_runtime.DesktopRuntimeAttentionItem)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t DesktopRuntimeAttentionItem::ByteSizeLong(const MessageLite& base) {
+  const DesktopRuntimeAttentionItem& this_ = static_cast<const DesktopRuntimeAttentionItem&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t DesktopRuntimeAttentionItem::ByteSizeLong() const {
+  const DesktopRuntimeAttentionItem& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:electron.desktop_runtime.DesktopRuntimeAttentionItem)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    // string label = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_label().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_label());
+      }
+    }
+    // string detail = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_detail().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_detail());
+      }
+    }
+    // string route = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_route().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_route());
+      }
+    }
+    // .electron.desktop_runtime.DesktopRuntimeAttentionKind kind = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (this_._internal_kind() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_kind());
+      }
+    }
+    // .electron.desktop_runtime.DesktopRuntimeSeverity severity = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (this_._internal_severity() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_severity());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void DesktopRuntimeAttentionItem::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<DesktopRuntimeAttentionItem*>(&to_msg);
+  auto& from = static_cast<const DesktopRuntimeAttentionItem&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:electron.desktop_runtime.DesktopRuntimeAttentionItem)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_label().empty()) {
+        _this->_internal_set_label(from._internal_label());
+      } else {
+        if (_this->_impl_.label_.IsDefault()) {
+          _this->_internal_set_label("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_detail().empty()) {
+        _this->_internal_set_detail(from._internal_detail());
+      } else {
+        if (_this->_impl_.detail_.IsDefault()) {
+          _this->_internal_set_detail("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_route().empty()) {
+        _this->_internal_set_route(from._internal_route());
+      } else {
+        if (_this->_impl_.route_.IsDefault()) {
+          _this->_internal_set_route("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (from._internal_kind() != 0) {
+        _this->_impl_.kind_ = from._impl_.kind_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (from._internal_severity() != 0) {
+        _this->_impl_.severity_ = from._impl_.severity_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void DesktopRuntimeAttentionItem::CopyFrom(const DesktopRuntimeAttentionItem& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:electron.desktop_runtime.DesktopRuntimeAttentionItem)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void DesktopRuntimeAttentionItem::InternalSwap(DesktopRuntimeAttentionItem* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.label_, &other->_impl_.label_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.detail_, &other->_impl_.detail_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.route_, &other->_impl_.route_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeAttentionItem, _impl_.severity_)
+      + sizeof(DesktopRuntimeAttentionItem::_impl_.severity_)
+      - PROTOBUF_FIELD_OFFSET(DesktopRuntimeAttentionItem, _impl_.kind_)>(
+          reinterpret_cast<char*>(&_impl_.kind_),
+          reinterpret_cast<char*>(&other->_impl_.kind_));
+}
+
+::google::protobuf::Metadata DesktopRuntimeAttentionItem::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================

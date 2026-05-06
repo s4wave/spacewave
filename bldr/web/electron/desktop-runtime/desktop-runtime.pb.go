@@ -15,6 +15,318 @@ import (
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
 
+// DesktopRuntimeHealth describes the collapsed tray icon status.
+type DesktopRuntimeHealth int32
+
+const (
+	// DESKTOP_RUNTIME_HEALTH_UNSPECIFIED leaves the icon status unset.
+	DesktopRuntimeHealth_DESKTOP_RUNTIME_HEALTH_UNSPECIFIED DesktopRuntimeHealth = 0
+	// DESKTOP_RUNTIME_HEALTH_STARTING indicates the runtime is starting.
+	DesktopRuntimeHealth_DESKTOP_RUNTIME_HEALTH_STARTING DesktopRuntimeHealth = 1
+	// DESKTOP_RUNTIME_HEALTH_HEALTHY indicates the runtime is reachable.
+	DesktopRuntimeHealth_DESKTOP_RUNTIME_HEALTH_HEALTHY DesktopRuntimeHealth = 2
+	// DESKTOP_RUNTIME_HEALTH_ACTIVE indicates useful background activity.
+	DesktopRuntimeHealth_DESKTOP_RUNTIME_HEALTH_ACTIVE DesktopRuntimeHealth = 3
+	// DESKTOP_RUNTIME_HEALTH_NEEDS_ATTENTION indicates user action is needed.
+	DesktopRuntimeHealth_DESKTOP_RUNTIME_HEALTH_NEEDS_ATTENTION DesktopRuntimeHealth = 4
+	// DESKTOP_RUNTIME_HEALTH_DISCONNECTED indicates the runtime is unreachable.
+	DesktopRuntimeHealth_DESKTOP_RUNTIME_HEALTH_DISCONNECTED DesktopRuntimeHealth = 5
+	// DESKTOP_RUNTIME_HEALTH_QUITTING indicates explicit shutdown is running.
+	DesktopRuntimeHealth_DESKTOP_RUNTIME_HEALTH_QUITTING DesktopRuntimeHealth = 6
+)
+
+// Enum value maps for DesktopRuntimeHealth.
+var (
+	DesktopRuntimeHealth_name = map[int32]string{
+		0: "DESKTOP_RUNTIME_HEALTH_UNSPECIFIED",
+		1: "DESKTOP_RUNTIME_HEALTH_STARTING",
+		2: "DESKTOP_RUNTIME_HEALTH_HEALTHY",
+		3: "DESKTOP_RUNTIME_HEALTH_ACTIVE",
+		4: "DESKTOP_RUNTIME_HEALTH_NEEDS_ATTENTION",
+		5: "DESKTOP_RUNTIME_HEALTH_DISCONNECTED",
+		6: "DESKTOP_RUNTIME_HEALTH_QUITTING",
+	}
+	DesktopRuntimeHealth_value = map[string]int32{
+		"DESKTOP_RUNTIME_HEALTH_UNSPECIFIED":     0,
+		"DESKTOP_RUNTIME_HEALTH_STARTING":        1,
+		"DESKTOP_RUNTIME_HEALTH_HEALTHY":         2,
+		"DESKTOP_RUNTIME_HEALTH_ACTIVE":          3,
+		"DESKTOP_RUNTIME_HEALTH_NEEDS_ATTENTION": 4,
+		"DESKTOP_RUNTIME_HEALTH_DISCONNECTED":    5,
+		"DESKTOP_RUNTIME_HEALTH_QUITTING":        6,
+	}
+)
+
+func (x DesktopRuntimeHealth) Enum() *DesktopRuntimeHealth {
+	p := new(DesktopRuntimeHealth)
+	*p = x
+	return p
+}
+
+func (x DesktopRuntimeHealth) String() string {
+	name, valid := DesktopRuntimeHealth_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// DesktopRuntimeLifecycle describes native runtime process state.
+type DesktopRuntimeLifecycle int32
+
+const (
+	// DESKTOP_RUNTIME_LIFECYCLE_UNSPECIFIED leaves lifecycle state unset.
+	DesktopRuntimeLifecycle_DESKTOP_RUNTIME_LIFECYCLE_UNSPECIFIED DesktopRuntimeLifecycle = 0
+	// DESKTOP_RUNTIME_LIFECYCLE_STARTING indicates startup is in progress.
+	DesktopRuntimeLifecycle_DESKTOP_RUNTIME_LIFECYCLE_STARTING DesktopRuntimeLifecycle = 1
+	// DESKTOP_RUNTIME_LIFECYCLE_RUNNING indicates the runtime is active.
+	DesktopRuntimeLifecycle_DESKTOP_RUNTIME_LIFECYCLE_RUNNING DesktopRuntimeLifecycle = 2
+	// DESKTOP_RUNTIME_LIFECYCLE_DISCONNECTED indicates the runtime is detached.
+	DesktopRuntimeLifecycle_DESKTOP_RUNTIME_LIFECYCLE_DISCONNECTED DesktopRuntimeLifecycle = 3
+	// DESKTOP_RUNTIME_LIFECYCLE_QUITTING indicates explicit shutdown is running.
+	DesktopRuntimeLifecycle_DESKTOP_RUNTIME_LIFECYCLE_QUITTING DesktopRuntimeLifecycle = 4
+)
+
+// Enum value maps for DesktopRuntimeLifecycle.
+var (
+	DesktopRuntimeLifecycle_name = map[int32]string{
+		0: "DESKTOP_RUNTIME_LIFECYCLE_UNSPECIFIED",
+		1: "DESKTOP_RUNTIME_LIFECYCLE_STARTING",
+		2: "DESKTOP_RUNTIME_LIFECYCLE_RUNNING",
+		3: "DESKTOP_RUNTIME_LIFECYCLE_DISCONNECTED",
+		4: "DESKTOP_RUNTIME_LIFECYCLE_QUITTING",
+	}
+	DesktopRuntimeLifecycle_value = map[string]int32{
+		"DESKTOP_RUNTIME_LIFECYCLE_UNSPECIFIED":  0,
+		"DESKTOP_RUNTIME_LIFECYCLE_STARTING":     1,
+		"DESKTOP_RUNTIME_LIFECYCLE_RUNNING":      2,
+		"DESKTOP_RUNTIME_LIFECYCLE_DISCONNECTED": 3,
+		"DESKTOP_RUNTIME_LIFECYCLE_QUITTING":     4,
+	}
+)
+
+func (x DesktopRuntimeLifecycle) Enum() *DesktopRuntimeLifecycle {
+	p := new(DesktopRuntimeLifecycle)
+	*p = x
+	return p
+}
+
+func (x DesktopRuntimeLifecycle) String() string {
+	name, valid := DesktopRuntimeLifecycle_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// DesktopRuntimeReachability describes a reachable runtime endpoint.
+type DesktopRuntimeReachability int32
+
+const (
+	// DESKTOP_RUNTIME_REACHABILITY_UNSPECIFIED leaves reachability unset.
+	DesktopRuntimeReachability_DESKTOP_RUNTIME_REACHABILITY_UNSPECIFIED DesktopRuntimeReachability = 0
+	// DESKTOP_RUNTIME_REACHABILITY_STARTING indicates binding is in progress.
+	DesktopRuntimeReachability_DESKTOP_RUNTIME_REACHABILITY_STARTING DesktopRuntimeReachability = 1
+	// DESKTOP_RUNTIME_REACHABILITY_REACHABLE indicates the endpoint is reachable.
+	DesktopRuntimeReachability_DESKTOP_RUNTIME_REACHABILITY_REACHABLE DesktopRuntimeReachability = 2
+	// DESKTOP_RUNTIME_REACHABILITY_UNREACHABLE indicates the endpoint failed.
+	DesktopRuntimeReachability_DESKTOP_RUNTIME_REACHABILITY_UNREACHABLE DesktopRuntimeReachability = 3
+)
+
+// Enum value maps for DesktopRuntimeReachability.
+var (
+	DesktopRuntimeReachability_name = map[int32]string{
+		0: "DESKTOP_RUNTIME_REACHABILITY_UNSPECIFIED",
+		1: "DESKTOP_RUNTIME_REACHABILITY_STARTING",
+		2: "DESKTOP_RUNTIME_REACHABILITY_REACHABLE",
+		3: "DESKTOP_RUNTIME_REACHABILITY_UNREACHABLE",
+	}
+	DesktopRuntimeReachability_value = map[string]int32{
+		"DESKTOP_RUNTIME_REACHABILITY_UNSPECIFIED": 0,
+		"DESKTOP_RUNTIME_REACHABILITY_STARTING":    1,
+		"DESKTOP_RUNTIME_REACHABILITY_REACHABLE":   2,
+		"DESKTOP_RUNTIME_REACHABILITY_UNREACHABLE": 3,
+	}
+)
+
+func (x DesktopRuntimeReachability) Enum() *DesktopRuntimeReachability {
+	p := new(DesktopRuntimeReachability)
+	*p = x
+	return p
+}
+
+func (x DesktopRuntimeReachability) String() string {
+	name, valid := DesktopRuntimeReachability_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// DesktopRuntimeActivityState describes a runtime activity row.
+type DesktopRuntimeActivityState int32
+
+const (
+	// DESKTOP_RUNTIME_ACTIVITY_STATE_UNSPECIFIED leaves activity state unset.
+	DesktopRuntimeActivityState_DESKTOP_RUNTIME_ACTIVITY_STATE_UNSPECIFIED DesktopRuntimeActivityState = 0
+	// DESKTOP_RUNTIME_ACTIVITY_STATE_IDLE indicates no active work.
+	DesktopRuntimeActivityState_DESKTOP_RUNTIME_ACTIVITY_STATE_IDLE DesktopRuntimeActivityState = 1
+	// DESKTOP_RUNTIME_ACTIVITY_STATE_RUNNING indicates work is active.
+	DesktopRuntimeActivityState_DESKTOP_RUNTIME_ACTIVITY_STATE_RUNNING DesktopRuntimeActivityState = 2
+	// DESKTOP_RUNTIME_ACTIVITY_STATE_DONE indicates work completed.
+	DesktopRuntimeActivityState_DESKTOP_RUNTIME_ACTIVITY_STATE_DONE DesktopRuntimeActivityState = 3
+	// DESKTOP_RUNTIME_ACTIVITY_STATE_ATTENTION indicates work needs attention.
+	DesktopRuntimeActivityState_DESKTOP_RUNTIME_ACTIVITY_STATE_ATTENTION DesktopRuntimeActivityState = 4
+	// DESKTOP_RUNTIME_ACTIVITY_STATE_ERROR indicates work failed.
+	DesktopRuntimeActivityState_DESKTOP_RUNTIME_ACTIVITY_STATE_ERROR DesktopRuntimeActivityState = 5
+)
+
+// Enum value maps for DesktopRuntimeActivityState.
+var (
+	DesktopRuntimeActivityState_name = map[int32]string{
+		0: "DESKTOP_RUNTIME_ACTIVITY_STATE_UNSPECIFIED",
+		1: "DESKTOP_RUNTIME_ACTIVITY_STATE_IDLE",
+		2: "DESKTOP_RUNTIME_ACTIVITY_STATE_RUNNING",
+		3: "DESKTOP_RUNTIME_ACTIVITY_STATE_DONE",
+		4: "DESKTOP_RUNTIME_ACTIVITY_STATE_ATTENTION",
+		5: "DESKTOP_RUNTIME_ACTIVITY_STATE_ERROR",
+	}
+	DesktopRuntimeActivityState_value = map[string]int32{
+		"DESKTOP_RUNTIME_ACTIVITY_STATE_UNSPECIFIED": 0,
+		"DESKTOP_RUNTIME_ACTIVITY_STATE_IDLE":        1,
+		"DESKTOP_RUNTIME_ACTIVITY_STATE_RUNNING":     2,
+		"DESKTOP_RUNTIME_ACTIVITY_STATE_DONE":        3,
+		"DESKTOP_RUNTIME_ACTIVITY_STATE_ATTENTION":   4,
+		"DESKTOP_RUNTIME_ACTIVITY_STATE_ERROR":       5,
+	}
+)
+
+func (x DesktopRuntimeActivityState) Enum() *DesktopRuntimeActivityState {
+	p := new(DesktopRuntimeActivityState)
+	*p = x
+	return p
+}
+
+func (x DesktopRuntimeActivityState) String() string {
+	name, valid := DesktopRuntimeActivityState_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// DesktopRuntimeAttentionKind describes user-actionable attention categories.
+type DesktopRuntimeAttentionKind int32
+
+const (
+	// DESKTOP_RUNTIME_ATTENTION_KIND_UNSPECIFIED leaves attention kind unset.
+	DesktopRuntimeAttentionKind_DESKTOP_RUNTIME_ATTENTION_KIND_UNSPECIFIED DesktopRuntimeAttentionKind = 0
+	// DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_STARTING indicates startup status.
+	DesktopRuntimeAttentionKind_DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_STARTING DesktopRuntimeAttentionKind = 1
+	// DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_DISCONNECTED indicates runtime loss.
+	DesktopRuntimeAttentionKind_DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_DISCONNECTED DesktopRuntimeAttentionKind = 2
+	// DESKTOP_RUNTIME_ATTENTION_KIND_LISTENER_UNAVAILABLE indicates listener loss.
+	DesktopRuntimeAttentionKind_DESKTOP_RUNTIME_ATTENTION_KIND_LISTENER_UNAVAILABLE DesktopRuntimeAttentionKind = 3
+	// DESKTOP_RUNTIME_ATTENTION_KIND_AUTH_REQUIRED indicates session auth is needed.
+	DesktopRuntimeAttentionKind_DESKTOP_RUNTIME_ATTENTION_KIND_AUTH_REQUIRED DesktopRuntimeAttentionKind = 4
+	// DESKTOP_RUNTIME_ATTENTION_KIND_STEP_UP_REQUIRED indicates step-up auth is needed.
+	DesktopRuntimeAttentionKind_DESKTOP_RUNTIME_ATTENTION_KIND_STEP_UP_REQUIRED DesktopRuntimeAttentionKind = 5
+	// DESKTOP_RUNTIME_ATTENTION_KIND_SYNC_ERROR indicates sync or listener failure.
+	DesktopRuntimeAttentionKind_DESKTOP_RUNTIME_ATTENTION_KIND_SYNC_ERROR DesktopRuntimeAttentionKind = 6
+	// DESKTOP_RUNTIME_ATTENTION_KIND_UPDATE_READY indicates a native update is ready.
+	DesktopRuntimeAttentionKind_DESKTOP_RUNTIME_ATTENTION_KIND_UPDATE_READY DesktopRuntimeAttentionKind = 7
+	// DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_RESTARTING indicates restart progress.
+	DesktopRuntimeAttentionKind_DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_RESTARTING DesktopRuntimeAttentionKind = 8
+	// DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_QUITTING indicates shutdown progress.
+	DesktopRuntimeAttentionKind_DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_QUITTING DesktopRuntimeAttentionKind = 9
+)
+
+// Enum value maps for DesktopRuntimeAttentionKind.
+var (
+	DesktopRuntimeAttentionKind_name = map[int32]string{
+		0: "DESKTOP_RUNTIME_ATTENTION_KIND_UNSPECIFIED",
+		1: "DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_STARTING",
+		2: "DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_DISCONNECTED",
+		3: "DESKTOP_RUNTIME_ATTENTION_KIND_LISTENER_UNAVAILABLE",
+		4: "DESKTOP_RUNTIME_ATTENTION_KIND_AUTH_REQUIRED",
+		5: "DESKTOP_RUNTIME_ATTENTION_KIND_STEP_UP_REQUIRED",
+		6: "DESKTOP_RUNTIME_ATTENTION_KIND_SYNC_ERROR",
+		7: "DESKTOP_RUNTIME_ATTENTION_KIND_UPDATE_READY",
+		8: "DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_RESTARTING",
+		9: "DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_QUITTING",
+	}
+	DesktopRuntimeAttentionKind_value = map[string]int32{
+		"DESKTOP_RUNTIME_ATTENTION_KIND_UNSPECIFIED":          0,
+		"DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_STARTING":     1,
+		"DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_DISCONNECTED": 2,
+		"DESKTOP_RUNTIME_ATTENTION_KIND_LISTENER_UNAVAILABLE": 3,
+		"DESKTOP_RUNTIME_ATTENTION_KIND_AUTH_REQUIRED":        4,
+		"DESKTOP_RUNTIME_ATTENTION_KIND_STEP_UP_REQUIRED":     5,
+		"DESKTOP_RUNTIME_ATTENTION_KIND_SYNC_ERROR":           6,
+		"DESKTOP_RUNTIME_ATTENTION_KIND_UPDATE_READY":         7,
+		"DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_RESTARTING":   8,
+		"DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_QUITTING":     9,
+	}
+)
+
+func (x DesktopRuntimeAttentionKind) Enum() *DesktopRuntimeAttentionKind {
+	p := new(DesktopRuntimeAttentionKind)
+	*p = x
+	return p
+}
+
+func (x DesktopRuntimeAttentionKind) String() string {
+	name, valid := DesktopRuntimeAttentionKind_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// DesktopRuntimeSeverity describes row urgency.
+type DesktopRuntimeSeverity int32
+
+const (
+	// DESKTOP_RUNTIME_SEVERITY_UNSPECIFIED leaves severity unset.
+	DesktopRuntimeSeverity_DESKTOP_RUNTIME_SEVERITY_UNSPECIFIED DesktopRuntimeSeverity = 0
+	// DESKTOP_RUNTIME_SEVERITY_INFO marks informational status.
+	DesktopRuntimeSeverity_DESKTOP_RUNTIME_SEVERITY_INFO DesktopRuntimeSeverity = 1
+	// DESKTOP_RUNTIME_SEVERITY_WARNING marks a recoverable warning.
+	DesktopRuntimeSeverity_DESKTOP_RUNTIME_SEVERITY_WARNING DesktopRuntimeSeverity = 2
+	// DESKTOP_RUNTIME_SEVERITY_CRITICAL marks a blocking issue.
+	DesktopRuntimeSeverity_DESKTOP_RUNTIME_SEVERITY_CRITICAL DesktopRuntimeSeverity = 3
+)
+
+// Enum value maps for DesktopRuntimeSeverity.
+var (
+	DesktopRuntimeSeverity_name = map[int32]string{
+		0: "DESKTOP_RUNTIME_SEVERITY_UNSPECIFIED",
+		1: "DESKTOP_RUNTIME_SEVERITY_INFO",
+		2: "DESKTOP_RUNTIME_SEVERITY_WARNING",
+		3: "DESKTOP_RUNTIME_SEVERITY_CRITICAL",
+	}
+	DesktopRuntimeSeverity_value = map[string]int32{
+		"DESKTOP_RUNTIME_SEVERITY_UNSPECIFIED": 0,
+		"DESKTOP_RUNTIME_SEVERITY_INFO":        1,
+		"DESKTOP_RUNTIME_SEVERITY_WARNING":     2,
+		"DESKTOP_RUNTIME_SEVERITY_CRITICAL":    3,
+	}
+)
+
+func (x DesktopRuntimeSeverity) Enum() *DesktopRuntimeSeverity {
+	p := new(DesktopRuntimeSeverity)
+	*p = x
+	return p
+}
+
+func (x DesktopRuntimeSeverity) String() string {
+	name, valid := DesktopRuntimeSeverity_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // DesktopRuntimeState describes Electron main desktop-shell state.
 type DesktopRuntimeState struct {
 	unknownFields []byte
@@ -24,6 +336,22 @@ type DesktopRuntimeState struct {
 	Quitting bool `protobuf:"varint,2,opt,name=quitting,proto3" json:"quitting,omitempty"`
 	// StatusText is short display text for native status surfaces.
 	StatusText string `protobuf:"bytes,3,opt,name=status_text,json=statusText,proto3" json:"statusText,omitempty"`
+	// Health summarizes the status icon state.
+	Health DesktopRuntimeHealth `protobuf:"varint,4,opt,name=health,proto3" json:"health,omitempty"`
+	// Lifecycle describes the native runtime process lifecycle.
+	Lifecycle DesktopRuntimeLifecycle `protobuf:"varint,5,opt,name=lifecycle,proto3" json:"lifecycle,omitempty"`
+	// Listener describes background listener and CLI reachability.
+	Listener *DesktopRuntimeListenerStatus `protobuf:"bytes,6,opt,name=listener,proto3" json:"listener,omitempty"`
+	// Sessions contains bounded session rows for native status surfaces.
+	Sessions []*DesktopRuntimeNavigationItem `protobuf:"bytes,7,rep,name=sessions,proto3" json:"sessions,omitempty"`
+	// Spaces contains bounded Space rows for native status surfaces.
+	Spaces []*DesktopRuntimeNavigationItem `protobuf:"bytes,8,rep,name=spaces,proto3" json:"spaces,omitempty"`
+	// Activity contains bounded recent activity rows.
+	Activity []*DesktopRuntimeActivityItem `protobuf:"bytes,9,rep,name=activity,proto3" json:"activity,omitempty"`
+	// Update describes native runtime update readiness.
+	Update *DesktopRuntimeUpdateStatus `protobuf:"bytes,10,opt,name=update,proto3" json:"update,omitempty"`
+	// AttentionItems contains user-actionable attention rows.
+	AttentionItems []*DesktopRuntimeAttentionItem `protobuf:"bytes,11,rep,name=attention_items,json=attentionItems,proto3" json:"attentionItems,omitempty"`
 }
 
 func (x *DesktopRuntimeState) Reset() {
@@ -49,6 +377,342 @@ func (x *DesktopRuntimeState) GetQuitting() bool {
 func (x *DesktopRuntimeState) GetStatusText() string {
 	if x != nil {
 		return x.StatusText
+	}
+	return ""
+}
+
+func (x *DesktopRuntimeState) GetHealth() DesktopRuntimeHealth {
+	if x != nil {
+		return x.Health
+	}
+	return DesktopRuntimeHealth_DESKTOP_RUNTIME_HEALTH_UNSPECIFIED
+}
+
+func (x *DesktopRuntimeState) GetLifecycle() DesktopRuntimeLifecycle {
+	if x != nil {
+		return x.Lifecycle
+	}
+	return DesktopRuntimeLifecycle_DESKTOP_RUNTIME_LIFECYCLE_UNSPECIFIED
+}
+
+func (x *DesktopRuntimeState) GetListener() *DesktopRuntimeListenerStatus {
+	if x != nil {
+		return x.Listener
+	}
+	return nil
+}
+
+func (x *DesktopRuntimeState) GetSessions() []*DesktopRuntimeNavigationItem {
+	if x != nil {
+		return x.Sessions
+	}
+	return nil
+}
+
+func (x *DesktopRuntimeState) GetSpaces() []*DesktopRuntimeNavigationItem {
+	if x != nil {
+		return x.Spaces
+	}
+	return nil
+}
+
+func (x *DesktopRuntimeState) GetActivity() []*DesktopRuntimeActivityItem {
+	if x != nil {
+		return x.Activity
+	}
+	return nil
+}
+
+func (x *DesktopRuntimeState) GetUpdate() *DesktopRuntimeUpdateStatus {
+	if x != nil {
+		return x.Update
+	}
+	return nil
+}
+
+func (x *DesktopRuntimeState) GetAttentionItems() []*DesktopRuntimeAttentionItem {
+	if x != nil {
+		return x.AttentionItems
+	}
+	return nil
+}
+
+// DesktopRuntimeListenerStatus describes background listener and CLI state.
+type DesktopRuntimeListenerStatus struct {
+	unknownFields []byte
+	// Reachability describes whether the endpoint can be used.
+	Reachability DesktopRuntimeReachability `protobuf:"varint,1,opt,name=reachability,proto3" json:"reachability,omitempty"`
+	// Label is short display text for the listener.
+	Label string `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	// Detail is secondary display text for the listener.
+	Detail string `protobuf:"bytes,3,opt,name=detail,proto3" json:"detail,omitempty"`
+	// SocketPath is the local CLI socket path when known.
+	SocketPath string `protobuf:"bytes,4,opt,name=socket_path,json=socketPath,proto3" json:"socketPath,omitempty"`
+	// ConnectedClients is the number of active CLI clients when known.
+	ConnectedClients uint32 `protobuf:"varint,5,opt,name=connected_clients,json=connectedClients,proto3" json:"connectedClients,omitempty"`
+}
+
+func (x *DesktopRuntimeListenerStatus) Reset() {
+	*x = DesktopRuntimeListenerStatus{}
+}
+
+func (*DesktopRuntimeListenerStatus) ProtoMessage() {}
+
+func (x *DesktopRuntimeListenerStatus) GetReachability() DesktopRuntimeReachability {
+	if x != nil {
+		return x.Reachability
+	}
+	return DesktopRuntimeReachability_DESKTOP_RUNTIME_REACHABILITY_UNSPECIFIED
+}
+
+func (x *DesktopRuntimeListenerStatus) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *DesktopRuntimeListenerStatus) GetDetail() string {
+	if x != nil {
+		return x.Detail
+	}
+	return ""
+}
+
+func (x *DesktopRuntimeListenerStatus) GetSocketPath() string {
+	if x != nil {
+		return x.SocketPath
+	}
+	return ""
+}
+
+func (x *DesktopRuntimeListenerStatus) GetConnectedClients() uint32 {
+	if x != nil {
+		return x.ConnectedClients
+	}
+	return 0
+}
+
+// DesktopRuntimeNavigationItem describes a bounded navigable status row.
+type DesktopRuntimeNavigationItem struct {
+	unknownFields []byte
+	// Id identifies the row within the projected state.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Label is primary display text.
+	Label string `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	// Detail is secondary display text.
+	Detail string `protobuf:"bytes,3,opt,name=detail,proto3" json:"detail,omitempty"`
+	// Route is the app route to open when selected.
+	Route string `protobuf:"bytes,4,opt,name=route,proto3" json:"route,omitempty"`
+	// Active is set when the row describes active foreground work.
+	Active bool `protobuf:"varint,5,opt,name=active,proto3" json:"active,omitempty"`
+	// StatusText is compact status text for the row.
+	StatusText string `protobuf:"bytes,6,opt,name=status_text,json=statusText,proto3" json:"statusText,omitempty"`
+}
+
+func (x *DesktopRuntimeNavigationItem) Reset() {
+	*x = DesktopRuntimeNavigationItem{}
+}
+
+func (*DesktopRuntimeNavigationItem) ProtoMessage() {}
+
+func (x *DesktopRuntimeNavigationItem) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *DesktopRuntimeNavigationItem) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *DesktopRuntimeNavigationItem) GetDetail() string {
+	if x != nil {
+		return x.Detail
+	}
+	return ""
+}
+
+func (x *DesktopRuntimeNavigationItem) GetRoute() string {
+	if x != nil {
+		return x.Route
+	}
+	return ""
+}
+
+func (x *DesktopRuntimeNavigationItem) GetActive() bool {
+	if x != nil {
+		return x.Active
+	}
+	return false
+}
+
+func (x *DesktopRuntimeNavigationItem) GetStatusText() string {
+	if x != nil {
+		return x.StatusText
+	}
+	return ""
+}
+
+// DesktopRuntimeActivityItem describes a bounded activity row.
+type DesktopRuntimeActivityItem struct {
+	unknownFields []byte
+	// Id identifies the activity row.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Label is primary display text.
+	Label string `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	// Detail is secondary display text.
+	Detail string `protobuf:"bytes,3,opt,name=detail,proto3" json:"detail,omitempty"`
+	// State describes the current activity state.
+	State DesktopRuntimeActivityState `protobuf:"varint,4,opt,name=state,proto3" json:"state,omitempty"`
+	// UpdatedAtUnixMs records the latest activity update time.
+	UpdatedAtUnixMs int64 `protobuf:"varint,5,opt,name=updated_at_unix_ms,json=updatedAtUnixMs,proto3" json:"updatedAtUnixMs,omitempty"`
+}
+
+func (x *DesktopRuntimeActivityItem) Reset() {
+	*x = DesktopRuntimeActivityItem{}
+}
+
+func (*DesktopRuntimeActivityItem) ProtoMessage() {}
+
+func (x *DesktopRuntimeActivityItem) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *DesktopRuntimeActivityItem) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *DesktopRuntimeActivityItem) GetDetail() string {
+	if x != nil {
+		return x.Detail
+	}
+	return ""
+}
+
+func (x *DesktopRuntimeActivityItem) GetState() DesktopRuntimeActivityState {
+	if x != nil {
+		return x.State
+	}
+	return DesktopRuntimeActivityState_DESKTOP_RUNTIME_ACTIVITY_STATE_UNSPECIFIED
+}
+
+func (x *DesktopRuntimeActivityItem) GetUpdatedAtUnixMs() int64 {
+	if x != nil {
+		return x.UpdatedAtUnixMs
+	}
+	return 0
+}
+
+// DesktopRuntimeUpdateStatus describes native runtime update state.
+type DesktopRuntimeUpdateStatus struct {
+	unknownFields []byte
+	// Ready is set when a native update is ready to apply.
+	Ready bool `protobuf:"varint,1,opt,name=ready,proto3" json:"ready,omitempty"`
+	// Version is the available version when known.
+	Version string `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
+	// Label is primary display text.
+	Label string `protobuf:"bytes,3,opt,name=label,proto3" json:"label,omitempty"`
+	// Detail is secondary display text.
+	Detail string `protobuf:"bytes,4,opt,name=detail,proto3" json:"detail,omitempty"`
+}
+
+func (x *DesktopRuntimeUpdateStatus) Reset() {
+	*x = DesktopRuntimeUpdateStatus{}
+}
+
+func (*DesktopRuntimeUpdateStatus) ProtoMessage() {}
+
+func (x *DesktopRuntimeUpdateStatus) GetReady() bool {
+	if x != nil {
+		return x.Ready
+	}
+	return false
+}
+
+func (x *DesktopRuntimeUpdateStatus) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+func (x *DesktopRuntimeUpdateStatus) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *DesktopRuntimeUpdateStatus) GetDetail() string {
+	if x != nil {
+		return x.Detail
+	}
+	return ""
+}
+
+// DesktopRuntimeAttentionItem describes a user-actionable attention row.
+type DesktopRuntimeAttentionItem struct {
+	unknownFields []byte
+	// Kind describes the attention category.
+	Kind DesktopRuntimeAttentionKind `protobuf:"varint,1,opt,name=kind,proto3" json:"kind,omitempty"`
+	// Severity describes the attention urgency.
+	Severity DesktopRuntimeSeverity `protobuf:"varint,2,opt,name=severity,proto3" json:"severity,omitempty"`
+	// Label is primary display text.
+	Label string `protobuf:"bytes,3,opt,name=label,proto3" json:"label,omitempty"`
+	// Detail is secondary display text.
+	Detail string `protobuf:"bytes,4,opt,name=detail,proto3" json:"detail,omitempty"`
+	// Route is the app route that can resolve the item when available.
+	Route string `protobuf:"bytes,5,opt,name=route,proto3" json:"route,omitempty"`
+}
+
+func (x *DesktopRuntimeAttentionItem) Reset() {
+	*x = DesktopRuntimeAttentionItem{}
+}
+
+func (*DesktopRuntimeAttentionItem) ProtoMessage() {}
+
+func (x *DesktopRuntimeAttentionItem) GetKind() DesktopRuntimeAttentionKind {
+	if x != nil {
+		return x.Kind
+	}
+	return DesktopRuntimeAttentionKind_DESKTOP_RUNTIME_ATTENTION_KIND_UNSPECIFIED
+}
+
+func (x *DesktopRuntimeAttentionItem) GetSeverity() DesktopRuntimeSeverity {
+	if x != nil {
+		return x.Severity
+	}
+	return DesktopRuntimeSeverity_DESKTOP_RUNTIME_SEVERITY_UNSPECIFIED
+}
+
+func (x *DesktopRuntimeAttentionItem) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *DesktopRuntimeAttentionItem) GetDetail() string {
+	if x != nil {
+		return x.Detail
+	}
+	return ""
+}
+
+func (x *DesktopRuntimeAttentionItem) GetRoute() string {
+	if x != nil {
+		return x.Route
 	}
 	return ""
 }
@@ -136,6 +800,34 @@ func (m *DesktopRuntimeState) CloneVT() *DesktopRuntimeState {
 	r.MainWindowOpen = m.MainWindowOpen
 	r.Quitting = m.Quitting
 	r.StatusText = m.StatusText
+	r.Health = m.Health
+	r.Lifecycle = m.Lifecycle
+	r.Listener = m.Listener.CloneVT()
+	r.Update = m.Update.CloneVT()
+	if rhs := m.Sessions; rhs != nil {
+		r.Sessions = make([]*DesktopRuntimeNavigationItem, len(rhs))
+		for k, v := range rhs {
+			r.Sessions[k] = v.CloneVT()
+		}
+	}
+	if rhs := m.Spaces; rhs != nil {
+		r.Spaces = make([]*DesktopRuntimeNavigationItem, len(rhs))
+		for k, v := range rhs {
+			r.Spaces[k] = v.CloneVT()
+		}
+	}
+	if rhs := m.Activity; rhs != nil {
+		r.Activity = make([]*DesktopRuntimeActivityItem, len(rhs))
+		for k, v := range rhs {
+			r.Activity[k] = v.CloneVT()
+		}
+	}
+	if rhs := m.AttentionItems; rhs != nil {
+		r.AttentionItems = make([]*DesktopRuntimeAttentionItem, len(rhs))
+		for k, v := range rhs {
+			r.AttentionItems[k] = v.CloneVT()
+		}
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -143,6 +835,106 @@ func (m *DesktopRuntimeState) CloneVT() *DesktopRuntimeState {
 }
 
 func (m *DesktopRuntimeState) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *DesktopRuntimeListenerStatus) CloneVT() *DesktopRuntimeListenerStatus {
+	if m == nil {
+		return (*DesktopRuntimeListenerStatus)(nil)
+	}
+	r := new(DesktopRuntimeListenerStatus)
+	r.Reachability = m.Reachability
+	r.Label = m.Label
+	r.Detail = m.Detail
+	r.SocketPath = m.SocketPath
+	r.ConnectedClients = m.ConnectedClients
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *DesktopRuntimeListenerStatus) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *DesktopRuntimeNavigationItem) CloneVT() *DesktopRuntimeNavigationItem {
+	if m == nil {
+		return (*DesktopRuntimeNavigationItem)(nil)
+	}
+	r := new(DesktopRuntimeNavigationItem)
+	r.Id = m.Id
+	r.Label = m.Label
+	r.Detail = m.Detail
+	r.Route = m.Route
+	r.Active = m.Active
+	r.StatusText = m.StatusText
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *DesktopRuntimeNavigationItem) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *DesktopRuntimeActivityItem) CloneVT() *DesktopRuntimeActivityItem {
+	if m == nil {
+		return (*DesktopRuntimeActivityItem)(nil)
+	}
+	r := new(DesktopRuntimeActivityItem)
+	r.Id = m.Id
+	r.Label = m.Label
+	r.Detail = m.Detail
+	r.State = m.State
+	r.UpdatedAtUnixMs = m.UpdatedAtUnixMs
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *DesktopRuntimeActivityItem) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *DesktopRuntimeUpdateStatus) CloneVT() *DesktopRuntimeUpdateStatus {
+	if m == nil {
+		return (*DesktopRuntimeUpdateStatus)(nil)
+	}
+	r := new(DesktopRuntimeUpdateStatus)
+	r.Ready = m.Ready
+	r.Version = m.Version
+	r.Label = m.Label
+	r.Detail = m.Detail
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *DesktopRuntimeUpdateStatus) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *DesktopRuntimeAttentionItem) CloneVT() *DesktopRuntimeAttentionItem {
+	if m == nil {
+		return (*DesktopRuntimeAttentionItem)(nil)
+	}
+	r := new(DesktopRuntimeAttentionItem)
+	r.Kind = m.Kind
+	r.Severity = m.Severity
+	r.Label = m.Label
+	r.Detail = m.Detail
+	r.Route = m.Route
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *DesktopRuntimeAttentionItem) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -252,11 +1044,251 @@ func (this *DesktopRuntimeState) EqualVT(that *DesktopRuntimeState) bool {
 	if this.StatusText != that.StatusText {
 		return false
 	}
+	if this.Health != that.Health {
+		return false
+	}
+	if this.Lifecycle != that.Lifecycle {
+		return false
+	}
+	if !this.Listener.EqualVT(that.Listener) {
+		return false
+	}
+	if len(this.Sessions) != len(that.Sessions) {
+		return false
+	}
+	for i, vx := range this.Sessions {
+		vy := that.Sessions[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &DesktopRuntimeNavigationItem{}
+			}
+			if q == nil {
+				q = &DesktopRuntimeNavigationItem{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	if len(this.Spaces) != len(that.Spaces) {
+		return false
+	}
+	for i, vx := range this.Spaces {
+		vy := that.Spaces[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &DesktopRuntimeNavigationItem{}
+			}
+			if q == nil {
+				q = &DesktopRuntimeNavigationItem{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	if len(this.Activity) != len(that.Activity) {
+		return false
+	}
+	for i, vx := range this.Activity {
+		vy := that.Activity[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &DesktopRuntimeActivityItem{}
+			}
+			if q == nil {
+				q = &DesktopRuntimeActivityItem{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	if !this.Update.EqualVT(that.Update) {
+		return false
+	}
+	if len(this.AttentionItems) != len(that.AttentionItems) {
+		return false
+	}
+	for i, vx := range this.AttentionItems {
+		vy := that.AttentionItems[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &DesktopRuntimeAttentionItem{}
+			}
+			if q == nil {
+				q = &DesktopRuntimeAttentionItem{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *DesktopRuntimeState) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*DesktopRuntimeState)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *DesktopRuntimeListenerStatus) EqualVT(that *DesktopRuntimeListenerStatus) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Reachability != that.Reachability {
+		return false
+	}
+	if this.Label != that.Label {
+		return false
+	}
+	if this.Detail != that.Detail {
+		return false
+	}
+	if this.SocketPath != that.SocketPath {
+		return false
+	}
+	if this.ConnectedClients != that.ConnectedClients {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *DesktopRuntimeListenerStatus) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*DesktopRuntimeListenerStatus)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *DesktopRuntimeNavigationItem) EqualVT(that *DesktopRuntimeNavigationItem) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Id != that.Id {
+		return false
+	}
+	if this.Label != that.Label {
+		return false
+	}
+	if this.Detail != that.Detail {
+		return false
+	}
+	if this.Route != that.Route {
+		return false
+	}
+	if this.Active != that.Active {
+		return false
+	}
+	if this.StatusText != that.StatusText {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *DesktopRuntimeNavigationItem) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*DesktopRuntimeNavigationItem)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *DesktopRuntimeActivityItem) EqualVT(that *DesktopRuntimeActivityItem) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Id != that.Id {
+		return false
+	}
+	if this.Label != that.Label {
+		return false
+	}
+	if this.Detail != that.Detail {
+		return false
+	}
+	if this.State != that.State {
+		return false
+	}
+	if this.UpdatedAtUnixMs != that.UpdatedAtUnixMs {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *DesktopRuntimeActivityItem) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*DesktopRuntimeActivityItem)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *DesktopRuntimeUpdateStatus) EqualVT(that *DesktopRuntimeUpdateStatus) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Ready != that.Ready {
+		return false
+	}
+	if this.Version != that.Version {
+		return false
+	}
+	if this.Label != that.Label {
+		return false
+	}
+	if this.Detail != that.Detail {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *DesktopRuntimeUpdateStatus) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*DesktopRuntimeUpdateStatus)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *DesktopRuntimeAttentionItem) EqualVT(that *DesktopRuntimeAttentionItem) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Kind != that.Kind {
+		return false
+	}
+	if this.Severity != that.Severity {
+		return false
+	}
+	if this.Label != that.Label {
+		return false
+	}
+	if this.Detail != that.Detail {
+		return false
+	}
+	if this.Route != that.Route {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *DesktopRuntimeAttentionItem) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*DesktopRuntimeAttentionItem)
 	if !ok {
 		return false
 	}
@@ -368,6 +1400,246 @@ func (this *QuitDesktopRuntimeResponse) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+// MarshalProtoJSON marshals the DesktopRuntimeHealth to JSON.
+func (x DesktopRuntimeHealth) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), DesktopRuntimeHealth_name)
+}
+
+// MarshalText marshals the DesktopRuntimeHealth to text.
+func (x DesktopRuntimeHealth) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), DesktopRuntimeHealth_name)), nil
+}
+
+// MarshalJSON marshals the DesktopRuntimeHealth to JSON.
+func (x DesktopRuntimeHealth) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DesktopRuntimeHealth from JSON.
+func (x *DesktopRuntimeHealth) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(DesktopRuntimeHealth_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read DesktopRuntimeHealth enum: %v", err)
+		return
+	}
+	*x = DesktopRuntimeHealth(v)
+}
+
+// UnmarshalText unmarshals the DesktopRuntimeHealth from text.
+func (x *DesktopRuntimeHealth) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), DesktopRuntimeHealth_value)
+	if err != nil {
+		return err
+	}
+	*x = DesktopRuntimeHealth(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the DesktopRuntimeHealth from JSON.
+func (x *DesktopRuntimeHealth) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the DesktopRuntimeLifecycle to JSON.
+func (x DesktopRuntimeLifecycle) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), DesktopRuntimeLifecycle_name)
+}
+
+// MarshalText marshals the DesktopRuntimeLifecycle to text.
+func (x DesktopRuntimeLifecycle) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), DesktopRuntimeLifecycle_name)), nil
+}
+
+// MarshalJSON marshals the DesktopRuntimeLifecycle to JSON.
+func (x DesktopRuntimeLifecycle) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DesktopRuntimeLifecycle from JSON.
+func (x *DesktopRuntimeLifecycle) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(DesktopRuntimeLifecycle_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read DesktopRuntimeLifecycle enum: %v", err)
+		return
+	}
+	*x = DesktopRuntimeLifecycle(v)
+}
+
+// UnmarshalText unmarshals the DesktopRuntimeLifecycle from text.
+func (x *DesktopRuntimeLifecycle) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), DesktopRuntimeLifecycle_value)
+	if err != nil {
+		return err
+	}
+	*x = DesktopRuntimeLifecycle(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the DesktopRuntimeLifecycle from JSON.
+func (x *DesktopRuntimeLifecycle) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the DesktopRuntimeReachability to JSON.
+func (x DesktopRuntimeReachability) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), DesktopRuntimeReachability_name)
+}
+
+// MarshalText marshals the DesktopRuntimeReachability to text.
+func (x DesktopRuntimeReachability) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), DesktopRuntimeReachability_name)), nil
+}
+
+// MarshalJSON marshals the DesktopRuntimeReachability to JSON.
+func (x DesktopRuntimeReachability) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DesktopRuntimeReachability from JSON.
+func (x *DesktopRuntimeReachability) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(DesktopRuntimeReachability_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read DesktopRuntimeReachability enum: %v", err)
+		return
+	}
+	*x = DesktopRuntimeReachability(v)
+}
+
+// UnmarshalText unmarshals the DesktopRuntimeReachability from text.
+func (x *DesktopRuntimeReachability) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), DesktopRuntimeReachability_value)
+	if err != nil {
+		return err
+	}
+	*x = DesktopRuntimeReachability(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the DesktopRuntimeReachability from JSON.
+func (x *DesktopRuntimeReachability) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the DesktopRuntimeActivityState to JSON.
+func (x DesktopRuntimeActivityState) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), DesktopRuntimeActivityState_name)
+}
+
+// MarshalText marshals the DesktopRuntimeActivityState to text.
+func (x DesktopRuntimeActivityState) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), DesktopRuntimeActivityState_name)), nil
+}
+
+// MarshalJSON marshals the DesktopRuntimeActivityState to JSON.
+func (x DesktopRuntimeActivityState) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DesktopRuntimeActivityState from JSON.
+func (x *DesktopRuntimeActivityState) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(DesktopRuntimeActivityState_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read DesktopRuntimeActivityState enum: %v", err)
+		return
+	}
+	*x = DesktopRuntimeActivityState(v)
+}
+
+// UnmarshalText unmarshals the DesktopRuntimeActivityState from text.
+func (x *DesktopRuntimeActivityState) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), DesktopRuntimeActivityState_value)
+	if err != nil {
+		return err
+	}
+	*x = DesktopRuntimeActivityState(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the DesktopRuntimeActivityState from JSON.
+func (x *DesktopRuntimeActivityState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the DesktopRuntimeAttentionKind to JSON.
+func (x DesktopRuntimeAttentionKind) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), DesktopRuntimeAttentionKind_name)
+}
+
+// MarshalText marshals the DesktopRuntimeAttentionKind to text.
+func (x DesktopRuntimeAttentionKind) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), DesktopRuntimeAttentionKind_name)), nil
+}
+
+// MarshalJSON marshals the DesktopRuntimeAttentionKind to JSON.
+func (x DesktopRuntimeAttentionKind) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DesktopRuntimeAttentionKind from JSON.
+func (x *DesktopRuntimeAttentionKind) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(DesktopRuntimeAttentionKind_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read DesktopRuntimeAttentionKind enum: %v", err)
+		return
+	}
+	*x = DesktopRuntimeAttentionKind(v)
+}
+
+// UnmarshalText unmarshals the DesktopRuntimeAttentionKind from text.
+func (x *DesktopRuntimeAttentionKind) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), DesktopRuntimeAttentionKind_value)
+	if err != nil {
+		return err
+	}
+	*x = DesktopRuntimeAttentionKind(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the DesktopRuntimeAttentionKind from JSON.
+func (x *DesktopRuntimeAttentionKind) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the DesktopRuntimeSeverity to JSON.
+func (x DesktopRuntimeSeverity) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), DesktopRuntimeSeverity_name)
+}
+
+// MarshalText marshals the DesktopRuntimeSeverity to text.
+func (x DesktopRuntimeSeverity) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), DesktopRuntimeSeverity_name)), nil
+}
+
+// MarshalJSON marshals the DesktopRuntimeSeverity to JSON.
+func (x DesktopRuntimeSeverity) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DesktopRuntimeSeverity from JSON.
+func (x *DesktopRuntimeSeverity) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(DesktopRuntimeSeverity_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read DesktopRuntimeSeverity enum: %v", err)
+		return
+	}
+	*x = DesktopRuntimeSeverity(v)
+}
+
+// UnmarshalText unmarshals the DesktopRuntimeSeverity from text.
+func (x *DesktopRuntimeSeverity) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), DesktopRuntimeSeverity_value)
+	if err != nil {
+		return err
+	}
+	*x = DesktopRuntimeSeverity(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the DesktopRuntimeSeverity from JSON.
+func (x *DesktopRuntimeSeverity) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the DesktopRuntimeState message to JSON.
 func (x *DesktopRuntimeState) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -390,6 +1662,70 @@ func (x *DesktopRuntimeState) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("statusText")
 		s.WriteString(x.StatusText)
+	}
+	if x.Health != 0 || s.HasField("health") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("health")
+		x.Health.MarshalProtoJSON(s)
+	}
+	if x.Lifecycle != 0 || s.HasField("lifecycle") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("lifecycle")
+		x.Lifecycle.MarshalProtoJSON(s)
+	}
+	if x.Listener != nil || s.HasField("listener") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("listener")
+		x.Listener.MarshalProtoJSON(s.WithField("listener"))
+	}
+	if len(x.Sessions) > 0 || s.HasField("sessions") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sessions")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Sessions {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("sessions"))
+		}
+		s.WriteArrayEnd()
+	}
+	if len(x.Spaces) > 0 || s.HasField("spaces") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("spaces")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Spaces {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("spaces"))
+		}
+		s.WriteArrayEnd()
+	}
+	if len(x.Activity) > 0 || s.HasField("activity") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("activity")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Activity {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("activity"))
+		}
+		s.WriteArrayEnd()
+	}
+	if x.Update != nil || s.HasField("update") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("update")
+		x.Update.MarshalProtoJSON(s.WithField("update"))
+	}
+	if len(x.AttentionItems) > 0 || s.HasField("attentionItems") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("attentionItems")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.AttentionItems {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("attentionItems"))
+		}
+		s.WriteArrayEnd()
 	}
 	s.WriteObjectEnd()
 }
@@ -417,12 +1753,474 @@ func (x *DesktopRuntimeState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "status_text", "statusText":
 			s.AddField("status_text")
 			x.StatusText = s.ReadString()
+		case "health":
+			s.AddField("health")
+			x.Health.UnmarshalProtoJSON(s)
+		case "lifecycle":
+			s.AddField("lifecycle")
+			x.Lifecycle.UnmarshalProtoJSON(s)
+		case "listener":
+			if s.ReadNil() {
+				x.Listener = nil
+				return
+			}
+			x.Listener = &DesktopRuntimeListenerStatus{}
+			x.Listener.UnmarshalProtoJSON(s.WithField("listener", true))
+		case "sessions":
+			s.AddField("sessions")
+			if s.ReadNil() {
+				x.Sessions = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Sessions = append(x.Sessions, nil)
+					return
+				}
+				v := &DesktopRuntimeNavigationItem{}
+				v.UnmarshalProtoJSON(s.WithField("sessions", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Sessions = append(x.Sessions, v)
+			})
+		case "spaces":
+			s.AddField("spaces")
+			if s.ReadNil() {
+				x.Spaces = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Spaces = append(x.Spaces, nil)
+					return
+				}
+				v := &DesktopRuntimeNavigationItem{}
+				v.UnmarshalProtoJSON(s.WithField("spaces", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Spaces = append(x.Spaces, v)
+			})
+		case "activity":
+			s.AddField("activity")
+			if s.ReadNil() {
+				x.Activity = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Activity = append(x.Activity, nil)
+					return
+				}
+				v := &DesktopRuntimeActivityItem{}
+				v.UnmarshalProtoJSON(s.WithField("activity", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Activity = append(x.Activity, v)
+			})
+		case "update":
+			if s.ReadNil() {
+				x.Update = nil
+				return
+			}
+			x.Update = &DesktopRuntimeUpdateStatus{}
+			x.Update.UnmarshalProtoJSON(s.WithField("update", true))
+		case "attention_items", "attentionItems":
+			s.AddField("attention_items")
+			if s.ReadNil() {
+				x.AttentionItems = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.AttentionItems = append(x.AttentionItems, nil)
+					return
+				}
+				v := &DesktopRuntimeAttentionItem{}
+				v.UnmarshalProtoJSON(s.WithField("attention_items", false))
+				if s.Err() != nil {
+					return
+				}
+				x.AttentionItems = append(x.AttentionItems, v)
+			})
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the DesktopRuntimeState from JSON.
 func (x *DesktopRuntimeState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the DesktopRuntimeListenerStatus message to JSON.
+func (x *DesktopRuntimeListenerStatus) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Reachability != 0 || s.HasField("reachability") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("reachability")
+		x.Reachability.MarshalProtoJSON(s)
+	}
+	if x.Label != "" || s.HasField("label") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("label")
+		s.WriteString(x.Label)
+	}
+	if x.Detail != "" || s.HasField("detail") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("detail")
+		s.WriteString(x.Detail)
+	}
+	if x.SocketPath != "" || s.HasField("socketPath") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("socketPath")
+		s.WriteString(x.SocketPath)
+	}
+	if x.ConnectedClients != 0 || s.HasField("connectedClients") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("connectedClients")
+		s.WriteUint32(x.ConnectedClients)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the DesktopRuntimeListenerStatus to JSON.
+func (x *DesktopRuntimeListenerStatus) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DesktopRuntimeListenerStatus message from JSON.
+func (x *DesktopRuntimeListenerStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "reachability":
+			s.AddField("reachability")
+			x.Reachability.UnmarshalProtoJSON(s)
+		case "label":
+			s.AddField("label")
+			x.Label = s.ReadString()
+		case "detail":
+			s.AddField("detail")
+			x.Detail = s.ReadString()
+		case "socket_path", "socketPath":
+			s.AddField("socket_path")
+			x.SocketPath = s.ReadString()
+		case "connected_clients", "connectedClients":
+			s.AddField("connected_clients")
+			x.ConnectedClients = s.ReadUint32()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the DesktopRuntimeListenerStatus from JSON.
+func (x *DesktopRuntimeListenerStatus) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the DesktopRuntimeNavigationItem message to JSON.
+func (x *DesktopRuntimeNavigationItem) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Id != "" || s.HasField("id") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("id")
+		s.WriteString(x.Id)
+	}
+	if x.Label != "" || s.HasField("label") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("label")
+		s.WriteString(x.Label)
+	}
+	if x.Detail != "" || s.HasField("detail") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("detail")
+		s.WriteString(x.Detail)
+	}
+	if x.Route != "" || s.HasField("route") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("route")
+		s.WriteString(x.Route)
+	}
+	if x.Active || s.HasField("active") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("active")
+		s.WriteBool(x.Active)
+	}
+	if x.StatusText != "" || s.HasField("statusText") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("statusText")
+		s.WriteString(x.StatusText)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the DesktopRuntimeNavigationItem to JSON.
+func (x *DesktopRuntimeNavigationItem) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DesktopRuntimeNavigationItem message from JSON.
+func (x *DesktopRuntimeNavigationItem) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "id":
+			s.AddField("id")
+			x.Id = s.ReadString()
+		case "label":
+			s.AddField("label")
+			x.Label = s.ReadString()
+		case "detail":
+			s.AddField("detail")
+			x.Detail = s.ReadString()
+		case "route":
+			s.AddField("route")
+			x.Route = s.ReadString()
+		case "active":
+			s.AddField("active")
+			x.Active = s.ReadBool()
+		case "status_text", "statusText":
+			s.AddField("status_text")
+			x.StatusText = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the DesktopRuntimeNavigationItem from JSON.
+func (x *DesktopRuntimeNavigationItem) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the DesktopRuntimeActivityItem message to JSON.
+func (x *DesktopRuntimeActivityItem) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Id != "" || s.HasField("id") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("id")
+		s.WriteString(x.Id)
+	}
+	if x.Label != "" || s.HasField("label") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("label")
+		s.WriteString(x.Label)
+	}
+	if x.Detail != "" || s.HasField("detail") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("detail")
+		s.WriteString(x.Detail)
+	}
+	if x.State != 0 || s.HasField("state") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("state")
+		x.State.MarshalProtoJSON(s)
+	}
+	if x.UpdatedAtUnixMs != 0 || s.HasField("updatedAtUnixMs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("updatedAtUnixMs")
+		s.WriteInt64(x.UpdatedAtUnixMs)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the DesktopRuntimeActivityItem to JSON.
+func (x *DesktopRuntimeActivityItem) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DesktopRuntimeActivityItem message from JSON.
+func (x *DesktopRuntimeActivityItem) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "id":
+			s.AddField("id")
+			x.Id = s.ReadString()
+		case "label":
+			s.AddField("label")
+			x.Label = s.ReadString()
+		case "detail":
+			s.AddField("detail")
+			x.Detail = s.ReadString()
+		case "state":
+			s.AddField("state")
+			x.State.UnmarshalProtoJSON(s)
+		case "updated_at_unix_ms", "updatedAtUnixMs":
+			s.AddField("updated_at_unix_ms")
+			x.UpdatedAtUnixMs = s.ReadInt64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the DesktopRuntimeActivityItem from JSON.
+func (x *DesktopRuntimeActivityItem) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the DesktopRuntimeUpdateStatus message to JSON.
+func (x *DesktopRuntimeUpdateStatus) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Ready || s.HasField("ready") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("ready")
+		s.WriteBool(x.Ready)
+	}
+	if x.Version != "" || s.HasField("version") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("version")
+		s.WriteString(x.Version)
+	}
+	if x.Label != "" || s.HasField("label") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("label")
+		s.WriteString(x.Label)
+	}
+	if x.Detail != "" || s.HasField("detail") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("detail")
+		s.WriteString(x.Detail)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the DesktopRuntimeUpdateStatus to JSON.
+func (x *DesktopRuntimeUpdateStatus) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DesktopRuntimeUpdateStatus message from JSON.
+func (x *DesktopRuntimeUpdateStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "ready":
+			s.AddField("ready")
+			x.Ready = s.ReadBool()
+		case "version":
+			s.AddField("version")
+			x.Version = s.ReadString()
+		case "label":
+			s.AddField("label")
+			x.Label = s.ReadString()
+		case "detail":
+			s.AddField("detail")
+			x.Detail = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the DesktopRuntimeUpdateStatus from JSON.
+func (x *DesktopRuntimeUpdateStatus) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the DesktopRuntimeAttentionItem message to JSON.
+func (x *DesktopRuntimeAttentionItem) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Kind != 0 || s.HasField("kind") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("kind")
+		x.Kind.MarshalProtoJSON(s)
+	}
+	if x.Severity != 0 || s.HasField("severity") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("severity")
+		x.Severity.MarshalProtoJSON(s)
+	}
+	if x.Label != "" || s.HasField("label") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("label")
+		s.WriteString(x.Label)
+	}
+	if x.Detail != "" || s.HasField("detail") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("detail")
+		s.WriteString(x.Detail)
+	}
+	if x.Route != "" || s.HasField("route") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("route")
+		s.WriteString(x.Route)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the DesktopRuntimeAttentionItem to JSON.
+func (x *DesktopRuntimeAttentionItem) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DesktopRuntimeAttentionItem message from JSON.
+func (x *DesktopRuntimeAttentionItem) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "kind":
+			s.AddField("kind")
+			x.Kind.UnmarshalProtoJSON(s)
+		case "severity":
+			s.AddField("severity")
+			x.Severity.UnmarshalProtoJSON(s)
+		case "label":
+			s.AddField("label")
+			x.Label = s.ReadString()
+		case "detail":
+			s.AddField("detail")
+			x.Detail = s.ReadString()
+		case "route":
+			s.AddField("route")
+			x.Route = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the DesktopRuntimeAttentionItem from JSON.
+func (x *DesktopRuntimeAttentionItem) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -652,6 +2450,84 @@ func (m *DesktopRuntimeState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.AttentionItems) > 0 {
+		for iNdEx := len(m.AttentionItems) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.AttentionItems[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x5a
+		}
+	}
+	if m.Update != nil {
+		size, err := m.Update.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x52
+	}
+	if len(m.Activity) > 0 {
+		for iNdEx := len(m.Activity) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Activity[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x4a
+		}
+	}
+	if len(m.Spaces) > 0 {
+		for iNdEx := len(m.Spaces) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Spaces[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x42
+		}
+	}
+	if len(m.Sessions) > 0 {
+		for iNdEx := len(m.Sessions) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Sessions[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x3a
+		}
+	}
+	if m.Listener != nil {
+		size, err := m.Listener.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x32
+	}
+	if m.Lifecycle != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Lifecycle))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.Health != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Health))
+		i--
+		dAtA[i] = 0x20
+	}
 	if len(m.StatusText) > 0 {
 		i -= len(m.StatusText)
 		copy(dAtA[i:], m.StatusText)
@@ -676,6 +2552,340 @@ func (m *DesktopRuntimeState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		} else {
 			dAtA[i] = 0
 		}
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *DesktopRuntimeListenerStatus) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DesktopRuntimeListenerStatus) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *DesktopRuntimeListenerStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.ConnectedClients != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ConnectedClients))
+		i--
+		dAtA[i] = 0x28
+	}
+	if len(m.SocketPath) > 0 {
+		i -= len(m.SocketPath)
+		copy(dAtA[i:], m.SocketPath)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SocketPath)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.Detail) > 0 {
+		i -= len(m.Detail)
+		copy(dAtA[i:], m.Detail)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Detail)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Label) > 0 {
+		i -= len(m.Label)
+		copy(dAtA[i:], m.Label)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Label)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Reachability != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Reachability))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *DesktopRuntimeNavigationItem) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DesktopRuntimeNavigationItem) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *DesktopRuntimeNavigationItem) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.StatusText) > 0 {
+		i -= len(m.StatusText)
+		copy(dAtA[i:], m.StatusText)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.StatusText)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if m.Active {
+		i--
+		if m.Active {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x28
+	}
+	if len(m.Route) > 0 {
+		i -= len(m.Route)
+		copy(dAtA[i:], m.Route)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Route)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.Detail) > 0 {
+		i -= len(m.Detail)
+		copy(dAtA[i:], m.Detail)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Detail)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Label) > 0 {
+		i -= len(m.Label)
+		copy(dAtA[i:], m.Label)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Label)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Id) > 0 {
+		i -= len(m.Id)
+		copy(dAtA[i:], m.Id)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Id)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *DesktopRuntimeActivityItem) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DesktopRuntimeActivityItem) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *DesktopRuntimeActivityItem) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.UpdatedAtUnixMs != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.UpdatedAtUnixMs))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.State != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.State))
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.Detail) > 0 {
+		i -= len(m.Detail)
+		copy(dAtA[i:], m.Detail)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Detail)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Label) > 0 {
+		i -= len(m.Label)
+		copy(dAtA[i:], m.Label)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Label)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Id) > 0 {
+		i -= len(m.Id)
+		copy(dAtA[i:], m.Id)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Id)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *DesktopRuntimeUpdateStatus) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DesktopRuntimeUpdateStatus) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *DesktopRuntimeUpdateStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Detail) > 0 {
+		i -= len(m.Detail)
+		copy(dAtA[i:], m.Detail)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Detail)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.Label) > 0 {
+		i -= len(m.Label)
+		copy(dAtA[i:], m.Label)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Label)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Version) > 0 {
+		i -= len(m.Version)
+		copy(dAtA[i:], m.Version)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Version)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Ready {
+		i--
+		if m.Ready {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *DesktopRuntimeAttentionItem) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DesktopRuntimeAttentionItem) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *DesktopRuntimeAttentionItem) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Route) > 0 {
+		i -= len(m.Route)
+		copy(dAtA[i:], m.Route)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Route)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.Detail) > 0 {
+		i -= len(m.Detail)
+		copy(dAtA[i:], m.Detail)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Detail)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.Label) > 0 {
+		i -= len(m.Label)
+		copy(dAtA[i:], m.Label)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Label)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Severity != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Severity))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Kind != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Kind))
 		i--
 		dAtA[i] = 0x8
 	}
@@ -906,6 +3116,186 @@ func (m *DesktopRuntimeState) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if m.Health != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Health))
+	}
+	if m.Lifecycle != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Lifecycle))
+	}
+	if m.Listener != nil {
+		l = m.Listener.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if len(m.Sessions) > 0 {
+		for _, e := range m.Sessions {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.Spaces) > 0 {
+		for _, e := range m.Spaces {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.Activity) > 0 {
+		for _, e := range m.Activity {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if m.Update != nil {
+		l = m.Update.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if len(m.AttentionItems) > 0 {
+		for _, e := range m.AttentionItems {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *DesktopRuntimeListenerStatus) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Reachability != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Reachability))
+	}
+	l = len(m.Label)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Detail)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.SocketPath)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.ConnectedClients != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.ConnectedClients))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *DesktopRuntimeNavigationItem) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Id)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Label)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Detail)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Route)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Active {
+		n += 2
+	}
+	l = len(m.StatusText)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *DesktopRuntimeActivityItem) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Id)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Label)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Detail)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.State != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.State))
+	}
+	if m.UpdatedAtUnixMs != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.UpdatedAtUnixMs))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *DesktopRuntimeUpdateStatus) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Ready {
+		n += 2
+	}
+	l = len(m.Version)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Label)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Detail)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *DesktopRuntimeAttentionItem) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Kind != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Kind))
+	}
+	if m.Severity != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Severity))
+	}
+	l = len(m.Label)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Detail)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Route)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -974,6 +3364,30 @@ func (m *QuitDesktopRuntimeResponse) SizeVT() (n int) {
 	return n
 }
 
+func (x DesktopRuntimeHealth) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x DesktopRuntimeLifecycle) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x DesktopRuntimeReachability) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x DesktopRuntimeActivityState) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x DesktopRuntimeAttentionKind) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x DesktopRuntimeSeverity) MarshalProtoText() string {
+	return x.String()
+}
+
 func (x *DesktopRuntimeState) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("DesktopRuntimeState {")
@@ -998,11 +3412,333 @@ func (x *DesktopRuntimeState) MarshalProtoText() string {
 		sb.WriteString("status_text: ")
 		sb.WriteString(strconv.Quote(x.StatusText))
 	}
+	if x.Health != 0 {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("health: ")
+		sb.WriteString("\"")
+		sb.WriteString(DesktopRuntimeHealth(x.Health).String())
+		sb.WriteString("\"")
+	}
+	if x.Lifecycle != 0 {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("lifecycle: ")
+		sb.WriteString("\"")
+		sb.WriteString(DesktopRuntimeLifecycle(x.Lifecycle).String())
+		sb.WriteString("\"")
+	}
+	if x.Listener != nil {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("listener: ")
+		sb.WriteString(x.Listener.MarshalProtoText())
+	}
+	if len(x.Sessions) > 0 {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("sessions: [")
+		for i, v := range x.Sessions {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
+	if len(x.Spaces) > 0 {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("spaces: [")
+		for i, v := range x.Spaces {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
+	if len(x.Activity) > 0 {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("activity: [")
+		for i, v := range x.Activity {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
+	if x.Update != nil {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("update: ")
+		sb.WriteString(x.Update.MarshalProtoText())
+	}
+	if len(x.AttentionItems) > 0 {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("attention_items: [")
+		for i, v := range x.AttentionItems {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
 	sb.WriteString("}")
 	return sb.String()
 }
 
 func (x *DesktopRuntimeState) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *DesktopRuntimeListenerStatus) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("DesktopRuntimeListenerStatus {")
+	if x.Reachability != 0 {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("reachability: ")
+		sb.WriteString("\"")
+		sb.WriteString(DesktopRuntimeReachability(x.Reachability).String())
+		sb.WriteString("\"")
+	}
+	if x.Label != "" {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("label: ")
+		sb.WriteString(strconv.Quote(x.Label))
+	}
+	if x.Detail != "" {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("detail: ")
+		sb.WriteString(strconv.Quote(x.Detail))
+	}
+	if x.SocketPath != "" {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("socket_path: ")
+		sb.WriteString(strconv.Quote(x.SocketPath))
+	}
+	if x.ConnectedClients != 0 {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("connected_clients: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.ConnectedClients), 10))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *DesktopRuntimeListenerStatus) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *DesktopRuntimeNavigationItem) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("DesktopRuntimeNavigationItem {")
+	if x.Id != "" {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("id: ")
+		sb.WriteString(strconv.Quote(x.Id))
+	}
+	if x.Label != "" {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("label: ")
+		sb.WriteString(strconv.Quote(x.Label))
+	}
+	if x.Detail != "" {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("detail: ")
+		sb.WriteString(strconv.Quote(x.Detail))
+	}
+	if x.Route != "" {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("route: ")
+		sb.WriteString(strconv.Quote(x.Route))
+	}
+	if x.Active != false {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("active: ")
+		sb.WriteString(strconv.FormatBool(x.Active))
+	}
+	if x.StatusText != "" {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("status_text: ")
+		sb.WriteString(strconv.Quote(x.StatusText))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *DesktopRuntimeNavigationItem) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *DesktopRuntimeActivityItem) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("DesktopRuntimeActivityItem {")
+	if x.Id != "" {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("id: ")
+		sb.WriteString(strconv.Quote(x.Id))
+	}
+	if x.Label != "" {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("label: ")
+		sb.WriteString(strconv.Quote(x.Label))
+	}
+	if x.Detail != "" {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("detail: ")
+		sb.WriteString(strconv.Quote(x.Detail))
+	}
+	if x.State != 0 {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("state: ")
+		sb.WriteString("\"")
+		sb.WriteString(DesktopRuntimeActivityState(x.State).String())
+		sb.WriteString("\"")
+	}
+	if x.UpdatedAtUnixMs != 0 {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("updated_at_unix_ms: ")
+		sb.WriteString(strconv.FormatInt(int64(x.UpdatedAtUnixMs), 10))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *DesktopRuntimeActivityItem) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *DesktopRuntimeUpdateStatus) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("DesktopRuntimeUpdateStatus {")
+	if x.Ready != false {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("ready: ")
+		sb.WriteString(strconv.FormatBool(x.Ready))
+	}
+	if x.Version != "" {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("version: ")
+		sb.WriteString(strconv.Quote(x.Version))
+	}
+	if x.Label != "" {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("label: ")
+		sb.WriteString(strconv.Quote(x.Label))
+	}
+	if x.Detail != "" {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("detail: ")
+		sb.WriteString(strconv.Quote(x.Detail))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *DesktopRuntimeUpdateStatus) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *DesktopRuntimeAttentionItem) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("DesktopRuntimeAttentionItem {")
+	if x.Kind != 0 {
+		if sb.Len() > 29 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("kind: ")
+		sb.WriteString("\"")
+		sb.WriteString(DesktopRuntimeAttentionKind(x.Kind).String())
+		sb.WriteString("\"")
+	}
+	if x.Severity != 0 {
+		if sb.Len() > 29 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("severity: ")
+		sb.WriteString("\"")
+		sb.WriteString(DesktopRuntimeSeverity(x.Severity).String())
+		sb.WriteString("\"")
+	}
+	if x.Label != "" {
+		if sb.Len() > 29 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("label: ")
+		sb.WriteString(strconv.Quote(x.Label))
+	}
+	if x.Detail != "" {
+		if sb.Len() > 29 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("detail: ")
+		sb.WriteString(strconv.Quote(x.Detail))
+	}
+	if x.Route != "" {
+		if sb.Len() > 29 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("route: ")
+		sb.WriteString(strconv.Quote(x.Route))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *DesktopRuntimeAttentionItem) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1144,6 +3880,863 @@ func (m *DesktopRuntimeState) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.StatusText = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Health", wireType)
+			}
+			m.Health = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Health = DesktopRuntimeHealth(_v)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Lifecycle", wireType)
+			}
+			m.Lifecycle = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Lifecycle = DesktopRuntimeLifecycle(_v)
+			if err != nil {
+				return err
+			}
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Listener", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Listener == nil {
+				m.Listener = &DesktopRuntimeListenerStatus{}
+			}
+			if err := m.Listener.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Sessions", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Sessions = append(m.Sessions, &DesktopRuntimeNavigationItem{})
+			if err := m.Sessions[len(m.Sessions)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Spaces", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Spaces = append(m.Spaces, &DesktopRuntimeNavigationItem{})
+			if err := m.Spaces[len(m.Spaces)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Activity", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Activity = append(m.Activity, &DesktopRuntimeActivityItem{})
+			if err := m.Activity[len(m.Activity)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Update", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Update == nil {
+				m.Update = &DesktopRuntimeUpdateStatus{}
+			}
+			if err := m.Update.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AttentionItems", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.AttentionItems = append(m.AttentionItems, &DesktopRuntimeAttentionItem{})
+			if err := m.AttentionItems[len(m.AttentionItems)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *DesktopRuntimeListenerStatus) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DesktopRuntimeListenerStatus: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DesktopRuntimeListenerStatus: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Reachability", wireType)
+			}
+			m.Reachability = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Reachability = DesktopRuntimeReachability(_v)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Label", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Label = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Detail", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Detail = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SocketPath", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SocketPath = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ConnectedClients", wireType)
+			}
+			m.ConnectedClients = 0
+			m.ConnectedClients, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *DesktopRuntimeNavigationItem) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DesktopRuntimeNavigationItem: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DesktopRuntimeNavigationItem: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Id = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Label", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Label = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Detail", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Detail = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Route", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Route = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Active", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.Active = bool(v != 0)
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StatusText", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.StatusText = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *DesktopRuntimeActivityItem) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DesktopRuntimeActivityItem: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DesktopRuntimeActivityItem: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Id = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Label", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Label = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Detail", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Detail = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field State", wireType)
+			}
+			m.State = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.State = DesktopRuntimeActivityState(_v)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UpdatedAtUnixMs", wireType)
+			}
+			m.UpdatedAtUnixMs = 0
+			m.UpdatedAtUnixMs, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *DesktopRuntimeUpdateStatus) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DesktopRuntimeUpdateStatus: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DesktopRuntimeUpdateStatus: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Ready", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.Ready = bool(v != 0)
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Version", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Version = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Label", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Label = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Detail", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Detail = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *DesktopRuntimeAttentionItem) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DesktopRuntimeAttentionItem: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DesktopRuntimeAttentionItem: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Kind", wireType)
+			}
+			m.Kind = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Kind = DesktopRuntimeAttentionKind(_v)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Severity", wireType)
+			}
+			m.Severity = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Severity = DesktopRuntimeSeverity(_v)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Label", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Label = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Detail", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Detail = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Route", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Route = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

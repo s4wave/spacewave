@@ -31,6 +31,7 @@
 #include "google/protobuf/message_lite.h"
 #include "google/protobuf/repeated_field.h"  // IWYU pragma: export
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
+#include "google/protobuf/generated_enum_reflection.h"
 #include "google/protobuf/unknown_field_set.h"
 // @@protoc_insertion_point(includes)
 
@@ -57,10 +58,42 @@ extern const ::google::protobuf::internal::DescriptorTable descriptor_table_gith
 }  // extern "C"
 namespace electron {
 namespace desktop_runtime {
+enum DesktopRuntimeActivityState : int;
+extern const uint32_t DesktopRuntimeActivityState_internal_data_[];
+enum DesktopRuntimeAttentionKind : int;
+extern const uint32_t DesktopRuntimeAttentionKind_internal_data_[];
+enum DesktopRuntimeHealth : int;
+extern const uint32_t DesktopRuntimeHealth_internal_data_[];
+enum DesktopRuntimeLifecycle : int;
+extern const uint32_t DesktopRuntimeLifecycle_internal_data_[];
+enum DesktopRuntimeReachability : int;
+extern const uint32_t DesktopRuntimeReachability_internal_data_[];
+enum DesktopRuntimeSeverity : int;
+extern const uint32_t DesktopRuntimeSeverity_internal_data_[];
+class DesktopRuntimeActivityItem;
+struct DesktopRuntimeActivityItemDefaultTypeInternal;
+extern DesktopRuntimeActivityItemDefaultTypeInternal _DesktopRuntimeActivityItem_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull DesktopRuntimeActivityItem_class_data_;
+class DesktopRuntimeAttentionItem;
+struct DesktopRuntimeAttentionItemDefaultTypeInternal;
+extern DesktopRuntimeAttentionItemDefaultTypeInternal _DesktopRuntimeAttentionItem_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull DesktopRuntimeAttentionItem_class_data_;
+class DesktopRuntimeListenerStatus;
+struct DesktopRuntimeListenerStatusDefaultTypeInternal;
+extern DesktopRuntimeListenerStatusDefaultTypeInternal _DesktopRuntimeListenerStatus_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull DesktopRuntimeListenerStatus_class_data_;
+class DesktopRuntimeNavigationItem;
+struct DesktopRuntimeNavigationItemDefaultTypeInternal;
+extern DesktopRuntimeNavigationItemDefaultTypeInternal _DesktopRuntimeNavigationItem_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull DesktopRuntimeNavigationItem_class_data_;
 class DesktopRuntimeState;
 struct DesktopRuntimeStateDefaultTypeInternal;
 extern DesktopRuntimeStateDefaultTypeInternal _DesktopRuntimeState_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull DesktopRuntimeState_class_data_;
+class DesktopRuntimeUpdateStatus;
+struct DesktopRuntimeUpdateStatusDefaultTypeInternal;
+extern DesktopRuntimeUpdateStatusDefaultTypeInternal _DesktopRuntimeUpdateStatus_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull DesktopRuntimeUpdateStatus_class_data_;
 class OpenOrFocusMainWindowRequest;
 struct OpenOrFocusMainWindowRequestDefaultTypeInternal;
 extern OpenOrFocusMainWindowRequestDefaultTypeInternal _OpenOrFocusMainWindowRequest_default_instance_;
@@ -89,11 +122,269 @@ extern const ::google::protobuf::internal::ClassDataFull WatchDesktopStateRespon
 }  // namespace electron
 namespace google {
 namespace protobuf {
+template <>
+internal::EnumTraitsT<::electron::desktop_runtime::DesktopRuntimeActivityState_internal_data_>
+    internal::EnumTraitsImpl::value<::electron::desktop_runtime::DesktopRuntimeActivityState>;
+template <>
+internal::EnumTraitsT<::electron::desktop_runtime::DesktopRuntimeAttentionKind_internal_data_>
+    internal::EnumTraitsImpl::value<::electron::desktop_runtime::DesktopRuntimeAttentionKind>;
+template <>
+internal::EnumTraitsT<::electron::desktop_runtime::DesktopRuntimeHealth_internal_data_>
+    internal::EnumTraitsImpl::value<::electron::desktop_runtime::DesktopRuntimeHealth>;
+template <>
+internal::EnumTraitsT<::electron::desktop_runtime::DesktopRuntimeLifecycle_internal_data_>
+    internal::EnumTraitsImpl::value<::electron::desktop_runtime::DesktopRuntimeLifecycle>;
+template <>
+internal::EnumTraitsT<::electron::desktop_runtime::DesktopRuntimeReachability_internal_data_>
+    internal::EnumTraitsImpl::value<::electron::desktop_runtime::DesktopRuntimeReachability>;
+template <>
+internal::EnumTraitsT<::electron::desktop_runtime::DesktopRuntimeSeverity_internal_data_>
+    internal::EnumTraitsImpl::value<::electron::desktop_runtime::DesktopRuntimeSeverity>;
 }  // namespace protobuf
 }  // namespace google
 
 namespace electron {
 namespace desktop_runtime {
+enum DesktopRuntimeHealth : int {
+  DESKTOP_RUNTIME_HEALTH_UNSPECIFIED = 0,
+  DESKTOP_RUNTIME_HEALTH_STARTING = 1,
+  DESKTOP_RUNTIME_HEALTH_HEALTHY = 2,
+  DESKTOP_RUNTIME_HEALTH_ACTIVE = 3,
+  DESKTOP_RUNTIME_HEALTH_NEEDS_ATTENTION = 4,
+  DESKTOP_RUNTIME_HEALTH_DISCONNECTED = 5,
+  DESKTOP_RUNTIME_HEALTH_QUITTING = 6,
+  DesktopRuntimeHealth_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  DesktopRuntimeHealth_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t DesktopRuntimeHealth_internal_data_[];
+inline constexpr DesktopRuntimeHealth DesktopRuntimeHealth_MIN =
+    static_cast<DesktopRuntimeHealth>(0);
+inline constexpr DesktopRuntimeHealth DesktopRuntimeHealth_MAX =
+    static_cast<DesktopRuntimeHealth>(6);
+inline bool DesktopRuntimeHealth_IsValid(int value) {
+  return 0 <= value && value <= 6;
+}
+inline constexpr int DesktopRuntimeHealth_ARRAYSIZE = 6 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DesktopRuntimeHealth_descriptor();
+template <typename T>
+const ::std::string& DesktopRuntimeHealth_Name(T value) {
+  static_assert(::std::is_same<T, DesktopRuntimeHealth>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to DesktopRuntimeHealth_Name().");
+  return DesktopRuntimeHealth_Name(static_cast<DesktopRuntimeHealth>(value));
+}
+template <>
+inline const ::std::string& DesktopRuntimeHealth_Name(DesktopRuntimeHealth value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<DesktopRuntimeHealth_descriptor, 0, 6>(
+      static_cast<int>(value));
+}
+inline bool DesktopRuntimeHealth_Parse(
+    ::absl::string_view name, DesktopRuntimeHealth* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<DesktopRuntimeHealth>(DesktopRuntimeHealth_descriptor(), name,
+                                           value);
+}
+enum DesktopRuntimeLifecycle : int {
+  DESKTOP_RUNTIME_LIFECYCLE_UNSPECIFIED = 0,
+  DESKTOP_RUNTIME_LIFECYCLE_STARTING = 1,
+  DESKTOP_RUNTIME_LIFECYCLE_RUNNING = 2,
+  DESKTOP_RUNTIME_LIFECYCLE_DISCONNECTED = 3,
+  DESKTOP_RUNTIME_LIFECYCLE_QUITTING = 4,
+  DesktopRuntimeLifecycle_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  DesktopRuntimeLifecycle_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t DesktopRuntimeLifecycle_internal_data_[];
+inline constexpr DesktopRuntimeLifecycle DesktopRuntimeLifecycle_MIN =
+    static_cast<DesktopRuntimeLifecycle>(0);
+inline constexpr DesktopRuntimeLifecycle DesktopRuntimeLifecycle_MAX =
+    static_cast<DesktopRuntimeLifecycle>(4);
+inline bool DesktopRuntimeLifecycle_IsValid(int value) {
+  return 0 <= value && value <= 4;
+}
+inline constexpr int DesktopRuntimeLifecycle_ARRAYSIZE = 4 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DesktopRuntimeLifecycle_descriptor();
+template <typename T>
+const ::std::string& DesktopRuntimeLifecycle_Name(T value) {
+  static_assert(::std::is_same<T, DesktopRuntimeLifecycle>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to DesktopRuntimeLifecycle_Name().");
+  return DesktopRuntimeLifecycle_Name(static_cast<DesktopRuntimeLifecycle>(value));
+}
+template <>
+inline const ::std::string& DesktopRuntimeLifecycle_Name(DesktopRuntimeLifecycle value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<DesktopRuntimeLifecycle_descriptor, 0, 4>(
+      static_cast<int>(value));
+}
+inline bool DesktopRuntimeLifecycle_Parse(
+    ::absl::string_view name, DesktopRuntimeLifecycle* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<DesktopRuntimeLifecycle>(DesktopRuntimeLifecycle_descriptor(), name,
+                                           value);
+}
+enum DesktopRuntimeReachability : int {
+  DESKTOP_RUNTIME_REACHABILITY_UNSPECIFIED = 0,
+  DESKTOP_RUNTIME_REACHABILITY_STARTING = 1,
+  DESKTOP_RUNTIME_REACHABILITY_REACHABLE = 2,
+  DESKTOP_RUNTIME_REACHABILITY_UNREACHABLE = 3,
+  DesktopRuntimeReachability_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  DesktopRuntimeReachability_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t DesktopRuntimeReachability_internal_data_[];
+inline constexpr DesktopRuntimeReachability DesktopRuntimeReachability_MIN =
+    static_cast<DesktopRuntimeReachability>(0);
+inline constexpr DesktopRuntimeReachability DesktopRuntimeReachability_MAX =
+    static_cast<DesktopRuntimeReachability>(3);
+inline bool DesktopRuntimeReachability_IsValid(int value) {
+  return 0 <= value && value <= 3;
+}
+inline constexpr int DesktopRuntimeReachability_ARRAYSIZE = 3 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DesktopRuntimeReachability_descriptor();
+template <typename T>
+const ::std::string& DesktopRuntimeReachability_Name(T value) {
+  static_assert(::std::is_same<T, DesktopRuntimeReachability>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to DesktopRuntimeReachability_Name().");
+  return DesktopRuntimeReachability_Name(static_cast<DesktopRuntimeReachability>(value));
+}
+template <>
+inline const ::std::string& DesktopRuntimeReachability_Name(DesktopRuntimeReachability value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<DesktopRuntimeReachability_descriptor, 0, 3>(
+      static_cast<int>(value));
+}
+inline bool DesktopRuntimeReachability_Parse(
+    ::absl::string_view name, DesktopRuntimeReachability* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<DesktopRuntimeReachability>(DesktopRuntimeReachability_descriptor(), name,
+                                           value);
+}
+enum DesktopRuntimeActivityState : int {
+  DESKTOP_RUNTIME_ACTIVITY_STATE_UNSPECIFIED = 0,
+  DESKTOP_RUNTIME_ACTIVITY_STATE_IDLE = 1,
+  DESKTOP_RUNTIME_ACTIVITY_STATE_RUNNING = 2,
+  DESKTOP_RUNTIME_ACTIVITY_STATE_DONE = 3,
+  DESKTOP_RUNTIME_ACTIVITY_STATE_ATTENTION = 4,
+  DESKTOP_RUNTIME_ACTIVITY_STATE_ERROR = 5,
+  DesktopRuntimeActivityState_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  DesktopRuntimeActivityState_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t DesktopRuntimeActivityState_internal_data_[];
+inline constexpr DesktopRuntimeActivityState DesktopRuntimeActivityState_MIN =
+    static_cast<DesktopRuntimeActivityState>(0);
+inline constexpr DesktopRuntimeActivityState DesktopRuntimeActivityState_MAX =
+    static_cast<DesktopRuntimeActivityState>(5);
+inline bool DesktopRuntimeActivityState_IsValid(int value) {
+  return 0 <= value && value <= 5;
+}
+inline constexpr int DesktopRuntimeActivityState_ARRAYSIZE = 5 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DesktopRuntimeActivityState_descriptor();
+template <typename T>
+const ::std::string& DesktopRuntimeActivityState_Name(T value) {
+  static_assert(::std::is_same<T, DesktopRuntimeActivityState>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to DesktopRuntimeActivityState_Name().");
+  return DesktopRuntimeActivityState_Name(static_cast<DesktopRuntimeActivityState>(value));
+}
+template <>
+inline const ::std::string& DesktopRuntimeActivityState_Name(DesktopRuntimeActivityState value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<DesktopRuntimeActivityState_descriptor, 0, 5>(
+      static_cast<int>(value));
+}
+inline bool DesktopRuntimeActivityState_Parse(
+    ::absl::string_view name, DesktopRuntimeActivityState* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<DesktopRuntimeActivityState>(DesktopRuntimeActivityState_descriptor(), name,
+                                           value);
+}
+enum DesktopRuntimeAttentionKind : int {
+  DESKTOP_RUNTIME_ATTENTION_KIND_UNSPECIFIED = 0,
+  DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_STARTING = 1,
+  DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_DISCONNECTED = 2,
+  DESKTOP_RUNTIME_ATTENTION_KIND_LISTENER_UNAVAILABLE = 3,
+  DESKTOP_RUNTIME_ATTENTION_KIND_AUTH_REQUIRED = 4,
+  DESKTOP_RUNTIME_ATTENTION_KIND_STEP_UP_REQUIRED = 5,
+  DESKTOP_RUNTIME_ATTENTION_KIND_SYNC_ERROR = 6,
+  DESKTOP_RUNTIME_ATTENTION_KIND_UPDATE_READY = 7,
+  DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_RESTARTING = 8,
+  DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_QUITTING = 9,
+  DesktopRuntimeAttentionKind_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  DesktopRuntimeAttentionKind_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t DesktopRuntimeAttentionKind_internal_data_[];
+inline constexpr DesktopRuntimeAttentionKind DesktopRuntimeAttentionKind_MIN =
+    static_cast<DesktopRuntimeAttentionKind>(0);
+inline constexpr DesktopRuntimeAttentionKind DesktopRuntimeAttentionKind_MAX =
+    static_cast<DesktopRuntimeAttentionKind>(9);
+inline bool DesktopRuntimeAttentionKind_IsValid(int value) {
+  return 0 <= value && value <= 9;
+}
+inline constexpr int DesktopRuntimeAttentionKind_ARRAYSIZE = 9 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DesktopRuntimeAttentionKind_descriptor();
+template <typename T>
+const ::std::string& DesktopRuntimeAttentionKind_Name(T value) {
+  static_assert(::std::is_same<T, DesktopRuntimeAttentionKind>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to DesktopRuntimeAttentionKind_Name().");
+  return DesktopRuntimeAttentionKind_Name(static_cast<DesktopRuntimeAttentionKind>(value));
+}
+template <>
+inline const ::std::string& DesktopRuntimeAttentionKind_Name(DesktopRuntimeAttentionKind value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<DesktopRuntimeAttentionKind_descriptor, 0, 9>(
+      static_cast<int>(value));
+}
+inline bool DesktopRuntimeAttentionKind_Parse(
+    ::absl::string_view name, DesktopRuntimeAttentionKind* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<DesktopRuntimeAttentionKind>(DesktopRuntimeAttentionKind_descriptor(), name,
+                                           value);
+}
+enum DesktopRuntimeSeverity : int {
+  DESKTOP_RUNTIME_SEVERITY_UNSPECIFIED = 0,
+  DESKTOP_RUNTIME_SEVERITY_INFO = 1,
+  DESKTOP_RUNTIME_SEVERITY_WARNING = 2,
+  DESKTOP_RUNTIME_SEVERITY_CRITICAL = 3,
+  DesktopRuntimeSeverity_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  DesktopRuntimeSeverity_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t DesktopRuntimeSeverity_internal_data_[];
+inline constexpr DesktopRuntimeSeverity DesktopRuntimeSeverity_MIN =
+    static_cast<DesktopRuntimeSeverity>(0);
+inline constexpr DesktopRuntimeSeverity DesktopRuntimeSeverity_MAX =
+    static_cast<DesktopRuntimeSeverity>(3);
+inline bool DesktopRuntimeSeverity_IsValid(int value) {
+  return 0 <= value && value <= 3;
+}
+inline constexpr int DesktopRuntimeSeverity_ARRAYSIZE = 3 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DesktopRuntimeSeverity_descriptor();
+template <typename T>
+const ::std::string& DesktopRuntimeSeverity_Name(T value) {
+  static_assert(::std::is_same<T, DesktopRuntimeSeverity>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to DesktopRuntimeSeverity_Name().");
+  return DesktopRuntimeSeverity_Name(static_cast<DesktopRuntimeSeverity>(value));
+}
+template <>
+inline const ::std::string& DesktopRuntimeSeverity_Name(DesktopRuntimeSeverity value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<DesktopRuntimeSeverity_descriptor, 0, 3>(
+      static_cast<int>(value));
+}
+inline bool DesktopRuntimeSeverity_Parse(
+    ::absl::string_view name, DesktopRuntimeSeverity* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<DesktopRuntimeSeverity>(DesktopRuntimeSeverity_descriptor(), name,
+                                           value);
+}
 
 // ===================================================================
 
@@ -154,7 +445,7 @@ class WatchDesktopStateRequest final : public ::google::protobuf::internal::Zero
     return *reinterpret_cast<const WatchDesktopStateRequest*>(
         &_WatchDesktopStateRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 1;
+  static constexpr int kIndexInFileMessages = 6;
   friend void swap(WatchDesktopStateRequest& a, WatchDesktopStateRequest& b) { a.Swap(&b); }
   inline void Swap(WatchDesktopStateRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -288,7 +579,7 @@ class QuitDesktopRuntimeResponse final : public ::google::protobuf::internal::Ze
     return *reinterpret_cast<const QuitDesktopRuntimeResponse*>(
         &_QuitDesktopRuntimeResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 6;
+  static constexpr int kIndexInFileMessages = 11;
   friend void swap(QuitDesktopRuntimeResponse& a, QuitDesktopRuntimeResponse& b) { a.Swap(&b); }
   inline void Swap(QuitDesktopRuntimeResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -422,7 +713,7 @@ class QuitDesktopRuntimeRequest final : public ::google::protobuf::internal::Zer
     return *reinterpret_cast<const QuitDesktopRuntimeRequest*>(
         &_QuitDesktopRuntimeRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 5;
+  static constexpr int kIndexInFileMessages = 10;
   friend void swap(QuitDesktopRuntimeRequest& a, QuitDesktopRuntimeRequest& b) { a.Swap(&b); }
   inline void Swap(QuitDesktopRuntimeRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -556,7 +847,7 @@ class OpenOrFocusMainWindowResponse final : public ::google::protobuf::internal:
     return *reinterpret_cast<const OpenOrFocusMainWindowResponse*>(
         &_OpenOrFocusMainWindowResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 4;
+  static constexpr int kIndexInFileMessages = 9;
   friend void swap(OpenOrFocusMainWindowResponse& a, OpenOrFocusMainWindowResponse& b) { a.Swap(&b); }
   inline void Swap(OpenOrFocusMainWindowResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -690,7 +981,7 @@ class OpenOrFocusMainWindowRequest final : public ::google::protobuf::internal::
     return *reinterpret_cast<const OpenOrFocusMainWindowRequest*>(
         &_OpenOrFocusMainWindowRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 3;
+  static constexpr int kIndexInFileMessages = 8;
   friend void swap(OpenOrFocusMainWindowRequest& a, OpenOrFocusMainWindowRequest& b) { a.Swap(&b); }
   inline void Swap(OpenOrFocusMainWindowRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -768,6 +1059,1281 @@ class OpenOrFocusMainWindowRequest final : public ::google::protobuf::internal::
 };
 
 extern const ::google::protobuf::internal::ClassDataFull OpenOrFocusMainWindowRequest_class_data_;
+// -------------------------------------------------------------------
+
+class DesktopRuntimeUpdateStatus final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:electron.desktop_runtime.DesktopRuntimeUpdateStatus) */ {
+ public:
+  inline DesktopRuntimeUpdateStatus() : DesktopRuntimeUpdateStatus(nullptr) {}
+  ~DesktopRuntimeUpdateStatus() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(DesktopRuntimeUpdateStatus* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(DesktopRuntimeUpdateStatus));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR DesktopRuntimeUpdateStatus(::google::protobuf::internal::ConstantInitialized);
+
+  inline DesktopRuntimeUpdateStatus(const DesktopRuntimeUpdateStatus& from) : DesktopRuntimeUpdateStatus(nullptr, from) {}
+  inline DesktopRuntimeUpdateStatus(DesktopRuntimeUpdateStatus&& from) noexcept
+      : DesktopRuntimeUpdateStatus(nullptr, ::std::move(from)) {}
+  inline DesktopRuntimeUpdateStatus& operator=(const DesktopRuntimeUpdateStatus& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline DesktopRuntimeUpdateStatus& operator=(DesktopRuntimeUpdateStatus&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const DesktopRuntimeUpdateStatus& default_instance() {
+    return *reinterpret_cast<const DesktopRuntimeUpdateStatus*>(
+        &_DesktopRuntimeUpdateStatus_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 4;
+  friend void swap(DesktopRuntimeUpdateStatus& a, DesktopRuntimeUpdateStatus& b) { a.Swap(&b); }
+  inline void Swap(DesktopRuntimeUpdateStatus* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(DesktopRuntimeUpdateStatus* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  DesktopRuntimeUpdateStatus* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<DesktopRuntimeUpdateStatus>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const DesktopRuntimeUpdateStatus& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const DesktopRuntimeUpdateStatus& from) { DesktopRuntimeUpdateStatus::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(DesktopRuntimeUpdateStatus* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "electron.desktop_runtime.DesktopRuntimeUpdateStatus"; }
+
+  explicit DesktopRuntimeUpdateStatus(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  DesktopRuntimeUpdateStatus(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DesktopRuntimeUpdateStatus& from);
+  DesktopRuntimeUpdateStatus(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DesktopRuntimeUpdateStatus&& from) noexcept
+      : DesktopRuntimeUpdateStatus(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kVersionFieldNumber = 2,
+    kLabelFieldNumber = 3,
+    kDetailFieldNumber = 4,
+    kReadyFieldNumber = 1,
+  };
+  // string version = 2;
+  void clear_version() ;
+  const ::std::string& version() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_version(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_version();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_version();
+  void set_allocated_version(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_version() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_version(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_version();
+
+  public:
+  // string label = 3;
+  void clear_label() ;
+  const ::std::string& label() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_label(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_label();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_label();
+  void set_allocated_label(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_label() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_label(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_label();
+
+  public:
+  // string detail = 4;
+  void clear_detail() ;
+  const ::std::string& detail() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_detail(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_detail();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_detail();
+  void set_allocated_detail(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_detail() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_detail(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_detail();
+
+  public:
+  // bool ready = 1;
+  void clear_ready() ;
+  bool ready() const;
+  void set_ready(bool value);
+
+  private:
+  bool _internal_ready() const;
+  void _internal_set_ready(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:electron.desktop_runtime.DesktopRuntimeUpdateStatus)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   0, 78,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const DesktopRuntimeUpdateStatus& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr version_;
+    ::google::protobuf::internal::ArenaStringPtr label_;
+    ::google::protobuf::internal::ArenaStringPtr detail_;
+    bool ready_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull DesktopRuntimeUpdateStatus_class_data_;
+// -------------------------------------------------------------------
+
+class DesktopRuntimeNavigationItem final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:electron.desktop_runtime.DesktopRuntimeNavigationItem) */ {
+ public:
+  inline DesktopRuntimeNavigationItem() : DesktopRuntimeNavigationItem(nullptr) {}
+  ~DesktopRuntimeNavigationItem() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(DesktopRuntimeNavigationItem* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(DesktopRuntimeNavigationItem));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR DesktopRuntimeNavigationItem(::google::protobuf::internal::ConstantInitialized);
+
+  inline DesktopRuntimeNavigationItem(const DesktopRuntimeNavigationItem& from) : DesktopRuntimeNavigationItem(nullptr, from) {}
+  inline DesktopRuntimeNavigationItem(DesktopRuntimeNavigationItem&& from) noexcept
+      : DesktopRuntimeNavigationItem(nullptr, ::std::move(from)) {}
+  inline DesktopRuntimeNavigationItem& operator=(const DesktopRuntimeNavigationItem& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline DesktopRuntimeNavigationItem& operator=(DesktopRuntimeNavigationItem&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const DesktopRuntimeNavigationItem& default_instance() {
+    return *reinterpret_cast<const DesktopRuntimeNavigationItem*>(
+        &_DesktopRuntimeNavigationItem_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 2;
+  friend void swap(DesktopRuntimeNavigationItem& a, DesktopRuntimeNavigationItem& b) { a.Swap(&b); }
+  inline void Swap(DesktopRuntimeNavigationItem* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(DesktopRuntimeNavigationItem* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  DesktopRuntimeNavigationItem* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<DesktopRuntimeNavigationItem>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const DesktopRuntimeNavigationItem& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const DesktopRuntimeNavigationItem& from) { DesktopRuntimeNavigationItem::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(DesktopRuntimeNavigationItem* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "electron.desktop_runtime.DesktopRuntimeNavigationItem"; }
+
+  explicit DesktopRuntimeNavigationItem(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  DesktopRuntimeNavigationItem(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DesktopRuntimeNavigationItem& from);
+  DesktopRuntimeNavigationItem(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DesktopRuntimeNavigationItem&& from) noexcept
+      : DesktopRuntimeNavigationItem(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kIdFieldNumber = 1,
+    kLabelFieldNumber = 2,
+    kDetailFieldNumber = 3,
+    kRouteFieldNumber = 4,
+    kStatusTextFieldNumber = 6,
+    kActiveFieldNumber = 5,
+  };
+  // string id = 1;
+  void clear_id() ;
+  const ::std::string& id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_id();
+  void set_allocated_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_id();
+
+  public:
+  // string label = 2;
+  void clear_label() ;
+  const ::std::string& label() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_label(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_label();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_label();
+  void set_allocated_label(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_label() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_label(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_label();
+
+  public:
+  // string detail = 3;
+  void clear_detail() ;
+  const ::std::string& detail() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_detail(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_detail();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_detail();
+  void set_allocated_detail(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_detail() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_detail(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_detail();
+
+  public:
+  // string route = 4;
+  void clear_route() ;
+  const ::std::string& route() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_route(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_route();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_route();
+  void set_allocated_route(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_route() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_route(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_route();
+
+  public:
+  // string status_text = 6;
+  void clear_status_text() ;
+  const ::std::string& status_text() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_status_text(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_status_text();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_status_text();
+  void set_allocated_status_text(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_status_text() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_status_text(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_status_text();
+
+  public:
+  // bool active = 5;
+  void clear_active() ;
+  bool active() const;
+  void set_active(bool value);
+
+  private:
+  bool _internal_active() const;
+  void _internal_set_active(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:electron.desktop_runtime.DesktopRuntimeNavigationItem)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 6,
+                                   0, 91,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const DesktopRuntimeNavigationItem& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr id_;
+    ::google::protobuf::internal::ArenaStringPtr label_;
+    ::google::protobuf::internal::ArenaStringPtr detail_;
+    ::google::protobuf::internal::ArenaStringPtr route_;
+    ::google::protobuf::internal::ArenaStringPtr status_text_;
+    bool active_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull DesktopRuntimeNavigationItem_class_data_;
+// -------------------------------------------------------------------
+
+class DesktopRuntimeListenerStatus final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:electron.desktop_runtime.DesktopRuntimeListenerStatus) */ {
+ public:
+  inline DesktopRuntimeListenerStatus() : DesktopRuntimeListenerStatus(nullptr) {}
+  ~DesktopRuntimeListenerStatus() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(DesktopRuntimeListenerStatus* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(DesktopRuntimeListenerStatus));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR DesktopRuntimeListenerStatus(::google::protobuf::internal::ConstantInitialized);
+
+  inline DesktopRuntimeListenerStatus(const DesktopRuntimeListenerStatus& from) : DesktopRuntimeListenerStatus(nullptr, from) {}
+  inline DesktopRuntimeListenerStatus(DesktopRuntimeListenerStatus&& from) noexcept
+      : DesktopRuntimeListenerStatus(nullptr, ::std::move(from)) {}
+  inline DesktopRuntimeListenerStatus& operator=(const DesktopRuntimeListenerStatus& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline DesktopRuntimeListenerStatus& operator=(DesktopRuntimeListenerStatus&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const DesktopRuntimeListenerStatus& default_instance() {
+    return *reinterpret_cast<const DesktopRuntimeListenerStatus*>(
+        &_DesktopRuntimeListenerStatus_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 1;
+  friend void swap(DesktopRuntimeListenerStatus& a, DesktopRuntimeListenerStatus& b) { a.Swap(&b); }
+  inline void Swap(DesktopRuntimeListenerStatus* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(DesktopRuntimeListenerStatus* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  DesktopRuntimeListenerStatus* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<DesktopRuntimeListenerStatus>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const DesktopRuntimeListenerStatus& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const DesktopRuntimeListenerStatus& from) { DesktopRuntimeListenerStatus::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(DesktopRuntimeListenerStatus* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "electron.desktop_runtime.DesktopRuntimeListenerStatus"; }
+
+  explicit DesktopRuntimeListenerStatus(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  DesktopRuntimeListenerStatus(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DesktopRuntimeListenerStatus& from);
+  DesktopRuntimeListenerStatus(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DesktopRuntimeListenerStatus&& from) noexcept
+      : DesktopRuntimeListenerStatus(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kLabelFieldNumber = 2,
+    kDetailFieldNumber = 3,
+    kSocketPathFieldNumber = 4,
+    kReachabilityFieldNumber = 1,
+    kConnectedClientsFieldNumber = 5,
+  };
+  // string label = 2;
+  void clear_label() ;
+  const ::std::string& label() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_label(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_label();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_label();
+  void set_allocated_label(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_label() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_label(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_label();
+
+  public:
+  // string detail = 3;
+  void clear_detail() ;
+  const ::std::string& detail() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_detail(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_detail();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_detail();
+  void set_allocated_detail(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_detail() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_detail(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_detail();
+
+  public:
+  // string socket_path = 4;
+  void clear_socket_path() ;
+  const ::std::string& socket_path() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_socket_path(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_socket_path();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_socket_path();
+  void set_allocated_socket_path(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_socket_path() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_socket_path(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_socket_path();
+
+  public:
+  // .electron.desktop_runtime.DesktopRuntimeReachability reachability = 1;
+  void clear_reachability() ;
+  ::electron::desktop_runtime::DesktopRuntimeReachability reachability() const;
+  void set_reachability(::electron::desktop_runtime::DesktopRuntimeReachability value);
+
+  private:
+  ::electron::desktop_runtime::DesktopRuntimeReachability _internal_reachability() const;
+  void _internal_set_reachability(::electron::desktop_runtime::DesktopRuntimeReachability value);
+
+  public:
+  // uint32 connected_clients = 5;
+  void clear_connected_clients() ;
+  ::uint32_t connected_clients() const;
+  void set_connected_clients(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_connected_clients() const;
+  void _internal_set_connected_clients(::uint32_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:electron.desktop_runtime.DesktopRuntimeListenerStatus)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 5,
+                                   0, 84,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const DesktopRuntimeListenerStatus& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr label_;
+    ::google::protobuf::internal::ArenaStringPtr detail_;
+    ::google::protobuf::internal::ArenaStringPtr socket_path_;
+    int reachability_;
+    ::uint32_t connected_clients_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull DesktopRuntimeListenerStatus_class_data_;
+// -------------------------------------------------------------------
+
+class DesktopRuntimeAttentionItem final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:electron.desktop_runtime.DesktopRuntimeAttentionItem) */ {
+ public:
+  inline DesktopRuntimeAttentionItem() : DesktopRuntimeAttentionItem(nullptr) {}
+  ~DesktopRuntimeAttentionItem() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(DesktopRuntimeAttentionItem* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(DesktopRuntimeAttentionItem));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR DesktopRuntimeAttentionItem(::google::protobuf::internal::ConstantInitialized);
+
+  inline DesktopRuntimeAttentionItem(const DesktopRuntimeAttentionItem& from) : DesktopRuntimeAttentionItem(nullptr, from) {}
+  inline DesktopRuntimeAttentionItem(DesktopRuntimeAttentionItem&& from) noexcept
+      : DesktopRuntimeAttentionItem(nullptr, ::std::move(from)) {}
+  inline DesktopRuntimeAttentionItem& operator=(const DesktopRuntimeAttentionItem& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline DesktopRuntimeAttentionItem& operator=(DesktopRuntimeAttentionItem&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const DesktopRuntimeAttentionItem& default_instance() {
+    return *reinterpret_cast<const DesktopRuntimeAttentionItem*>(
+        &_DesktopRuntimeAttentionItem_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 5;
+  friend void swap(DesktopRuntimeAttentionItem& a, DesktopRuntimeAttentionItem& b) { a.Swap(&b); }
+  inline void Swap(DesktopRuntimeAttentionItem* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(DesktopRuntimeAttentionItem* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  DesktopRuntimeAttentionItem* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<DesktopRuntimeAttentionItem>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const DesktopRuntimeAttentionItem& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const DesktopRuntimeAttentionItem& from) { DesktopRuntimeAttentionItem::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(DesktopRuntimeAttentionItem* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "electron.desktop_runtime.DesktopRuntimeAttentionItem"; }
+
+  explicit DesktopRuntimeAttentionItem(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  DesktopRuntimeAttentionItem(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DesktopRuntimeAttentionItem& from);
+  DesktopRuntimeAttentionItem(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DesktopRuntimeAttentionItem&& from) noexcept
+      : DesktopRuntimeAttentionItem(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kLabelFieldNumber = 3,
+    kDetailFieldNumber = 4,
+    kRouteFieldNumber = 5,
+    kKindFieldNumber = 1,
+    kSeverityFieldNumber = 2,
+  };
+  // string label = 3;
+  void clear_label() ;
+  const ::std::string& label() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_label(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_label();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_label();
+  void set_allocated_label(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_label() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_label(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_label();
+
+  public:
+  // string detail = 4;
+  void clear_detail() ;
+  const ::std::string& detail() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_detail(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_detail();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_detail();
+  void set_allocated_detail(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_detail() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_detail(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_detail();
+
+  public:
+  // string route = 5;
+  void clear_route() ;
+  const ::std::string& route() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_route(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_route();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_route();
+  void set_allocated_route(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_route() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_route(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_route();
+
+  public:
+  // .electron.desktop_runtime.DesktopRuntimeAttentionKind kind = 1;
+  void clear_kind() ;
+  ::electron::desktop_runtime::DesktopRuntimeAttentionKind kind() const;
+  void set_kind(::electron::desktop_runtime::DesktopRuntimeAttentionKind value);
+
+  private:
+  ::electron::desktop_runtime::DesktopRuntimeAttentionKind _internal_kind() const;
+  void _internal_set_kind(::electron::desktop_runtime::DesktopRuntimeAttentionKind value);
+
+  public:
+  // .electron.desktop_runtime.DesktopRuntimeSeverity severity = 2;
+  void clear_severity() ;
+  ::electron::desktop_runtime::DesktopRuntimeSeverity severity() const;
+  void set_severity(::electron::desktop_runtime::DesktopRuntimeSeverity value);
+
+  private:
+  ::electron::desktop_runtime::DesktopRuntimeSeverity _internal_severity() const;
+  void _internal_set_severity(::electron::desktop_runtime::DesktopRuntimeSeverity value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:electron.desktop_runtime.DesktopRuntimeAttentionItem)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 5,
+                                   0, 77,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const DesktopRuntimeAttentionItem& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr label_;
+    ::google::protobuf::internal::ArenaStringPtr detail_;
+    ::google::protobuf::internal::ArenaStringPtr route_;
+    int kind_;
+    int severity_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull DesktopRuntimeAttentionItem_class_data_;
+// -------------------------------------------------------------------
+
+class DesktopRuntimeActivityItem final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:electron.desktop_runtime.DesktopRuntimeActivityItem) */ {
+ public:
+  inline DesktopRuntimeActivityItem() : DesktopRuntimeActivityItem(nullptr) {}
+  ~DesktopRuntimeActivityItem() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(DesktopRuntimeActivityItem* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(DesktopRuntimeActivityItem));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR DesktopRuntimeActivityItem(::google::protobuf::internal::ConstantInitialized);
+
+  inline DesktopRuntimeActivityItem(const DesktopRuntimeActivityItem& from) : DesktopRuntimeActivityItem(nullptr, from) {}
+  inline DesktopRuntimeActivityItem(DesktopRuntimeActivityItem&& from) noexcept
+      : DesktopRuntimeActivityItem(nullptr, ::std::move(from)) {}
+  inline DesktopRuntimeActivityItem& operator=(const DesktopRuntimeActivityItem& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline DesktopRuntimeActivityItem& operator=(DesktopRuntimeActivityItem&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const DesktopRuntimeActivityItem& default_instance() {
+    return *reinterpret_cast<const DesktopRuntimeActivityItem*>(
+        &_DesktopRuntimeActivityItem_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 3;
+  friend void swap(DesktopRuntimeActivityItem& a, DesktopRuntimeActivityItem& b) { a.Swap(&b); }
+  inline void Swap(DesktopRuntimeActivityItem* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(DesktopRuntimeActivityItem* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  DesktopRuntimeActivityItem* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<DesktopRuntimeActivityItem>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const DesktopRuntimeActivityItem& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const DesktopRuntimeActivityItem& from) { DesktopRuntimeActivityItem::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(DesktopRuntimeActivityItem* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "electron.desktop_runtime.DesktopRuntimeActivityItem"; }
+
+  explicit DesktopRuntimeActivityItem(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  DesktopRuntimeActivityItem(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DesktopRuntimeActivityItem& from);
+  DesktopRuntimeActivityItem(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DesktopRuntimeActivityItem&& from) noexcept
+      : DesktopRuntimeActivityItem(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kIdFieldNumber = 1,
+    kLabelFieldNumber = 2,
+    kDetailFieldNumber = 3,
+    kUpdatedAtUnixMsFieldNumber = 5,
+    kStateFieldNumber = 4,
+  };
+  // string id = 1;
+  void clear_id() ;
+  const ::std::string& id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_id();
+  void set_allocated_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_id();
+
+  public:
+  // string label = 2;
+  void clear_label() ;
+  const ::std::string& label() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_label(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_label();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_label();
+  void set_allocated_label(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_label() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_label(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_label();
+
+  public:
+  // string detail = 3;
+  void clear_detail() ;
+  const ::std::string& detail() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_detail(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_detail();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_detail();
+  void set_allocated_detail(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_detail() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_detail(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_detail();
+
+  public:
+  // int64 updated_at_unix_ms = 5;
+  void clear_updated_at_unix_ms() ;
+  ::int64_t updated_at_unix_ms() const;
+  void set_updated_at_unix_ms(::int64_t value);
+
+  private:
+  ::int64_t _internal_updated_at_unix_ms() const;
+  void _internal_set_updated_at_unix_ms(::int64_t value);
+
+  public:
+  // .electron.desktop_runtime.DesktopRuntimeActivityState state = 4;
+  void clear_state() ;
+  ::electron::desktop_runtime::DesktopRuntimeActivityState state() const;
+  void set_state(::electron::desktop_runtime::DesktopRuntimeActivityState value);
+
+  private:
+  ::electron::desktop_runtime::DesktopRuntimeActivityState _internal_state() const;
+  void _internal_set_state(::electron::desktop_runtime::DesktopRuntimeActivityState value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:electron.desktop_runtime.DesktopRuntimeActivityItem)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 5,
+                                   0, 73,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const DesktopRuntimeActivityItem& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr id_;
+    ::google::protobuf::internal::ArenaStringPtr label_;
+    ::google::protobuf::internal::ArenaStringPtr detail_;
+    ::int64_t updated_at_unix_ms_;
+    int state_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull DesktopRuntimeActivityItem_class_data_;
 // -------------------------------------------------------------------
 
 class DesktopRuntimeState final : public ::google::protobuf::Message
@@ -912,10 +2478,86 @@ class DesktopRuntimeState final : public ::google::protobuf::Message
 
   // accessors -------------------------------------------------------
   enum : int {
+    kSessionsFieldNumber = 7,
+    kSpacesFieldNumber = 8,
+    kActivityFieldNumber = 9,
+    kAttentionItemsFieldNumber = 11,
     kStatusTextFieldNumber = 3,
+    kListenerFieldNumber = 6,
+    kUpdateFieldNumber = 10,
     kMainWindowOpenFieldNumber = 1,
     kQuittingFieldNumber = 2,
+    kHealthFieldNumber = 4,
+    kLifecycleFieldNumber = 5,
   };
+  // repeated .electron.desktop_runtime.DesktopRuntimeNavigationItem sessions = 7;
+  int sessions_size() const;
+  private:
+  int _internal_sessions_size() const;
+
+  public:
+  void clear_sessions() ;
+  ::electron::desktop_runtime::DesktopRuntimeNavigationItem* PROTOBUF_NONNULL mutable_sessions(int index);
+  ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopRuntimeNavigationItem>* PROTOBUF_NONNULL mutable_sessions();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopRuntimeNavigationItem>& _internal_sessions() const;
+  ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopRuntimeNavigationItem>* PROTOBUF_NONNULL _internal_mutable_sessions();
+  public:
+  const ::electron::desktop_runtime::DesktopRuntimeNavigationItem& sessions(int index) const;
+  ::electron::desktop_runtime::DesktopRuntimeNavigationItem* PROTOBUF_NONNULL add_sessions();
+  const ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopRuntimeNavigationItem>& sessions() const;
+  // repeated .electron.desktop_runtime.DesktopRuntimeNavigationItem spaces = 8;
+  int spaces_size() const;
+  private:
+  int _internal_spaces_size() const;
+
+  public:
+  void clear_spaces() ;
+  ::electron::desktop_runtime::DesktopRuntimeNavigationItem* PROTOBUF_NONNULL mutable_spaces(int index);
+  ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopRuntimeNavigationItem>* PROTOBUF_NONNULL mutable_spaces();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopRuntimeNavigationItem>& _internal_spaces() const;
+  ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopRuntimeNavigationItem>* PROTOBUF_NONNULL _internal_mutable_spaces();
+  public:
+  const ::electron::desktop_runtime::DesktopRuntimeNavigationItem& spaces(int index) const;
+  ::electron::desktop_runtime::DesktopRuntimeNavigationItem* PROTOBUF_NONNULL add_spaces();
+  const ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopRuntimeNavigationItem>& spaces() const;
+  // repeated .electron.desktop_runtime.DesktopRuntimeActivityItem activity = 9;
+  int activity_size() const;
+  private:
+  int _internal_activity_size() const;
+
+  public:
+  void clear_activity() ;
+  ::electron::desktop_runtime::DesktopRuntimeActivityItem* PROTOBUF_NONNULL mutable_activity(int index);
+  ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopRuntimeActivityItem>* PROTOBUF_NONNULL mutable_activity();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopRuntimeActivityItem>& _internal_activity() const;
+  ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopRuntimeActivityItem>* PROTOBUF_NONNULL _internal_mutable_activity();
+  public:
+  const ::electron::desktop_runtime::DesktopRuntimeActivityItem& activity(int index) const;
+  ::electron::desktop_runtime::DesktopRuntimeActivityItem* PROTOBUF_NONNULL add_activity();
+  const ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopRuntimeActivityItem>& activity() const;
+  // repeated .electron.desktop_runtime.DesktopRuntimeAttentionItem attention_items = 11;
+  int attention_items_size() const;
+  private:
+  int _internal_attention_items_size() const;
+
+  public:
+  void clear_attention_items() ;
+  ::electron::desktop_runtime::DesktopRuntimeAttentionItem* PROTOBUF_NONNULL mutable_attention_items(int index);
+  ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopRuntimeAttentionItem>* PROTOBUF_NONNULL mutable_attention_items();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopRuntimeAttentionItem>& _internal_attention_items() const;
+  ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopRuntimeAttentionItem>* PROTOBUF_NONNULL _internal_mutable_attention_items();
+  public:
+  const ::electron::desktop_runtime::DesktopRuntimeAttentionItem& attention_items(int index) const;
+  ::electron::desktop_runtime::DesktopRuntimeAttentionItem* PROTOBUF_NONNULL add_attention_items();
+  const ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopRuntimeAttentionItem>& attention_items() const;
   // string status_text = 3;
   void clear_status_text() ;
   const ::std::string& status_text() const;
@@ -929,6 +2571,36 @@ class DesktopRuntimeState final : public ::google::protobuf::Message
   const ::std::string& _internal_status_text() const;
   PROTOBUF_ALWAYS_INLINE void _internal_set_status_text(const ::std::string& value);
   ::std::string* PROTOBUF_NONNULL _internal_mutable_status_text();
+
+  public:
+  // .electron.desktop_runtime.DesktopRuntimeListenerStatus listener = 6;
+  bool has_listener() const;
+  void clear_listener() ;
+  const ::electron::desktop_runtime::DesktopRuntimeListenerStatus& listener() const;
+  [[nodiscard]] ::electron::desktop_runtime::DesktopRuntimeListenerStatus* PROTOBUF_NULLABLE release_listener();
+  ::electron::desktop_runtime::DesktopRuntimeListenerStatus* PROTOBUF_NONNULL mutable_listener();
+  void set_allocated_listener(::electron::desktop_runtime::DesktopRuntimeListenerStatus* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_listener(::electron::desktop_runtime::DesktopRuntimeListenerStatus* PROTOBUF_NULLABLE value);
+  ::electron::desktop_runtime::DesktopRuntimeListenerStatus* PROTOBUF_NULLABLE unsafe_arena_release_listener();
+
+  private:
+  const ::electron::desktop_runtime::DesktopRuntimeListenerStatus& _internal_listener() const;
+  ::electron::desktop_runtime::DesktopRuntimeListenerStatus* PROTOBUF_NONNULL _internal_mutable_listener();
+
+  public:
+  // .electron.desktop_runtime.DesktopRuntimeUpdateStatus update = 10;
+  bool has_update() const;
+  void clear_update() ;
+  const ::electron::desktop_runtime::DesktopRuntimeUpdateStatus& update() const;
+  [[nodiscard]] ::electron::desktop_runtime::DesktopRuntimeUpdateStatus* PROTOBUF_NULLABLE release_update();
+  ::electron::desktop_runtime::DesktopRuntimeUpdateStatus* PROTOBUF_NONNULL mutable_update();
+  void set_allocated_update(::electron::desktop_runtime::DesktopRuntimeUpdateStatus* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_update(::electron::desktop_runtime::DesktopRuntimeUpdateStatus* PROTOBUF_NULLABLE value);
+  ::electron::desktop_runtime::DesktopRuntimeUpdateStatus* PROTOBUF_NULLABLE unsafe_arena_release_update();
+
+  private:
+  const ::electron::desktop_runtime::DesktopRuntimeUpdateStatus& _internal_update() const;
+  ::electron::desktop_runtime::DesktopRuntimeUpdateStatus* PROTOBUF_NONNULL _internal_mutable_update();
 
   public:
   // bool main_window_open = 1;
@@ -951,12 +2623,32 @@ class DesktopRuntimeState final : public ::google::protobuf::Message
   void _internal_set_quitting(bool value);
 
   public:
+  // .electron.desktop_runtime.DesktopRuntimeHealth health = 4;
+  void clear_health() ;
+  ::electron::desktop_runtime::DesktopRuntimeHealth health() const;
+  void set_health(::electron::desktop_runtime::DesktopRuntimeHealth value);
+
+  private:
+  ::electron::desktop_runtime::DesktopRuntimeHealth _internal_health() const;
+  void _internal_set_health(::electron::desktop_runtime::DesktopRuntimeHealth value);
+
+  public:
+  // .electron.desktop_runtime.DesktopRuntimeLifecycle lifecycle = 5;
+  void clear_lifecycle() ;
+  ::electron::desktop_runtime::DesktopRuntimeLifecycle lifecycle() const;
+  void set_lifecycle(::electron::desktop_runtime::DesktopRuntimeLifecycle value);
+
+  private:
+  ::electron::desktop_runtime::DesktopRuntimeLifecycle _internal_lifecycle() const;
+  void _internal_set_lifecycle(::electron::desktop_runtime::DesktopRuntimeLifecycle value);
+
+  public:
   // @@protoc_insertion_point(class_scope:electron.desktop_runtime.DesktopRuntimeState)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<2, 3,
-                                   0, 64,
+  static const ::google::protobuf::internal::TcParseTable<4, 11,
+                                   6, 72,
                                    2>
       _table_;
 
@@ -977,9 +2669,17 @@ class DesktopRuntimeState final : public ::google::protobuf::Message
         const DesktopRuntimeState& from_msg);
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField< ::electron::desktop_runtime::DesktopRuntimeNavigationItem > sessions_;
+    ::google::protobuf::RepeatedPtrField< ::electron::desktop_runtime::DesktopRuntimeNavigationItem > spaces_;
+    ::google::protobuf::RepeatedPtrField< ::electron::desktop_runtime::DesktopRuntimeActivityItem > activity_;
+    ::google::protobuf::RepeatedPtrField< ::electron::desktop_runtime::DesktopRuntimeAttentionItem > attention_items_;
     ::google::protobuf::internal::ArenaStringPtr status_text_;
+    ::electron::desktop_runtime::DesktopRuntimeListenerStatus* PROTOBUF_NULLABLE listener_;
+    ::electron::desktop_runtime::DesktopRuntimeUpdateStatus* PROTOBUF_NULLABLE update_;
     bool main_window_open_;
     bool quitting_;
+    int health_;
+    int lifecycle_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -1044,7 +2744,7 @@ class WatchDesktopStateResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchDesktopStateResponse*>(
         &_WatchDesktopStateResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 2;
+  static constexpr int kIndexInFileMessages = 7;
   friend void swap(WatchDesktopStateResponse& a, WatchDesktopStateResponse& b) { a.Swap(&b); }
   inline void Swap(WatchDesktopStateResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1204,7 +2904,7 @@ inline void DesktopRuntimeState::clear_main_window_open() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.main_window_open_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000002U);
+                  0x00000080U);
 }
 inline bool DesktopRuntimeState::main_window_open() const {
   // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeState.main_window_open)
@@ -1212,7 +2912,7 @@ inline bool DesktopRuntimeState::main_window_open() const {
 }
 inline void DesktopRuntimeState::set_main_window_open(bool value) {
   _internal_set_main_window_open(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
   // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeState.main_window_open)
 }
 inline bool DesktopRuntimeState::_internal_main_window_open() const {
@@ -1229,7 +2929,7 @@ inline void DesktopRuntimeState::clear_quitting() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.quitting_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
+                  0x00000100U);
 }
 inline bool DesktopRuntimeState::quitting() const {
   // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeState.quitting)
@@ -1237,7 +2937,7 @@ inline bool DesktopRuntimeState::quitting() const {
 }
 inline void DesktopRuntimeState::set_quitting(bool value) {
   _internal_set_quitting(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
   // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeState.quitting)
 }
 inline bool DesktopRuntimeState::_internal_quitting() const {
@@ -1254,7 +2954,7 @@ inline void DesktopRuntimeState::clear_status_text() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.status_text_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000001U);
+                  0x00000010U);
 }
 inline const ::std::string& DesktopRuntimeState::status_text() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -1264,13 +2964,13 @@ inline const ::std::string& DesktopRuntimeState::status_text() const
 template <typename Arg_, typename... Args_>
 PROTOBUF_ALWAYS_INLINE void DesktopRuntimeState::set_status_text(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   _impl_.status_text_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
   // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeState.status_text)
 }
 inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeState::mutable_status_text()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   ::std::string* _s = _internal_mutable_status_text();
   // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopRuntimeState.status_text)
   return _s;
@@ -1290,10 +2990,10 @@ inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeState::_internal_mutable_st
 inline ::std::string* PROTOBUF_NULLABLE DesktopRuntimeState::release_status_text() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopRuntimeState.status_text)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
     return nullptr;
   }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   auto* released = _impl_.status_text_.Release();
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
     _impl_.status_text_.Set("", GetArena());
@@ -1303,15 +3003,1812 @@ inline ::std::string* PROTOBUF_NULLABLE DesktopRuntimeState::release_status_text
 inline void DesktopRuntimeState::set_allocated_status_text(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   }
   _impl_.status_text_.SetAllocated(value, GetArena());
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.status_text_.IsDefault()) {
     _impl_.status_text_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopRuntimeState.status_text)
+}
+
+// .electron.desktop_runtime.DesktopRuntimeHealth health = 4;
+inline void DesktopRuntimeState::clear_health() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.health_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000200U);
+}
+inline ::electron::desktop_runtime::DesktopRuntimeHealth DesktopRuntimeState::health() const {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeState.health)
+  return _internal_health();
+}
+inline void DesktopRuntimeState::set_health(::electron::desktop_runtime::DesktopRuntimeHealth value) {
+  _internal_set_health(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeState.health)
+}
+inline ::electron::desktop_runtime::DesktopRuntimeHealth DesktopRuntimeState::_internal_health() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::electron::desktop_runtime::DesktopRuntimeHealth>(_impl_.health_);
+}
+inline void DesktopRuntimeState::_internal_set_health(::electron::desktop_runtime::DesktopRuntimeHealth value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.health_ = value;
+}
+
+// .electron.desktop_runtime.DesktopRuntimeLifecycle lifecycle = 5;
+inline void DesktopRuntimeState::clear_lifecycle() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.lifecycle_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000400U);
+}
+inline ::electron::desktop_runtime::DesktopRuntimeLifecycle DesktopRuntimeState::lifecycle() const {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeState.lifecycle)
+  return _internal_lifecycle();
+}
+inline void DesktopRuntimeState::set_lifecycle(::electron::desktop_runtime::DesktopRuntimeLifecycle value) {
+  _internal_set_lifecycle(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeState.lifecycle)
+}
+inline ::electron::desktop_runtime::DesktopRuntimeLifecycle DesktopRuntimeState::_internal_lifecycle() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::electron::desktop_runtime::DesktopRuntimeLifecycle>(_impl_.lifecycle_);
+}
+inline void DesktopRuntimeState::_internal_set_lifecycle(::electron::desktop_runtime::DesktopRuntimeLifecycle value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.lifecycle_ = value;
+}
+
+// .electron.desktop_runtime.DesktopRuntimeListenerStatus listener = 6;
+inline bool DesktopRuntimeState::has_listener() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000020U);
+  PROTOBUF_ASSUME(!value || _impl_.listener_ != nullptr);
+  return value;
+}
+inline void DesktopRuntimeState::clear_listener() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.listener_ != nullptr) _impl_.listener_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline const ::electron::desktop_runtime::DesktopRuntimeListenerStatus& DesktopRuntimeState::_internal_listener() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::electron::desktop_runtime::DesktopRuntimeListenerStatus* p = _impl_.listener_;
+  return p != nullptr ? *p : reinterpret_cast<const ::electron::desktop_runtime::DesktopRuntimeListenerStatus&>(::electron::desktop_runtime::_DesktopRuntimeListenerStatus_default_instance_);
+}
+inline const ::electron::desktop_runtime::DesktopRuntimeListenerStatus& DesktopRuntimeState::listener() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeState.listener)
+  return _internal_listener();
+}
+inline void DesktopRuntimeState::unsafe_arena_set_allocated_listener(
+    ::electron::desktop_runtime::DesktopRuntimeListenerStatus* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.listener_);
+  }
+  _impl_.listener_ = reinterpret_cast<::electron::desktop_runtime::DesktopRuntimeListenerStatus*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:electron.desktop_runtime.DesktopRuntimeState.listener)
+}
+inline ::electron::desktop_runtime::DesktopRuntimeListenerStatus* PROTOBUF_NULLABLE DesktopRuntimeState::release_listener() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::electron::desktop_runtime::DesktopRuntimeListenerStatus* released = _impl_.listener_;
+  _impl_.listener_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::electron::desktop_runtime::DesktopRuntimeListenerStatus* PROTOBUF_NULLABLE DesktopRuntimeState::unsafe_arena_release_listener() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopRuntimeState.listener)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::electron::desktop_runtime::DesktopRuntimeListenerStatus* temp = _impl_.listener_;
+  _impl_.listener_ = nullptr;
+  return temp;
+}
+inline ::electron::desktop_runtime::DesktopRuntimeListenerStatus* PROTOBUF_NONNULL DesktopRuntimeState::_internal_mutable_listener() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.listener_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::electron::desktop_runtime::DesktopRuntimeListenerStatus>(GetArena());
+    _impl_.listener_ = reinterpret_cast<::electron::desktop_runtime::DesktopRuntimeListenerStatus*>(p);
+  }
+  return _impl_.listener_;
+}
+inline ::electron::desktop_runtime::DesktopRuntimeListenerStatus* PROTOBUF_NONNULL DesktopRuntimeState::mutable_listener()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::electron::desktop_runtime::DesktopRuntimeListenerStatus* _msg = _internal_mutable_listener();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopRuntimeState.listener)
+  return _msg;
+}
+inline void DesktopRuntimeState::set_allocated_listener(::electron::desktop_runtime::DesktopRuntimeListenerStatus* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.listener_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+
+  _impl_.listener_ = reinterpret_cast<::electron::desktop_runtime::DesktopRuntimeListenerStatus*>(value);
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopRuntimeState.listener)
+}
+
+// repeated .electron.desktop_runtime.DesktopRuntimeNavigationItem sessions = 7;
+inline int DesktopRuntimeState::_internal_sessions_size() const {
+  return _internal_sessions().size();
+}
+inline int DesktopRuntimeState::sessions_size() const {
+  return _internal_sessions_size();
+}
+inline void DesktopRuntimeState::clear_sessions() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.sessions_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::electron::desktop_runtime::DesktopRuntimeNavigationItem* PROTOBUF_NONNULL DesktopRuntimeState::mutable_sessions(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopRuntimeState.sessions)
+  return _internal_mutable_sessions()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopRuntimeNavigationItem>* PROTOBUF_NONNULL DesktopRuntimeState::mutable_sessions()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:electron.desktop_runtime.DesktopRuntimeState.sessions)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_sessions();
+}
+inline const ::electron::desktop_runtime::DesktopRuntimeNavigationItem& DesktopRuntimeState::sessions(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeState.sessions)
+  return _internal_sessions().Get(index);
+}
+inline ::electron::desktop_runtime::DesktopRuntimeNavigationItem* PROTOBUF_NONNULL DesktopRuntimeState::add_sessions()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::electron::desktop_runtime::DesktopRuntimeNavigationItem* _add =
+      _internal_mutable_sessions()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:electron.desktop_runtime.DesktopRuntimeState.sessions)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopRuntimeNavigationItem>& DesktopRuntimeState::sessions() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:electron.desktop_runtime.DesktopRuntimeState.sessions)
+  return _internal_sessions();
+}
+inline const ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopRuntimeNavigationItem>&
+DesktopRuntimeState::_internal_sessions() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.sessions_;
+}
+inline ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopRuntimeNavigationItem>* PROTOBUF_NONNULL
+DesktopRuntimeState::_internal_mutable_sessions() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.sessions_;
+}
+
+// repeated .electron.desktop_runtime.DesktopRuntimeNavigationItem spaces = 8;
+inline int DesktopRuntimeState::_internal_spaces_size() const {
+  return _internal_spaces().size();
+}
+inline int DesktopRuntimeState::spaces_size() const {
+  return _internal_spaces_size();
+}
+inline void DesktopRuntimeState::clear_spaces() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.spaces_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::electron::desktop_runtime::DesktopRuntimeNavigationItem* PROTOBUF_NONNULL DesktopRuntimeState::mutable_spaces(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopRuntimeState.spaces)
+  return _internal_mutable_spaces()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopRuntimeNavigationItem>* PROTOBUF_NONNULL DesktopRuntimeState::mutable_spaces()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_mutable_list:electron.desktop_runtime.DesktopRuntimeState.spaces)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_spaces();
+}
+inline const ::electron::desktop_runtime::DesktopRuntimeNavigationItem& DesktopRuntimeState::spaces(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeState.spaces)
+  return _internal_spaces().Get(index);
+}
+inline ::electron::desktop_runtime::DesktopRuntimeNavigationItem* PROTOBUF_NONNULL DesktopRuntimeState::add_spaces()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::electron::desktop_runtime::DesktopRuntimeNavigationItem* _add =
+      _internal_mutable_spaces()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_add:electron.desktop_runtime.DesktopRuntimeState.spaces)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopRuntimeNavigationItem>& DesktopRuntimeState::spaces() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:electron.desktop_runtime.DesktopRuntimeState.spaces)
+  return _internal_spaces();
+}
+inline const ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopRuntimeNavigationItem>&
+DesktopRuntimeState::_internal_spaces() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.spaces_;
+}
+inline ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopRuntimeNavigationItem>* PROTOBUF_NONNULL
+DesktopRuntimeState::_internal_mutable_spaces() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.spaces_;
+}
+
+// repeated .electron.desktop_runtime.DesktopRuntimeActivityItem activity = 9;
+inline int DesktopRuntimeState::_internal_activity_size() const {
+  return _internal_activity().size();
+}
+inline int DesktopRuntimeState::activity_size() const {
+  return _internal_activity_size();
+}
+inline void DesktopRuntimeState::clear_activity() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.activity_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::electron::desktop_runtime::DesktopRuntimeActivityItem* PROTOBUF_NONNULL DesktopRuntimeState::mutable_activity(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopRuntimeState.activity)
+  return _internal_mutable_activity()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopRuntimeActivityItem>* PROTOBUF_NONNULL DesktopRuntimeState::mutable_activity()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_mutable_list:electron.desktop_runtime.DesktopRuntimeState.activity)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_activity();
+}
+inline const ::electron::desktop_runtime::DesktopRuntimeActivityItem& DesktopRuntimeState::activity(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeState.activity)
+  return _internal_activity().Get(index);
+}
+inline ::electron::desktop_runtime::DesktopRuntimeActivityItem* PROTOBUF_NONNULL DesktopRuntimeState::add_activity()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::electron::desktop_runtime::DesktopRuntimeActivityItem* _add =
+      _internal_mutable_activity()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_add:electron.desktop_runtime.DesktopRuntimeState.activity)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopRuntimeActivityItem>& DesktopRuntimeState::activity() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:electron.desktop_runtime.DesktopRuntimeState.activity)
+  return _internal_activity();
+}
+inline const ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopRuntimeActivityItem>&
+DesktopRuntimeState::_internal_activity() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.activity_;
+}
+inline ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopRuntimeActivityItem>* PROTOBUF_NONNULL
+DesktopRuntimeState::_internal_mutable_activity() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.activity_;
+}
+
+// .electron.desktop_runtime.DesktopRuntimeUpdateStatus update = 10;
+inline bool DesktopRuntimeState::has_update() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000040U);
+  PROTOBUF_ASSUME(!value || _impl_.update_ != nullptr);
+  return value;
+}
+inline void DesktopRuntimeState::clear_update() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.update_ != nullptr) _impl_.update_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline const ::electron::desktop_runtime::DesktopRuntimeUpdateStatus& DesktopRuntimeState::_internal_update() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::electron::desktop_runtime::DesktopRuntimeUpdateStatus* p = _impl_.update_;
+  return p != nullptr ? *p : reinterpret_cast<const ::electron::desktop_runtime::DesktopRuntimeUpdateStatus&>(::electron::desktop_runtime::_DesktopRuntimeUpdateStatus_default_instance_);
+}
+inline const ::electron::desktop_runtime::DesktopRuntimeUpdateStatus& DesktopRuntimeState::update() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeState.update)
+  return _internal_update();
+}
+inline void DesktopRuntimeState::unsafe_arena_set_allocated_update(
+    ::electron::desktop_runtime::DesktopRuntimeUpdateStatus* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.update_);
+  }
+  _impl_.update_ = reinterpret_cast<::electron::desktop_runtime::DesktopRuntimeUpdateStatus*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:electron.desktop_runtime.DesktopRuntimeState.update)
+}
+inline ::electron::desktop_runtime::DesktopRuntimeUpdateStatus* PROTOBUF_NULLABLE DesktopRuntimeState::release_update() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::electron::desktop_runtime::DesktopRuntimeUpdateStatus* released = _impl_.update_;
+  _impl_.update_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::electron::desktop_runtime::DesktopRuntimeUpdateStatus* PROTOBUF_NULLABLE DesktopRuntimeState::unsafe_arena_release_update() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopRuntimeState.update)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::electron::desktop_runtime::DesktopRuntimeUpdateStatus* temp = _impl_.update_;
+  _impl_.update_ = nullptr;
+  return temp;
+}
+inline ::electron::desktop_runtime::DesktopRuntimeUpdateStatus* PROTOBUF_NONNULL DesktopRuntimeState::_internal_mutable_update() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.update_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::electron::desktop_runtime::DesktopRuntimeUpdateStatus>(GetArena());
+    _impl_.update_ = reinterpret_cast<::electron::desktop_runtime::DesktopRuntimeUpdateStatus*>(p);
+  }
+  return _impl_.update_;
+}
+inline ::electron::desktop_runtime::DesktopRuntimeUpdateStatus* PROTOBUF_NONNULL DesktopRuntimeState::mutable_update()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::electron::desktop_runtime::DesktopRuntimeUpdateStatus* _msg = _internal_mutable_update();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopRuntimeState.update)
+  return _msg;
+}
+inline void DesktopRuntimeState::set_allocated_update(::electron::desktop_runtime::DesktopRuntimeUpdateStatus* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.update_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  }
+
+  _impl_.update_ = reinterpret_cast<::electron::desktop_runtime::DesktopRuntimeUpdateStatus*>(value);
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopRuntimeState.update)
+}
+
+// repeated .electron.desktop_runtime.DesktopRuntimeAttentionItem attention_items = 11;
+inline int DesktopRuntimeState::_internal_attention_items_size() const {
+  return _internal_attention_items().size();
+}
+inline int DesktopRuntimeState::attention_items_size() const {
+  return _internal_attention_items_size();
+}
+inline void DesktopRuntimeState::clear_attention_items() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.attention_items_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline ::electron::desktop_runtime::DesktopRuntimeAttentionItem* PROTOBUF_NONNULL DesktopRuntimeState::mutable_attention_items(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopRuntimeState.attention_items)
+  return _internal_mutable_attention_items()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopRuntimeAttentionItem>* PROTOBUF_NONNULL DesktopRuntimeState::mutable_attention_items()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_mutable_list:electron.desktop_runtime.DesktopRuntimeState.attention_items)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_attention_items();
+}
+inline const ::electron::desktop_runtime::DesktopRuntimeAttentionItem& DesktopRuntimeState::attention_items(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeState.attention_items)
+  return _internal_attention_items().Get(index);
+}
+inline ::electron::desktop_runtime::DesktopRuntimeAttentionItem* PROTOBUF_NONNULL DesktopRuntimeState::add_attention_items()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::electron::desktop_runtime::DesktopRuntimeAttentionItem* _add =
+      _internal_mutable_attention_items()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_add:electron.desktop_runtime.DesktopRuntimeState.attention_items)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopRuntimeAttentionItem>& DesktopRuntimeState::attention_items() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:electron.desktop_runtime.DesktopRuntimeState.attention_items)
+  return _internal_attention_items();
+}
+inline const ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopRuntimeAttentionItem>&
+DesktopRuntimeState::_internal_attention_items() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.attention_items_;
+}
+inline ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopRuntimeAttentionItem>* PROTOBUF_NONNULL
+DesktopRuntimeState::_internal_mutable_attention_items() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.attention_items_;
+}
+
+// -------------------------------------------------------------------
+
+// DesktopRuntimeListenerStatus
+
+// .electron.desktop_runtime.DesktopRuntimeReachability reachability = 1;
+inline void DesktopRuntimeListenerStatus::clear_reachability() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.reachability_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline ::electron::desktop_runtime::DesktopRuntimeReachability DesktopRuntimeListenerStatus::reachability() const {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeListenerStatus.reachability)
+  return _internal_reachability();
+}
+inline void DesktopRuntimeListenerStatus::set_reachability(::electron::desktop_runtime::DesktopRuntimeReachability value) {
+  _internal_set_reachability(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeListenerStatus.reachability)
+}
+inline ::electron::desktop_runtime::DesktopRuntimeReachability DesktopRuntimeListenerStatus::_internal_reachability() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::electron::desktop_runtime::DesktopRuntimeReachability>(_impl_.reachability_);
+}
+inline void DesktopRuntimeListenerStatus::_internal_set_reachability(::electron::desktop_runtime::DesktopRuntimeReachability value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.reachability_ = value;
+}
+
+// string label = 2;
+inline void DesktopRuntimeListenerStatus::clear_label() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.label_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& DesktopRuntimeListenerStatus::label() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeListenerStatus.label)
+  return _internal_label();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopRuntimeListenerStatus::set_label(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.label_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeListenerStatus.label)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeListenerStatus::mutable_label()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_label();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopRuntimeListenerStatus.label)
+  return _s;
+}
+inline const ::std::string& DesktopRuntimeListenerStatus::_internal_label() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.label_.Get();
+}
+inline void DesktopRuntimeListenerStatus::_internal_set_label(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.label_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeListenerStatus::_internal_mutable_label() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.label_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopRuntimeListenerStatus::release_label() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopRuntimeListenerStatus.label)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.label_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.label_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopRuntimeListenerStatus::set_allocated_label(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.label_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.label_.IsDefault()) {
+    _impl_.label_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopRuntimeListenerStatus.label)
+}
+
+// string detail = 3;
+inline void DesktopRuntimeListenerStatus::clear_detail() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.detail_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& DesktopRuntimeListenerStatus::detail() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeListenerStatus.detail)
+  return _internal_detail();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopRuntimeListenerStatus::set_detail(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.detail_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeListenerStatus.detail)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeListenerStatus::mutable_detail()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_detail();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopRuntimeListenerStatus.detail)
+  return _s;
+}
+inline const ::std::string& DesktopRuntimeListenerStatus::_internal_detail() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.detail_.Get();
+}
+inline void DesktopRuntimeListenerStatus::_internal_set_detail(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.detail_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeListenerStatus::_internal_mutable_detail() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.detail_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopRuntimeListenerStatus::release_detail() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopRuntimeListenerStatus.detail)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.detail_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.detail_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopRuntimeListenerStatus::set_allocated_detail(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.detail_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.detail_.IsDefault()) {
+    _impl_.detail_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopRuntimeListenerStatus.detail)
+}
+
+// string socket_path = 4;
+inline void DesktopRuntimeListenerStatus::clear_socket_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.socket_path_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& DesktopRuntimeListenerStatus::socket_path() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeListenerStatus.socket_path)
+  return _internal_socket_path();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopRuntimeListenerStatus::set_socket_path(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.socket_path_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeListenerStatus.socket_path)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeListenerStatus::mutable_socket_path()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_socket_path();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopRuntimeListenerStatus.socket_path)
+  return _s;
+}
+inline const ::std::string& DesktopRuntimeListenerStatus::_internal_socket_path() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.socket_path_.Get();
+}
+inline void DesktopRuntimeListenerStatus::_internal_set_socket_path(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.socket_path_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeListenerStatus::_internal_mutable_socket_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.socket_path_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopRuntimeListenerStatus::release_socket_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopRuntimeListenerStatus.socket_path)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.socket_path_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.socket_path_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopRuntimeListenerStatus::set_allocated_socket_path(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.socket_path_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.socket_path_.IsDefault()) {
+    _impl_.socket_path_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopRuntimeListenerStatus.socket_path)
+}
+
+// uint32 connected_clients = 5;
+inline void DesktopRuntimeListenerStatus::clear_connected_clients() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.connected_clients_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline ::uint32_t DesktopRuntimeListenerStatus::connected_clients() const {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeListenerStatus.connected_clients)
+  return _internal_connected_clients();
+}
+inline void DesktopRuntimeListenerStatus::set_connected_clients(::uint32_t value) {
+  _internal_set_connected_clients(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeListenerStatus.connected_clients)
+}
+inline ::uint32_t DesktopRuntimeListenerStatus::_internal_connected_clients() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.connected_clients_;
+}
+inline void DesktopRuntimeListenerStatus::_internal_set_connected_clients(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.connected_clients_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// DesktopRuntimeNavigationItem
+
+// string id = 1;
+inline void DesktopRuntimeNavigationItem::clear_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& DesktopRuntimeNavigationItem::id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeNavigationItem.id)
+  return _internal_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopRuntimeNavigationItem::set_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeNavigationItem.id)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeNavigationItem::mutable_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_id();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopRuntimeNavigationItem.id)
+  return _s;
+}
+inline const ::std::string& DesktopRuntimeNavigationItem::_internal_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.id_.Get();
+}
+inline void DesktopRuntimeNavigationItem::_internal_set_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeNavigationItem::_internal_mutable_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopRuntimeNavigationItem::release_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopRuntimeNavigationItem.id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopRuntimeNavigationItem::set_allocated_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.id_.IsDefault()) {
+    _impl_.id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopRuntimeNavigationItem.id)
+}
+
+// string label = 2;
+inline void DesktopRuntimeNavigationItem::clear_label() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.label_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& DesktopRuntimeNavigationItem::label() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeNavigationItem.label)
+  return _internal_label();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopRuntimeNavigationItem::set_label(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.label_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeNavigationItem.label)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeNavigationItem::mutable_label()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_label();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopRuntimeNavigationItem.label)
+  return _s;
+}
+inline const ::std::string& DesktopRuntimeNavigationItem::_internal_label() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.label_.Get();
+}
+inline void DesktopRuntimeNavigationItem::_internal_set_label(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.label_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeNavigationItem::_internal_mutable_label() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.label_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopRuntimeNavigationItem::release_label() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopRuntimeNavigationItem.label)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.label_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.label_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopRuntimeNavigationItem::set_allocated_label(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.label_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.label_.IsDefault()) {
+    _impl_.label_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopRuntimeNavigationItem.label)
+}
+
+// string detail = 3;
+inline void DesktopRuntimeNavigationItem::clear_detail() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.detail_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& DesktopRuntimeNavigationItem::detail() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeNavigationItem.detail)
+  return _internal_detail();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopRuntimeNavigationItem::set_detail(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.detail_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeNavigationItem.detail)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeNavigationItem::mutable_detail()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_detail();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopRuntimeNavigationItem.detail)
+  return _s;
+}
+inline const ::std::string& DesktopRuntimeNavigationItem::_internal_detail() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.detail_.Get();
+}
+inline void DesktopRuntimeNavigationItem::_internal_set_detail(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.detail_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeNavigationItem::_internal_mutable_detail() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.detail_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopRuntimeNavigationItem::release_detail() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopRuntimeNavigationItem.detail)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.detail_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.detail_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopRuntimeNavigationItem::set_allocated_detail(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.detail_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.detail_.IsDefault()) {
+    _impl_.detail_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopRuntimeNavigationItem.detail)
+}
+
+// string route = 4;
+inline void DesktopRuntimeNavigationItem::clear_route() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.route_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& DesktopRuntimeNavigationItem::route() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeNavigationItem.route)
+  return _internal_route();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopRuntimeNavigationItem::set_route(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.route_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeNavigationItem.route)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeNavigationItem::mutable_route()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_route();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopRuntimeNavigationItem.route)
+  return _s;
+}
+inline const ::std::string& DesktopRuntimeNavigationItem::_internal_route() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.route_.Get();
+}
+inline void DesktopRuntimeNavigationItem::_internal_set_route(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.route_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeNavigationItem::_internal_mutable_route() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.route_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopRuntimeNavigationItem::release_route() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopRuntimeNavigationItem.route)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.route_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.route_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopRuntimeNavigationItem::set_allocated_route(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.route_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.route_.IsDefault()) {
+    _impl_.route_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopRuntimeNavigationItem.route)
+}
+
+// bool active = 5;
+inline void DesktopRuntimeNavigationItem::clear_active() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.active_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline bool DesktopRuntimeNavigationItem::active() const {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeNavigationItem.active)
+  return _internal_active();
+}
+inline void DesktopRuntimeNavigationItem::set_active(bool value) {
+  _internal_set_active(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeNavigationItem.active)
+}
+inline bool DesktopRuntimeNavigationItem::_internal_active() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.active_;
+}
+inline void DesktopRuntimeNavigationItem::_internal_set_active(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.active_ = value;
+}
+
+// string status_text = 6;
+inline void DesktopRuntimeNavigationItem::clear_status_text() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_text_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::std::string& DesktopRuntimeNavigationItem::status_text() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeNavigationItem.status_text)
+  return _internal_status_text();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopRuntimeNavigationItem::set_status_text(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  _impl_.status_text_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeNavigationItem.status_text)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeNavigationItem::mutable_status_text()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::std::string* _s = _internal_mutable_status_text();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopRuntimeNavigationItem.status_text)
+  return _s;
+}
+inline const ::std::string& DesktopRuntimeNavigationItem::_internal_status_text() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.status_text_.Get();
+}
+inline void DesktopRuntimeNavigationItem::_internal_set_status_text(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_text_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeNavigationItem::_internal_mutable_status_text() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.status_text_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopRuntimeNavigationItem::release_status_text() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopRuntimeNavigationItem.status_text)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  auto* released = _impl_.status_text_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.status_text_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopRuntimeNavigationItem::set_allocated_status_text(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  _impl_.status_text_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.status_text_.IsDefault()) {
+    _impl_.status_text_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopRuntimeNavigationItem.status_text)
+}
+
+// -------------------------------------------------------------------
+
+// DesktopRuntimeActivityItem
+
+// string id = 1;
+inline void DesktopRuntimeActivityItem::clear_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& DesktopRuntimeActivityItem::id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeActivityItem.id)
+  return _internal_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopRuntimeActivityItem::set_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeActivityItem.id)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeActivityItem::mutable_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_id();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopRuntimeActivityItem.id)
+  return _s;
+}
+inline const ::std::string& DesktopRuntimeActivityItem::_internal_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.id_.Get();
+}
+inline void DesktopRuntimeActivityItem::_internal_set_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeActivityItem::_internal_mutable_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopRuntimeActivityItem::release_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopRuntimeActivityItem.id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopRuntimeActivityItem::set_allocated_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.id_.IsDefault()) {
+    _impl_.id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopRuntimeActivityItem.id)
+}
+
+// string label = 2;
+inline void DesktopRuntimeActivityItem::clear_label() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.label_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& DesktopRuntimeActivityItem::label() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeActivityItem.label)
+  return _internal_label();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopRuntimeActivityItem::set_label(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.label_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeActivityItem.label)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeActivityItem::mutable_label()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_label();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopRuntimeActivityItem.label)
+  return _s;
+}
+inline const ::std::string& DesktopRuntimeActivityItem::_internal_label() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.label_.Get();
+}
+inline void DesktopRuntimeActivityItem::_internal_set_label(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.label_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeActivityItem::_internal_mutable_label() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.label_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopRuntimeActivityItem::release_label() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopRuntimeActivityItem.label)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.label_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.label_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopRuntimeActivityItem::set_allocated_label(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.label_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.label_.IsDefault()) {
+    _impl_.label_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopRuntimeActivityItem.label)
+}
+
+// string detail = 3;
+inline void DesktopRuntimeActivityItem::clear_detail() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.detail_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& DesktopRuntimeActivityItem::detail() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeActivityItem.detail)
+  return _internal_detail();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopRuntimeActivityItem::set_detail(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.detail_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeActivityItem.detail)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeActivityItem::mutable_detail()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_detail();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopRuntimeActivityItem.detail)
+  return _s;
+}
+inline const ::std::string& DesktopRuntimeActivityItem::_internal_detail() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.detail_.Get();
+}
+inline void DesktopRuntimeActivityItem::_internal_set_detail(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.detail_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeActivityItem::_internal_mutable_detail() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.detail_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopRuntimeActivityItem::release_detail() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopRuntimeActivityItem.detail)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.detail_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.detail_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopRuntimeActivityItem::set_allocated_detail(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.detail_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.detail_.IsDefault()) {
+    _impl_.detail_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopRuntimeActivityItem.detail)
+}
+
+// .electron.desktop_runtime.DesktopRuntimeActivityState state = 4;
+inline void DesktopRuntimeActivityItem::clear_state() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.state_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline ::electron::desktop_runtime::DesktopRuntimeActivityState DesktopRuntimeActivityItem::state() const {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeActivityItem.state)
+  return _internal_state();
+}
+inline void DesktopRuntimeActivityItem::set_state(::electron::desktop_runtime::DesktopRuntimeActivityState value) {
+  _internal_set_state(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeActivityItem.state)
+}
+inline ::electron::desktop_runtime::DesktopRuntimeActivityState DesktopRuntimeActivityItem::_internal_state() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::electron::desktop_runtime::DesktopRuntimeActivityState>(_impl_.state_);
+}
+inline void DesktopRuntimeActivityItem::_internal_set_state(::electron::desktop_runtime::DesktopRuntimeActivityState value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.state_ = value;
+}
+
+// int64 updated_at_unix_ms = 5;
+inline void DesktopRuntimeActivityItem::clear_updated_at_unix_ms() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.updated_at_unix_ms_ = ::int64_t{0};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline ::int64_t DesktopRuntimeActivityItem::updated_at_unix_ms() const {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeActivityItem.updated_at_unix_ms)
+  return _internal_updated_at_unix_ms();
+}
+inline void DesktopRuntimeActivityItem::set_updated_at_unix_ms(::int64_t value) {
+  _internal_set_updated_at_unix_ms(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeActivityItem.updated_at_unix_ms)
+}
+inline ::int64_t DesktopRuntimeActivityItem::_internal_updated_at_unix_ms() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.updated_at_unix_ms_;
+}
+inline void DesktopRuntimeActivityItem::_internal_set_updated_at_unix_ms(::int64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.updated_at_unix_ms_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// DesktopRuntimeUpdateStatus
+
+// bool ready = 1;
+inline void DesktopRuntimeUpdateStatus::clear_ready() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ready_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline bool DesktopRuntimeUpdateStatus::ready() const {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeUpdateStatus.ready)
+  return _internal_ready();
+}
+inline void DesktopRuntimeUpdateStatus::set_ready(bool value) {
+  _internal_set_ready(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeUpdateStatus.ready)
+}
+inline bool DesktopRuntimeUpdateStatus::_internal_ready() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.ready_;
+}
+inline void DesktopRuntimeUpdateStatus::_internal_set_ready(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ready_ = value;
+}
+
+// string version = 2;
+inline void DesktopRuntimeUpdateStatus::clear_version() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.version_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& DesktopRuntimeUpdateStatus::version() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeUpdateStatus.version)
+  return _internal_version();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopRuntimeUpdateStatus::set_version(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.version_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeUpdateStatus.version)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeUpdateStatus::mutable_version()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_version();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopRuntimeUpdateStatus.version)
+  return _s;
+}
+inline const ::std::string& DesktopRuntimeUpdateStatus::_internal_version() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.version_.Get();
+}
+inline void DesktopRuntimeUpdateStatus::_internal_set_version(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.version_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeUpdateStatus::_internal_mutable_version() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.version_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopRuntimeUpdateStatus::release_version() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopRuntimeUpdateStatus.version)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.version_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.version_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopRuntimeUpdateStatus::set_allocated_version(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.version_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.version_.IsDefault()) {
+    _impl_.version_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopRuntimeUpdateStatus.version)
+}
+
+// string label = 3;
+inline void DesktopRuntimeUpdateStatus::clear_label() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.label_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& DesktopRuntimeUpdateStatus::label() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeUpdateStatus.label)
+  return _internal_label();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopRuntimeUpdateStatus::set_label(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.label_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeUpdateStatus.label)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeUpdateStatus::mutable_label()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_label();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopRuntimeUpdateStatus.label)
+  return _s;
+}
+inline const ::std::string& DesktopRuntimeUpdateStatus::_internal_label() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.label_.Get();
+}
+inline void DesktopRuntimeUpdateStatus::_internal_set_label(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.label_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeUpdateStatus::_internal_mutable_label() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.label_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopRuntimeUpdateStatus::release_label() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopRuntimeUpdateStatus.label)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.label_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.label_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopRuntimeUpdateStatus::set_allocated_label(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.label_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.label_.IsDefault()) {
+    _impl_.label_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopRuntimeUpdateStatus.label)
+}
+
+// string detail = 4;
+inline void DesktopRuntimeUpdateStatus::clear_detail() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.detail_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& DesktopRuntimeUpdateStatus::detail() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeUpdateStatus.detail)
+  return _internal_detail();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopRuntimeUpdateStatus::set_detail(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.detail_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeUpdateStatus.detail)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeUpdateStatus::mutable_detail()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_detail();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopRuntimeUpdateStatus.detail)
+  return _s;
+}
+inline const ::std::string& DesktopRuntimeUpdateStatus::_internal_detail() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.detail_.Get();
+}
+inline void DesktopRuntimeUpdateStatus::_internal_set_detail(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.detail_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeUpdateStatus::_internal_mutable_detail() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.detail_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopRuntimeUpdateStatus::release_detail() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopRuntimeUpdateStatus.detail)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.detail_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.detail_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopRuntimeUpdateStatus::set_allocated_detail(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.detail_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.detail_.IsDefault()) {
+    _impl_.detail_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopRuntimeUpdateStatus.detail)
+}
+
+// -------------------------------------------------------------------
+
+// DesktopRuntimeAttentionItem
+
+// .electron.desktop_runtime.DesktopRuntimeAttentionKind kind = 1;
+inline void DesktopRuntimeAttentionItem::clear_kind() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.kind_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline ::electron::desktop_runtime::DesktopRuntimeAttentionKind DesktopRuntimeAttentionItem::kind() const {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeAttentionItem.kind)
+  return _internal_kind();
+}
+inline void DesktopRuntimeAttentionItem::set_kind(::electron::desktop_runtime::DesktopRuntimeAttentionKind value) {
+  _internal_set_kind(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeAttentionItem.kind)
+}
+inline ::electron::desktop_runtime::DesktopRuntimeAttentionKind DesktopRuntimeAttentionItem::_internal_kind() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::electron::desktop_runtime::DesktopRuntimeAttentionKind>(_impl_.kind_);
+}
+inline void DesktopRuntimeAttentionItem::_internal_set_kind(::electron::desktop_runtime::DesktopRuntimeAttentionKind value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.kind_ = value;
+}
+
+// .electron.desktop_runtime.DesktopRuntimeSeverity severity = 2;
+inline void DesktopRuntimeAttentionItem::clear_severity() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.severity_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline ::electron::desktop_runtime::DesktopRuntimeSeverity DesktopRuntimeAttentionItem::severity() const {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeAttentionItem.severity)
+  return _internal_severity();
+}
+inline void DesktopRuntimeAttentionItem::set_severity(::electron::desktop_runtime::DesktopRuntimeSeverity value) {
+  _internal_set_severity(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeAttentionItem.severity)
+}
+inline ::electron::desktop_runtime::DesktopRuntimeSeverity DesktopRuntimeAttentionItem::_internal_severity() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::electron::desktop_runtime::DesktopRuntimeSeverity>(_impl_.severity_);
+}
+inline void DesktopRuntimeAttentionItem::_internal_set_severity(::electron::desktop_runtime::DesktopRuntimeSeverity value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.severity_ = value;
+}
+
+// string label = 3;
+inline void DesktopRuntimeAttentionItem::clear_label() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.label_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& DesktopRuntimeAttentionItem::label() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeAttentionItem.label)
+  return _internal_label();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopRuntimeAttentionItem::set_label(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.label_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeAttentionItem.label)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeAttentionItem::mutable_label()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_label();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopRuntimeAttentionItem.label)
+  return _s;
+}
+inline const ::std::string& DesktopRuntimeAttentionItem::_internal_label() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.label_.Get();
+}
+inline void DesktopRuntimeAttentionItem::_internal_set_label(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.label_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeAttentionItem::_internal_mutable_label() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.label_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopRuntimeAttentionItem::release_label() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopRuntimeAttentionItem.label)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.label_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.label_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopRuntimeAttentionItem::set_allocated_label(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.label_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.label_.IsDefault()) {
+    _impl_.label_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopRuntimeAttentionItem.label)
+}
+
+// string detail = 4;
+inline void DesktopRuntimeAttentionItem::clear_detail() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.detail_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& DesktopRuntimeAttentionItem::detail() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeAttentionItem.detail)
+  return _internal_detail();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopRuntimeAttentionItem::set_detail(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.detail_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeAttentionItem.detail)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeAttentionItem::mutable_detail()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_detail();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopRuntimeAttentionItem.detail)
+  return _s;
+}
+inline const ::std::string& DesktopRuntimeAttentionItem::_internal_detail() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.detail_.Get();
+}
+inline void DesktopRuntimeAttentionItem::_internal_set_detail(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.detail_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeAttentionItem::_internal_mutable_detail() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.detail_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopRuntimeAttentionItem::release_detail() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopRuntimeAttentionItem.detail)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.detail_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.detail_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopRuntimeAttentionItem::set_allocated_detail(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.detail_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.detail_.IsDefault()) {
+    _impl_.detail_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopRuntimeAttentionItem.detail)
+}
+
+// string route = 5;
+inline void DesktopRuntimeAttentionItem::clear_route() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.route_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& DesktopRuntimeAttentionItem::route() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeAttentionItem.route)
+  return _internal_route();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopRuntimeAttentionItem::set_route(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.route_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeAttentionItem.route)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeAttentionItem::mutable_route()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_route();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopRuntimeAttentionItem.route)
+  return _s;
+}
+inline const ::std::string& DesktopRuntimeAttentionItem::_internal_route() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.route_.Get();
+}
+inline void DesktopRuntimeAttentionItem::_internal_set_route(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.route_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeAttentionItem::_internal_mutable_route() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.route_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopRuntimeAttentionItem::release_route() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopRuntimeAttentionItem.route)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.route_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.route_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopRuntimeAttentionItem::set_allocated_route(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.route_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.route_.IsDefault()) {
+    _impl_.route_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopRuntimeAttentionItem.route)
 }
 
 // -------------------------------------------------------------------
@@ -1445,6 +4942,49 @@ inline void WatchDesktopStateResponse::set_allocated_state(::electron::desktop_r
 }  // namespace desktop_runtime
 }  // namespace electron
 
+
+namespace google {
+namespace protobuf {
+
+template <>
+struct is_proto_enum<::electron::desktop_runtime::DesktopRuntimeHealth> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::electron::desktop_runtime::DesktopRuntimeHealth>() {
+  return ::electron::desktop_runtime::DesktopRuntimeHealth_descriptor();
+}
+template <>
+struct is_proto_enum<::electron::desktop_runtime::DesktopRuntimeLifecycle> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::electron::desktop_runtime::DesktopRuntimeLifecycle>() {
+  return ::electron::desktop_runtime::DesktopRuntimeLifecycle_descriptor();
+}
+template <>
+struct is_proto_enum<::electron::desktop_runtime::DesktopRuntimeReachability> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::electron::desktop_runtime::DesktopRuntimeReachability>() {
+  return ::electron::desktop_runtime::DesktopRuntimeReachability_descriptor();
+}
+template <>
+struct is_proto_enum<::electron::desktop_runtime::DesktopRuntimeActivityState> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::electron::desktop_runtime::DesktopRuntimeActivityState>() {
+  return ::electron::desktop_runtime::DesktopRuntimeActivityState_descriptor();
+}
+template <>
+struct is_proto_enum<::electron::desktop_runtime::DesktopRuntimeAttentionKind> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::electron::desktop_runtime::DesktopRuntimeAttentionKind>() {
+  return ::electron::desktop_runtime::DesktopRuntimeAttentionKind_descriptor();
+}
+template <>
+struct is_proto_enum<::electron::desktop_runtime::DesktopRuntimeSeverity> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::electron::desktop_runtime::DesktopRuntimeSeverity>() {
+  return ::electron::desktop_runtime::DesktopRuntimeSeverity_descriptor();
+}
+
+}  // namespace protobuf
+}  // namespace google
 
 // @@protoc_insertion_point(global_scope)
 
