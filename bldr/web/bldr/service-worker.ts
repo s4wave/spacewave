@@ -418,6 +418,33 @@ async function matchPromotedGenerationResponse(
   return null
 }
 
+async function matchPromotedCurrentGenerationResponse(
+  request: Request,
+): Promise<Response | null> {
+  if (!canCacheBrowserReleaseRequests()) {
+    return null
+  }
+
+  const pathname = normalizeReleasePath(new URL(request.url).pathname)
+  const state = await loadBrowserReleaseState()
+  const release = state.promotedCurrent
+  if (!release) {
+    return null
+  }
+  if (!new Set(buildReleaseCachePaths(release)).has(pathname)) {
+    return null
+  }
+
+  const cache = await caches.open(
+    buildGenerationCacheName(release.generationId),
+  )
+  const response = await cache.match(buildCacheRequest(pathname))
+  if (!response) {
+    return null
+  }
+  return responseForMethod(request, response)
+}
+
 export async function handleBrowserReleaseRequest(
   ev: FetchEvent,
 ): Promise<Response> {
@@ -616,6 +643,12 @@ async function swFetch(
     matchPrefixes.some((matchPrefix) => requestPath.startsWith(matchPrefix))
 
   if (!useRuntimeFetch) {
+    const promotedResponse =
+      await matchPromotedCurrentGenerationResponse(request)
+    if (promotedResponse) {
+      return promotedResponse
+    }
+
     // Check the cache (for e.x. index.html)
     // NOTE: We do not want this, we want the latest index.html if possible.
     /*
