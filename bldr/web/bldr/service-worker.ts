@@ -46,6 +46,7 @@ const CACHES: Record<string, Cache | undefined> = {
 }
 const serviceWorkerFetchTracker = new ServiceWorkerFetchTracker()
 const proxyFetchHeaderTimeoutMs = 30_000
+const browserReleaseNetworkRaceTimeoutMs = 800
 
 // ServiceWorkerMessageDeps collects message-handler collaborators.
 export interface ServiceWorkerMessageDeps {
@@ -412,6 +413,16 @@ export async function handleBrowserReleaseRequest(
   const request = ev.request
   const state = await loadBrowserReleaseState()
   if (state.promotedCurrent) {
+    const latestRelease = await Promise.race([
+      fetchLatestBrowserRelease(),
+      new Promise<null>((resolve) => {
+        setTimeout(() => resolve(null), browserReleaseNetworkRaceTimeoutMs)
+      }),
+    ])
+    if (latestRelease) {
+      ev.waitUntil(syncLatestBrowserRelease(latestRelease))
+      return buildJsonResponse(request.method, latestRelease)
+    }
     ev.waitUntil(syncLatestBrowserRelease())
     return buildJsonResponse(request.method, state.promotedCurrent)
   }
