@@ -326,6 +326,84 @@ describe('SessionSharedObjectContainer', () => {
     expect(screen.getByRole('button', { name: 'Reinitialize' })).toBeTruthy()
   })
 
+  it('renders typed backend body health snapshots in the mount-health UI', () => {
+    setWatchMocks(
+      { spacesList: [buildSpaceListEntry('created')] },
+      {
+        health: {
+          status: SharedObjectHealthStatus.CLOSED,
+          layer: SharedObjectHealthLayer.BODY,
+          commonReason:
+            SharedObjectHealthCommonReason.BODY_CONFIG_DECODE_FAILED,
+          remediationHint:
+            SharedObjectHealthRemediationHint.REPAIR_SOURCE_DATA,
+          error: 'unsupported shared object type "example"',
+        },
+      },
+    )
+    setResourceMocks(
+      {
+        value: { meta: { sharedObjectId: SPACE_ID } },
+        loading: false,
+        error: null,
+        retry: vi.fn(),
+      },
+      {
+        value: null,
+        loading: false,
+        error: null,
+        retry: vi.fn(),
+      },
+    )
+
+    render(<SessionSharedObjectContainer />)
+
+    expect(screen.getByText('Closed - Body')).toBeTruthy()
+    expect(screen.getByText('Body configuration invalid')).toBeTruthy()
+    expect(
+      screen.getByText(/body metadata needs repair or a compatible viewer/i),
+    ).toBeTruthy()
+    expect(
+      screen.getByText('unsupported shared object type "example"'),
+    ).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Repair' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Reinitialize' })).toBeTruthy()
+  })
+
+  it('renders local mount fallback health snapshots in the mount-health UI', () => {
+    setWatchMocks({ spacesList: [] }, null)
+    setResourceMocks(
+      {
+        value: null,
+        loading: false,
+        error: new Error(`shared object not found: ${SPACE_ID}`),
+        retry: vi.fn(),
+      },
+      {
+        value: null,
+        loading: false,
+        error: null,
+        retry: vi.fn(),
+      },
+    )
+
+    render(<SessionSharedObjectContainer />)
+
+    expect(screen.getByText('Closed - Shared Object')).toBeTruthy()
+    expect(screen.getByText('Shared object not found')).toBeTruthy()
+    expect(
+      screen.getByText(
+        /no longer available from the current account or provider/i,
+      ),
+    ).toBeTruthy()
+    expect(
+      screen.getByText(/ask the owner for an updated link/i),
+    ).toBeTruthy()
+    expect(
+      screen.getByText(`shared object not found: ${SPACE_ID}`),
+    ).toBeTruthy()
+  })
+
   it('renders remediation guidance for revoked access', () => {
     setWatchMocks(
       { spacesList: [] },
