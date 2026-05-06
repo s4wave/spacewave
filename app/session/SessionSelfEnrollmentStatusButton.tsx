@@ -27,8 +27,7 @@ import {
 // SessionSelfEnrollmentStatusButton registers the self-enrollment bottom-bar item.
 export function SessionSelfEnrollmentStatusButton() {
   const status = useSessionSelfEnrollmentStatus()
-  const visible =
-    status.loading || status.visualState !== 'ready' || status.totalCount > 0
+  const visible = sessionSelfEnrollmentStatusVisible(status)
   const buttonRender = useCallback(
     (selected: boolean, onClick: () => void, className?: string) => (
       <Popover open={selected}>
@@ -73,6 +72,17 @@ export function SessionSelfEnrollmentStatusButton() {
     >
       {null}
     </BottomBarLevel>
+  )
+}
+
+function sessionSelfEnrollmentStatusVisible(
+  status: SessionSelfEnrollmentStatusView,
+): boolean {
+  return (
+    status.pending ||
+    status.running ||
+    status.skipped ||
+    status.failures.length > 0
   )
 }
 

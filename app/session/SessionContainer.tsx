@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
 
 import { usePromise } from '@s4wave/web/hooks/usePromise.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
@@ -378,7 +378,7 @@ export function SessionContainer(props: {
           onBreadcrumbClick={handleAccountBreadcrumb}
         >
           <SessionSyncStatusProvider>
-            <SessionSelfEnrollmentStatusProvider>
+            <SessionSelfEnrollmentStatusScope enabled={isCloudProvider}>
               <SessionSelfEnrollmentStatusButton />
               <SessionSyncStatusButton />
               <SystemStatusButton />
@@ -478,10 +478,26 @@ export function SessionContainer(props: {
                   </Route>
                 </Routes>
               </SessionProviderContainer>
-            </SessionSelfEnrollmentStatusProvider>
+            </SessionSelfEnrollmentStatusScope>
           </SessionSyncStatusProvider>
         </BottomBarLevel>
       </StateNamespaceProvider>
     </SessionContext.Provider>
+  )
+}
+
+function SessionSelfEnrollmentStatusScope({
+  enabled,
+  children,
+}: {
+  enabled: boolean
+  children: ReactNode
+}) {
+  if (!enabled) return <>{children}</>
+
+  return (
+    <SessionSelfEnrollmentStatusProvider>
+      {children}
+    </SessionSelfEnrollmentStatusProvider>
   )
 }

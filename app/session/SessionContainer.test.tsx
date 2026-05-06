@@ -20,6 +20,7 @@ const mockConsumePendingJoin = vi.hoisted(() => vi.fn())
 const mockNavigate = vi.hoisted(() => vi.fn())
 const mockUseSessionIndex = vi.hoisted(() => vi.fn())
 const mockUsePath = vi.hoisted(() => vi.fn())
+const mockSessionSelfEnrollmentProvider = vi.hoisted(() => vi.fn())
 
 vi.mock('@s4wave/web/hooks/usePromise.js', () => ({
   usePromise: vi.fn(),
@@ -117,6 +118,36 @@ vi.mock('@aptre/bldr-react', () => ({
 
 vi.mock('./SessionCommands.js', () => ({
   SessionCommands: () => null,
+}))
+
+vi.mock('./SessionSelfEnrollmentStatusContext.js', () => ({
+  SessionSelfEnrollmentStatusProvider: ({
+    children,
+  }: {
+    children?: ReactNode
+  }) => {
+    mockSessionSelfEnrollmentProvider()
+    return <div data-testid="session-self-enrollment-provider">{children}</div>
+  },
+  useSessionSelfEnrollmentStatus: () => ({
+    resource: null,
+    snapshot: null,
+    visualState: 'ready',
+    loading: false,
+    pending: false,
+    running: false,
+    credentialRequired: false,
+    skipped: false,
+    failed: false,
+    count: 0,
+    completedCount: 0,
+    totalCount: 0,
+    progress: 0,
+    generationKey: '',
+    failures: [],
+    summaryLabel: '',
+    detailLabel: '',
+  }),
 }))
 
 vi.mock('./dashboard/SessionDetails.js', () => ({
@@ -245,6 +276,7 @@ describe('SessionContainer', () => {
     cleanup()
     mockNavigate.mockReset()
     mockUseStreamingResource.mockReset()
+    mockSessionSelfEnrollmentProvider.mockReset()
     mockUseSessionIndex.mockReturnValue(1)
     mockUsePath.mockReturnValue('/u/1')
     mockUseSessionInfo.mockReturnValue({
@@ -273,6 +305,10 @@ describe('SessionContainer', () => {
     const overlay = screen.getByTestId('overlay')
     const content = screen.getByTestId('content')
     expect(within(content).getByTestId('spacewave-content')).toBeTruthy()
+    expect(
+      within(content).getByTestId('session-self-enrollment-provider'),
+    ).toBeTruthy()
+    expect(mockSessionSelfEnrollmentProvider).toHaveBeenCalledTimes(1)
     expect(within(overlay).queryByTestId('spacewave-content')).toBeNull()
     expect(within(overlay).getByTestId('session-details')).toBeTruthy()
   })
@@ -281,6 +317,7 @@ describe('SessionContainer', () => {
     cleanup()
     mockNavigate.mockReset()
     mockUseStreamingResource.mockReset()
+    mockSessionSelfEnrollmentProvider.mockReset()
     mockUseSessionIndex.mockReturnValue(1)
     mockUsePath.mockReturnValue('/u/1')
     mockUseSessionInfo.mockReturnValue({
@@ -337,6 +374,7 @@ describe('SessionContainer', () => {
     cleanup()
     mockNavigate.mockReset()
     mockUseStreamingResource.mockReset()
+    mockSessionSelfEnrollmentProvider.mockReset()
     mockUseSessionIndex.mockReturnValue(1)
     mockUsePath.mockReturnValue('/u/1')
     mockUseSessionInfo.mockReturnValue({
@@ -372,6 +410,8 @@ describe('SessionContainer', () => {
     expect(onboardingResource.value).toBeNull()
     expect(session.spacewave.watchOnboardingStatus).not.toHaveBeenCalled()
     expect(screen.queryByTestId('spacewave-content')).toBeNull()
+    expect(screen.queryByTestId('session-self-enrollment-provider')).toBeNull()
+    expect(mockSessionSelfEnrollmentProvider).not.toHaveBeenCalled()
   })
 
   it('renders the local account overlay without any session provider chrome inside it', () => {

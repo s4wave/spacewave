@@ -156,6 +156,39 @@ describe('SessionSelfEnrollmentStatusButton', () => {
       screen.queryByTestId('bottom-bar-level-session-self-enrollment-status'),
     ).toBeNull()
   })
+
+  it('stays hidden while idle status is still loading', () => {
+    mockUseSessionSelfEnrollmentStatus.mockReturnValue({
+      ...view({ count: 0 }),
+      visualState: 'loading',
+      loading: true,
+      summaryLabel: 'Checking connected spaces',
+      detailLabel: 'Waiting for connected-space status.',
+    })
+
+    render(<SessionSelfEnrollmentStatusButton />)
+
+    expect(
+      screen.queryByTestId('bottom-bar-level-session-self-enrollment-status'),
+    ).toBeNull()
+  })
+
+  it('stays hidden when the idle status watch is unavailable', () => {
+    mockUseSessionSelfEnrollmentStatus.mockReturnValue(
+      buildSessionSelfEnrollmentStatusView(
+        null,
+        null,
+        false,
+        new Error('unimplemented'),
+      ),
+    )
+
+    render(<SessionSelfEnrollmentStatusButton />)
+
+    expect(
+      screen.queryByTestId('bottom-bar-level-session-self-enrollment-status'),
+    ).toBeNull()
+  })
 })
 
 function view(
