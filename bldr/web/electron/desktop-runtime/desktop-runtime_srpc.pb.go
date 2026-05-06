@@ -16,6 +16,8 @@ type SRPCDesktopRuntimeResourceServiceClient interface {
 
 	// WatchDesktopState streams the current desktop shell state.
 	WatchDesktopState(ctx context.Context, in *WatchDesktopStateRequest) (SRPCDesktopRuntimeResourceService_WatchDesktopStateClient, error)
+	// SetDesktopState publishes projected desktop runtime status.
+	SetDesktopState(ctx context.Context, in *SetDesktopStateRequest) (*SetDesktopStateResponse, error)
 	// OpenOrFocusMainWindow opens or focuses the main app window.
 	OpenOrFocusMainWindow(ctx context.Context, in *OpenOrFocusMainWindowRequest) (*OpenOrFocusMainWindowResponse, error)
 	// QuitDesktopRuntime requests a clean user-initiated runtime quit.
@@ -74,6 +76,15 @@ func (x *srpcDesktopRuntimeResourceService_WatchDesktopStateClient) RecvTo(m *Wa
 	return x.MsgRecv(m)
 }
 
+func (c *srpcDesktopRuntimeResourceServiceClient) SetDesktopState(ctx context.Context, in *SetDesktopStateRequest) (*SetDesktopStateResponse, error) {
+	out := new(SetDesktopStateResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "SetDesktopState", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcDesktopRuntimeResourceServiceClient) OpenOrFocusMainWindow(ctx context.Context, in *OpenOrFocusMainWindowRequest) (*OpenOrFocusMainWindowResponse, error) {
 	out := new(OpenOrFocusMainWindowResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "OpenOrFocusMainWindow", in, out)
@@ -95,6 +106,8 @@ func (c *srpcDesktopRuntimeResourceServiceClient) QuitDesktopRuntime(ctx context
 type SRPCDesktopRuntimeResourceServiceServer interface {
 	// WatchDesktopState streams the current desktop shell state.
 	WatchDesktopState(*WatchDesktopStateRequest, SRPCDesktopRuntimeResourceService_WatchDesktopStateStream) error
+	// SetDesktopState publishes projected desktop runtime status.
+	SetDesktopState(context.Context, *SetDesktopStateRequest) (*SetDesktopStateResponse, error)
 	// OpenOrFocusMainWindow opens or focuses the main app window.
 	OpenOrFocusMainWindow(context.Context, *OpenOrFocusMainWindowRequest) (*OpenOrFocusMainWindowResponse, error)
 	// QuitDesktopRuntime requests a clean user-initiated runtime quit.
@@ -128,6 +141,7 @@ func (d *SRPCDesktopRuntimeResourceServiceHandler) GetServiceID() string { retur
 func (SRPCDesktopRuntimeResourceServiceHandler) GetMethodIDs() []string {
 	return []string{
 		"WatchDesktopState",
+		"SetDesktopState",
 		"OpenOrFocusMainWindow",
 		"QuitDesktopRuntime",
 	}
@@ -144,6 +158,8 @@ func (d *SRPCDesktopRuntimeResourceServiceHandler) InvokeMethod(
 	switch methodID {
 	case "WatchDesktopState":
 		return true, d.InvokeMethod_WatchDesktopState(d.impl, strm)
+	case "SetDesktopState":
+		return true, d.InvokeMethod_SetDesktopState(d.impl, strm)
 	case "OpenOrFocusMainWindow":
 		return true, d.InvokeMethod_OpenOrFocusMainWindow(d.impl, strm)
 	case "QuitDesktopRuntime":
@@ -160,6 +176,18 @@ func (SRPCDesktopRuntimeResourceServiceHandler) InvokeMethod_WatchDesktopState(i
 	}
 	serverStrm := &srpcDesktopRuntimeResourceService_WatchDesktopStateStream{strm}
 	return impl.WatchDesktopState(req, serverStrm)
+}
+
+func (SRPCDesktopRuntimeResourceServiceHandler) InvokeMethod_SetDesktopState(impl SRPCDesktopRuntimeResourceServiceServer, strm srpc.Stream) error {
+	req := new(SetDesktopStateRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.SetDesktopState(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
 }
 
 func (SRPCDesktopRuntimeResourceServiceHandler) InvokeMethod_OpenOrFocusMainWindow(impl SRPCDesktopRuntimeResourceServiceServer, strm srpc.Stream) error {
@@ -207,6 +235,14 @@ func (x *srpcDesktopRuntimeResourceService_WatchDesktopStateStream) SendAndClose
 		}
 	}
 	return x.CloseSend()
+}
+
+type SRPCDesktopRuntimeResourceService_SetDesktopStateStream interface {
+	srpc.Stream
+}
+
+type srpcDesktopRuntimeResourceService_SetDesktopStateStream struct {
+	srpc.Stream
 }
 
 type SRPCDesktopRuntimeResourceService_OpenOrFocusMainWindowStream interface {

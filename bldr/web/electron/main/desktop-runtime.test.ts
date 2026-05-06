@@ -176,6 +176,65 @@ describe('DesktopRuntimeResource', () => {
     await iter.return?.()
   })
 
+  it('publishes projected status without clobbering Electron-owned fields', async () => {
+    const resource = new DesktopRuntimeResource({
+      openOrFocusMainWindow: vi.fn(),
+      quitDesktopRuntime: vi.fn(),
+    })
+    resource.setMainWindowOpen(true)
+
+    await resource.SetDesktopState({
+      state: {
+        mainWindowOpen: false,
+        quitting: false,
+        statusText: 'CLI reachable',
+        health: DesktopRuntimeHealth.HEALTHY,
+        lifecycle: DesktopRuntimeLifecycle.RUNNING,
+        listener: {
+          reachability: DesktopRuntimeReachability.REACHABLE,
+          label: 'CLI reachable',
+          socketPath: '/tmp/spacewave.sock',
+          connectedClients: 1,
+        },
+      },
+    })
+
+    expect(resource.getState()).toMatchObject({
+      mainWindowOpen: true,
+      quitting: false,
+      statusText: 'CLI reachable',
+      health: DesktopRuntimeHealth.HEALTHY,
+      lifecycle: DesktopRuntimeLifecycle.RUNNING,
+      listener: {
+        reachability: DesktopRuntimeReachability.REACHABLE,
+        connectedClients: 1,
+      },
+      sessions: [],
+      spaces: [],
+      activity: [],
+      update: {},
+      attentionItems: [],
+      actions: [],
+    })
+
+    await resource.QuitDesktopRuntime({})
+    await resource.SetDesktopState({
+      state: {
+        statusText: 'Running',
+        health: DesktopRuntimeHealth.HEALTHY,
+        lifecycle: DesktopRuntimeLifecycle.RUNNING,
+      },
+    })
+
+    expect(resource.getState()).toMatchObject({
+      mainWindowOpen: true,
+      quitting: true,
+      statusText: 'Quitting',
+      health: DesktopRuntimeHealth.QUITTING,
+      lifecycle: DesktopRuntimeLifecycle.QUITTING,
+    })
+  })
+
   it('suppresses redundant desktop state updates', async () => {
     const resource = new DesktopRuntimeResource({
       openOrFocusMainWindow: vi.fn(),

@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
+	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	web_document "github.com/s4wave/spacewave/bldr/web/document"
 	sw "github.com/s4wave/spacewave/bldr/web/runtime/sw"
 	"github.com/sirupsen/logrus"
@@ -40,6 +41,9 @@ type WebRuntime interface {
 
 	// WaitFirstWebDocument waits for at least one WebDocument to exist.
 	WaitFirstWebDocument(ctx context.Context) (web_document.WebDocument, error)
+
+	// ConnectDesktopRuntimeResourceClient connects to the desktop runtime resource tree.
+	ConnectDesktopRuntimeResourceClient(ctx context.Context) (*resource_client.Client, error)
 
 	// CreateWebDocument creates a new WebDocument.
 	// This usually corresponds to creating a new Tab or Window.

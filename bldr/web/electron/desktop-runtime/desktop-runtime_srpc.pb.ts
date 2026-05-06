@@ -7,6 +7,8 @@ import {
   OpenOrFocusMainWindowResponse,
   QuitDesktopRuntimeRequest,
   QuitDesktopRuntimeResponse,
+  SetDesktopStateRequest,
+  SetDesktopStateResponse,
   WatchDesktopStateRequest,
   WatchDesktopStateResponse,
 } from './desktop-runtime.pb.js'
@@ -31,6 +33,17 @@ export const DesktopRuntimeResourceServiceDefinition = {
       I: WatchDesktopStateRequest,
       O: WatchDesktopStateResponse,
       kind: MethodKind.ServerStreaming,
+    },
+    /**
+     * SetDesktopState publishes projected desktop runtime status.
+     *
+     * @generated from rpc electron.desktop_runtime.DesktopRuntimeResourceService.SetDesktopState
+     */
+    SetDesktopState: {
+      name: 'SetDesktopState',
+      I: SetDesktopStateRequest,
+      O: SetDesktopStateResponse,
+      kind: MethodKind.Unary,
     },
     /**
      * OpenOrFocusMainWindow opens or focuses the main app window.
@@ -74,6 +87,16 @@ export interface DesktopRuntimeResourceService {
   ): MessageStream<WatchDesktopStateResponse>
 
   /**
+   * SetDesktopState publishes projected desktop runtime status.
+   *
+   * @generated from rpc electron.desktop_runtime.DesktopRuntimeResourceService.SetDesktopState
+   */
+  SetDesktopState(
+    request: SetDesktopStateRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SetDesktopStateResponse>
+
+  /**
    * OpenOrFocusMainWindow opens or focuses the main app window.
    *
    * @generated from rpc electron.desktop_runtime.DesktopRuntimeResourceService.OpenOrFocusMainWindow
@@ -104,6 +127,7 @@ export class DesktopRuntimeResourceServiceClient implements DesktopRuntimeResour
     this.service = opts?.service || DesktopRuntimeResourceServiceServiceName
     this.rpc = rpc
     this.WatchDesktopState = this.WatchDesktopState.bind(this)
+    this.SetDesktopState = this.SetDesktopState.bind(this)
     this.OpenOrFocusMainWindow = this.OpenOrFocusMainWindow.bind(this)
     this.QuitDesktopRuntime = this.QuitDesktopRuntime.bind(this)
   }
@@ -124,6 +148,25 @@ export class DesktopRuntimeResourceServiceClient implements DesktopRuntimeResour
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(WatchDesktopStateResponse)(result)
+  }
+
+  /**
+   * SetDesktopState publishes projected desktop runtime status.
+   *
+   * @generated from rpc electron.desktop_runtime.DesktopRuntimeResourceService.SetDesktopState
+   */
+  async SetDesktopState(
+    request: SetDesktopStateRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SetDesktopStateResponse> {
+    const requestMsg = SetDesktopStateRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      DesktopRuntimeResourceServiceDefinition.methods.SetDesktopState.name,
+      SetDesktopStateRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return SetDesktopStateResponse.fromBinary(result)
   }
 
   /**

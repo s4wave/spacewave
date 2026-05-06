@@ -24,6 +24,8 @@ pub trait DesktopRuntimeResourceServiceWatchDesktopStateStream: Send + Sync {
 pub trait DesktopRuntimeResourceServiceClient: Send + Sync {
     /// WatchDesktopState.
     async fn watch_desktop_state(&self, request: &WatchDesktopStateRequest) -> starpc::Result<Box<dyn DesktopRuntimeResourceServiceWatchDesktopStateStream>>;
+    /// SetDesktopState.
+    async fn set_desktop_state(&self, request: &SetDesktopStateRequest) -> starpc::Result<SetDesktopStateResponse>;
     /// OpenOrFocusMainWindow.
     async fn open_or_focus_main_window(&self, request: &OpenOrFocusMainWindowRequest) -> starpc::Result<OpenOrFocusMainWindowResponse>;
     /// QuitDesktopRuntime.
@@ -50,6 +52,9 @@ impl<C: starpc::Client + 'static> DesktopRuntimeResourceServiceClient for Deskto
         let stream = self.client.new_stream("electron.desktop_runtime.DesktopRuntimeResourceService", "WatchDesktopState", Some(&data)).await?;
         stream.close_send().await?;
         Ok(Box::new(DesktopRuntimeResourceServiceWatchDesktopStateStreamImpl { stream }))
+    }
+    async fn set_desktop_state(&self, request: &SetDesktopStateRequest) -> starpc::Result<SetDesktopStateResponse> {
+        self.client.exec_call("electron.desktop_runtime.DesktopRuntimeResourceService", "SetDesktopState", request).await
     }
     async fn open_or_focus_main_window(&self, request: &OpenOrFocusMainWindowRequest) -> starpc::Result<OpenOrFocusMainWindowResponse> {
         self.client.exec_call("electron.desktop_runtime.DesktopRuntimeResourceService", "OpenOrFocusMainWindow", request).await
@@ -81,6 +86,8 @@ impl DesktopRuntimeResourceServiceWatchDesktopStateStream for DesktopRuntimeReso
 pub trait DesktopRuntimeResourceServiceServer: Send + Sync {
     /// WatchDesktopState.
     async fn watch_desktop_state(&self, request: WatchDesktopStateRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
+    /// SetDesktopState.
+    async fn set_desktop_state(&self, request: SetDesktopStateRequest) -> starpc::Result<SetDesktopStateResponse>;
     /// OpenOrFocusMainWindow.
     async fn open_or_focus_main_window(&self, request: OpenOrFocusMainWindowRequest) -> starpc::Result<OpenOrFocusMainWindowResponse>;
     /// QuitDesktopRuntime.
@@ -89,6 +96,7 @@ pub trait DesktopRuntimeResourceServiceServer: Send + Sync {
 
 const DESKTOP_RUNTIME_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
     "WatchDesktopState",
+    "SetDesktopState",
     "OpenOrFocusMainWindow",
     "QuitDesktopRuntime",
 ];
@@ -125,6 +133,21 @@ impl<S: DesktopRuntimeResourceServiceServer + 'static> starpc::Invoker for Deskt
                     Err(e) => return (true, Err(e)),
                 };
                 (true, self.server.watch_desktop_state(request, stream).await)
+            }
+            "SetDesktopState" => {
+                let request: SetDesktopStateRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.set_desktop_state(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
             }
             "OpenOrFocusMainWindow" => {
                 let request: OpenOrFocusMainWindowRequest = match stream.msg_recv().await {

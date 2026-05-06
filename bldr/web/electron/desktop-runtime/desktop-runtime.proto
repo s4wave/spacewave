@@ -8,6 +8,9 @@ service DesktopRuntimeResourceService {
   // WatchDesktopState streams the current desktop shell state.
   rpc WatchDesktopState(WatchDesktopStateRequest) returns (stream WatchDesktopStateResponse);
 
+  // SetDesktopState publishes projected desktop runtime status.
+  rpc SetDesktopState(SetDesktopStateRequest) returns (SetDesktopStateResponse);
+
   // OpenOrFocusMainWindow opens or focuses the main app window.
   rpc OpenOrFocusMainWindow(OpenOrFocusMainWindowRequest) returns (OpenOrFocusMainWindowResponse);
 
@@ -251,6 +254,15 @@ message WatchDesktopStateResponse {
   // State is the current desktop runtime state.
   DesktopRuntimeState state = 1;
 }
+
+// SetDesktopStateRequest is the request for SetDesktopState.
+message SetDesktopStateRequest {
+  // State is the projected desktop runtime state.
+  DesktopRuntimeState state = 1;
+}
+
+// SetDesktopStateResponse is the response for SetDesktopState.
+message SetDesktopStateResponse {}
 
 // OpenOrFocusMainWindowRequest is the request for OpenOrFocusMainWindow.
 message OpenOrFocusMainWindowRequest {

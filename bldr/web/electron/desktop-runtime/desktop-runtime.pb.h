@@ -116,6 +116,14 @@ class QuitDesktopRuntimeResponse;
 struct QuitDesktopRuntimeResponseDefaultTypeInternal;
 extern QuitDesktopRuntimeResponseDefaultTypeInternal _QuitDesktopRuntimeResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull QuitDesktopRuntimeResponse_class_data_;
+class SetDesktopStateRequest;
+struct SetDesktopStateRequestDefaultTypeInternal;
+extern SetDesktopStateRequestDefaultTypeInternal _SetDesktopStateRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SetDesktopStateRequest_class_data_;
+class SetDesktopStateResponse;
+struct SetDesktopStateResponseDefaultTypeInternal;
+extern SetDesktopStateResponseDefaultTypeInternal _SetDesktopStateResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SetDesktopStateResponse_class_data_;
 class WatchDesktopStateRequest;
 struct WatchDesktopStateRequestDefaultTypeInternal;
 extern WatchDesktopStateRequestDefaultTypeInternal _WatchDesktopStateRequest_default_instance_;
@@ -574,6 +582,140 @@ class WatchDesktopStateRequest final : public ::google::protobuf::internal::Zero
 extern const ::google::protobuf::internal::ClassDataFull WatchDesktopStateRequest_class_data_;
 // -------------------------------------------------------------------
 
+class SetDesktopStateResponse final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:electron.desktop_runtime.SetDesktopStateResponse) */ {
+ public:
+  inline SetDesktopStateResponse() : SetDesktopStateResponse(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SetDesktopStateResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SetDesktopStateResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SetDesktopStateResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline SetDesktopStateResponse(const SetDesktopStateResponse& from) : SetDesktopStateResponse(nullptr, from) {}
+  inline SetDesktopStateResponse(SetDesktopStateResponse&& from) noexcept
+      : SetDesktopStateResponse(nullptr, ::std::move(from)) {}
+  inline SetDesktopStateResponse& operator=(const SetDesktopStateResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SetDesktopStateResponse& operator=(SetDesktopStateResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SetDesktopStateResponse& default_instance() {
+    return *reinterpret_cast<const SetDesktopStateResponse*>(
+        &_SetDesktopStateResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 10;
+  friend void swap(SetDesktopStateResponse& a, SetDesktopStateResponse& b) { a.Swap(&b); }
+  inline void Swap(SetDesktopStateResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SetDesktopStateResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SetDesktopStateResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<SetDesktopStateResponse>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const SetDesktopStateResponse& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const SetDesktopStateResponse& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "electron.desktop_runtime.SetDesktopStateResponse"; }
+
+  explicit SetDesktopStateResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SetDesktopStateResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SetDesktopStateResponse& from);
+  SetDesktopStateResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SetDesktopStateResponse&& from) noexcept
+      : SetDesktopStateResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:electron.desktop_runtime.SetDesktopStateResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SetDesktopStateResponse_class_data_;
+// -------------------------------------------------------------------
+
 class QuitDesktopRuntimeResponse final : public ::google::protobuf::internal::ZeroFieldsBase
 /* @@protoc_insertion_point(class_definition:electron.desktop_runtime.QuitDesktopRuntimeResponse) */ {
  public:
@@ -628,7 +770,7 @@ class QuitDesktopRuntimeResponse final : public ::google::protobuf::internal::Ze
     return *reinterpret_cast<const QuitDesktopRuntimeResponse*>(
         &_QuitDesktopRuntimeResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 12;
+  static constexpr int kIndexInFileMessages = 14;
   friend void swap(QuitDesktopRuntimeResponse& a, QuitDesktopRuntimeResponse& b) { a.Swap(&b); }
   inline void Swap(QuitDesktopRuntimeResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -762,7 +904,7 @@ class QuitDesktopRuntimeRequest final : public ::google::protobuf::internal::Zer
     return *reinterpret_cast<const QuitDesktopRuntimeRequest*>(
         &_QuitDesktopRuntimeRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 11;
+  static constexpr int kIndexInFileMessages = 13;
   friend void swap(QuitDesktopRuntimeRequest& a, QuitDesktopRuntimeRequest& b) { a.Swap(&b); }
   inline void Swap(QuitDesktopRuntimeRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -896,7 +1038,7 @@ class OpenOrFocusMainWindowResponse final : public ::google::protobuf::internal:
     return *reinterpret_cast<const OpenOrFocusMainWindowResponse*>(
         &_OpenOrFocusMainWindowResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 10;
+  static constexpr int kIndexInFileMessages = 12;
   friend void swap(OpenOrFocusMainWindowResponse& a, OpenOrFocusMainWindowResponse& b) { a.Swap(&b); }
   inline void Swap(OpenOrFocusMainWindowResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1031,7 +1173,7 @@ class OpenOrFocusMainWindowRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const OpenOrFocusMainWindowRequest*>(
         &_OpenOrFocusMainWindowRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 9;
+  static constexpr int kIndexInFileMessages = 11;
   friend void swap(OpenOrFocusMainWindowRequest& a, OpenOrFocusMainWindowRequest& b) { a.Swap(&b); }
   inline void Swap(OpenOrFocusMainWindowRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3298,6 +3440,201 @@ class WatchDesktopStateResponse final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull WatchDesktopStateResponse_class_data_;
+// -------------------------------------------------------------------
+
+class SetDesktopStateRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:electron.desktop_runtime.SetDesktopStateRequest) */ {
+ public:
+  inline SetDesktopStateRequest() : SetDesktopStateRequest(nullptr) {}
+  ~SetDesktopStateRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SetDesktopStateRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SetDesktopStateRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SetDesktopStateRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline SetDesktopStateRequest(const SetDesktopStateRequest& from) : SetDesktopStateRequest(nullptr, from) {}
+  inline SetDesktopStateRequest(SetDesktopStateRequest&& from) noexcept
+      : SetDesktopStateRequest(nullptr, ::std::move(from)) {}
+  inline SetDesktopStateRequest& operator=(const SetDesktopStateRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SetDesktopStateRequest& operator=(SetDesktopStateRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SetDesktopStateRequest& default_instance() {
+    return *reinterpret_cast<const SetDesktopStateRequest*>(
+        &_SetDesktopStateRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 9;
+  friend void swap(SetDesktopStateRequest& a, SetDesktopStateRequest& b) { a.Swap(&b); }
+  inline void Swap(SetDesktopStateRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SetDesktopStateRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SetDesktopStateRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<SetDesktopStateRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const SetDesktopStateRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const SetDesktopStateRequest& from) { SetDesktopStateRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(SetDesktopStateRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "electron.desktop_runtime.SetDesktopStateRequest"; }
+
+  explicit SetDesktopStateRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SetDesktopStateRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SetDesktopStateRequest& from);
+  SetDesktopStateRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SetDesktopStateRequest&& from) noexcept
+      : SetDesktopStateRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kStateFieldNumber = 1,
+  };
+  // .electron.desktop_runtime.DesktopRuntimeState state = 1;
+  bool has_state() const;
+  void clear_state() ;
+  const ::electron::desktop_runtime::DesktopRuntimeState& state() const;
+  [[nodiscard]] ::electron::desktop_runtime::DesktopRuntimeState* PROTOBUF_NULLABLE release_state();
+  ::electron::desktop_runtime::DesktopRuntimeState* PROTOBUF_NONNULL mutable_state();
+  void set_allocated_state(::electron::desktop_runtime::DesktopRuntimeState* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_state(::electron::desktop_runtime::DesktopRuntimeState* PROTOBUF_NULLABLE value);
+  ::electron::desktop_runtime::DesktopRuntimeState* PROTOBUF_NULLABLE unsafe_arena_release_state();
+
+  private:
+  const ::electron::desktop_runtime::DesktopRuntimeState& _internal_state() const;
+  ::electron::desktop_runtime::DesktopRuntimeState* PROTOBUF_NONNULL _internal_mutable_state();
+
+  public:
+  // @@protoc_insertion_point(class_scope:electron.desktop_runtime.SetDesktopStateRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const SetDesktopStateRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::electron::desktop_runtime::DesktopRuntimeState* PROTOBUF_NULLABLE state_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SetDesktopStateRequest_class_data_;
 
 // ===================================================================
 
@@ -5768,6 +6105,113 @@ inline void WatchDesktopStateResponse::set_allocated_state(::electron::desktop_r
   _impl_.state_ = reinterpret_cast<::electron::desktop_runtime::DesktopRuntimeState*>(value);
   // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.WatchDesktopStateResponse.state)
 }
+
+// -------------------------------------------------------------------
+
+// SetDesktopStateRequest
+
+// .electron.desktop_runtime.DesktopRuntimeState state = 1;
+inline bool SetDesktopStateRequest::has_state() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  PROTOBUF_ASSUME(!value || _impl_.state_ != nullptr);
+  return value;
+}
+inline void SetDesktopStateRequest::clear_state() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.state_ != nullptr) _impl_.state_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::electron::desktop_runtime::DesktopRuntimeState& SetDesktopStateRequest::_internal_state() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::electron::desktop_runtime::DesktopRuntimeState* p = _impl_.state_;
+  return p != nullptr ? *p : reinterpret_cast<const ::electron::desktop_runtime::DesktopRuntimeState&>(::electron::desktop_runtime::_DesktopRuntimeState_default_instance_);
+}
+inline const ::electron::desktop_runtime::DesktopRuntimeState& SetDesktopStateRequest::state() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.SetDesktopStateRequest.state)
+  return _internal_state();
+}
+inline void SetDesktopStateRequest::unsafe_arena_set_allocated_state(
+    ::electron::desktop_runtime::DesktopRuntimeState* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.state_);
+  }
+  _impl_.state_ = reinterpret_cast<::electron::desktop_runtime::DesktopRuntimeState*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:electron.desktop_runtime.SetDesktopStateRequest.state)
+}
+inline ::electron::desktop_runtime::DesktopRuntimeState* PROTOBUF_NULLABLE SetDesktopStateRequest::release_state() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::electron::desktop_runtime::DesktopRuntimeState* released = _impl_.state_;
+  _impl_.state_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::electron::desktop_runtime::DesktopRuntimeState* PROTOBUF_NULLABLE SetDesktopStateRequest::unsafe_arena_release_state() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.SetDesktopStateRequest.state)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::electron::desktop_runtime::DesktopRuntimeState* temp = _impl_.state_;
+  _impl_.state_ = nullptr;
+  return temp;
+}
+inline ::electron::desktop_runtime::DesktopRuntimeState* PROTOBUF_NONNULL SetDesktopStateRequest::_internal_mutable_state() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.state_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::electron::desktop_runtime::DesktopRuntimeState>(GetArena());
+    _impl_.state_ = reinterpret_cast<::electron::desktop_runtime::DesktopRuntimeState*>(p);
+  }
+  return _impl_.state_;
+}
+inline ::electron::desktop_runtime::DesktopRuntimeState* PROTOBUF_NONNULL SetDesktopStateRequest::mutable_state()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::electron::desktop_runtime::DesktopRuntimeState* _msg = _internal_mutable_state();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.SetDesktopStateRequest.state)
+  return _msg;
+}
+inline void SetDesktopStateRequest::set_allocated_state(::electron::desktop_runtime::DesktopRuntimeState* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.state_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+
+  _impl_.state_ = reinterpret_cast<::electron::desktop_runtime::DesktopRuntimeState*>(value);
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.SetDesktopStateRequest.state)
+}
+
+// -------------------------------------------------------------------
+
+// SetDesktopStateResponse
 
 // -------------------------------------------------------------------
 

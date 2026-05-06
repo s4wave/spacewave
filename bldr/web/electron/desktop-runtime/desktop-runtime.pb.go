@@ -883,6 +883,37 @@ func (x *WatchDesktopStateResponse) GetState() *DesktopRuntimeState {
 	return nil
 }
 
+// SetDesktopStateRequest is the request for SetDesktopState.
+type SetDesktopStateRequest struct {
+	unknownFields []byte
+	// State is the projected desktop runtime state.
+	State *DesktopRuntimeState `protobuf:"bytes,1,opt,name=state,proto3" json:"state,omitempty"`
+}
+
+func (x *SetDesktopStateRequest) Reset() {
+	*x = SetDesktopStateRequest{}
+}
+
+func (*SetDesktopStateRequest) ProtoMessage() {}
+
+func (x *SetDesktopStateRequest) GetState() *DesktopRuntimeState {
+	if x != nil {
+		return x.State
+	}
+	return nil
+}
+
+// SetDesktopStateResponse is the response for SetDesktopState.
+type SetDesktopStateResponse struct {
+	unknownFields []byte
+}
+
+func (x *SetDesktopStateResponse) Reset() {
+	*x = SetDesktopStateResponse{}
+}
+
+func (*SetDesktopStateResponse) ProtoMessage() {}
+
 // OpenOrFocusMainWindowRequest is the request for OpenOrFocusMainWindow.
 type OpenOrFocusMainWindowRequest struct {
 	unknownFields []byte
@@ -1138,6 +1169,37 @@ func (m *WatchDesktopStateResponse) CloneVT() *WatchDesktopStateResponse {
 }
 
 func (m *WatchDesktopStateResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SetDesktopStateRequest) CloneVT() *SetDesktopStateRequest {
+	if m == nil {
+		return (*SetDesktopStateRequest)(nil)
+	}
+	r := new(SetDesktopStateRequest)
+	r.State = m.State.CloneVT()
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SetDesktopStateRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SetDesktopStateResponse) CloneVT() *SetDesktopStateResponse {
+	if m == nil {
+		return (*SetDesktopStateResponse)(nil)
+	}
+	r := new(SetDesktopStateResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SetDesktopStateResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -1554,6 +1616,43 @@ func (this *WatchDesktopStateResponse) EqualVT(that *WatchDesktopStateResponse) 
 
 func (this *WatchDesktopStateResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*WatchDesktopStateResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SetDesktopStateRequest) EqualVT(that *SetDesktopStateRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.State.EqualVT(that.State) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SetDesktopStateRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetDesktopStateRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SetDesktopStateResponse) EqualVT(that *SetDesktopStateResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SetDesktopStateResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetDesktopStateResponse)
 	if !ok {
 		return false
 	}
@@ -2690,6 +2789,82 @@ func (x *WatchDesktopStateResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the SetDesktopStateRequest message to JSON.
+func (x *SetDesktopStateRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.State != nil || s.HasField("state") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("state")
+		x.State.MarshalProtoJSON(s.WithField("state"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SetDesktopStateRequest to JSON.
+func (x *SetDesktopStateRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetDesktopStateRequest message from JSON.
+func (x *SetDesktopStateRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "state":
+			if s.ReadNil() {
+				x.State = nil
+				return
+			}
+			x.State = &DesktopRuntimeState{}
+			x.State.UnmarshalProtoJSON(s.WithField("state", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SetDesktopStateRequest from JSON.
+func (x *SetDesktopStateRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SetDesktopStateResponse message to JSON.
+func (x *SetDesktopStateResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SetDesktopStateResponse to JSON.
+func (x *SetDesktopStateResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetDesktopStateResponse message from JSON.
+func (x *SetDesktopStateResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the SetDesktopStateResponse from JSON.
+func (x *SetDesktopStateResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the OpenOrFocusMainWindowRequest message to JSON.
 func (x *OpenOrFocusMainWindowRequest) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -3465,6 +3640,82 @@ func (m *WatchDesktopStateResponse) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	return len(dAtA) - i, nil
 }
 
+func (m *SetDesktopStateRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetDesktopStateRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SetDesktopStateRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.State != nil {
+		size, err := m.State.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SetDesktopStateResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetDesktopStateResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SetDesktopStateResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *OpenOrFocusMainWindowRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -3866,6 +4117,30 @@ func (m *WatchDesktopStateResponse) SizeVT() (n int) {
 		l = m.State.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SetDesktopStateRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.State != nil {
+		l = m.State.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SetDesktopStateResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
 	n += len(m.unknownFields)
 	return n
 }
@@ -4397,6 +4672,35 @@ func (x *WatchDesktopStateResponse) MarshalProtoText() string {
 }
 
 func (x *WatchDesktopStateResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SetDesktopStateRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("SetDesktopStateRequest {")
+	if x.State != nil {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("state: ")
+		sb.WriteString(x.State.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *SetDesktopStateRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SetDesktopStateResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("SetDesktopStateResponse {")
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *SetDesktopStateResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -5690,6 +5994,120 @@ func (m *WatchDesktopStateResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SetDesktopStateRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetDesktopStateRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetDesktopStateRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field State", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.State == nil {
+				m.State = &DesktopRuntimeState{}
+			}
+			if err := m.State.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SetDesktopStateResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetDesktopStateResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetDesktopStateResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

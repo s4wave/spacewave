@@ -982,6 +982,45 @@ export const WatchDesktopStateResponse: MessageType<WatchDesktopStateResponse> =
   })
 
 /**
+ * SetDesktopStateRequest is the request for SetDesktopState.
+ *
+ * @generated from message electron.desktop_runtime.SetDesktopStateRequest
+ */
+export interface SetDesktopStateRequest {
+  /**
+   * State is the projected desktop runtime state.
+   *
+   * @generated from field: electron.desktop_runtime.DesktopRuntimeState state = 1;
+   */
+  state?: DesktopRuntimeState
+}
+
+// SetDesktopStateRequest contains the message type declaration for SetDesktopStateRequest.
+export const SetDesktopStateRequest: MessageType<SetDesktopStateRequest> =
+  createMessageType({
+    typeName: 'electron.desktop_runtime.SetDesktopStateRequest',
+    fields: [
+      { no: 1, name: 'state', kind: 'message', T: () => DesktopRuntimeState },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * SetDesktopStateResponse is the response for SetDesktopState.
+ *
+ * @generated from message electron.desktop_runtime.SetDesktopStateResponse
+ */
+export interface SetDesktopStateResponse {}
+
+// SetDesktopStateResponse contains the message type declaration for SetDesktopStateResponse.
+export const SetDesktopStateResponse: MessageType<SetDesktopStateResponse> =
+  createMessageType({
+    typeName: 'electron.desktop_runtime.SetDesktopStateResponse',
+    fields: [] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * OpenOrFocusMainWindowRequest is the request for OpenOrFocusMainWindow.
  *
  * @generated from message electron.desktop_runtime.OpenOrFocusMainWindowRequest

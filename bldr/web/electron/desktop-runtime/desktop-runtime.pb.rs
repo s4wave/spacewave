@@ -171,6 +171,17 @@ pub struct WatchDesktopStateResponse {
     #[prost(message, optional, tag="1")]
     pub state: ::core::option::Option<DesktopRuntimeState>,
 }
+/// SetDesktopStateRequest is the request for SetDesktopState.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SetDesktopStateRequest {
+    /// State is the projected desktop runtime state.
+    #[prost(message, optional, tag="1")]
+    pub state: ::core::option::Option<DesktopRuntimeState>,
+}
+/// SetDesktopStateResponse is the response for SetDesktopState.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SetDesktopStateResponse {
+}
 /// OpenOrFocusMainWindowRequest is the request for OpenOrFocusMainWindow.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct OpenOrFocusMainWindowRequest {

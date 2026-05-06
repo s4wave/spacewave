@@ -707,7 +707,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/web/electron/desktop-runtime": {
-      "hash": "91ab18c9f0999d31ddc129b478906c8b9f2824087660a7565ee9d638b91154d2",
+      "hash": "d5f8b7329b15faf5fc2390836d640f519e84ea1b89cb9f62c60a10d12a48210c",
       "generatedFiles": [
         "bldr/web/electron/desktop-runtime/desktop-runtime.pb.cc",
         "bldr/web/electron/desktop-runtime/desktop-runtime.pb.go",
@@ -1560,6 +1560,19 @@
       ],
       "protoFiles": [
         "core/release/release.proto"
+      ]
+    },
+    "github.com/s4wave/spacewave/core/resource/desktop/statusprojector": {
+      "hash": "621219f8b2f4c263c3350718571ad1e673efc844ca30ffdc08558c2118c6ad5d",
+      "generatedFiles": [
+        "core/resource/desktop/statusprojector/config.pb.cc",
+        "core/resource/desktop/statusprojector/config.pb.go",
+        "core/resource/desktop/statusprojector/config.pb.h",
+        "core/resource/desktop/statusprojector/config.pb.rs",
+        "core/resource/desktop/statusprojector/config.pb.ts"
+      ],
+      "protoFiles": [
+        "core/resource/desktop/statusprojector/config.proto"
       ]
     },
     "github.com/s4wave/spacewave/core/resource/listener": {

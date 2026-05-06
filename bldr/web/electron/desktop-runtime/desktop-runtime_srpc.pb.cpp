@@ -20,6 +20,10 @@ std::pair<std::unique_ptr<SRPCDesktopRuntimeResourceService_WatchDesktopStateCli
   return {std::make_unique<SRPCDesktopRuntimeResourceService_WatchDesktopStateClient>(std::move(strm)), starpc::Error::OK};
 }
 
+starpc::Error SRPCDesktopRuntimeResourceServiceClientImpl::SetDesktopState(const electron::desktop_runtime::SetDesktopStateRequest& in, electron::desktop_runtime::SetDesktopStateResponse* out) {
+  return cc_->ExecCall(service_id_, "SetDesktopState", in, out);
+}
+
 starpc::Error SRPCDesktopRuntimeResourceServiceClientImpl::OpenOrFocusMainWindow(const electron::desktop_runtime::OpenOrFocusMainWindowRequest& in, electron::desktop_runtime::OpenOrFocusMainWindowResponse* out) {
   return cc_->ExecCall(service_id_, "OpenOrFocusMainWindow", in, out);
 }
@@ -31,6 +35,7 @@ starpc::Error SRPCDesktopRuntimeResourceServiceClientImpl::QuitDesktopRuntime(co
 std::vector<std::string> SRPCDesktopRuntimeResourceServiceHandler::GetMethodIDs() const {
   return {
     "WatchDesktopState",
+    "SetDesktopState",
     "OpenOrFocusMainWindow",
     "QuitDesktopRuntime",
   };
@@ -50,6 +55,14 @@ std::pair<bool, starpc::Error> SRPCDesktopRuntimeResourceServiceHandler::InvokeM
     if (err != starpc::Error::OK) return {true, err};
     SRPCDesktopRuntimeResourceService_WatchDesktopStateStream serverStrm(strm);
     return {true, impl_->WatchDesktopState(req, &serverStrm)};
+  } else if (method_id == "SetDesktopState") {
+    electron::desktop_runtime::SetDesktopStateRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    electron::desktop_runtime::SetDesktopStateResponse resp;
+    err = impl_->SetDesktopState(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
   } else if (method_id == "OpenOrFocusMainWindow") {
     electron::desktop_runtime::OpenOrFocusMainWindowRequest req;
     starpc::Error err = strm->MsgRecv(&req);

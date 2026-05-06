@@ -7,6 +7,7 @@
 CORE_GO_PKGS = [
     "./core/resource/root/controller",
     "./core/resource/listener",
+    "./core/resource/desktop/statusprojector",
     "./core/session/controller",
     "./core/provider/local",
     "./core/provider/spacewave",
@@ -21,6 +22,9 @@ CORE_GO_PKGS = [
 
 # Shared encryption key for peer object store
 PEER_ENCRYPTION_KEY = "KY8Lo3c7L+bXa8BFZcU/YFfHysRdl4aZqmDd9TeZ+p4="
+
+# Bldr Electron web runtime controller id that owns the desktop shell bridge.
+DESKTOP_WEB_RUNTIME_ID = "bldr/web/plugin/electron"
 
 # Core configSet shared between Go plugin and CLI manifests.
 def core_config_set(listener_path="git:.spacewave/spacewave.sock"):
@@ -53,6 +57,9 @@ def core_config_set(listener_path="git:.spacewave/spacewave.sock"):
         "export": config_entry("space/http/export", 1),
         "resource-listener": config_entry("resource/listener", 1, {
             "listenerSocketPath": listener_path,
+        }),
+        "desktop-status-projector": config_entry("resource/desktop/status-projector", 1, {
+            "webRuntimeId": DESKTOP_WEB_RUNTIME_ID,
         }),
     }
 
@@ -174,7 +181,7 @@ manifest("spacewave-loader",
 
 manifest("spacewave-core",
     builder="bldr/plugin/compiler/go",
-    rev=10,
+    rev=11,
     config={
         "goPkgs": CORE_GO_PKGS,
         "configSet": core_config_set(),

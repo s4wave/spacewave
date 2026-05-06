@@ -25,6 +25,8 @@ import {
   type OpenOrFocusMainWindowResponse,
   type QuitDesktopRuntimeRequest,
   type QuitDesktopRuntimeResponse,
+  type SetDesktopStateRequest,
+  type SetDesktopStateResponse,
   type WatchDesktopStateRequest,
   type WatchDesktopStateResponse,
 } from '../desktop-runtime/desktop-runtime.pb.js'
@@ -40,7 +42,7 @@ interface DesktopRuntimeResourceOpts {
 export class DesktopRuntimeResource implements DesktopRuntimeResourceService {
   private state: DesktopRuntimeState = buildInitialDesktopRuntimeState()
   private readonly stateStream = new ItState<WatchDesktopStateResponse>(
-    async () => this.buildStateResponse(),
+    () => Promise.resolve(this.buildStateResponse()),
     { mostRecentOnly: true },
   )
   public readonly resourceServer: ResourceServer
@@ -57,6 +59,14 @@ export class DesktopRuntimeResource implements DesktopRuntimeResourceService {
     _abortSignal?: AbortSignal,
   ): MessageStream<WatchDesktopStateResponse> {
     return this.stateStream.getIterable()
+  }
+
+  public SetDesktopState(
+    request: SetDesktopStateRequest,
+    _abortSignal?: AbortSignal,
+  ): Promise<SetDesktopStateResponse> {
+    this.setProjectedDesktopState(request.state ?? {})
+    return Promise.resolve({})
   }
 
   public async OpenOrFocusMainWindow(
@@ -115,6 +125,22 @@ export class DesktopRuntimeResource implements DesktopRuntimeResourceService {
     return { state: this.getState() }
   }
 
+  private setProjectedDesktopState(state: DesktopRuntimeState): void {
+    const next = cloneDesktopRuntimeState({
+      ...state,
+      mainWindowOpen: this.state.mainWindowOpen,
+      quitting: this.state.quitting,
+    })
+    if (this.state.quitting) {
+      next.statusText = this.state.statusText
+      next.health = this.state.health
+      next.lifecycle = this.state.lifecycle
+    }
+    if (DesktopRuntimeState.equals(this.state, next)) return
+    this.state = next
+    this.pushState()
+  }
+
   private pushState(): void {
     this.stateStream.pushChangeEvent(this.buildStateResponse())
   }
@@ -161,33 +187,33 @@ function cloneListener(
 
 function cloneNavigationItems(
   items: DesktopRuntimeNavigationItem[] | undefined,
-): DesktopRuntimeNavigationItem[] | undefined {
-  return items?.map((item) => ({ ...item }))
+): DesktopRuntimeNavigationItem[] {
+  return items?.map((item) => ({ ...item })) ?? []
 }
 
 function cloneActivityItems(
   items: DesktopRuntimeActivityItem[] | undefined,
-): DesktopRuntimeActivityItem[] | undefined {
-  return items?.map((item) => ({ ...item }))
+): DesktopRuntimeActivityItem[] {
+  return items?.map((item) => ({ ...item })) ?? []
 }
 
 function cloneUpdate(
   update: DesktopRuntimeUpdateStatus | undefined,
-): DesktopRuntimeUpdateStatus | undefined {
-  if (!update) return undefined
+): DesktopRuntimeUpdateStatus {
+  if (!update) return {}
   return { ...update }
 }
 
 function cloneAttentionItems(
   items: DesktopRuntimeAttentionItem[] | undefined,
-): DesktopRuntimeAttentionItem[] | undefined {
-  return items?.map((item) => ({ ...item }))
+): DesktopRuntimeAttentionItem[] {
+  return items?.map((item) => ({ ...item })) ?? []
 }
 
 function cloneActionItems(
   items: DesktopRuntimeActionItem[] | undefined,
-): DesktopRuntimeActionItem[] | undefined {
-  return items?.map((item) => ({ ...item }))
+): DesktopRuntimeActionItem[] {
+  return items?.map((item) => ({ ...item })) ?? []
 }
 
 export type { DesktopRuntimeResourceOpts }

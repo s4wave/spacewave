@@ -33,6 +33,8 @@ class SRPCDesktopRuntimeResourceServiceClient {
 
   // WatchDesktopState
   virtual std::pair<std::unique_ptr<SRPCDesktopRuntimeResourceService_WatchDesktopStateClient>, starpc::Error> WatchDesktopState(const electron::desktop_runtime::WatchDesktopStateRequest& in) = 0;
+  // SetDesktopState
+  virtual starpc::Error SetDesktopState(const electron::desktop_runtime::SetDesktopStateRequest& in, electron::desktop_runtime::SetDesktopStateResponse* out) = 0;
   // OpenOrFocusMainWindow
   virtual starpc::Error OpenOrFocusMainWindow(const electron::desktop_runtime::OpenOrFocusMainWindowRequest& in, electron::desktop_runtime::OpenOrFocusMainWindowResponse* out) = 0;
   // QuitDesktopRuntime
@@ -49,6 +51,8 @@ class SRPCDesktopRuntimeResourceServiceClientImpl : public SRPCDesktopRuntimeRes
 
   // WatchDesktopState
   virtual std::pair<std::unique_ptr<SRPCDesktopRuntimeResourceService_WatchDesktopStateClient>, starpc::Error> WatchDesktopState(const electron::desktop_runtime::WatchDesktopStateRequest& in) override;
+  // SetDesktopState
+  virtual starpc::Error SetDesktopState(const electron::desktop_runtime::SetDesktopStateRequest& in, electron::desktop_runtime::SetDesktopStateResponse* out) override;
   // OpenOrFocusMainWindow
   virtual starpc::Error OpenOrFocusMainWindow(const electron::desktop_runtime::OpenOrFocusMainWindowRequest& in, electron::desktop_runtime::OpenOrFocusMainWindowResponse* out) override;
   // QuitDesktopRuntime
@@ -71,6 +75,8 @@ class SRPCDesktopRuntimeResourceServiceServer {
 
   // WatchDesktopState
   virtual starpc::Error WatchDesktopState(const electron::desktop_runtime::WatchDesktopStateRequest& req, SRPCDesktopRuntimeResourceService_WatchDesktopStateStream* strm) = 0;
+  // SetDesktopState
+  virtual starpc::Error SetDesktopState(const electron::desktop_runtime::SetDesktopStateRequest& req, electron::desktop_runtime::SetDesktopStateResponse* resp) = 0;
   // OpenOrFocusMainWindow
   virtual starpc::Error OpenOrFocusMainWindow(const electron::desktop_runtime::OpenOrFocusMainWindowRequest& req, electron::desktop_runtime::OpenOrFocusMainWindowResponse* resp) = 0;
   // QuitDesktopRuntime
