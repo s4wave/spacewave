@@ -115,23 +115,102 @@ describe('service worker browser release requests', () => {
     vi.stubGlobal('BLDR_DEBUG', false)
     vi.stubGlobal('caches', new FakeCacheStorage())
     vi.stubGlobal('fetch', vi.fn())
+    Object.defineProperty(self, 'clients', {
+      configurable: true,
+      value: {
+        claim: vi.fn(),
+        matchAll: vi.fn().mockResolvedValue([]),
+      },
+    })
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     vi.unstubAllGlobals()
     vi.restoreAllMocks()
   })
 
-  it('returns cached promoted manifest synchronously when one exists', async () => {
-    const release = buildRelease('gen-a')
+  it('returns a fresh manifest when the network wins within the budget', async () => {
+    const cachedRelease = buildRelease('gen-a')
+    const freshRelease = buildRelease('gen-b')
     await writeBrowserReleaseState(
       globalThis.caches as unknown as FakeCacheStorage,
       {
         ...createEmptyBrowserReleaseState(),
-        promotedCurrent: release,
+        promotedCurrent: cachedRelease,
+      },
+    )
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify(freshRelease), { status: 200 }),
+    )
+    vi.mocked(fetch).mockImplementation(() =>
+      Promise.resolve(new Response('asset', { status: 200 })),
+    )
+    const { ev, waitUntilPromises } = buildFetchEvent(
+      'https://example.test/browser-release.json',
+    )
+
+    const response = await handleBrowserReleaseRequest(ev)
+
+    expect(await response.json()).toEqual(freshRelease)
+    expect(waitUntilPromises).toHaveLength(1)
+    await waitUntilPromises[0]
+  })
+
+  it('returns the cached manifest when the network misses the budget', async () => {
+    vi.useFakeTimers()
+    const cachedRelease = buildRelease('gen-a')
+    const freshRelease = buildRelease('gen-b')
+    await writeBrowserReleaseState(
+      globalThis.caches as unknown as FakeCacheStorage,
+      {
+        ...createEmptyBrowserReleaseState(),
+        promotedCurrent: cachedRelease,
+      },
+    )
+    const network = newDeferred<Response>()
+    vi.mocked(fetch).mockReturnValueOnce(network.promise)
+    vi.mocked(fetch).mockImplementation(() =>
+      Promise.resolve(new Response('asset', { status: 200 })),
+    )
+    const info = vi.spyOn(console, 'info').mockImplementation(() => {})
+    const { ev, waitUntilPromises } = buildFetchEvent(
+      'https://example.test/browser-release.json',
+    )
+
+    const responsePromise = handleBrowserReleaseRequest(ev)
+    await vi.advanceTimersByTimeAsync(800)
+    const response = await responsePromise
+
+    expect(await response.json()).toEqual(cachedRelease)
+    expect(waitUntilPromises).toHaveLength(1)
+
+    network.resolve(
+      new Response(JSON.stringify(freshRelease), {
+        status: 200,
+      }),
+    )
+    await waitUntilPromises[0]
+
+    expect(info).toHaveBeenCalledWith(
+      'ServiceWorker: %s: browser release manifest fetch missed %dms budget: latency=%dms',
+      expect.any(String),
+      800,
+      800,
+    )
+  })
+
+  it('returns the cached manifest when the network is offline', async () => {
+    const cachedRelease = buildRelease('gen-a')
+    await writeBrowserReleaseState(
+      globalThis.caches as unknown as FakeCacheStorage,
+      {
+        ...createEmptyBrowserReleaseState(),
+        promotedCurrent: cachedRelease,
       },
     )
     const pendingFetch = newDeferred<Response>()
+    vi.mocked(fetch).mockRejectedValueOnce(new Error('offline'))
     vi.mocked(fetch).mockReturnValue(pendingFetch.promise)
     const { ev, waitUntilPromises } = buildFetchEvent(
       'https://example.test/browser-release.json',
@@ -139,7 +218,7 @@ describe('service worker browser release requests', () => {
 
     const response = await handleBrowserReleaseRequest(ev)
 
-    expect(await response.json()).toEqual(release)
+    expect(await response.json()).toEqual(cachedRelease)
     expect(waitUntilPromises).toHaveLength(1)
   })
 
@@ -158,6 +237,18 @@ describe('service worker browser release requests', () => {
 
     expect(await response.json()).toEqual(release)
     expect(waitUntilPromises).toHaveLength(1)
+  })
+
+  it('errors when the network is offline and no cache exists', async () => {
+    vi.mocked(fetch).mockRejectedValueOnce(new Error('offline'))
+    const { ev, waitUntilPromises } = buildFetchEvent(
+      'https://example.test/browser-release.json',
+    )
+
+    await expect(handleBrowserReleaseRequest(ev)).rejects.toThrow(
+      'browser release manifest unavailable',
+    )
+    expect(waitUntilPromises).toHaveLength(0)
   })
 })
 
