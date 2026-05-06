@@ -27,6 +27,15 @@ const mockSessionUseContext = vi.hoisted(() => vi.fn())
 const mockOrgListUseContextSafe = vi.hoisted(() => vi.fn())
 const mockRepairSharedObject = vi.hoisted(() => vi.fn())
 const mockReinitializeSharedObject = vi.hoisted(() => vi.fn())
+const mockSelfEnrollmentStart = vi.hoisted(() => vi.fn())
+const mockSelfEnrollmentStatus = vi.hoisted(() => ({
+  value: {
+    resource: null as null | { start: () => Promise<void> },
+    snapshot: null as null | { sharedObjectIds?: string[] },
+    credentialRequired: false,
+    generationKey: '',
+  },
+}))
 
 vi.mock('@aptre/bldr-react', () => ({
   DebugInfo: ({ children }: { children?: ReactNode }) => <>{children}</>,
@@ -78,7 +87,17 @@ vi.mock('@s4wave/web/ui/loading/LoadingCard.js', () => ({
 }))
 
 vi.mock('@s4wave/web/ui/ErrorState.js', () => ({
-  ErrorState: () => <div data-testid="error-state" />,
+  ErrorState: (props: {
+    title?: string
+    message?: string
+    onRetry?: () => void
+  }) => (
+    <div data-testid="error-state">
+      <div>{props.title}</div>
+      <div>{props.message}</div>
+      {props.onRetry && <button onClick={props.onRetry}>Retry</button>}
+    </div>
+  ),
 }))
 
 vi.mock('@s4wave/app/prerender/StaticContext.js', () => ({
@@ -106,7 +125,24 @@ vi.mock('./dashboard/AccountDashboardStateContext.js', () => ({
 }))
 
 vi.mock('./dashboard/AuthConfirmDialog.js', () => ({
-  AuthConfirmDialog: () => null,
+  AuthConfirmDialog: (props: {
+    open?: boolean
+    title?: string
+    confirmLabel?: string
+    onConfirm?: () => Promise<void>
+  }) =>
+    props.open ?
+      <div data-testid="auth-confirm-dialog">
+        <div>{props.title}</div>
+        <button onClick={() => void props.onConfirm?.()}>
+          {props.confirmLabel ?? 'Confirm'}
+        </button>
+      </div>
+    : null,
+}))
+
+vi.mock('./SessionSelfEnrollmentStatusContext.js', () => ({
+  useSessionSelfEnrollmentStatus: () => mockSelfEnrollmentStatus.value,
 }))
 
 vi.mock('./SessionFrame.js', () => ({
@@ -159,8 +195,16 @@ describe('SessionSharedObjectContainer', () => {
     mockOrgListUseContextSafe.mockReset()
     mockRepairSharedObject.mockReset()
     mockReinitializeSharedObject.mockReset()
+    mockSelfEnrollmentStart.mockReset()
     mockRepairSharedObject.mockResolvedValue(undefined)
     mockReinitializeSharedObject.mockResolvedValue(undefined)
+    mockSelfEnrollmentStart.mockResolvedValue(undefined)
+    mockSelfEnrollmentStatus.value = {
+      resource: null,
+      snapshot: null,
+      credentialRequired: false,
+      generationKey: '',
+    }
 
     mockUseParams.mockReturnValue({ sharedObjectId: SPACE_ID })
     mockUseParentPaths.mockReturnValue([])
@@ -595,5 +639,44 @@ describe('SessionSharedObjectContainer', () => {
       )
       expect(mockReinitializeSharedObject).toHaveBeenCalledWith(SPACE_ID)
     })
+  })
+
+  it('opens access-time step-up for a pending self-enrollment Space and retries after unlock', async () => {
+    const sharedRetry = vi.fn()
+    const bodyRetry = vi.fn()
+    setWatchMocks({ spacesList: [buildSpaceListEntry('shared')] }, null)
+    setResourceMocks(
+      {
+        value: null,
+        loading: false,
+        error: new Error('shared object recovery requires entity credentials'),
+        retry: sharedRetry,
+      },
+      {
+        value: null,
+        loading: false,
+        error: null,
+        retry: bodyRetry,
+      },
+    )
+    mockSelfEnrollmentStatus.value = {
+      resource: { start: mockSelfEnrollmentStart },
+      snapshot: { sharedObjectIds: [SPACE_ID] },
+      credentialRequired: true,
+      generationKey: 'gen-1',
+    }
+
+    render(<SessionSharedObjectContainer />)
+
+    expect(screen.getByText('Unlock to open this Space')).toBeTruthy()
+    expect(screen.getByText('Unlock Space access')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Unlock and open Space' }))
+
+    await waitFor(() => {
+      expect(mockSelfEnrollmentStart).toHaveBeenCalledTimes(1)
+    })
+    expect(sharedRetry).toHaveBeenCalledTimes(1)
+    expect(bodyRetry).toHaveBeenCalledTimes(1)
   })
 })

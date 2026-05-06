@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ComponentType,
   type ReactNode,
@@ -73,6 +74,7 @@ import {
 import { SessionFrame } from './SessionFrame.js'
 import { AccountDashboardStateProvider } from './dashboard/AccountDashboardStateContext.js'
 import { AuthConfirmDialog } from './dashboard/AuthConfirmDialog.js'
+import { useSessionSelfEnrollmentStatus } from './SessionSelfEnrollmentStatusContext.js'
 import {
   buildSharedObjectFallbackHealth,
   getSharedObjectRouteHealth,
@@ -603,6 +605,7 @@ export function SessionSharedObjectContainer() {
   const sessionValue = useResourceValue(session)
   const { providerId, accountId } = useSessionInfo(sessionValue)
   const accountResource = useMountAccount(providerId, accountId)
+  const selfEnrollmentStatus = useSessionSelfEnrollmentStatus()
   const dmcaHref = useStaticHref('/dmca')
   const parentPaths = useParentPaths()
   const orgListCtx = SpacewaveOrgListContext.useContextSafe()
@@ -766,6 +769,34 @@ export function SessionSharedObjectContainer() {
   const [mutationPending, setMutationPending] = useState(false)
   const [mutationError, setMutationError] = useState('')
   const [credentialRepairOpen, setCredentialRepairOpen] = useState(false)
+  const [selfEnrollmentStepUpOpen, setSelfEnrollmentStepUpOpen] =
+    useState(false)
+  const selfEnrollmentAutoOpenKey = useRef('')
+  const needsSelfEnrollmentStepUp = useMemo(
+    () =>
+      !!sharedObjectId &&
+      selfEnrollmentStatus.credentialRequired &&
+      (selfEnrollmentStatus.snapshot?.sharedObjectIds?.includes(
+        sharedObjectId,
+      ) ??
+        false),
+    [
+      selfEnrollmentStatus.credentialRequired,
+      selfEnrollmentStatus.snapshot?.sharedObjectIds,
+      sharedObjectId,
+    ],
+  )
+  useEffect(() => {
+    if (!needsSelfEnrollmentStepUp || !sharedObjectId) return
+    const key = `${selfEnrollmentStatus.generationKey}:${sharedObjectId}`
+    if (selfEnrollmentAutoOpenKey.current === key) return
+    selfEnrollmentAutoOpenKey.current = key
+    setSelfEnrollmentStepUpOpen(true)
+  }, [
+    needsSelfEnrollmentStepUp,
+    selfEnrollmentStatus.generationKey,
+    sharedObjectId,
+  ])
 
   const runRepairAction = useCallback(
     async (kind: SharedObjectRemediationAction) => {
@@ -826,6 +857,22 @@ export function SessionSharedObjectContainer() {
     }
   }, [handleRetry, sessionValue, sharedObjectId])
 
+  const handleSelfEnrollmentStepUpConfirm = useCallback(async () => {
+    if (!selfEnrollmentStatus.resource) return
+    setMutationPending(true)
+    setMutationError('')
+    try {
+      await selfEnrollmentStatus.resource.start()
+      setSelfEnrollmentStepUpOpen(false)
+      handleRetry()
+    } catch (err) {
+      setMutationError(err instanceof Error ? err.message : 'Action failed')
+      throw err
+    } finally {
+      setMutationPending(false)
+    }
+  }, [handleRetry, selfEnrollmentStatus.resource])
+
   const mutationPermission = useMemo(
     () =>
       getSharedObjectMutationPermission(
@@ -847,6 +894,13 @@ export function SessionSharedObjectContainer() {
       {debugInfo}
       {sharedObjectResource.value && sharedObjectBodyResource.value ?
         <SharedObjectBodyContainer />
+      : needsSelfEnrollmentStepUp ?
+        <ErrorState
+          variant="fullscreen"
+          title="Unlock to open this Space"
+          message="This Space needs your account key so this session can be connected before opening it."
+          onRetry={() => setSelfEnrollmentStepUpOpen(true)}
+        />
       : isBlocked ?
         <ErrorState
           variant="fullscreen"
@@ -910,6 +964,26 @@ export function SessionSharedObjectContainer() {
                 'Unlock an account key to grant this session access before attempting shared object repair.',
             }}
             onConfirm={handleCredentialRepairConfirm}
+            account={accountResource}
+            retainAfterClose
+          />
+        </AccountDashboardStateProvider>
+      : null}
+      {needsSelfEnrollmentStepUp ?
+        <AccountDashboardStateProvider account={accountResource}>
+          <AuthConfirmDialog
+            open={selfEnrollmentStepUpOpen}
+            onOpenChange={setSelfEnrollmentStepUpOpen}
+            title="Unlock Space access"
+            description="This Space needs your account key so this session can be connected before opening it."
+            confirmLabel="Unlock and open Space"
+            intent={{
+              kind: AccountEscalationIntentKind.AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_UNSPECIFIED,
+              title: 'Unlock Space access',
+              description:
+                'Unlock an account key so this session can connect to this Space.',
+            }}
+            onConfirm={handleSelfEnrollmentStepUpConfirm}
             account={accountResource}
             retainAfterClose
           />

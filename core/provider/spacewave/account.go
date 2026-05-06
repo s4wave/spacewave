@@ -88,6 +88,8 @@ type ProviderAccount struct {
 	// selfRejoinSweep opportunistically heals missing same-entity SO peers after
 	// a new session registers or reconnect invalidates sweep-side caches.
 	selfRejoinSweep *routine.StateRoutineContainer[*selfRejoinSweepState]
+	// selfEnrollmentRunRoutine owns explicit visible Session Self-Enrollment runs.
+	selfEnrollmentRunRoutine *routine.StateRoutineContainer[*selfEnrollmentRunRequest]
 	// sessionPresentationReconcile prunes orphaned mirrored session metadata.
 	sessionPresentationReconcile *routine.StateRoutineContainer[*sessionPresentationReconcileState]
 	// gcCleanup runs block GC cleanup after foreground delete paths unroot data.
@@ -99,6 +101,8 @@ type ProviderAccount struct {
 	// entityKeyStore holds unlocked entity keypairs shared across account
 	// resources for this provider account.
 	entityKeyStore *EntityKeyStore
+	// selfEnrollmentRun owns visible Session Self-Enrollment progress.
+	selfEnrollmentRun *selfEnrollmentRunState
 	// entityKeypairStepUpRc retains unlocked entity keypairs until the last
 	// screen-scoped step-up reference is released.
 	entityKeypairStepUpRc *refcount.RefCount[struct{}]
@@ -350,6 +354,7 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		soListCtr:      t.p.getSOListCtr(t.accountID),
 		entityKeyStore: entityKeyStore,
 	}
+	acc.selfEnrollmentRun = newSelfEnrollmentRunState(acc)
 	acc.soListCtr.SetValue(nil)
 	acc.soListRc = refcount.NewRefCount(nil, true, nil, nil, acc.resolveSharedObjectList)
 	acc.entityKeypairStepUpRc = refcount.NewRefCount(
@@ -374,6 +379,11 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 	)
 	acc.selfRejoinSweep.SetStateRoutine(acc.runSelfRejoinSweep)
 	acc.primeSelfRejoinSweepFromUnlockedEntityKeys()
+	acc.selfEnrollmentRunRoutine = routine.NewStateRoutineContainerWithLogger[*selfEnrollmentRunRequest](
+		nil,
+		le.WithField("component", "self-enrollment-run"),
+	)
+	acc.selfEnrollmentRunRoutine.SetStateRoutine(acc.selfEnrollmentRun.run)
 	acc.sessionPresentationReconcile = routine.NewStateRoutineContainerWithLogger(
 		equalSessionPresentationReconcileState,
 		le.WithField("component", "session-presentation-reconcile"),
@@ -648,6 +658,9 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 
 	acc.selfRejoinSweep.SetContext(ctx, true)
 	defer acc.selfRejoinSweep.ClearContext()
+
+	acc.selfEnrollmentRunRoutine.SetContext(ctx, true)
+	defer acc.selfEnrollmentRunRoutine.ClearContext()
 
 	acc.sessionPresentationReconcile.SetContext(ctx, true)
 	defer acc.sessionPresentationReconcile.ClearContext()

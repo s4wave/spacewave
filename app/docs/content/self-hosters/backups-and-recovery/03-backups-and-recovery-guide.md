@@ -21,7 +21,7 @@ A daily backup is a reasonable default. Use incremental tools (rsync, Borg, rest
 
 **From local backup:** Copy the data directory to the Spacewave data location and relaunch. Sync with linked devices or cloud to recover data created after the backup.
 
-**From cloud:** Sign in on a new device. The cloud recovery flow re-provisions your session with all synced data and keys.
+**From cloud:** Sign in on a new device. Cloud recovery restores account access and synced metadata. Some Spaces may still need to connect the new Session key before they open. Spacewave shows that as background connected-space status on the dashboard and asks you to unlock only when a Space needs it.
 
 **From a linked device:** Link the new device to one that has current data. Peer-to-peer sync transfers everything.
 
@@ -37,7 +37,7 @@ Periodically test by restoring to a separate location and launching Spacewave ag
 
 ## Troubleshooting
 
-If a restored session appears empty, check that the entire data directory was copied. If encryption fails after restore, try an earlier snapshot. For cloud-backed sessions, cloud recovery is an independent path.
+If a restored session appears empty, check that the entire data directory was copied. If encryption fails after restore, try an earlier snapshot. For cloud-backed sessions, cloud recovery is an independent path. If the dashboard loads but some Spaces show connected-space progress or ask for unlock when opened, let the background connection finish or complete the unlock prompt for that Space.
 
 ## Next Steps
 

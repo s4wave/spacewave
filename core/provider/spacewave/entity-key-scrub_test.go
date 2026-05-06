@@ -48,3 +48,34 @@ func TestProviderRetainEntityKeyBootstrapUpdatesLiveEntityClient(t *testing.T) {
 		t.Fatalf("expected bootstrap to trigger self-rejoin generation 1, got %d", acc.state.selfRejoinSweepGeneration)
 	}
 }
+
+func TestEntityKeyStoreWatchUnlockedCountWakesOnUnlockAndLock(t *testing.T) {
+	store := NewEntityKeyStore()
+	_, ch := store.WatchUnlockedCount()
+	priv, pid := generateTestKeypair(t)
+
+	store.Unlock(pid, priv)
+
+	select {
+	case <-ch:
+	default:
+		t.Fatal("expected unlock to wake WatchUnlockedCount")
+	}
+
+	count, ch := store.WatchUnlockedCount()
+	if count != 1 {
+		t.Fatalf("unlocked count = %d, want 1", count)
+	}
+
+	store.Lock(pid)
+
+	select {
+	case <-ch:
+	default:
+		t.Fatal("expected lock to wake WatchUnlockedCount")
+	}
+	count, _ = store.WatchUnlockedCount()
+	if count != 0 {
+		t.Fatalf("unlocked count after lock = %d, want 0", count)
+	}
+}

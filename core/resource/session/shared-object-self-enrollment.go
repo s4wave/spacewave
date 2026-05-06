@@ -2,10 +2,8 @@ package resource_session
 
 import (
 	"context"
-	"slices"
 
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
@@ -17,13 +15,6 @@ import (
 type SharedObjectSelfEnrollmentResource struct {
 	mux   srpc.Invoker
 	swAcc *provider_spacewave.ProviderAccount
-
-	// bcast guards run state fields below.
-	bcast                 broadcast.Broadcast
-	running               bool
-	currentSharedObjectID string
-	completedIDs          []string
-	failures              []*s4wave_session.SharedObjectSelfEnrollmentFailure
 }
 
 // NewSharedObjectSelfEnrollmentResource creates a new SharedObjectSelfEnrollmentResource.
@@ -63,20 +54,15 @@ func (r *SharedObjectSelfEnrollmentResource) WatchState(
 			skippedKey = r.swAcc.GetSelfEnrollmentSkippedGenerationKey()
 		})
 
-		var resourceCh <-chan struct{}
-		var running bool
-		var current string
-		var completed []string
-		var failures []*s4wave_session.SharedObjectSelfEnrollmentFailure
-		r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			resourceCh = getWaitCh()
-			running = r.running
-			current = r.currentSharedObjectID
-			completed = slices.Clone(r.completedIDs)
-			failures = cloneSelfEnrollmentFailures(r.failures)
-		})
+		run, runCh := r.swAcc.WatchSelfEnrollmentRunSnapshot()
+		store := r.swAcc.GetEntityKeyStore()
+		var entityCh <-chan struct{}
+		unlockedCount := 0
+		if store != nil {
+			unlockedCount, entityCh = store.WatchUnlockedCount()
+		}
 
-		resp := r.buildStateResponse(summary, running, current, completed, failures, skippedKey)
+		resp := r.buildStateResponse(summary, run, skippedKey, store != nil, unlockedCount)
 		if prev == nil || !resp.EqualVT(prev) {
 			if err := strm.Send(resp); err != nil {
 				return err
@@ -88,7 +74,8 @@ func (r *SharedObjectSelfEnrollmentResource) WatchState(
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-accountCh:
-		case <-resourceCh:
+		case <-runCh:
+		case <-entityCh:
 		}
 	}
 }
@@ -98,74 +85,7 @@ func (r *SharedObjectSelfEnrollmentResource) Start(
 	ctx context.Context,
 	req *s4wave_session.StartSharedObjectSelfEnrollmentRequest,
 ) (*s4wave_session.StartSharedObjectSelfEnrollmentResponse, error) {
-	store := r.swAcc.GetEntityKeyStore()
-	if store == nil || len(store.GetUnlockedKeys()) == 0 {
-		return nil, sobject.ErrSharedObjectRecoveryCredentialRequired
-	}
-	ref := r.swAcc.RetainEntityKeypairStepUp()
-	defer ref.Release()
-
-	var summary *provider_spacewave.SelfEnrollmentSummary
-	accountBcast := r.swAcc.GetAccountBroadcast()
-	accountBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		summary = r.swAcc.GetSelfEnrollmentSummary()
-	})
-	if summary == nil || summary.GetCount() == 0 {
-		return &s4wave_session.StartSharedObjectSelfEnrollmentResponse{}, nil
-	}
-
-	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		r.running = true
-		r.currentSharedObjectID = ""
-		r.completedIDs = nil
-		r.failures = nil
-		broadcast()
-	})
-	defer r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		r.running = false
-		r.currentSharedObjectID = ""
-		broadcast()
-	})
-
-	for _, soID := range summary.GetIDs() {
-		if err := ctx.Err(); err != nil {
-			return nil, err
-		}
-		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-			r.currentSharedObjectID = soID
-			broadcast()
-		})
-		ref := sobject.NewSharedObjectRef(
-			r.swAcc.GetProviderID(),
-			r.swAcc.GetAccountID(),
-			soID,
-			provider_spacewave.SobjectBlockStoreID(soID),
-		)
-		_, rel, err := r.swAcc.MountSharedObject(ctx, ref, nil)
-		if rel != nil {
-			rel()
-		}
-		if err != nil {
-			if ctxErr := ctx.Err(); ctxErr != nil {
-				return nil, ctxErr
-			}
-			failure := &s4wave_session.SharedObjectSelfEnrollmentFailure{
-				SharedObjectId: soID,
-				Category:       categorizeSelfEnrollmentError(err),
-				Message:        err.Error(),
-			}
-			r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-				r.failures = append(r.failures, failure)
-				broadcast()
-			})
-			continue
-		}
-		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-			r.completedIDs = append(r.completedIDs, soID)
-			broadcast()
-		})
-	}
-	if err := r.swAcc.RefreshSelfEnrollmentSummary(ctx); err != nil {
+	if err := r.swAcc.StartSelfEnrollmentRun(ctx); err != nil {
 		return nil, err
 	}
 	return &s4wave_session.StartSharedObjectSelfEnrollmentResponse{}, nil
@@ -194,18 +114,19 @@ func (r *SharedObjectSelfEnrollmentResource) Skip(
 
 func (r *SharedObjectSelfEnrollmentResource) buildStateResponse(
 	summary *provider_spacewave.SelfEnrollmentSummary,
-	running bool,
-	current string,
-	completed []string,
-	failures []*s4wave_session.SharedObjectSelfEnrollmentFailure,
+	run *provider_spacewave.SelfEnrollmentRunSnapshot,
 	skippedKey string,
+	hasEntityKeyStore bool,
+	unlockedCount int,
 ) *s4wave_session.WatchSharedObjectSelfEnrollmentStateResponse {
 	resp := &s4wave_session.WatchSharedObjectSelfEnrollmentStateResponse{
-		Running:                  running,
-		CurrentSharedObjectId:    current,
-		CompletedSharedObjectIds: completed,
-		Failures:                 failures,
-		SkippedGenerationKey:     skippedKey,
+		SkippedGenerationKey: skippedKey,
+	}
+	if run != nil {
+		resp.Running = run.Running
+		resp.CurrentSharedObjectId = run.CurrentSharedObjectID
+		resp.CompletedSharedObjectIds = run.CompletedIDs
+		resp.Failures = buildSelfEnrollmentFailures(run.Failures)
 	}
 	if summary == nil {
 		return resp
@@ -213,11 +134,34 @@ func (r *SharedObjectSelfEnrollmentResource) buildStateResponse(
 	resp.SharedObjectIds = summary.GetIDs()
 	resp.GenerationKey = summary.GetGenerationKey()
 	resp.Count = summary.GetCount()
-	store := r.swAcc.GetEntityKeyStore()
 	resp.CredentialRequired = summary.GetCount() != 0 &&
-		(store == nil || len(store.GetUnlockedKeys()) == 0)
+		(!hasEntityKeyStore || unlockedCount == 0)
 	resp.Skipped = skippedKey != "" && skippedKey == summary.GetGenerationKey()
 	return resp
+}
+
+func buildSelfEnrollmentFailures(
+	failures []*provider_spacewave.SelfEnrollmentRunFailure,
+) []*s4wave_session.SharedObjectSelfEnrollmentFailure {
+	if len(failures) == 0 {
+		return nil
+	}
+	out := make([]*s4wave_session.SharedObjectSelfEnrollmentFailure, 0, len(failures))
+	for _, failure := range failures {
+		if failure == nil {
+			continue
+		}
+		message := ""
+		if failure.Err != nil {
+			message = failure.Err.Error()
+		}
+		out = append(out, &s4wave_session.SharedObjectSelfEnrollmentFailure{
+			SharedObjectId: failure.SharedObjectID,
+			Category:       categorizeSelfEnrollmentError(failure.Err),
+			Message:        message,
+		})
+	}
+	return out
 }
 
 func categorizeSelfEnrollmentError(err error) s4wave_session.SharedObjectSelfEnrollmentErrorCategory {
@@ -228,21 +172,6 @@ func categorizeSelfEnrollmentError(err error) s4wave_session.SharedObjectSelfEnr
 		return s4wave_session.SharedObjectSelfEnrollmentErrorCategory_SHARED_OBJECT_SELF_ENROLLMENT_ERROR_CATEGORY_OPEN_OBJECT
 	}
 	return s4wave_session.SharedObjectSelfEnrollmentErrorCategory_SHARED_OBJECT_SELF_ENROLLMENT_ERROR_CATEGORY_REPORT
-}
-
-func cloneSelfEnrollmentFailures(
-	failures []*s4wave_session.SharedObjectSelfEnrollmentFailure,
-) []*s4wave_session.SharedObjectSelfEnrollmentFailure {
-	if len(failures) == 0 {
-		return nil
-	}
-	next := make([]*s4wave_session.SharedObjectSelfEnrollmentFailure, len(failures))
-	for i, failure := range failures {
-		if failure != nil {
-			next[i] = failure.CloneVT()
-		}
-	}
-	return next
 }
 
 // _ is a type assertion

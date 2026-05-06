@@ -165,13 +165,18 @@ func (a *ProviderAccount) refreshSelfEnrollmentSummary(ctx context.Context) {
 
 func (a *ProviderAccount) setSelfEnrollmentSummary(summary *SelfEnrollmentSummary) error {
 	next := summary.clone()
+	var shouldRun bool
 	a.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		if equalSelfEnrollmentSummary(a.state.selfEnrollmentSummary, next) {
 			return
 		}
 		a.state.selfEnrollmentSummary = next
+		shouldRun = a.shouldAutoStartSelfEnrollmentRunLocked(next)
 		broadcast()
 	})
+	if shouldRun {
+		a.startSelfEnrollmentRunFromSummary(next)
+	}
 	return nil
 }
 

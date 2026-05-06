@@ -11,7 +11,7 @@ When you move Spacewave to a new device or recover from a backup, some data trav
 
 ## Prerequisites
 
-You need a backup of the block store data directory (see [Backup Basics](/docs/self-hosters/backups-and-recovery/backup-basics)). For cloud-backed sessions, your account credentials are sufficient since the cloud recovery flow can re-provision keys and data without a local backup.
+You need a backup of the block store data directory (see [Backup Basics](/docs/self-hosters/backups-and-recovery/backup-basics)). For cloud-backed sessions, your account credentials are sufficient to restore account access and synced metadata without a local backup. A newly restored Session may still need to connect its Session key to individual Spaces before they open.
 
 ## Recovery from Backup
 
@@ -21,7 +21,7 @@ Copy the backed-up data directory to the new device and launch Spacewave. The se
 
 If the old device is functional, link the new device to it. Peer-to-peer sync transfers all data without needing a filesystem backup. Once synced, decommission the old device.
 
-If the old device is gone, restore from backup or sign in to cloud. Local-only sessions require a filesystem backup.
+If the old device is gone, restore from backup or sign in to cloud. Local-only sessions require a filesystem backup. Cloud-backed Sessions may show connected-space progress on the dashboard after sign-in while Spacewave connects the new Session key to Spaces you can already read.
 
 ## Re-establishing Linked Devices
 
@@ -29,7 +29,7 @@ A restored session will not reconnect to previously linked devices automatically
 
 ## Troubleshooting
 
-If a restored session shows no spaces, verify the backup includes the complete data directory. If linked devices refuse to pair, remove the old pairing on both sides and re-pair from scratch. If cloud recovery fails, confirm credentials are correct.
+If a restored session shows no spaces, verify the backup includes the complete data directory. If linked devices refuse to pair, remove the old pairing on both sides and re-pair from scratch. If cloud recovery fails, confirm credentials are correct. If a specific Space asks for unlock after the dashboard loads, complete that prompt so Spacewave can connect this Session key to that Space and continue the background connection for the rest.
 
 ## Next Steps
 

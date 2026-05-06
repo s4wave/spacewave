@@ -6,22 +6,15 @@ import { Redirect } from '@s4wave/web/router/Redirect.js'
 import { SpacewaveOnboardingContext } from '@s4wave/web/contexts/SpacewaveOnboardingContext.js'
 import {
   AccountLifecycleState,
-  SelfEnrollmentGateState,
 } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 import { BillingStateProvider } from '@s4wave/app/billing/BillingStateProvider.js'
 import { SessionDashboardContainer } from '@s4wave/app/session/SessionDashboardContainer.js'
 import { ProviderAccountStatus } from '@s4wave/core/provider/provider.pb.js'
-import { useStateAtom } from '@s4wave/web/state/persist.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import {
   hasReactivatableManagedBilling,
   isAccountStatusLoaded,
 } from './account-status.js'
-import { SessionSelfEnrollmentInterstitial } from './SessionSelfEnrollmentInterstitial.js'
-import {
-  defaultSelfEnrollmentSkip,
-  selfEnrollmentSkipAtomKey,
-} from './self-enrollment-skip.js'
 
 // RouterLoadingGate renders the shared session loading card for a router gate
 // that is waiting on asynchronous state. Matches AppSession's loading shell so
@@ -57,11 +50,6 @@ export function SpacewaveRootRouter() {
   const emailVerified = ctx?.emailVerified ?? false
   const toastShown = useRef(false)
   const navigate = useNavigate()
-  const [selfEnrollmentSkip] = useStateAtom(
-    null,
-    selfEnrollmentSkipAtomKey,
-    defaultSelfEnrollmentSkip,
-  )
 
   const accountLoaded =
     !!onboarding && isAccountStatusLoaded(onboarding.accountStatus)
@@ -148,16 +136,6 @@ export function SpacewaveRootRouter() {
   // Active subscription but email not verified: gate on verification.
   if (!emailVerified) {
     return <Redirect to="verify-email" />
-  }
-
-  if (
-    onboarding.selfEnrollmentGateState ===
-      SelfEnrollmentGateState.ACTION_REQUIRED &&
-    onboarding.sessionSelfEnrollmentGenerationKey &&
-    selfEnrollmentSkip?.skippedKey !==
-      onboarding.sessionSelfEnrollmentGenerationKey
-  ) {
-    return <SessionSelfEnrollmentInterstitial />
   }
 
   return (

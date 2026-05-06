@@ -71,6 +71,8 @@ import {
 import { SystemStatusButton } from '@s4wave/app/system/SystemStatusButton.js'
 import { SessionSyncStatusButton } from './SessionSyncStatusButton.js'
 import { SessionSyncStatusProvider } from './SessionSyncStatusContext.js'
+import { SessionSelfEnrollmentStatusButton } from './SessionSelfEnrollmentStatusButton.js'
+import { SessionSelfEnrollmentStatusProvider } from './SessionSelfEnrollmentStatusContext.js'
 
 // SessionInfoDebug displays the session info as JSON for debugging.
 export function SessionInfoDebug(props: { session: Session }) {
@@ -376,104 +378,107 @@ export function SessionContainer(props: {
           onBreadcrumbClick={handleAccountBreadcrumb}
         >
           <SessionSyncStatusProvider>
-            <SessionSyncStatusButton />
-            <SystemStatusButton />
-            <SessionProviderContainer
-              metadata={props.metadata}
-              spacewaveOnboarding={onboardingState.value ?? null}
-            >
-              <Routes>
-                {spacewaveSessionRoutes(props.metadata)}
-                <Route path="/settings/cli">
-                  <CommandLineSetupPage />
-                </Route>
-                <Route path="/settings/transfer">
-                  <TransferWizard />
-                </Route>
-                <Route path="/join/:code">
-                  <JoinSpacePage />
-                </Route>
-                <Route path="/join">
-                  <JoinSpacePage />
-                </Route>
-                <Route path="/pair">
-                  <PairCodePage
-                    session={session}
-                    backPath="../"
-                    donePath="../"
-                  />
-                </Route>
-                <Route path="/setup/link-device">
-                  <LinkDeviceWizard />
-                </Route>
-                <Route path="/setup/provider">
-                  <ProviderSetup />
-                </Route>
-                <Route path="/setup/free-local">
-                  <LocalSessionSetup mode="local" metadata={props.metadata} />
-                </Route>
-                <Route path="/setup/*">
-                  <SetupWizard />
-                </Route>
-                <Route path="/setup">
-                  <SetupWizard />
-                </Route>
-                <Route path="/">
-                  <SessionRootRouter metadata={props.metadata} />
-                </Route>
-                <Route path="/billing/:baId/cancel">
-                  <BillingCancelRoute />
-                </Route>
-                <Route path="/billing/:baId">
-                  <BillingAccountDetailRoute />
-                </Route>
-                <Route path="/billing">
-                  <BillingAccountsRoute />
-                </Route>
-                <Route path="/org/:orgId/new/:quickstartId">
-                  <CreateSpaceRoute />
-                </Route>
-                <Route path="/org/:orgId/*">
-                  <OrgContainer />
-                </Route>
-                <Route path="/new/:quickstartId">
-                  <CreateSpaceRoute />
-                </Route>
-                <Route path="/so/:sharedObjectId/*">
-                  <SessionSharedObjectContainer />
-                </Route>
-                <Route path="/so">
-                  <Redirect to="../" />
-                </Route>
-                <Route path="*">
-                  <div className="flex h-full w-full items-center justify-center px-4 py-8">
-                    <div className="border-foreground/6 bg-background-card/30 flex w-full max-w-md flex-col items-center gap-3 rounded-lg border p-6 backdrop-blur-sm">
-                      <div className="bg-foreground/5 flex h-10 w-10 items-center justify-center rounded-full">
-                        <LuCompass
-                          className="text-foreground-alt/60 h-5 w-5"
-                          aria-hidden="true"
-                        />
+            <SessionSelfEnrollmentStatusProvider>
+              <SessionSelfEnrollmentStatusButton />
+              <SessionSyncStatusButton />
+              <SystemStatusButton />
+              <SessionProviderContainer
+                metadata={props.metadata}
+                spacewaveOnboarding={onboardingState.value ?? null}
+              >
+                <Routes>
+                  {spacewaveSessionRoutes(props.metadata)}
+                  <Route path="/settings/cli">
+                    <CommandLineSetupPage />
+                  </Route>
+                  <Route path="/settings/transfer">
+                    <TransferWizard />
+                  </Route>
+                  <Route path="/join/:code">
+                    <JoinSpacePage />
+                  </Route>
+                  <Route path="/join">
+                    <JoinSpacePage />
+                  </Route>
+                  <Route path="/pair">
+                    <PairCodePage
+                      session={session}
+                      backPath="../"
+                      donePath="../"
+                    />
+                  </Route>
+                  <Route path="/setup/link-device">
+                    <LinkDeviceWizard />
+                  </Route>
+                  <Route path="/setup/provider">
+                    <ProviderSetup />
+                  </Route>
+                  <Route path="/setup/free-local">
+                    <LocalSessionSetup mode="local" metadata={props.metadata} />
+                  </Route>
+                  <Route path="/setup/*">
+                    <SetupWizard />
+                  </Route>
+                  <Route path="/setup">
+                    <SetupWizard />
+                  </Route>
+                  <Route path="/">
+                    <SessionRootRouter metadata={props.metadata} />
+                  </Route>
+                  <Route path="/billing/:baId/cancel">
+                    <BillingCancelRoute />
+                  </Route>
+                  <Route path="/billing/:baId">
+                    <BillingAccountDetailRoute />
+                  </Route>
+                  <Route path="/billing">
+                    <BillingAccountsRoute />
+                  </Route>
+                  <Route path="/org/:orgId/new/:quickstartId">
+                    <CreateSpaceRoute />
+                  </Route>
+                  <Route path="/org/:orgId/*">
+                    <OrgContainer />
+                  </Route>
+                  <Route path="/new/:quickstartId">
+                    <CreateSpaceRoute />
+                  </Route>
+                  <Route path="/so/:sharedObjectId/*">
+                    <SessionSharedObjectContainer />
+                  </Route>
+                  <Route path="/so">
+                    <Redirect to="../" />
+                  </Route>
+                  <Route path="*">
+                    <div className="flex h-full w-full items-center justify-center px-4 py-8">
+                      <div className="border-foreground/6 bg-background-card/30 flex w-full max-w-md flex-col items-center gap-3 rounded-lg border p-6 backdrop-blur-sm">
+                        <div className="bg-foreground/5 flex h-10 w-10 items-center justify-center rounded-full">
+                          <LuCompass
+                            className="text-foreground-alt/60 h-5 w-5"
+                            aria-hidden="true"
+                          />
+                        </div>
+                        <h2 className="text-foreground text-sm font-semibold tracking-tight select-none">
+                          Page not found
+                        </h2>
+                        <p className="text-foreground-alt/60 text-center text-xs">
+                          No page exists at{' '}
+                          <code className="text-foreground-alt/80 bg-foreground/5 rounded px-1.5 py-0.5 font-mono text-[0.7rem]">
+                            {path}
+                          </code>
+                        </p>
+                        <DashboardButton
+                          icon={<LuArrowLeft className="h-3.5 w-3.5" />}
+                          onClick={handleGoHome}
+                        >
+                          Back to dashboard
+                        </DashboardButton>
                       </div>
-                      <h2 className="text-foreground text-sm font-semibold tracking-tight select-none">
-                        Page not found
-                      </h2>
-                      <p className="text-foreground-alt/60 text-center text-xs">
-                        No page exists at{' '}
-                        <code className="text-foreground-alt/80 bg-foreground/5 rounded px-1.5 py-0.5 font-mono text-[0.7rem]">
-                          {path}
-                        </code>
-                      </p>
-                      <DashboardButton
-                        icon={<LuArrowLeft className="h-3.5 w-3.5" />}
-                        onClick={handleGoHome}
-                      >
-                        Back to dashboard
-                      </DashboardButton>
                     </div>
-                  </div>
-                </Route>
-              </Routes>
-            </SessionProviderContainer>
+                  </Route>
+                </Routes>
+              </SessionProviderContainer>
+            </SessionSelfEnrollmentStatusProvider>
           </SessionSyncStatusProvider>
         </BottomBarLevel>
       </StateNamespaceProvider>

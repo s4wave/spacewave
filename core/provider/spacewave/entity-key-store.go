@@ -232,6 +232,17 @@ func (s *EntityKeyStore) GetBroadcast() *broadcast.Broadcast {
 	return &s.bcast
 }
 
+// WatchUnlockedCount returns the unlocked key count and wait channel.
+func (s *EntityKeyStore) WatchUnlockedCount() (int, <-chan struct{}) {
+	var count int
+	var ch <-chan struct{}
+	s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		count = len(s.keys)
+		ch = getWaitCh()
+	})
+	return count, ch
+}
+
 func (s *EntityKeyStore) releaseRef() {
 	var expireNow bool
 	var seq uint64

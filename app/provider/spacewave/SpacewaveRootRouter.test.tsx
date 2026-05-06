@@ -59,12 +59,6 @@ vi.mock('@s4wave/web/ui/loading/LoadingCard.js', () => ({
   ),
 }))
 
-vi.mock('./SessionSelfEnrollmentInterstitial.js', () => ({
-  SessionSelfEnrollmentInterstitial: () => (
-    <div data-testid="self-enrollment-interstitial" />
-  ),
-}))
-
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
@@ -153,7 +147,7 @@ describe('SpacewaveRootRouter', () => {
         hasActiveBilling: true,
         emailVerified: true,
       }),
-      outcome: 'self-enrollment',
+      outcome: 'dashboard',
     },
     {
       name: 'dashboard',
@@ -177,13 +171,6 @@ describe('SpacewaveRootRouter', () => {
         expect(screen.getByTestId('redirect').textContent).toBe(text)
         expect(screen.queryByTestId('dashboard')).toBeNull()
         expect(screen.queryByTestId('self-enrollment-interstitial')).toBeNull()
-        return
-      }
-
-      if (outcome === 'self-enrollment') {
-        expect(screen.getByTestId('self-enrollment-interstitial')).toBeTruthy()
-        expect(screen.queryByTestId('redirect')).toBeNull()
-        expect(screen.queryByTestId('dashboard')).toBeNull()
         return
       }
 
@@ -489,7 +476,7 @@ describe('SpacewaveRootRouter', () => {
     expect(screen.getByTestId('dashboard')).toBeTruthy()
   })
 
-  it('routes active verified sessions needing self-enrollment to the interstitial', () => {
+  it('renders the dashboard for active verified sessions needing self-enrollment', () => {
     mockUseContextSafe.mockReturnValue(
       buildContext({
         onboarding: {
@@ -505,8 +492,8 @@ describe('SpacewaveRootRouter', () => {
 
     render(<SpacewaveRootRouter />)
 
-    expect(screen.getByTestId('self-enrollment-interstitial')).toBeTruthy()
-    expect(screen.queryByTestId('dashboard')).toBeNull()
+    expect(screen.queryByTestId('self-enrollment-interstitial')).toBeNull()
+    expect(screen.getByTestId('dashboard')).toBeTruthy()
     expect(screen.queryByTestId('redirect')).toBeNull()
   })
 
@@ -575,7 +562,7 @@ describe('SpacewaveRootRouter', () => {
     expect(screen.getByTestId('dashboard')).toBeTruthy()
   })
 
-  it('shows the interstitial when the skip atom is for an old generation', () => {
+  it('renders the dashboard when the skip atom is for an old generation', () => {
     mockSelfEnrollmentSkip.value = {
       skippedKey: 'old-gen',
       skippedAt: 1,
@@ -595,8 +582,8 @@ describe('SpacewaveRootRouter', () => {
 
     render(<SpacewaveRootRouter />)
 
-    expect(screen.getByTestId('self-enrollment-interstitial')).toBeTruthy()
-    expect(screen.queryByTestId('dashboard')).toBeNull()
+    expect(screen.queryByTestId('self-enrollment-interstitial')).toBeNull()
+    expect(screen.getByTestId('dashboard')).toBeTruthy()
   })
 
   it('keeps email verification ahead of self-enrollment', () => {
