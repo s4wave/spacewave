@@ -10,8 +10,14 @@ import {
   BillingInterval,
   CreateOrgInviteRequest as CreateOrgInviteMessage,
   CreateOrgInviteResponse as CreateOrgInviteResponseMessage,
+  CreateTargetedInviteDraftByUsernameRequest as CreateTargetedInviteDraftByUsernameMessage,
+  CreateTargetedInviteDraftByUsernameResponse as CreateTargetedInviteDraftByUsernameResponseMessage,
+  ResolveUsernameRequest as ResolveUsernameMessage,
+  ResolveUsernameResponse as ResolveUsernameResponseMessage,
 } from '../provider/spacewave/spacewave.pb.js'
 import type {
+  AcceptOrganizationTargetedInvitationResponse,
+  AcceptSpaceTargetedInvitationResponse,
   AddEmailResponse,
   CancelCheckoutSessionResponse,
   CancelSubscriptionResponse,
@@ -23,6 +29,12 @@ import type {
   CreateOrgInviteRequest,
   CreateOrgInviteResponse,
   CreateOrganizationResponse,
+  CreateOrganizationTargetedInvitationByUsernameResponse,
+  CreateTargetedInviteDraftByUsernameRequest,
+  CreateTargetedInviteDraftByUsernameResponse,
+  CreateTargetedInvitationRequest,
+  CreateTargetedInvitationResponse,
+  CreateSpaceTargetedInvitationByUsernameResponse,
   DeleteOrganizationResponse,
   EncryptForHandoffRequest,
   EncryptForHandoffResponse,
@@ -30,9 +42,12 @@ import type {
   RemoveSpaceMemberResponse,
   RefreshBillingStateResponse,
   GetLinkedLocalSessionResponse,
+  GetTargetedInvitationResponse,
+  ListTargetedInvitationsResponse,
   LookupInviteCodeResponse,
   JoinOrganizationResponse,
   LeaveOrganizationResponse,
+  ProcessTargetedInvitationResponse,
   ProcessMailboxEntryResponse,
   RequestDeleteNowEmailResponse,
   WatchOrganizationsResponse,
@@ -43,6 +58,9 @@ import type {
   ReinitializeSharedObjectResponse,
   RemoveOrgMemberResponse,
   ResetSessionRequest,
+  ResolveUsernameRequest,
+  ResolveUsernameResponse,
+  RevokeTargetedInvitationResponse,
   RevokeOrgInviteResponse,
   SendVerificationEmailResponse,
   SwitchBillingIntervalResponse,
@@ -346,6 +364,130 @@ export class SpacewaveSession extends Resource {
       abortSignal,
     )
     return CreateOrgInviteResponseMessage.fromBinary(result)
+  }
+
+  // createTargetedInviteDraftByUsername creates an opaque targeted invite draft.
+  public async createTargetedInviteDraftByUsername(
+    request: CreateTargetedInviteDraftByUsernameRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CreateTargetedInviteDraftByUsernameResponse> {
+    const result = await this.client.request(
+      SpacewaveSessionResourceServiceDefinition.typeName,
+      SpacewaveSessionResourceServiceDefinition.methods
+        .CreateTargetedInviteDraftByUsername.name,
+      CreateTargetedInviteDraftByUsernameMessage.toBinary(request),
+      abortSignal,
+    )
+    return CreateTargetedInviteDraftByUsernameResponseMessage.fromBinary(result)
+  }
+
+  // resolveUsername resolves an exact username for an allowed invite context.
+  public async resolveUsername(
+    request: ResolveUsernameRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ResolveUsernameResponse> {
+    const result = await this.client.request(
+      SpacewaveSessionResourceServiceDefinition.typeName,
+      SpacewaveSessionResourceServiceDefinition.methods.ResolveUsername.name,
+      ResolveUsernameMessage.toBinary(request),
+      abortSignal,
+    )
+    return ResolveUsernameResponseMessage.fromBinary(result)
+  }
+
+  // createTargetedInvitation creates a signed pending targeted invitation.
+  public async createTargetedInvitation(
+    request: CreateTargetedInvitationRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CreateTargetedInvitationResponse> {
+    return await this.service.CreateTargetedInvitation(request, abortSignal)
+  }
+
+  // createSpaceTargetedInvitationByUsername creates a Space invite by username.
+  public async createSpaceTargetedInvitationByUsername(
+    username: string,
+    spaceId: string,
+    role: string,
+    abortSignal?: AbortSignal,
+  ): Promise<CreateSpaceTargetedInvitationByUsernameResponse> {
+    return await this.service.CreateSpaceTargetedInvitationByUsername(
+      { username, spaceId, role },
+      abortSignal,
+    )
+  }
+
+  // acceptSpaceTargetedInvitation accepts a Space targeted invitation.
+  public async acceptSpaceTargetedInvitation(
+    id: string,
+    abortSignal?: AbortSignal,
+  ): Promise<AcceptSpaceTargetedInvitationResponse> {
+    return await this.service.AcceptSpaceTargetedInvitation({ id }, abortSignal)
+  }
+
+  // createOrganizationTargetedInvitationByUsername creates an org invite by username.
+  public async createOrganizationTargetedInvitationByUsername(
+    username: string,
+    orgId: string,
+    role: string,
+    abortSignal?: AbortSignal,
+  ): Promise<CreateOrganizationTargetedInvitationByUsernameResponse> {
+    return await this.service.CreateOrganizationTargetedInvitationByUsername(
+      { username, orgId, role },
+      abortSignal,
+    )
+  }
+
+  // acceptOrganizationTargetedInvitation accepts an org targeted invitation.
+  public async acceptOrganizationTargetedInvitation(
+    id: string,
+    abortSignal?: AbortSignal,
+  ): Promise<AcceptOrganizationTargetedInvitationResponse> {
+    return await this.service.AcceptOrganizationTargetedInvitation(
+      { id },
+      abortSignal,
+    )
+  }
+
+  // listTargetedInvitations lists the caller's targeted invitation inbox.
+  public async listTargetedInvitations(
+    abortSignal?: AbortSignal,
+  ): Promise<ListTargetedInvitationsResponse> {
+    return await this.service.ListTargetedInvitations({}, abortSignal)
+  }
+
+  // watchTargetedInvitations streams the caller's targeted invitation inbox.
+  public watchTargetedInvitations(
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<ListTargetedInvitationsResponse> {
+    return this.service.WatchTargetedInvitations({}, abortSignal)
+  }
+
+  // getTargetedInvitation reads one targeted invitation.
+  public async getTargetedInvitation(
+    id: string,
+    abortSignal?: AbortSignal,
+  ): Promise<GetTargetedInvitationResponse> {
+    return await this.service.GetTargetedInvitation({ id }, abortSignal)
+  }
+
+  // revokeTargetedInvitation revokes one pending targeted invitation.
+  public async revokeTargetedInvitation(
+    id: string,
+    abortSignal?: AbortSignal,
+  ): Promise<RevokeTargetedInvitationResponse> {
+    return await this.service.RevokeTargetedInvitation({ id }, abortSignal)
+  }
+
+  // processTargetedInvitation applies a recipient lifecycle action.
+  public async processTargetedInvitation(
+    id: string,
+    action: string,
+    abortSignal?: AbortSignal,
+  ): Promise<ProcessTargetedInvitationResponse> {
+    return await this.service.ProcessTargetedInvitation(
+      { id, action },
+      abortSignal,
+    )
   }
 
   // joinOrganization joins an organization via invite token.

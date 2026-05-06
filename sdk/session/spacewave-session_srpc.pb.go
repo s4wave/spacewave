@@ -69,6 +69,30 @@ type SRPCSpacewaveSessionResourceServiceClient interface {
 
 	DeleteOrganization(ctx context.Context, in *s4wave_provider_spacewave.DeleteOrganizationRequest) (*s4wave_provider_spacewave.DeleteOrganizationResponse, error)
 
+	CreateTargetedInviteDraftByUsername(ctx context.Context, in *s4wave_provider_spacewave.CreateTargetedInviteDraftByUsernameRequest) (*s4wave_provider_spacewave.CreateTargetedInviteDraftByUsernameResponse, error)
+
+	ResolveUsername(ctx context.Context, in *s4wave_provider_spacewave.ResolveUsernameRequest) (*s4wave_provider_spacewave.ResolveUsernameResponse, error)
+
+	CreateTargetedInvitation(ctx context.Context, in *s4wave_provider_spacewave.CreateTargetedInvitationRequest) (*s4wave_provider_spacewave.CreateTargetedInvitationResponse, error)
+
+	CreateSpaceTargetedInvitationByUsername(ctx context.Context, in *s4wave_provider_spacewave.CreateSpaceTargetedInvitationByUsernameRequest) (*s4wave_provider_spacewave.CreateSpaceTargetedInvitationByUsernameResponse, error)
+
+	AcceptSpaceTargetedInvitation(ctx context.Context, in *s4wave_provider_spacewave.AcceptSpaceTargetedInvitationRequest) (*s4wave_provider_spacewave.AcceptSpaceTargetedInvitationResponse, error)
+
+	CreateOrganizationTargetedInvitationByUsername(ctx context.Context, in *s4wave_provider_spacewave.CreateOrganizationTargetedInvitationByUsernameRequest) (*s4wave_provider_spacewave.CreateOrganizationTargetedInvitationByUsernameResponse, error)
+
+	AcceptOrganizationTargetedInvitation(ctx context.Context, in *s4wave_provider_spacewave.AcceptOrganizationTargetedInvitationRequest) (*s4wave_provider_spacewave.AcceptOrganizationTargetedInvitationResponse, error)
+
+	ListTargetedInvitations(ctx context.Context, in *s4wave_provider_spacewave.ListTargetedInvitationsRequest) (*s4wave_provider_spacewave.ListTargetedInvitationsResponse, error)
+
+	WatchTargetedInvitations(ctx context.Context, in *s4wave_provider_spacewave.ListTargetedInvitationsRequest) (SRPCSpacewaveSessionResourceService_WatchTargetedInvitationsClient, error)
+
+	GetTargetedInvitation(ctx context.Context, in *s4wave_provider_spacewave.GetTargetedInvitationRequest) (*s4wave_provider_spacewave.GetTargetedInvitationResponse, error)
+
+	RevokeTargetedInvitation(ctx context.Context, in *s4wave_provider_spacewave.RevokeTargetedInvitationRequest) (*s4wave_provider_spacewave.RevokeTargetedInvitationResponse, error)
+
+	ProcessTargetedInvitation(ctx context.Context, in *s4wave_provider_spacewave.ProcessTargetedInvitationRequest) (*s4wave_provider_spacewave.ProcessTargetedInvitationResponse, error)
+
 	CreateOrgInvite(ctx context.Context, in *s4wave_provider_spacewave.CreateOrgInviteRequest) (*s4wave_provider_spacewave.CreateOrgInviteResponse, error)
 
 	JoinOrganization(ctx context.Context, in *s4wave_provider_spacewave.JoinOrganizationRequest) (*s4wave_provider_spacewave.JoinOrganizationResponse, error)
@@ -533,6 +557,139 @@ func (c *srpcSpacewaveSessionResourceServiceClient) DeleteOrganization(ctx conte
 	return out, nil
 }
 
+func (c *srpcSpacewaveSessionResourceServiceClient) CreateTargetedInviteDraftByUsername(ctx context.Context, in *s4wave_provider_spacewave.CreateTargetedInviteDraftByUsernameRequest) (*s4wave_provider_spacewave.CreateTargetedInviteDraftByUsernameResponse, error) {
+	out := new(s4wave_provider_spacewave.CreateTargetedInviteDraftByUsernameResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "CreateTargetedInviteDraftByUsername", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcSpacewaveSessionResourceServiceClient) ResolveUsername(ctx context.Context, in *s4wave_provider_spacewave.ResolveUsernameRequest) (*s4wave_provider_spacewave.ResolveUsernameResponse, error) {
+	out := new(s4wave_provider_spacewave.ResolveUsernameResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "ResolveUsername", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcSpacewaveSessionResourceServiceClient) CreateTargetedInvitation(ctx context.Context, in *s4wave_provider_spacewave.CreateTargetedInvitationRequest) (*s4wave_provider_spacewave.CreateTargetedInvitationResponse, error) {
+	out := new(s4wave_provider_spacewave.CreateTargetedInvitationResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "CreateTargetedInvitation", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcSpacewaveSessionResourceServiceClient) CreateSpaceTargetedInvitationByUsername(ctx context.Context, in *s4wave_provider_spacewave.CreateSpaceTargetedInvitationByUsernameRequest) (*s4wave_provider_spacewave.CreateSpaceTargetedInvitationByUsernameResponse, error) {
+	out := new(s4wave_provider_spacewave.CreateSpaceTargetedInvitationByUsernameResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "CreateSpaceTargetedInvitationByUsername", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcSpacewaveSessionResourceServiceClient) AcceptSpaceTargetedInvitation(ctx context.Context, in *s4wave_provider_spacewave.AcceptSpaceTargetedInvitationRequest) (*s4wave_provider_spacewave.AcceptSpaceTargetedInvitationResponse, error) {
+	out := new(s4wave_provider_spacewave.AcceptSpaceTargetedInvitationResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "AcceptSpaceTargetedInvitation", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcSpacewaveSessionResourceServiceClient) CreateOrganizationTargetedInvitationByUsername(ctx context.Context, in *s4wave_provider_spacewave.CreateOrganizationTargetedInvitationByUsernameRequest) (*s4wave_provider_spacewave.CreateOrganizationTargetedInvitationByUsernameResponse, error) {
+	out := new(s4wave_provider_spacewave.CreateOrganizationTargetedInvitationByUsernameResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "CreateOrganizationTargetedInvitationByUsername", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcSpacewaveSessionResourceServiceClient) AcceptOrganizationTargetedInvitation(ctx context.Context, in *s4wave_provider_spacewave.AcceptOrganizationTargetedInvitationRequest) (*s4wave_provider_spacewave.AcceptOrganizationTargetedInvitationResponse, error) {
+	out := new(s4wave_provider_spacewave.AcceptOrganizationTargetedInvitationResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "AcceptOrganizationTargetedInvitation", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcSpacewaveSessionResourceServiceClient) ListTargetedInvitations(ctx context.Context, in *s4wave_provider_spacewave.ListTargetedInvitationsRequest) (*s4wave_provider_spacewave.ListTargetedInvitationsResponse, error) {
+	out := new(s4wave_provider_spacewave.ListTargetedInvitationsResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "ListTargetedInvitations", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcSpacewaveSessionResourceServiceClient) WatchTargetedInvitations(ctx context.Context, in *s4wave_provider_spacewave.ListTargetedInvitationsRequest) (SRPCSpacewaveSessionResourceService_WatchTargetedInvitationsClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "WatchTargetedInvitations", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcSpacewaveSessionResourceService_WatchTargetedInvitationsClient{stream}
+	if err := strm.CloseSend(); err != nil {
+		return nil, err
+	}
+	return strm, nil
+}
+
+type SRPCSpacewaveSessionResourceService_WatchTargetedInvitationsClient interface {
+	srpc.Stream
+	Recv() (*s4wave_provider_spacewave.ListTargetedInvitationsResponse, error)
+	RecvTo(*s4wave_provider_spacewave.ListTargetedInvitationsResponse) error
+}
+
+type srpcSpacewaveSessionResourceService_WatchTargetedInvitationsClient struct {
+	srpc.Stream
+}
+
+func (x *srpcSpacewaveSessionResourceService_WatchTargetedInvitationsClient) Recv() (*s4wave_provider_spacewave.ListTargetedInvitationsResponse, error) {
+	m := new(s4wave_provider_spacewave.ListTargetedInvitationsResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcSpacewaveSessionResourceService_WatchTargetedInvitationsClient) RecvTo(m *s4wave_provider_spacewave.ListTargetedInvitationsResponse) error {
+	return x.MsgRecv(m)
+}
+
+func (c *srpcSpacewaveSessionResourceServiceClient) GetTargetedInvitation(ctx context.Context, in *s4wave_provider_spacewave.GetTargetedInvitationRequest) (*s4wave_provider_spacewave.GetTargetedInvitationResponse, error) {
+	out := new(s4wave_provider_spacewave.GetTargetedInvitationResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "GetTargetedInvitation", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcSpacewaveSessionResourceServiceClient) RevokeTargetedInvitation(ctx context.Context, in *s4wave_provider_spacewave.RevokeTargetedInvitationRequest) (*s4wave_provider_spacewave.RevokeTargetedInvitationResponse, error) {
+	out := new(s4wave_provider_spacewave.RevokeTargetedInvitationResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "RevokeTargetedInvitation", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcSpacewaveSessionResourceServiceClient) ProcessTargetedInvitation(ctx context.Context, in *s4wave_provider_spacewave.ProcessTargetedInvitationRequest) (*s4wave_provider_spacewave.ProcessTargetedInvitationResponse, error) {
+	out := new(s4wave_provider_spacewave.ProcessTargetedInvitationResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "ProcessTargetedInvitation", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcSpacewaveSessionResourceServiceClient) CreateOrgInvite(ctx context.Context, in *s4wave_provider_spacewave.CreateOrgInviteRequest) (*s4wave_provider_spacewave.CreateOrgInviteResponse, error) {
 	out := new(s4wave_provider_spacewave.CreateOrgInviteResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "CreateOrgInvite", in, out)
@@ -847,6 +1004,30 @@ type SRPCSpacewaveSessionResourceServiceServer interface {
 
 	DeleteOrganization(context.Context, *s4wave_provider_spacewave.DeleteOrganizationRequest) (*s4wave_provider_spacewave.DeleteOrganizationResponse, error)
 
+	CreateTargetedInviteDraftByUsername(context.Context, *s4wave_provider_spacewave.CreateTargetedInviteDraftByUsernameRequest) (*s4wave_provider_spacewave.CreateTargetedInviteDraftByUsernameResponse, error)
+
+	ResolveUsername(context.Context, *s4wave_provider_spacewave.ResolveUsernameRequest) (*s4wave_provider_spacewave.ResolveUsernameResponse, error)
+
+	CreateTargetedInvitation(context.Context, *s4wave_provider_spacewave.CreateTargetedInvitationRequest) (*s4wave_provider_spacewave.CreateTargetedInvitationResponse, error)
+
+	CreateSpaceTargetedInvitationByUsername(context.Context, *s4wave_provider_spacewave.CreateSpaceTargetedInvitationByUsernameRequest) (*s4wave_provider_spacewave.CreateSpaceTargetedInvitationByUsernameResponse, error)
+
+	AcceptSpaceTargetedInvitation(context.Context, *s4wave_provider_spacewave.AcceptSpaceTargetedInvitationRequest) (*s4wave_provider_spacewave.AcceptSpaceTargetedInvitationResponse, error)
+
+	CreateOrganizationTargetedInvitationByUsername(context.Context, *s4wave_provider_spacewave.CreateOrganizationTargetedInvitationByUsernameRequest) (*s4wave_provider_spacewave.CreateOrganizationTargetedInvitationByUsernameResponse, error)
+
+	AcceptOrganizationTargetedInvitation(context.Context, *s4wave_provider_spacewave.AcceptOrganizationTargetedInvitationRequest) (*s4wave_provider_spacewave.AcceptOrganizationTargetedInvitationResponse, error)
+
+	ListTargetedInvitations(context.Context, *s4wave_provider_spacewave.ListTargetedInvitationsRequest) (*s4wave_provider_spacewave.ListTargetedInvitationsResponse, error)
+
+	WatchTargetedInvitations(*s4wave_provider_spacewave.ListTargetedInvitationsRequest, SRPCSpacewaveSessionResourceService_WatchTargetedInvitationsStream) error
+
+	GetTargetedInvitation(context.Context, *s4wave_provider_spacewave.GetTargetedInvitationRequest) (*s4wave_provider_spacewave.GetTargetedInvitationResponse, error)
+
+	RevokeTargetedInvitation(context.Context, *s4wave_provider_spacewave.RevokeTargetedInvitationRequest) (*s4wave_provider_spacewave.RevokeTargetedInvitationResponse, error)
+
+	ProcessTargetedInvitation(context.Context, *s4wave_provider_spacewave.ProcessTargetedInvitationRequest) (*s4wave_provider_spacewave.ProcessTargetedInvitationResponse, error)
+
 	CreateOrgInvite(context.Context, *s4wave_provider_spacewave.CreateOrgInviteRequest) (*s4wave_provider_spacewave.CreateOrgInviteResponse, error)
 
 	JoinOrganization(context.Context, *s4wave_provider_spacewave.JoinOrganizationRequest) (*s4wave_provider_spacewave.JoinOrganizationResponse, error)
@@ -953,6 +1134,18 @@ func (SRPCSpacewaveSessionResourceServiceHandler) GetMethodIDs() []string {
 		"CreateOrganization",
 		"WatchOrganizationState",
 		"DeleteOrganization",
+		"CreateTargetedInviteDraftByUsername",
+		"ResolveUsername",
+		"CreateTargetedInvitation",
+		"CreateSpaceTargetedInvitationByUsername",
+		"AcceptSpaceTargetedInvitation",
+		"CreateOrganizationTargetedInvitationByUsername",
+		"AcceptOrganizationTargetedInvitation",
+		"ListTargetedInvitations",
+		"WatchTargetedInvitations",
+		"GetTargetedInvitation",
+		"RevokeTargetedInvitation",
+		"ProcessTargetedInvitation",
 		"CreateOrgInvite",
 		"JoinOrganization",
 		"RevokeOrgInvite",
@@ -1045,6 +1238,30 @@ func (d *SRPCSpacewaveSessionResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_WatchOrganizationState(d.impl, strm)
 	case "DeleteOrganization":
 		return true, d.InvokeMethod_DeleteOrganization(d.impl, strm)
+	case "CreateTargetedInviteDraftByUsername":
+		return true, d.InvokeMethod_CreateTargetedInviteDraftByUsername(d.impl, strm)
+	case "ResolveUsername":
+		return true, d.InvokeMethod_ResolveUsername(d.impl, strm)
+	case "CreateTargetedInvitation":
+		return true, d.InvokeMethod_CreateTargetedInvitation(d.impl, strm)
+	case "CreateSpaceTargetedInvitationByUsername":
+		return true, d.InvokeMethod_CreateSpaceTargetedInvitationByUsername(d.impl, strm)
+	case "AcceptSpaceTargetedInvitation":
+		return true, d.InvokeMethod_AcceptSpaceTargetedInvitation(d.impl, strm)
+	case "CreateOrganizationTargetedInvitationByUsername":
+		return true, d.InvokeMethod_CreateOrganizationTargetedInvitationByUsername(d.impl, strm)
+	case "AcceptOrganizationTargetedInvitation":
+		return true, d.InvokeMethod_AcceptOrganizationTargetedInvitation(d.impl, strm)
+	case "ListTargetedInvitations":
+		return true, d.InvokeMethod_ListTargetedInvitations(d.impl, strm)
+	case "WatchTargetedInvitations":
+		return true, d.InvokeMethod_WatchTargetedInvitations(d.impl, strm)
+	case "GetTargetedInvitation":
+		return true, d.InvokeMethod_GetTargetedInvitation(d.impl, strm)
+	case "RevokeTargetedInvitation":
+		return true, d.InvokeMethod_RevokeTargetedInvitation(d.impl, strm)
+	case "ProcessTargetedInvitation":
+		return true, d.InvokeMethod_ProcessTargetedInvitation(d.impl, strm)
 	case "CreateOrgInvite":
 		return true, d.InvokeMethod_CreateOrgInvite(d.impl, strm)
 	case "JoinOrganization":
@@ -1402,6 +1619,147 @@ func (SRPCSpacewaveSessionResourceServiceHandler) InvokeMethod_DeleteOrganizatio
 		return err
 	}
 	out, err := impl.DeleteOrganization(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSpacewaveSessionResourceServiceHandler) InvokeMethod_CreateTargetedInviteDraftByUsername(impl SRPCSpacewaveSessionResourceServiceServer, strm srpc.Stream) error {
+	req := new(s4wave_provider_spacewave.CreateTargetedInviteDraftByUsernameRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.CreateTargetedInviteDraftByUsername(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSpacewaveSessionResourceServiceHandler) InvokeMethod_ResolveUsername(impl SRPCSpacewaveSessionResourceServiceServer, strm srpc.Stream) error {
+	req := new(s4wave_provider_spacewave.ResolveUsernameRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.ResolveUsername(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSpacewaveSessionResourceServiceHandler) InvokeMethod_CreateTargetedInvitation(impl SRPCSpacewaveSessionResourceServiceServer, strm srpc.Stream) error {
+	req := new(s4wave_provider_spacewave.CreateTargetedInvitationRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.CreateTargetedInvitation(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSpacewaveSessionResourceServiceHandler) InvokeMethod_CreateSpaceTargetedInvitationByUsername(impl SRPCSpacewaveSessionResourceServiceServer, strm srpc.Stream) error {
+	req := new(s4wave_provider_spacewave.CreateSpaceTargetedInvitationByUsernameRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.CreateSpaceTargetedInvitationByUsername(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSpacewaveSessionResourceServiceHandler) InvokeMethod_AcceptSpaceTargetedInvitation(impl SRPCSpacewaveSessionResourceServiceServer, strm srpc.Stream) error {
+	req := new(s4wave_provider_spacewave.AcceptSpaceTargetedInvitationRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.AcceptSpaceTargetedInvitation(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSpacewaveSessionResourceServiceHandler) InvokeMethod_CreateOrganizationTargetedInvitationByUsername(impl SRPCSpacewaveSessionResourceServiceServer, strm srpc.Stream) error {
+	req := new(s4wave_provider_spacewave.CreateOrganizationTargetedInvitationByUsernameRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.CreateOrganizationTargetedInvitationByUsername(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSpacewaveSessionResourceServiceHandler) InvokeMethod_AcceptOrganizationTargetedInvitation(impl SRPCSpacewaveSessionResourceServiceServer, strm srpc.Stream) error {
+	req := new(s4wave_provider_spacewave.AcceptOrganizationTargetedInvitationRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.AcceptOrganizationTargetedInvitation(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSpacewaveSessionResourceServiceHandler) InvokeMethod_ListTargetedInvitations(impl SRPCSpacewaveSessionResourceServiceServer, strm srpc.Stream) error {
+	req := new(s4wave_provider_spacewave.ListTargetedInvitationsRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.ListTargetedInvitations(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSpacewaveSessionResourceServiceHandler) InvokeMethod_WatchTargetedInvitations(impl SRPCSpacewaveSessionResourceServiceServer, strm srpc.Stream) error {
+	req := new(s4wave_provider_spacewave.ListTargetedInvitationsRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcSpacewaveSessionResourceService_WatchTargetedInvitationsStream{strm}
+	return impl.WatchTargetedInvitations(req, serverStrm)
+}
+
+func (SRPCSpacewaveSessionResourceServiceHandler) InvokeMethod_GetTargetedInvitation(impl SRPCSpacewaveSessionResourceServiceServer, strm srpc.Stream) error {
+	req := new(s4wave_provider_spacewave.GetTargetedInvitationRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.GetTargetedInvitation(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSpacewaveSessionResourceServiceHandler) InvokeMethod_RevokeTargetedInvitation(impl SRPCSpacewaveSessionResourceServiceServer, strm srpc.Stream) error {
+	req := new(s4wave_provider_spacewave.RevokeTargetedInvitationRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.RevokeTargetedInvitation(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSpacewaveSessionResourceServiceHandler) InvokeMethod_ProcessTargetedInvitation(impl SRPCSpacewaveSessionResourceServiceServer, strm srpc.Stream) error {
+	req := new(s4wave_provider_spacewave.ProcessTargetedInvitationRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.ProcessTargetedInvitation(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -2020,6 +2378,117 @@ type SRPCSpacewaveSessionResourceService_DeleteOrganizationStream interface {
 }
 
 type srpcSpacewaveSessionResourceService_DeleteOrganizationStream struct {
+	srpc.Stream
+}
+
+type SRPCSpacewaveSessionResourceService_CreateTargetedInviteDraftByUsernameStream interface {
+	srpc.Stream
+}
+
+type srpcSpacewaveSessionResourceService_CreateTargetedInviteDraftByUsernameStream struct {
+	srpc.Stream
+}
+
+type SRPCSpacewaveSessionResourceService_ResolveUsernameStream interface {
+	srpc.Stream
+}
+
+type srpcSpacewaveSessionResourceService_ResolveUsernameStream struct {
+	srpc.Stream
+}
+
+type SRPCSpacewaveSessionResourceService_CreateTargetedInvitationStream interface {
+	srpc.Stream
+}
+
+type srpcSpacewaveSessionResourceService_CreateTargetedInvitationStream struct {
+	srpc.Stream
+}
+
+type SRPCSpacewaveSessionResourceService_CreateSpaceTargetedInvitationByUsernameStream interface {
+	srpc.Stream
+}
+
+type srpcSpacewaveSessionResourceService_CreateSpaceTargetedInvitationByUsernameStream struct {
+	srpc.Stream
+}
+
+type SRPCSpacewaveSessionResourceService_AcceptSpaceTargetedInvitationStream interface {
+	srpc.Stream
+}
+
+type srpcSpacewaveSessionResourceService_AcceptSpaceTargetedInvitationStream struct {
+	srpc.Stream
+}
+
+type SRPCSpacewaveSessionResourceService_CreateOrganizationTargetedInvitationByUsernameStream interface {
+	srpc.Stream
+}
+
+type srpcSpacewaveSessionResourceService_CreateOrganizationTargetedInvitationByUsernameStream struct {
+	srpc.Stream
+}
+
+type SRPCSpacewaveSessionResourceService_AcceptOrganizationTargetedInvitationStream interface {
+	srpc.Stream
+}
+
+type srpcSpacewaveSessionResourceService_AcceptOrganizationTargetedInvitationStream struct {
+	srpc.Stream
+}
+
+type SRPCSpacewaveSessionResourceService_ListTargetedInvitationsStream interface {
+	srpc.Stream
+}
+
+type srpcSpacewaveSessionResourceService_ListTargetedInvitationsStream struct {
+	srpc.Stream
+}
+
+type SRPCSpacewaveSessionResourceService_WatchTargetedInvitationsStream interface {
+	srpc.Stream
+	Send(*s4wave_provider_spacewave.ListTargetedInvitationsResponse) error
+	SendAndClose(*s4wave_provider_spacewave.ListTargetedInvitationsResponse) error
+}
+
+type srpcSpacewaveSessionResourceService_WatchTargetedInvitationsStream struct {
+	srpc.Stream
+}
+
+func (x *srpcSpacewaveSessionResourceService_WatchTargetedInvitationsStream) Send(m *s4wave_provider_spacewave.ListTargetedInvitationsResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcSpacewaveSessionResourceService_WatchTargetedInvitationsStream) SendAndClose(m *s4wave_provider_spacewave.ListTargetedInvitationsResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
+}
+
+type SRPCSpacewaveSessionResourceService_GetTargetedInvitationStream interface {
+	srpc.Stream
+}
+
+type srpcSpacewaveSessionResourceService_GetTargetedInvitationStream struct {
+	srpc.Stream
+}
+
+type SRPCSpacewaveSessionResourceService_RevokeTargetedInvitationStream interface {
+	srpc.Stream
+}
+
+type srpcSpacewaveSessionResourceService_RevokeTargetedInvitationStream struct {
+	srpc.Stream
+}
+
+type SRPCSpacewaveSessionResourceService_ProcessTargetedInvitationStream interface {
+	srpc.Stream
+}
+
+type srpcSpacewaveSessionResourceService_ProcessTargetedInvitationStream struct {
 	srpc.Stream
 }
 

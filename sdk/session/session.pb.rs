@@ -682,6 +682,11 @@ pub struct JoinSpaceViaInviteRequest {
     /// InviteMessage is the out-of-band SOInviteMessage from the space owner.
     #[prost(message, optional, tag="1")]
     pub invite_message: ::core::option::Option<super::super::sobject::SoInviteMessage>,
+    /// TargetedInvitationEnvelope is the optional serialized
+    /// provider.spacewave.api.TargetedInvitationEnvelope proof for
+    /// username-addressed invites.
+    #[prost(bytes="vec", tag="2")]
+    pub targeted_invitation_envelope: ::prost::alloc::vec::Vec<u8>,
 }
 /// JoinSpaceViaInviteResponse is the response for JoinSpaceViaInvite.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

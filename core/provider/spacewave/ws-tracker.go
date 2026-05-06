@@ -54,6 +54,9 @@ type wsTracker struct {
 	// type:"invite_mailbox_update"} is received. The event carries the full
 	// updated mailbox entry and DO-side updatedAt.
 	onInviteMailboxUpdate func(soID string, entry *api.MailboxEntry, updatedAt int64)
+	// onTargetedInvitationsChanged is called when the recipient targeted
+	// invitation inbox changed and watchers should reload the durable inbox.
+	onTargetedInvitationsChanged func()
 	// onUpdateAvailable is called when a session_event{type:"update_available"}
 	// is received, indicating the release orchestrator has published a new
 	// dist config and the launcher should re-fetch immediately.
@@ -351,6 +354,9 @@ func (t *wsTracker) runWebSocket(ctx context.Context, reconnect bool) (bool, err
 				if ok {
 					t.onInviteMailboxUpdate(evt.GetSoId(), entry, updatedAt)
 				}
+			}
+			if evt.GetType() == "targeted_invitations_changed" && t.onTargetedInvitationsChanged != nil {
+				t.onTargetedInvitationsChanged()
 			}
 			if evt.GetType() == "update_available" && t.onUpdateAvailable != nil {
 				t.onUpdateAvailable()

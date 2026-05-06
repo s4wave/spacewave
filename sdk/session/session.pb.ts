@@ -2792,6 +2792,14 @@ export interface JoinSpaceViaInviteRequest {
    * @generated from field: sobject.SOInviteMessage invite_message = 1;
    */
   inviteMessage?: SOInviteMessage
+  /**
+   * TargetedInvitationEnvelope is the optional serialized
+   * provider.spacewave.api.TargetedInvitationEnvelope proof for
+   * username-addressed invites.
+   *
+   * @generated from field: bytes targeted_invitation_envelope = 2;
+   */
+  targetedInvitationEnvelope?: Uint8Array
 }
 
 // JoinSpaceViaInviteRequest contains the message type declaration for JoinSpaceViaInviteRequest.
@@ -2804,6 +2812,12 @@ export const JoinSpaceViaInviteRequest: MessageType<JoinSpaceViaInviteRequest> =
         name: 'invite_message',
         kind: 'message',
         T: () => SOInviteMessage,
+      },
+      {
+        no: 2,
+        name: 'targeted_invitation_envelope',
+        kind: 'scalar',
+        T: ScalarType.BYTES,
       },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,

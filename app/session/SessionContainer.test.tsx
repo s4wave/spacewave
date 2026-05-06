@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import {
   cleanup,
+  fireEvent,
   render,
   screen,
   waitFor,
@@ -9,6 +10,7 @@ import {
 } from '@testing-library/react'
 import { ProviderAccountStatus } from '@s4wave/core/provider/provider.pb.js'
 import { SessionLockMode } from '@s4wave/core/session/session.pb.js'
+import { TargetedInvitePurpose } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 
 import { SessionContainer } from './SessionContainer.js'
 
@@ -266,10 +268,16 @@ describe('SessionContainer', () => {
     unknown?,
   ]
 
-  function mockStreams(lockState: unknown, onboardingState: unknown) {
+  function mockStreams(
+    lockState: unknown,
+    onboardingState: unknown,
+    inboxState: unknown = { invitations: [] },
+  ) {
     mockUseStreamingResource
       .mockReturnValueOnce({ value: onboardingState })
       .mockReturnValueOnce({ value: lockState })
+      .mockReturnValueOnce({ value: inboxState })
+      .mockReturnValue({ value: inboxState })
   }
 
   it('wraps the routes tree with spacewave session providers and renders session details in the overlay', () => {
@@ -738,6 +746,200 @@ describe('SessionContainer', () => {
         path: './join/abc123',
         replace: true,
       })
+    })
+  })
+
+  it('renders targeted space invites from the watched inbox and accepts them', async () => {
+    cleanup()
+    mockNavigate.mockReset()
+    mockUseStreamingResource.mockReset()
+    mockUseSessionIndex.mockReturnValue(1)
+    mockUsePath.mockReturnValue('/u/1')
+    mockUseSessionInfo.mockReturnValue({
+      peerId: 'peer-id',
+    })
+    mockUseBottomBarSetOpenMenu.mockReturnValue(undefined)
+    mockUseRootResource.mockReturnValue({ value: null })
+    mockStreams(
+      null,
+      {
+        accountStatus: ProviderAccountStatus.ProviderAccountStatus_READY,
+      },
+      {
+        invitations: [
+          {
+            id: 'invite-1',
+            status: 'pending',
+            purpose: TargetedInvitePurpose.SPACE,
+            contextId: 'space-1',
+            role: 'writer',
+            actorAccountId: 'acct-owner',
+          },
+        ],
+      },
+    )
+    mockConsumePendingJoin.mockReturnValue(null)
+    const acceptSpaceTargetedInvitation = vi.fn(async () => {})
+    const session = {
+      spacewave: {
+        watchOnboardingStatus: vi.fn(),
+        watchTargetedInvitations: vi.fn(),
+        acceptSpaceTargetedInvitation,
+      },
+      watchLockState: vi.fn(),
+    }
+
+    render(
+      <SessionContainer
+        sessionResource={{
+          value: session as never,
+          loading: false,
+          error: null,
+          retry: vi.fn(),
+        }}
+        metadata={{
+          providerId: 'spacewave',
+          displayName: 'Cloud Session',
+        }}
+      />,
+    )
+
+    expect(screen.getByText('Pending Invites')).toBeTruthy()
+    expect(screen.getByText('Space invite: space-1')).toBeTruthy()
+    fireEvent.click(screen.getByText('Accept'))
+
+    await waitFor(() => {
+      expect(acceptSpaceTargetedInvitation).toHaveBeenCalledWith('invite-1')
+    })
+  })
+
+  it('declines targeted invites through the watched inbox', async () => {
+    cleanup()
+    mockNavigate.mockReset()
+    mockUseStreamingResource.mockReset()
+    mockUseSessionIndex.mockReturnValue(1)
+    mockUsePath.mockReturnValue('/u/1')
+    mockUseSessionInfo.mockReturnValue({
+      peerId: 'peer-id',
+    })
+    mockUseBottomBarSetOpenMenu.mockReturnValue(undefined)
+    mockUseRootResource.mockReturnValue({ value: null })
+    mockStreams(
+      null,
+      {
+        accountStatus: ProviderAccountStatus.ProviderAccountStatus_READY,
+      },
+      {
+        invitations: [
+          {
+            id: 'invite-1',
+            status: 'pending',
+            purpose: TargetedInvitePurpose.SPACE,
+            contextId: 'space-1',
+            role: 'writer',
+            actorAccountId: 'acct-owner',
+          },
+        ],
+      },
+    )
+    mockConsumePendingJoin.mockReturnValue(null)
+    const processTargetedInvitation = vi.fn(async () => {})
+    const session = {
+      spacewave: {
+        watchOnboardingStatus: vi.fn(),
+        watchTargetedInvitations: vi.fn(),
+        processTargetedInvitation,
+      },
+      watchLockState: vi.fn(),
+    }
+
+    render(
+      <SessionContainer
+        sessionResource={{
+          value: session as never,
+          loading: false,
+          error: null,
+          retry: vi.fn(),
+        }}
+        metadata={{
+          providerId: 'spacewave',
+          displayName: 'Cloud Session',
+        }}
+      />,
+    )
+
+    fireEvent.click(screen.getByText('Decline'))
+
+    await waitFor(() => {
+      expect(processTargetedInvitation).toHaveBeenCalledWith(
+        'invite-1',
+        'decline',
+      )
+    })
+  })
+
+  it('accepts targeted organization invites from the watched inbox', async () => {
+    cleanup()
+    mockNavigate.mockReset()
+    mockUseStreamingResource.mockReset()
+    mockUseSessionIndex.mockReturnValue(1)
+    mockUsePath.mockReturnValue('/u/1')
+    mockUseSessionInfo.mockReturnValue({
+      peerId: 'peer-id',
+    })
+    mockUseBottomBarSetOpenMenu.mockReturnValue(undefined)
+    mockUseRootResource.mockReturnValue({ value: null })
+    mockStreams(
+      null,
+      {
+        accountStatus: ProviderAccountStatus.ProviderAccountStatus_READY,
+      },
+      {
+        invitations: [
+          {
+            id: 'invite-1',
+            status: 'pending',
+            purpose: TargetedInvitePurpose.ORGANIZATION,
+            contextId: 'org-1',
+            role: 'org:member',
+            actorAccountId: 'acct-owner',
+          },
+        ],
+      },
+    )
+    mockConsumePendingJoin.mockReturnValue(null)
+    const acceptOrganizationTargetedInvitation = vi.fn(async () => {})
+    const session = {
+      spacewave: {
+        watchOnboardingStatus: vi.fn(),
+        watchTargetedInvitations: vi.fn(),
+        acceptOrganizationTargetedInvitation,
+      },
+      watchLockState: vi.fn(),
+    }
+
+    render(
+      <SessionContainer
+        sessionResource={{
+          value: session as never,
+          loading: false,
+          error: null,
+          retry: vi.fn(),
+        }}
+        metadata={{
+          providerId: 'spacewave',
+          displayName: 'Cloud Session',
+        }}
+      />,
+    )
+
+    expect(screen.getByText('Organization invite: org-1')).toBeTruthy()
+    fireEvent.click(screen.getByText('Accept'))
+
+    await waitFor(() => {
+      expect(acceptOrganizationTargetedInvitation).toHaveBeenCalledWith(
+        'invite-1',
+      )
     })
   })
 

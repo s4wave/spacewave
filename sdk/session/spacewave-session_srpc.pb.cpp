@@ -164,6 +164,62 @@ starpc::Error SRPCSpacewaveSessionResourceServiceClientImpl::DeleteOrganization(
   return cc_->ExecCall(service_id_, "DeleteOrganization", in, out);
 }
 
+starpc::Error SRPCSpacewaveSessionResourceServiceClientImpl::CreateTargetedInviteDraftByUsername(const s4wave::provider::spacewave::CreateTargetedInviteDraftByUsernameRequest& in, s4wave::provider::spacewave::CreateTargetedInviteDraftByUsernameResponse* out) {
+  return cc_->ExecCall(service_id_, "CreateTargetedInviteDraftByUsername", in, out);
+}
+
+starpc::Error SRPCSpacewaveSessionResourceServiceClientImpl::ResolveUsername(const s4wave::provider::spacewave::ResolveUsernameRequest& in, s4wave::provider::spacewave::ResolveUsernameResponse* out) {
+  return cc_->ExecCall(service_id_, "ResolveUsername", in, out);
+}
+
+starpc::Error SRPCSpacewaveSessionResourceServiceClientImpl::CreateTargetedInvitation(const s4wave::provider::spacewave::CreateTargetedInvitationRequest& in, s4wave::provider::spacewave::CreateTargetedInvitationResponse* out) {
+  return cc_->ExecCall(service_id_, "CreateTargetedInvitation", in, out);
+}
+
+starpc::Error SRPCSpacewaveSessionResourceServiceClientImpl::CreateSpaceTargetedInvitationByUsername(const s4wave::provider::spacewave::CreateSpaceTargetedInvitationByUsernameRequest& in, s4wave::provider::spacewave::CreateSpaceTargetedInvitationByUsernameResponse* out) {
+  return cc_->ExecCall(service_id_, "CreateSpaceTargetedInvitationByUsername", in, out);
+}
+
+starpc::Error SRPCSpacewaveSessionResourceServiceClientImpl::AcceptSpaceTargetedInvitation(const s4wave::provider::spacewave::AcceptSpaceTargetedInvitationRequest& in, s4wave::provider::spacewave::AcceptSpaceTargetedInvitationResponse* out) {
+  return cc_->ExecCall(service_id_, "AcceptSpaceTargetedInvitation", in, out);
+}
+
+starpc::Error SRPCSpacewaveSessionResourceServiceClientImpl::CreateOrganizationTargetedInvitationByUsername(const s4wave::provider::spacewave::CreateOrganizationTargetedInvitationByUsernameRequest& in, s4wave::provider::spacewave::CreateOrganizationTargetedInvitationByUsernameResponse* out) {
+  return cc_->ExecCall(service_id_, "CreateOrganizationTargetedInvitationByUsername", in, out);
+}
+
+starpc::Error SRPCSpacewaveSessionResourceServiceClientImpl::AcceptOrganizationTargetedInvitation(const s4wave::provider::spacewave::AcceptOrganizationTargetedInvitationRequest& in, s4wave::provider::spacewave::AcceptOrganizationTargetedInvitationResponse* out) {
+  return cc_->ExecCall(service_id_, "AcceptOrganizationTargetedInvitation", in, out);
+}
+
+starpc::Error SRPCSpacewaveSessionResourceServiceClientImpl::ListTargetedInvitations(const s4wave::provider::spacewave::ListTargetedInvitationsRequest& in, s4wave::provider::spacewave::ListTargetedInvitationsResponse* out) {
+  return cc_->ExecCall(service_id_, "ListTargetedInvitations", in, out);
+}
+
+std::pair<std::unique_ptr<SRPCSpacewaveSessionResourceService_WatchTargetedInvitationsClient>, starpc::Error> SRPCSpacewaveSessionResourceServiceClientImpl::WatchTargetedInvitations(const s4wave::provider::spacewave::ListTargetedInvitationsRequest& in) {
+  auto [strm, err] = cc_->NewStream(service_id_, "WatchTargetedInvitations", &in);
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  err = strm->CloseSend();
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  return {std::make_unique<SRPCSpacewaveSessionResourceService_WatchTargetedInvitationsClient>(std::move(strm)), starpc::Error::OK};
+}
+
+starpc::Error SRPCSpacewaveSessionResourceServiceClientImpl::GetTargetedInvitation(const s4wave::provider::spacewave::GetTargetedInvitationRequest& in, s4wave::provider::spacewave::GetTargetedInvitationResponse* out) {
+  return cc_->ExecCall(service_id_, "GetTargetedInvitation", in, out);
+}
+
+starpc::Error SRPCSpacewaveSessionResourceServiceClientImpl::RevokeTargetedInvitation(const s4wave::provider::spacewave::RevokeTargetedInvitationRequest& in, s4wave::provider::spacewave::RevokeTargetedInvitationResponse* out) {
+  return cc_->ExecCall(service_id_, "RevokeTargetedInvitation", in, out);
+}
+
+starpc::Error SRPCSpacewaveSessionResourceServiceClientImpl::ProcessTargetedInvitation(const s4wave::provider::spacewave::ProcessTargetedInvitationRequest& in, s4wave::provider::spacewave::ProcessTargetedInvitationResponse* out) {
+  return cc_->ExecCall(service_id_, "ProcessTargetedInvitation", in, out);
+}
+
 starpc::Error SRPCSpacewaveSessionResourceServiceClientImpl::CreateOrgInvite(const s4wave::provider::spacewave::CreateOrgInviteRequest& in, s4wave::provider::spacewave::CreateOrgInviteResponse* out) {
   return cc_->ExecCall(service_id_, "CreateOrgInvite", in, out);
 }
@@ -305,6 +361,18 @@ std::vector<std::string> SRPCSpacewaveSessionResourceServiceHandler::GetMethodID
     "CreateOrganization",
     "WatchOrganizationState",
     "DeleteOrganization",
+    "CreateTargetedInviteDraftByUsername",
+    "ResolveUsername",
+    "CreateTargetedInvitation",
+    "CreateSpaceTargetedInvitationByUsername",
+    "AcceptSpaceTargetedInvitation",
+    "CreateOrganizationTargetedInvitationByUsername",
+    "AcceptOrganizationTargetedInvitation",
+    "ListTargetedInvitations",
+    "WatchTargetedInvitations",
+    "GetTargetedInvitation",
+    "RevokeTargetedInvitation",
+    "ProcessTargetedInvitation",
     "CreateOrgInvite",
     "JoinOrganization",
     "RevokeOrgInvite",
@@ -544,6 +612,100 @@ std::pair<bool, starpc::Error> SRPCSpacewaveSessionResourceServiceHandler::Invok
     if (err != starpc::Error::OK) return {true, err};
     s4wave::provider::spacewave::DeleteOrganizationResponse resp;
     err = impl_->DeleteOrganization(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "CreateTargetedInviteDraftByUsername") {
+    s4wave::provider::spacewave::CreateTargetedInviteDraftByUsernameRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::provider::spacewave::CreateTargetedInviteDraftByUsernameResponse resp;
+    err = impl_->CreateTargetedInviteDraftByUsername(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "ResolveUsername") {
+    s4wave::provider::spacewave::ResolveUsernameRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::provider::spacewave::ResolveUsernameResponse resp;
+    err = impl_->ResolveUsername(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "CreateTargetedInvitation") {
+    s4wave::provider::spacewave::CreateTargetedInvitationRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::provider::spacewave::CreateTargetedInvitationResponse resp;
+    err = impl_->CreateTargetedInvitation(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "CreateSpaceTargetedInvitationByUsername") {
+    s4wave::provider::spacewave::CreateSpaceTargetedInvitationByUsernameRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::provider::spacewave::CreateSpaceTargetedInvitationByUsernameResponse resp;
+    err = impl_->CreateSpaceTargetedInvitationByUsername(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "AcceptSpaceTargetedInvitation") {
+    s4wave::provider::spacewave::AcceptSpaceTargetedInvitationRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::provider::spacewave::AcceptSpaceTargetedInvitationResponse resp;
+    err = impl_->AcceptSpaceTargetedInvitation(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "CreateOrganizationTargetedInvitationByUsername") {
+    s4wave::provider::spacewave::CreateOrganizationTargetedInvitationByUsernameRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::provider::spacewave::CreateOrganizationTargetedInvitationByUsernameResponse resp;
+    err = impl_->CreateOrganizationTargetedInvitationByUsername(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "AcceptOrganizationTargetedInvitation") {
+    s4wave::provider::spacewave::AcceptOrganizationTargetedInvitationRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::provider::spacewave::AcceptOrganizationTargetedInvitationResponse resp;
+    err = impl_->AcceptOrganizationTargetedInvitation(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "ListTargetedInvitations") {
+    s4wave::provider::spacewave::ListTargetedInvitationsRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::provider::spacewave::ListTargetedInvitationsResponse resp;
+    err = impl_->ListTargetedInvitations(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "WatchTargetedInvitations") {
+    s4wave::provider::spacewave::ListTargetedInvitationsRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    SRPCSpacewaveSessionResourceService_WatchTargetedInvitationsStream serverStrm(strm);
+    return {true, impl_->WatchTargetedInvitations(req, &serverStrm)};
+  } else if (method_id == "GetTargetedInvitation") {
+    s4wave::provider::spacewave::GetTargetedInvitationRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::provider::spacewave::GetTargetedInvitationResponse resp;
+    err = impl_->GetTargetedInvitation(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "RevokeTargetedInvitation") {
+    s4wave::provider::spacewave::RevokeTargetedInvitationRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::provider::spacewave::RevokeTargetedInvitationResponse resp;
+    err = impl_->RevokeTargetedInvitation(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "ProcessTargetedInvitation") {
+    s4wave::provider::spacewave::ProcessTargetedInvitationRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::provider::spacewave::ProcessTargetedInvitationResponse resp;
+    err = impl_->ProcessTargetedInvitation(req, &resp);
     if (err != starpc::Error::OK) return {true, err};
     return {true, strm->MsgSend(resp)};
   } else if (method_id == "CreateOrgInvite") {

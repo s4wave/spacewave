@@ -472,6 +472,9 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		acc.InvalidatePendingMailboxEntries()
 		acc.InvalidateSharedObjectMetadataCache()
 		acc.invalidateSharedObjectList()
+		acc.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			broadcast()
+		})
 		// Re-evaluate every mounted SO once on reconnect: the cold-start gate
 		// short-circuits warm SOs and the cache-aware classifier fetches only
 		// what is missing on the rest, so a long disconnect window cannot leave
@@ -501,6 +504,11 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 			acc.invalidateSharedObjectList()
 		}
 		acc.triggerMailboxEntryAutoProcess(ctx, soID, entry)
+	}
+	acc.wsTracker.onTargetedInvitationsChanged = func() {
+		acc.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			broadcast()
+		})
 	}
 	acc.wsTracker.onUpdateAvailable = func() {
 		le.Debug("dispatching launcher recheck after update_available notify")

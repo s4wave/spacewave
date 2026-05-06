@@ -1,7 +1,9 @@
 package provider_spacewave
 
 import (
+	"bytes"
 	"context"
+	"time"
 
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/pkg/errors"
@@ -10,6 +12,7 @@ import (
 	sobject_invite "github.com/s4wave/spacewave/core/sobject/invite"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
+	"github.com/zeebo/blake3"
 )
 
 type mailboxAutoProcessKey struct {
@@ -233,7 +236,15 @@ func (a *ProviderAccount) processMailboxEntry(
 	}
 	defer rel()
 
-	invite, responderPeerID, responderPub, err := validateMailboxEntryForAccept(ctx, swSO, entry)
+	ownerAccountID := ""
+	if entry.GetTargetedEnvelope() != nil {
+		account, err := cli.GetAccountInfo(ctx)
+		if err != nil {
+			return errors.Wrap(err, "get owner account info")
+		}
+		ownerAccountID = account.GetAccountId()
+	}
+	invite, responderPeerID, responderPub, err := validateMailboxEntryForAccept(ctx, swSO, soID, entry, ownerAccountID)
 	if err != nil {
 		return err
 	}
@@ -267,7 +278,9 @@ func (a *ProviderAccount) processMailboxEntry(
 func validateMailboxEntryForAccept(
 	ctx context.Context,
 	swSO *SharedObject,
+	soID string,
 	entry *api.MailboxEntry,
+	ownerAccountID string,
 ) (*sobject.SOInvite, peer.ID, crypto.PubKey, error) {
 	if entry == nil {
 		return nil, "", nil, errors.New("mailbox entry is required")
@@ -309,6 +322,135 @@ func validateMailboxEntryForAccept(
 	if targetPeerID := invite.GetTargetPeerId(); targetPeerID != "" && targetPeerID != responderPeerID.String() {
 		return nil, "", nil, &invalidMailboxEntryError{err: errors.New("invite is targeted to a different peer")}
 	}
+	if err := validateTargetedMailboxProof(entry, invite, state, soID, ownerAccountID); err != nil {
+		return nil, "", nil, &invalidMailboxEntryError{err: err}
+	}
 
 	return invite, responderPeerID, responderPub, nil
+}
+
+func validateTargetedMailboxProof(
+	entry *api.MailboxEntry,
+	invite *sobject.SOInvite,
+	state *sobject.SOState,
+	soID string,
+	ownerAccountID string,
+) error {
+	envelope := entry.GetTargetedEnvelope()
+	if envelope == nil {
+		return nil
+	}
+	if ownerAccountID == "" {
+		return errors.New("owner account id is required for targeted mailbox proof")
+	}
+	if err := VerifyTargetedInvitationEnvelope(envelope); err != nil {
+		return err
+	}
+	if envelope.GetSchemaVersion() != 1 {
+		return errors.New("unsupported targeted invitation envelope version")
+	}
+	if envelope.GetPurpose() != api.TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_SPACE {
+		return errors.New("targeted invitation purpose is not space")
+	}
+	if envelope.GetActorAccountId() != ownerAccountID {
+		return errors.New("targeted invitation actor is not the owner account")
+	}
+	if envelope.GetContextId() == "" || envelope.GetContextId() != soID {
+		return errors.New("targeted invitation context mismatch")
+	}
+	if envelope.GetTargetAccountId() != entry.GetAccountId() {
+		return errors.New("targeted invitation target account mismatch")
+	}
+	if envelope.GetExpiresAt() > 0 && envelope.GetExpiresAt() <= time.Now().UnixMilli() {
+		return errors.New("targeted invitation is expired")
+	}
+	if !isCurrentTargetedInviteSigner(state.GetConfig(), envelope.GetSignerPeerId()) {
+		return errors.New("targeted invitation signer is not a current owner")
+	}
+
+	inviteMsg := &sobject.SOInviteMessage{}
+	if err := inviteMsg.UnmarshalVT(envelope.GetPayload()); err != nil {
+		return errors.Wrap(err, "unmarshal targeted space invite payload")
+	}
+	if inviteMsg.GetInviteId() != entry.GetInviteId() || inviteMsg.GetInviteId() != invite.GetInviteId() {
+		return errors.New("targeted invitation payload invite mismatch")
+	}
+	if inviteMsg.GetSharedObjectId() != envelope.GetContextId() {
+		return errors.New("targeted invitation payload context mismatch")
+	}
+	if inviteMsg.GetOwnerPeerId() != envelope.GetSignerPeerId() {
+		return errors.New("targeted invitation payload signer mismatch")
+	}
+	if inviteMsg.GetRole() != invite.GetRole() {
+		return errors.New("targeted invitation payload role mismatch")
+	}
+	tokenHash := blake3.Sum256(inviteMsg.GetToken())
+	if !bytes.Equal(tokenHash[:], invite.GetTokenHash()) {
+		return errors.New("targeted invitation payload token mismatch")
+	}
+	role, err := targetedMailboxEnvelopeRole(envelope.GetRole())
+	if err != nil {
+		return err
+	}
+	if role != invite.GetRole() {
+		return errors.New("targeted invitation role mismatch")
+	}
+	if err := validateTargetedMailboxInviteMessageSignature(inviteMsg); err != nil {
+		return err
+	}
+	return nil
+}
+
+func targetedMailboxEnvelopeRole(role string) (sobject.SOParticipantRole, error) {
+	switch role {
+	case "", "reader":
+		return sobject.SOParticipantRole_SOParticipantRole_READER, nil
+	case "writer":
+		return sobject.SOParticipantRole_SOParticipantRole_WRITER, nil
+	case "validator":
+		return sobject.SOParticipantRole_SOParticipantRole_VALIDATOR, nil
+	default:
+		return sobject.SOParticipantRole_SOParticipantRole_UNKNOWN, errors.New("unsupported targeted invitation role")
+	}
+}
+
+func isCurrentTargetedInviteSigner(cfg *sobject.SharedObjectConfig, peerID string) bool {
+	for _, p := range cfg.GetParticipants() {
+		if p.GetPeerId() == peerID && sobject.IsOwner(p.GetRole()) {
+			return true
+		}
+	}
+	return false
+}
+
+func validateTargetedMailboxInviteMessageSignature(inviteMsg *sobject.SOInviteMessage) error {
+	if inviteMsg == nil {
+		return errors.New("targeted invitation payload is required")
+	}
+	sig := inviteMsg.GetSignature()
+	if sig == nil {
+		return errors.New("targeted invitation payload signature is required")
+	}
+	ownerPeerID, err := peer.IDB58Decode(inviteMsg.GetOwnerPeerId())
+	if err != nil {
+		return errors.Wrap(err, "parse targeted invitation owner peer ID")
+	}
+	ownerPub, err := ownerPeerID.ExtractPublicKey()
+	if err != nil {
+		return errors.Wrap(err, "extract targeted invitation owner public key")
+	}
+	body := inviteMsg.CloneVT()
+	body.Signature = nil
+	data, err := body.MarshalVT()
+	if err != nil {
+		return errors.Wrap(err, "marshal targeted invitation payload")
+	}
+	valid, err := sig.VerifyWithPublic("sobject invite", ownerPub, data)
+	if err != nil {
+		return errors.Wrap(err, "verify targeted invitation payload signature")
+	}
+	if !valid {
+		return errors.New("targeted invitation payload signature is invalid")
+	}
+	return nil
 }

@@ -1171,6 +1171,299 @@ message OrgInviteInfo {
   int64 expires_at = 6;
 }
 
+// TargetedInvitePurpose identifies what a targeted invite draft is for.
+enum TargetedInvitePurpose {
+  // TARGETED_INVITE_PURPOSE_UNSPECIFIED means no purpose was supplied.
+  TARGETED_INVITE_PURPOSE_UNSPECIFIED = 0;
+  // TARGETED_INVITE_PURPOSE_SPACE creates a draft for sharing a Space.
+  TARGETED_INVITE_PURPOSE_SPACE = 1;
+  // TARGETED_INVITE_PURPOSE_ORGANIZATION creates a draft for inviting an
+  // organization member.
+  TARGETED_INVITE_PURPOSE_ORGANIZATION = 2;
+}
+
+// CreateTargetedInviteDraftByUsernameRequest is the request for
+// CreateTargetedInviteDraftByUsername.
+message CreateTargetedInviteDraftByUsernameRequest {
+  // Username is the exact Spacewave username being addressed.
+  string username = 1;
+  // Purpose is the invite purpose.
+  TargetedInvitePurpose purpose = 2;
+  // SpaceId is set when purpose is TARGETED_INVITE_PURPOSE_SPACE.
+  string space_id = 3;
+  // OrgId is set when purpose is TARGETED_INVITE_PURPOSE_ORGANIZATION.
+  string org_id = 4;
+  // Role is the requested role for the eventual invite.
+  string role = 5;
+  // ExpiresAt is the Unix timestamp (ms) when the draft should expire.
+  int64 expires_at = 6;
+}
+
+// CreateTargetedInviteDraftByUsernameResponse is the response for
+// CreateTargetedInviteDraftByUsername.
+message CreateTargetedInviteDraftByUsernameResponse {
+  // Accepted is always true for syntactically valid requests. The response does
+  // not reveal whether the username matched a deliverable account.
+  bool accepted = 1;
+}
+
+// ResolveUsernameRequest is the request for ResolveUsername.
+message ResolveUsernameRequest {
+  // Username is the exact Spacewave username being addressed.
+  string username = 1;
+  // Purpose is the resolution purpose.
+  TargetedInvitePurpose purpose = 2;
+  // SpaceId is set when purpose is TARGETED_INVITE_PURPOSE_SPACE.
+  string space_id = 3;
+  // OrgId is set when purpose is TARGETED_INVITE_PURPOSE_ORGANIZATION.
+  string org_id = 4;
+}
+
+// ResolveUsernameResponse is the response for ResolveUsername.
+message ResolveUsernameResponse {
+  // Found is true only when AccountId is populated.
+  bool found = 1;
+  // AccountId is the resolved target account id when the actor may see it.
+  string account_id = 2;
+  // EntityId is the canonical username when AccountId is populated.
+  string entity_id = 3;
+  // DomainId is the target provider domain when AccountId is populated.
+  string domain_id = 4;
+  // Relationship is self, org_member, space_member, or none.
+  string relationship = 5;
+  // CanInvite reports whether the target privacy policy permits addressing.
+  bool can_invite = 6;
+  // EntityUuid is the stable target entity generation when Found is true.
+  string entity_uuid = 7;
+  // AccountEpoch is the target account epoch when Found is true.
+  int64 account_epoch = 8;
+}
+
+// TargetedInvitationEnvelope is the signed invite body carried through the
+// recipient inbox and verified again during fulfillment.
+message TargetedInvitationEnvelope {
+  // SchemaVersion identifies the envelope wire contract.
+  uint32 schema_version = 1;
+  // Purpose is the invite purpose bound into the signature.
+  TargetedInvitePurpose purpose = 2;
+  // ContextId is the Space or organization id bound into the signature.
+  string context_id = 3;
+  // ActorAccountId is the inviter account id.
+  string actor_account_id = 4;
+  // ActorEntityUuid is the inviter entity UUID or generation anchor.
+  string actor_entity_uuid = 5;
+  // ActorAccountEpoch is the inviter account epoch at create time.
+  int64 actor_account_epoch = 16;
+  // SignerPeerId is the session peer that signed this envelope.
+  string signer_peer_id = 6;
+  // TargetAccountId is the resolved recipient account id.
+  string target_account_id = 7;
+  // TargetEntityId is the resolved recipient username.
+  string target_entity_id = 8;
+  // TargetEntityUuid is the resolved recipient entity UUID.
+  string target_entity_uuid = 9;
+  // TargetAccountEpoch is the resolved recipient account epoch.
+  int64 target_account_epoch = 10;
+  // Role is the purpose-specific role requested by the inviter.
+  string role = 11;
+  // ExpiresAt is the Unix timestamp (ms) when the invite expires.
+  int64 expires_at = 12;
+  // Nonce is fresh caller-provided entropy for replay protection.
+  bytes nonce = 13;
+  // Payload is the purpose-specific signed payload.
+  bytes payload = 14;
+  // Signature is the signature over this envelope's canonical body.
+  bytes signature = 15;
+}
+
+// TargetedInvitationInfo is a recipient inbox row.
+message TargetedInvitationInfo {
+  // Id is the invitation ULID.
+  string id = 1;
+  // ActorAccountId is the inviter account id.
+  string actor_account_id = 2;
+  // TargetAccountId is the recipient account id.
+  string target_account_id = 3;
+  // TargetEntityId is the recipient username captured at create time.
+  string target_entity_id = 4;
+  // TargetEntityUuid is the recipient entity UUID captured at create time.
+  string target_entity_uuid = 5;
+  // TargetAccountEpoch is the recipient account epoch captured at create time.
+  int64 target_account_epoch = 6;
+  // Purpose is the invite purpose.
+  TargetedInvitePurpose purpose = 7;
+  // ContextId is the Space or organization id.
+  string context_id = 8;
+  // Role is the requested role.
+  string role = 9;
+  // Status is pending, revoked, accepted, declined, expired, or failed.
+  string status = 10;
+  // EnvelopeHash is the lowercase hex SHA-256 hash of Envelope bytes.
+  string envelope_hash = 11;
+  // Envelope is the signed envelope bytes for recipient-side verification.
+  TargetedInvitationEnvelope envelope = 12;
+  // CreatedAt is the row creation timestamp (ms).
+  int64 created_at = 13;
+  // UpdatedAt is the row update timestamp (ms).
+  int64 updated_at = 14;
+  // ExpiresAt is the Unix timestamp (ms) when the invite expires.
+  int64 expires_at = 15;
+  // DraftId is the optional targeted invite draft this invitation fulfilled.
+  string draft_id = 16;
+}
+
+// CreateTargetedInvitationRequest is the request for CreateTargetedInvitation.
+message CreateTargetedInvitationRequest {
+  // TargetAccountId is the resolved target account id.
+  string target_account_id = 1;
+  // Purpose is the invite purpose.
+  TargetedInvitePurpose purpose = 2;
+  // SpaceId is set when purpose is TARGETED_INVITE_PURPOSE_SPACE.
+  string space_id = 3;
+  // OrgId is set when purpose is TARGETED_INVITE_PURPOSE_ORGANIZATION.
+  string org_id = 4;
+  // Role is the requested role.
+  string role = 5;
+  // ExpiresAt is the Unix timestamp (ms) when the invite expires.
+  int64 expires_at = 6;
+  // Envelope is the signed targeted invitation envelope.
+  TargetedInvitationEnvelope envelope = 7;
+  // DraftId is the optional targeted invite draft being fulfilled.
+  string draft_id = 8;
+}
+
+// CreateTargetedInvitationResponse is the response for
+// CreateTargetedInvitation.
+message CreateTargetedInvitationResponse {
+  // Invitation is the pending invitation row.
+  TargetedInvitationInfo invitation = 1;
+}
+
+// CreateSpaceTargetedInvitationByUsernameRequest creates a Space targeted
+// invitation by exact username.
+message CreateSpaceTargetedInvitationByUsernameRequest {
+  // Username is the exact Spacewave username being addressed.
+  string username = 1;
+  // SpaceId is the Space shared object id.
+  string space_id = 2;
+  // Role is the Space participant role string ("reader", "writer", etc.).
+  string role = 3;
+  // ExpiresAt is the Unix timestamp (ms) when the invite expires.
+  int64 expires_at = 4;
+}
+
+// CreateSpaceTargetedInvitationByUsernameResponse returns the pending targeted
+// invitation row.
+message CreateSpaceTargetedInvitationByUsernameResponse {
+  // Invitation is the pending invitation row.
+  TargetedInvitationInfo invitation = 1;
+}
+
+// AcceptSpaceTargetedInvitationRequest accepts a pending Space targeted
+// invitation through the mailbox-backed join path.
+message AcceptSpaceTargetedInvitationRequest {
+  // Id is the targeted invitation ULID.
+  string id = 1;
+}
+
+// AcceptSpaceTargetedInvitationResponse returns the accepted invitation and
+// immediate Space join outcome.
+message AcceptSpaceTargetedInvitationResponse {
+  // Invitation is the updated invitation row.
+  TargetedInvitationInfo invitation = 1;
+  // SharedObjectId is the invited Space ID.
+  string shared_object_id = 2;
+  // JoinResult is accepted, pending_owner_approval, rejected, or
+  // owner_must_be_online.
+  string join_result = 3;
+}
+
+// CreateOrganizationTargetedInvitationByUsernameRequest creates an
+// organization targeted invitation by exact username.
+message CreateOrganizationTargetedInvitationByUsernameRequest {
+  // Username is the exact Spacewave username being addressed.
+  string username = 1;
+  // OrgId is the organization id.
+  string org_id = 2;
+  // Role is the organization role string. The seed supports "org:member".
+  string role = 3;
+  // ExpiresAt is the Unix timestamp (ms) when the invite expires.
+  int64 expires_at = 4;
+}
+
+// CreateOrganizationTargetedInvitationByUsernameResponse returns the pending
+// targeted invitation row.
+message CreateOrganizationTargetedInvitationByUsernameResponse {
+  // Invitation is the pending invitation row.
+  TargetedInvitationInfo invitation = 1;
+}
+
+// AcceptOrganizationTargetedInvitationRequest accepts a pending organization
+// targeted invitation.
+message AcceptOrganizationTargetedInvitationRequest {
+  // Id is the targeted invitation ULID.
+  string id = 1;
+}
+
+// AcceptOrganizationTargetedInvitationResponse returns the fulfilled
+// invitation and resulting organization membership.
+message AcceptOrganizationTargetedInvitationResponse {
+  // Invitation is the fulfilled invitation row.
+  TargetedInvitationInfo invitation = 1;
+  // Organization is the joined organization.
+  OrganizationInfo organization = 2;
+}
+
+// ListTargetedInvitationsRequest is the request for ListTargetedInvitations.
+message ListTargetedInvitationsRequest {}
+
+// ListTargetedInvitationsResponse is the response for
+// ListTargetedInvitations.
+message ListTargetedInvitationsResponse {
+  // Invitations are invitations visible to the caller.
+  repeated TargetedInvitationInfo invitations = 1;
+}
+
+// GetTargetedInvitationRequest is the request for GetTargetedInvitation.
+message GetTargetedInvitationRequest {
+  // Id is the invitation ULID.
+  string id = 1;
+}
+
+// GetTargetedInvitationResponse is the response for GetTargetedInvitation.
+message GetTargetedInvitationResponse {
+  // Invitation is the requested invitation.
+  TargetedInvitationInfo invitation = 1;
+}
+
+// RevokeTargetedInvitationRequest is the request for RevokeTargetedInvitation.
+message RevokeTargetedInvitationRequest {
+  // Id is the invitation ULID.
+  string id = 1;
+}
+
+// RevokeTargetedInvitationResponse is the response for
+// RevokeTargetedInvitation.
+message RevokeTargetedInvitationResponse {
+  // Invitation is the revoked invitation.
+  TargetedInvitationInfo invitation = 1;
+}
+
+// ProcessTargetedInvitationRequest is the request for ProcessTargetedInvitation.
+message ProcessTargetedInvitationRequest {
+  // Id is the invitation ULID.
+  string id = 1;
+  // Action is accept, decline, block, or report.
+  string action = 2;
+}
+
+// ProcessTargetedInvitationResponse is the response for
+// ProcessTargetedInvitation.
+message ProcessTargetedInvitationResponse {
+  // Invitation is the updated invitation.
+  TargetedInvitationInfo invitation = 1;
+}
+
 // CreateOrgInviteRequest is the request for CreateOrgInvite.
 message CreateOrgInviteRequest {
   // OrgId is the organization ULID.

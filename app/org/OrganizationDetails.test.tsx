@@ -1,8 +1,18 @@
 import React from 'react'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, cleanup, screen } from '@testing-library/react'
+import {
+  render,
+  cleanup,
+  fireEvent,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 import { OrganizationDetails } from './OrganizationDetails.js'
 import type { WatchOrganizationStateResponse } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
+
+const mockSession = vi.hoisted(() => ({
+  value: null as unknown,
+}))
 
 vi.mock('@s4wave/web/ui/tooltip.js', () => ({
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -32,7 +42,7 @@ vi.mock('@s4wave/web/state/persist.js', () => ({
 }))
 vi.mock('@s4wave/web/contexts/contexts.js', () => ({
   SessionContext: {
-    useContext: () => ({ value: null }),
+    useContext: () => ({ value: mockSession.value }),
   },
   useSessionNavigate: () => vi.fn(),
 }))
@@ -87,6 +97,8 @@ function makeOrgState(
 describe('OrganizationDetails', () => {
   beforeEach(() => {
     cleanup()
+    mockSession.value = null
+    vi.clearAllMocks()
   })
 
   describe('Owner view', () => {
@@ -148,6 +160,35 @@ describe('OrganizationDetails', () => {
       )
 
       expect(screen.getByText('Remove')).toBeDefined()
+    })
+
+    it('sends targeted organization invites by exact username', async () => {
+      const createOrganizationTargetedInvitationByUsername = vi.fn(
+        async () => {},
+      )
+      mockSession.value = {
+        spacewave: {
+          createOrganizationTargetedInvitationByUsername,
+        },
+      }
+      render(
+        <OrganizationDetails
+          orgId="org-1"
+          orgState={makeOrgState('org:owner')}
+          isOwner={true}
+        />,
+      )
+
+      fireEvent.change(screen.getByPlaceholderText('alice'), {
+        target: { value: 'casey' },
+      })
+      fireEvent.click(screen.getByRole('button', { name: 'Invite' }))
+
+      await waitFor(() => {
+        expect(
+          createOrganizationTargetedInvitationByUsername,
+        ).toHaveBeenCalledWith('casey', 'org-1', 'org:member')
+      })
     })
 
     it('does not show Leave button for owners', () => {

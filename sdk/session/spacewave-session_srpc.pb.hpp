@@ -32,6 +32,8 @@ class SRPCSpacewaveSessionResourceService_WatchOrganizationsClient;
 class SRPCSpacewaveSessionResourceService_WatchOrganizationsStream;
 class SRPCSpacewaveSessionResourceService_WatchOrganizationStateClient;
 class SRPCSpacewaveSessionResourceService_WatchOrganizationStateStream;
+class SRPCSpacewaveSessionResourceService_WatchTargetedInvitationsClient;
+class SRPCSpacewaveSessionResourceService_WatchTargetedInvitationsStream;
 class SRPCSpacewaveSessionResourceService_WatchEmailsClient;
 class SRPCSpacewaveSessionResourceService_WatchEmailsStream;
 
@@ -97,6 +99,30 @@ class SRPCSpacewaveSessionResourceServiceClient {
   virtual std::pair<std::unique_ptr<SRPCSpacewaveSessionResourceService_WatchOrganizationStateClient>, starpc::Error> WatchOrganizationState(const s4wave::provider::spacewave::WatchOrganizationStateRequest& in) = 0;
   // DeleteOrganization
   virtual starpc::Error DeleteOrganization(const s4wave::provider::spacewave::DeleteOrganizationRequest& in, s4wave::provider::spacewave::DeleteOrganizationResponse* out) = 0;
+  // CreateTargetedInviteDraftByUsername
+  virtual starpc::Error CreateTargetedInviteDraftByUsername(const s4wave::provider::spacewave::CreateTargetedInviteDraftByUsernameRequest& in, s4wave::provider::spacewave::CreateTargetedInviteDraftByUsernameResponse* out) = 0;
+  // ResolveUsername
+  virtual starpc::Error ResolveUsername(const s4wave::provider::spacewave::ResolveUsernameRequest& in, s4wave::provider::spacewave::ResolveUsernameResponse* out) = 0;
+  // CreateTargetedInvitation
+  virtual starpc::Error CreateTargetedInvitation(const s4wave::provider::spacewave::CreateTargetedInvitationRequest& in, s4wave::provider::spacewave::CreateTargetedInvitationResponse* out) = 0;
+  // CreateSpaceTargetedInvitationByUsername
+  virtual starpc::Error CreateSpaceTargetedInvitationByUsername(const s4wave::provider::spacewave::CreateSpaceTargetedInvitationByUsernameRequest& in, s4wave::provider::spacewave::CreateSpaceTargetedInvitationByUsernameResponse* out) = 0;
+  // AcceptSpaceTargetedInvitation
+  virtual starpc::Error AcceptSpaceTargetedInvitation(const s4wave::provider::spacewave::AcceptSpaceTargetedInvitationRequest& in, s4wave::provider::spacewave::AcceptSpaceTargetedInvitationResponse* out) = 0;
+  // CreateOrganizationTargetedInvitationByUsername
+  virtual starpc::Error CreateOrganizationTargetedInvitationByUsername(const s4wave::provider::spacewave::CreateOrganizationTargetedInvitationByUsernameRequest& in, s4wave::provider::spacewave::CreateOrganizationTargetedInvitationByUsernameResponse* out) = 0;
+  // AcceptOrganizationTargetedInvitation
+  virtual starpc::Error AcceptOrganizationTargetedInvitation(const s4wave::provider::spacewave::AcceptOrganizationTargetedInvitationRequest& in, s4wave::provider::spacewave::AcceptOrganizationTargetedInvitationResponse* out) = 0;
+  // ListTargetedInvitations
+  virtual starpc::Error ListTargetedInvitations(const s4wave::provider::spacewave::ListTargetedInvitationsRequest& in, s4wave::provider::spacewave::ListTargetedInvitationsResponse* out) = 0;
+  // WatchTargetedInvitations
+  virtual std::pair<std::unique_ptr<SRPCSpacewaveSessionResourceService_WatchTargetedInvitationsClient>, starpc::Error> WatchTargetedInvitations(const s4wave::provider::spacewave::ListTargetedInvitationsRequest& in) = 0;
+  // GetTargetedInvitation
+  virtual starpc::Error GetTargetedInvitation(const s4wave::provider::spacewave::GetTargetedInvitationRequest& in, s4wave::provider::spacewave::GetTargetedInvitationResponse* out) = 0;
+  // RevokeTargetedInvitation
+  virtual starpc::Error RevokeTargetedInvitation(const s4wave::provider::spacewave::RevokeTargetedInvitationRequest& in, s4wave::provider::spacewave::RevokeTargetedInvitationResponse* out) = 0;
+  // ProcessTargetedInvitation
+  virtual starpc::Error ProcessTargetedInvitation(const s4wave::provider::spacewave::ProcessTargetedInvitationRequest& in, s4wave::provider::spacewave::ProcessTargetedInvitationResponse* out) = 0;
   // CreateOrgInvite
   virtual starpc::Error CreateOrgInvite(const s4wave::provider::spacewave::CreateOrgInviteRequest& in, s4wave::provider::spacewave::CreateOrgInviteResponse* out) = 0;
   // JoinOrganization
@@ -213,6 +239,30 @@ class SRPCSpacewaveSessionResourceServiceClientImpl : public SRPCSpacewaveSessio
   virtual std::pair<std::unique_ptr<SRPCSpacewaveSessionResourceService_WatchOrganizationStateClient>, starpc::Error> WatchOrganizationState(const s4wave::provider::spacewave::WatchOrganizationStateRequest& in) override;
   // DeleteOrganization
   virtual starpc::Error DeleteOrganization(const s4wave::provider::spacewave::DeleteOrganizationRequest& in, s4wave::provider::spacewave::DeleteOrganizationResponse* out) override;
+  // CreateTargetedInviteDraftByUsername
+  virtual starpc::Error CreateTargetedInviteDraftByUsername(const s4wave::provider::spacewave::CreateTargetedInviteDraftByUsernameRequest& in, s4wave::provider::spacewave::CreateTargetedInviteDraftByUsernameResponse* out) override;
+  // ResolveUsername
+  virtual starpc::Error ResolveUsername(const s4wave::provider::spacewave::ResolveUsernameRequest& in, s4wave::provider::spacewave::ResolveUsernameResponse* out) override;
+  // CreateTargetedInvitation
+  virtual starpc::Error CreateTargetedInvitation(const s4wave::provider::spacewave::CreateTargetedInvitationRequest& in, s4wave::provider::spacewave::CreateTargetedInvitationResponse* out) override;
+  // CreateSpaceTargetedInvitationByUsername
+  virtual starpc::Error CreateSpaceTargetedInvitationByUsername(const s4wave::provider::spacewave::CreateSpaceTargetedInvitationByUsernameRequest& in, s4wave::provider::spacewave::CreateSpaceTargetedInvitationByUsernameResponse* out) override;
+  // AcceptSpaceTargetedInvitation
+  virtual starpc::Error AcceptSpaceTargetedInvitation(const s4wave::provider::spacewave::AcceptSpaceTargetedInvitationRequest& in, s4wave::provider::spacewave::AcceptSpaceTargetedInvitationResponse* out) override;
+  // CreateOrganizationTargetedInvitationByUsername
+  virtual starpc::Error CreateOrganizationTargetedInvitationByUsername(const s4wave::provider::spacewave::CreateOrganizationTargetedInvitationByUsernameRequest& in, s4wave::provider::spacewave::CreateOrganizationTargetedInvitationByUsernameResponse* out) override;
+  // AcceptOrganizationTargetedInvitation
+  virtual starpc::Error AcceptOrganizationTargetedInvitation(const s4wave::provider::spacewave::AcceptOrganizationTargetedInvitationRequest& in, s4wave::provider::spacewave::AcceptOrganizationTargetedInvitationResponse* out) override;
+  // ListTargetedInvitations
+  virtual starpc::Error ListTargetedInvitations(const s4wave::provider::spacewave::ListTargetedInvitationsRequest& in, s4wave::provider::spacewave::ListTargetedInvitationsResponse* out) override;
+  // WatchTargetedInvitations
+  virtual std::pair<std::unique_ptr<SRPCSpacewaveSessionResourceService_WatchTargetedInvitationsClient>, starpc::Error> WatchTargetedInvitations(const s4wave::provider::spacewave::ListTargetedInvitationsRequest& in) override;
+  // GetTargetedInvitation
+  virtual starpc::Error GetTargetedInvitation(const s4wave::provider::spacewave::GetTargetedInvitationRequest& in, s4wave::provider::spacewave::GetTargetedInvitationResponse* out) override;
+  // RevokeTargetedInvitation
+  virtual starpc::Error RevokeTargetedInvitation(const s4wave::provider::spacewave::RevokeTargetedInvitationRequest& in, s4wave::provider::spacewave::RevokeTargetedInvitationResponse* out) override;
+  // ProcessTargetedInvitation
+  virtual starpc::Error ProcessTargetedInvitation(const s4wave::provider::spacewave::ProcessTargetedInvitationRequest& in, s4wave::provider::spacewave::ProcessTargetedInvitationResponse* out) override;
   // CreateOrgInvite
   virtual starpc::Error CreateOrgInvite(const s4wave::provider::spacewave::CreateOrgInviteRequest& in, s4wave::provider::spacewave::CreateOrgInviteResponse* out) override;
   // JoinOrganization
@@ -335,6 +385,30 @@ class SRPCSpacewaveSessionResourceServiceServer {
   virtual starpc::Error WatchOrganizationState(const s4wave::provider::spacewave::WatchOrganizationStateRequest& req, SRPCSpacewaveSessionResourceService_WatchOrganizationStateStream* strm) = 0;
   // DeleteOrganization
   virtual starpc::Error DeleteOrganization(const s4wave::provider::spacewave::DeleteOrganizationRequest& req, s4wave::provider::spacewave::DeleteOrganizationResponse* resp) = 0;
+  // CreateTargetedInviteDraftByUsername
+  virtual starpc::Error CreateTargetedInviteDraftByUsername(const s4wave::provider::spacewave::CreateTargetedInviteDraftByUsernameRequest& req, s4wave::provider::spacewave::CreateTargetedInviteDraftByUsernameResponse* resp) = 0;
+  // ResolveUsername
+  virtual starpc::Error ResolveUsername(const s4wave::provider::spacewave::ResolveUsernameRequest& req, s4wave::provider::spacewave::ResolveUsernameResponse* resp) = 0;
+  // CreateTargetedInvitation
+  virtual starpc::Error CreateTargetedInvitation(const s4wave::provider::spacewave::CreateTargetedInvitationRequest& req, s4wave::provider::spacewave::CreateTargetedInvitationResponse* resp) = 0;
+  // CreateSpaceTargetedInvitationByUsername
+  virtual starpc::Error CreateSpaceTargetedInvitationByUsername(const s4wave::provider::spacewave::CreateSpaceTargetedInvitationByUsernameRequest& req, s4wave::provider::spacewave::CreateSpaceTargetedInvitationByUsernameResponse* resp) = 0;
+  // AcceptSpaceTargetedInvitation
+  virtual starpc::Error AcceptSpaceTargetedInvitation(const s4wave::provider::spacewave::AcceptSpaceTargetedInvitationRequest& req, s4wave::provider::spacewave::AcceptSpaceTargetedInvitationResponse* resp) = 0;
+  // CreateOrganizationTargetedInvitationByUsername
+  virtual starpc::Error CreateOrganizationTargetedInvitationByUsername(const s4wave::provider::spacewave::CreateOrganizationTargetedInvitationByUsernameRequest& req, s4wave::provider::spacewave::CreateOrganizationTargetedInvitationByUsernameResponse* resp) = 0;
+  // AcceptOrganizationTargetedInvitation
+  virtual starpc::Error AcceptOrganizationTargetedInvitation(const s4wave::provider::spacewave::AcceptOrganizationTargetedInvitationRequest& req, s4wave::provider::spacewave::AcceptOrganizationTargetedInvitationResponse* resp) = 0;
+  // ListTargetedInvitations
+  virtual starpc::Error ListTargetedInvitations(const s4wave::provider::spacewave::ListTargetedInvitationsRequest& req, s4wave::provider::spacewave::ListTargetedInvitationsResponse* resp) = 0;
+  // WatchTargetedInvitations
+  virtual starpc::Error WatchTargetedInvitations(const s4wave::provider::spacewave::ListTargetedInvitationsRequest& req, SRPCSpacewaveSessionResourceService_WatchTargetedInvitationsStream* strm) = 0;
+  // GetTargetedInvitation
+  virtual starpc::Error GetTargetedInvitation(const s4wave::provider::spacewave::GetTargetedInvitationRequest& req, s4wave::provider::spacewave::GetTargetedInvitationResponse* resp) = 0;
+  // RevokeTargetedInvitation
+  virtual starpc::Error RevokeTargetedInvitation(const s4wave::provider::spacewave::RevokeTargetedInvitationRequest& req, s4wave::provider::spacewave::RevokeTargetedInvitationResponse* resp) = 0;
+  // ProcessTargetedInvitation
+  virtual starpc::Error ProcessTargetedInvitation(const s4wave::provider::spacewave::ProcessTargetedInvitationRequest& req, s4wave::provider::spacewave::ProcessTargetedInvitationResponse* resp) = 0;
   // CreateOrgInvite
   virtual starpc::Error CreateOrgInvite(const s4wave::provider::spacewave::CreateOrgInviteRequest& req, s4wave::provider::spacewave::CreateOrgInviteResponse* resp) = 0;
   // JoinOrganization
@@ -624,6 +698,41 @@ class SRPCSpacewaveSessionResourceService_WatchOrganizationStateStream {
   }
 
   starpc::Error SendAndClose(const s4wave::provider::spacewave::WatchOrganizationStateResponse& msg) {
+    starpc::Error err = strm_->MsgSend(msg);
+    if (err != starpc::Error::OK) return err;
+    return strm_->CloseSend();
+  }
+
+ private:
+  starpc::Stream* strm_;
+};
+
+// SRPCSpacewaveSessionResourceService_WatchTargetedInvitationsClient is the client stream for WatchTargetedInvitations.
+class SRPCSpacewaveSessionResourceService_WatchTargetedInvitationsClient {
+ public:
+  explicit SRPCSpacewaveSessionResourceService_WatchTargetedInvitationsClient(std::unique_ptr<starpc::Stream> strm) : strm_(std::move(strm)) {}
+
+  starpc::Error Recv(s4wave::provider::spacewave::ListTargetedInvitationsResponse* msg) {
+    return strm_->MsgRecv(msg);
+  }
+
+  starpc::Error CloseSend() { return strm_->CloseSend(); }
+  starpc::Error Close() { return strm_->Close(); }
+
+ private:
+  std::unique_ptr<starpc::Stream> strm_;
+};
+
+// SRPCSpacewaveSessionResourceService_WatchTargetedInvitationsStream is the server stream for WatchTargetedInvitations.
+class SRPCSpacewaveSessionResourceService_WatchTargetedInvitationsStream {
+ public:
+  explicit SRPCSpacewaveSessionResourceService_WatchTargetedInvitationsStream(starpc::Stream* strm) : strm_(strm) {}
+
+  starpc::Error Send(const s4wave::provider::spacewave::ListTargetedInvitationsResponse& msg) {
+    return strm_->MsgSend(msg);
+  }
+
+  starpc::Error SendAndClose(const s4wave::provider::spacewave::ListTargetedInvitationsResponse& msg) {
     starpc::Error err = strm_->MsgSend(msg);
     if (err != starpc::Error::OK) return err;
     return strm_->CloseSend();

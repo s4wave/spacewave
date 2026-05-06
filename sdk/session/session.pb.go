@@ -2279,6 +2279,10 @@ type JoinSpaceViaInviteRequest struct {
 	unknownFields []byte
 	// InviteMessage is the out-of-band SOInviteMessage from the space owner.
 	InviteMessage *sobject.SOInviteMessage `protobuf:"bytes,1,opt,name=invite_message,json=inviteMessage,proto3" json:"inviteMessage,omitempty"`
+	// TargetedInvitationEnvelope is the optional serialized
+	// provider.spacewave.api.TargetedInvitationEnvelope proof for
+	// username-addressed invites.
+	TargetedInvitationEnvelope []byte `protobuf:"bytes,2,opt,name=targeted_invitation_envelope,json=targetedInvitationEnvelope,proto3" json:"targetedInvitationEnvelope,omitempty"`
 }
 
 func (x *JoinSpaceViaInviteRequest) Reset() {
@@ -2290,6 +2294,13 @@ func (*JoinSpaceViaInviteRequest) ProtoMessage() {}
 func (x *JoinSpaceViaInviteRequest) GetInviteMessage() *sobject.SOInviteMessage {
 	if x != nil {
 		return x.InviteMessage
+	}
+	return nil
+}
+
+func (x *JoinSpaceViaInviteRequest) GetTargetedInvitationEnvelope() []byte {
+	if x != nil {
+		return x.TargetedInvitationEnvelope
 	}
 	return nil
 }
@@ -2565,9 +2576,11 @@ func (m *GetSessionInfoResponse) CloneVT() *GetSessionInfoResponse {
 		return (*GetSessionInfoResponse)(nil)
 	}
 	r := new(GetSessionInfoResponse)
-	r.SessionRef = m.SessionRef.CloneVT()
 	r.PeerId = m.PeerId
 	r.CryptoInfo = m.CryptoInfo.CloneVT()
+	if rhs := m.SessionRef; rhs != nil {
+		r.SessionRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2657,8 +2670,12 @@ func (m *CreateSpaceResponse) CloneVT() *CreateSpaceResponse {
 		return (*CreateSpaceResponse)(nil)
 	}
 	r := new(CreateSpaceResponse)
-	r.SharedObjectRef = m.SharedObjectRef.CloneVT()
-	r.SharedObjectMeta = m.SharedObjectMeta.CloneVT()
+	if rhs := m.SharedObjectRef; rhs != nil {
+		r.SharedObjectRef = rhs.CloneVT()
+	}
+	if rhs := m.SharedObjectMeta; rhs != nil {
+		r.SharedObjectMeta = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2754,11 +2771,13 @@ func (m *MountSharedObjectResponse) CloneVT() *MountSharedObjectResponse {
 	}
 	r := new(MountSharedObjectResponse)
 	r.ResourceId = m.ResourceId
-	r.SharedObjectMeta = m.SharedObjectMeta.CloneVT()
 	r.PeerId = m.PeerId
 	r.SharedObjectId = m.SharedObjectId
 	r.BlockStoreId = m.BlockStoreId
 	r.HashType = m.HashType
+	if rhs := m.SharedObjectMeta; rhs != nil {
+		r.SharedObjectMeta = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2790,7 +2809,9 @@ func (m *WatchSharedObjectHealthResponse) CloneVT() *WatchSharedObjectHealthResp
 		return (*WatchSharedObjectHealthResponse)(nil)
 	}
 	r := new(WatchSharedObjectHealthResponse)
-	r.Health = m.Health.CloneVT()
+	if rhs := m.Health; rhs != nil {
+		r.Health = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3401,7 +3422,9 @@ func (m *WatchTransferProgressResponse) CloneVT() *WatchTransferProgressResponse
 		return (*WatchTransferProgressResponse)(nil)
 	}
 	r := new(WatchTransferProgressResponse)
-	r.State = m.State.CloneVT()
+	if rhs := m.State; rhs != nil {
+		r.State = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3576,8 +3599,10 @@ func (m *CreateSpaceInviteResponse) CloneVT() *CreateSpaceInviteResponse {
 		return (*CreateSpaceInviteResponse)(nil)
 	}
 	r := new(CreateSpaceInviteResponse)
-	r.InviteMessage = m.InviteMessage.CloneVT()
 	r.ShortCode = m.ShortCode
+	if rhs := m.InviteMessage; rhs != nil {
+		r.InviteMessage = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3732,7 +3757,12 @@ func (m *JoinSpaceViaInviteRequest) CloneVT() *JoinSpaceViaInviteRequest {
 		return (*JoinSpaceViaInviteRequest)(nil)
 	}
 	r := new(JoinSpaceViaInviteRequest)
-	r.InviteMessage = m.InviteMessage.CloneVT()
+	if rhs := m.InviteMessage; rhs != nil {
+		r.InviteMessage = rhs.CloneVT()
+	}
+	if rhs := m.TargetedInvitationEnvelope; rhs != nil {
+		r.TargetedInvitationEnvelope = slices.Clone(rhs)
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3782,7 +3812,9 @@ func (m *GetTransferStatusResponse) CloneVT() *GetTransferStatusResponse {
 	r := new(GetTransferStatusResponse)
 	r.Active = m.Active
 	r.HasCheckpoint = m.HasCheckpoint
-	r.State = m.State.CloneVT()
+	if rhs := m.State; rhs != nil {
+		r.State = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -5564,6 +5596,9 @@ func (this *JoinSpaceViaInviteRequest) EqualVT(that *JoinSpaceViaInviteRequest) 
 		return false
 	}
 	if !this.InviteMessage.EqualVT(that.InviteMessage) {
+		return false
+	}
+	if string(this.TargetedInvitationEnvelope) != string(that.TargetedInvitationEnvelope) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -9466,6 +9501,11 @@ func (x *JoinSpaceViaInviteRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("inviteMessage")
 		x.InviteMessage.MarshalProtoJSON(s.WithField("inviteMessage"))
 	}
+	if len(x.TargetedInvitationEnvelope) > 0 || s.HasField("targetedInvitationEnvelope") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("targetedInvitationEnvelope")
+		s.WriteBytes(x.TargetedInvitationEnvelope)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -9490,6 +9530,9 @@ func (x *JoinSpaceViaInviteRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.InviteMessage = &sobject.SOInviteMessage{}
 			x.InviteMessage.UnmarshalProtoJSON(s.WithField("invite_message", true))
+		case "targeted_invitation_envelope", "targetedInvitationEnvelope":
+			s.AddField("targeted_invitation_envelope")
+			x.TargetedInvitationEnvelope = s.ReadBytes()
 		}
 	})
 }
@@ -13168,6 +13211,13 @@ func (m *JoinSpaceViaInviteRequest) MarshalToSizedBufferVT(dAtA []byte) (int, er
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.TargetedInvitationEnvelope) > 0 {
+		i -= len(m.TargetedInvitationEnvelope)
+		copy(dAtA[i:], m.TargetedInvitationEnvelope)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.TargetedInvitationEnvelope)))
+		i--
+		dAtA[i] = 0x12
+	}
 	if m.InviteMessage != nil {
 		size, err := m.InviteMessage.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -14804,6 +14854,10 @@ func (m *JoinSpaceViaInviteRequest) SizeVT() (n int) {
 	_ = l
 	if m.InviteMessage != nil {
 		l = m.InviteMessage.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.TargetedInvitationEnvelope)
+	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
@@ -16753,6 +16807,15 @@ func (x *JoinSpaceViaInviteRequest) MarshalProtoText() string {
 		}
 		sb.WriteString("invite_message: ")
 		sb.WriteString(x.InviteMessage.MarshalProtoText())
+	}
+	if x.TargetedInvitationEnvelope != nil {
+		if sb.Len() > 27 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("targeted_invitation_envelope: ")
+		sb.WriteString("\"")
+		sb.WriteString(base64.StdEncoding.EncodeToString(x.TargetedInvitationEnvelope))
+		sb.WriteString("\"")
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -22018,6 +22081,32 @@ func (m *JoinSpaceViaInviteRequest) UnmarshalVT(dAtA []byte) error {
 			}
 			if err := m.InviteMessage.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TargetedInvitationEnvelope", wireType)
+			}
+			var byteLen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			byteLen = int(_v)
+			if err != nil {
+				return err
+			}
+			if byteLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.TargetedInvitationEnvelope = append(m.TargetedInvitationEnvelope[:0], dAtA[iNdEx:postIndex]...)
+			if m.TargetedInvitationEnvelope == nil {
+				m.TargetedInvitationEnvelope = []byte{}
 			}
 			iNdEx = postIndex
 		default:

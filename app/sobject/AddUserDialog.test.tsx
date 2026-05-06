@@ -41,6 +41,7 @@ vi.mock('@s4wave/web/ui/tabs.js', () => ({
 const mockSession = {
   spacewave: {
     enrollSpaceMember: vi.fn(),
+    createSpaceTargetedInvitationByUsername: vi.fn(),
   },
   createSpaceInvite: vi.fn(),
   resourceRef: { resourceId: 1, released: false },
@@ -112,12 +113,12 @@ describe('AddUserDialog', () => {
 
     expect(
       screen.getByText(
-        'Add an existing org member, or create a shareable code or link for anyone else.',
+        'Add an existing org member, send a username invite, or create a shareable code or link.',
       ),
     ).toBeDefined()
     expect(
       screen.getByText(
-        'Choose someone already in this organization. Use Code or Link to share with anyone else.',
+        'Choose someone already in this organization. Use Username, Code, or Link to share with anyone else.',
       ),
     ).toBeDefined()
     expect(screen.getByText('alice')).toBeDefined()
@@ -136,13 +137,26 @@ describe('AddUserDialog', () => {
     expect(screen.queryByText('alice')).toBeNull()
   })
 
-  it('stays within launch scope and does not expose username discovery', () => {
+  it('offers exact username invite without search discovery', () => {
     renderDialog()
 
     expect(screen.getByText('Org Members')).toBeDefined()
     expect(screen.getByText('Code')).toBeDefined()
+    expect(screen.getByText('Username')).toBeDefined()
     expect(screen.getByText('Link')).toBeDefined()
-    expect(screen.queryByText('Username')).toBeNull()
     expect(screen.queryByText('Search all users')).toBeNull()
+  })
+
+  it('creates a targeted username invite', async () => {
+    renderDialog()
+
+    fireEvent.change(screen.getByPlaceholderText('alice'), {
+      target: { value: 'casey' },
+    })
+    fireEvent.click(screen.getByText('Send Invite'))
+
+    expect(
+      mockSession.spacewave.createSpaceTargetedInvitationByUsername,
+    ).toHaveBeenCalledWith('casey', 'space-1', 'writer')
   })
 })

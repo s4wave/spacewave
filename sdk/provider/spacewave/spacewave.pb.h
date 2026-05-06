@@ -74,6 +74,24 @@ enum PasskeyPrfWrapAlgorithm : int;
 extern const uint32_t PasskeyPrfWrapAlgorithm_internal_data_[];
 enum SelfEnrollmentGateState : int;
 extern const uint32_t SelfEnrollmentGateState_internal_data_[];
+enum TargetedInvitePurpose : int;
+extern const uint32_t TargetedInvitePurpose_internal_data_[];
+class AcceptOrganizationTargetedInvitationRequest;
+struct AcceptOrganizationTargetedInvitationRequestDefaultTypeInternal;
+extern AcceptOrganizationTargetedInvitationRequestDefaultTypeInternal _AcceptOrganizationTargetedInvitationRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull AcceptOrganizationTargetedInvitationRequest_class_data_;
+class AcceptOrganizationTargetedInvitationResponse;
+struct AcceptOrganizationTargetedInvitationResponseDefaultTypeInternal;
+extern AcceptOrganizationTargetedInvitationResponseDefaultTypeInternal _AcceptOrganizationTargetedInvitationResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull AcceptOrganizationTargetedInvitationResponse_class_data_;
+class AcceptSpaceTargetedInvitationRequest;
+struct AcceptSpaceTargetedInvitationRequestDefaultTypeInternal;
+extern AcceptSpaceTargetedInvitationRequestDefaultTypeInternal _AcceptSpaceTargetedInvitationRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull AcceptSpaceTargetedInvitationRequest_class_data_;
+class AcceptSpaceTargetedInvitationResponse;
+struct AcceptSpaceTargetedInvitationResponseDefaultTypeInternal;
+extern AcceptSpaceTargetedInvitationResponseDefaultTypeInternal _AcceptSpaceTargetedInvitationResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull AcceptSpaceTargetedInvitationResponse_class_data_;
 class AddEmailRequest;
 struct AddEmailRequestDefaultTypeInternal;
 extern AddEmailRequestDefaultTypeInternal _AddEmailRequest_default_instance_;
@@ -206,6 +224,38 @@ class CreateOrganizationResponse;
 struct CreateOrganizationResponseDefaultTypeInternal;
 extern CreateOrganizationResponseDefaultTypeInternal _CreateOrganizationResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull CreateOrganizationResponse_class_data_;
+class CreateOrganizationTargetedInvitationByUsernameRequest;
+struct CreateOrganizationTargetedInvitationByUsernameRequestDefaultTypeInternal;
+extern CreateOrganizationTargetedInvitationByUsernameRequestDefaultTypeInternal _CreateOrganizationTargetedInvitationByUsernameRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull CreateOrganizationTargetedInvitationByUsernameRequest_class_data_;
+class CreateOrganizationTargetedInvitationByUsernameResponse;
+struct CreateOrganizationTargetedInvitationByUsernameResponseDefaultTypeInternal;
+extern CreateOrganizationTargetedInvitationByUsernameResponseDefaultTypeInternal _CreateOrganizationTargetedInvitationByUsernameResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull CreateOrganizationTargetedInvitationByUsernameResponse_class_data_;
+class CreateSpaceTargetedInvitationByUsernameRequest;
+struct CreateSpaceTargetedInvitationByUsernameRequestDefaultTypeInternal;
+extern CreateSpaceTargetedInvitationByUsernameRequestDefaultTypeInternal _CreateSpaceTargetedInvitationByUsernameRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull CreateSpaceTargetedInvitationByUsernameRequest_class_data_;
+class CreateSpaceTargetedInvitationByUsernameResponse;
+struct CreateSpaceTargetedInvitationByUsernameResponseDefaultTypeInternal;
+extern CreateSpaceTargetedInvitationByUsernameResponseDefaultTypeInternal _CreateSpaceTargetedInvitationByUsernameResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull CreateSpaceTargetedInvitationByUsernameResponse_class_data_;
+class CreateTargetedInvitationRequest;
+struct CreateTargetedInvitationRequestDefaultTypeInternal;
+extern CreateTargetedInvitationRequestDefaultTypeInternal _CreateTargetedInvitationRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull CreateTargetedInvitationRequest_class_data_;
+class CreateTargetedInvitationResponse;
+struct CreateTargetedInvitationResponseDefaultTypeInternal;
+extern CreateTargetedInvitationResponseDefaultTypeInternal _CreateTargetedInvitationResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull CreateTargetedInvitationResponse_class_data_;
+class CreateTargetedInviteDraftByUsernameRequest;
+struct CreateTargetedInviteDraftByUsernameRequestDefaultTypeInternal;
+extern CreateTargetedInviteDraftByUsernameRequestDefaultTypeInternal _CreateTargetedInviteDraftByUsernameRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull CreateTargetedInviteDraftByUsernameRequest_class_data_;
+class CreateTargetedInviteDraftByUsernameResponse;
+struct CreateTargetedInviteDraftByUsernameResponseDefaultTypeInternal;
+extern CreateTargetedInviteDraftByUsernameResponseDefaultTypeInternal _CreateTargetedInviteDraftByUsernameResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull CreateTargetedInviteDraftByUsernameResponse_class_data_;
 class DeleteBillingAccountRequest;
 struct DeleteBillingAccountRequestDefaultTypeInternal;
 extern DeleteBillingAccountRequestDefaultTypeInternal _DeleteBillingAccountRequest_default_instance_;
@@ -362,6 +412,14 @@ class GetSubscriptionStatusResponse;
 struct GetSubscriptionStatusResponseDefaultTypeInternal;
 extern GetSubscriptionStatusResponseDefaultTypeInternal _GetSubscriptionStatusResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull GetSubscriptionStatusResponse_class_data_;
+class GetTargetedInvitationRequest;
+struct GetTargetedInvitationRequestDefaultTypeInternal;
+extern GetTargetedInvitationRequestDefaultTypeInternal _GetTargetedInvitationRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull GetTargetedInvitationRequest_class_data_;
+class GetTargetedInvitationResponse;
+struct GetTargetedInvitationResponseDefaultTypeInternal;
+extern GetTargetedInvitationResponseDefaultTypeInternal _GetTargetedInvitationResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull GetTargetedInvitationResponse_class_data_;
 class JoinOrganizationRequest;
 struct JoinOrganizationRequestDefaultTypeInternal;
 extern JoinOrganizationRequestDefaultTypeInternal _JoinOrganizationRequest_default_instance_;
@@ -410,6 +468,14 @@ class ListOrganizationsResponse;
 struct ListOrganizationsResponseDefaultTypeInternal;
 extern ListOrganizationsResponseDefaultTypeInternal _ListOrganizationsResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull ListOrganizationsResponse_class_data_;
+class ListTargetedInvitationsRequest;
+struct ListTargetedInvitationsRequestDefaultTypeInternal;
+extern ListTargetedInvitationsRequestDefaultTypeInternal _ListTargetedInvitationsRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull ListTargetedInvitationsRequest_class_data_;
+class ListTargetedInvitationsResponse;
+struct ListTargetedInvitationsResponseDefaultTypeInternal;
+extern ListTargetedInvitationsResponseDefaultTypeInternal _ListTargetedInvitationsResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull ListTargetedInvitationsResponse_class_data_;
 class LoginAccountRequest;
 struct LoginAccountRequestDefaultTypeInternal;
 extern LoginAccountRequestDefaultTypeInternal _LoginAccountRequest_default_instance_;
@@ -546,6 +612,14 @@ class ProcessMailboxEntryResponse;
 struct ProcessMailboxEntryResponseDefaultTypeInternal;
 extern ProcessMailboxEntryResponseDefaultTypeInternal _ProcessMailboxEntryResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull ProcessMailboxEntryResponse_class_data_;
+class ProcessTargetedInvitationRequest;
+struct ProcessTargetedInvitationRequestDefaultTypeInternal;
+extern ProcessTargetedInvitationRequestDefaultTypeInternal _ProcessTargetedInvitationRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull ProcessTargetedInvitationRequest_class_data_;
+class ProcessTargetedInvitationResponse;
+struct ProcessTargetedInvitationResponseDefaultTypeInternal;
+extern ProcessTargetedInvitationResponseDefaultTypeInternal _ProcessTargetedInvitationResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull ProcessTargetedInvitationResponse_class_data_;
 class ReactivateSubscriptionRequest;
 struct ReactivateSubscriptionRequestDefaultTypeInternal;
 extern ReactivateSubscriptionRequestDefaultTypeInternal _ReactivateSubscriptionRequest_default_instance_;
@@ -670,6 +744,14 @@ class ResetSessionResponse;
 struct ResetSessionResponseDefaultTypeInternal;
 extern ResetSessionResponseDefaultTypeInternal _ResetSessionResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull ResetSessionResponse_class_data_;
+class ResolveUsernameRequest;
+struct ResolveUsernameRequestDefaultTypeInternal;
+extern ResolveUsernameRequestDefaultTypeInternal _ResolveUsernameRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull ResolveUsernameRequest_class_data_;
+class ResolveUsernameResponse;
+struct ResolveUsernameResponseDefaultTypeInternal;
+extern ResolveUsernameResponseDefaultTypeInternal _ResolveUsernameResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull ResolveUsernameResponse_class_data_;
 class RevokeOrgInviteRequest;
 struct RevokeOrgInviteRequestDefaultTypeInternal;
 extern RevokeOrgInviteRequestDefaultTypeInternal _RevokeOrgInviteRequest_default_instance_;
@@ -678,6 +760,14 @@ class RevokeOrgInviteResponse;
 struct RevokeOrgInviteResponseDefaultTypeInternal;
 extern RevokeOrgInviteResponseDefaultTypeInternal _RevokeOrgInviteResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull RevokeOrgInviteResponse_class_data_;
+class RevokeTargetedInvitationRequest;
+struct RevokeTargetedInvitationRequestDefaultTypeInternal;
+extern RevokeTargetedInvitationRequestDefaultTypeInternal _RevokeTargetedInvitationRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull RevokeTargetedInvitationRequest_class_data_;
+class RevokeTargetedInvitationResponse;
+struct RevokeTargetedInvitationResponseDefaultTypeInternal;
+extern RevokeTargetedInvitationResponseDefaultTypeInternal _RevokeTargetedInvitationResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull RevokeTargetedInvitationResponse_class_data_;
 class SSOCodeExchangeRequest;
 struct SSOCodeExchangeRequestDefaultTypeInternal;
 extern SSOCodeExchangeRequestDefaultTypeInternal _SSOCodeExchangeRequest_default_instance_;
@@ -766,6 +856,14 @@ class SwitchBillingIntervalResponse;
 struct SwitchBillingIntervalResponseDefaultTypeInternal;
 extern SwitchBillingIntervalResponseDefaultTypeInternal _SwitchBillingIntervalResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull SwitchBillingIntervalResponse_class_data_;
+class TargetedInvitationEnvelope;
+struct TargetedInvitationEnvelopeDefaultTypeInternal;
+extern TargetedInvitationEnvelopeDefaultTypeInternal _TargetedInvitationEnvelope_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull TargetedInvitationEnvelope_class_data_;
+class TargetedInvitationInfo;
+struct TargetedInvitationInfoDefaultTypeInternal;
+extern TargetedInvitationInfoDefaultTypeInternal _TargetedInvitationInfo_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull TargetedInvitationInfo_class_data_;
 class TransferResourceRequest;
 struct TransferResourceRequestDefaultTypeInternal;
 extern TransferResourceRequestDefaultTypeInternal _TransferResourceRequest_default_instance_;
@@ -917,6 +1015,9 @@ internal::EnumTraitsT<::s4wave::provider::spacewave::PasskeyPrfWrapAlgorithm_int
 template <>
 internal::EnumTraitsT<::s4wave::provider::spacewave::SelfEnrollmentGateState_internal_data_>
     internal::EnumTraitsImpl::value<::s4wave::provider::spacewave::SelfEnrollmentGateState>;
+template <>
+internal::EnumTraitsT<::s4wave::provider::spacewave::TargetedInvitePurpose_internal_data_>
+    internal::EnumTraitsImpl::value<::s4wave::provider::spacewave::TargetedInvitePurpose>;
 }  // namespace protobuf
 }  // namespace google
 
@@ -1158,6 +1259,43 @@ inline const ::std::string& SelfEnrollmentGateState_Name(SelfEnrollmentGateState
 inline bool SelfEnrollmentGateState_Parse(
     ::absl::string_view name, SelfEnrollmentGateState* PROTOBUF_NONNULL value) {
   return ::google::protobuf::internal::ParseNamedEnum<SelfEnrollmentGateState>(SelfEnrollmentGateState_descriptor(), name,
+                                           value);
+}
+enum TargetedInvitePurpose : int {
+  TARGETED_INVITE_PURPOSE_UNSPECIFIED = 0,
+  TARGETED_INVITE_PURPOSE_SPACE = 1,
+  TARGETED_INVITE_PURPOSE_ORGANIZATION = 2,
+  TargetedInvitePurpose_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  TargetedInvitePurpose_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t TargetedInvitePurpose_internal_data_[];
+inline constexpr TargetedInvitePurpose TargetedInvitePurpose_MIN =
+    static_cast<TargetedInvitePurpose>(0);
+inline constexpr TargetedInvitePurpose TargetedInvitePurpose_MAX =
+    static_cast<TargetedInvitePurpose>(2);
+inline bool TargetedInvitePurpose_IsValid(int value) {
+  return 0 <= value && value <= 2;
+}
+inline constexpr int TargetedInvitePurpose_ARRAYSIZE = 2 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL TargetedInvitePurpose_descriptor();
+template <typename T>
+const ::std::string& TargetedInvitePurpose_Name(T value) {
+  static_assert(::std::is_same<T, TargetedInvitePurpose>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to TargetedInvitePurpose_Name().");
+  return TargetedInvitePurpose_Name(static_cast<TargetedInvitePurpose>(value));
+}
+template <>
+inline const ::std::string& TargetedInvitePurpose_Name(TargetedInvitePurpose value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<TargetedInvitePurpose_descriptor, 0, 2>(
+      static_cast<int>(value));
+}
+inline bool TargetedInvitePurpose_Parse(
+    ::absl::string_view name, TargetedInvitePurpose* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<TargetedInvitePurpose>(TargetedInvitePurpose_descriptor(), name,
                                            value);
 }
 
@@ -2332,7 +2470,7 @@ class WatchOrganizationStateRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchOrganizationStateRequest*>(
         &_WatchOrganizationStateRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 116;
+  static constexpr int kIndexInFileMessages = 140;
   friend void swap(WatchOrganizationStateRequest& a, WatchOrganizationStateRequest& b) { a.Swap(&b); }
   inline void Swap(WatchOrganizationStateRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3107,7 +3245,7 @@ class WatchEmailsRequest final : public ::google::protobuf::internal::ZeroFields
     return *reinterpret_cast<const WatchEmailsRequest*>(
         &_WatchEmailsRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 174;
+  static constexpr int kIndexInFileMessages = 198;
   friend void swap(WatchEmailsRequest& a, WatchEmailsRequest& b) { a.Swap(&b); }
   inline void Swap(WatchEmailsRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3761,7 +3899,7 @@ class VerifyEmailCodeResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const VerifyEmailCodeResponse*>(
         &_VerifyEmailCodeResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 179;
+  static constexpr int kIndexInFileMessages = 203;
   friend void swap(VerifyEmailCodeResponse& a, VerifyEmailCodeResponse& b) { a.Swap(&b); }
   inline void Swap(VerifyEmailCodeResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3951,7 +4089,7 @@ class VerifyEmailCodeRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const VerifyEmailCodeRequest*>(
         &_VerifyEmailCodeRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 178;
+  static constexpr int kIndexInFileMessages = 202;
   friend void swap(VerifyEmailCodeRequest& a, VerifyEmailCodeRequest& b) { a.Swap(&b); }
   inline void Swap(VerifyEmailCodeRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4162,7 +4300,7 @@ class UpdateOrganizationResponse final : public ::google::protobuf::internal::Ze
     return *reinterpret_cast<const UpdateOrganizationResponse*>(
         &_UpdateOrganizationResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 112;
+  static constexpr int kIndexInFileMessages = 136;
   friend void swap(UpdateOrganizationResponse& a, UpdateOrganizationResponse& b) { a.Swap(&b); }
   inline void Swap(UpdateOrganizationResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4297,7 +4435,7 @@ class UpdateOrganizationRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const UpdateOrganizationRequest*>(
         &_UpdateOrganizationRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 111;
+  static constexpr int kIndexInFileMessages = 135;
   friend void swap(UpdateOrganizationRequest& a, UpdateOrganizationRequest& b) { a.Swap(&b); }
   inline void Swap(UpdateOrganizationRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5619,7 +5757,7 @@ class UndoDeleteNowResponse final : public ::google::protobuf::internal::ZeroFie
     return *reinterpret_cast<const UndoDeleteNowResponse*>(
         &_UndoDeleteNowResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 170;
+  static constexpr int kIndexInFileMessages = 194;
   friend void swap(UndoDeleteNowResponse& a, UndoDeleteNowResponse& b) { a.Swap(&b); }
   inline void Swap(UndoDeleteNowResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5753,7 +5891,7 @@ class UndoDeleteNowRequest final : public ::google::protobuf::internal::ZeroFiel
     return *reinterpret_cast<const UndoDeleteNowRequest*>(
         &_UndoDeleteNowRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 169;
+  static constexpr int kIndexInFileMessages = 193;
   friend void swap(UndoDeleteNowRequest& a, UndoDeleteNowRequest& b) { a.Swap(&b); }
   inline void Swap(UndoDeleteNowRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5887,7 +6025,7 @@ class TransferResourceResponse final : public ::google::protobuf::internal::Zero
     return *reinterpret_cast<const TransferResourceResponse*>(
         &_TransferResourceResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 136;
+  static constexpr int kIndexInFileMessages = 160;
   friend void swap(TransferResourceResponse& a, TransferResourceResponse& b) { a.Swap(&b); }
   inline void Swap(TransferResourceResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6022,7 +6160,7 @@ class TransferResourceRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const TransferResourceRequest*>(
         &_TransferResourceRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 135;
+  static constexpr int kIndexInFileMessages = 159;
   friend void swap(TransferResourceRequest& a, TransferResourceRequest& b) { a.Swap(&b); }
   inline void Swap(TransferResourceRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6196,6 +6334,431 @@ class TransferResourceRequest final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull TransferResourceRequest_class_data_;
 // -------------------------------------------------------------------
 
+class TargetedInvitationEnvelope final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.provider.spacewave.TargetedInvitationEnvelope) */ {
+ public:
+  inline TargetedInvitationEnvelope() : TargetedInvitationEnvelope(nullptr) {}
+  ~TargetedInvitationEnvelope() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(TargetedInvitationEnvelope* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(TargetedInvitationEnvelope));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR TargetedInvitationEnvelope(::google::protobuf::internal::ConstantInitialized);
+
+  inline TargetedInvitationEnvelope(const TargetedInvitationEnvelope& from) : TargetedInvitationEnvelope(nullptr, from) {}
+  inline TargetedInvitationEnvelope(TargetedInvitationEnvelope&& from) noexcept
+      : TargetedInvitationEnvelope(nullptr, ::std::move(from)) {}
+  inline TargetedInvitationEnvelope& operator=(const TargetedInvitationEnvelope& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline TargetedInvitationEnvelope& operator=(TargetedInvitationEnvelope&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const TargetedInvitationEnvelope& default_instance() {
+    return *reinterpret_cast<const TargetedInvitationEnvelope*>(
+        &_TargetedInvitationEnvelope_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 111;
+  friend void swap(TargetedInvitationEnvelope& a, TargetedInvitationEnvelope& b) { a.Swap(&b); }
+  inline void Swap(TargetedInvitationEnvelope* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(TargetedInvitationEnvelope* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  TargetedInvitationEnvelope* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<TargetedInvitationEnvelope>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const TargetedInvitationEnvelope& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const TargetedInvitationEnvelope& from) { TargetedInvitationEnvelope::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(TargetedInvitationEnvelope* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.provider.spacewave.TargetedInvitationEnvelope"; }
+
+  explicit TargetedInvitationEnvelope(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  TargetedInvitationEnvelope(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const TargetedInvitationEnvelope& from);
+  TargetedInvitationEnvelope(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, TargetedInvitationEnvelope&& from) noexcept
+      : TargetedInvitationEnvelope(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kContextIdFieldNumber = 3,
+    kActorAccountIdFieldNumber = 4,
+    kActorEntityUuidFieldNumber = 5,
+    kSignerPeerIdFieldNumber = 6,
+    kTargetAccountIdFieldNumber = 7,
+    kTargetEntityIdFieldNumber = 8,
+    kTargetEntityUuidFieldNumber = 9,
+    kRoleFieldNumber = 11,
+    kNonceFieldNumber = 13,
+    kPayloadFieldNumber = 14,
+    kSignatureFieldNumber = 15,
+    kSchemaVersionFieldNumber = 1,
+    kPurposeFieldNumber = 2,
+    kTargetAccountEpochFieldNumber = 10,
+    kExpiresAtFieldNumber = 12,
+    kActorAccountEpochFieldNumber = 16,
+  };
+  // string context_id = 3;
+  void clear_context_id() ;
+  const ::std::string& context_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_context_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_context_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_context_id();
+  void set_allocated_context_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_context_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_context_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_context_id();
+
+  public:
+  // string actor_account_id = 4;
+  void clear_actor_account_id() ;
+  const ::std::string& actor_account_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_actor_account_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_actor_account_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_actor_account_id();
+  void set_allocated_actor_account_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_actor_account_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_actor_account_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_actor_account_id();
+
+  public:
+  // string actor_entity_uuid = 5;
+  void clear_actor_entity_uuid() ;
+  const ::std::string& actor_entity_uuid() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_actor_entity_uuid(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_actor_entity_uuid();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_actor_entity_uuid();
+  void set_allocated_actor_entity_uuid(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_actor_entity_uuid() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_actor_entity_uuid(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_actor_entity_uuid();
+
+  public:
+  // string signer_peer_id = 6;
+  void clear_signer_peer_id() ;
+  const ::std::string& signer_peer_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_signer_peer_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_signer_peer_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_signer_peer_id();
+  void set_allocated_signer_peer_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_signer_peer_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_signer_peer_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_signer_peer_id();
+
+  public:
+  // string target_account_id = 7;
+  void clear_target_account_id() ;
+  const ::std::string& target_account_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_target_account_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_target_account_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_target_account_id();
+  void set_allocated_target_account_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_target_account_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_target_account_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_target_account_id();
+
+  public:
+  // string target_entity_id = 8;
+  void clear_target_entity_id() ;
+  const ::std::string& target_entity_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_target_entity_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_target_entity_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_target_entity_id();
+  void set_allocated_target_entity_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_target_entity_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_target_entity_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_target_entity_id();
+
+  public:
+  // string target_entity_uuid = 9;
+  void clear_target_entity_uuid() ;
+  const ::std::string& target_entity_uuid() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_target_entity_uuid(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_target_entity_uuid();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_target_entity_uuid();
+  void set_allocated_target_entity_uuid(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_target_entity_uuid() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_target_entity_uuid(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_target_entity_uuid();
+
+  public:
+  // string role = 11;
+  void clear_role() ;
+  const ::std::string& role() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_role(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_role();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_role();
+  void set_allocated_role(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_role() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_role(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_role();
+
+  public:
+  // bytes nonce = 13;
+  void clear_nonce() ;
+  const ::std::string& nonce() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_nonce(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_nonce();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_nonce();
+  void set_allocated_nonce(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_nonce() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_nonce(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_nonce();
+
+  public:
+  // bytes payload = 14;
+  void clear_payload() ;
+  const ::std::string& payload() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_payload(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_payload();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_payload();
+  void set_allocated_payload(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_payload() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_payload(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_payload();
+
+  public:
+  // bytes signature = 15;
+  void clear_signature() ;
+  const ::std::string& signature() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_signature(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_signature();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_signature();
+  void set_allocated_signature(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_signature() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_signature(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_signature();
+
+  public:
+  // uint32 schema_version = 1;
+  void clear_schema_version() ;
+  ::uint32_t schema_version() const;
+  void set_schema_version(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_schema_version() const;
+  void _internal_set_schema_version(::uint32_t value);
+
+  public:
+  // .s4wave.provider.spacewave.TargetedInvitePurpose purpose = 2;
+  void clear_purpose() ;
+  ::s4wave::provider::spacewave::TargetedInvitePurpose purpose() const;
+  void set_purpose(::s4wave::provider::spacewave::TargetedInvitePurpose value);
+
+  private:
+  ::s4wave::provider::spacewave::TargetedInvitePurpose _internal_purpose() const;
+  void _internal_set_purpose(::s4wave::provider::spacewave::TargetedInvitePurpose value);
+
+  public:
+  // int64 target_account_epoch = 10;
+  void clear_target_account_epoch() ;
+  ::int64_t target_account_epoch() const;
+  void set_target_account_epoch(::int64_t value);
+
+  private:
+  ::int64_t _internal_target_account_epoch() const;
+  void _internal_set_target_account_epoch(::int64_t value);
+
+  public:
+  // int64 expires_at = 12;
+  void clear_expires_at() ;
+  ::int64_t expires_at() const;
+  void set_expires_at(::int64_t value);
+
+  private:
+  ::int64_t _internal_expires_at() const;
+  void _internal_set_expires_at(::int64_t value);
+
+  public:
+  // int64 actor_account_epoch = 16;
+  void clear_actor_account_epoch() ;
+  ::int64_t actor_account_epoch() const;
+  void set_actor_account_epoch(::int64_t value);
+
+  private:
+  ::int64_t _internal_actor_account_epoch() const;
+  void _internal_set_actor_account_epoch(::int64_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.provider.spacewave.TargetedInvitationEnvelope)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<4, 16,
+                                   0, 189,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const TargetedInvitationEnvelope& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr context_id_;
+    ::google::protobuf::internal::ArenaStringPtr actor_account_id_;
+    ::google::protobuf::internal::ArenaStringPtr actor_entity_uuid_;
+    ::google::protobuf::internal::ArenaStringPtr signer_peer_id_;
+    ::google::protobuf::internal::ArenaStringPtr target_account_id_;
+    ::google::protobuf::internal::ArenaStringPtr target_entity_id_;
+    ::google::protobuf::internal::ArenaStringPtr target_entity_uuid_;
+    ::google::protobuf::internal::ArenaStringPtr role_;
+    ::google::protobuf::internal::ArenaStringPtr nonce_;
+    ::google::protobuf::internal::ArenaStringPtr payload_;
+    ::google::protobuf::internal::ArenaStringPtr signature_;
+    ::uint32_t schema_version_;
+    int purpose_;
+    ::int64_t target_account_epoch_;
+    ::int64_t expires_at_;
+    ::int64_t actor_account_epoch_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull TargetedInvitationEnvelope_class_data_;
+// -------------------------------------------------------------------
+
 class SwitchBillingIntervalResponse final : public ::google::protobuf::internal::ZeroFieldsBase
 /* @@protoc_insertion_point(class_definition:s4wave.provider.spacewave.SwitchBillingIntervalResponse) */ {
  public:
@@ -6250,7 +6813,7 @@ class SwitchBillingIntervalResponse final : public ::google::protobuf::internal:
     return *reinterpret_cast<const SwitchBillingIntervalResponse*>(
         &_SwitchBillingIntervalResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 162;
+  static constexpr int kIndexInFileMessages = 186;
   friend void swap(SwitchBillingIntervalResponse& a, SwitchBillingIntervalResponse& b) { a.Swap(&b); }
   inline void Swap(SwitchBillingIntervalResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6385,7 +6948,7 @@ class SwitchBillingIntervalRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const SwitchBillingIntervalRequest*>(
         &_SwitchBillingIntervalRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 161;
+  static constexpr int kIndexInFileMessages = 185;
   friend void swap(SwitchBillingIntervalRequest& a, SwitchBillingIntervalRequest& b) { a.Swap(&b); }
   inline void Swap(SwitchBillingIntervalRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -8022,7 +8585,7 @@ class SpaceLinkAuthTicket final : public ::google::protobuf::Message
     return *reinterpret_cast<const SpaceLinkAuthTicket*>(
         &_SpaceLinkAuthTicket_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 200;
+  static constexpr int kIndexInFileMessages = 224;
   friend void swap(SpaceLinkAuthTicket& a, SpaceLinkAuthTicket& b) { a.Swap(&b); }
   inline void Swap(SpaceLinkAuthTicket* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -8234,7 +8797,7 @@ class SpaceLinkAuthRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const SpaceLinkAuthRequest*>(
         &_SpaceLinkAuthRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 199;
+  static constexpr int kIndexInFileMessages = 223;
   friend void swap(SpaceLinkAuthRequest& a, SpaceLinkAuthRequest& b) { a.Swap(&b); }
   inline void Swap(SpaceLinkAuthRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -8545,7 +9108,7 @@ class SharedObjectMutationPermission final : public ::google::protobuf::Message
     return *reinterpret_cast<const SharedObjectMutationPermission*>(
         &_SharedObjectMutationPermission_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 119;
+  static constexpr int kIndexInFileMessages = 143;
   friend void swap(SharedObjectMutationPermission& a, SharedObjectMutationPermission& b) { a.Swap(&b); }
   inline void Swap(SharedObjectMutationPermission* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -8764,7 +9327,7 @@ class SetPrimaryEmailResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const SetPrimaryEmailResponse*>(
         &_SetPrimaryEmailResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 185;
+  static constexpr int kIndexInFileMessages = 209;
   friend void swap(SetPrimaryEmailResponse& a, SetPrimaryEmailResponse& b) { a.Swap(&b); }
   inline void Swap(SetPrimaryEmailResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -8959,7 +9522,7 @@ class SetPrimaryEmailRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const SetPrimaryEmailRequest*>(
         &_SetPrimaryEmailRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 184;
+  static constexpr int kIndexInFileMessages = 208;
   friend void swap(SetPrimaryEmailRequest& a, SetPrimaryEmailRequest& b) { a.Swap(&b); }
   inline void Swap(SetPrimaryEmailRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9154,7 +9717,7 @@ class SendVerificationEmailResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const SendVerificationEmailResponse*>(
         &_SendVerificationEmailResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 177;
+  static constexpr int kIndexInFileMessages = 201;
   friend void swap(SendVerificationEmailResponse& a, SendVerificationEmailResponse& b) { a.Swap(&b); }
   inline void Swap(SendVerificationEmailResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9356,7 +9919,7 @@ class SendVerificationEmailRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const SendVerificationEmailRequest*>(
         &_SendVerificationEmailRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 176;
+  static constexpr int kIndexInFileMessages = 200;
   friend void swap(SendVerificationEmailRequest& a, SendVerificationEmailRequest& b) { a.Swap(&b); }
   inline void Swap(SendVerificationEmailRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -10241,6 +10804,201 @@ class SSOCodeExchangeRequest final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull SSOCodeExchangeRequest_class_data_;
 // -------------------------------------------------------------------
 
+class RevokeTargetedInvitationRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.provider.spacewave.RevokeTargetedInvitationRequest) */ {
+ public:
+  inline RevokeTargetedInvitationRequest() : RevokeTargetedInvitationRequest(nullptr) {}
+  ~RevokeTargetedInvitationRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(RevokeTargetedInvitationRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(RevokeTargetedInvitationRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR RevokeTargetedInvitationRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline RevokeTargetedInvitationRequest(const RevokeTargetedInvitationRequest& from) : RevokeTargetedInvitationRequest(nullptr, from) {}
+  inline RevokeTargetedInvitationRequest(RevokeTargetedInvitationRequest&& from) noexcept
+      : RevokeTargetedInvitationRequest(nullptr, ::std::move(from)) {}
+  inline RevokeTargetedInvitationRequest& operator=(const RevokeTargetedInvitationRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline RevokeTargetedInvitationRequest& operator=(RevokeTargetedInvitationRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const RevokeTargetedInvitationRequest& default_instance() {
+    return *reinterpret_cast<const RevokeTargetedInvitationRequest*>(
+        &_RevokeTargetedInvitationRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 127;
+  friend void swap(RevokeTargetedInvitationRequest& a, RevokeTargetedInvitationRequest& b) { a.Swap(&b); }
+  inline void Swap(RevokeTargetedInvitationRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(RevokeTargetedInvitationRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  RevokeTargetedInvitationRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<RevokeTargetedInvitationRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const RevokeTargetedInvitationRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const RevokeTargetedInvitationRequest& from) { RevokeTargetedInvitationRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(RevokeTargetedInvitationRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.provider.spacewave.RevokeTargetedInvitationRequest"; }
+
+  explicit RevokeTargetedInvitationRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  RevokeTargetedInvitationRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const RevokeTargetedInvitationRequest& from);
+  RevokeTargetedInvitationRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, RevokeTargetedInvitationRequest&& from) noexcept
+      : RevokeTargetedInvitationRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kIdFieldNumber = 1,
+  };
+  // string id = 1;
+  void clear_id() ;
+  const ::std::string& id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_id();
+  void set_allocated_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_id();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.provider.spacewave.RevokeTargetedInvitationRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   0, 68,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const RevokeTargetedInvitationRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr id_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull RevokeTargetedInvitationRequest_class_data_;
+// -------------------------------------------------------------------
+
 class RevokeOrgInviteResponse final : public ::google::protobuf::internal::ZeroFieldsBase
 /* @@protoc_insertion_point(class_definition:s4wave.provider.spacewave.RevokeOrgInviteResponse) */ {
  public:
@@ -10295,7 +11053,7 @@ class RevokeOrgInviteResponse final : public ::google::protobuf::internal::ZeroF
     return *reinterpret_cast<const RevokeOrgInviteResponse*>(
         &_RevokeOrgInviteResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 130;
+  static constexpr int kIndexInFileMessages = 154;
   friend void swap(RevokeOrgInviteResponse& a, RevokeOrgInviteResponse& b) { a.Swap(&b); }
   inline void Swap(RevokeOrgInviteResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -10430,7 +11188,7 @@ class RevokeOrgInviteRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const RevokeOrgInviteRequest*>(
         &_RevokeOrgInviteRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 129;
+  static constexpr int kIndexInFileMessages = 153;
   friend void swap(RevokeOrgInviteRequest& a, RevokeOrgInviteRequest& b) { a.Swap(&b); }
   inline void Swap(RevokeOrgInviteRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -10585,6 +11343,546 @@ class RevokeOrgInviteRequest final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull RevokeOrgInviteRequest_class_data_;
+// -------------------------------------------------------------------
+
+class ResolveUsernameResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.provider.spacewave.ResolveUsernameResponse) */ {
+ public:
+  inline ResolveUsernameResponse() : ResolveUsernameResponse(nullptr) {}
+  ~ResolveUsernameResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ResolveUsernameResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ResolveUsernameResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ResolveUsernameResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline ResolveUsernameResponse(const ResolveUsernameResponse& from) : ResolveUsernameResponse(nullptr, from) {}
+  inline ResolveUsernameResponse(ResolveUsernameResponse&& from) noexcept
+      : ResolveUsernameResponse(nullptr, ::std::move(from)) {}
+  inline ResolveUsernameResponse& operator=(const ResolveUsernameResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ResolveUsernameResponse& operator=(ResolveUsernameResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ResolveUsernameResponse& default_instance() {
+    return *reinterpret_cast<const ResolveUsernameResponse*>(
+        &_ResolveUsernameResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 110;
+  friend void swap(ResolveUsernameResponse& a, ResolveUsernameResponse& b) { a.Swap(&b); }
+  inline void Swap(ResolveUsernameResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ResolveUsernameResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ResolveUsernameResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<ResolveUsernameResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ResolveUsernameResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const ResolveUsernameResponse& from) { ResolveUsernameResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(ResolveUsernameResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.provider.spacewave.ResolveUsernameResponse"; }
+
+  explicit ResolveUsernameResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  ResolveUsernameResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ResolveUsernameResponse& from);
+  ResolveUsernameResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ResolveUsernameResponse&& from) noexcept
+      : ResolveUsernameResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kAccountIdFieldNumber = 2,
+    kEntityIdFieldNumber = 3,
+    kDomainIdFieldNumber = 4,
+    kRelationshipFieldNumber = 5,
+    kEntityUuidFieldNumber = 7,
+    kAccountEpochFieldNumber = 8,
+    kFoundFieldNumber = 1,
+    kCanInviteFieldNumber = 6,
+  };
+  // string account_id = 2;
+  void clear_account_id() ;
+  const ::std::string& account_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_account_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_account_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_account_id();
+  void set_allocated_account_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_account_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_account_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_account_id();
+
+  public:
+  // string entity_id = 3;
+  void clear_entity_id() ;
+  const ::std::string& entity_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_entity_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_entity_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_entity_id();
+  void set_allocated_entity_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_entity_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_entity_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_entity_id();
+
+  public:
+  // string domain_id = 4;
+  void clear_domain_id() ;
+  const ::std::string& domain_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_domain_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_domain_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_domain_id();
+  void set_allocated_domain_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_domain_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_domain_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_domain_id();
+
+  public:
+  // string relationship = 5;
+  void clear_relationship() ;
+  const ::std::string& relationship() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_relationship(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_relationship();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_relationship();
+  void set_allocated_relationship(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_relationship() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_relationship(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_relationship();
+
+  public:
+  // string entity_uuid = 7;
+  void clear_entity_uuid() ;
+  const ::std::string& entity_uuid() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_entity_uuid(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_entity_uuid();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_entity_uuid();
+  void set_allocated_entity_uuid(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_entity_uuid() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_entity_uuid(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_entity_uuid();
+
+  public:
+  // int64 account_epoch = 8;
+  void clear_account_epoch() ;
+  ::int64_t account_epoch() const;
+  void set_account_epoch(::int64_t value);
+
+  private:
+  ::int64_t _internal_account_epoch() const;
+  void _internal_set_account_epoch(::int64_t value);
+
+  public:
+  // bool found = 1;
+  void clear_found() ;
+  bool found() const;
+  void set_found(bool value);
+
+  private:
+  bool _internal_found() const;
+  void _internal_set_found(bool value);
+
+  public:
+  // bool can_invite = 6;
+  void clear_can_invite() ;
+  bool can_invite() const;
+  void set_can_invite(bool value);
+
+  private:
+  bool _internal_can_invite() const;
+  void _internal_set_can_invite(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.provider.spacewave.ResolveUsernameResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 8,
+                                   0, 117,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const ResolveUsernameResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr account_id_;
+    ::google::protobuf::internal::ArenaStringPtr entity_id_;
+    ::google::protobuf::internal::ArenaStringPtr domain_id_;
+    ::google::protobuf::internal::ArenaStringPtr relationship_;
+    ::google::protobuf::internal::ArenaStringPtr entity_uuid_;
+    ::int64_t account_epoch_;
+    bool found_;
+    bool can_invite_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull ResolveUsernameResponse_class_data_;
+// -------------------------------------------------------------------
+
+class ResolveUsernameRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.provider.spacewave.ResolveUsernameRequest) */ {
+ public:
+  inline ResolveUsernameRequest() : ResolveUsernameRequest(nullptr) {}
+  ~ResolveUsernameRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ResolveUsernameRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ResolveUsernameRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ResolveUsernameRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline ResolveUsernameRequest(const ResolveUsernameRequest& from) : ResolveUsernameRequest(nullptr, from) {}
+  inline ResolveUsernameRequest(ResolveUsernameRequest&& from) noexcept
+      : ResolveUsernameRequest(nullptr, ::std::move(from)) {}
+  inline ResolveUsernameRequest& operator=(const ResolveUsernameRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ResolveUsernameRequest& operator=(ResolveUsernameRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ResolveUsernameRequest& default_instance() {
+    return *reinterpret_cast<const ResolveUsernameRequest*>(
+        &_ResolveUsernameRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 109;
+  friend void swap(ResolveUsernameRequest& a, ResolveUsernameRequest& b) { a.Swap(&b); }
+  inline void Swap(ResolveUsernameRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ResolveUsernameRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ResolveUsernameRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<ResolveUsernameRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ResolveUsernameRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const ResolveUsernameRequest& from) { ResolveUsernameRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(ResolveUsernameRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.provider.spacewave.ResolveUsernameRequest"; }
+
+  explicit ResolveUsernameRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  ResolveUsernameRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ResolveUsernameRequest& from);
+  ResolveUsernameRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ResolveUsernameRequest&& from) noexcept
+      : ResolveUsernameRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kUsernameFieldNumber = 1,
+    kSpaceIdFieldNumber = 3,
+    kOrgIdFieldNumber = 4,
+    kPurposeFieldNumber = 2,
+  };
+  // string username = 1;
+  void clear_username() ;
+  const ::std::string& username() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_username(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_username();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_username();
+  void set_allocated_username(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_username() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_username(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_username();
+
+  public:
+  // string space_id = 3;
+  void clear_space_id() ;
+  const ::std::string& space_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_space_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_space_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_space_id();
+  void set_allocated_space_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_space_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_space_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_space_id();
+
+  public:
+  // string org_id = 4;
+  void clear_org_id() ;
+  const ::std::string& org_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_org_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_org_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_org_id();
+  void set_allocated_org_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_org_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_org_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_org_id();
+
+  public:
+  // .s4wave.provider.spacewave.TargetedInvitePurpose purpose = 2;
+  void clear_purpose() ;
+  ::s4wave::provider::spacewave::TargetedInvitePurpose purpose() const;
+  void set_purpose(::s4wave::provider::spacewave::TargetedInvitePurpose value);
+
+  private:
+  ::s4wave::provider::spacewave::TargetedInvitePurpose _internal_purpose() const;
+  void _internal_set_purpose(::s4wave::provider::spacewave::TargetedInvitePurpose value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.provider.spacewave.ResolveUsernameRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   0, 79,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const ResolveUsernameRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr username_;
+    ::google::protobuf::internal::ArenaStringPtr space_id_;
+    ::google::protobuf::internal::ArenaStringPtr org_id_;
+    int purpose_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull ResolveUsernameRequest_class_data_;
 // -------------------------------------------------------------------
 
 class ResetSessionResponse final : public ::google::protobuf::internal::ZeroFieldsBase
@@ -11178,7 +12476,7 @@ class RequestDeleteNowEmailResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const RequestDeleteNowEmailResponse*>(
         &_RequestDeleteNowEmailResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 166;
+  static constexpr int kIndexInFileMessages = 190;
   friend void swap(RequestDeleteNowEmailResponse& a, RequestDeleteNowEmailResponse& b) { a.Swap(&b); }
   inline void Swap(RequestDeleteNowEmailResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11396,7 +12694,7 @@ class RequestDeleteNowEmailRequest final : public ::google::protobuf::internal::
     return *reinterpret_cast<const RequestDeleteNowEmailRequest*>(
         &_RequestDeleteNowEmailRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 165;
+  static constexpr int kIndexInFileMessages = 189;
   friend void swap(RequestDeleteNowEmailRequest& a, RequestDeleteNowEmailRequest& b) { a.Swap(&b); }
   inline void Swap(RequestDeleteNowEmailRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11530,7 +12828,7 @@ class RepairSharedObjectResponse final : public ::google::protobuf::internal::Ze
     return *reinterpret_cast<const RepairSharedObjectResponse*>(
         &_RepairSharedObjectResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 124;
+  static constexpr int kIndexInFileMessages = 148;
   friend void swap(RepairSharedObjectResponse& a, RepairSharedObjectResponse& b) { a.Swap(&b); }
   inline void Swap(RepairSharedObjectResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11665,7 +12963,7 @@ class RepairSharedObjectRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const RepairSharedObjectRequest*>(
         &_RepairSharedObjectRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 123;
+  static constexpr int kIndexInFileMessages = 147;
   friend void swap(RepairSharedObjectRequest& a, RepairSharedObjectRequest& b) { a.Swap(&b); }
   inline void Swap(RepairSharedObjectRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11859,7 +13157,7 @@ class RenameBillingAccountResponse final : public ::google::protobuf::internal::
     return *reinterpret_cast<const RenameBillingAccountResponse*>(
         &_RenameBillingAccountResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 145;
+  static constexpr int kIndexInFileMessages = 169;
   friend void swap(RenameBillingAccountResponse& a, RenameBillingAccountResponse& b) { a.Swap(&b); }
   inline void Swap(RenameBillingAccountResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11994,7 +13292,7 @@ class RenameBillingAccountRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const RenameBillingAccountRequest*>(
         &_RenameBillingAccountRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 144;
+  static constexpr int kIndexInFileMessages = 168;
   friend void swap(RenameBillingAccountRequest& a, RenameBillingAccountRequest& b) { a.Swap(&b); }
   inline void Swap(RenameBillingAccountRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -12206,7 +13504,7 @@ class RemoveSpaceMemberResult final : public ::google::protobuf::Message
     return *reinterpret_cast<const RemoveSpaceMemberResult*>(
         &_RemoveSpaceMemberResult_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 190;
+  static constexpr int kIndexInFileMessages = 214;
   friend void swap(RemoveSpaceMemberResult& a, RemoveSpaceMemberResult& b) { a.Swap(&b); }
   inline void Swap(RemoveSpaceMemberResult* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -12442,7 +13740,7 @@ class RemoveSpaceMemberRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const RemoveSpaceMemberRequest*>(
         &_RemoveSpaceMemberRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 189;
+  static constexpr int kIndexInFileMessages = 213;
   friend void swap(RemoveSpaceMemberRequest& a, RemoveSpaceMemberRequest& b) { a.Swap(&b); }
   inline void Swap(RemoveSpaceMemberRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -12653,7 +13951,7 @@ class RemoveOrgMemberResponse final : public ::google::protobuf::internal::ZeroF
     return *reinterpret_cast<const RemoveOrgMemberResponse*>(
         &_RemoveOrgMemberResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 134;
+  static constexpr int kIndexInFileMessages = 158;
   friend void swap(RemoveOrgMemberResponse& a, RemoveOrgMemberResponse& b) { a.Swap(&b); }
   inline void Swap(RemoveOrgMemberResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -12788,7 +14086,7 @@ class RemoveOrgMemberRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const RemoveOrgMemberRequest*>(
         &_RemoveOrgMemberRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 133;
+  static constexpr int kIndexInFileMessages = 157;
   friend void swap(RemoveOrgMemberRequest& a, RemoveOrgMemberRequest& b) { a.Swap(&b); }
   inline void Swap(RemoveOrgMemberRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -12999,7 +14297,7 @@ class RemoveEmailResponse final : public ::google::protobuf::internal::ZeroField
     return *reinterpret_cast<const RemoveEmailResponse*>(
         &_RemoveEmailResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 183;
+  static constexpr int kIndexInFileMessages = 207;
   friend void swap(RemoveEmailResponse& a, RemoveEmailResponse& b) { a.Swap(&b); }
   inline void Swap(RemoveEmailResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -13134,7 +14432,7 @@ class RemoveEmailRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const RemoveEmailRequest*>(
         &_RemoveEmailRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 182;
+  static constexpr int kIndexInFileMessages = 206;
   friend void swap(RemoveEmailRequest& a, RemoveEmailRequest& b) { a.Swap(&b); }
   inline void Swap(RemoveEmailRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -13462,7 +14760,7 @@ class ReinitializeSharedObjectResponse final : public ::google::protobuf::intern
     return *reinterpret_cast<const ReinitializeSharedObjectResponse*>(
         &_ReinitializeSharedObjectResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 126;
+  static constexpr int kIndexInFileMessages = 150;
   friend void swap(ReinitializeSharedObjectResponse& a, ReinitializeSharedObjectResponse& b) { a.Swap(&b); }
   inline void Swap(ReinitializeSharedObjectResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -13597,7 +14895,7 @@ class ReinitializeSharedObjectRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ReinitializeSharedObjectRequest*>(
         &_ReinitializeSharedObjectRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 125;
+  static constexpr int kIndexInFileMessages = 149;
   friend void swap(ReinitializeSharedObjectRequest& a, ReinitializeSharedObjectRequest& b) { a.Swap(&b); }
   inline void Swap(ReinitializeSharedObjectRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -13791,7 +15089,7 @@ class RefreshBillingStateResponse final : public ::google::protobuf::internal::Z
     return *reinterpret_cast<const RefreshBillingStateResponse*>(
         &_RefreshBillingStateResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 156;
+  static constexpr int kIndexInFileMessages = 180;
   friend void swap(RefreshBillingStateResponse& a, RefreshBillingStateResponse& b) { a.Swap(&b); }
   inline void Swap(RefreshBillingStateResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -13926,7 +15224,7 @@ class RefreshBillingStateRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const RefreshBillingStateRequest*>(
         &_RefreshBillingStateRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 155;
+  static constexpr int kIndexInFileMessages = 179;
   friend void swap(RefreshBillingStateRequest& a, RefreshBillingStateRequest& b) { a.Swap(&b); }
   inline void Swap(RefreshBillingStateRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -15176,7 +16474,7 @@ class ReactivateSubscriptionResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ReactivateSubscriptionResponse*>(
         &_ReactivateSubscriptionResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 160;
+  static constexpr int kIndexInFileMessages = 184;
   friend void swap(ReactivateSubscriptionResponse& a, ReactivateSubscriptionResponse& b) { a.Swap(&b); }
   inline void Swap(ReactivateSubscriptionResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -15366,7 +16664,7 @@ class ReactivateSubscriptionRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ReactivateSubscriptionRequest*>(
         &_ReactivateSubscriptionRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 159;
+  static constexpr int kIndexInFileMessages = 183;
   friend void swap(ReactivateSubscriptionRequest& a, ReactivateSubscriptionRequest& b) { a.Swap(&b); }
   inline void Swap(ReactivateSubscriptionRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -15506,6 +16804,218 @@ class ReactivateSubscriptionRequest final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull ReactivateSubscriptionRequest_class_data_;
 // -------------------------------------------------------------------
 
+class ProcessTargetedInvitationRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.provider.spacewave.ProcessTargetedInvitationRequest) */ {
+ public:
+  inline ProcessTargetedInvitationRequest() : ProcessTargetedInvitationRequest(nullptr) {}
+  ~ProcessTargetedInvitationRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ProcessTargetedInvitationRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ProcessTargetedInvitationRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ProcessTargetedInvitationRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline ProcessTargetedInvitationRequest(const ProcessTargetedInvitationRequest& from) : ProcessTargetedInvitationRequest(nullptr, from) {}
+  inline ProcessTargetedInvitationRequest(ProcessTargetedInvitationRequest&& from) noexcept
+      : ProcessTargetedInvitationRequest(nullptr, ::std::move(from)) {}
+  inline ProcessTargetedInvitationRequest& operator=(const ProcessTargetedInvitationRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ProcessTargetedInvitationRequest& operator=(ProcessTargetedInvitationRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ProcessTargetedInvitationRequest& default_instance() {
+    return *reinterpret_cast<const ProcessTargetedInvitationRequest*>(
+        &_ProcessTargetedInvitationRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 129;
+  friend void swap(ProcessTargetedInvitationRequest& a, ProcessTargetedInvitationRequest& b) { a.Swap(&b); }
+  inline void Swap(ProcessTargetedInvitationRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ProcessTargetedInvitationRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ProcessTargetedInvitationRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<ProcessTargetedInvitationRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ProcessTargetedInvitationRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const ProcessTargetedInvitationRequest& from) { ProcessTargetedInvitationRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(ProcessTargetedInvitationRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.provider.spacewave.ProcessTargetedInvitationRequest"; }
+
+  explicit ProcessTargetedInvitationRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  ProcessTargetedInvitationRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ProcessTargetedInvitationRequest& from);
+  ProcessTargetedInvitationRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ProcessTargetedInvitationRequest&& from) noexcept
+      : ProcessTargetedInvitationRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kIdFieldNumber = 1,
+    kActionFieldNumber = 2,
+  };
+  // string id = 1;
+  void clear_id() ;
+  const ::std::string& id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_id();
+  void set_allocated_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_id();
+
+  public:
+  // string action = 2;
+  void clear_action() ;
+  const ::std::string& action() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_action(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_action();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_action();
+  void set_allocated_action(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_action() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_action(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_action();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.provider.spacewave.ProcessTargetedInvitationRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   0, 75,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const ProcessTargetedInvitationRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr id_;
+    ::google::protobuf::internal::ArenaStringPtr action_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull ProcessTargetedInvitationRequest_class_data_;
+// -------------------------------------------------------------------
+
 class ProcessMailboxEntryResponse final : public ::google::protobuf::internal::ZeroFieldsBase
 /* @@protoc_insertion_point(class_definition:s4wave.provider.spacewave.ProcessMailboxEntryResponse) */ {
  public:
@@ -15560,7 +17070,7 @@ class ProcessMailboxEntryResponse final : public ::google::protobuf::internal::Z
     return *reinterpret_cast<const ProcessMailboxEntryResponse*>(
         &_ProcessMailboxEntryResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 198;
+  static constexpr int kIndexInFileMessages = 222;
   friend void swap(ProcessMailboxEntryResponse& a, ProcessMailboxEntryResponse& b) { a.Swap(&b); }
   inline void Swap(ProcessMailboxEntryResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -15695,7 +17205,7 @@ class ProcessMailboxEntryRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ProcessMailboxEntryRequest*>(
         &_ProcessMailboxEntryRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 197;
+  static constexpr int kIndexInFileMessages = 221;
   friend void swap(ProcessMailboxEntryRequest& a, ProcessMailboxEntryRequest& b) { a.Swap(&b); }
   inline void Swap(ProcessMailboxEntryRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -15914,7 +17424,7 @@ class PrincipalAssignment final : public ::google::protobuf::Message
     return *reinterpret_cast<const PrincipalAssignment*>(
         &_PrincipalAssignment_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 142;
+  static constexpr int kIndexInFileMessages = 166;
   friend void swap(PrincipalAssignment& a, PrincipalAssignment& b) { a.Swap(&b); }
   inline void Swap(PrincipalAssignment* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -16143,7 +17653,7 @@ class PreviewSpaceLinkResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const PreviewSpaceLinkResponse*>(
         &_PreviewSpaceLinkResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 202;
+  static constexpr int kIndexInFileMessages = 226;
   friend void swap(PreviewSpaceLinkResponse& a, PreviewSpaceLinkResponse& b) { a.Swap(&b); }
   inline void Swap(PreviewSpaceLinkResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -16442,7 +17952,7 @@ class PreviewSpaceLinkRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const PreviewSpaceLinkRequest*>(
         &_PreviewSpaceLinkRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 201;
+  static constexpr int kIndexInFileMessages = 225;
   friend void swap(PreviewSpaceLinkRequest& a, PreviewSpaceLinkRequest& b) { a.Swap(&b); }
   inline void Swap(PreviewSpaceLinkRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -19891,7 +21401,7 @@ class OrgSpaceInfo final : public ::google::protobuf::Message
     return *reinterpret_cast<const OrgSpaceInfo*>(
         &_OrgSpaceInfo_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 118;
+  static constexpr int kIndexInFileMessages = 142;
   friend void swap(OrgSpaceInfo& a, OrgSpaceInfo& b) { a.Swap(&b); }
   inline void Swap(OrgSpaceInfo* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -20120,7 +21630,7 @@ class OrgMemberInfo final : public ::google::protobuf::Message
     return *reinterpret_cast<const OrgMemberInfo*>(
         &_OrgMemberInfo_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 117;
+  static constexpr int kIndexInFileMessages = 141;
   friend void swap(OrgMemberInfo& a, OrgMemberInfo& b) { a.Swap(&b); }
   inline void Swap(OrgMemberInfo* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -20643,7 +22153,7 @@ class MailboxEntryInfo final : public ::google::protobuf::Message
     return *reinterpret_cast<const MailboxEntryInfo*>(
         &_MailboxEntryInfo_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 196;
+  static constexpr int kIndexInFileMessages = 220;
   friend void swap(MailboxEntryInfo& a, MailboxEntryInfo& b) { a.Swap(&b); }
   inline void Swap(MailboxEntryInfo* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -20930,7 +22440,7 @@ class LookupInviteCodeRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const LookupInviteCodeRequest*>(
         &_LookupInviteCodeRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 192;
+  static constexpr int kIndexInFileMessages = 216;
   friend void swap(LookupInviteCodeRequest& a, LookupInviteCodeRequest& b) { a.Swap(&b); }
   inline void Swap(LookupInviteCodeRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -21477,6 +22987,140 @@ class LoginOrCreateAccountRequest final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull LoginOrCreateAccountRequest_class_data_;
 // -------------------------------------------------------------------
 
+class ListTargetedInvitationsRequest final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:s4wave.provider.spacewave.ListTargetedInvitationsRequest) */ {
+ public:
+  inline ListTargetedInvitationsRequest() : ListTargetedInvitationsRequest(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ListTargetedInvitationsRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ListTargetedInvitationsRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ListTargetedInvitationsRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline ListTargetedInvitationsRequest(const ListTargetedInvitationsRequest& from) : ListTargetedInvitationsRequest(nullptr, from) {}
+  inline ListTargetedInvitationsRequest(ListTargetedInvitationsRequest&& from) noexcept
+      : ListTargetedInvitationsRequest(nullptr, ::std::move(from)) {}
+  inline ListTargetedInvitationsRequest& operator=(const ListTargetedInvitationsRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ListTargetedInvitationsRequest& operator=(ListTargetedInvitationsRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ListTargetedInvitationsRequest& default_instance() {
+    return *reinterpret_cast<const ListTargetedInvitationsRequest*>(
+        &_ListTargetedInvitationsRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 123;
+  friend void swap(ListTargetedInvitationsRequest& a, ListTargetedInvitationsRequest& b) { a.Swap(&b); }
+  inline void Swap(ListTargetedInvitationsRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ListTargetedInvitationsRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ListTargetedInvitationsRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<ListTargetedInvitationsRequest>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const ListTargetedInvitationsRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const ListTargetedInvitationsRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.provider.spacewave.ListTargetedInvitationsRequest"; }
+
+  explicit ListTargetedInvitationsRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  ListTargetedInvitationsRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ListTargetedInvitationsRequest& from);
+  ListTargetedInvitationsRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ListTargetedInvitationsRequest&& from) noexcept
+      : ListTargetedInvitationsRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:s4wave.provider.spacewave.ListTargetedInvitationsRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull ListTargetedInvitationsRequest_class_data_;
+// -------------------------------------------------------------------
+
 class ListOrganizationsRequest final : public ::google::protobuf::internal::ZeroFieldsBase
 /* @@protoc_insertion_point(class_definition:s4wave.provider.spacewave.ListOrganizationsRequest) */ {
  public:
@@ -21666,7 +23310,7 @@ class ListOrgInvitesRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ListOrgInvitesRequest*>(
         &_ListOrgInvitesRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 127;
+  static constexpr int kIndexInFileMessages = 151;
   friend void swap(ListOrgInvitesRequest& a, ListOrgInvitesRequest& b) { a.Swap(&b); }
   inline void Swap(ListOrgInvitesRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -21860,7 +23504,7 @@ class ListManagedBillingAccountsRequest final : public ::google::protobuf::inter
     return *reinterpret_cast<const ListManagedBillingAccountsRequest*>(
         &_ListManagedBillingAccountsRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 149;
+  static constexpr int kIndexInFileMessages = 173;
   friend void swap(ListManagedBillingAccountsRequest& a, ListManagedBillingAccountsRequest& b) { a.Swap(&b); }
   inline void Swap(ListManagedBillingAccountsRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -21994,7 +23638,7 @@ class ListEmailsRequest final : public ::google::protobuf::internal::ZeroFieldsB
     return *reinterpret_cast<const ListEmailsRequest*>(
         &_ListEmailsRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 172;
+  static constexpr int kIndexInFileMessages = 196;
   friend void swap(ListEmailsRequest& a, ListEmailsRequest& b) { a.Swap(&b); }
   inline void Swap(ListEmailsRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -22128,7 +23772,7 @@ class LeaveOrganizationResponse final : public ::google::protobuf::internal::Zer
     return *reinterpret_cast<const LeaveOrganizationResponse*>(
         &_LeaveOrganizationResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 132;
+  static constexpr int kIndexInFileMessages = 156;
   friend void swap(LeaveOrganizationResponse& a, LeaveOrganizationResponse& b) { a.Swap(&b); }
   inline void Swap(LeaveOrganizationResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -22263,7 +23907,7 @@ class LeaveOrganizationRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const LeaveOrganizationRequest*>(
         &_LeaveOrganizationRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 131;
+  static constexpr int kIndexInFileMessages = 155;
   friend void swap(LeaveOrganizationRequest& a, LeaveOrganizationRequest& b) { a.Swap(&b); }
   inline void Swap(LeaveOrganizationRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -22458,7 +24102,7 @@ class JoinOrganizationRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const JoinOrganizationRequest*>(
         &_JoinOrganizationRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 109;
+  static constexpr int kIndexInFileMessages = 133;
   friend void swap(JoinOrganizationRequest& a, JoinOrganizationRequest& b) { a.Swap(&b); }
   inline void Swap(JoinOrganizationRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -22596,6 +24240,201 @@ class JoinOrganizationRequest final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull JoinOrganizationRequest_class_data_;
+// -------------------------------------------------------------------
+
+class GetTargetedInvitationRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.provider.spacewave.GetTargetedInvitationRequest) */ {
+ public:
+  inline GetTargetedInvitationRequest() : GetTargetedInvitationRequest(nullptr) {}
+  ~GetTargetedInvitationRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(GetTargetedInvitationRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(GetTargetedInvitationRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR GetTargetedInvitationRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline GetTargetedInvitationRequest(const GetTargetedInvitationRequest& from) : GetTargetedInvitationRequest(nullptr, from) {}
+  inline GetTargetedInvitationRequest(GetTargetedInvitationRequest&& from) noexcept
+      : GetTargetedInvitationRequest(nullptr, ::std::move(from)) {}
+  inline GetTargetedInvitationRequest& operator=(const GetTargetedInvitationRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline GetTargetedInvitationRequest& operator=(GetTargetedInvitationRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const GetTargetedInvitationRequest& default_instance() {
+    return *reinterpret_cast<const GetTargetedInvitationRequest*>(
+        &_GetTargetedInvitationRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 125;
+  friend void swap(GetTargetedInvitationRequest& a, GetTargetedInvitationRequest& b) { a.Swap(&b); }
+  inline void Swap(GetTargetedInvitationRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(GetTargetedInvitationRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  GetTargetedInvitationRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<GetTargetedInvitationRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const GetTargetedInvitationRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const GetTargetedInvitationRequest& from) { GetTargetedInvitationRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(GetTargetedInvitationRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.provider.spacewave.GetTargetedInvitationRequest"; }
+
+  explicit GetTargetedInvitationRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  GetTargetedInvitationRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const GetTargetedInvitationRequest& from);
+  GetTargetedInvitationRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, GetTargetedInvitationRequest&& from) noexcept
+      : GetTargetedInvitationRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kIdFieldNumber = 1,
+  };
+  // string id = 1;
+  void clear_id() ;
+  const ::std::string& id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_id();
+  void set_allocated_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_id();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.provider.spacewave.GetTargetedInvitationRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   0, 65,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const GetTargetedInvitationRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr id_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull GetTargetedInvitationRequest_class_data_;
 // -------------------------------------------------------------------
 
 class GetSubscriptionStatusResponse final : public ::google::protobuf::Message
@@ -23430,7 +25269,7 @@ class GetOrganizationRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetOrganizationRequest*>(
         &_GetOrganizationRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 115;
+  static constexpr int kIndexInFileMessages = 139;
   friend void swap(GetOrganizationRequest& a, GetOrganizationRequest& b) { a.Swap(&b); }
   inline void Swap(GetOrganizationRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -23625,7 +25464,7 @@ class GetMailboxEntriesRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetMailboxEntriesRequest*>(
         &_GetMailboxEntriesRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 194;
+  static constexpr int kIndexInFileMessages = 218;
   friend void swap(GetMailboxEntriesRequest& a, GetMailboxEntriesRequest& b) { a.Swap(&b); }
   inline void Swap(GetMailboxEntriesRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -24638,7 +26477,7 @@ class GetBillingUsageRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetBillingUsageRequest*>(
         &_GetBillingUsageRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 153;
+  static constexpr int kIndexInFileMessages = 177;
   friend void swap(GetBillingUsageRequest& a, GetBillingUsageRequest& b) { a.Swap(&b); }
   inline void Swap(GetBillingUsageRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -24833,7 +26672,7 @@ class GetBillingAccountRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetBillingAccountRequest*>(
         &_GetBillingAccountRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 151;
+  static constexpr int kIndexInFileMessages = 175;
   friend void swap(GetBillingAccountRequest& a, GetBillingAccountRequest& b) { a.Swap(&b); }
   inline void Swap(GetBillingAccountRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -25915,7 +27754,7 @@ class EnrollSpaceMemberResult final : public ::google::protobuf::Message
     return *reinterpret_cast<const EnrollSpaceMemberResult*>(
         &_EnrollSpaceMemberResult_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 187;
+  static constexpr int kIndexInFileMessages = 211;
   friend void swap(EnrollSpaceMemberResult& a, EnrollSpaceMemberResult& b) { a.Swap(&b); }
   inline void Swap(EnrollSpaceMemberResult* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -26151,7 +27990,7 @@ class EnrollSpaceMemberRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const EnrollSpaceMemberRequest*>(
         &_EnrollSpaceMemberRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 186;
+  static constexpr int kIndexInFileMessages = 210;
   friend void swap(EnrollSpaceMemberRequest& a, EnrollSpaceMemberRequest& b) { a.Swap(&b); }
   inline void Swap(EnrollSpaceMemberRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -26816,7 +28655,7 @@ class EmailInfo final : public ::google::protobuf::Message
     return *reinterpret_cast<const EmailInfo*>(
         &_EmailInfo_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 171;
+  static constexpr int kIndexInFileMessages = 195;
   friend void swap(EmailInfo& a, EmailInfo& b) { a.Swap(&b); }
   inline void Swap(EmailInfo* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -27051,7 +28890,7 @@ class DetachBillingAccountResponse final : public ::google::protobuf::internal::
     return *reinterpret_cast<const DetachBillingAccountResponse*>(
         &_DetachBillingAccountResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 140;
+  static constexpr int kIndexInFileMessages = 164;
   friend void swap(DetachBillingAccountResponse& a, DetachBillingAccountResponse& b) { a.Swap(&b); }
   inline void Swap(DetachBillingAccountResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -27186,7 +29025,7 @@ class DetachBillingAccountRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const DetachBillingAccountRequest*>(
         &_DetachBillingAccountRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 139;
+  static constexpr int kIndexInFileMessages = 163;
   friend void swap(DetachBillingAccountRequest& a, DetachBillingAccountRequest& b) { a.Swap(&b); }
   inline void Swap(DetachBillingAccountRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -28463,7 +30302,7 @@ class DeleteOrganizationResponse final : public ::google::protobuf::internal::Ze
     return *reinterpret_cast<const DeleteOrganizationResponse*>(
         &_DeleteOrganizationResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 114;
+  static constexpr int kIndexInFileMessages = 138;
   friend void swap(DeleteOrganizationResponse& a, DeleteOrganizationResponse& b) { a.Swap(&b); }
   inline void Swap(DeleteOrganizationResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -28598,7 +30437,7 @@ class DeleteOrganizationRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const DeleteOrganizationRequest*>(
         &_DeleteOrganizationRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 113;
+  static constexpr int kIndexInFileMessages = 137;
   friend void swap(DeleteOrganizationRequest& a, DeleteOrganizationRequest& b) { a.Swap(&b); }
   inline void Swap(DeleteOrganizationRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -28792,7 +30631,7 @@ class DeleteBillingAccountResponse final : public ::google::protobuf::internal::
     return *reinterpret_cast<const DeleteBillingAccountResponse*>(
         &_DeleteBillingAccountResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 147;
+  static constexpr int kIndexInFileMessages = 171;
   friend void swap(DeleteBillingAccountResponse& a, DeleteBillingAccountResponse& b) { a.Swap(&b); }
   inline void Swap(DeleteBillingAccountResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -28927,7 +30766,7 @@ class DeleteBillingAccountRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const DeleteBillingAccountRequest*>(
         &_DeleteBillingAccountRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 146;
+  static constexpr int kIndexInFileMessages = 170;
   friend void swap(DeleteBillingAccountRequest& a, DeleteBillingAccountRequest& b) { a.Swap(&b); }
   inline void Swap(DeleteBillingAccountRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -29065,6 +30904,948 @@ class DeleteBillingAccountRequest final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull DeleteBillingAccountRequest_class_data_;
+// -------------------------------------------------------------------
+
+class CreateTargetedInviteDraftByUsernameResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameResponse) */ {
+ public:
+  inline CreateTargetedInviteDraftByUsernameResponse() : CreateTargetedInviteDraftByUsernameResponse(nullptr) {}
+  ~CreateTargetedInviteDraftByUsernameResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(CreateTargetedInviteDraftByUsernameResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(CreateTargetedInviteDraftByUsernameResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR CreateTargetedInviteDraftByUsernameResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline CreateTargetedInviteDraftByUsernameResponse(const CreateTargetedInviteDraftByUsernameResponse& from) : CreateTargetedInviteDraftByUsernameResponse(nullptr, from) {}
+  inline CreateTargetedInviteDraftByUsernameResponse(CreateTargetedInviteDraftByUsernameResponse&& from) noexcept
+      : CreateTargetedInviteDraftByUsernameResponse(nullptr, ::std::move(from)) {}
+  inline CreateTargetedInviteDraftByUsernameResponse& operator=(const CreateTargetedInviteDraftByUsernameResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline CreateTargetedInviteDraftByUsernameResponse& operator=(CreateTargetedInviteDraftByUsernameResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const CreateTargetedInviteDraftByUsernameResponse& default_instance() {
+    return *reinterpret_cast<const CreateTargetedInviteDraftByUsernameResponse*>(
+        &_CreateTargetedInviteDraftByUsernameResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 108;
+  friend void swap(CreateTargetedInviteDraftByUsernameResponse& a, CreateTargetedInviteDraftByUsernameResponse& b) { a.Swap(&b); }
+  inline void Swap(CreateTargetedInviteDraftByUsernameResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(CreateTargetedInviteDraftByUsernameResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  CreateTargetedInviteDraftByUsernameResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<CreateTargetedInviteDraftByUsernameResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const CreateTargetedInviteDraftByUsernameResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const CreateTargetedInviteDraftByUsernameResponse& from) { CreateTargetedInviteDraftByUsernameResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(CreateTargetedInviteDraftByUsernameResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameResponse"; }
+
+  explicit CreateTargetedInviteDraftByUsernameResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  CreateTargetedInviteDraftByUsernameResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const CreateTargetedInviteDraftByUsernameResponse& from);
+  CreateTargetedInviteDraftByUsernameResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, CreateTargetedInviteDraftByUsernameResponse&& from) noexcept
+      : CreateTargetedInviteDraftByUsernameResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kAcceptedFieldNumber = 1,
+  };
+  // bool accepted = 1;
+  void clear_accepted() ;
+  bool accepted() const;
+  void set_accepted(bool value);
+
+  private:
+  bool _internal_accepted() const;
+  void _internal_set_accepted(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const CreateTargetedInviteDraftByUsernameResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    bool accepted_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull CreateTargetedInviteDraftByUsernameResponse_class_data_;
+// -------------------------------------------------------------------
+
+class CreateTargetedInviteDraftByUsernameRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest) */ {
+ public:
+  inline CreateTargetedInviteDraftByUsernameRequest() : CreateTargetedInviteDraftByUsernameRequest(nullptr) {}
+  ~CreateTargetedInviteDraftByUsernameRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(CreateTargetedInviteDraftByUsernameRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(CreateTargetedInviteDraftByUsernameRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR CreateTargetedInviteDraftByUsernameRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline CreateTargetedInviteDraftByUsernameRequest(const CreateTargetedInviteDraftByUsernameRequest& from) : CreateTargetedInviteDraftByUsernameRequest(nullptr, from) {}
+  inline CreateTargetedInviteDraftByUsernameRequest(CreateTargetedInviteDraftByUsernameRequest&& from) noexcept
+      : CreateTargetedInviteDraftByUsernameRequest(nullptr, ::std::move(from)) {}
+  inline CreateTargetedInviteDraftByUsernameRequest& operator=(const CreateTargetedInviteDraftByUsernameRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline CreateTargetedInviteDraftByUsernameRequest& operator=(CreateTargetedInviteDraftByUsernameRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const CreateTargetedInviteDraftByUsernameRequest& default_instance() {
+    return *reinterpret_cast<const CreateTargetedInviteDraftByUsernameRequest*>(
+        &_CreateTargetedInviteDraftByUsernameRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 107;
+  friend void swap(CreateTargetedInviteDraftByUsernameRequest& a, CreateTargetedInviteDraftByUsernameRequest& b) { a.Swap(&b); }
+  inline void Swap(CreateTargetedInviteDraftByUsernameRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(CreateTargetedInviteDraftByUsernameRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  CreateTargetedInviteDraftByUsernameRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<CreateTargetedInviteDraftByUsernameRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const CreateTargetedInviteDraftByUsernameRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const CreateTargetedInviteDraftByUsernameRequest& from) { CreateTargetedInviteDraftByUsernameRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(CreateTargetedInviteDraftByUsernameRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest"; }
+
+  explicit CreateTargetedInviteDraftByUsernameRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  CreateTargetedInviteDraftByUsernameRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const CreateTargetedInviteDraftByUsernameRequest& from);
+  CreateTargetedInviteDraftByUsernameRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, CreateTargetedInviteDraftByUsernameRequest&& from) noexcept
+      : CreateTargetedInviteDraftByUsernameRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kUsernameFieldNumber = 1,
+    kSpaceIdFieldNumber = 3,
+    kOrgIdFieldNumber = 4,
+    kRoleFieldNumber = 5,
+    kExpiresAtFieldNumber = 6,
+    kPurposeFieldNumber = 2,
+  };
+  // string username = 1;
+  void clear_username() ;
+  const ::std::string& username() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_username(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_username();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_username();
+  void set_allocated_username(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_username() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_username(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_username();
+
+  public:
+  // string space_id = 3;
+  void clear_space_id() ;
+  const ::std::string& space_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_space_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_space_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_space_id();
+  void set_allocated_space_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_space_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_space_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_space_id();
+
+  public:
+  // string org_id = 4;
+  void clear_org_id() ;
+  const ::std::string& org_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_org_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_org_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_org_id();
+  void set_allocated_org_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_org_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_org_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_org_id();
+
+  public:
+  // string role = 5;
+  void clear_role() ;
+  const ::std::string& role() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_role(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_role();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_role();
+  void set_allocated_role(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_role() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_role(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_role();
+
+  public:
+  // int64 expires_at = 6;
+  void clear_expires_at() ;
+  ::int64_t expires_at() const;
+  void set_expires_at(::int64_t value);
+
+  private:
+  ::int64_t _internal_expires_at() const;
+  void _internal_set_expires_at(::int64_t value);
+
+  public:
+  // .s4wave.provider.spacewave.TargetedInvitePurpose purpose = 2;
+  void clear_purpose() ;
+  ::s4wave::provider::spacewave::TargetedInvitePurpose purpose() const;
+  void set_purpose(::s4wave::provider::spacewave::TargetedInvitePurpose value);
+
+  private:
+  ::s4wave::provider::spacewave::TargetedInvitePurpose _internal_purpose() const;
+  void _internal_set_purpose(::s4wave::provider::spacewave::TargetedInvitePurpose value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 6,
+                                   0, 103,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const CreateTargetedInviteDraftByUsernameRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr username_;
+    ::google::protobuf::internal::ArenaStringPtr space_id_;
+    ::google::protobuf::internal::ArenaStringPtr org_id_;
+    ::google::protobuf::internal::ArenaStringPtr role_;
+    ::int64_t expires_at_;
+    int purpose_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull CreateTargetedInviteDraftByUsernameRequest_class_data_;
+// -------------------------------------------------------------------
+
+class CreateSpaceTargetedInvitationByUsernameRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest) */ {
+ public:
+  inline CreateSpaceTargetedInvitationByUsernameRequest() : CreateSpaceTargetedInvitationByUsernameRequest(nullptr) {}
+  ~CreateSpaceTargetedInvitationByUsernameRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(CreateSpaceTargetedInvitationByUsernameRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(CreateSpaceTargetedInvitationByUsernameRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR CreateSpaceTargetedInvitationByUsernameRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline CreateSpaceTargetedInvitationByUsernameRequest(const CreateSpaceTargetedInvitationByUsernameRequest& from) : CreateSpaceTargetedInvitationByUsernameRequest(nullptr, from) {}
+  inline CreateSpaceTargetedInvitationByUsernameRequest(CreateSpaceTargetedInvitationByUsernameRequest&& from) noexcept
+      : CreateSpaceTargetedInvitationByUsernameRequest(nullptr, ::std::move(from)) {}
+  inline CreateSpaceTargetedInvitationByUsernameRequest& operator=(const CreateSpaceTargetedInvitationByUsernameRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline CreateSpaceTargetedInvitationByUsernameRequest& operator=(CreateSpaceTargetedInvitationByUsernameRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const CreateSpaceTargetedInvitationByUsernameRequest& default_instance() {
+    return *reinterpret_cast<const CreateSpaceTargetedInvitationByUsernameRequest*>(
+        &_CreateSpaceTargetedInvitationByUsernameRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 115;
+  friend void swap(CreateSpaceTargetedInvitationByUsernameRequest& a, CreateSpaceTargetedInvitationByUsernameRequest& b) { a.Swap(&b); }
+  inline void Swap(CreateSpaceTargetedInvitationByUsernameRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(CreateSpaceTargetedInvitationByUsernameRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  CreateSpaceTargetedInvitationByUsernameRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<CreateSpaceTargetedInvitationByUsernameRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const CreateSpaceTargetedInvitationByUsernameRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const CreateSpaceTargetedInvitationByUsernameRequest& from) { CreateSpaceTargetedInvitationByUsernameRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(CreateSpaceTargetedInvitationByUsernameRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest"; }
+
+  explicit CreateSpaceTargetedInvitationByUsernameRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  CreateSpaceTargetedInvitationByUsernameRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const CreateSpaceTargetedInvitationByUsernameRequest& from);
+  CreateSpaceTargetedInvitationByUsernameRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, CreateSpaceTargetedInvitationByUsernameRequest&& from) noexcept
+      : CreateSpaceTargetedInvitationByUsernameRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kUsernameFieldNumber = 1,
+    kSpaceIdFieldNumber = 2,
+    kRoleFieldNumber = 3,
+    kExpiresAtFieldNumber = 4,
+  };
+  // string username = 1;
+  void clear_username() ;
+  const ::std::string& username() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_username(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_username();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_username();
+  void set_allocated_username(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_username() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_username(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_username();
+
+  public:
+  // string space_id = 2;
+  void clear_space_id() ;
+  const ::std::string& space_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_space_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_space_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_space_id();
+  void set_allocated_space_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_space_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_space_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_space_id();
+
+  public:
+  // string role = 3;
+  void clear_role() ;
+  const ::std::string& role() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_role(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_role();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_role();
+  void set_allocated_role(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_role() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_role(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_role();
+
+  public:
+  // int64 expires_at = 4;
+  void clear_expires_at() ;
+  ::int64_t expires_at() const;
+  void set_expires_at(::int64_t value);
+
+  private:
+  ::int64_t _internal_expires_at() const;
+  void _internal_set_expires_at(::int64_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   0, 101,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const CreateSpaceTargetedInvitationByUsernameRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr username_;
+    ::google::protobuf::internal::ArenaStringPtr space_id_;
+    ::google::protobuf::internal::ArenaStringPtr role_;
+    ::int64_t expires_at_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull CreateSpaceTargetedInvitationByUsernameRequest_class_data_;
+// -------------------------------------------------------------------
+
+class CreateOrganizationTargetedInvitationByUsernameRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest) */ {
+ public:
+  inline CreateOrganizationTargetedInvitationByUsernameRequest() : CreateOrganizationTargetedInvitationByUsernameRequest(nullptr) {}
+  ~CreateOrganizationTargetedInvitationByUsernameRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(CreateOrganizationTargetedInvitationByUsernameRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(CreateOrganizationTargetedInvitationByUsernameRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR CreateOrganizationTargetedInvitationByUsernameRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline CreateOrganizationTargetedInvitationByUsernameRequest(const CreateOrganizationTargetedInvitationByUsernameRequest& from) : CreateOrganizationTargetedInvitationByUsernameRequest(nullptr, from) {}
+  inline CreateOrganizationTargetedInvitationByUsernameRequest(CreateOrganizationTargetedInvitationByUsernameRequest&& from) noexcept
+      : CreateOrganizationTargetedInvitationByUsernameRequest(nullptr, ::std::move(from)) {}
+  inline CreateOrganizationTargetedInvitationByUsernameRequest& operator=(const CreateOrganizationTargetedInvitationByUsernameRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline CreateOrganizationTargetedInvitationByUsernameRequest& operator=(CreateOrganizationTargetedInvitationByUsernameRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const CreateOrganizationTargetedInvitationByUsernameRequest& default_instance() {
+    return *reinterpret_cast<const CreateOrganizationTargetedInvitationByUsernameRequest*>(
+        &_CreateOrganizationTargetedInvitationByUsernameRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 119;
+  friend void swap(CreateOrganizationTargetedInvitationByUsernameRequest& a, CreateOrganizationTargetedInvitationByUsernameRequest& b) { a.Swap(&b); }
+  inline void Swap(CreateOrganizationTargetedInvitationByUsernameRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(CreateOrganizationTargetedInvitationByUsernameRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  CreateOrganizationTargetedInvitationByUsernameRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<CreateOrganizationTargetedInvitationByUsernameRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const CreateOrganizationTargetedInvitationByUsernameRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const CreateOrganizationTargetedInvitationByUsernameRequest& from) { CreateOrganizationTargetedInvitationByUsernameRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(CreateOrganizationTargetedInvitationByUsernameRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest"; }
+
+  explicit CreateOrganizationTargetedInvitationByUsernameRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  CreateOrganizationTargetedInvitationByUsernameRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const CreateOrganizationTargetedInvitationByUsernameRequest& from);
+  CreateOrganizationTargetedInvitationByUsernameRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, CreateOrganizationTargetedInvitationByUsernameRequest&& from) noexcept
+      : CreateOrganizationTargetedInvitationByUsernameRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kUsernameFieldNumber = 1,
+    kOrgIdFieldNumber = 2,
+    kRoleFieldNumber = 3,
+    kExpiresAtFieldNumber = 4,
+  };
+  // string username = 1;
+  void clear_username() ;
+  const ::std::string& username() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_username(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_username();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_username();
+  void set_allocated_username(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_username() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_username(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_username();
+
+  public:
+  // string org_id = 2;
+  void clear_org_id() ;
+  const ::std::string& org_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_org_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_org_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_org_id();
+  void set_allocated_org_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_org_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_org_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_org_id();
+
+  public:
+  // string role = 3;
+  void clear_role() ;
+  const ::std::string& role() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_role(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_role();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_role();
+  void set_allocated_role(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_role() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_role(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_role();
+
+  public:
+  // int64 expires_at = 4;
+  void clear_expires_at() ;
+  ::int64_t expires_at() const;
+  void set_expires_at(::int64_t value);
+
+  private:
+  ::int64_t _internal_expires_at() const;
+  void _internal_set_expires_at(::int64_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   0, 106,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const CreateOrganizationTargetedInvitationByUsernameRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr username_;
+    ::google::protobuf::internal::ArenaStringPtr org_id_;
+    ::google::protobuf::internal::ArenaStringPtr role_;
+    ::int64_t expires_at_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull CreateOrganizationTargetedInvitationByUsernameRequest_class_data_;
 // -------------------------------------------------------------------
 
 class CreateOrganizationRequest final : public ::google::protobuf::Message
@@ -29317,7 +32098,7 @@ class CreateOrgInviteRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const CreateOrgInviteRequest*>(
         &_CreateOrgInviteRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 107;
+  static constexpr int kIndexInFileMessages = 131;
   friend void swap(CreateOrgInviteRequest& a, CreateOrgInviteRequest& b) { a.Swap(&b); }
   inline void Swap(CreateOrgInviteRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -30169,7 +32950,7 @@ class CreateBillingPortalResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const CreateBillingPortalResponse*>(
         &_CreateBillingPortalResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 164;
+  static constexpr int kIndexInFileMessages = 188;
   friend void swap(CreateBillingPortalResponse& a, CreateBillingPortalResponse& b) { a.Swap(&b); }
   inline void Swap(CreateBillingPortalResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -30364,7 +33145,7 @@ class CreateBillingPortalRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const CreateBillingPortalRequest*>(
         &_CreateBillingPortalRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 163;
+  static constexpr int kIndexInFileMessages = 187;
   friend void swap(CreateBillingPortalRequest& a, CreateBillingPortalRequest& b) { a.Swap(&b); }
   inline void Swap(CreateBillingPortalRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -30559,7 +33340,7 @@ class CreateBillingAccountResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const CreateBillingAccountResponse*>(
         &_CreateBillingAccountResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 148;
+  static constexpr int kIndexInFileMessages = 172;
   friend void swap(CreateBillingAccountResponse& a, CreateBillingAccountResponse& b) { a.Swap(&b); }
   inline void Swap(CreateBillingAccountResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -30754,7 +33535,7 @@ class CreateBillingAccountRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const CreateBillingAccountRequest*>(
         &_CreateBillingAccountRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 143;
+  static constexpr int kIndexInFileMessages = 167;
   friend void swap(CreateBillingAccountRequest& a, CreateBillingAccountRequest& b) { a.Swap(&b); }
   inline void Swap(CreateBillingAccountRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -31986,7 +34767,7 @@ class ConfirmDeleteNowCodeResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ConfirmDeleteNowCodeResponse*>(
         &_ConfirmDeleteNowCodeResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 168;
+  static constexpr int kIndexInFileMessages = 192;
   friend void swap(ConfirmDeleteNowCodeResponse& a, ConfirmDeleteNowCodeResponse& b) { a.Swap(&b); }
   inline void Swap(ConfirmDeleteNowCodeResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -32275,7 +35056,7 @@ class ConfirmDeleteNowCodeRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ConfirmDeleteNowCodeRequest*>(
         &_ConfirmDeleteNowCodeRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 167;
+  static constexpr int kIndexInFileMessages = 191;
   friend void swap(ConfirmDeleteNowCodeRequest& a, ConfirmDeleteNowCodeRequest& b) { a.Swap(&b); }
   inline void Swap(ConfirmDeleteNowCodeRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -32773,7 +35554,7 @@ class CancelSubscriptionResponse final : public ::google::protobuf::internal::Ze
     return *reinterpret_cast<const CancelSubscriptionResponse*>(
         &_CancelSubscriptionResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 158;
+  static constexpr int kIndexInFileMessages = 182;
   friend void swap(CancelSubscriptionResponse& a, CancelSubscriptionResponse& b) { a.Swap(&b); }
   inline void Swap(CancelSubscriptionResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -32908,7 +35689,7 @@ class CancelSubscriptionRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const CancelSubscriptionRequest*>(
         &_CancelSubscriptionRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 157;
+  static constexpr int kIndexInFileMessages = 181;
   friend void swap(CancelSubscriptionRequest& a, CancelSubscriptionRequest& b) { a.Swap(&b); }
   inline void Swap(CancelSubscriptionRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -34080,7 +36861,7 @@ class AssignBillingAccountResponse final : public ::google::protobuf::internal::
     return *reinterpret_cast<const AssignBillingAccountResponse*>(
         &_AssignBillingAccountResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 138;
+  static constexpr int kIndexInFileMessages = 162;
   friend void swap(AssignBillingAccountResponse& a, AssignBillingAccountResponse& b) { a.Swap(&b); }
   inline void Swap(AssignBillingAccountResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -34215,7 +36996,7 @@ class AssignBillingAccountRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const AssignBillingAccountRequest*>(
         &_AssignBillingAccountRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 137;
+  static constexpr int kIndexInFileMessages = 161;
   friend void swap(AssignBillingAccountRequest& a, AssignBillingAccountRequest& b) { a.Swap(&b); }
   inline void Swap(AssignBillingAccountRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -34444,7 +37225,7 @@ class ApproveSpaceLinkResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ApproveSpaceLinkResponse*>(
         &_ApproveSpaceLinkResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 204;
+  static constexpr int kIndexInFileMessages = 228;
   friend void swap(ApproveSpaceLinkResponse& a, ApproveSpaceLinkResponse& b) { a.Swap(&b); }
   inline void Swap(ApproveSpaceLinkResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -34707,7 +37488,7 @@ class ApproveSpaceLinkRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ApproveSpaceLinkRequest*>(
         &_ApproveSpaceLinkRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 203;
+  static constexpr int kIndexInFileMessages = 227;
   friend void swap(ApproveSpaceLinkRequest& a, ApproveSpaceLinkRequest& b) { a.Swap(&b); }
   inline void Swap(ApproveSpaceLinkRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -34919,7 +37700,7 @@ class AddEmailResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const AddEmailResponse*>(
         &_AddEmailResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 181;
+  static constexpr int kIndexInFileMessages = 205;
   friend void swap(AddEmailResponse& a, AddEmailResponse& b) { a.Swap(&b); }
   inline void Swap(AddEmailResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -35121,7 +37902,7 @@ class AddEmailRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const AddEmailRequest*>(
         &_AddEmailRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 180;
+  static constexpr int kIndexInFileMessages = 204;
   friend void swap(AddEmailRequest& a, AddEmailRequest& b) { a.Swap(&b); }
   inline void Swap(AddEmailRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -35259,6 +38040,396 @@ class AddEmailRequest final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull AddEmailRequest_class_data_;
+// -------------------------------------------------------------------
+
+class AcceptSpaceTargetedInvitationRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationRequest) */ {
+ public:
+  inline AcceptSpaceTargetedInvitationRequest() : AcceptSpaceTargetedInvitationRequest(nullptr) {}
+  ~AcceptSpaceTargetedInvitationRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(AcceptSpaceTargetedInvitationRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(AcceptSpaceTargetedInvitationRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR AcceptSpaceTargetedInvitationRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline AcceptSpaceTargetedInvitationRequest(const AcceptSpaceTargetedInvitationRequest& from) : AcceptSpaceTargetedInvitationRequest(nullptr, from) {}
+  inline AcceptSpaceTargetedInvitationRequest(AcceptSpaceTargetedInvitationRequest&& from) noexcept
+      : AcceptSpaceTargetedInvitationRequest(nullptr, ::std::move(from)) {}
+  inline AcceptSpaceTargetedInvitationRequest& operator=(const AcceptSpaceTargetedInvitationRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline AcceptSpaceTargetedInvitationRequest& operator=(AcceptSpaceTargetedInvitationRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const AcceptSpaceTargetedInvitationRequest& default_instance() {
+    return *reinterpret_cast<const AcceptSpaceTargetedInvitationRequest*>(
+        &_AcceptSpaceTargetedInvitationRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 117;
+  friend void swap(AcceptSpaceTargetedInvitationRequest& a, AcceptSpaceTargetedInvitationRequest& b) { a.Swap(&b); }
+  inline void Swap(AcceptSpaceTargetedInvitationRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(AcceptSpaceTargetedInvitationRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  AcceptSpaceTargetedInvitationRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<AcceptSpaceTargetedInvitationRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const AcceptSpaceTargetedInvitationRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const AcceptSpaceTargetedInvitationRequest& from) { AcceptSpaceTargetedInvitationRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(AcceptSpaceTargetedInvitationRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.provider.spacewave.AcceptSpaceTargetedInvitationRequest"; }
+
+  explicit AcceptSpaceTargetedInvitationRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  AcceptSpaceTargetedInvitationRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const AcceptSpaceTargetedInvitationRequest& from);
+  AcceptSpaceTargetedInvitationRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, AcceptSpaceTargetedInvitationRequest&& from) noexcept
+      : AcceptSpaceTargetedInvitationRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kIdFieldNumber = 1,
+  };
+  // string id = 1;
+  void clear_id() ;
+  const ::std::string& id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_id();
+  void set_allocated_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_id();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   0, 73,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const AcceptSpaceTargetedInvitationRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr id_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull AcceptSpaceTargetedInvitationRequest_class_data_;
+// -------------------------------------------------------------------
+
+class AcceptOrganizationTargetedInvitationRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationRequest) */ {
+ public:
+  inline AcceptOrganizationTargetedInvitationRequest() : AcceptOrganizationTargetedInvitationRequest(nullptr) {}
+  ~AcceptOrganizationTargetedInvitationRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(AcceptOrganizationTargetedInvitationRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(AcceptOrganizationTargetedInvitationRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR AcceptOrganizationTargetedInvitationRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline AcceptOrganizationTargetedInvitationRequest(const AcceptOrganizationTargetedInvitationRequest& from) : AcceptOrganizationTargetedInvitationRequest(nullptr, from) {}
+  inline AcceptOrganizationTargetedInvitationRequest(AcceptOrganizationTargetedInvitationRequest&& from) noexcept
+      : AcceptOrganizationTargetedInvitationRequest(nullptr, ::std::move(from)) {}
+  inline AcceptOrganizationTargetedInvitationRequest& operator=(const AcceptOrganizationTargetedInvitationRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline AcceptOrganizationTargetedInvitationRequest& operator=(AcceptOrganizationTargetedInvitationRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const AcceptOrganizationTargetedInvitationRequest& default_instance() {
+    return *reinterpret_cast<const AcceptOrganizationTargetedInvitationRequest*>(
+        &_AcceptOrganizationTargetedInvitationRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 121;
+  friend void swap(AcceptOrganizationTargetedInvitationRequest& a, AcceptOrganizationTargetedInvitationRequest& b) { a.Swap(&b); }
+  inline void Swap(AcceptOrganizationTargetedInvitationRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(AcceptOrganizationTargetedInvitationRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  AcceptOrganizationTargetedInvitationRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<AcceptOrganizationTargetedInvitationRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const AcceptOrganizationTargetedInvitationRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const AcceptOrganizationTargetedInvitationRequest& from) { AcceptOrganizationTargetedInvitationRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(AcceptOrganizationTargetedInvitationRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationRequest"; }
+
+  explicit AcceptOrganizationTargetedInvitationRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  AcceptOrganizationTargetedInvitationRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const AcceptOrganizationTargetedInvitationRequest& from);
+  AcceptOrganizationTargetedInvitationRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, AcceptOrganizationTargetedInvitationRequest&& from) noexcept
+      : AcceptOrganizationTargetedInvitationRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kIdFieldNumber = 1,
+  };
+  // string id = 1;
+  void clear_id() ;
+  const ::std::string& id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_id();
+  void set_allocated_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_id();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   0, 80,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const AcceptOrganizationTargetedInvitationRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr id_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull AcceptOrganizationTargetedInvitationRequest_class_data_;
 // -------------------------------------------------------------------
 
 class WatchSubscriptionStatusResponse final : public ::google::protobuf::Message
@@ -35708,7 +38879,7 @@ class WatchEmailsResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchEmailsResponse*>(
         &_WatchEmailsResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 175;
+  static constexpr int kIndexInFileMessages = 199;
   friend void swap(WatchEmailsResponse& a, WatchEmailsResponse& b) { a.Swap(&b); }
   inline void Swap(WatchEmailsResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -36060,6 +39231,431 @@ class WatchBillingStateResponse final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull WatchBillingStateResponse_class_data_;
+// -------------------------------------------------------------------
+
+class TargetedInvitationInfo final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.provider.spacewave.TargetedInvitationInfo) */ {
+ public:
+  inline TargetedInvitationInfo() : TargetedInvitationInfo(nullptr) {}
+  ~TargetedInvitationInfo() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(TargetedInvitationInfo* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(TargetedInvitationInfo));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR TargetedInvitationInfo(::google::protobuf::internal::ConstantInitialized);
+
+  inline TargetedInvitationInfo(const TargetedInvitationInfo& from) : TargetedInvitationInfo(nullptr, from) {}
+  inline TargetedInvitationInfo(TargetedInvitationInfo&& from) noexcept
+      : TargetedInvitationInfo(nullptr, ::std::move(from)) {}
+  inline TargetedInvitationInfo& operator=(const TargetedInvitationInfo& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline TargetedInvitationInfo& operator=(TargetedInvitationInfo&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const TargetedInvitationInfo& default_instance() {
+    return *reinterpret_cast<const TargetedInvitationInfo*>(
+        &_TargetedInvitationInfo_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 112;
+  friend void swap(TargetedInvitationInfo& a, TargetedInvitationInfo& b) { a.Swap(&b); }
+  inline void Swap(TargetedInvitationInfo* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(TargetedInvitationInfo* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  TargetedInvitationInfo* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<TargetedInvitationInfo>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const TargetedInvitationInfo& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const TargetedInvitationInfo& from) { TargetedInvitationInfo::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(TargetedInvitationInfo* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.provider.spacewave.TargetedInvitationInfo"; }
+
+  explicit TargetedInvitationInfo(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  TargetedInvitationInfo(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const TargetedInvitationInfo& from);
+  TargetedInvitationInfo(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, TargetedInvitationInfo&& from) noexcept
+      : TargetedInvitationInfo(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kIdFieldNumber = 1,
+    kActorAccountIdFieldNumber = 2,
+    kTargetAccountIdFieldNumber = 3,
+    kTargetEntityIdFieldNumber = 4,
+    kTargetEntityUuidFieldNumber = 5,
+    kContextIdFieldNumber = 8,
+    kRoleFieldNumber = 9,
+    kStatusFieldNumber = 10,
+    kEnvelopeHashFieldNumber = 11,
+    kDraftIdFieldNumber = 16,
+    kEnvelopeFieldNumber = 12,
+    kTargetAccountEpochFieldNumber = 6,
+    kCreatedAtFieldNumber = 13,
+    kUpdatedAtFieldNumber = 14,
+    kExpiresAtFieldNumber = 15,
+    kPurposeFieldNumber = 7,
+  };
+  // string id = 1;
+  void clear_id() ;
+  const ::std::string& id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_id();
+  void set_allocated_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_id();
+
+  public:
+  // string actor_account_id = 2;
+  void clear_actor_account_id() ;
+  const ::std::string& actor_account_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_actor_account_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_actor_account_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_actor_account_id();
+  void set_allocated_actor_account_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_actor_account_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_actor_account_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_actor_account_id();
+
+  public:
+  // string target_account_id = 3;
+  void clear_target_account_id() ;
+  const ::std::string& target_account_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_target_account_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_target_account_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_target_account_id();
+  void set_allocated_target_account_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_target_account_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_target_account_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_target_account_id();
+
+  public:
+  // string target_entity_id = 4;
+  void clear_target_entity_id() ;
+  const ::std::string& target_entity_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_target_entity_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_target_entity_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_target_entity_id();
+  void set_allocated_target_entity_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_target_entity_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_target_entity_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_target_entity_id();
+
+  public:
+  // string target_entity_uuid = 5;
+  void clear_target_entity_uuid() ;
+  const ::std::string& target_entity_uuid() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_target_entity_uuid(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_target_entity_uuid();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_target_entity_uuid();
+  void set_allocated_target_entity_uuid(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_target_entity_uuid() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_target_entity_uuid(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_target_entity_uuid();
+
+  public:
+  // string context_id = 8;
+  void clear_context_id() ;
+  const ::std::string& context_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_context_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_context_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_context_id();
+  void set_allocated_context_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_context_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_context_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_context_id();
+
+  public:
+  // string role = 9;
+  void clear_role() ;
+  const ::std::string& role() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_role(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_role();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_role();
+  void set_allocated_role(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_role() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_role(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_role();
+
+  public:
+  // string status = 10;
+  void clear_status() ;
+  const ::std::string& status() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_status(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_status();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_status();
+  void set_allocated_status(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_status() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_status(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_status();
+
+  public:
+  // string envelope_hash = 11;
+  void clear_envelope_hash() ;
+  const ::std::string& envelope_hash() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_envelope_hash(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_envelope_hash();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_envelope_hash();
+  void set_allocated_envelope_hash(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_envelope_hash() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_envelope_hash(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_envelope_hash();
+
+  public:
+  // string draft_id = 16;
+  void clear_draft_id() ;
+  const ::std::string& draft_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_draft_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_draft_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_draft_id();
+  void set_allocated_draft_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_draft_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_draft_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_draft_id();
+
+  public:
+  // .s4wave.provider.spacewave.TargetedInvitationEnvelope envelope = 12;
+  bool has_envelope() const;
+  void clear_envelope() ;
+  const ::s4wave::provider::spacewave::TargetedInvitationEnvelope& envelope() const;
+  [[nodiscard]] ::s4wave::provider::spacewave::TargetedInvitationEnvelope* PROTOBUF_NULLABLE release_envelope();
+  ::s4wave::provider::spacewave::TargetedInvitationEnvelope* PROTOBUF_NONNULL mutable_envelope();
+  void set_allocated_envelope(::s4wave::provider::spacewave::TargetedInvitationEnvelope* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_envelope(::s4wave::provider::spacewave::TargetedInvitationEnvelope* PROTOBUF_NULLABLE value);
+  ::s4wave::provider::spacewave::TargetedInvitationEnvelope* PROTOBUF_NULLABLE unsafe_arena_release_envelope();
+
+  private:
+  const ::s4wave::provider::spacewave::TargetedInvitationEnvelope& _internal_envelope() const;
+  ::s4wave::provider::spacewave::TargetedInvitationEnvelope* PROTOBUF_NONNULL _internal_mutable_envelope();
+
+  public:
+  // int64 target_account_epoch = 6;
+  void clear_target_account_epoch() ;
+  ::int64_t target_account_epoch() const;
+  void set_target_account_epoch(::int64_t value);
+
+  private:
+  ::int64_t _internal_target_account_epoch() const;
+  void _internal_set_target_account_epoch(::int64_t value);
+
+  public:
+  // int64 created_at = 13;
+  void clear_created_at() ;
+  ::int64_t created_at() const;
+  void set_created_at(::int64_t value);
+
+  private:
+  ::int64_t _internal_created_at() const;
+  void _internal_set_created_at(::int64_t value);
+
+  public:
+  // int64 updated_at = 14;
+  void clear_updated_at() ;
+  ::int64_t updated_at() const;
+  void set_updated_at(::int64_t value);
+
+  private:
+  ::int64_t _internal_updated_at() const;
+  void _internal_set_updated_at(::int64_t value);
+
+  public:
+  // int64 expires_at = 15;
+  void clear_expires_at() ;
+  ::int64_t expires_at() const;
+  void set_expires_at(::int64_t value);
+
+  private:
+  ::int64_t _internal_expires_at() const;
+  void _internal_set_expires_at(::int64_t value);
+
+  public:
+  // .s4wave.provider.spacewave.TargetedInvitePurpose purpose = 7;
+  void clear_purpose() ;
+  ::s4wave::provider::spacewave::TargetedInvitePurpose purpose() const;
+  void set_purpose(::s4wave::provider::spacewave::TargetedInvitePurpose value);
+
+  private:
+  ::s4wave::provider::spacewave::TargetedInvitePurpose _internal_purpose() const;
+  void _internal_set_purpose(::s4wave::provider::spacewave::TargetedInvitePurpose value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.provider.spacewave.TargetedInvitationInfo)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<4, 16,
+                                   1, 183,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const TargetedInvitationInfo& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr id_;
+    ::google::protobuf::internal::ArenaStringPtr actor_account_id_;
+    ::google::protobuf::internal::ArenaStringPtr target_account_id_;
+    ::google::protobuf::internal::ArenaStringPtr target_entity_id_;
+    ::google::protobuf::internal::ArenaStringPtr target_entity_uuid_;
+    ::google::protobuf::internal::ArenaStringPtr context_id_;
+    ::google::protobuf::internal::ArenaStringPtr role_;
+    ::google::protobuf::internal::ArenaStringPtr status_;
+    ::google::protobuf::internal::ArenaStringPtr envelope_hash_;
+    ::google::protobuf::internal::ArenaStringPtr draft_id_;
+    ::s4wave::provider::spacewave::TargetedInvitationEnvelope* PROTOBUF_NULLABLE envelope_;
+    ::int64_t target_account_epoch_;
+    ::int64_t created_at_;
+    ::int64_t updated_at_;
+    ::int64_t expires_at_;
+    int purpose_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull TargetedInvitationInfo_class_data_;
 // -------------------------------------------------------------------
 
 class StartDesktopSSOResponse final : public ::google::protobuf::Message
@@ -36794,7 +40390,7 @@ class RemoveSpaceMemberResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const RemoveSpaceMemberResponse*>(
         &_RemoveSpaceMemberResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 191;
+  static constexpr int kIndexInFileMessages = 215;
   friend void swap(RemoveSpaceMemberResponse& a, RemoveSpaceMemberResponse& b) { a.Swap(&b); }
   inline void Swap(RemoveSpaceMemberResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -37526,7 +41122,7 @@ class OrganizationRootStateInfo final : public ::google::protobuf::Message
     return *reinterpret_cast<const OrganizationRootStateInfo*>(
         &_OrganizationRootStateInfo_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 120;
+  static constexpr int kIndexInFileMessages = 144;
   friend void swap(OrganizationRootStateInfo& a, OrganizationRootStateInfo& b) { a.Swap(&b); }
   inline void Swap(OrganizationRootStateInfo* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -37755,7 +41351,7 @@ class ManagedBillingAccount final : public ::google::protobuf::Message
     return *reinterpret_cast<const ManagedBillingAccount*>(
         &_ManagedBillingAccount_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 141;
+  static constexpr int kIndexInFileMessages = 165;
   friend void swap(ManagedBillingAccount& a, ManagedBillingAccount& b) { a.Swap(&b); }
   inline void Swap(ManagedBillingAccount* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -38541,7 +42137,7 @@ class ListOrgInvitesResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ListOrgInvitesResponse*>(
         &_ListOrgInvitesResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 128;
+  static constexpr int kIndexInFileMessages = 152;
   friend void swap(ListOrgInvitesResponse& a, ListOrgInvitesResponse& b) { a.Swap(&b); }
   inline void Swap(ListOrgInvitesResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -38738,7 +42334,7 @@ class ListEmailsResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ListEmailsResponse*>(
         &_ListEmailsResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 173;
+  static constexpr int kIndexInFileMessages = 197;
   friend void swap(ListEmailsResponse& a, ListEmailsResponse& b) { a.Swap(&b); }
   inline void Swap(ListEmailsResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -38935,7 +42531,7 @@ class JoinOrganizationResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const JoinOrganizationResponse*>(
         &_JoinOrganizationResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 110;
+  static constexpr int kIndexInFileMessages = 134;
   friend void swap(JoinOrganizationResponse& a, JoinOrganizationResponse& b) { a.Swap(&b); }
   inline void Swap(JoinOrganizationResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -39130,7 +42726,7 @@ class GetMailboxEntriesResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetMailboxEntriesResponse*>(
         &_GetMailboxEntriesResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 195;
+  static constexpr int kIndexInFileMessages = 219;
   friend void swap(GetMailboxEntriesResponse& a, GetMailboxEntriesResponse& b) { a.Swap(&b); }
   inline void Swap(GetMailboxEntriesResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -39327,7 +42923,7 @@ class GetBillingUsageResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetBillingUsageResponse*>(
         &_GetBillingUsageResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 154;
+  static constexpr int kIndexInFileMessages = 178;
   friend void swap(GetBillingUsageResponse& a, GetBillingUsageResponse& b) { a.Swap(&b); }
   inline void Swap(GetBillingUsageResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -39522,7 +43118,7 @@ class GetBillingAccountResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetBillingAccountResponse*>(
         &_GetBillingAccountResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 152;
+  static constexpr int kIndexInFileMessages = 176;
   friend void swap(GetBillingAccountResponse& a, GetBillingAccountResponse& b) { a.Swap(&b); }
   inline void Swap(GetBillingAccountResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -39929,7 +43525,7 @@ class EnrollSpaceMemberResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const EnrollSpaceMemberResponse*>(
         &_EnrollSpaceMemberResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 188;
+  static constexpr int kIndexInFileMessages = 212;
   friend void swap(EnrollSpaceMemberResponse& a, EnrollSpaceMemberResponse& b) { a.Swap(&b); }
   inline void Swap(EnrollSpaceMemberResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -40069,6 +43665,310 @@ class EnrollSpaceMemberResponse final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull EnrollSpaceMemberResponse_class_data_;
+// -------------------------------------------------------------------
+
+class CreateTargetedInvitationRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.provider.spacewave.CreateTargetedInvitationRequest) */ {
+ public:
+  inline CreateTargetedInvitationRequest() : CreateTargetedInvitationRequest(nullptr) {}
+  ~CreateTargetedInvitationRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(CreateTargetedInvitationRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(CreateTargetedInvitationRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR CreateTargetedInvitationRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline CreateTargetedInvitationRequest(const CreateTargetedInvitationRequest& from) : CreateTargetedInvitationRequest(nullptr, from) {}
+  inline CreateTargetedInvitationRequest(CreateTargetedInvitationRequest&& from) noexcept
+      : CreateTargetedInvitationRequest(nullptr, ::std::move(from)) {}
+  inline CreateTargetedInvitationRequest& operator=(const CreateTargetedInvitationRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline CreateTargetedInvitationRequest& operator=(CreateTargetedInvitationRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const CreateTargetedInvitationRequest& default_instance() {
+    return *reinterpret_cast<const CreateTargetedInvitationRequest*>(
+        &_CreateTargetedInvitationRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 113;
+  friend void swap(CreateTargetedInvitationRequest& a, CreateTargetedInvitationRequest& b) { a.Swap(&b); }
+  inline void Swap(CreateTargetedInvitationRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(CreateTargetedInvitationRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  CreateTargetedInvitationRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<CreateTargetedInvitationRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const CreateTargetedInvitationRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const CreateTargetedInvitationRequest& from) { CreateTargetedInvitationRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(CreateTargetedInvitationRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.provider.spacewave.CreateTargetedInvitationRequest"; }
+
+  explicit CreateTargetedInvitationRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  CreateTargetedInvitationRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const CreateTargetedInvitationRequest& from);
+  CreateTargetedInvitationRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, CreateTargetedInvitationRequest&& from) noexcept
+      : CreateTargetedInvitationRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kTargetAccountIdFieldNumber = 1,
+    kSpaceIdFieldNumber = 3,
+    kOrgIdFieldNumber = 4,
+    kRoleFieldNumber = 5,
+    kDraftIdFieldNumber = 8,
+    kEnvelopeFieldNumber = 7,
+    kExpiresAtFieldNumber = 6,
+    kPurposeFieldNumber = 2,
+  };
+  // string target_account_id = 1;
+  void clear_target_account_id() ;
+  const ::std::string& target_account_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_target_account_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_target_account_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_target_account_id();
+  void set_allocated_target_account_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_target_account_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_target_account_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_target_account_id();
+
+  public:
+  // string space_id = 3;
+  void clear_space_id() ;
+  const ::std::string& space_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_space_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_space_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_space_id();
+  void set_allocated_space_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_space_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_space_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_space_id();
+
+  public:
+  // string org_id = 4;
+  void clear_org_id() ;
+  const ::std::string& org_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_org_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_org_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_org_id();
+  void set_allocated_org_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_org_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_org_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_org_id();
+
+  public:
+  // string role = 5;
+  void clear_role() ;
+  const ::std::string& role() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_role(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_role();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_role();
+  void set_allocated_role(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_role() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_role(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_role();
+
+  public:
+  // string draft_id = 8;
+  void clear_draft_id() ;
+  const ::std::string& draft_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_draft_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_draft_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_draft_id();
+  void set_allocated_draft_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_draft_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_draft_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_draft_id();
+
+  public:
+  // .s4wave.provider.spacewave.TargetedInvitationEnvelope envelope = 7;
+  bool has_envelope() const;
+  void clear_envelope() ;
+  const ::s4wave::provider::spacewave::TargetedInvitationEnvelope& envelope() const;
+  [[nodiscard]] ::s4wave::provider::spacewave::TargetedInvitationEnvelope* PROTOBUF_NULLABLE release_envelope();
+  ::s4wave::provider::spacewave::TargetedInvitationEnvelope* PROTOBUF_NONNULL mutable_envelope();
+  void set_allocated_envelope(::s4wave::provider::spacewave::TargetedInvitationEnvelope* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_envelope(::s4wave::provider::spacewave::TargetedInvitationEnvelope* PROTOBUF_NULLABLE value);
+  ::s4wave::provider::spacewave::TargetedInvitationEnvelope* PROTOBUF_NULLABLE unsafe_arena_release_envelope();
+
+  private:
+  const ::s4wave::provider::spacewave::TargetedInvitationEnvelope& _internal_envelope() const;
+  ::s4wave::provider::spacewave::TargetedInvitationEnvelope* PROTOBUF_NONNULL _internal_mutable_envelope();
+
+  public:
+  // int64 expires_at = 6;
+  void clear_expires_at() ;
+  ::int64_t expires_at() const;
+  void set_expires_at(::int64_t value);
+
+  private:
+  ::int64_t _internal_expires_at() const;
+  void _internal_set_expires_at(::int64_t value);
+
+  public:
+  // .s4wave.provider.spacewave.TargetedInvitePurpose purpose = 2;
+  void clear_purpose() ;
+  ::s4wave::provider::spacewave::TargetedInvitePurpose purpose() const;
+  void set_purpose(::s4wave::provider::spacewave::TargetedInvitePurpose value);
+
+  private:
+  ::s4wave::provider::spacewave::TargetedInvitePurpose _internal_purpose() const;
+  void _internal_set_purpose(::s4wave::provider::spacewave::TargetedInvitePurpose value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.provider.spacewave.CreateTargetedInvitationRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 8,
+                                   1, 117,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const CreateTargetedInvitationRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr target_account_id_;
+    ::google::protobuf::internal::ArenaStringPtr space_id_;
+    ::google::protobuf::internal::ArenaStringPtr org_id_;
+    ::google::protobuf::internal::ArenaStringPtr role_;
+    ::google::protobuf::internal::ArenaStringPtr draft_id_;
+    ::s4wave::provider::spacewave::TargetedInvitationEnvelope* PROTOBUF_NULLABLE envelope_;
+    ::int64_t expires_at_;
+    int purpose_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull CreateTargetedInvitationRequest_class_data_;
 // -------------------------------------------------------------------
 
 class CreateOrganizationResponse final : public ::google::protobuf::Message
@@ -40321,7 +44221,7 @@ class CreateOrgInviteResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const CreateOrgInviteResponse*>(
         &_CreateOrgInviteResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 108;
+  static constexpr int kIndexInFileMessages = 132;
   friend void swap(CreateOrgInviteResponse& a, CreateOrgInviteResponse& b) { a.Swap(&b); }
   inline void Swap(CreateOrgInviteResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -40809,7 +44709,7 @@ class WatchOrganizationStateResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchOrganizationStateResponse*>(
         &_WatchOrganizationStateResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 122;
+  static constexpr int kIndexInFileMessages = 146;
   friend void swap(WatchOrganizationStateResponse& a, WatchOrganizationStateResponse& b) { a.Swap(&b); }
   inline void Swap(WatchOrganizationStateResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -41023,6 +44923,396 @@ class WatchOrganizationStateResponse final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull WatchOrganizationStateResponse_class_data_;
 // -------------------------------------------------------------------
 
+class RevokeTargetedInvitationResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.provider.spacewave.RevokeTargetedInvitationResponse) */ {
+ public:
+  inline RevokeTargetedInvitationResponse() : RevokeTargetedInvitationResponse(nullptr) {}
+  ~RevokeTargetedInvitationResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(RevokeTargetedInvitationResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(RevokeTargetedInvitationResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR RevokeTargetedInvitationResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline RevokeTargetedInvitationResponse(const RevokeTargetedInvitationResponse& from) : RevokeTargetedInvitationResponse(nullptr, from) {}
+  inline RevokeTargetedInvitationResponse(RevokeTargetedInvitationResponse&& from) noexcept
+      : RevokeTargetedInvitationResponse(nullptr, ::std::move(from)) {}
+  inline RevokeTargetedInvitationResponse& operator=(const RevokeTargetedInvitationResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline RevokeTargetedInvitationResponse& operator=(RevokeTargetedInvitationResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const RevokeTargetedInvitationResponse& default_instance() {
+    return *reinterpret_cast<const RevokeTargetedInvitationResponse*>(
+        &_RevokeTargetedInvitationResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 128;
+  friend void swap(RevokeTargetedInvitationResponse& a, RevokeTargetedInvitationResponse& b) { a.Swap(&b); }
+  inline void Swap(RevokeTargetedInvitationResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(RevokeTargetedInvitationResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  RevokeTargetedInvitationResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<RevokeTargetedInvitationResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const RevokeTargetedInvitationResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const RevokeTargetedInvitationResponse& from) { RevokeTargetedInvitationResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(RevokeTargetedInvitationResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.provider.spacewave.RevokeTargetedInvitationResponse"; }
+
+  explicit RevokeTargetedInvitationResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  RevokeTargetedInvitationResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const RevokeTargetedInvitationResponse& from);
+  RevokeTargetedInvitationResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, RevokeTargetedInvitationResponse&& from) noexcept
+      : RevokeTargetedInvitationResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kInvitationFieldNumber = 1,
+  };
+  // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+  bool has_invitation() const;
+  void clear_invitation() ;
+  const ::s4wave::provider::spacewave::TargetedInvitationInfo& invitation() const;
+  [[nodiscard]] ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE release_invitation();
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL mutable_invitation();
+  void set_allocated_invitation(::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_invitation(::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE value);
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE unsafe_arena_release_invitation();
+
+  private:
+  const ::s4wave::provider::spacewave::TargetedInvitationInfo& _internal_invitation() const;
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL _internal_mutable_invitation();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.provider.spacewave.RevokeTargetedInvitationResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const RevokeTargetedInvitationResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE invitation_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull RevokeTargetedInvitationResponse_class_data_;
+// -------------------------------------------------------------------
+
+class ProcessTargetedInvitationResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.provider.spacewave.ProcessTargetedInvitationResponse) */ {
+ public:
+  inline ProcessTargetedInvitationResponse() : ProcessTargetedInvitationResponse(nullptr) {}
+  ~ProcessTargetedInvitationResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ProcessTargetedInvitationResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ProcessTargetedInvitationResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ProcessTargetedInvitationResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline ProcessTargetedInvitationResponse(const ProcessTargetedInvitationResponse& from) : ProcessTargetedInvitationResponse(nullptr, from) {}
+  inline ProcessTargetedInvitationResponse(ProcessTargetedInvitationResponse&& from) noexcept
+      : ProcessTargetedInvitationResponse(nullptr, ::std::move(from)) {}
+  inline ProcessTargetedInvitationResponse& operator=(const ProcessTargetedInvitationResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ProcessTargetedInvitationResponse& operator=(ProcessTargetedInvitationResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ProcessTargetedInvitationResponse& default_instance() {
+    return *reinterpret_cast<const ProcessTargetedInvitationResponse*>(
+        &_ProcessTargetedInvitationResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 130;
+  friend void swap(ProcessTargetedInvitationResponse& a, ProcessTargetedInvitationResponse& b) { a.Swap(&b); }
+  inline void Swap(ProcessTargetedInvitationResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ProcessTargetedInvitationResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ProcessTargetedInvitationResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<ProcessTargetedInvitationResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ProcessTargetedInvitationResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const ProcessTargetedInvitationResponse& from) { ProcessTargetedInvitationResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(ProcessTargetedInvitationResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.provider.spacewave.ProcessTargetedInvitationResponse"; }
+
+  explicit ProcessTargetedInvitationResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  ProcessTargetedInvitationResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ProcessTargetedInvitationResponse& from);
+  ProcessTargetedInvitationResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ProcessTargetedInvitationResponse&& from) noexcept
+      : ProcessTargetedInvitationResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kInvitationFieldNumber = 1,
+  };
+  // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+  bool has_invitation() const;
+  void clear_invitation() ;
+  const ::s4wave::provider::spacewave::TargetedInvitationInfo& invitation() const;
+  [[nodiscard]] ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE release_invitation();
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL mutable_invitation();
+  void set_allocated_invitation(::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_invitation(::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE value);
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE unsafe_arena_release_invitation();
+
+  private:
+  const ::s4wave::provider::spacewave::TargetedInvitationInfo& _internal_invitation() const;
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL _internal_mutable_invitation();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.provider.spacewave.ProcessTargetedInvitationResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const ProcessTargetedInvitationResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE invitation_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull ProcessTargetedInvitationResponse_class_data_;
+// -------------------------------------------------------------------
+
 class LookupInviteCodeResponse final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.provider.spacewave.LookupInviteCodeResponse) */ {
  public:
@@ -41078,7 +45368,7 @@ class LookupInviteCodeResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const LookupInviteCodeResponse*>(
         &_LookupInviteCodeResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 193;
+  static constexpr int kIndexInFileMessages = 217;
   friend void swap(LookupInviteCodeResponse& a, LookupInviteCodeResponse& b) { a.Swap(&b); }
   inline void Swap(LookupInviteCodeResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -41235,6 +45525,203 @@ class LookupInviteCodeResponse final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull LookupInviteCodeResponse_class_data_;
 // -------------------------------------------------------------------
 
+class ListTargetedInvitationsResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.provider.spacewave.ListTargetedInvitationsResponse) */ {
+ public:
+  inline ListTargetedInvitationsResponse() : ListTargetedInvitationsResponse(nullptr) {}
+  ~ListTargetedInvitationsResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ListTargetedInvitationsResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ListTargetedInvitationsResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ListTargetedInvitationsResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline ListTargetedInvitationsResponse(const ListTargetedInvitationsResponse& from) : ListTargetedInvitationsResponse(nullptr, from) {}
+  inline ListTargetedInvitationsResponse(ListTargetedInvitationsResponse&& from) noexcept
+      : ListTargetedInvitationsResponse(nullptr, ::std::move(from)) {}
+  inline ListTargetedInvitationsResponse& operator=(const ListTargetedInvitationsResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ListTargetedInvitationsResponse& operator=(ListTargetedInvitationsResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ListTargetedInvitationsResponse& default_instance() {
+    return *reinterpret_cast<const ListTargetedInvitationsResponse*>(
+        &_ListTargetedInvitationsResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 124;
+  friend void swap(ListTargetedInvitationsResponse& a, ListTargetedInvitationsResponse& b) { a.Swap(&b); }
+  inline void Swap(ListTargetedInvitationsResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ListTargetedInvitationsResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ListTargetedInvitationsResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<ListTargetedInvitationsResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ListTargetedInvitationsResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const ListTargetedInvitationsResponse& from) { ListTargetedInvitationsResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(ListTargetedInvitationsResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.provider.spacewave.ListTargetedInvitationsResponse"; }
+
+  explicit ListTargetedInvitationsResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  ListTargetedInvitationsResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ListTargetedInvitationsResponse& from);
+  ListTargetedInvitationsResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ListTargetedInvitationsResponse&& from) noexcept
+      : ListTargetedInvitationsResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kInvitationsFieldNumber = 1,
+  };
+  // repeated .s4wave.provider.spacewave.TargetedInvitationInfo invitations = 1;
+  int invitations_size() const;
+  private:
+  int _internal_invitations_size() const;
+
+  public:
+  void clear_invitations() ;
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL mutable_invitations(int index);
+  ::google::protobuf::RepeatedPtrField<::s4wave::provider::spacewave::TargetedInvitationInfo>* PROTOBUF_NONNULL mutable_invitations();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::s4wave::provider::spacewave::TargetedInvitationInfo>& _internal_invitations() const;
+  ::google::protobuf::RepeatedPtrField<::s4wave::provider::spacewave::TargetedInvitationInfo>* PROTOBUF_NONNULL _internal_mutable_invitations();
+  public:
+  const ::s4wave::provider::spacewave::TargetedInvitationInfo& invitations(int index) const;
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL add_invitations();
+  const ::google::protobuf::RepeatedPtrField<::s4wave::provider::spacewave::TargetedInvitationInfo>& invitations() const;
+  // @@protoc_insertion_point(class_scope:s4wave.provider.spacewave.ListTargetedInvitationsResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const ListTargetedInvitationsResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField< ::s4wave::provider::spacewave::TargetedInvitationInfo > invitations_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull ListTargetedInvitationsResponse_class_data_;
+// -------------------------------------------------------------------
+
 class ListManagedBillingAccountsResponse final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.provider.spacewave.ListManagedBillingAccountsResponse) */ {
  public:
@@ -41290,7 +45777,7 @@ class ListManagedBillingAccountsResponse final : public ::google::protobuf::Mess
     return *reinterpret_cast<const ListManagedBillingAccountsResponse*>(
         &_ListManagedBillingAccountsResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 150;
+  static constexpr int kIndexInFileMessages = 174;
   friend void swap(ListManagedBillingAccountsResponse& a, ListManagedBillingAccountsResponse& b) { a.Swap(&b); }
   inline void Swap(ListManagedBillingAccountsResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -41432,6 +45919,201 @@ class ListManagedBillingAccountsResponse final : public ::google::protobuf::Mess
 extern const ::google::protobuf::internal::ClassDataFull ListManagedBillingAccountsResponse_class_data_;
 // -------------------------------------------------------------------
 
+class GetTargetedInvitationResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.provider.spacewave.GetTargetedInvitationResponse) */ {
+ public:
+  inline GetTargetedInvitationResponse() : GetTargetedInvitationResponse(nullptr) {}
+  ~GetTargetedInvitationResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(GetTargetedInvitationResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(GetTargetedInvitationResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR GetTargetedInvitationResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline GetTargetedInvitationResponse(const GetTargetedInvitationResponse& from) : GetTargetedInvitationResponse(nullptr, from) {}
+  inline GetTargetedInvitationResponse(GetTargetedInvitationResponse&& from) noexcept
+      : GetTargetedInvitationResponse(nullptr, ::std::move(from)) {}
+  inline GetTargetedInvitationResponse& operator=(const GetTargetedInvitationResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline GetTargetedInvitationResponse& operator=(GetTargetedInvitationResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const GetTargetedInvitationResponse& default_instance() {
+    return *reinterpret_cast<const GetTargetedInvitationResponse*>(
+        &_GetTargetedInvitationResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 126;
+  friend void swap(GetTargetedInvitationResponse& a, GetTargetedInvitationResponse& b) { a.Swap(&b); }
+  inline void Swap(GetTargetedInvitationResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(GetTargetedInvitationResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  GetTargetedInvitationResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<GetTargetedInvitationResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const GetTargetedInvitationResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const GetTargetedInvitationResponse& from) { GetTargetedInvitationResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(GetTargetedInvitationResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.provider.spacewave.GetTargetedInvitationResponse"; }
+
+  explicit GetTargetedInvitationResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  GetTargetedInvitationResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const GetTargetedInvitationResponse& from);
+  GetTargetedInvitationResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, GetTargetedInvitationResponse&& from) noexcept
+      : GetTargetedInvitationResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kInvitationFieldNumber = 1,
+  };
+  // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+  bool has_invitation() const;
+  void clear_invitation() ;
+  const ::s4wave::provider::spacewave::TargetedInvitationInfo& invitation() const;
+  [[nodiscard]] ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE release_invitation();
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL mutable_invitation();
+  void set_allocated_invitation(::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_invitation(::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE value);
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE unsafe_arena_release_invitation();
+
+  private:
+  const ::s4wave::provider::spacewave::TargetedInvitationInfo& _internal_invitation() const;
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL _internal_mutable_invitation();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.provider.spacewave.GetTargetedInvitationResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const GetTargetedInvitationResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE invitation_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull GetTargetedInvitationResponse_class_data_;
+// -------------------------------------------------------------------
+
 class GetOrganizationResponse final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.provider.spacewave.GetOrganizationResponse) */ {
  public:
@@ -41487,7 +46169,7 @@ class GetOrganizationResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetOrganizationResponse*>(
         &_GetOrganizationResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 121;
+  static constexpr int kIndexInFileMessages = 145;
   friend void swap(GetOrganizationResponse& a, GetOrganizationResponse& b) { a.Swap(&b); }
   inline void Swap(GetOrganizationResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -41680,6 +46362,1032 @@ class GetOrganizationResponse final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull GetOrganizationResponse_class_data_;
+// -------------------------------------------------------------------
+
+class CreateTargetedInvitationResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.provider.spacewave.CreateTargetedInvitationResponse) */ {
+ public:
+  inline CreateTargetedInvitationResponse() : CreateTargetedInvitationResponse(nullptr) {}
+  ~CreateTargetedInvitationResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(CreateTargetedInvitationResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(CreateTargetedInvitationResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR CreateTargetedInvitationResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline CreateTargetedInvitationResponse(const CreateTargetedInvitationResponse& from) : CreateTargetedInvitationResponse(nullptr, from) {}
+  inline CreateTargetedInvitationResponse(CreateTargetedInvitationResponse&& from) noexcept
+      : CreateTargetedInvitationResponse(nullptr, ::std::move(from)) {}
+  inline CreateTargetedInvitationResponse& operator=(const CreateTargetedInvitationResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline CreateTargetedInvitationResponse& operator=(CreateTargetedInvitationResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const CreateTargetedInvitationResponse& default_instance() {
+    return *reinterpret_cast<const CreateTargetedInvitationResponse*>(
+        &_CreateTargetedInvitationResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 114;
+  friend void swap(CreateTargetedInvitationResponse& a, CreateTargetedInvitationResponse& b) { a.Swap(&b); }
+  inline void Swap(CreateTargetedInvitationResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(CreateTargetedInvitationResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  CreateTargetedInvitationResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<CreateTargetedInvitationResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const CreateTargetedInvitationResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const CreateTargetedInvitationResponse& from) { CreateTargetedInvitationResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(CreateTargetedInvitationResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.provider.spacewave.CreateTargetedInvitationResponse"; }
+
+  explicit CreateTargetedInvitationResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  CreateTargetedInvitationResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const CreateTargetedInvitationResponse& from);
+  CreateTargetedInvitationResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, CreateTargetedInvitationResponse&& from) noexcept
+      : CreateTargetedInvitationResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kInvitationFieldNumber = 1,
+  };
+  // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+  bool has_invitation() const;
+  void clear_invitation() ;
+  const ::s4wave::provider::spacewave::TargetedInvitationInfo& invitation() const;
+  [[nodiscard]] ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE release_invitation();
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL mutable_invitation();
+  void set_allocated_invitation(::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_invitation(::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE value);
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE unsafe_arena_release_invitation();
+
+  private:
+  const ::s4wave::provider::spacewave::TargetedInvitationInfo& _internal_invitation() const;
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL _internal_mutable_invitation();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.provider.spacewave.CreateTargetedInvitationResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const CreateTargetedInvitationResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE invitation_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull CreateTargetedInvitationResponse_class_data_;
+// -------------------------------------------------------------------
+
+class CreateSpaceTargetedInvitationByUsernameResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameResponse) */ {
+ public:
+  inline CreateSpaceTargetedInvitationByUsernameResponse() : CreateSpaceTargetedInvitationByUsernameResponse(nullptr) {}
+  ~CreateSpaceTargetedInvitationByUsernameResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(CreateSpaceTargetedInvitationByUsernameResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(CreateSpaceTargetedInvitationByUsernameResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR CreateSpaceTargetedInvitationByUsernameResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline CreateSpaceTargetedInvitationByUsernameResponse(const CreateSpaceTargetedInvitationByUsernameResponse& from) : CreateSpaceTargetedInvitationByUsernameResponse(nullptr, from) {}
+  inline CreateSpaceTargetedInvitationByUsernameResponse(CreateSpaceTargetedInvitationByUsernameResponse&& from) noexcept
+      : CreateSpaceTargetedInvitationByUsernameResponse(nullptr, ::std::move(from)) {}
+  inline CreateSpaceTargetedInvitationByUsernameResponse& operator=(const CreateSpaceTargetedInvitationByUsernameResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline CreateSpaceTargetedInvitationByUsernameResponse& operator=(CreateSpaceTargetedInvitationByUsernameResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const CreateSpaceTargetedInvitationByUsernameResponse& default_instance() {
+    return *reinterpret_cast<const CreateSpaceTargetedInvitationByUsernameResponse*>(
+        &_CreateSpaceTargetedInvitationByUsernameResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 116;
+  friend void swap(CreateSpaceTargetedInvitationByUsernameResponse& a, CreateSpaceTargetedInvitationByUsernameResponse& b) { a.Swap(&b); }
+  inline void Swap(CreateSpaceTargetedInvitationByUsernameResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(CreateSpaceTargetedInvitationByUsernameResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  CreateSpaceTargetedInvitationByUsernameResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<CreateSpaceTargetedInvitationByUsernameResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const CreateSpaceTargetedInvitationByUsernameResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const CreateSpaceTargetedInvitationByUsernameResponse& from) { CreateSpaceTargetedInvitationByUsernameResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(CreateSpaceTargetedInvitationByUsernameResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameResponse"; }
+
+  explicit CreateSpaceTargetedInvitationByUsernameResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  CreateSpaceTargetedInvitationByUsernameResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const CreateSpaceTargetedInvitationByUsernameResponse& from);
+  CreateSpaceTargetedInvitationByUsernameResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, CreateSpaceTargetedInvitationByUsernameResponse&& from) noexcept
+      : CreateSpaceTargetedInvitationByUsernameResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kInvitationFieldNumber = 1,
+  };
+  // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+  bool has_invitation() const;
+  void clear_invitation() ;
+  const ::s4wave::provider::spacewave::TargetedInvitationInfo& invitation() const;
+  [[nodiscard]] ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE release_invitation();
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL mutable_invitation();
+  void set_allocated_invitation(::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_invitation(::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE value);
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE unsafe_arena_release_invitation();
+
+  private:
+  const ::s4wave::provider::spacewave::TargetedInvitationInfo& _internal_invitation() const;
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL _internal_mutable_invitation();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const CreateSpaceTargetedInvitationByUsernameResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE invitation_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull CreateSpaceTargetedInvitationByUsernameResponse_class_data_;
+// -------------------------------------------------------------------
+
+class CreateOrganizationTargetedInvitationByUsernameResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameResponse) */ {
+ public:
+  inline CreateOrganizationTargetedInvitationByUsernameResponse() : CreateOrganizationTargetedInvitationByUsernameResponse(nullptr) {}
+  ~CreateOrganizationTargetedInvitationByUsernameResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(CreateOrganizationTargetedInvitationByUsernameResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(CreateOrganizationTargetedInvitationByUsernameResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR CreateOrganizationTargetedInvitationByUsernameResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline CreateOrganizationTargetedInvitationByUsernameResponse(const CreateOrganizationTargetedInvitationByUsernameResponse& from) : CreateOrganizationTargetedInvitationByUsernameResponse(nullptr, from) {}
+  inline CreateOrganizationTargetedInvitationByUsernameResponse(CreateOrganizationTargetedInvitationByUsernameResponse&& from) noexcept
+      : CreateOrganizationTargetedInvitationByUsernameResponse(nullptr, ::std::move(from)) {}
+  inline CreateOrganizationTargetedInvitationByUsernameResponse& operator=(const CreateOrganizationTargetedInvitationByUsernameResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline CreateOrganizationTargetedInvitationByUsernameResponse& operator=(CreateOrganizationTargetedInvitationByUsernameResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const CreateOrganizationTargetedInvitationByUsernameResponse& default_instance() {
+    return *reinterpret_cast<const CreateOrganizationTargetedInvitationByUsernameResponse*>(
+        &_CreateOrganizationTargetedInvitationByUsernameResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 120;
+  friend void swap(CreateOrganizationTargetedInvitationByUsernameResponse& a, CreateOrganizationTargetedInvitationByUsernameResponse& b) { a.Swap(&b); }
+  inline void Swap(CreateOrganizationTargetedInvitationByUsernameResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(CreateOrganizationTargetedInvitationByUsernameResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  CreateOrganizationTargetedInvitationByUsernameResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<CreateOrganizationTargetedInvitationByUsernameResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const CreateOrganizationTargetedInvitationByUsernameResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const CreateOrganizationTargetedInvitationByUsernameResponse& from) { CreateOrganizationTargetedInvitationByUsernameResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(CreateOrganizationTargetedInvitationByUsernameResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameResponse"; }
+
+  explicit CreateOrganizationTargetedInvitationByUsernameResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  CreateOrganizationTargetedInvitationByUsernameResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const CreateOrganizationTargetedInvitationByUsernameResponse& from);
+  CreateOrganizationTargetedInvitationByUsernameResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, CreateOrganizationTargetedInvitationByUsernameResponse&& from) noexcept
+      : CreateOrganizationTargetedInvitationByUsernameResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kInvitationFieldNumber = 1,
+  };
+  // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+  bool has_invitation() const;
+  void clear_invitation() ;
+  const ::s4wave::provider::spacewave::TargetedInvitationInfo& invitation() const;
+  [[nodiscard]] ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE release_invitation();
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL mutable_invitation();
+  void set_allocated_invitation(::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_invitation(::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE value);
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE unsafe_arena_release_invitation();
+
+  private:
+  const ::s4wave::provider::spacewave::TargetedInvitationInfo& _internal_invitation() const;
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL _internal_mutable_invitation();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const CreateOrganizationTargetedInvitationByUsernameResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE invitation_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull CreateOrganizationTargetedInvitationByUsernameResponse_class_data_;
+// -------------------------------------------------------------------
+
+class AcceptSpaceTargetedInvitationResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationResponse) */ {
+ public:
+  inline AcceptSpaceTargetedInvitationResponse() : AcceptSpaceTargetedInvitationResponse(nullptr) {}
+  ~AcceptSpaceTargetedInvitationResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(AcceptSpaceTargetedInvitationResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(AcceptSpaceTargetedInvitationResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR AcceptSpaceTargetedInvitationResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline AcceptSpaceTargetedInvitationResponse(const AcceptSpaceTargetedInvitationResponse& from) : AcceptSpaceTargetedInvitationResponse(nullptr, from) {}
+  inline AcceptSpaceTargetedInvitationResponse(AcceptSpaceTargetedInvitationResponse&& from) noexcept
+      : AcceptSpaceTargetedInvitationResponse(nullptr, ::std::move(from)) {}
+  inline AcceptSpaceTargetedInvitationResponse& operator=(const AcceptSpaceTargetedInvitationResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline AcceptSpaceTargetedInvitationResponse& operator=(AcceptSpaceTargetedInvitationResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const AcceptSpaceTargetedInvitationResponse& default_instance() {
+    return *reinterpret_cast<const AcceptSpaceTargetedInvitationResponse*>(
+        &_AcceptSpaceTargetedInvitationResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 118;
+  friend void swap(AcceptSpaceTargetedInvitationResponse& a, AcceptSpaceTargetedInvitationResponse& b) { a.Swap(&b); }
+  inline void Swap(AcceptSpaceTargetedInvitationResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(AcceptSpaceTargetedInvitationResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  AcceptSpaceTargetedInvitationResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<AcceptSpaceTargetedInvitationResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const AcceptSpaceTargetedInvitationResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const AcceptSpaceTargetedInvitationResponse& from) { AcceptSpaceTargetedInvitationResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(AcceptSpaceTargetedInvitationResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.provider.spacewave.AcceptSpaceTargetedInvitationResponse"; }
+
+  explicit AcceptSpaceTargetedInvitationResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  AcceptSpaceTargetedInvitationResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const AcceptSpaceTargetedInvitationResponse& from);
+  AcceptSpaceTargetedInvitationResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, AcceptSpaceTargetedInvitationResponse&& from) noexcept
+      : AcceptSpaceTargetedInvitationResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kSharedObjectIdFieldNumber = 2,
+    kJoinResultFieldNumber = 3,
+    kInvitationFieldNumber = 1,
+  };
+  // string shared_object_id = 2;
+  void clear_shared_object_id() ;
+  const ::std::string& shared_object_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_shared_object_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_shared_object_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_shared_object_id();
+  void set_allocated_shared_object_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_shared_object_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_shared_object_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_shared_object_id();
+
+  public:
+  // string join_result = 3;
+  void clear_join_result() ;
+  const ::std::string& join_result() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_join_result(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_join_result();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_join_result();
+  void set_allocated_join_result(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_join_result() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_join_result(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_join_result();
+
+  public:
+  // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+  bool has_invitation() const;
+  void clear_invitation() ;
+  const ::s4wave::provider::spacewave::TargetedInvitationInfo& invitation() const;
+  [[nodiscard]] ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE release_invitation();
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL mutable_invitation();
+  void set_allocated_invitation(::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_invitation(::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE value);
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE unsafe_arena_release_invitation();
+
+  private:
+  const ::s4wave::provider::spacewave::TargetedInvitationInfo& _internal_invitation() const;
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL _internal_mutable_invitation();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   1, 99,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const AcceptSpaceTargetedInvitationResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr shared_object_id_;
+    ::google::protobuf::internal::ArenaStringPtr join_result_;
+    ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE invitation_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull AcceptSpaceTargetedInvitationResponse_class_data_;
+// -------------------------------------------------------------------
+
+class AcceptOrganizationTargetedInvitationResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationResponse) */ {
+ public:
+  inline AcceptOrganizationTargetedInvitationResponse() : AcceptOrganizationTargetedInvitationResponse(nullptr) {}
+  ~AcceptOrganizationTargetedInvitationResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(AcceptOrganizationTargetedInvitationResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(AcceptOrganizationTargetedInvitationResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR AcceptOrganizationTargetedInvitationResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline AcceptOrganizationTargetedInvitationResponse(const AcceptOrganizationTargetedInvitationResponse& from) : AcceptOrganizationTargetedInvitationResponse(nullptr, from) {}
+  inline AcceptOrganizationTargetedInvitationResponse(AcceptOrganizationTargetedInvitationResponse&& from) noexcept
+      : AcceptOrganizationTargetedInvitationResponse(nullptr, ::std::move(from)) {}
+  inline AcceptOrganizationTargetedInvitationResponse& operator=(const AcceptOrganizationTargetedInvitationResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline AcceptOrganizationTargetedInvitationResponse& operator=(AcceptOrganizationTargetedInvitationResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const AcceptOrganizationTargetedInvitationResponse& default_instance() {
+    return *reinterpret_cast<const AcceptOrganizationTargetedInvitationResponse*>(
+        &_AcceptOrganizationTargetedInvitationResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 122;
+  friend void swap(AcceptOrganizationTargetedInvitationResponse& a, AcceptOrganizationTargetedInvitationResponse& b) { a.Swap(&b); }
+  inline void Swap(AcceptOrganizationTargetedInvitationResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(AcceptOrganizationTargetedInvitationResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  AcceptOrganizationTargetedInvitationResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<AcceptOrganizationTargetedInvitationResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const AcceptOrganizationTargetedInvitationResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const AcceptOrganizationTargetedInvitationResponse& from) { AcceptOrganizationTargetedInvitationResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(AcceptOrganizationTargetedInvitationResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationResponse"; }
+
+  explicit AcceptOrganizationTargetedInvitationResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  AcceptOrganizationTargetedInvitationResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const AcceptOrganizationTargetedInvitationResponse& from);
+  AcceptOrganizationTargetedInvitationResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, AcceptOrganizationTargetedInvitationResponse&& from) noexcept
+      : AcceptOrganizationTargetedInvitationResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kInvitationFieldNumber = 1,
+    kOrganizationFieldNumber = 2,
+  };
+  // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+  bool has_invitation() const;
+  void clear_invitation() ;
+  const ::s4wave::provider::spacewave::TargetedInvitationInfo& invitation() const;
+  [[nodiscard]] ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE release_invitation();
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL mutable_invitation();
+  void set_allocated_invitation(::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_invitation(::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE value);
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE unsafe_arena_release_invitation();
+
+  private:
+  const ::s4wave::provider::spacewave::TargetedInvitationInfo& _internal_invitation() const;
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL _internal_mutable_invitation();
+
+  public:
+  // .s4wave.provider.spacewave.OrganizationInfo organization = 2;
+  bool has_organization() const;
+  void clear_organization() ;
+  const ::s4wave::provider::spacewave::OrganizationInfo& organization() const;
+  [[nodiscard]] ::s4wave::provider::spacewave::OrganizationInfo* PROTOBUF_NULLABLE release_organization();
+  ::s4wave::provider::spacewave::OrganizationInfo* PROTOBUF_NONNULL mutable_organization();
+  void set_allocated_organization(::s4wave::provider::spacewave::OrganizationInfo* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_organization(::s4wave::provider::spacewave::OrganizationInfo* PROTOBUF_NULLABLE value);
+  ::s4wave::provider::spacewave::OrganizationInfo* PROTOBUF_NULLABLE unsafe_arena_release_organization();
+
+  private:
+  const ::s4wave::provider::spacewave::OrganizationInfo& _internal_organization() const;
+  ::s4wave::provider::spacewave::OrganizationInfo* PROTOBUF_NONNULL _internal_mutable_organization();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   2, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const AcceptOrganizationTargetedInvitationResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE invitation_;
+    ::s4wave::provider::spacewave::OrganizationInfo* PROTOBUF_NULLABLE organization_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull AcceptOrganizationTargetedInvitationResponse_class_data_;
 // -------------------------------------------------------------------
 
 class StartBrowserHandoffResponse final : public ::google::protobuf::Message
@@ -58262,6 +63970,5152 @@ inline void OrgInviteInfo::_internal_set_expires_at(::int64_t value) {
 
 // -------------------------------------------------------------------
 
+// CreateTargetedInviteDraftByUsernameRequest
+
+// string username = 1;
+inline void CreateTargetedInviteDraftByUsernameRequest::clear_username() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.username_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& CreateTargetedInviteDraftByUsernameRequest::username() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest.username)
+  return _internal_username();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CreateTargetedInviteDraftByUsernameRequest::set_username(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.username_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest.username)
+}
+inline ::std::string* PROTOBUF_NONNULL CreateTargetedInviteDraftByUsernameRequest::mutable_username()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_username();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest.username)
+  return _s;
+}
+inline const ::std::string& CreateTargetedInviteDraftByUsernameRequest::_internal_username() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.username_.Get();
+}
+inline void CreateTargetedInviteDraftByUsernameRequest::_internal_set_username(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.username_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CreateTargetedInviteDraftByUsernameRequest::_internal_mutable_username() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.username_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CreateTargetedInviteDraftByUsernameRequest::release_username() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest.username)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.username_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.username_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CreateTargetedInviteDraftByUsernameRequest::set_allocated_username(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.username_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.username_.IsDefault()) {
+    _impl_.username_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest.username)
+}
+
+// .s4wave.provider.spacewave.TargetedInvitePurpose purpose = 2;
+inline void CreateTargetedInviteDraftByUsernameRequest::clear_purpose() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.purpose_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline ::s4wave::provider::spacewave::TargetedInvitePurpose CreateTargetedInviteDraftByUsernameRequest::purpose() const {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest.purpose)
+  return _internal_purpose();
+}
+inline void CreateTargetedInviteDraftByUsernameRequest::set_purpose(::s4wave::provider::spacewave::TargetedInvitePurpose value) {
+  _internal_set_purpose(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest.purpose)
+}
+inline ::s4wave::provider::spacewave::TargetedInvitePurpose CreateTargetedInviteDraftByUsernameRequest::_internal_purpose() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::s4wave::provider::spacewave::TargetedInvitePurpose>(_impl_.purpose_);
+}
+inline void CreateTargetedInviteDraftByUsernameRequest::_internal_set_purpose(::s4wave::provider::spacewave::TargetedInvitePurpose value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.purpose_ = value;
+}
+
+// string space_id = 3;
+inline void CreateTargetedInviteDraftByUsernameRequest::clear_space_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.space_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& CreateTargetedInviteDraftByUsernameRequest::space_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest.space_id)
+  return _internal_space_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CreateTargetedInviteDraftByUsernameRequest::set_space_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.space_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest.space_id)
+}
+inline ::std::string* PROTOBUF_NONNULL CreateTargetedInviteDraftByUsernameRequest::mutable_space_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_space_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest.space_id)
+  return _s;
+}
+inline const ::std::string& CreateTargetedInviteDraftByUsernameRequest::_internal_space_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.space_id_.Get();
+}
+inline void CreateTargetedInviteDraftByUsernameRequest::_internal_set_space_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.space_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CreateTargetedInviteDraftByUsernameRequest::_internal_mutable_space_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.space_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CreateTargetedInviteDraftByUsernameRequest::release_space_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest.space_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.space_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.space_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CreateTargetedInviteDraftByUsernameRequest::set_allocated_space_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.space_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.space_id_.IsDefault()) {
+    _impl_.space_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest.space_id)
+}
+
+// string org_id = 4;
+inline void CreateTargetedInviteDraftByUsernameRequest::clear_org_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.org_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& CreateTargetedInviteDraftByUsernameRequest::org_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest.org_id)
+  return _internal_org_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CreateTargetedInviteDraftByUsernameRequest::set_org_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.org_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest.org_id)
+}
+inline ::std::string* PROTOBUF_NONNULL CreateTargetedInviteDraftByUsernameRequest::mutable_org_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_org_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest.org_id)
+  return _s;
+}
+inline const ::std::string& CreateTargetedInviteDraftByUsernameRequest::_internal_org_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.org_id_.Get();
+}
+inline void CreateTargetedInviteDraftByUsernameRequest::_internal_set_org_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.org_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CreateTargetedInviteDraftByUsernameRequest::_internal_mutable_org_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.org_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CreateTargetedInviteDraftByUsernameRequest::release_org_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest.org_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.org_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.org_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CreateTargetedInviteDraftByUsernameRequest::set_allocated_org_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.org_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.org_id_.IsDefault()) {
+    _impl_.org_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest.org_id)
+}
+
+// string role = 5;
+inline void CreateTargetedInviteDraftByUsernameRequest::clear_role() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.role_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& CreateTargetedInviteDraftByUsernameRequest::role() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest.role)
+  return _internal_role();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CreateTargetedInviteDraftByUsernameRequest::set_role(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.role_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest.role)
+}
+inline ::std::string* PROTOBUF_NONNULL CreateTargetedInviteDraftByUsernameRequest::mutable_role()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_role();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest.role)
+  return _s;
+}
+inline const ::std::string& CreateTargetedInviteDraftByUsernameRequest::_internal_role() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.role_.Get();
+}
+inline void CreateTargetedInviteDraftByUsernameRequest::_internal_set_role(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.role_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CreateTargetedInviteDraftByUsernameRequest::_internal_mutable_role() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.role_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CreateTargetedInviteDraftByUsernameRequest::release_role() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest.role)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.role_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.role_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CreateTargetedInviteDraftByUsernameRequest::set_allocated_role(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.role_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.role_.IsDefault()) {
+    _impl_.role_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest.role)
+}
+
+// int64 expires_at = 6;
+inline void CreateTargetedInviteDraftByUsernameRequest::clear_expires_at() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.expires_at_ = ::int64_t{0};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline ::int64_t CreateTargetedInviteDraftByUsernameRequest::expires_at() const {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest.expires_at)
+  return _internal_expires_at();
+}
+inline void CreateTargetedInviteDraftByUsernameRequest::set_expires_at(::int64_t value) {
+  _internal_set_expires_at(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest.expires_at)
+}
+inline ::int64_t CreateTargetedInviteDraftByUsernameRequest::_internal_expires_at() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.expires_at_;
+}
+inline void CreateTargetedInviteDraftByUsernameRequest::_internal_set_expires_at(::int64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.expires_at_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// CreateTargetedInviteDraftByUsernameResponse
+
+// bool accepted = 1;
+inline void CreateTargetedInviteDraftByUsernameResponse::clear_accepted() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.accepted_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline bool CreateTargetedInviteDraftByUsernameResponse::accepted() const {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameResponse.accepted)
+  return _internal_accepted();
+}
+inline void CreateTargetedInviteDraftByUsernameResponse::set_accepted(bool value) {
+  _internal_set_accepted(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameResponse.accepted)
+}
+inline bool CreateTargetedInviteDraftByUsernameResponse::_internal_accepted() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.accepted_;
+}
+inline void CreateTargetedInviteDraftByUsernameResponse::_internal_set_accepted(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.accepted_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// ResolveUsernameRequest
+
+// string username = 1;
+inline void ResolveUsernameRequest::clear_username() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.username_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& ResolveUsernameRequest::username() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.ResolveUsernameRequest.username)
+  return _internal_username();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ResolveUsernameRequest::set_username(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.username_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.ResolveUsernameRequest.username)
+}
+inline ::std::string* PROTOBUF_NONNULL ResolveUsernameRequest::mutable_username()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_username();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.ResolveUsernameRequest.username)
+  return _s;
+}
+inline const ::std::string& ResolveUsernameRequest::_internal_username() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.username_.Get();
+}
+inline void ResolveUsernameRequest::_internal_set_username(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.username_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ResolveUsernameRequest::_internal_mutable_username() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.username_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ResolveUsernameRequest::release_username() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.ResolveUsernameRequest.username)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.username_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.username_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ResolveUsernameRequest::set_allocated_username(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.username_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.username_.IsDefault()) {
+    _impl_.username_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.ResolveUsernameRequest.username)
+}
+
+// .s4wave.provider.spacewave.TargetedInvitePurpose purpose = 2;
+inline void ResolveUsernameRequest::clear_purpose() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.purpose_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline ::s4wave::provider::spacewave::TargetedInvitePurpose ResolveUsernameRequest::purpose() const {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.ResolveUsernameRequest.purpose)
+  return _internal_purpose();
+}
+inline void ResolveUsernameRequest::set_purpose(::s4wave::provider::spacewave::TargetedInvitePurpose value) {
+  _internal_set_purpose(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.ResolveUsernameRequest.purpose)
+}
+inline ::s4wave::provider::spacewave::TargetedInvitePurpose ResolveUsernameRequest::_internal_purpose() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::s4wave::provider::spacewave::TargetedInvitePurpose>(_impl_.purpose_);
+}
+inline void ResolveUsernameRequest::_internal_set_purpose(::s4wave::provider::spacewave::TargetedInvitePurpose value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.purpose_ = value;
+}
+
+// string space_id = 3;
+inline void ResolveUsernameRequest::clear_space_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.space_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& ResolveUsernameRequest::space_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.ResolveUsernameRequest.space_id)
+  return _internal_space_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ResolveUsernameRequest::set_space_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.space_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.ResolveUsernameRequest.space_id)
+}
+inline ::std::string* PROTOBUF_NONNULL ResolveUsernameRequest::mutable_space_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_space_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.ResolveUsernameRequest.space_id)
+  return _s;
+}
+inline const ::std::string& ResolveUsernameRequest::_internal_space_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.space_id_.Get();
+}
+inline void ResolveUsernameRequest::_internal_set_space_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.space_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ResolveUsernameRequest::_internal_mutable_space_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.space_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ResolveUsernameRequest::release_space_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.ResolveUsernameRequest.space_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.space_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.space_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ResolveUsernameRequest::set_allocated_space_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.space_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.space_id_.IsDefault()) {
+    _impl_.space_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.ResolveUsernameRequest.space_id)
+}
+
+// string org_id = 4;
+inline void ResolveUsernameRequest::clear_org_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.org_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& ResolveUsernameRequest::org_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.ResolveUsernameRequest.org_id)
+  return _internal_org_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ResolveUsernameRequest::set_org_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.org_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.ResolveUsernameRequest.org_id)
+}
+inline ::std::string* PROTOBUF_NONNULL ResolveUsernameRequest::mutable_org_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_org_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.ResolveUsernameRequest.org_id)
+  return _s;
+}
+inline const ::std::string& ResolveUsernameRequest::_internal_org_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.org_id_.Get();
+}
+inline void ResolveUsernameRequest::_internal_set_org_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.org_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ResolveUsernameRequest::_internal_mutable_org_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.org_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ResolveUsernameRequest::release_org_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.ResolveUsernameRequest.org_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.org_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.org_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ResolveUsernameRequest::set_allocated_org_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.org_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.org_id_.IsDefault()) {
+    _impl_.org_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.ResolveUsernameRequest.org_id)
+}
+
+// -------------------------------------------------------------------
+
+// ResolveUsernameResponse
+
+// bool found = 1;
+inline void ResolveUsernameResponse::clear_found() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.found_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline bool ResolveUsernameResponse::found() const {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.ResolveUsernameResponse.found)
+  return _internal_found();
+}
+inline void ResolveUsernameResponse::set_found(bool value) {
+  _internal_set_found(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.ResolveUsernameResponse.found)
+}
+inline bool ResolveUsernameResponse::_internal_found() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.found_;
+}
+inline void ResolveUsernameResponse::_internal_set_found(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.found_ = value;
+}
+
+// string account_id = 2;
+inline void ResolveUsernameResponse::clear_account_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.account_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& ResolveUsernameResponse::account_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.ResolveUsernameResponse.account_id)
+  return _internal_account_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ResolveUsernameResponse::set_account_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.account_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.ResolveUsernameResponse.account_id)
+}
+inline ::std::string* PROTOBUF_NONNULL ResolveUsernameResponse::mutable_account_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_account_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.ResolveUsernameResponse.account_id)
+  return _s;
+}
+inline const ::std::string& ResolveUsernameResponse::_internal_account_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.account_id_.Get();
+}
+inline void ResolveUsernameResponse::_internal_set_account_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.account_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ResolveUsernameResponse::_internal_mutable_account_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.account_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ResolveUsernameResponse::release_account_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.ResolveUsernameResponse.account_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.account_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.account_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ResolveUsernameResponse::set_allocated_account_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.account_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.account_id_.IsDefault()) {
+    _impl_.account_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.ResolveUsernameResponse.account_id)
+}
+
+// string entity_id = 3;
+inline void ResolveUsernameResponse::clear_entity_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.entity_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& ResolveUsernameResponse::entity_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.ResolveUsernameResponse.entity_id)
+  return _internal_entity_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ResolveUsernameResponse::set_entity_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.entity_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.ResolveUsernameResponse.entity_id)
+}
+inline ::std::string* PROTOBUF_NONNULL ResolveUsernameResponse::mutable_entity_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_entity_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.ResolveUsernameResponse.entity_id)
+  return _s;
+}
+inline const ::std::string& ResolveUsernameResponse::_internal_entity_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.entity_id_.Get();
+}
+inline void ResolveUsernameResponse::_internal_set_entity_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.entity_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ResolveUsernameResponse::_internal_mutable_entity_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.entity_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ResolveUsernameResponse::release_entity_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.ResolveUsernameResponse.entity_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.entity_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.entity_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ResolveUsernameResponse::set_allocated_entity_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.entity_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.entity_id_.IsDefault()) {
+    _impl_.entity_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.ResolveUsernameResponse.entity_id)
+}
+
+// string domain_id = 4;
+inline void ResolveUsernameResponse::clear_domain_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.domain_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& ResolveUsernameResponse::domain_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.ResolveUsernameResponse.domain_id)
+  return _internal_domain_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ResolveUsernameResponse::set_domain_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.domain_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.ResolveUsernameResponse.domain_id)
+}
+inline ::std::string* PROTOBUF_NONNULL ResolveUsernameResponse::mutable_domain_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_domain_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.ResolveUsernameResponse.domain_id)
+  return _s;
+}
+inline const ::std::string& ResolveUsernameResponse::_internal_domain_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.domain_id_.Get();
+}
+inline void ResolveUsernameResponse::_internal_set_domain_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.domain_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ResolveUsernameResponse::_internal_mutable_domain_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.domain_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ResolveUsernameResponse::release_domain_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.ResolveUsernameResponse.domain_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.domain_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.domain_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ResolveUsernameResponse::set_allocated_domain_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.domain_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.domain_id_.IsDefault()) {
+    _impl_.domain_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.ResolveUsernameResponse.domain_id)
+}
+
+// string relationship = 5;
+inline void ResolveUsernameResponse::clear_relationship() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.relationship_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& ResolveUsernameResponse::relationship() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.ResolveUsernameResponse.relationship)
+  return _internal_relationship();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ResolveUsernameResponse::set_relationship(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.relationship_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.ResolveUsernameResponse.relationship)
+}
+inline ::std::string* PROTOBUF_NONNULL ResolveUsernameResponse::mutable_relationship()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_relationship();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.ResolveUsernameResponse.relationship)
+  return _s;
+}
+inline const ::std::string& ResolveUsernameResponse::_internal_relationship() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.relationship_.Get();
+}
+inline void ResolveUsernameResponse::_internal_set_relationship(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.relationship_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ResolveUsernameResponse::_internal_mutable_relationship() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.relationship_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ResolveUsernameResponse::release_relationship() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.ResolveUsernameResponse.relationship)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.relationship_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.relationship_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ResolveUsernameResponse::set_allocated_relationship(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.relationship_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.relationship_.IsDefault()) {
+    _impl_.relationship_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.ResolveUsernameResponse.relationship)
+}
+
+// bool can_invite = 6;
+inline void ResolveUsernameResponse::clear_can_invite() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.can_invite_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000080U);
+}
+inline bool ResolveUsernameResponse::can_invite() const {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.ResolveUsernameResponse.can_invite)
+  return _internal_can_invite();
+}
+inline void ResolveUsernameResponse::set_can_invite(bool value) {
+  _internal_set_can_invite(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.ResolveUsernameResponse.can_invite)
+}
+inline bool ResolveUsernameResponse::_internal_can_invite() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.can_invite_;
+}
+inline void ResolveUsernameResponse::_internal_set_can_invite(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.can_invite_ = value;
+}
+
+// string entity_uuid = 7;
+inline void ResolveUsernameResponse::clear_entity_uuid() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.entity_uuid_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::std::string& ResolveUsernameResponse::entity_uuid() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.ResolveUsernameResponse.entity_uuid)
+  return _internal_entity_uuid();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ResolveUsernameResponse::set_entity_uuid(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  _impl_.entity_uuid_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.ResolveUsernameResponse.entity_uuid)
+}
+inline ::std::string* PROTOBUF_NONNULL ResolveUsernameResponse::mutable_entity_uuid()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::std::string* _s = _internal_mutable_entity_uuid();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.ResolveUsernameResponse.entity_uuid)
+  return _s;
+}
+inline const ::std::string& ResolveUsernameResponse::_internal_entity_uuid() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.entity_uuid_.Get();
+}
+inline void ResolveUsernameResponse::_internal_set_entity_uuid(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.entity_uuid_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ResolveUsernameResponse::_internal_mutable_entity_uuid() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.entity_uuid_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ResolveUsernameResponse::release_entity_uuid() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.ResolveUsernameResponse.entity_uuid)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  auto* released = _impl_.entity_uuid_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.entity_uuid_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ResolveUsernameResponse::set_allocated_entity_uuid(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  _impl_.entity_uuid_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.entity_uuid_.IsDefault()) {
+    _impl_.entity_uuid_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.ResolveUsernameResponse.entity_uuid)
+}
+
+// int64 account_epoch = 8;
+inline void ResolveUsernameResponse::clear_account_epoch() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.account_epoch_ = ::int64_t{0};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline ::int64_t ResolveUsernameResponse::account_epoch() const {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.ResolveUsernameResponse.account_epoch)
+  return _internal_account_epoch();
+}
+inline void ResolveUsernameResponse::set_account_epoch(::int64_t value) {
+  _internal_set_account_epoch(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.ResolveUsernameResponse.account_epoch)
+}
+inline ::int64_t ResolveUsernameResponse::_internal_account_epoch() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.account_epoch_;
+}
+inline void ResolveUsernameResponse::_internal_set_account_epoch(::int64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.account_epoch_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// TargetedInvitationEnvelope
+
+// uint32 schema_version = 1;
+inline void TargetedInvitationEnvelope::clear_schema_version() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.schema_version_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000800U);
+}
+inline ::uint32_t TargetedInvitationEnvelope::schema_version() const {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.TargetedInvitationEnvelope.schema_version)
+  return _internal_schema_version();
+}
+inline void TargetedInvitationEnvelope::set_schema_version(::uint32_t value) {
+  _internal_set_schema_version(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000800U);
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.TargetedInvitationEnvelope.schema_version)
+}
+inline ::uint32_t TargetedInvitationEnvelope::_internal_schema_version() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.schema_version_;
+}
+inline void TargetedInvitationEnvelope::_internal_set_schema_version(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.schema_version_ = value;
+}
+
+// .s4wave.provider.spacewave.TargetedInvitePurpose purpose = 2;
+inline void TargetedInvitationEnvelope::clear_purpose() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.purpose_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00001000U);
+}
+inline ::s4wave::provider::spacewave::TargetedInvitePurpose TargetedInvitationEnvelope::purpose() const {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.TargetedInvitationEnvelope.purpose)
+  return _internal_purpose();
+}
+inline void TargetedInvitationEnvelope::set_purpose(::s4wave::provider::spacewave::TargetedInvitePurpose value) {
+  _internal_set_purpose(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00001000U);
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.TargetedInvitationEnvelope.purpose)
+}
+inline ::s4wave::provider::spacewave::TargetedInvitePurpose TargetedInvitationEnvelope::_internal_purpose() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::s4wave::provider::spacewave::TargetedInvitePurpose>(_impl_.purpose_);
+}
+inline void TargetedInvitationEnvelope::_internal_set_purpose(::s4wave::provider::spacewave::TargetedInvitePurpose value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.purpose_ = value;
+}
+
+// string context_id = 3;
+inline void TargetedInvitationEnvelope::clear_context_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.context_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& TargetedInvitationEnvelope::context_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.TargetedInvitationEnvelope.context_id)
+  return _internal_context_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TargetedInvitationEnvelope::set_context_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.context_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.TargetedInvitationEnvelope.context_id)
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationEnvelope::mutable_context_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_context_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.TargetedInvitationEnvelope.context_id)
+  return _s;
+}
+inline const ::std::string& TargetedInvitationEnvelope::_internal_context_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.context_id_.Get();
+}
+inline void TargetedInvitationEnvelope::_internal_set_context_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.context_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationEnvelope::_internal_mutable_context_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.context_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TargetedInvitationEnvelope::release_context_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.TargetedInvitationEnvelope.context_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.context_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.context_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TargetedInvitationEnvelope::set_allocated_context_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.context_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.context_id_.IsDefault()) {
+    _impl_.context_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.TargetedInvitationEnvelope.context_id)
+}
+
+// string actor_account_id = 4;
+inline void TargetedInvitationEnvelope::clear_actor_account_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.actor_account_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& TargetedInvitationEnvelope::actor_account_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.TargetedInvitationEnvelope.actor_account_id)
+  return _internal_actor_account_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TargetedInvitationEnvelope::set_actor_account_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.actor_account_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.TargetedInvitationEnvelope.actor_account_id)
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationEnvelope::mutable_actor_account_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_actor_account_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.TargetedInvitationEnvelope.actor_account_id)
+  return _s;
+}
+inline const ::std::string& TargetedInvitationEnvelope::_internal_actor_account_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.actor_account_id_.Get();
+}
+inline void TargetedInvitationEnvelope::_internal_set_actor_account_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.actor_account_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationEnvelope::_internal_mutable_actor_account_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.actor_account_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TargetedInvitationEnvelope::release_actor_account_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.TargetedInvitationEnvelope.actor_account_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.actor_account_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.actor_account_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TargetedInvitationEnvelope::set_allocated_actor_account_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.actor_account_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.actor_account_id_.IsDefault()) {
+    _impl_.actor_account_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.TargetedInvitationEnvelope.actor_account_id)
+}
+
+// string actor_entity_uuid = 5;
+inline void TargetedInvitationEnvelope::clear_actor_entity_uuid() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.actor_entity_uuid_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& TargetedInvitationEnvelope::actor_entity_uuid() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.TargetedInvitationEnvelope.actor_entity_uuid)
+  return _internal_actor_entity_uuid();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TargetedInvitationEnvelope::set_actor_entity_uuid(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.actor_entity_uuid_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.TargetedInvitationEnvelope.actor_entity_uuid)
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationEnvelope::mutable_actor_entity_uuid()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_actor_entity_uuid();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.TargetedInvitationEnvelope.actor_entity_uuid)
+  return _s;
+}
+inline const ::std::string& TargetedInvitationEnvelope::_internal_actor_entity_uuid() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.actor_entity_uuid_.Get();
+}
+inline void TargetedInvitationEnvelope::_internal_set_actor_entity_uuid(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.actor_entity_uuid_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationEnvelope::_internal_mutable_actor_entity_uuid() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.actor_entity_uuid_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TargetedInvitationEnvelope::release_actor_entity_uuid() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.TargetedInvitationEnvelope.actor_entity_uuid)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.actor_entity_uuid_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.actor_entity_uuid_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TargetedInvitationEnvelope::set_allocated_actor_entity_uuid(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.actor_entity_uuid_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.actor_entity_uuid_.IsDefault()) {
+    _impl_.actor_entity_uuid_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.TargetedInvitationEnvelope.actor_entity_uuid)
+}
+
+// int64 actor_account_epoch = 16;
+inline void TargetedInvitationEnvelope::clear_actor_account_epoch() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.actor_account_epoch_ = ::int64_t{0};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00008000U);
+}
+inline ::int64_t TargetedInvitationEnvelope::actor_account_epoch() const {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.TargetedInvitationEnvelope.actor_account_epoch)
+  return _internal_actor_account_epoch();
+}
+inline void TargetedInvitationEnvelope::set_actor_account_epoch(::int64_t value) {
+  _internal_set_actor_account_epoch(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00008000U);
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.TargetedInvitationEnvelope.actor_account_epoch)
+}
+inline ::int64_t TargetedInvitationEnvelope::_internal_actor_account_epoch() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.actor_account_epoch_;
+}
+inline void TargetedInvitationEnvelope::_internal_set_actor_account_epoch(::int64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.actor_account_epoch_ = value;
+}
+
+// string signer_peer_id = 6;
+inline void TargetedInvitationEnvelope::clear_signer_peer_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.signer_peer_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& TargetedInvitationEnvelope::signer_peer_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.TargetedInvitationEnvelope.signer_peer_id)
+  return _internal_signer_peer_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TargetedInvitationEnvelope::set_signer_peer_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.signer_peer_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.TargetedInvitationEnvelope.signer_peer_id)
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationEnvelope::mutable_signer_peer_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_signer_peer_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.TargetedInvitationEnvelope.signer_peer_id)
+  return _s;
+}
+inline const ::std::string& TargetedInvitationEnvelope::_internal_signer_peer_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.signer_peer_id_.Get();
+}
+inline void TargetedInvitationEnvelope::_internal_set_signer_peer_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.signer_peer_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationEnvelope::_internal_mutable_signer_peer_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.signer_peer_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TargetedInvitationEnvelope::release_signer_peer_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.TargetedInvitationEnvelope.signer_peer_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.signer_peer_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.signer_peer_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TargetedInvitationEnvelope::set_allocated_signer_peer_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.signer_peer_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.signer_peer_id_.IsDefault()) {
+    _impl_.signer_peer_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.TargetedInvitationEnvelope.signer_peer_id)
+}
+
+// string target_account_id = 7;
+inline void TargetedInvitationEnvelope::clear_target_account_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.target_account_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::std::string& TargetedInvitationEnvelope::target_account_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.TargetedInvitationEnvelope.target_account_id)
+  return _internal_target_account_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TargetedInvitationEnvelope::set_target_account_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  _impl_.target_account_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.TargetedInvitationEnvelope.target_account_id)
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationEnvelope::mutable_target_account_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::std::string* _s = _internal_mutable_target_account_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.TargetedInvitationEnvelope.target_account_id)
+  return _s;
+}
+inline const ::std::string& TargetedInvitationEnvelope::_internal_target_account_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.target_account_id_.Get();
+}
+inline void TargetedInvitationEnvelope::_internal_set_target_account_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.target_account_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationEnvelope::_internal_mutable_target_account_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.target_account_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TargetedInvitationEnvelope::release_target_account_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.TargetedInvitationEnvelope.target_account_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  auto* released = _impl_.target_account_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.target_account_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TargetedInvitationEnvelope::set_allocated_target_account_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  _impl_.target_account_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.target_account_id_.IsDefault()) {
+    _impl_.target_account_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.TargetedInvitationEnvelope.target_account_id)
+}
+
+// string target_entity_id = 8;
+inline void TargetedInvitationEnvelope::clear_target_entity_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.target_entity_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline const ::std::string& TargetedInvitationEnvelope::target_entity_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.TargetedInvitationEnvelope.target_entity_id)
+  return _internal_target_entity_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TargetedInvitationEnvelope::set_target_entity_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  _impl_.target_entity_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.TargetedInvitationEnvelope.target_entity_id)
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationEnvelope::mutable_target_entity_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::std::string* _s = _internal_mutable_target_entity_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.TargetedInvitationEnvelope.target_entity_id)
+  return _s;
+}
+inline const ::std::string& TargetedInvitationEnvelope::_internal_target_entity_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.target_entity_id_.Get();
+}
+inline void TargetedInvitationEnvelope::_internal_set_target_entity_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.target_entity_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationEnvelope::_internal_mutable_target_entity_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.target_entity_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TargetedInvitationEnvelope::release_target_entity_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.TargetedInvitationEnvelope.target_entity_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000020U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  auto* released = _impl_.target_entity_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.target_entity_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TargetedInvitationEnvelope::set_allocated_target_entity_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+  _impl_.target_entity_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.target_entity_id_.IsDefault()) {
+    _impl_.target_entity_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.TargetedInvitationEnvelope.target_entity_id)
+}
+
+// string target_entity_uuid = 9;
+inline void TargetedInvitationEnvelope::clear_target_entity_uuid() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.target_entity_uuid_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline const ::std::string& TargetedInvitationEnvelope::target_entity_uuid() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.TargetedInvitationEnvelope.target_entity_uuid)
+  return _internal_target_entity_uuid();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TargetedInvitationEnvelope::set_target_entity_uuid(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  _impl_.target_entity_uuid_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.TargetedInvitationEnvelope.target_entity_uuid)
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationEnvelope::mutable_target_entity_uuid()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::std::string* _s = _internal_mutable_target_entity_uuid();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.TargetedInvitationEnvelope.target_entity_uuid)
+  return _s;
+}
+inline const ::std::string& TargetedInvitationEnvelope::_internal_target_entity_uuid() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.target_entity_uuid_.Get();
+}
+inline void TargetedInvitationEnvelope::_internal_set_target_entity_uuid(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.target_entity_uuid_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationEnvelope::_internal_mutable_target_entity_uuid() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.target_entity_uuid_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TargetedInvitationEnvelope::release_target_entity_uuid() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.TargetedInvitationEnvelope.target_entity_uuid)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000040U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  auto* released = _impl_.target_entity_uuid_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.target_entity_uuid_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TargetedInvitationEnvelope::set_allocated_target_entity_uuid(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  }
+  _impl_.target_entity_uuid_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.target_entity_uuid_.IsDefault()) {
+    _impl_.target_entity_uuid_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.TargetedInvitationEnvelope.target_entity_uuid)
+}
+
+// int64 target_account_epoch = 10;
+inline void TargetedInvitationEnvelope::clear_target_account_epoch() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.target_account_epoch_ = ::int64_t{0};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00002000U);
+}
+inline ::int64_t TargetedInvitationEnvelope::target_account_epoch() const {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.TargetedInvitationEnvelope.target_account_epoch)
+  return _internal_target_account_epoch();
+}
+inline void TargetedInvitationEnvelope::set_target_account_epoch(::int64_t value) {
+  _internal_set_target_account_epoch(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00002000U);
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.TargetedInvitationEnvelope.target_account_epoch)
+}
+inline ::int64_t TargetedInvitationEnvelope::_internal_target_account_epoch() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.target_account_epoch_;
+}
+inline void TargetedInvitationEnvelope::_internal_set_target_account_epoch(::int64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.target_account_epoch_ = value;
+}
+
+// string role = 11;
+inline void TargetedInvitationEnvelope::clear_role() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.role_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000080U);
+}
+inline const ::std::string& TargetedInvitationEnvelope::role() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.TargetedInvitationEnvelope.role)
+  return _internal_role();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TargetedInvitationEnvelope::set_role(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  _impl_.role_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.TargetedInvitationEnvelope.role)
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationEnvelope::mutable_role()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  ::std::string* _s = _internal_mutable_role();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.TargetedInvitationEnvelope.role)
+  return _s;
+}
+inline const ::std::string& TargetedInvitationEnvelope::_internal_role() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.role_.Get();
+}
+inline void TargetedInvitationEnvelope::_internal_set_role(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.role_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationEnvelope::_internal_mutable_role() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.role_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TargetedInvitationEnvelope::release_role() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.TargetedInvitationEnvelope.role)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000080U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  auto* released = _impl_.role_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.role_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TargetedInvitationEnvelope::set_allocated_role(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  }
+  _impl_.role_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.role_.IsDefault()) {
+    _impl_.role_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.TargetedInvitationEnvelope.role)
+}
+
+// int64 expires_at = 12;
+inline void TargetedInvitationEnvelope::clear_expires_at() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.expires_at_ = ::int64_t{0};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00004000U);
+}
+inline ::int64_t TargetedInvitationEnvelope::expires_at() const {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.TargetedInvitationEnvelope.expires_at)
+  return _internal_expires_at();
+}
+inline void TargetedInvitationEnvelope::set_expires_at(::int64_t value) {
+  _internal_set_expires_at(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00004000U);
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.TargetedInvitationEnvelope.expires_at)
+}
+inline ::int64_t TargetedInvitationEnvelope::_internal_expires_at() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.expires_at_;
+}
+inline void TargetedInvitationEnvelope::_internal_set_expires_at(::int64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.expires_at_ = value;
+}
+
+// bytes nonce = 13;
+inline void TargetedInvitationEnvelope::clear_nonce() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.nonce_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000100U);
+}
+inline const ::std::string& TargetedInvitationEnvelope::nonce() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.TargetedInvitationEnvelope.nonce)
+  return _internal_nonce();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TargetedInvitationEnvelope::set_nonce(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  _impl_.nonce_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.TargetedInvitationEnvelope.nonce)
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationEnvelope::mutable_nonce()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  ::std::string* _s = _internal_mutable_nonce();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.TargetedInvitationEnvelope.nonce)
+  return _s;
+}
+inline const ::std::string& TargetedInvitationEnvelope::_internal_nonce() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.nonce_.Get();
+}
+inline void TargetedInvitationEnvelope::_internal_set_nonce(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.nonce_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationEnvelope::_internal_mutable_nonce() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.nonce_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TargetedInvitationEnvelope::release_nonce() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.TargetedInvitationEnvelope.nonce)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000100U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+  auto* released = _impl_.nonce_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.nonce_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TargetedInvitationEnvelope::set_allocated_nonce(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+  }
+  _impl_.nonce_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.nonce_.IsDefault()) {
+    _impl_.nonce_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.TargetedInvitationEnvelope.nonce)
+}
+
+// bytes payload = 14;
+inline void TargetedInvitationEnvelope::clear_payload() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.payload_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000200U);
+}
+inline const ::std::string& TargetedInvitationEnvelope::payload() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.TargetedInvitationEnvelope.payload)
+  return _internal_payload();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TargetedInvitationEnvelope::set_payload(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  _impl_.payload_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.TargetedInvitationEnvelope.payload)
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationEnvelope::mutable_payload()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  ::std::string* _s = _internal_mutable_payload();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.TargetedInvitationEnvelope.payload)
+  return _s;
+}
+inline const ::std::string& TargetedInvitationEnvelope::_internal_payload() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.payload_.Get();
+}
+inline void TargetedInvitationEnvelope::_internal_set_payload(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.payload_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationEnvelope::_internal_mutable_payload() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.payload_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TargetedInvitationEnvelope::release_payload() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.TargetedInvitationEnvelope.payload)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000200U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000200U);
+  auto* released = _impl_.payload_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.payload_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TargetedInvitationEnvelope::set_allocated_payload(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000200U);
+  }
+  _impl_.payload_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.payload_.IsDefault()) {
+    _impl_.payload_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.TargetedInvitationEnvelope.payload)
+}
+
+// bytes signature = 15;
+inline void TargetedInvitationEnvelope::clear_signature() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.signature_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000400U);
+}
+inline const ::std::string& TargetedInvitationEnvelope::signature() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.TargetedInvitationEnvelope.signature)
+  return _internal_signature();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TargetedInvitationEnvelope::set_signature(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  _impl_.signature_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.TargetedInvitationEnvelope.signature)
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationEnvelope::mutable_signature()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  ::std::string* _s = _internal_mutable_signature();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.TargetedInvitationEnvelope.signature)
+  return _s;
+}
+inline const ::std::string& TargetedInvitationEnvelope::_internal_signature() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.signature_.Get();
+}
+inline void TargetedInvitationEnvelope::_internal_set_signature(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.signature_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationEnvelope::_internal_mutable_signature() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.signature_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TargetedInvitationEnvelope::release_signature() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.TargetedInvitationEnvelope.signature)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000400U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000400U);
+  auto* released = _impl_.signature_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.signature_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TargetedInvitationEnvelope::set_allocated_signature(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000400U);
+  }
+  _impl_.signature_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.signature_.IsDefault()) {
+    _impl_.signature_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.TargetedInvitationEnvelope.signature)
+}
+
+// -------------------------------------------------------------------
+
+// TargetedInvitationInfo
+
+// string id = 1;
+inline void TargetedInvitationInfo::clear_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& TargetedInvitationInfo::id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.TargetedInvitationInfo.id)
+  return _internal_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TargetedInvitationInfo::set_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.TargetedInvitationInfo.id)
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationInfo::mutable_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.TargetedInvitationInfo.id)
+  return _s;
+}
+inline const ::std::string& TargetedInvitationInfo::_internal_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.id_.Get();
+}
+inline void TargetedInvitationInfo::_internal_set_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationInfo::_internal_mutable_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TargetedInvitationInfo::release_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.TargetedInvitationInfo.id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TargetedInvitationInfo::set_allocated_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.id_.IsDefault()) {
+    _impl_.id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.TargetedInvitationInfo.id)
+}
+
+// string actor_account_id = 2;
+inline void TargetedInvitationInfo::clear_actor_account_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.actor_account_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& TargetedInvitationInfo::actor_account_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.TargetedInvitationInfo.actor_account_id)
+  return _internal_actor_account_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TargetedInvitationInfo::set_actor_account_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.actor_account_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.TargetedInvitationInfo.actor_account_id)
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationInfo::mutable_actor_account_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_actor_account_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.TargetedInvitationInfo.actor_account_id)
+  return _s;
+}
+inline const ::std::string& TargetedInvitationInfo::_internal_actor_account_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.actor_account_id_.Get();
+}
+inline void TargetedInvitationInfo::_internal_set_actor_account_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.actor_account_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationInfo::_internal_mutable_actor_account_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.actor_account_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TargetedInvitationInfo::release_actor_account_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.TargetedInvitationInfo.actor_account_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.actor_account_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.actor_account_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TargetedInvitationInfo::set_allocated_actor_account_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.actor_account_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.actor_account_id_.IsDefault()) {
+    _impl_.actor_account_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.TargetedInvitationInfo.actor_account_id)
+}
+
+// string target_account_id = 3;
+inline void TargetedInvitationInfo::clear_target_account_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.target_account_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& TargetedInvitationInfo::target_account_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.TargetedInvitationInfo.target_account_id)
+  return _internal_target_account_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TargetedInvitationInfo::set_target_account_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.target_account_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.TargetedInvitationInfo.target_account_id)
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationInfo::mutable_target_account_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_target_account_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.TargetedInvitationInfo.target_account_id)
+  return _s;
+}
+inline const ::std::string& TargetedInvitationInfo::_internal_target_account_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.target_account_id_.Get();
+}
+inline void TargetedInvitationInfo::_internal_set_target_account_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.target_account_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationInfo::_internal_mutable_target_account_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.target_account_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TargetedInvitationInfo::release_target_account_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.TargetedInvitationInfo.target_account_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.target_account_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.target_account_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TargetedInvitationInfo::set_allocated_target_account_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.target_account_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.target_account_id_.IsDefault()) {
+    _impl_.target_account_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.TargetedInvitationInfo.target_account_id)
+}
+
+// string target_entity_id = 4;
+inline void TargetedInvitationInfo::clear_target_entity_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.target_entity_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& TargetedInvitationInfo::target_entity_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.TargetedInvitationInfo.target_entity_id)
+  return _internal_target_entity_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TargetedInvitationInfo::set_target_entity_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.target_entity_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.TargetedInvitationInfo.target_entity_id)
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationInfo::mutable_target_entity_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_target_entity_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.TargetedInvitationInfo.target_entity_id)
+  return _s;
+}
+inline const ::std::string& TargetedInvitationInfo::_internal_target_entity_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.target_entity_id_.Get();
+}
+inline void TargetedInvitationInfo::_internal_set_target_entity_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.target_entity_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationInfo::_internal_mutable_target_entity_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.target_entity_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TargetedInvitationInfo::release_target_entity_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.TargetedInvitationInfo.target_entity_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.target_entity_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.target_entity_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TargetedInvitationInfo::set_allocated_target_entity_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.target_entity_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.target_entity_id_.IsDefault()) {
+    _impl_.target_entity_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.TargetedInvitationInfo.target_entity_id)
+}
+
+// string target_entity_uuid = 5;
+inline void TargetedInvitationInfo::clear_target_entity_uuid() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.target_entity_uuid_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::std::string& TargetedInvitationInfo::target_entity_uuid() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.TargetedInvitationInfo.target_entity_uuid)
+  return _internal_target_entity_uuid();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TargetedInvitationInfo::set_target_entity_uuid(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  _impl_.target_entity_uuid_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.TargetedInvitationInfo.target_entity_uuid)
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationInfo::mutable_target_entity_uuid()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::std::string* _s = _internal_mutable_target_entity_uuid();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.TargetedInvitationInfo.target_entity_uuid)
+  return _s;
+}
+inline const ::std::string& TargetedInvitationInfo::_internal_target_entity_uuid() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.target_entity_uuid_.Get();
+}
+inline void TargetedInvitationInfo::_internal_set_target_entity_uuid(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.target_entity_uuid_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationInfo::_internal_mutable_target_entity_uuid() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.target_entity_uuid_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TargetedInvitationInfo::release_target_entity_uuid() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.TargetedInvitationInfo.target_entity_uuid)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  auto* released = _impl_.target_entity_uuid_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.target_entity_uuid_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TargetedInvitationInfo::set_allocated_target_entity_uuid(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  _impl_.target_entity_uuid_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.target_entity_uuid_.IsDefault()) {
+    _impl_.target_entity_uuid_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.TargetedInvitationInfo.target_entity_uuid)
+}
+
+// int64 target_account_epoch = 6;
+inline void TargetedInvitationInfo::clear_target_account_epoch() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.target_account_epoch_ = ::int64_t{0};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000800U);
+}
+inline ::int64_t TargetedInvitationInfo::target_account_epoch() const {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.TargetedInvitationInfo.target_account_epoch)
+  return _internal_target_account_epoch();
+}
+inline void TargetedInvitationInfo::set_target_account_epoch(::int64_t value) {
+  _internal_set_target_account_epoch(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000800U);
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.TargetedInvitationInfo.target_account_epoch)
+}
+inline ::int64_t TargetedInvitationInfo::_internal_target_account_epoch() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.target_account_epoch_;
+}
+inline void TargetedInvitationInfo::_internal_set_target_account_epoch(::int64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.target_account_epoch_ = value;
+}
+
+// .s4wave.provider.spacewave.TargetedInvitePurpose purpose = 7;
+inline void TargetedInvitationInfo::clear_purpose() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.purpose_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00008000U);
+}
+inline ::s4wave::provider::spacewave::TargetedInvitePurpose TargetedInvitationInfo::purpose() const {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.TargetedInvitationInfo.purpose)
+  return _internal_purpose();
+}
+inline void TargetedInvitationInfo::set_purpose(::s4wave::provider::spacewave::TargetedInvitePurpose value) {
+  _internal_set_purpose(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00008000U);
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.TargetedInvitationInfo.purpose)
+}
+inline ::s4wave::provider::spacewave::TargetedInvitePurpose TargetedInvitationInfo::_internal_purpose() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::s4wave::provider::spacewave::TargetedInvitePurpose>(_impl_.purpose_);
+}
+inline void TargetedInvitationInfo::_internal_set_purpose(::s4wave::provider::spacewave::TargetedInvitePurpose value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.purpose_ = value;
+}
+
+// string context_id = 8;
+inline void TargetedInvitationInfo::clear_context_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.context_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline const ::std::string& TargetedInvitationInfo::context_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.TargetedInvitationInfo.context_id)
+  return _internal_context_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TargetedInvitationInfo::set_context_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  _impl_.context_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.TargetedInvitationInfo.context_id)
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationInfo::mutable_context_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::std::string* _s = _internal_mutable_context_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.TargetedInvitationInfo.context_id)
+  return _s;
+}
+inline const ::std::string& TargetedInvitationInfo::_internal_context_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.context_id_.Get();
+}
+inline void TargetedInvitationInfo::_internal_set_context_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.context_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationInfo::_internal_mutable_context_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.context_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TargetedInvitationInfo::release_context_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.TargetedInvitationInfo.context_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000020U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  auto* released = _impl_.context_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.context_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TargetedInvitationInfo::set_allocated_context_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+  _impl_.context_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.context_id_.IsDefault()) {
+    _impl_.context_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.TargetedInvitationInfo.context_id)
+}
+
+// string role = 9;
+inline void TargetedInvitationInfo::clear_role() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.role_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline const ::std::string& TargetedInvitationInfo::role() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.TargetedInvitationInfo.role)
+  return _internal_role();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TargetedInvitationInfo::set_role(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  _impl_.role_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.TargetedInvitationInfo.role)
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationInfo::mutable_role()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::std::string* _s = _internal_mutable_role();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.TargetedInvitationInfo.role)
+  return _s;
+}
+inline const ::std::string& TargetedInvitationInfo::_internal_role() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.role_.Get();
+}
+inline void TargetedInvitationInfo::_internal_set_role(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.role_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationInfo::_internal_mutable_role() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.role_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TargetedInvitationInfo::release_role() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.TargetedInvitationInfo.role)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000040U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  auto* released = _impl_.role_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.role_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TargetedInvitationInfo::set_allocated_role(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  }
+  _impl_.role_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.role_.IsDefault()) {
+    _impl_.role_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.TargetedInvitationInfo.role)
+}
+
+// string status = 10;
+inline void TargetedInvitationInfo::clear_status() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000080U);
+}
+inline const ::std::string& TargetedInvitationInfo::status() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.TargetedInvitationInfo.status)
+  return _internal_status();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TargetedInvitationInfo::set_status(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  _impl_.status_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.TargetedInvitationInfo.status)
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationInfo::mutable_status()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  ::std::string* _s = _internal_mutable_status();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.TargetedInvitationInfo.status)
+  return _s;
+}
+inline const ::std::string& TargetedInvitationInfo::_internal_status() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.status_.Get();
+}
+inline void TargetedInvitationInfo::_internal_set_status(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationInfo::_internal_mutable_status() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.status_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TargetedInvitationInfo::release_status() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.TargetedInvitationInfo.status)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000080U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  auto* released = _impl_.status_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.status_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TargetedInvitationInfo::set_allocated_status(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  }
+  _impl_.status_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.status_.IsDefault()) {
+    _impl_.status_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.TargetedInvitationInfo.status)
+}
+
+// string envelope_hash = 11;
+inline void TargetedInvitationInfo::clear_envelope_hash() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.envelope_hash_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000100U);
+}
+inline const ::std::string& TargetedInvitationInfo::envelope_hash() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.TargetedInvitationInfo.envelope_hash)
+  return _internal_envelope_hash();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TargetedInvitationInfo::set_envelope_hash(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  _impl_.envelope_hash_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.TargetedInvitationInfo.envelope_hash)
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationInfo::mutable_envelope_hash()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  ::std::string* _s = _internal_mutable_envelope_hash();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.TargetedInvitationInfo.envelope_hash)
+  return _s;
+}
+inline const ::std::string& TargetedInvitationInfo::_internal_envelope_hash() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.envelope_hash_.Get();
+}
+inline void TargetedInvitationInfo::_internal_set_envelope_hash(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.envelope_hash_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationInfo::_internal_mutable_envelope_hash() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.envelope_hash_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TargetedInvitationInfo::release_envelope_hash() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.TargetedInvitationInfo.envelope_hash)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000100U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+  auto* released = _impl_.envelope_hash_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.envelope_hash_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TargetedInvitationInfo::set_allocated_envelope_hash(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+  }
+  _impl_.envelope_hash_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.envelope_hash_.IsDefault()) {
+    _impl_.envelope_hash_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.TargetedInvitationInfo.envelope_hash)
+}
+
+// .s4wave.provider.spacewave.TargetedInvitationEnvelope envelope = 12;
+inline bool TargetedInvitationInfo::has_envelope() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000400U);
+  PROTOBUF_ASSUME(!value || _impl_.envelope_ != nullptr);
+  return value;
+}
+inline void TargetedInvitationInfo::clear_envelope() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.envelope_ != nullptr) _impl_.envelope_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000400U);
+}
+inline const ::s4wave::provider::spacewave::TargetedInvitationEnvelope& TargetedInvitationInfo::_internal_envelope() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::provider::spacewave::TargetedInvitationEnvelope* p = _impl_.envelope_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::provider::spacewave::TargetedInvitationEnvelope&>(::s4wave::provider::spacewave::_TargetedInvitationEnvelope_default_instance_);
+}
+inline const ::s4wave::provider::spacewave::TargetedInvitationEnvelope& TargetedInvitationInfo::envelope() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.TargetedInvitationInfo.envelope)
+  return _internal_envelope();
+}
+inline void TargetedInvitationInfo::unsafe_arena_set_allocated_envelope(
+    ::s4wave::provider::spacewave::TargetedInvitationEnvelope* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.envelope_);
+  }
+  _impl_.envelope_ = reinterpret_cast<::s4wave::provider::spacewave::TargetedInvitationEnvelope*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000400U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.provider.spacewave.TargetedInvitationInfo.envelope)
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationEnvelope* PROTOBUF_NULLABLE TargetedInvitationInfo::release_envelope() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000400U);
+  ::s4wave::provider::spacewave::TargetedInvitationEnvelope* released = _impl_.envelope_;
+  _impl_.envelope_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationEnvelope* PROTOBUF_NULLABLE TargetedInvitationInfo::unsafe_arena_release_envelope() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.TargetedInvitationInfo.envelope)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000400U);
+  ::s4wave::provider::spacewave::TargetedInvitationEnvelope* temp = _impl_.envelope_;
+  _impl_.envelope_ = nullptr;
+  return temp;
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationEnvelope* PROTOBUF_NONNULL TargetedInvitationInfo::_internal_mutable_envelope() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.envelope_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::provider::spacewave::TargetedInvitationEnvelope>(GetArena());
+    _impl_.envelope_ = reinterpret_cast<::s4wave::provider::spacewave::TargetedInvitationEnvelope*>(p);
+  }
+  return _impl_.envelope_;
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationEnvelope* PROTOBUF_NONNULL TargetedInvitationInfo::mutable_envelope()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  ::s4wave::provider::spacewave::TargetedInvitationEnvelope* _msg = _internal_mutable_envelope();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.TargetedInvitationInfo.envelope)
+  return _msg;
+}
+inline void TargetedInvitationInfo::set_allocated_envelope(::s4wave::provider::spacewave::TargetedInvitationEnvelope* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.envelope_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000400U);
+  }
+
+  _impl_.envelope_ = reinterpret_cast<::s4wave::provider::spacewave::TargetedInvitationEnvelope*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.TargetedInvitationInfo.envelope)
+}
+
+// int64 created_at = 13;
+inline void TargetedInvitationInfo::clear_created_at() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.created_at_ = ::int64_t{0};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00001000U);
+}
+inline ::int64_t TargetedInvitationInfo::created_at() const {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.TargetedInvitationInfo.created_at)
+  return _internal_created_at();
+}
+inline void TargetedInvitationInfo::set_created_at(::int64_t value) {
+  _internal_set_created_at(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00001000U);
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.TargetedInvitationInfo.created_at)
+}
+inline ::int64_t TargetedInvitationInfo::_internal_created_at() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.created_at_;
+}
+inline void TargetedInvitationInfo::_internal_set_created_at(::int64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.created_at_ = value;
+}
+
+// int64 updated_at = 14;
+inline void TargetedInvitationInfo::clear_updated_at() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.updated_at_ = ::int64_t{0};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00002000U);
+}
+inline ::int64_t TargetedInvitationInfo::updated_at() const {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.TargetedInvitationInfo.updated_at)
+  return _internal_updated_at();
+}
+inline void TargetedInvitationInfo::set_updated_at(::int64_t value) {
+  _internal_set_updated_at(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00002000U);
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.TargetedInvitationInfo.updated_at)
+}
+inline ::int64_t TargetedInvitationInfo::_internal_updated_at() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.updated_at_;
+}
+inline void TargetedInvitationInfo::_internal_set_updated_at(::int64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.updated_at_ = value;
+}
+
+// int64 expires_at = 15;
+inline void TargetedInvitationInfo::clear_expires_at() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.expires_at_ = ::int64_t{0};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00004000U);
+}
+inline ::int64_t TargetedInvitationInfo::expires_at() const {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.TargetedInvitationInfo.expires_at)
+  return _internal_expires_at();
+}
+inline void TargetedInvitationInfo::set_expires_at(::int64_t value) {
+  _internal_set_expires_at(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00004000U);
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.TargetedInvitationInfo.expires_at)
+}
+inline ::int64_t TargetedInvitationInfo::_internal_expires_at() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.expires_at_;
+}
+inline void TargetedInvitationInfo::_internal_set_expires_at(::int64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.expires_at_ = value;
+}
+
+// string draft_id = 16;
+inline void TargetedInvitationInfo::clear_draft_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.draft_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000200U);
+}
+inline const ::std::string& TargetedInvitationInfo::draft_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.TargetedInvitationInfo.draft_id)
+  return _internal_draft_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TargetedInvitationInfo::set_draft_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  _impl_.draft_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.TargetedInvitationInfo.draft_id)
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationInfo::mutable_draft_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  ::std::string* _s = _internal_mutable_draft_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.TargetedInvitationInfo.draft_id)
+  return _s;
+}
+inline const ::std::string& TargetedInvitationInfo::_internal_draft_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.draft_id_.Get();
+}
+inline void TargetedInvitationInfo::_internal_set_draft_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.draft_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TargetedInvitationInfo::_internal_mutable_draft_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.draft_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TargetedInvitationInfo::release_draft_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.TargetedInvitationInfo.draft_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000200U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000200U);
+  auto* released = _impl_.draft_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.draft_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TargetedInvitationInfo::set_allocated_draft_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000200U);
+  }
+  _impl_.draft_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.draft_id_.IsDefault()) {
+    _impl_.draft_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.TargetedInvitationInfo.draft_id)
+}
+
+// -------------------------------------------------------------------
+
+// CreateTargetedInvitationRequest
+
+// string target_account_id = 1;
+inline void CreateTargetedInvitationRequest::clear_target_account_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.target_account_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& CreateTargetedInvitationRequest::target_account_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.CreateTargetedInvitationRequest.target_account_id)
+  return _internal_target_account_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CreateTargetedInvitationRequest::set_target_account_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.target_account_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.CreateTargetedInvitationRequest.target_account_id)
+}
+inline ::std::string* PROTOBUF_NONNULL CreateTargetedInvitationRequest::mutable_target_account_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_target_account_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.CreateTargetedInvitationRequest.target_account_id)
+  return _s;
+}
+inline const ::std::string& CreateTargetedInvitationRequest::_internal_target_account_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.target_account_id_.Get();
+}
+inline void CreateTargetedInvitationRequest::_internal_set_target_account_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.target_account_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CreateTargetedInvitationRequest::_internal_mutable_target_account_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.target_account_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CreateTargetedInvitationRequest::release_target_account_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.CreateTargetedInvitationRequest.target_account_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.target_account_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.target_account_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CreateTargetedInvitationRequest::set_allocated_target_account_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.target_account_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.target_account_id_.IsDefault()) {
+    _impl_.target_account_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.CreateTargetedInvitationRequest.target_account_id)
+}
+
+// .s4wave.provider.spacewave.TargetedInvitePurpose purpose = 2;
+inline void CreateTargetedInvitationRequest::clear_purpose() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.purpose_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000080U);
+}
+inline ::s4wave::provider::spacewave::TargetedInvitePurpose CreateTargetedInvitationRequest::purpose() const {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.CreateTargetedInvitationRequest.purpose)
+  return _internal_purpose();
+}
+inline void CreateTargetedInvitationRequest::set_purpose(::s4wave::provider::spacewave::TargetedInvitePurpose value) {
+  _internal_set_purpose(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.CreateTargetedInvitationRequest.purpose)
+}
+inline ::s4wave::provider::spacewave::TargetedInvitePurpose CreateTargetedInvitationRequest::_internal_purpose() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::s4wave::provider::spacewave::TargetedInvitePurpose>(_impl_.purpose_);
+}
+inline void CreateTargetedInvitationRequest::_internal_set_purpose(::s4wave::provider::spacewave::TargetedInvitePurpose value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.purpose_ = value;
+}
+
+// string space_id = 3;
+inline void CreateTargetedInvitationRequest::clear_space_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.space_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& CreateTargetedInvitationRequest::space_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.CreateTargetedInvitationRequest.space_id)
+  return _internal_space_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CreateTargetedInvitationRequest::set_space_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.space_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.CreateTargetedInvitationRequest.space_id)
+}
+inline ::std::string* PROTOBUF_NONNULL CreateTargetedInvitationRequest::mutable_space_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_space_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.CreateTargetedInvitationRequest.space_id)
+  return _s;
+}
+inline const ::std::string& CreateTargetedInvitationRequest::_internal_space_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.space_id_.Get();
+}
+inline void CreateTargetedInvitationRequest::_internal_set_space_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.space_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CreateTargetedInvitationRequest::_internal_mutable_space_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.space_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CreateTargetedInvitationRequest::release_space_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.CreateTargetedInvitationRequest.space_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.space_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.space_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CreateTargetedInvitationRequest::set_allocated_space_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.space_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.space_id_.IsDefault()) {
+    _impl_.space_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.CreateTargetedInvitationRequest.space_id)
+}
+
+// string org_id = 4;
+inline void CreateTargetedInvitationRequest::clear_org_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.org_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& CreateTargetedInvitationRequest::org_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.CreateTargetedInvitationRequest.org_id)
+  return _internal_org_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CreateTargetedInvitationRequest::set_org_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.org_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.CreateTargetedInvitationRequest.org_id)
+}
+inline ::std::string* PROTOBUF_NONNULL CreateTargetedInvitationRequest::mutable_org_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_org_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.CreateTargetedInvitationRequest.org_id)
+  return _s;
+}
+inline const ::std::string& CreateTargetedInvitationRequest::_internal_org_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.org_id_.Get();
+}
+inline void CreateTargetedInvitationRequest::_internal_set_org_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.org_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CreateTargetedInvitationRequest::_internal_mutable_org_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.org_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CreateTargetedInvitationRequest::release_org_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.CreateTargetedInvitationRequest.org_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.org_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.org_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CreateTargetedInvitationRequest::set_allocated_org_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.org_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.org_id_.IsDefault()) {
+    _impl_.org_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.CreateTargetedInvitationRequest.org_id)
+}
+
+// string role = 5;
+inline void CreateTargetedInvitationRequest::clear_role() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.role_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& CreateTargetedInvitationRequest::role() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.CreateTargetedInvitationRequest.role)
+  return _internal_role();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CreateTargetedInvitationRequest::set_role(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.role_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.CreateTargetedInvitationRequest.role)
+}
+inline ::std::string* PROTOBUF_NONNULL CreateTargetedInvitationRequest::mutable_role()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_role();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.CreateTargetedInvitationRequest.role)
+  return _s;
+}
+inline const ::std::string& CreateTargetedInvitationRequest::_internal_role() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.role_.Get();
+}
+inline void CreateTargetedInvitationRequest::_internal_set_role(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.role_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CreateTargetedInvitationRequest::_internal_mutable_role() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.role_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CreateTargetedInvitationRequest::release_role() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.CreateTargetedInvitationRequest.role)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.role_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.role_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CreateTargetedInvitationRequest::set_allocated_role(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.role_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.role_.IsDefault()) {
+    _impl_.role_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.CreateTargetedInvitationRequest.role)
+}
+
+// int64 expires_at = 6;
+inline void CreateTargetedInvitationRequest::clear_expires_at() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.expires_at_ = ::int64_t{0};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline ::int64_t CreateTargetedInvitationRequest::expires_at() const {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.CreateTargetedInvitationRequest.expires_at)
+  return _internal_expires_at();
+}
+inline void CreateTargetedInvitationRequest::set_expires_at(::int64_t value) {
+  _internal_set_expires_at(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.CreateTargetedInvitationRequest.expires_at)
+}
+inline ::int64_t CreateTargetedInvitationRequest::_internal_expires_at() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.expires_at_;
+}
+inline void CreateTargetedInvitationRequest::_internal_set_expires_at(::int64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.expires_at_ = value;
+}
+
+// .s4wave.provider.spacewave.TargetedInvitationEnvelope envelope = 7;
+inline bool CreateTargetedInvitationRequest::has_envelope() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000020U);
+  PROTOBUF_ASSUME(!value || _impl_.envelope_ != nullptr);
+  return value;
+}
+inline void CreateTargetedInvitationRequest::clear_envelope() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.envelope_ != nullptr) _impl_.envelope_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline const ::s4wave::provider::spacewave::TargetedInvitationEnvelope& CreateTargetedInvitationRequest::_internal_envelope() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::provider::spacewave::TargetedInvitationEnvelope* p = _impl_.envelope_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::provider::spacewave::TargetedInvitationEnvelope&>(::s4wave::provider::spacewave::_TargetedInvitationEnvelope_default_instance_);
+}
+inline const ::s4wave::provider::spacewave::TargetedInvitationEnvelope& CreateTargetedInvitationRequest::envelope() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.CreateTargetedInvitationRequest.envelope)
+  return _internal_envelope();
+}
+inline void CreateTargetedInvitationRequest::unsafe_arena_set_allocated_envelope(
+    ::s4wave::provider::spacewave::TargetedInvitationEnvelope* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.envelope_);
+  }
+  _impl_.envelope_ = reinterpret_cast<::s4wave::provider::spacewave::TargetedInvitationEnvelope*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.provider.spacewave.CreateTargetedInvitationRequest.envelope)
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationEnvelope* PROTOBUF_NULLABLE CreateTargetedInvitationRequest::release_envelope() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::s4wave::provider::spacewave::TargetedInvitationEnvelope* released = _impl_.envelope_;
+  _impl_.envelope_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationEnvelope* PROTOBUF_NULLABLE CreateTargetedInvitationRequest::unsafe_arena_release_envelope() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.CreateTargetedInvitationRequest.envelope)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::s4wave::provider::spacewave::TargetedInvitationEnvelope* temp = _impl_.envelope_;
+  _impl_.envelope_ = nullptr;
+  return temp;
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationEnvelope* PROTOBUF_NONNULL CreateTargetedInvitationRequest::_internal_mutable_envelope() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.envelope_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::provider::spacewave::TargetedInvitationEnvelope>(GetArena());
+    _impl_.envelope_ = reinterpret_cast<::s4wave::provider::spacewave::TargetedInvitationEnvelope*>(p);
+  }
+  return _impl_.envelope_;
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationEnvelope* PROTOBUF_NONNULL CreateTargetedInvitationRequest::mutable_envelope()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::s4wave::provider::spacewave::TargetedInvitationEnvelope* _msg = _internal_mutable_envelope();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.CreateTargetedInvitationRequest.envelope)
+  return _msg;
+}
+inline void CreateTargetedInvitationRequest::set_allocated_envelope(::s4wave::provider::spacewave::TargetedInvitationEnvelope* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.envelope_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+
+  _impl_.envelope_ = reinterpret_cast<::s4wave::provider::spacewave::TargetedInvitationEnvelope*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.CreateTargetedInvitationRequest.envelope)
+}
+
+// string draft_id = 8;
+inline void CreateTargetedInvitationRequest::clear_draft_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.draft_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::std::string& CreateTargetedInvitationRequest::draft_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.CreateTargetedInvitationRequest.draft_id)
+  return _internal_draft_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CreateTargetedInvitationRequest::set_draft_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  _impl_.draft_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.CreateTargetedInvitationRequest.draft_id)
+}
+inline ::std::string* PROTOBUF_NONNULL CreateTargetedInvitationRequest::mutable_draft_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::std::string* _s = _internal_mutable_draft_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.CreateTargetedInvitationRequest.draft_id)
+  return _s;
+}
+inline const ::std::string& CreateTargetedInvitationRequest::_internal_draft_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.draft_id_.Get();
+}
+inline void CreateTargetedInvitationRequest::_internal_set_draft_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.draft_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CreateTargetedInvitationRequest::_internal_mutable_draft_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.draft_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CreateTargetedInvitationRequest::release_draft_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.CreateTargetedInvitationRequest.draft_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  auto* released = _impl_.draft_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.draft_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CreateTargetedInvitationRequest::set_allocated_draft_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  _impl_.draft_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.draft_id_.IsDefault()) {
+    _impl_.draft_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.CreateTargetedInvitationRequest.draft_id)
+}
+
+// -------------------------------------------------------------------
+
+// CreateTargetedInvitationResponse
+
+// .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+inline bool CreateTargetedInvitationResponse::has_invitation() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  PROTOBUF_ASSUME(!value || _impl_.invitation_ != nullptr);
+  return value;
+}
+inline void CreateTargetedInvitationResponse::clear_invitation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.invitation_ != nullptr) _impl_.invitation_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::s4wave::provider::spacewave::TargetedInvitationInfo& CreateTargetedInvitationResponse::_internal_invitation() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::provider::spacewave::TargetedInvitationInfo* p = _impl_.invitation_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::provider::spacewave::TargetedInvitationInfo&>(::s4wave::provider::spacewave::_TargetedInvitationInfo_default_instance_);
+}
+inline const ::s4wave::provider::spacewave::TargetedInvitationInfo& CreateTargetedInvitationResponse::invitation() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.CreateTargetedInvitationResponse.invitation)
+  return _internal_invitation();
+}
+inline void CreateTargetedInvitationResponse::unsafe_arena_set_allocated_invitation(
+    ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.invitation_);
+  }
+  _impl_.invitation_ = reinterpret_cast<::s4wave::provider::spacewave::TargetedInvitationInfo*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.provider.spacewave.CreateTargetedInvitationResponse.invitation)
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE CreateTargetedInvitationResponse::release_invitation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* released = _impl_.invitation_;
+  _impl_.invitation_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE CreateTargetedInvitationResponse::unsafe_arena_release_invitation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.CreateTargetedInvitationResponse.invitation)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* temp = _impl_.invitation_;
+  _impl_.invitation_ = nullptr;
+  return temp;
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL CreateTargetedInvitationResponse::_internal_mutable_invitation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.invitation_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::provider::spacewave::TargetedInvitationInfo>(GetArena());
+    _impl_.invitation_ = reinterpret_cast<::s4wave::provider::spacewave::TargetedInvitationInfo*>(p);
+  }
+  return _impl_.invitation_;
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL CreateTargetedInvitationResponse::mutable_invitation()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* _msg = _internal_mutable_invitation();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.CreateTargetedInvitationResponse.invitation)
+  return _msg;
+}
+inline void CreateTargetedInvitationResponse::set_allocated_invitation(::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.invitation_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+
+  _impl_.invitation_ = reinterpret_cast<::s4wave::provider::spacewave::TargetedInvitationInfo*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.CreateTargetedInvitationResponse.invitation)
+}
+
+// -------------------------------------------------------------------
+
+// CreateSpaceTargetedInvitationByUsernameRequest
+
+// string username = 1;
+inline void CreateSpaceTargetedInvitationByUsernameRequest::clear_username() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.username_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& CreateSpaceTargetedInvitationByUsernameRequest::username() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest.username)
+  return _internal_username();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CreateSpaceTargetedInvitationByUsernameRequest::set_username(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.username_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest.username)
+}
+inline ::std::string* PROTOBUF_NONNULL CreateSpaceTargetedInvitationByUsernameRequest::mutable_username()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_username();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest.username)
+  return _s;
+}
+inline const ::std::string& CreateSpaceTargetedInvitationByUsernameRequest::_internal_username() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.username_.Get();
+}
+inline void CreateSpaceTargetedInvitationByUsernameRequest::_internal_set_username(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.username_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CreateSpaceTargetedInvitationByUsernameRequest::_internal_mutable_username() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.username_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CreateSpaceTargetedInvitationByUsernameRequest::release_username() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest.username)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.username_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.username_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CreateSpaceTargetedInvitationByUsernameRequest::set_allocated_username(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.username_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.username_.IsDefault()) {
+    _impl_.username_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest.username)
+}
+
+// string space_id = 2;
+inline void CreateSpaceTargetedInvitationByUsernameRequest::clear_space_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.space_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& CreateSpaceTargetedInvitationByUsernameRequest::space_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest.space_id)
+  return _internal_space_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CreateSpaceTargetedInvitationByUsernameRequest::set_space_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.space_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest.space_id)
+}
+inline ::std::string* PROTOBUF_NONNULL CreateSpaceTargetedInvitationByUsernameRequest::mutable_space_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_space_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest.space_id)
+  return _s;
+}
+inline const ::std::string& CreateSpaceTargetedInvitationByUsernameRequest::_internal_space_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.space_id_.Get();
+}
+inline void CreateSpaceTargetedInvitationByUsernameRequest::_internal_set_space_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.space_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CreateSpaceTargetedInvitationByUsernameRequest::_internal_mutable_space_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.space_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CreateSpaceTargetedInvitationByUsernameRequest::release_space_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest.space_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.space_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.space_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CreateSpaceTargetedInvitationByUsernameRequest::set_allocated_space_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.space_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.space_id_.IsDefault()) {
+    _impl_.space_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest.space_id)
+}
+
+// string role = 3;
+inline void CreateSpaceTargetedInvitationByUsernameRequest::clear_role() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.role_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& CreateSpaceTargetedInvitationByUsernameRequest::role() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest.role)
+  return _internal_role();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CreateSpaceTargetedInvitationByUsernameRequest::set_role(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.role_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest.role)
+}
+inline ::std::string* PROTOBUF_NONNULL CreateSpaceTargetedInvitationByUsernameRequest::mutable_role()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_role();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest.role)
+  return _s;
+}
+inline const ::std::string& CreateSpaceTargetedInvitationByUsernameRequest::_internal_role() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.role_.Get();
+}
+inline void CreateSpaceTargetedInvitationByUsernameRequest::_internal_set_role(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.role_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CreateSpaceTargetedInvitationByUsernameRequest::_internal_mutable_role() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.role_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CreateSpaceTargetedInvitationByUsernameRequest::release_role() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest.role)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.role_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.role_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CreateSpaceTargetedInvitationByUsernameRequest::set_allocated_role(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.role_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.role_.IsDefault()) {
+    _impl_.role_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest.role)
+}
+
+// int64 expires_at = 4;
+inline void CreateSpaceTargetedInvitationByUsernameRequest::clear_expires_at() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.expires_at_ = ::int64_t{0};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline ::int64_t CreateSpaceTargetedInvitationByUsernameRequest::expires_at() const {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest.expires_at)
+  return _internal_expires_at();
+}
+inline void CreateSpaceTargetedInvitationByUsernameRequest::set_expires_at(::int64_t value) {
+  _internal_set_expires_at(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest.expires_at)
+}
+inline ::int64_t CreateSpaceTargetedInvitationByUsernameRequest::_internal_expires_at() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.expires_at_;
+}
+inline void CreateSpaceTargetedInvitationByUsernameRequest::_internal_set_expires_at(::int64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.expires_at_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// CreateSpaceTargetedInvitationByUsernameResponse
+
+// .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+inline bool CreateSpaceTargetedInvitationByUsernameResponse::has_invitation() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  PROTOBUF_ASSUME(!value || _impl_.invitation_ != nullptr);
+  return value;
+}
+inline void CreateSpaceTargetedInvitationByUsernameResponse::clear_invitation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.invitation_ != nullptr) _impl_.invitation_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::s4wave::provider::spacewave::TargetedInvitationInfo& CreateSpaceTargetedInvitationByUsernameResponse::_internal_invitation() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::provider::spacewave::TargetedInvitationInfo* p = _impl_.invitation_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::provider::spacewave::TargetedInvitationInfo&>(::s4wave::provider::spacewave::_TargetedInvitationInfo_default_instance_);
+}
+inline const ::s4wave::provider::spacewave::TargetedInvitationInfo& CreateSpaceTargetedInvitationByUsernameResponse::invitation() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameResponse.invitation)
+  return _internal_invitation();
+}
+inline void CreateSpaceTargetedInvitationByUsernameResponse::unsafe_arena_set_allocated_invitation(
+    ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.invitation_);
+  }
+  _impl_.invitation_ = reinterpret_cast<::s4wave::provider::spacewave::TargetedInvitationInfo*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameResponse.invitation)
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE CreateSpaceTargetedInvitationByUsernameResponse::release_invitation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* released = _impl_.invitation_;
+  _impl_.invitation_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE CreateSpaceTargetedInvitationByUsernameResponse::unsafe_arena_release_invitation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameResponse.invitation)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* temp = _impl_.invitation_;
+  _impl_.invitation_ = nullptr;
+  return temp;
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL CreateSpaceTargetedInvitationByUsernameResponse::_internal_mutable_invitation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.invitation_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::provider::spacewave::TargetedInvitationInfo>(GetArena());
+    _impl_.invitation_ = reinterpret_cast<::s4wave::provider::spacewave::TargetedInvitationInfo*>(p);
+  }
+  return _impl_.invitation_;
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL CreateSpaceTargetedInvitationByUsernameResponse::mutable_invitation()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* _msg = _internal_mutable_invitation();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameResponse.invitation)
+  return _msg;
+}
+inline void CreateSpaceTargetedInvitationByUsernameResponse::set_allocated_invitation(::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.invitation_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+
+  _impl_.invitation_ = reinterpret_cast<::s4wave::provider::spacewave::TargetedInvitationInfo*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameResponse.invitation)
+}
+
+// -------------------------------------------------------------------
+
+// AcceptSpaceTargetedInvitationRequest
+
+// string id = 1;
+inline void AcceptSpaceTargetedInvitationRequest::clear_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& AcceptSpaceTargetedInvitationRequest::id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationRequest.id)
+  return _internal_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void AcceptSpaceTargetedInvitationRequest::set_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationRequest.id)
+}
+inline ::std::string* PROTOBUF_NONNULL AcceptSpaceTargetedInvitationRequest::mutable_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationRequest.id)
+  return _s;
+}
+inline const ::std::string& AcceptSpaceTargetedInvitationRequest::_internal_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.id_.Get();
+}
+inline void AcceptSpaceTargetedInvitationRequest::_internal_set_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL AcceptSpaceTargetedInvitationRequest::_internal_mutable_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE AcceptSpaceTargetedInvitationRequest::release_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationRequest.id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void AcceptSpaceTargetedInvitationRequest::set_allocated_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.id_.IsDefault()) {
+    _impl_.id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationRequest.id)
+}
+
+// -------------------------------------------------------------------
+
+// AcceptSpaceTargetedInvitationResponse
+
+// .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+inline bool AcceptSpaceTargetedInvitationResponse::has_invitation() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000004U);
+  PROTOBUF_ASSUME(!value || _impl_.invitation_ != nullptr);
+  return value;
+}
+inline void AcceptSpaceTargetedInvitationResponse::clear_invitation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.invitation_ != nullptr) _impl_.invitation_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::s4wave::provider::spacewave::TargetedInvitationInfo& AcceptSpaceTargetedInvitationResponse::_internal_invitation() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::provider::spacewave::TargetedInvitationInfo* p = _impl_.invitation_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::provider::spacewave::TargetedInvitationInfo&>(::s4wave::provider::spacewave::_TargetedInvitationInfo_default_instance_);
+}
+inline const ::s4wave::provider::spacewave::TargetedInvitationInfo& AcceptSpaceTargetedInvitationResponse::invitation() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationResponse.invitation)
+  return _internal_invitation();
+}
+inline void AcceptSpaceTargetedInvitationResponse::unsafe_arena_set_allocated_invitation(
+    ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.invitation_);
+  }
+  _impl_.invitation_ = reinterpret_cast<::s4wave::provider::spacewave::TargetedInvitationInfo*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationResponse.invitation)
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE AcceptSpaceTargetedInvitationResponse::release_invitation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* released = _impl_.invitation_;
+  _impl_.invitation_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE AcceptSpaceTargetedInvitationResponse::unsafe_arena_release_invitation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationResponse.invitation)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* temp = _impl_.invitation_;
+  _impl_.invitation_ = nullptr;
+  return temp;
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL AcceptSpaceTargetedInvitationResponse::_internal_mutable_invitation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.invitation_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::provider::spacewave::TargetedInvitationInfo>(GetArena());
+    _impl_.invitation_ = reinterpret_cast<::s4wave::provider::spacewave::TargetedInvitationInfo*>(p);
+  }
+  return _impl_.invitation_;
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL AcceptSpaceTargetedInvitationResponse::mutable_invitation()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* _msg = _internal_mutable_invitation();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationResponse.invitation)
+  return _msg;
+}
+inline void AcceptSpaceTargetedInvitationResponse::set_allocated_invitation(::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.invitation_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+
+  _impl_.invitation_ = reinterpret_cast<::s4wave::provider::spacewave::TargetedInvitationInfo*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationResponse.invitation)
+}
+
+// string shared_object_id = 2;
+inline void AcceptSpaceTargetedInvitationResponse::clear_shared_object_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.shared_object_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& AcceptSpaceTargetedInvitationResponse::shared_object_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationResponse.shared_object_id)
+  return _internal_shared_object_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void AcceptSpaceTargetedInvitationResponse::set_shared_object_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.shared_object_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationResponse.shared_object_id)
+}
+inline ::std::string* PROTOBUF_NONNULL AcceptSpaceTargetedInvitationResponse::mutable_shared_object_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_shared_object_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationResponse.shared_object_id)
+  return _s;
+}
+inline const ::std::string& AcceptSpaceTargetedInvitationResponse::_internal_shared_object_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.shared_object_id_.Get();
+}
+inline void AcceptSpaceTargetedInvitationResponse::_internal_set_shared_object_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.shared_object_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL AcceptSpaceTargetedInvitationResponse::_internal_mutable_shared_object_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.shared_object_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE AcceptSpaceTargetedInvitationResponse::release_shared_object_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationResponse.shared_object_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.shared_object_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.shared_object_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void AcceptSpaceTargetedInvitationResponse::set_allocated_shared_object_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.shared_object_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.shared_object_id_.IsDefault()) {
+    _impl_.shared_object_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationResponse.shared_object_id)
+}
+
+// string join_result = 3;
+inline void AcceptSpaceTargetedInvitationResponse::clear_join_result() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.join_result_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& AcceptSpaceTargetedInvitationResponse::join_result() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationResponse.join_result)
+  return _internal_join_result();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void AcceptSpaceTargetedInvitationResponse::set_join_result(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.join_result_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationResponse.join_result)
+}
+inline ::std::string* PROTOBUF_NONNULL AcceptSpaceTargetedInvitationResponse::mutable_join_result()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_join_result();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationResponse.join_result)
+  return _s;
+}
+inline const ::std::string& AcceptSpaceTargetedInvitationResponse::_internal_join_result() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.join_result_.Get();
+}
+inline void AcceptSpaceTargetedInvitationResponse::_internal_set_join_result(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.join_result_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL AcceptSpaceTargetedInvitationResponse::_internal_mutable_join_result() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.join_result_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE AcceptSpaceTargetedInvitationResponse::release_join_result() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationResponse.join_result)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.join_result_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.join_result_.Set("", GetArena());
+  }
+  return released;
+}
+inline void AcceptSpaceTargetedInvitationResponse::set_allocated_join_result(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.join_result_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.join_result_.IsDefault()) {
+    _impl_.join_result_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationResponse.join_result)
+}
+
+// -------------------------------------------------------------------
+
+// CreateOrganizationTargetedInvitationByUsernameRequest
+
+// string username = 1;
+inline void CreateOrganizationTargetedInvitationByUsernameRequest::clear_username() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.username_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& CreateOrganizationTargetedInvitationByUsernameRequest::username() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest.username)
+  return _internal_username();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CreateOrganizationTargetedInvitationByUsernameRequest::set_username(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.username_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest.username)
+}
+inline ::std::string* PROTOBUF_NONNULL CreateOrganizationTargetedInvitationByUsernameRequest::mutable_username()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_username();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest.username)
+  return _s;
+}
+inline const ::std::string& CreateOrganizationTargetedInvitationByUsernameRequest::_internal_username() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.username_.Get();
+}
+inline void CreateOrganizationTargetedInvitationByUsernameRequest::_internal_set_username(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.username_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CreateOrganizationTargetedInvitationByUsernameRequest::_internal_mutable_username() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.username_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CreateOrganizationTargetedInvitationByUsernameRequest::release_username() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest.username)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.username_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.username_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CreateOrganizationTargetedInvitationByUsernameRequest::set_allocated_username(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.username_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.username_.IsDefault()) {
+    _impl_.username_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest.username)
+}
+
+// string org_id = 2;
+inline void CreateOrganizationTargetedInvitationByUsernameRequest::clear_org_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.org_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& CreateOrganizationTargetedInvitationByUsernameRequest::org_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest.org_id)
+  return _internal_org_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CreateOrganizationTargetedInvitationByUsernameRequest::set_org_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.org_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest.org_id)
+}
+inline ::std::string* PROTOBUF_NONNULL CreateOrganizationTargetedInvitationByUsernameRequest::mutable_org_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_org_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest.org_id)
+  return _s;
+}
+inline const ::std::string& CreateOrganizationTargetedInvitationByUsernameRequest::_internal_org_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.org_id_.Get();
+}
+inline void CreateOrganizationTargetedInvitationByUsernameRequest::_internal_set_org_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.org_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CreateOrganizationTargetedInvitationByUsernameRequest::_internal_mutable_org_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.org_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CreateOrganizationTargetedInvitationByUsernameRequest::release_org_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest.org_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.org_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.org_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CreateOrganizationTargetedInvitationByUsernameRequest::set_allocated_org_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.org_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.org_id_.IsDefault()) {
+    _impl_.org_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest.org_id)
+}
+
+// string role = 3;
+inline void CreateOrganizationTargetedInvitationByUsernameRequest::clear_role() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.role_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& CreateOrganizationTargetedInvitationByUsernameRequest::role() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest.role)
+  return _internal_role();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CreateOrganizationTargetedInvitationByUsernameRequest::set_role(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.role_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest.role)
+}
+inline ::std::string* PROTOBUF_NONNULL CreateOrganizationTargetedInvitationByUsernameRequest::mutable_role()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_role();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest.role)
+  return _s;
+}
+inline const ::std::string& CreateOrganizationTargetedInvitationByUsernameRequest::_internal_role() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.role_.Get();
+}
+inline void CreateOrganizationTargetedInvitationByUsernameRequest::_internal_set_role(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.role_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CreateOrganizationTargetedInvitationByUsernameRequest::_internal_mutable_role() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.role_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CreateOrganizationTargetedInvitationByUsernameRequest::release_role() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest.role)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.role_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.role_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CreateOrganizationTargetedInvitationByUsernameRequest::set_allocated_role(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.role_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.role_.IsDefault()) {
+    _impl_.role_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest.role)
+}
+
+// int64 expires_at = 4;
+inline void CreateOrganizationTargetedInvitationByUsernameRequest::clear_expires_at() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.expires_at_ = ::int64_t{0};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline ::int64_t CreateOrganizationTargetedInvitationByUsernameRequest::expires_at() const {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest.expires_at)
+  return _internal_expires_at();
+}
+inline void CreateOrganizationTargetedInvitationByUsernameRequest::set_expires_at(::int64_t value) {
+  _internal_set_expires_at(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest.expires_at)
+}
+inline ::int64_t CreateOrganizationTargetedInvitationByUsernameRequest::_internal_expires_at() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.expires_at_;
+}
+inline void CreateOrganizationTargetedInvitationByUsernameRequest::_internal_set_expires_at(::int64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.expires_at_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// CreateOrganizationTargetedInvitationByUsernameResponse
+
+// .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+inline bool CreateOrganizationTargetedInvitationByUsernameResponse::has_invitation() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  PROTOBUF_ASSUME(!value || _impl_.invitation_ != nullptr);
+  return value;
+}
+inline void CreateOrganizationTargetedInvitationByUsernameResponse::clear_invitation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.invitation_ != nullptr) _impl_.invitation_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::s4wave::provider::spacewave::TargetedInvitationInfo& CreateOrganizationTargetedInvitationByUsernameResponse::_internal_invitation() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::provider::spacewave::TargetedInvitationInfo* p = _impl_.invitation_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::provider::spacewave::TargetedInvitationInfo&>(::s4wave::provider::spacewave::_TargetedInvitationInfo_default_instance_);
+}
+inline const ::s4wave::provider::spacewave::TargetedInvitationInfo& CreateOrganizationTargetedInvitationByUsernameResponse::invitation() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameResponse.invitation)
+  return _internal_invitation();
+}
+inline void CreateOrganizationTargetedInvitationByUsernameResponse::unsafe_arena_set_allocated_invitation(
+    ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.invitation_);
+  }
+  _impl_.invitation_ = reinterpret_cast<::s4wave::provider::spacewave::TargetedInvitationInfo*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameResponse.invitation)
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE CreateOrganizationTargetedInvitationByUsernameResponse::release_invitation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* released = _impl_.invitation_;
+  _impl_.invitation_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE CreateOrganizationTargetedInvitationByUsernameResponse::unsafe_arena_release_invitation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameResponse.invitation)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* temp = _impl_.invitation_;
+  _impl_.invitation_ = nullptr;
+  return temp;
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL CreateOrganizationTargetedInvitationByUsernameResponse::_internal_mutable_invitation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.invitation_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::provider::spacewave::TargetedInvitationInfo>(GetArena());
+    _impl_.invitation_ = reinterpret_cast<::s4wave::provider::spacewave::TargetedInvitationInfo*>(p);
+  }
+  return _impl_.invitation_;
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL CreateOrganizationTargetedInvitationByUsernameResponse::mutable_invitation()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* _msg = _internal_mutable_invitation();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameResponse.invitation)
+  return _msg;
+}
+inline void CreateOrganizationTargetedInvitationByUsernameResponse::set_allocated_invitation(::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.invitation_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+
+  _impl_.invitation_ = reinterpret_cast<::s4wave::provider::spacewave::TargetedInvitationInfo*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameResponse.invitation)
+}
+
+// -------------------------------------------------------------------
+
+// AcceptOrganizationTargetedInvitationRequest
+
+// string id = 1;
+inline void AcceptOrganizationTargetedInvitationRequest::clear_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& AcceptOrganizationTargetedInvitationRequest::id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationRequest.id)
+  return _internal_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void AcceptOrganizationTargetedInvitationRequest::set_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationRequest.id)
+}
+inline ::std::string* PROTOBUF_NONNULL AcceptOrganizationTargetedInvitationRequest::mutable_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationRequest.id)
+  return _s;
+}
+inline const ::std::string& AcceptOrganizationTargetedInvitationRequest::_internal_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.id_.Get();
+}
+inline void AcceptOrganizationTargetedInvitationRequest::_internal_set_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL AcceptOrganizationTargetedInvitationRequest::_internal_mutable_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE AcceptOrganizationTargetedInvitationRequest::release_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationRequest.id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void AcceptOrganizationTargetedInvitationRequest::set_allocated_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.id_.IsDefault()) {
+    _impl_.id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationRequest.id)
+}
+
+// -------------------------------------------------------------------
+
+// AcceptOrganizationTargetedInvitationResponse
+
+// .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+inline bool AcceptOrganizationTargetedInvitationResponse::has_invitation() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  PROTOBUF_ASSUME(!value || _impl_.invitation_ != nullptr);
+  return value;
+}
+inline void AcceptOrganizationTargetedInvitationResponse::clear_invitation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.invitation_ != nullptr) _impl_.invitation_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::s4wave::provider::spacewave::TargetedInvitationInfo& AcceptOrganizationTargetedInvitationResponse::_internal_invitation() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::provider::spacewave::TargetedInvitationInfo* p = _impl_.invitation_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::provider::spacewave::TargetedInvitationInfo&>(::s4wave::provider::spacewave::_TargetedInvitationInfo_default_instance_);
+}
+inline const ::s4wave::provider::spacewave::TargetedInvitationInfo& AcceptOrganizationTargetedInvitationResponse::invitation() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationResponse.invitation)
+  return _internal_invitation();
+}
+inline void AcceptOrganizationTargetedInvitationResponse::unsafe_arena_set_allocated_invitation(
+    ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.invitation_);
+  }
+  _impl_.invitation_ = reinterpret_cast<::s4wave::provider::spacewave::TargetedInvitationInfo*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationResponse.invitation)
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE AcceptOrganizationTargetedInvitationResponse::release_invitation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* released = _impl_.invitation_;
+  _impl_.invitation_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE AcceptOrganizationTargetedInvitationResponse::unsafe_arena_release_invitation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationResponse.invitation)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* temp = _impl_.invitation_;
+  _impl_.invitation_ = nullptr;
+  return temp;
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL AcceptOrganizationTargetedInvitationResponse::_internal_mutable_invitation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.invitation_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::provider::spacewave::TargetedInvitationInfo>(GetArena());
+    _impl_.invitation_ = reinterpret_cast<::s4wave::provider::spacewave::TargetedInvitationInfo*>(p);
+  }
+  return _impl_.invitation_;
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL AcceptOrganizationTargetedInvitationResponse::mutable_invitation()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* _msg = _internal_mutable_invitation();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationResponse.invitation)
+  return _msg;
+}
+inline void AcceptOrganizationTargetedInvitationResponse::set_allocated_invitation(::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.invitation_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+
+  _impl_.invitation_ = reinterpret_cast<::s4wave::provider::spacewave::TargetedInvitationInfo*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationResponse.invitation)
+}
+
+// .s4wave.provider.spacewave.OrganizationInfo organization = 2;
+inline bool AcceptOrganizationTargetedInvitationResponse::has_organization() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
+  PROTOBUF_ASSUME(!value || _impl_.organization_ != nullptr);
+  return value;
+}
+inline void AcceptOrganizationTargetedInvitationResponse::clear_organization() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.organization_ != nullptr) _impl_.organization_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::s4wave::provider::spacewave::OrganizationInfo& AcceptOrganizationTargetedInvitationResponse::_internal_organization() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::provider::spacewave::OrganizationInfo* p = _impl_.organization_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::provider::spacewave::OrganizationInfo&>(::s4wave::provider::spacewave::_OrganizationInfo_default_instance_);
+}
+inline const ::s4wave::provider::spacewave::OrganizationInfo& AcceptOrganizationTargetedInvitationResponse::organization() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationResponse.organization)
+  return _internal_organization();
+}
+inline void AcceptOrganizationTargetedInvitationResponse::unsafe_arena_set_allocated_organization(
+    ::s4wave::provider::spacewave::OrganizationInfo* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.organization_);
+  }
+  _impl_.organization_ = reinterpret_cast<::s4wave::provider::spacewave::OrganizationInfo*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationResponse.organization)
+}
+inline ::s4wave::provider::spacewave::OrganizationInfo* PROTOBUF_NULLABLE AcceptOrganizationTargetedInvitationResponse::release_organization() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::s4wave::provider::spacewave::OrganizationInfo* released = _impl_.organization_;
+  _impl_.organization_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::provider::spacewave::OrganizationInfo* PROTOBUF_NULLABLE AcceptOrganizationTargetedInvitationResponse::unsafe_arena_release_organization() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationResponse.organization)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::s4wave::provider::spacewave::OrganizationInfo* temp = _impl_.organization_;
+  _impl_.organization_ = nullptr;
+  return temp;
+}
+inline ::s4wave::provider::spacewave::OrganizationInfo* PROTOBUF_NONNULL AcceptOrganizationTargetedInvitationResponse::_internal_mutable_organization() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.organization_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::provider::spacewave::OrganizationInfo>(GetArena());
+    _impl_.organization_ = reinterpret_cast<::s4wave::provider::spacewave::OrganizationInfo*>(p);
+  }
+  return _impl_.organization_;
+}
+inline ::s4wave::provider::spacewave::OrganizationInfo* PROTOBUF_NONNULL AcceptOrganizationTargetedInvitationResponse::mutable_organization()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::s4wave::provider::spacewave::OrganizationInfo* _msg = _internal_mutable_organization();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationResponse.organization)
+  return _msg;
+}
+inline void AcceptOrganizationTargetedInvitationResponse::set_allocated_organization(::s4wave::provider::spacewave::OrganizationInfo* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.organization_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+
+  _impl_.organization_ = reinterpret_cast<::s4wave::provider::spacewave::OrganizationInfo*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationResponse.organization)
+}
+
+// -------------------------------------------------------------------
+
+// ListTargetedInvitationsRequest
+
+// -------------------------------------------------------------------
+
+// ListTargetedInvitationsResponse
+
+// repeated .s4wave.provider.spacewave.TargetedInvitationInfo invitations = 1;
+inline int ListTargetedInvitationsResponse::_internal_invitations_size() const {
+  return _internal_invitations().size();
+}
+inline int ListTargetedInvitationsResponse::invitations_size() const {
+  return _internal_invitations_size();
+}
+inline void ListTargetedInvitationsResponse::clear_invitations() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.invitations_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL ListTargetedInvitationsResponse::mutable_invitations(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.ListTargetedInvitationsResponse.invitations)
+  return _internal_mutable_invitations()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::s4wave::provider::spacewave::TargetedInvitationInfo>* PROTOBUF_NONNULL ListTargetedInvitationsResponse::mutable_invitations()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.provider.spacewave.ListTargetedInvitationsResponse.invitations)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_invitations();
+}
+inline const ::s4wave::provider::spacewave::TargetedInvitationInfo& ListTargetedInvitationsResponse::invitations(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.ListTargetedInvitationsResponse.invitations)
+  return _internal_invitations().Get(index);
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL ListTargetedInvitationsResponse::add_invitations()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* _add =
+      _internal_mutable_invitations()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:s4wave.provider.spacewave.ListTargetedInvitationsResponse.invitations)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::s4wave::provider::spacewave::TargetedInvitationInfo>& ListTargetedInvitationsResponse::invitations() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.provider.spacewave.ListTargetedInvitationsResponse.invitations)
+  return _internal_invitations();
+}
+inline const ::google::protobuf::RepeatedPtrField<::s4wave::provider::spacewave::TargetedInvitationInfo>&
+ListTargetedInvitationsResponse::_internal_invitations() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.invitations_;
+}
+inline ::google::protobuf::RepeatedPtrField<::s4wave::provider::spacewave::TargetedInvitationInfo>* PROTOBUF_NONNULL
+ListTargetedInvitationsResponse::_internal_mutable_invitations() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.invitations_;
+}
+
+// -------------------------------------------------------------------
+
+// GetTargetedInvitationRequest
+
+// string id = 1;
+inline void GetTargetedInvitationRequest::clear_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& GetTargetedInvitationRequest::id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.GetTargetedInvitationRequest.id)
+  return _internal_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void GetTargetedInvitationRequest::set_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.GetTargetedInvitationRequest.id)
+}
+inline ::std::string* PROTOBUF_NONNULL GetTargetedInvitationRequest::mutable_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.GetTargetedInvitationRequest.id)
+  return _s;
+}
+inline const ::std::string& GetTargetedInvitationRequest::_internal_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.id_.Get();
+}
+inline void GetTargetedInvitationRequest::_internal_set_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL GetTargetedInvitationRequest::_internal_mutable_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE GetTargetedInvitationRequest::release_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.GetTargetedInvitationRequest.id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void GetTargetedInvitationRequest::set_allocated_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.id_.IsDefault()) {
+    _impl_.id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.GetTargetedInvitationRequest.id)
+}
+
+// -------------------------------------------------------------------
+
+// GetTargetedInvitationResponse
+
+// .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+inline bool GetTargetedInvitationResponse::has_invitation() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  PROTOBUF_ASSUME(!value || _impl_.invitation_ != nullptr);
+  return value;
+}
+inline void GetTargetedInvitationResponse::clear_invitation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.invitation_ != nullptr) _impl_.invitation_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::s4wave::provider::spacewave::TargetedInvitationInfo& GetTargetedInvitationResponse::_internal_invitation() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::provider::spacewave::TargetedInvitationInfo* p = _impl_.invitation_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::provider::spacewave::TargetedInvitationInfo&>(::s4wave::provider::spacewave::_TargetedInvitationInfo_default_instance_);
+}
+inline const ::s4wave::provider::spacewave::TargetedInvitationInfo& GetTargetedInvitationResponse::invitation() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.GetTargetedInvitationResponse.invitation)
+  return _internal_invitation();
+}
+inline void GetTargetedInvitationResponse::unsafe_arena_set_allocated_invitation(
+    ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.invitation_);
+  }
+  _impl_.invitation_ = reinterpret_cast<::s4wave::provider::spacewave::TargetedInvitationInfo*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.provider.spacewave.GetTargetedInvitationResponse.invitation)
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE GetTargetedInvitationResponse::release_invitation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* released = _impl_.invitation_;
+  _impl_.invitation_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE GetTargetedInvitationResponse::unsafe_arena_release_invitation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.GetTargetedInvitationResponse.invitation)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* temp = _impl_.invitation_;
+  _impl_.invitation_ = nullptr;
+  return temp;
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL GetTargetedInvitationResponse::_internal_mutable_invitation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.invitation_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::provider::spacewave::TargetedInvitationInfo>(GetArena());
+    _impl_.invitation_ = reinterpret_cast<::s4wave::provider::spacewave::TargetedInvitationInfo*>(p);
+  }
+  return _impl_.invitation_;
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL GetTargetedInvitationResponse::mutable_invitation()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* _msg = _internal_mutable_invitation();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.GetTargetedInvitationResponse.invitation)
+  return _msg;
+}
+inline void GetTargetedInvitationResponse::set_allocated_invitation(::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.invitation_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+
+  _impl_.invitation_ = reinterpret_cast<::s4wave::provider::spacewave::TargetedInvitationInfo*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.GetTargetedInvitationResponse.invitation)
+}
+
+// -------------------------------------------------------------------
+
+// RevokeTargetedInvitationRequest
+
+// string id = 1;
+inline void RevokeTargetedInvitationRequest::clear_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& RevokeTargetedInvitationRequest::id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.RevokeTargetedInvitationRequest.id)
+  return _internal_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void RevokeTargetedInvitationRequest::set_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.RevokeTargetedInvitationRequest.id)
+}
+inline ::std::string* PROTOBUF_NONNULL RevokeTargetedInvitationRequest::mutable_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.RevokeTargetedInvitationRequest.id)
+  return _s;
+}
+inline const ::std::string& RevokeTargetedInvitationRequest::_internal_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.id_.Get();
+}
+inline void RevokeTargetedInvitationRequest::_internal_set_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL RevokeTargetedInvitationRequest::_internal_mutable_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE RevokeTargetedInvitationRequest::release_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.RevokeTargetedInvitationRequest.id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void RevokeTargetedInvitationRequest::set_allocated_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.id_.IsDefault()) {
+    _impl_.id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.RevokeTargetedInvitationRequest.id)
+}
+
+// -------------------------------------------------------------------
+
+// RevokeTargetedInvitationResponse
+
+// .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+inline bool RevokeTargetedInvitationResponse::has_invitation() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  PROTOBUF_ASSUME(!value || _impl_.invitation_ != nullptr);
+  return value;
+}
+inline void RevokeTargetedInvitationResponse::clear_invitation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.invitation_ != nullptr) _impl_.invitation_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::s4wave::provider::spacewave::TargetedInvitationInfo& RevokeTargetedInvitationResponse::_internal_invitation() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::provider::spacewave::TargetedInvitationInfo* p = _impl_.invitation_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::provider::spacewave::TargetedInvitationInfo&>(::s4wave::provider::spacewave::_TargetedInvitationInfo_default_instance_);
+}
+inline const ::s4wave::provider::spacewave::TargetedInvitationInfo& RevokeTargetedInvitationResponse::invitation() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.RevokeTargetedInvitationResponse.invitation)
+  return _internal_invitation();
+}
+inline void RevokeTargetedInvitationResponse::unsafe_arena_set_allocated_invitation(
+    ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.invitation_);
+  }
+  _impl_.invitation_ = reinterpret_cast<::s4wave::provider::spacewave::TargetedInvitationInfo*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.provider.spacewave.RevokeTargetedInvitationResponse.invitation)
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE RevokeTargetedInvitationResponse::release_invitation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* released = _impl_.invitation_;
+  _impl_.invitation_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE RevokeTargetedInvitationResponse::unsafe_arena_release_invitation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.RevokeTargetedInvitationResponse.invitation)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* temp = _impl_.invitation_;
+  _impl_.invitation_ = nullptr;
+  return temp;
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL RevokeTargetedInvitationResponse::_internal_mutable_invitation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.invitation_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::provider::spacewave::TargetedInvitationInfo>(GetArena());
+    _impl_.invitation_ = reinterpret_cast<::s4wave::provider::spacewave::TargetedInvitationInfo*>(p);
+  }
+  return _impl_.invitation_;
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL RevokeTargetedInvitationResponse::mutable_invitation()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* _msg = _internal_mutable_invitation();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.RevokeTargetedInvitationResponse.invitation)
+  return _msg;
+}
+inline void RevokeTargetedInvitationResponse::set_allocated_invitation(::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.invitation_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+
+  _impl_.invitation_ = reinterpret_cast<::s4wave::provider::spacewave::TargetedInvitationInfo*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.RevokeTargetedInvitationResponse.invitation)
+}
+
+// -------------------------------------------------------------------
+
+// ProcessTargetedInvitationRequest
+
+// string id = 1;
+inline void ProcessTargetedInvitationRequest::clear_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& ProcessTargetedInvitationRequest::id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.ProcessTargetedInvitationRequest.id)
+  return _internal_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ProcessTargetedInvitationRequest::set_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.ProcessTargetedInvitationRequest.id)
+}
+inline ::std::string* PROTOBUF_NONNULL ProcessTargetedInvitationRequest::mutable_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.ProcessTargetedInvitationRequest.id)
+  return _s;
+}
+inline const ::std::string& ProcessTargetedInvitationRequest::_internal_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.id_.Get();
+}
+inline void ProcessTargetedInvitationRequest::_internal_set_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ProcessTargetedInvitationRequest::_internal_mutable_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ProcessTargetedInvitationRequest::release_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.ProcessTargetedInvitationRequest.id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ProcessTargetedInvitationRequest::set_allocated_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.id_.IsDefault()) {
+    _impl_.id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.ProcessTargetedInvitationRequest.id)
+}
+
+// string action = 2;
+inline void ProcessTargetedInvitationRequest::clear_action() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.action_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& ProcessTargetedInvitationRequest::action() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.ProcessTargetedInvitationRequest.action)
+  return _internal_action();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ProcessTargetedInvitationRequest::set_action(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.action_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.provider.spacewave.ProcessTargetedInvitationRequest.action)
+}
+inline ::std::string* PROTOBUF_NONNULL ProcessTargetedInvitationRequest::mutable_action()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_action();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.ProcessTargetedInvitationRequest.action)
+  return _s;
+}
+inline const ::std::string& ProcessTargetedInvitationRequest::_internal_action() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.action_.Get();
+}
+inline void ProcessTargetedInvitationRequest::_internal_set_action(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.action_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ProcessTargetedInvitationRequest::_internal_mutable_action() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.action_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ProcessTargetedInvitationRequest::release_action() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.ProcessTargetedInvitationRequest.action)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.action_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.action_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ProcessTargetedInvitationRequest::set_allocated_action(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.action_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.action_.IsDefault()) {
+    _impl_.action_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.ProcessTargetedInvitationRequest.action)
+}
+
+// -------------------------------------------------------------------
+
+// ProcessTargetedInvitationResponse
+
+// .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+inline bool ProcessTargetedInvitationResponse::has_invitation() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  PROTOBUF_ASSUME(!value || _impl_.invitation_ != nullptr);
+  return value;
+}
+inline void ProcessTargetedInvitationResponse::clear_invitation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.invitation_ != nullptr) _impl_.invitation_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::s4wave::provider::spacewave::TargetedInvitationInfo& ProcessTargetedInvitationResponse::_internal_invitation() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::provider::spacewave::TargetedInvitationInfo* p = _impl_.invitation_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::provider::spacewave::TargetedInvitationInfo&>(::s4wave::provider::spacewave::_TargetedInvitationInfo_default_instance_);
+}
+inline const ::s4wave::provider::spacewave::TargetedInvitationInfo& ProcessTargetedInvitationResponse::invitation() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.provider.spacewave.ProcessTargetedInvitationResponse.invitation)
+  return _internal_invitation();
+}
+inline void ProcessTargetedInvitationResponse::unsafe_arena_set_allocated_invitation(
+    ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.invitation_);
+  }
+  _impl_.invitation_ = reinterpret_cast<::s4wave::provider::spacewave::TargetedInvitationInfo*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.provider.spacewave.ProcessTargetedInvitationResponse.invitation)
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE ProcessTargetedInvitationResponse::release_invitation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* released = _impl_.invitation_;
+  _impl_.invitation_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE ProcessTargetedInvitationResponse::unsafe_arena_release_invitation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.provider.spacewave.ProcessTargetedInvitationResponse.invitation)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* temp = _impl_.invitation_;
+  _impl_.invitation_ = nullptr;
+  return temp;
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL ProcessTargetedInvitationResponse::_internal_mutable_invitation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.invitation_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::provider::spacewave::TargetedInvitationInfo>(GetArena());
+    _impl_.invitation_ = reinterpret_cast<::s4wave::provider::spacewave::TargetedInvitationInfo*>(p);
+  }
+  return _impl_.invitation_;
+}
+inline ::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NONNULL ProcessTargetedInvitationResponse::mutable_invitation()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::provider::spacewave::TargetedInvitationInfo* _msg = _internal_mutable_invitation();
+  // @@protoc_insertion_point(field_mutable:s4wave.provider.spacewave.ProcessTargetedInvitationResponse.invitation)
+  return _msg;
+}
+inline void ProcessTargetedInvitationResponse::set_allocated_invitation(::s4wave::provider::spacewave::TargetedInvitationInfo* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.invitation_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+
+  _impl_.invitation_ = reinterpret_cast<::s4wave::provider::spacewave::TargetedInvitationInfo*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.provider.spacewave.ProcessTargetedInvitationResponse.invitation)
+}
+
+// -------------------------------------------------------------------
+
 // CreateOrgInviteRequest
 
 // string org_id = 1;
@@ -68290,6 +79144,12 @@ struct is_proto_enum<::s4wave::provider::spacewave::SelfEnrollmentGateState> : s
 template <>
 inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::s4wave::provider::spacewave::SelfEnrollmentGateState>() {
   return ::s4wave::provider::spacewave::SelfEnrollmentGateState_descriptor();
+}
+template <>
+struct is_proto_enum<::s4wave::provider::spacewave::TargetedInvitePurpose> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::s4wave::provider::spacewave::TargetedInvitePurpose>() {
+  return ::s4wave::provider::spacewave::TargetedInvitePurpose_descriptor();
 }
 
 }  // namespace protobuf

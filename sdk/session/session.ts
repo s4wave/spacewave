@@ -376,9 +376,13 @@ export class Session extends Resource {
   // joinSpaceViaInvite joins a space using an out-of-band invite message.
   public async joinSpaceViaInvite(
     inviteMessage: SOInviteMessage,
+    targetedInvitationEnvelope?: Uint8Array,
     abortSignal?: AbortSignal,
   ): Promise<JoinSpaceViaInviteResponse> {
-    return await this.service.JoinSpaceViaInvite({ inviteMessage }, abortSignal)
+    return await this.service.JoinSpaceViaInvite(
+      { inviteMessage, targetedInvitationEnvelope },
+      abortSignal,
+    )
   }
 
   // createLocalPairingOffer generates a WebRTC SDP offer for no-cloud pairing.

@@ -647,6 +647,160 @@ func TestUpdateSOMetadata_Success(t *testing.T) {
 	}
 }
 
+func TestSessionClientUsernameTargetedInviteRequests(t *testing.T) {
+	priv, pid := generateTestKeypair(t)
+
+	t.Run("create draft", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != http.MethodPost {
+				t.Errorf("expected POST, got %s", r.Method)
+			}
+			if r.URL.Path != "/api/account/targeted-invite/draft/by-username" {
+				t.Errorf("unexpected path: %s", r.URL.Path)
+			}
+			if got := r.Header.Get("Content-Type"); got != "application/octet-stream" {
+				t.Errorf("unexpected content type: %s", got)
+			}
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatalf("read request body: %v", err)
+			}
+			var req api.CreateTargetedInviteDraftByUsernameRequest
+			if err := req.UnmarshalVT(body); err != nil {
+				t.Fatalf("unmarshal request: %v", err)
+			}
+			if req.GetUsername() != "alice" {
+				t.Fatalf("unexpected username: %q", req.GetUsername())
+			}
+			if req.GetPurpose() != api.TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_SPACE {
+				t.Fatalf("unexpected purpose: %v", req.GetPurpose())
+			}
+			if req.GetSpaceId() != "space-001" {
+				t.Fatalf("unexpected space id: %q", req.GetSpaceId())
+			}
+
+			resp := &api.CreateTargetedInviteDraftByUsernameResponse{Accepted: true}
+			data, err := resp.MarshalVT()
+			if err != nil {
+				t.Fatalf("marshal response: %v", err)
+			}
+			w.Header().Set("Content-Type", "application/octet-stream")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(data)
+		}))
+		defer srv.Close()
+
+		cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
+		resp, err := cli.CreateTargetedInviteDraftByUsername(context.Background(), &api.CreateTargetedInviteDraftByUsernameRequest{
+			Username: "alice",
+			Purpose:  api.TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_SPACE,
+			SpaceId:  "space-001",
+			Role:     "reader",
+		})
+		if err != nil {
+			t.Fatalf("CreateTargetedInviteDraftByUsername: %v", err)
+		}
+		if !resp.GetAccepted() {
+			t.Fatalf("expected accepted response")
+		}
+	})
+
+	t.Run("resolve", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != http.MethodPost {
+				t.Errorf("expected POST, got %s", r.Method)
+			}
+			if r.URL.Path != "/api/account/username/resolve" {
+				t.Errorf("unexpected path: %s", r.URL.Path)
+			}
+			if got := r.Header.Get("Content-Type"); got != "application/octet-stream" {
+				t.Errorf("unexpected content type: %s", got)
+			}
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatalf("read request body: %v", err)
+			}
+			var req api.ResolveUsernameRequest
+			if err := req.UnmarshalVT(body); err != nil {
+				t.Fatalf("unmarshal request: %v", err)
+			}
+			if req.GetUsername() != "carol" {
+				t.Fatalf("unexpected username: %q", req.GetUsername())
+			}
+			if req.GetPurpose() != api.TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_ORGANIZATION {
+				t.Fatalf("unexpected purpose: %v", req.GetPurpose())
+			}
+			if req.GetOrgId() != "org-001" {
+				t.Fatalf("unexpected org id: %q", req.GetOrgId())
+			}
+
+			resp := &api.ResolveUsernameResponse{
+				Found:        true,
+				AccountId:    "acct-target",
+				EntityId:     "carol",
+				DomainId:     "test.spacewave.app",
+				Relationship: "org_member",
+				CanInvite:    true,
+			}
+			data, err := resp.MarshalVT()
+			if err != nil {
+				t.Fatalf("marshal response: %v", err)
+			}
+			w.Header().Set("Content-Type", "application/octet-stream")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(data)
+		}))
+		defer srv.Close()
+
+		cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
+		resp, err := cli.ResolveUsername(context.Background(), &api.ResolveUsernameRequest{
+			Username: "carol",
+			Purpose:  api.TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_ORGANIZATION,
+			OrgId:    "org-001",
+		})
+		if err != nil {
+			t.Fatalf("ResolveUsername: %v", err)
+		}
+		if !resp.GetFound() || resp.GetAccountId() != "acct-target" || !resp.GetCanInvite() {
+			t.Fatalf("unexpected response: %#v", resp)
+		}
+	})
+}
+
+func TestTargetedInvitationEnvelopeSignatureVerification(t *testing.T) {
+	priv, pid := generateTestKeypair(t)
+	cli := NewSessionClient(http.DefaultClient, "http://localhost", DefaultSigningEnvPrefix, priv, pid.String())
+	envelope := &api.TargetedInvitationEnvelope{
+		SchemaVersion:      1,
+		Purpose:            api.TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_SPACE,
+		ContextId:          "space-001",
+		ActorAccountId:     "acct-actor",
+		ActorEntityUuid:    "actor-uuid",
+		ActorAccountEpoch:  2,
+		SignerPeerId:       pid.String(),
+		TargetAccountId:    "acct-target",
+		TargetEntityId:     "alice",
+		TargetEntityUuid:   "target-uuid",
+		TargetAccountEpoch: 3,
+		Role:               "reader",
+		ExpiresAt:          987654321,
+		Nonce:              []byte("nonce-1234567890"),
+		Payload:            []byte("payload"),
+	}
+	if err := cli.SignTargetedInvitationEnvelope(envelope); err != nil {
+		t.Fatalf("SignTargetedInvitationEnvelope: %v", err)
+	}
+	if err := VerifyTargetedInvitationEnvelope(envelope); err != nil {
+		t.Fatalf("VerifyTargetedInvitationEnvelope: %v", err)
+	}
+
+	tampered := envelope.CloneVT()
+	tampered.Payload = []byte("other-payload")
+	if err := VerifyTargetedInvitationEnvelope(tampered); err == nil {
+		t.Fatalf("expected tampered envelope verification to fail")
+	}
+}
+
 // TestRegisterAccount_Success verifies RegisterAccount sends the correct proto binary and parses the response.
 func TestRegisterAccount_Success(t *testing.T) {
 	priv, pid := generateTestKeypair(t)

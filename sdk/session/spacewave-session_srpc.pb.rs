@@ -74,6 +74,17 @@ pub trait SpacewaveSessionResourceServiceWatchOrganizationStateStream: Send + Sy
     async fn close(&self) -> starpc::Result<()>;
 }
 
+/// Stream trait for SpacewaveSessionResourceService.WatchTargetedInvitations.
+#[starpc::async_trait]
+pub trait SpacewaveSessionResourceServiceWatchTargetedInvitationsStream: Send + Sync {
+    /// Returns the context for this stream.
+    fn context(&self) -> &starpc::Context;
+    /// Receives a message from the stream.
+    async fn recv(&self) -> starpc::Result<ListTargetedInvitationsResponse>;
+    /// Closes the stream.
+    async fn close(&self) -> starpc::Result<()>;
+}
+
 /// Stream trait for SpacewaveSessionResourceService.WatchEmails.
 #[starpc::async_trait]
 pub trait SpacewaveSessionResourceServiceWatchEmailsStream: Send + Sync {
@@ -142,6 +153,30 @@ pub trait SpacewaveSessionResourceServiceClient: Send + Sync {
     async fn watch_organization_state(&self, request: &WatchOrganizationStateRequest) -> starpc::Result<Box<dyn SpacewaveSessionResourceServiceWatchOrganizationStateStream>>;
     /// DeleteOrganization.
     async fn delete_organization(&self, request: &DeleteOrganizationRequest) -> starpc::Result<DeleteOrganizationResponse>;
+    /// CreateTargetedInviteDraftByUsername.
+    async fn create_targeted_invite_draft_by_username(&self, request: &CreateTargetedInviteDraftByUsernameRequest) -> starpc::Result<CreateTargetedInviteDraftByUsernameResponse>;
+    /// ResolveUsername.
+    async fn resolve_username(&self, request: &ResolveUsernameRequest) -> starpc::Result<ResolveUsernameResponse>;
+    /// CreateTargetedInvitation.
+    async fn create_targeted_invitation(&self, request: &CreateTargetedInvitationRequest) -> starpc::Result<CreateTargetedInvitationResponse>;
+    /// CreateSpaceTargetedInvitationByUsername.
+    async fn create_space_targeted_invitation_by_username(&self, request: &CreateSpaceTargetedInvitationByUsernameRequest) -> starpc::Result<CreateSpaceTargetedInvitationByUsernameResponse>;
+    /// AcceptSpaceTargetedInvitation.
+    async fn accept_space_targeted_invitation(&self, request: &AcceptSpaceTargetedInvitationRequest) -> starpc::Result<AcceptSpaceTargetedInvitationResponse>;
+    /// CreateOrganizationTargetedInvitationByUsername.
+    async fn create_organization_targeted_invitation_by_username(&self, request: &CreateOrganizationTargetedInvitationByUsernameRequest) -> starpc::Result<CreateOrganizationTargetedInvitationByUsernameResponse>;
+    /// AcceptOrganizationTargetedInvitation.
+    async fn accept_organization_targeted_invitation(&self, request: &AcceptOrganizationTargetedInvitationRequest) -> starpc::Result<AcceptOrganizationTargetedInvitationResponse>;
+    /// ListTargetedInvitations.
+    async fn list_targeted_invitations(&self, request: &ListTargetedInvitationsRequest) -> starpc::Result<ListTargetedInvitationsResponse>;
+    /// WatchTargetedInvitations.
+    async fn watch_targeted_invitations(&self, request: &ListTargetedInvitationsRequest) -> starpc::Result<Box<dyn SpacewaveSessionResourceServiceWatchTargetedInvitationsStream>>;
+    /// GetTargetedInvitation.
+    async fn get_targeted_invitation(&self, request: &GetTargetedInvitationRequest) -> starpc::Result<GetTargetedInvitationResponse>;
+    /// RevokeTargetedInvitation.
+    async fn revoke_targeted_invitation(&self, request: &RevokeTargetedInvitationRequest) -> starpc::Result<RevokeTargetedInvitationResponse>;
+    /// ProcessTargetedInvitation.
+    async fn process_targeted_invitation(&self, request: &ProcessTargetedInvitationRequest) -> starpc::Result<ProcessTargetedInvitationResponse>;
     /// CreateOrgInvite.
     async fn create_org_invite(&self, request: &CreateOrgInviteRequest) -> starpc::Result<CreateOrgInviteResponse>;
     /// JoinOrganization.
@@ -314,6 +349,46 @@ impl<C: starpc::Client + 'static> SpacewaveSessionResourceServiceClient for Spac
     }
     async fn delete_organization(&self, request: &DeleteOrganizationRequest) -> starpc::Result<DeleteOrganizationResponse> {
         self.client.exec_call("s4wave.session.SpacewaveSessionResourceService", "DeleteOrganization", request).await
+    }
+    async fn create_targeted_invite_draft_by_username(&self, request: &CreateTargetedInviteDraftByUsernameRequest) -> starpc::Result<CreateTargetedInviteDraftByUsernameResponse> {
+        self.client.exec_call("s4wave.session.SpacewaveSessionResourceService", "CreateTargetedInviteDraftByUsername", request).await
+    }
+    async fn resolve_username(&self, request: &ResolveUsernameRequest) -> starpc::Result<ResolveUsernameResponse> {
+        self.client.exec_call("s4wave.session.SpacewaveSessionResourceService", "ResolveUsername", request).await
+    }
+    async fn create_targeted_invitation(&self, request: &CreateTargetedInvitationRequest) -> starpc::Result<CreateTargetedInvitationResponse> {
+        self.client.exec_call("s4wave.session.SpacewaveSessionResourceService", "CreateTargetedInvitation", request).await
+    }
+    async fn create_space_targeted_invitation_by_username(&self, request: &CreateSpaceTargetedInvitationByUsernameRequest) -> starpc::Result<CreateSpaceTargetedInvitationByUsernameResponse> {
+        self.client.exec_call("s4wave.session.SpacewaveSessionResourceService", "CreateSpaceTargetedInvitationByUsername", request).await
+    }
+    async fn accept_space_targeted_invitation(&self, request: &AcceptSpaceTargetedInvitationRequest) -> starpc::Result<AcceptSpaceTargetedInvitationResponse> {
+        self.client.exec_call("s4wave.session.SpacewaveSessionResourceService", "AcceptSpaceTargetedInvitation", request).await
+    }
+    async fn create_organization_targeted_invitation_by_username(&self, request: &CreateOrganizationTargetedInvitationByUsernameRequest) -> starpc::Result<CreateOrganizationTargetedInvitationByUsernameResponse> {
+        self.client.exec_call("s4wave.session.SpacewaveSessionResourceService", "CreateOrganizationTargetedInvitationByUsername", request).await
+    }
+    async fn accept_organization_targeted_invitation(&self, request: &AcceptOrganizationTargetedInvitationRequest) -> starpc::Result<AcceptOrganizationTargetedInvitationResponse> {
+        self.client.exec_call("s4wave.session.SpacewaveSessionResourceService", "AcceptOrganizationTargetedInvitation", request).await
+    }
+    async fn list_targeted_invitations(&self, request: &ListTargetedInvitationsRequest) -> starpc::Result<ListTargetedInvitationsResponse> {
+        self.client.exec_call("s4wave.session.SpacewaveSessionResourceService", "ListTargetedInvitations", request).await
+    }
+    async fn watch_targeted_invitations(&self, request: &ListTargetedInvitationsRequest) -> starpc::Result<Box<dyn SpacewaveSessionResourceServiceWatchTargetedInvitationsStream>> {
+        use starpc::ProstMessage;
+        let data = request.encode_to_vec();
+        let stream = self.client.new_stream("s4wave.session.SpacewaveSessionResourceService", "WatchTargetedInvitations", Some(&data)).await?;
+        stream.close_send().await?;
+        Ok(Box::new(SpacewaveSessionResourceServiceWatchTargetedInvitationsStreamImpl { stream }))
+    }
+    async fn get_targeted_invitation(&self, request: &GetTargetedInvitationRequest) -> starpc::Result<GetTargetedInvitationResponse> {
+        self.client.exec_call("s4wave.session.SpacewaveSessionResourceService", "GetTargetedInvitation", request).await
+    }
+    async fn revoke_targeted_invitation(&self, request: &RevokeTargetedInvitationRequest) -> starpc::Result<RevokeTargetedInvitationResponse> {
+        self.client.exec_call("s4wave.session.SpacewaveSessionResourceService", "RevokeTargetedInvitation", request).await
+    }
+    async fn process_targeted_invitation(&self, request: &ProcessTargetedInvitationRequest) -> starpc::Result<ProcessTargetedInvitationResponse> {
+        self.client.exec_call("s4wave.session.SpacewaveSessionResourceService", "ProcessTargetedInvitation", request).await
     }
     async fn create_org_invite(&self, request: &CreateOrgInviteRequest) -> starpc::Result<CreateOrgInviteResponse> {
         self.client.exec_call("s4wave.session.SpacewaveSessionResourceService", "CreateOrgInvite", request).await
@@ -501,6 +576,23 @@ impl SpacewaveSessionResourceServiceWatchOrganizationStateStream for SpacewaveSe
     }
 }
 
+struct SpacewaveSessionResourceServiceWatchTargetedInvitationsStreamImpl {
+    stream: Box<dyn starpc::Stream>,
+}
+
+#[starpc::async_trait]
+impl SpacewaveSessionResourceServiceWatchTargetedInvitationsStream for SpacewaveSessionResourceServiceWatchTargetedInvitationsStreamImpl {
+    fn context(&self) -> &starpc::Context {
+        self.stream.context()
+    }
+    async fn recv(&self) -> starpc::Result<ListTargetedInvitationsResponse> {
+        self.stream.msg_recv().await
+    }
+    async fn close(&self) -> starpc::Result<()> {
+        self.stream.close().await
+    }
+}
+
 struct SpacewaveSessionResourceServiceWatchEmailsStreamImpl {
     stream: Box<dyn starpc::Stream>,
 }
@@ -575,6 +667,30 @@ pub trait SpacewaveSessionResourceServiceServer: Send + Sync {
     async fn watch_organization_state(&self, request: WatchOrganizationStateRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
     /// DeleteOrganization.
     async fn delete_organization(&self, request: DeleteOrganizationRequest) -> starpc::Result<DeleteOrganizationResponse>;
+    /// CreateTargetedInviteDraftByUsername.
+    async fn create_targeted_invite_draft_by_username(&self, request: CreateTargetedInviteDraftByUsernameRequest) -> starpc::Result<CreateTargetedInviteDraftByUsernameResponse>;
+    /// ResolveUsername.
+    async fn resolve_username(&self, request: ResolveUsernameRequest) -> starpc::Result<ResolveUsernameResponse>;
+    /// CreateTargetedInvitation.
+    async fn create_targeted_invitation(&self, request: CreateTargetedInvitationRequest) -> starpc::Result<CreateTargetedInvitationResponse>;
+    /// CreateSpaceTargetedInvitationByUsername.
+    async fn create_space_targeted_invitation_by_username(&self, request: CreateSpaceTargetedInvitationByUsernameRequest) -> starpc::Result<CreateSpaceTargetedInvitationByUsernameResponse>;
+    /// AcceptSpaceTargetedInvitation.
+    async fn accept_space_targeted_invitation(&self, request: AcceptSpaceTargetedInvitationRequest) -> starpc::Result<AcceptSpaceTargetedInvitationResponse>;
+    /// CreateOrganizationTargetedInvitationByUsername.
+    async fn create_organization_targeted_invitation_by_username(&self, request: CreateOrganizationTargetedInvitationByUsernameRequest) -> starpc::Result<CreateOrganizationTargetedInvitationByUsernameResponse>;
+    /// AcceptOrganizationTargetedInvitation.
+    async fn accept_organization_targeted_invitation(&self, request: AcceptOrganizationTargetedInvitationRequest) -> starpc::Result<AcceptOrganizationTargetedInvitationResponse>;
+    /// ListTargetedInvitations.
+    async fn list_targeted_invitations(&self, request: ListTargetedInvitationsRequest) -> starpc::Result<ListTargetedInvitationsResponse>;
+    /// WatchTargetedInvitations.
+    async fn watch_targeted_invitations(&self, request: ListTargetedInvitationsRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
+    /// GetTargetedInvitation.
+    async fn get_targeted_invitation(&self, request: GetTargetedInvitationRequest) -> starpc::Result<GetTargetedInvitationResponse>;
+    /// RevokeTargetedInvitation.
+    async fn revoke_targeted_invitation(&self, request: RevokeTargetedInvitationRequest) -> starpc::Result<RevokeTargetedInvitationResponse>;
+    /// ProcessTargetedInvitation.
+    async fn process_targeted_invitation(&self, request: ProcessTargetedInvitationRequest) -> starpc::Result<ProcessTargetedInvitationResponse>;
     /// CreateOrgInvite.
     async fn create_org_invite(&self, request: CreateOrgInviteRequest) -> starpc::Result<CreateOrgInviteResponse>;
     /// JoinOrganization.
@@ -657,6 +773,18 @@ const SPACEWAVE_SESSION_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
     "CreateOrganization",
     "WatchOrganizationState",
     "DeleteOrganization",
+    "CreateTargetedInviteDraftByUsername",
+    "ResolveUsername",
+    "CreateTargetedInvitation",
+    "CreateSpaceTargetedInvitationByUsername",
+    "AcceptSpaceTargetedInvitation",
+    "CreateOrganizationTargetedInvitationByUsername",
+    "AcceptOrganizationTargetedInvitation",
+    "ListTargetedInvitations",
+    "WatchTargetedInvitations",
+    "GetTargetedInvitation",
+    "RevokeTargetedInvitation",
+    "ProcessTargetedInvitation",
     "CreateOrgInvite",
     "JoinOrganization",
     "RevokeOrgInvite",
@@ -1059,6 +1187,178 @@ impl<S: SpacewaveSessionResourceServiceServer + 'static> starpc::Invoker for Spa
                     Err(e) => return (true, Err(e)),
                 };
                 match self.server.delete_organization(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "CreateTargetedInviteDraftByUsername" => {
+                let request: CreateTargetedInviteDraftByUsernameRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.create_targeted_invite_draft_by_username(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "ResolveUsername" => {
+                let request: ResolveUsernameRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.resolve_username(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "CreateTargetedInvitation" => {
+                let request: CreateTargetedInvitationRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.create_targeted_invitation(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "CreateSpaceTargetedInvitationByUsername" => {
+                let request: CreateSpaceTargetedInvitationByUsernameRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.create_space_targeted_invitation_by_username(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "AcceptSpaceTargetedInvitation" => {
+                let request: AcceptSpaceTargetedInvitationRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.accept_space_targeted_invitation(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "CreateOrganizationTargetedInvitationByUsername" => {
+                let request: CreateOrganizationTargetedInvitationByUsernameRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.create_organization_targeted_invitation_by_username(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "AcceptOrganizationTargetedInvitation" => {
+                let request: AcceptOrganizationTargetedInvitationRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.accept_organization_targeted_invitation(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "ListTargetedInvitations" => {
+                let request: ListTargetedInvitationsRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.list_targeted_invitations(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "WatchTargetedInvitations" => {
+                let request: ListTargetedInvitationsRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                (true, self.server.watch_targeted_invitations(request, stream).await)
+            }
+            "GetTargetedInvitation" => {
+                let request: GetTargetedInvitationRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.get_targeted_invitation(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "RevokeTargetedInvitation" => {
+                let request: RevokeTargetedInvitationRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.revoke_targeted_invitation(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "ProcessTargetedInvitation" => {
+                let request: ProcessTargetedInvitationRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.process_targeted_invitation(request).await {
                     Ok(response) => {
                         if let Err(e) = stream.msg_send(&response).await {
                             return (true, Err(e));

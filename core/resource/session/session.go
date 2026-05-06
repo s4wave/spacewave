@@ -1081,6 +1081,13 @@ func (r *SessionResource) JoinSpaceViaInvite(
 		if err != nil {
 			return nil, errors.Wrap(err, "build cloud join response")
 		}
+		var targetedEnvelope *api.TargetedInvitationEnvelope
+		if data := req.GetTargetedInvitationEnvelope(); len(data) > 0 {
+			targetedEnvelope = &api.TargetedInvitationEnvelope{}
+			if err := targetedEnvelope.UnmarshalVT(data); err != nil {
+				return nil, errors.Wrap(err, "unmarshal targeted invitation envelope")
+			}
+		}
 		cli := acc.GetSessionClient()
 		if cli == nil {
 			return nil, errors.New("session client not ready")
@@ -1092,9 +1099,10 @@ func (r *SessionResource) JoinSpaceViaInvite(
 			"pending",
 		)
 		submitResp, err := cli.SubmitMailboxEntry(ctx, inviteMsg.GetSharedObjectId(), &api.SubmitMailboxEntryRequest{
-			InviteId:     inviteMsg.GetInviteId(),
-			Token:        inviteMsg.GetToken(),
-			JoinResponse: joinResp,
+			InviteId:         inviteMsg.GetInviteId(),
+			Token:            inviteMsg.GetToken(),
+			JoinResponse:     joinResp,
+			TargetedEnvelope: targetedEnvelope,
 		})
 		if err != nil {
 			return nil, err

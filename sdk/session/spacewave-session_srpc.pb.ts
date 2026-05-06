@@ -3,6 +3,10 @@
 /* eslint-disable */
 
 import {
+  AcceptOrganizationTargetedInvitationRequest,
+  AcceptOrganizationTargetedInvitationResponse,
+  AcceptSpaceTargetedInvitationRequest,
+  AcceptSpaceTargetedInvitationResponse,
   AddEmailRequest,
   AddEmailResponse,
   ApproveSpaceLinkRequest,
@@ -25,8 +29,16 @@ import {
   CreateLinkedLocalSessionResponse,
   CreateOrganizationRequest,
   CreateOrganizationResponse,
+  CreateOrganizationTargetedInvitationByUsernameRequest,
+  CreateOrganizationTargetedInvitationByUsernameResponse,
   CreateOrgInviteRequest,
   CreateOrgInviteResponse,
+  CreateSpaceTargetedInvitationByUsernameRequest,
+  CreateSpaceTargetedInvitationByUsernameResponse,
+  CreateTargetedInvitationRequest,
+  CreateTargetedInvitationResponse,
+  CreateTargetedInviteDraftByUsernameRequest,
+  CreateTargetedInviteDraftByUsernameResponse,
   DeleteBillingAccountRequest,
   DeleteBillingAccountResponse,
   DeleteOrganizationRequest,
@@ -39,18 +51,24 @@ import {
   EnrollSpaceMemberResponse,
   GetLinkedLocalSessionRequest,
   GetLinkedLocalSessionResponse,
+  GetTargetedInvitationRequest,
+  GetTargetedInvitationResponse,
   JoinOrganizationRequest,
   JoinOrganizationResponse,
   LeaveOrganizationRequest,
   LeaveOrganizationResponse,
   ListManagedBillingAccountsRequest,
   ListManagedBillingAccountsResponse,
+  ListTargetedInvitationsRequest,
+  ListTargetedInvitationsResponse,
   LookupInviteCodeRequest,
   LookupInviteCodeResponse,
   PreviewSpaceLinkRequest,
   PreviewSpaceLinkResponse,
   ProcessMailboxEntryRequest,
   ProcessMailboxEntryResponse,
+  ProcessTargetedInvitationRequest,
+  ProcessTargetedInvitationResponse,
   ReactivateSubscriptionRequest,
   ReactivateSubscriptionResponse,
   RefreshBillingStateRequest,
@@ -71,8 +89,12 @@ import {
   RequestDeleteNowEmailResponse,
   ResetSessionRequest,
   ResetSessionResponse,
+  ResolveUsernameRequest,
+  ResolveUsernameResponse,
   RevokeOrgInviteRequest,
   RevokeOrgInviteResponse,
+  RevokeTargetedInvitationRequest,
+  RevokeTargetedInvitationResponse,
   SendVerificationEmailRequest,
   SendVerificationEmailResponse,
   SetPrimaryEmailRequest,
@@ -362,6 +384,114 @@ export const SpacewaveSessionResourceServiceDefinition = {
       name: 'DeleteOrganization',
       I: DeleteOrganizationRequest,
       O: DeleteOrganizationResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateTargetedInviteDraftByUsername
+     */
+    CreateTargetedInviteDraftByUsername: {
+      name: 'CreateTargetedInviteDraftByUsername',
+      I: CreateTargetedInviteDraftByUsernameRequest,
+      O: CreateTargetedInviteDraftByUsernameResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ResolveUsername
+     */
+    ResolveUsername: {
+      name: 'ResolveUsername',
+      I: ResolveUsernameRequest,
+      O: ResolveUsernameResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateTargetedInvitation
+     */
+    CreateTargetedInvitation: {
+      name: 'CreateTargetedInvitation',
+      I: CreateTargetedInvitationRequest,
+      O: CreateTargetedInvitationResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateSpaceTargetedInvitationByUsername
+     */
+    CreateSpaceTargetedInvitationByUsername: {
+      name: 'CreateSpaceTargetedInvitationByUsername',
+      I: CreateSpaceTargetedInvitationByUsernameRequest,
+      O: CreateSpaceTargetedInvitationByUsernameResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.session.SpacewaveSessionResourceService.AcceptSpaceTargetedInvitation
+     */
+    AcceptSpaceTargetedInvitation: {
+      name: 'AcceptSpaceTargetedInvitation',
+      I: AcceptSpaceTargetedInvitationRequest,
+      O: AcceptSpaceTargetedInvitationResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateOrganizationTargetedInvitationByUsername
+     */
+    CreateOrganizationTargetedInvitationByUsername: {
+      name: 'CreateOrganizationTargetedInvitationByUsername',
+      I: CreateOrganizationTargetedInvitationByUsernameRequest,
+      O: CreateOrganizationTargetedInvitationByUsernameResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.session.SpacewaveSessionResourceService.AcceptOrganizationTargetedInvitation
+     */
+    AcceptOrganizationTargetedInvitation: {
+      name: 'AcceptOrganizationTargetedInvitation',
+      I: AcceptOrganizationTargetedInvitationRequest,
+      O: AcceptOrganizationTargetedInvitationResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ListTargetedInvitations
+     */
+    ListTargetedInvitations: {
+      name: 'ListTargetedInvitations',
+      I: ListTargetedInvitationsRequest,
+      O: ListTargetedInvitationsResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchTargetedInvitations
+     */
+    WatchTargetedInvitations: {
+      name: 'WatchTargetedInvitations',
+      I: ListTargetedInvitationsRequest,
+      O: ListTargetedInvitationsResponse,
+      kind: MethodKind.ServerStreaming,
+    },
+    /**
+     * @generated from rpc s4wave.session.SpacewaveSessionResourceService.GetTargetedInvitation
+     */
+    GetTargetedInvitation: {
+      name: 'GetTargetedInvitation',
+      I: GetTargetedInvitationRequest,
+      O: GetTargetedInvitationResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RevokeTargetedInvitation
+     */
+    RevokeTargetedInvitation: {
+      name: 'RevokeTargetedInvitation',
+      I: RevokeTargetedInvitationRequest,
+      O: RevokeTargetedInvitationResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ProcessTargetedInvitation
+     */
+    ProcessTargetedInvitation: {
+      name: 'ProcessTargetedInvitation',
+      I: ProcessTargetedInvitationRequest,
+      O: ProcessTargetedInvitationResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -826,6 +956,102 @@ export interface SpacewaveSessionResourceService {
   ): Promise<DeleteOrganizationResponse>
 
   /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateTargetedInviteDraftByUsername
+   */
+  CreateTargetedInviteDraftByUsername(
+    request: CreateTargetedInviteDraftByUsernameRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CreateTargetedInviteDraftByUsernameResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ResolveUsername
+   */
+  ResolveUsername(
+    request: ResolveUsernameRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ResolveUsernameResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateTargetedInvitation
+   */
+  CreateTargetedInvitation(
+    request: CreateTargetedInvitationRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CreateTargetedInvitationResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateSpaceTargetedInvitationByUsername
+   */
+  CreateSpaceTargetedInvitationByUsername(
+    request: CreateSpaceTargetedInvitationByUsernameRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CreateSpaceTargetedInvitationByUsernameResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.AcceptSpaceTargetedInvitation
+   */
+  AcceptSpaceTargetedInvitation(
+    request: AcceptSpaceTargetedInvitationRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<AcceptSpaceTargetedInvitationResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateOrganizationTargetedInvitationByUsername
+   */
+  CreateOrganizationTargetedInvitationByUsername(
+    request: CreateOrganizationTargetedInvitationByUsernameRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CreateOrganizationTargetedInvitationByUsernameResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.AcceptOrganizationTargetedInvitation
+   */
+  AcceptOrganizationTargetedInvitation(
+    request: AcceptOrganizationTargetedInvitationRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<AcceptOrganizationTargetedInvitationResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ListTargetedInvitations
+   */
+  ListTargetedInvitations(
+    request: ListTargetedInvitationsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ListTargetedInvitationsResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchTargetedInvitations
+   */
+  WatchTargetedInvitations(
+    request: ListTargetedInvitationsRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<ListTargetedInvitationsResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.GetTargetedInvitation
+   */
+  GetTargetedInvitation(
+    request: GetTargetedInvitationRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetTargetedInvitationResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RevokeTargetedInvitation
+   */
+  RevokeTargetedInvitation(
+    request: RevokeTargetedInvitationRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<RevokeTargetedInvitationResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ProcessTargetedInvitation
+   */
+  ProcessTargetedInvitation(
+    request: ProcessTargetedInvitationRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ProcessTargetedInvitationResponse>
+
+  /**
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateOrgInvite
    */
   CreateOrgInvite(
@@ -1074,6 +1300,23 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
     this.CreateOrganization = this.CreateOrganization.bind(this)
     this.WatchOrganizationState = this.WatchOrganizationState.bind(this)
     this.DeleteOrganization = this.DeleteOrganization.bind(this)
+    this.CreateTargetedInviteDraftByUsername =
+      this.CreateTargetedInviteDraftByUsername.bind(this)
+    this.ResolveUsername = this.ResolveUsername.bind(this)
+    this.CreateTargetedInvitation = this.CreateTargetedInvitation.bind(this)
+    this.CreateSpaceTargetedInvitationByUsername =
+      this.CreateSpaceTargetedInvitationByUsername.bind(this)
+    this.AcceptSpaceTargetedInvitation =
+      this.AcceptSpaceTargetedInvitation.bind(this)
+    this.CreateOrganizationTargetedInvitationByUsername =
+      this.CreateOrganizationTargetedInvitationByUsername.bind(this)
+    this.AcceptOrganizationTargetedInvitation =
+      this.AcceptOrganizationTargetedInvitation.bind(this)
+    this.ListTargetedInvitations = this.ListTargetedInvitations.bind(this)
+    this.WatchTargetedInvitations = this.WatchTargetedInvitations.bind(this)
+    this.GetTargetedInvitation = this.GetTargetedInvitation.bind(this)
+    this.RevokeTargetedInvitation = this.RevokeTargetedInvitation.bind(this)
+    this.ProcessTargetedInvitation = this.ProcessTargetedInvitation.bind(this)
     this.CreateOrgInvite = this.CreateOrgInvite.bind(this)
     this.JoinOrganization = this.JoinOrganization.bind(this)
     this.RevokeOrgInvite = this.RevokeOrgInvite.bind(this)
@@ -1579,6 +1822,229 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
       abortSignal || undefined,
     )
     return DeleteOrganizationResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateTargetedInviteDraftByUsername
+   */
+  async CreateTargetedInviteDraftByUsername(
+    request: CreateTargetedInviteDraftByUsernameRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CreateTargetedInviteDraftByUsernameResponse> {
+    const requestMsg =
+      CreateTargetedInviteDraftByUsernameRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpacewaveSessionResourceServiceDefinition.methods
+        .CreateTargetedInviteDraftByUsername.name,
+      CreateTargetedInviteDraftByUsernameRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return CreateTargetedInviteDraftByUsernameResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ResolveUsername
+   */
+  async ResolveUsername(
+    request: ResolveUsernameRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ResolveUsernameResponse> {
+    const requestMsg = ResolveUsernameRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpacewaveSessionResourceServiceDefinition.methods.ResolveUsername.name,
+      ResolveUsernameRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return ResolveUsernameResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateTargetedInvitation
+   */
+  async CreateTargetedInvitation(
+    request: CreateTargetedInvitationRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CreateTargetedInvitationResponse> {
+    const requestMsg = CreateTargetedInvitationRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpacewaveSessionResourceServiceDefinition.methods.CreateTargetedInvitation
+        .name,
+      CreateTargetedInvitationRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return CreateTargetedInvitationResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateSpaceTargetedInvitationByUsername
+   */
+  async CreateSpaceTargetedInvitationByUsername(
+    request: CreateSpaceTargetedInvitationByUsernameRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CreateSpaceTargetedInvitationByUsernameResponse> {
+    const requestMsg =
+      CreateSpaceTargetedInvitationByUsernameRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpacewaveSessionResourceServiceDefinition.methods
+        .CreateSpaceTargetedInvitationByUsername.name,
+      CreateSpaceTargetedInvitationByUsernameRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return CreateSpaceTargetedInvitationByUsernameResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.AcceptSpaceTargetedInvitation
+   */
+  async AcceptSpaceTargetedInvitation(
+    request: AcceptSpaceTargetedInvitationRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<AcceptSpaceTargetedInvitationResponse> {
+    const requestMsg = AcceptSpaceTargetedInvitationRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpacewaveSessionResourceServiceDefinition.methods
+        .AcceptSpaceTargetedInvitation.name,
+      AcceptSpaceTargetedInvitationRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return AcceptSpaceTargetedInvitationResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateOrganizationTargetedInvitationByUsername
+   */
+  async CreateOrganizationTargetedInvitationByUsername(
+    request: CreateOrganizationTargetedInvitationByUsernameRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CreateOrganizationTargetedInvitationByUsernameResponse> {
+    const requestMsg =
+      CreateOrganizationTargetedInvitationByUsernameRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpacewaveSessionResourceServiceDefinition.methods
+        .CreateOrganizationTargetedInvitationByUsername.name,
+      CreateOrganizationTargetedInvitationByUsernameRequest.toBinary(
+        requestMsg,
+      ),
+      abortSignal || undefined,
+    )
+    return CreateOrganizationTargetedInvitationByUsernameResponse.fromBinary(
+      result,
+    )
+  }
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.AcceptOrganizationTargetedInvitation
+   */
+  async AcceptOrganizationTargetedInvitation(
+    request: AcceptOrganizationTargetedInvitationRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<AcceptOrganizationTargetedInvitationResponse> {
+    const requestMsg =
+      AcceptOrganizationTargetedInvitationRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpacewaveSessionResourceServiceDefinition.methods
+        .AcceptOrganizationTargetedInvitation.name,
+      AcceptOrganizationTargetedInvitationRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return AcceptOrganizationTargetedInvitationResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ListTargetedInvitations
+   */
+  async ListTargetedInvitations(
+    request: ListTargetedInvitationsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ListTargetedInvitationsResponse> {
+    const requestMsg = ListTargetedInvitationsRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpacewaveSessionResourceServiceDefinition.methods.ListTargetedInvitations
+        .name,
+      ListTargetedInvitationsRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return ListTargetedInvitationsResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchTargetedInvitations
+   */
+  WatchTargetedInvitations(
+    request: ListTargetedInvitationsRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<ListTargetedInvitationsResponse> {
+    const requestMsg = ListTargetedInvitationsRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      SpacewaveSessionResourceServiceDefinition.methods.WatchTargetedInvitations
+        .name,
+      ListTargetedInvitationsRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(ListTargetedInvitationsResponse)(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.GetTargetedInvitation
+   */
+  async GetTargetedInvitation(
+    request: GetTargetedInvitationRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetTargetedInvitationResponse> {
+    const requestMsg = GetTargetedInvitationRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpacewaveSessionResourceServiceDefinition.methods.GetTargetedInvitation
+        .name,
+      GetTargetedInvitationRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return GetTargetedInvitationResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RevokeTargetedInvitation
+   */
+  async RevokeTargetedInvitation(
+    request: RevokeTargetedInvitationRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<RevokeTargetedInvitationResponse> {
+    const requestMsg = RevokeTargetedInvitationRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpacewaveSessionResourceServiceDefinition.methods.RevokeTargetedInvitation
+        .name,
+      RevokeTargetedInvitationRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return RevokeTargetedInvitationResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ProcessTargetedInvitation
+   */
+  async ProcessTargetedInvitation(
+    request: ProcessTargetedInvitationRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ProcessTargetedInvitationResponse> {
+    const requestMsg = ProcessTargetedInvitationRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpacewaveSessionResourceServiceDefinition.methods
+        .ProcessTargetedInvitation.name,
+      ProcessTargetedInvitationRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return ProcessTargetedInvitationResponse.fromBinary(result)
   }
 
   /**

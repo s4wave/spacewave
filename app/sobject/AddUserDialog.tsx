@@ -53,6 +53,8 @@ interface InviteState {
   creating: boolean
   error: string | undefined
   copied: boolean
+  username: string
+  usernameSent: boolean
 }
 
 type InviteAction =
@@ -62,12 +64,16 @@ type InviteAction =
   | { type: 'error'; message: string }
   | { type: 'copied' }
   | { type: 'uncopied' }
+  | { type: 'username'; value: string }
+  | { type: 'usernameSent' }
 
 const initialState: InviteState = {
   inviteResp: null,
   creating: false,
   error: undefined,
   copied: false,
+  username: '',
+  usernameSent: false,
 }
 
 function reducer(state: InviteState, action: InviteAction): InviteState {
@@ -84,6 +90,15 @@ function reducer(state: InviteState, action: InviteAction): InviteState {
       return { ...state, copied: true }
     case 'uncopied':
       return { ...state, copied: false }
+    case 'username':
+      return {
+        ...state,
+        username: action.value,
+        usernameSent: false,
+        error: undefined,
+      }
+    case 'usernameSent':
+      return { ...state, creating: false, usernameSent: true }
   }
 }
 
@@ -135,6 +150,26 @@ export function AddUserDialog({
     }
   }, [session, spaceId])
 
+  const handleSendUsernameInvite = useCallback(async () => {
+    const username = state.username.trim()
+    if (!session || !username) return
+    dispatch({ type: 'creating' })
+    try {
+      await session.spacewave.createSpaceTargetedInvitationByUsername(
+        username,
+        spaceId,
+        'writer',
+      )
+      dispatch({ type: 'usernameSent' })
+    } catch (err) {
+      dispatch({
+        type: 'error',
+        message:
+          err instanceof Error ? err.message : 'Failed to send username invite',
+      })
+    }
+  }, [session, spaceId, state.username])
+
   const shortCode = state.inviteResp?.shortCode ?? ''
 
   const inviteLink = useMemo(() => {
@@ -171,8 +206,8 @@ export function AddUserDialog({
         <DialogHeader>
           <DialogTitle>Add User</DialogTitle>
           <DialogDescription>
-            Add an existing org member, or create a shareable code or link for
-            anyone else.
+            Add an existing org member, send a username invite, or create a
+            shareable code or link.
           </DialogDescription>
         </DialogHeader>
 
@@ -187,6 +222,10 @@ export function AddUserDialog({
             <TabsTrigger value="code">
               <LuQrCode className="h-3.5 w-3.5" />
               Code
+            </TabsTrigger>
+            <TabsTrigger value="username">
+              <LuUserPlus className="h-3.5 w-3.5" />
+              Username
             </TabsTrigger>
             <TabsTrigger value="link">
               <LuLink className="h-3.5 w-3.5" />
@@ -257,6 +296,43 @@ export function AddUserDialog({
                 {state.creating ? 'Creating...' : 'Create Invite Code'}
               </button>
             }
+          </TabsContent>
+
+          <TabsContent value="username" className="space-y-3 pt-2">
+            <div className="space-y-2">
+              <label className="text-foreground-alt mb-1.5 block text-xs select-none">
+                Spacewave username
+              </label>
+              <input
+                value={state.username}
+                onChange={(e) =>
+                  dispatch({ type: 'username', value: e.target.value })
+                }
+                placeholder="alice"
+                className={inputClass}
+              />
+              <button
+                onClick={() => void handleSendUsernameInvite()}
+                disabled={state.creating || !session || !state.username.trim()}
+                className={cn(
+                  'flex w-full items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm transition-all',
+                  'border-foreground/20 hover:border-foreground/40 hover:bg-foreground/5',
+                  'disabled:cursor-not-allowed disabled:opacity-50',
+                  state.usernameSent && 'border-green-500/50 text-green-500',
+                )}
+              >
+                {state.usernameSent ?
+                  <>
+                    <LuCheck className="h-3.5 w-3.5" />
+                    Sent
+                  </>
+                : <>
+                    <LuUserPlus className="h-3.5 w-3.5" />
+                    {state.creating ? 'Sending...' : 'Send Invite'}
+                  </>
+                }
+              </button>
+            </div>
           </TabsContent>
 
           <TabsContent value="link" className="space-y-3 pt-2">
@@ -392,8 +468,8 @@ function OrgMembersTab({
   return (
     <>
       <p className="text-foreground-alt/60 text-xs">
-        Choose someone already in this organization. Use Code or Link to share
-        with anyone else.
+        Choose someone already in this organization. Use Username, Code, or Link
+        to share with anyone else.
       </p>
       <div className="relative">
         <LuSearch className="text-foreground-alt/50 absolute top-2.5 left-2.5 h-3.5 w-3.5" />

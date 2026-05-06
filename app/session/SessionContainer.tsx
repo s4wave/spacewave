@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
 
 import { usePromise } from '@s4wave/web/hooks/usePromise.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
@@ -41,7 +48,10 @@ import {
   LuArrowLeft,
   LuArrowUp,
   LuCompass,
+  LuCheck,
+  LuInbox,
   LuPersonStanding,
+  LuX,
 } from 'react-icons/lu'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import {
@@ -73,6 +83,10 @@ import { SessionSyncStatusButton } from './SessionSyncStatusButton.js'
 import { SessionSyncStatusProvider } from './SessionSyncStatusContext.js'
 import { SessionSelfEnrollmentStatusButton } from './SessionSelfEnrollmentStatusButton.js'
 import { SessionSelfEnrollmentStatusProvider } from './SessionSelfEnrollmentStatusContext.js'
+import {
+  TargetedInvitePurpose,
+  type TargetedInvitationInfo,
+} from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 
 // SessionInfoDebug displays the session info as JSON for debugging.
 export function SessionInfoDebug(props: { session: Session }) {
@@ -386,6 +400,9 @@ export function SessionContainer(props: {
                 metadata={props.metadata}
                 spacewaveOnboarding={onboardingState.value ?? null}
               >
+                <TargetedInvitationInbox
+                  sessionResource={spacewaveSessionResource}
+                />
                 <Routes>
                   {spacewaveSessionRoutes(props.metadata)}
                   <Route path="/settings/cli">
@@ -500,4 +517,143 @@ function SessionSelfEnrollmentStatusScope({
       {children}
     </SessionSelfEnrollmentStatusProvider>
   )
+}
+
+function TargetedInvitationInbox(props: {
+  sessionResource: Resource<Session>
+}) {
+  const inbox = useStreamingResource(
+    props.sessionResource,
+    (session, signal) => session.spacewave.watchTargetedInvitations(signal),
+    [],
+  )
+  const session = props.sessionResource.value
+  const [processing, setProcessing] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const pending = useMemo(
+    () =>
+      (inbox.value?.invitations ?? []).filter(
+        (inv) => inv.status === 'pending',
+      ),
+    [inbox.value?.invitations],
+  )
+
+  const handleAccept = useCallback(
+    async (inv: TargetedInvitationInfo) => {
+      if (!session || processing) return
+      setProcessing(inv.id ?? '')
+      setError(null)
+      try {
+        if (inv.purpose === TargetedInvitePurpose.SPACE) {
+          await session.spacewave.acceptSpaceTargetedInvitation(inv.id ?? '')
+          return
+        }
+        if (inv.purpose === TargetedInvitePurpose.ORGANIZATION) {
+          await session.spacewave.acceptOrganizationTargetedInvitation(
+            inv.id ?? '',
+          )
+          return
+        }
+        await session.spacewave.processTargetedInvitation(
+          inv.id ?? '',
+          'accept',
+        )
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to accept invite')
+      } finally {
+        setProcessing(null)
+      }
+    },
+    [processing, session],
+  )
+
+  const handleDecline = useCallback(
+    async (inv: TargetedInvitationInfo) => {
+      if (!session || processing) return
+      setProcessing(inv.id ?? '')
+      setError(null)
+      try {
+        await session.spacewave.processTargetedInvitation(
+          inv.id ?? '',
+          'decline',
+        )
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : 'Failed to decline invite',
+        )
+      } finally {
+        setProcessing(null)
+      }
+    },
+    [processing, session],
+  )
+
+  if (!session || pending.length === 0) return null
+
+  return (
+    <div className="pointer-events-none fixed right-4 bottom-16 z-40 w-[min(22rem,calc(100vw-2rem))]">
+      <div className="border-foreground/10 bg-background-card/95 pointer-events-auto rounded-lg border p-3 shadow-lg backdrop-blur">
+        <div className="mb-2 flex items-center gap-2">
+          <LuInbox className="text-foreground-alt h-4 w-4" />
+          <div className="text-foreground text-sm font-medium">
+            Pending Invites
+          </div>
+        </div>
+        <div className="space-y-2">
+          {pending.slice(0, 3).map((inv) => (
+            <div
+              key={inv.id}
+              className="border-foreground/10 rounded-md border p-2"
+            >
+              <div className="text-foreground truncate text-xs font-medium">
+                {targetedInvitationTitle(inv)}
+              </div>
+              <div className="text-foreground-alt/60 truncate text-[11px]">
+                {inv.role || 'reader'} from {inv.actorAccountId}
+              </div>
+              <div className="mt-2 flex gap-2">
+                <button
+                  type="button"
+                  disabled={!!processing}
+                  onClick={() => void handleAccept(inv)}
+                  className={cn(
+                    'flex flex-1 items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-xs transition-colors',
+                    'border-green-500/30 text-green-500 hover:bg-green-500/10',
+                    'disabled:cursor-not-allowed disabled:opacity-50',
+                  )}
+                >
+                  <LuCheck className="h-3.5 w-3.5" />
+                  Accept
+                </button>
+                <button
+                  type="button"
+                  disabled={!!processing}
+                  onClick={() => void handleDecline(inv)}
+                  className={cn(
+                    'flex flex-1 items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-xs transition-colors',
+                    'border-foreground/15 text-foreground-alt hover:bg-foreground/5',
+                    'disabled:cursor-not-allowed disabled:opacity-50',
+                  )}
+                >
+                  <LuX className="h-3.5 w-3.5" />
+                  Decline
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+        {error && <div className="text-destructive mt-2 text-xs">{error}</div>}
+      </div>
+    </div>
+  )
+}
+
+function targetedInvitationTitle(inv: TargetedInvitationInfo): string {
+  if (inv.purpose === TargetedInvitePurpose.SPACE) {
+    return `Space invite: ${inv.contextId || 'unknown space'}`
+  }
+  if (inv.purpose === TargetedInvitePurpose.ORGANIZATION) {
+    return `Organization invite: ${inv.contextId || 'unknown org'}`
+  }
+  return 'Invitation'
 }

@@ -327,6 +327,47 @@ func (x SelfEnrollmentGateState) String() string {
 	return strconv.Itoa(int(x))
 }
 
+// TargetedInvitePurpose identifies what a targeted invite draft is for.
+type TargetedInvitePurpose int32
+
+const (
+	// TARGETED_INVITE_PURPOSE_UNSPECIFIED means no purpose was supplied.
+	TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_UNSPECIFIED TargetedInvitePurpose = 0
+	// TARGETED_INVITE_PURPOSE_SPACE creates a draft for sharing a Space.
+	TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_SPACE TargetedInvitePurpose = 1
+	// TARGETED_INVITE_PURPOSE_ORGANIZATION creates a draft for inviting an
+	// organization member.
+	TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_ORGANIZATION TargetedInvitePurpose = 2
+)
+
+// Enum value maps for TargetedInvitePurpose.
+var (
+	TargetedInvitePurpose_name = map[int32]string{
+		0: "TARGETED_INVITE_PURPOSE_UNSPECIFIED",
+		1: "TARGETED_INVITE_PURPOSE_SPACE",
+		2: "TARGETED_INVITE_PURPOSE_ORGANIZATION",
+	}
+	TargetedInvitePurpose_value = map[string]int32{
+		"TARGETED_INVITE_PURPOSE_UNSPECIFIED":  0,
+		"TARGETED_INVITE_PURPOSE_SPACE":        1,
+		"TARGETED_INVITE_PURPOSE_ORGANIZATION": 2,
+	}
+)
+
+func (x TargetedInvitePurpose) Enum() *TargetedInvitePurpose {
+	p := new(TargetedInvitePurpose)
+	*p = x
+	return p
+}
+
+func (x TargetedInvitePurpose) String() string {
+	name, valid := TargetedInvitePurpose_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // PasswordCredential derives an entity keypair from a password.
 type PasswordCredential struct {
 	unknownFields []byte
@@ -4186,6 +4227,1052 @@ func (x *OrgInviteInfo) GetExpiresAt() int64 {
 	return 0
 }
 
+// CreateTargetedInviteDraftByUsernameRequest is the request for
+// CreateTargetedInviteDraftByUsername.
+type CreateTargetedInviteDraftByUsernameRequest struct {
+	unknownFields []byte
+	// Username is the exact Spacewave username being addressed.
+	Username string `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	// Purpose is the invite purpose.
+	Purpose TargetedInvitePurpose `protobuf:"varint,2,opt,name=purpose,proto3" json:"purpose,omitempty"`
+	// SpaceId is set when purpose is TARGETED_INVITE_PURPOSE_SPACE.
+	SpaceId string `protobuf:"bytes,3,opt,name=space_id,json=spaceId,proto3" json:"spaceId,omitempty"`
+	// OrgId is set when purpose is TARGETED_INVITE_PURPOSE_ORGANIZATION.
+	OrgId string `protobuf:"bytes,4,opt,name=org_id,json=orgId,proto3" json:"orgId,omitempty"`
+	// Role is the requested role for the eventual invite.
+	Role string `protobuf:"bytes,5,opt,name=role,proto3" json:"role,omitempty"`
+	// ExpiresAt is the Unix timestamp (ms) when the draft should expire.
+	ExpiresAt int64 `protobuf:"varint,6,opt,name=expires_at,json=expiresAt,proto3" json:"expiresAt,omitempty"`
+}
+
+func (x *CreateTargetedInviteDraftByUsernameRequest) Reset() {
+	*x = CreateTargetedInviteDraftByUsernameRequest{}
+}
+
+func (*CreateTargetedInviteDraftByUsernameRequest) ProtoMessage() {}
+
+func (x *CreateTargetedInviteDraftByUsernameRequest) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *CreateTargetedInviteDraftByUsernameRequest) GetPurpose() TargetedInvitePurpose {
+	if x != nil {
+		return x.Purpose
+	}
+	return TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_UNSPECIFIED
+}
+
+func (x *CreateTargetedInviteDraftByUsernameRequest) GetSpaceId() string {
+	if x != nil {
+		return x.SpaceId
+	}
+	return ""
+}
+
+func (x *CreateTargetedInviteDraftByUsernameRequest) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+func (x *CreateTargetedInviteDraftByUsernameRequest) GetRole() string {
+	if x != nil {
+		return x.Role
+	}
+	return ""
+}
+
+func (x *CreateTargetedInviteDraftByUsernameRequest) GetExpiresAt() int64 {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return 0
+}
+
+// CreateTargetedInviteDraftByUsernameResponse is the response for
+// CreateTargetedInviteDraftByUsername.
+type CreateTargetedInviteDraftByUsernameResponse struct {
+	unknownFields []byte
+	// Accepted is always true for syntactically valid requests. The response does
+	// not reveal whether the username matched a deliverable account.
+	Accepted bool `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
+}
+
+func (x *CreateTargetedInviteDraftByUsernameResponse) Reset() {
+	*x = CreateTargetedInviteDraftByUsernameResponse{}
+}
+
+func (*CreateTargetedInviteDraftByUsernameResponse) ProtoMessage() {}
+
+func (x *CreateTargetedInviteDraftByUsernameResponse) GetAccepted() bool {
+	if x != nil {
+		return x.Accepted
+	}
+	return false
+}
+
+// ResolveUsernameRequest is the request for ResolveUsername.
+type ResolveUsernameRequest struct {
+	unknownFields []byte
+	// Username is the exact Spacewave username being addressed.
+	Username string `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	// Purpose is the resolution purpose.
+	Purpose TargetedInvitePurpose `protobuf:"varint,2,opt,name=purpose,proto3" json:"purpose,omitempty"`
+	// SpaceId is set when purpose is TARGETED_INVITE_PURPOSE_SPACE.
+	SpaceId string `protobuf:"bytes,3,opt,name=space_id,json=spaceId,proto3" json:"spaceId,omitempty"`
+	// OrgId is set when purpose is TARGETED_INVITE_PURPOSE_ORGANIZATION.
+	OrgId string `protobuf:"bytes,4,opt,name=org_id,json=orgId,proto3" json:"orgId,omitempty"`
+}
+
+func (x *ResolveUsernameRequest) Reset() {
+	*x = ResolveUsernameRequest{}
+}
+
+func (*ResolveUsernameRequest) ProtoMessage() {}
+
+func (x *ResolveUsernameRequest) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *ResolveUsernameRequest) GetPurpose() TargetedInvitePurpose {
+	if x != nil {
+		return x.Purpose
+	}
+	return TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_UNSPECIFIED
+}
+
+func (x *ResolveUsernameRequest) GetSpaceId() string {
+	if x != nil {
+		return x.SpaceId
+	}
+	return ""
+}
+
+func (x *ResolveUsernameRequest) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+// ResolveUsernameResponse is the response for ResolveUsername.
+type ResolveUsernameResponse struct {
+	unknownFields []byte
+	// Found is true only when AccountId is populated.
+	Found bool `protobuf:"varint,1,opt,name=found,proto3" json:"found,omitempty"`
+	// AccountId is the resolved target account id when the actor may see it.
+	AccountId string `protobuf:"bytes,2,opt,name=account_id,json=accountId,proto3" json:"accountId,omitempty"`
+	// EntityId is the canonical username when AccountId is populated.
+	EntityId string `protobuf:"bytes,3,opt,name=entity_id,json=entityId,proto3" json:"entityId,omitempty"`
+	// DomainId is the target provider domain when AccountId is populated.
+	DomainId string `protobuf:"bytes,4,opt,name=domain_id,json=domainId,proto3" json:"domainId,omitempty"`
+	// Relationship is self, org_member, space_member, or none.
+	Relationship string `protobuf:"bytes,5,opt,name=relationship,proto3" json:"relationship,omitempty"`
+	// CanInvite reports whether the target privacy policy permits addressing.
+	CanInvite bool `protobuf:"varint,6,opt,name=can_invite,json=canInvite,proto3" json:"canInvite,omitempty"`
+	// EntityUuid is the stable target entity generation when Found is true.
+	EntityUuid string `protobuf:"bytes,7,opt,name=entity_uuid,json=entityUuid,proto3" json:"entityUuid,omitempty"`
+	// AccountEpoch is the target account epoch when Found is true.
+	AccountEpoch int64 `protobuf:"varint,8,opt,name=account_epoch,json=accountEpoch,proto3" json:"accountEpoch,omitempty"`
+}
+
+func (x *ResolveUsernameResponse) Reset() {
+	*x = ResolveUsernameResponse{}
+}
+
+func (*ResolveUsernameResponse) ProtoMessage() {}
+
+func (x *ResolveUsernameResponse) GetFound() bool {
+	if x != nil {
+		return x.Found
+	}
+	return false
+}
+
+func (x *ResolveUsernameResponse) GetAccountId() string {
+	if x != nil {
+		return x.AccountId
+	}
+	return ""
+}
+
+func (x *ResolveUsernameResponse) GetEntityId() string {
+	if x != nil {
+		return x.EntityId
+	}
+	return ""
+}
+
+func (x *ResolveUsernameResponse) GetDomainId() string {
+	if x != nil {
+		return x.DomainId
+	}
+	return ""
+}
+
+func (x *ResolveUsernameResponse) GetRelationship() string {
+	if x != nil {
+		return x.Relationship
+	}
+	return ""
+}
+
+func (x *ResolveUsernameResponse) GetCanInvite() bool {
+	if x != nil {
+		return x.CanInvite
+	}
+	return false
+}
+
+func (x *ResolveUsernameResponse) GetEntityUuid() string {
+	if x != nil {
+		return x.EntityUuid
+	}
+	return ""
+}
+
+func (x *ResolveUsernameResponse) GetAccountEpoch() int64 {
+	if x != nil {
+		return x.AccountEpoch
+	}
+	return 0
+}
+
+// TargetedInvitationEnvelope is the signed invite body carried through the
+// recipient inbox and verified again during fulfillment.
+type TargetedInvitationEnvelope struct {
+	unknownFields []byte
+	// SchemaVersion identifies the envelope wire contract.
+	SchemaVersion uint32 `protobuf:"varint,1,opt,name=schema_version,json=schemaVersion,proto3" json:"schemaVersion,omitempty"`
+	// Purpose is the invite purpose bound into the signature.
+	Purpose TargetedInvitePurpose `protobuf:"varint,2,opt,name=purpose,proto3" json:"purpose,omitempty"`
+	// ContextId is the Space or organization id bound into the signature.
+	ContextId string `protobuf:"bytes,3,opt,name=context_id,json=contextId,proto3" json:"contextId,omitempty"`
+	// ActorAccountId is the inviter account id.
+	ActorAccountId string `protobuf:"bytes,4,opt,name=actor_account_id,json=actorAccountId,proto3" json:"actorAccountId,omitempty"`
+	// ActorEntityUuid is the inviter entity UUID or generation anchor.
+	ActorEntityUuid string `protobuf:"bytes,5,opt,name=actor_entity_uuid,json=actorEntityUuid,proto3" json:"actorEntityUuid,omitempty"`
+	// ActorAccountEpoch is the inviter account epoch at create time.
+	ActorAccountEpoch int64 `protobuf:"varint,16,opt,name=actor_account_epoch,json=actorAccountEpoch,proto3" json:"actorAccountEpoch,omitempty"`
+	// SignerPeerId is the session peer that signed this envelope.
+	SignerPeerId string `protobuf:"bytes,6,opt,name=signer_peer_id,json=signerPeerId,proto3" json:"signerPeerId,omitempty"`
+	// TargetAccountId is the resolved recipient account id.
+	TargetAccountId string `protobuf:"bytes,7,opt,name=target_account_id,json=targetAccountId,proto3" json:"targetAccountId,omitempty"`
+	// TargetEntityId is the resolved recipient username.
+	TargetEntityId string `protobuf:"bytes,8,opt,name=target_entity_id,json=targetEntityId,proto3" json:"targetEntityId,omitempty"`
+	// TargetEntityUuid is the resolved recipient entity UUID.
+	TargetEntityUuid string `protobuf:"bytes,9,opt,name=target_entity_uuid,json=targetEntityUuid,proto3" json:"targetEntityUuid,omitempty"`
+	// TargetAccountEpoch is the resolved recipient account epoch.
+	TargetAccountEpoch int64 `protobuf:"varint,10,opt,name=target_account_epoch,json=targetAccountEpoch,proto3" json:"targetAccountEpoch,omitempty"`
+	// Role is the purpose-specific role requested by the inviter.
+	Role string `protobuf:"bytes,11,opt,name=role,proto3" json:"role,omitempty"`
+	// ExpiresAt is the Unix timestamp (ms) when the invite expires.
+	ExpiresAt int64 `protobuf:"varint,12,opt,name=expires_at,json=expiresAt,proto3" json:"expiresAt,omitempty"`
+	// Nonce is fresh caller-provided entropy for replay protection.
+	Nonce []byte `protobuf:"bytes,13,opt,name=nonce,proto3" json:"nonce,omitempty"`
+	// Payload is the purpose-specific signed payload.
+	Payload []byte `protobuf:"bytes,14,opt,name=payload,proto3" json:"payload,omitempty"`
+	// Signature is the signature over this envelope's canonical body.
+	Signature []byte `protobuf:"bytes,15,opt,name=signature,proto3" json:"signature,omitempty"`
+}
+
+func (x *TargetedInvitationEnvelope) Reset() {
+	*x = TargetedInvitationEnvelope{}
+}
+
+func (*TargetedInvitationEnvelope) ProtoMessage() {}
+
+func (x *TargetedInvitationEnvelope) GetSchemaVersion() uint32 {
+	if x != nil {
+		return x.SchemaVersion
+	}
+	return 0
+}
+
+func (x *TargetedInvitationEnvelope) GetPurpose() TargetedInvitePurpose {
+	if x != nil {
+		return x.Purpose
+	}
+	return TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_UNSPECIFIED
+}
+
+func (x *TargetedInvitationEnvelope) GetContextId() string {
+	if x != nil {
+		return x.ContextId
+	}
+	return ""
+}
+
+func (x *TargetedInvitationEnvelope) GetActorAccountId() string {
+	if x != nil {
+		return x.ActorAccountId
+	}
+	return ""
+}
+
+func (x *TargetedInvitationEnvelope) GetActorEntityUuid() string {
+	if x != nil {
+		return x.ActorEntityUuid
+	}
+	return ""
+}
+
+func (x *TargetedInvitationEnvelope) GetActorAccountEpoch() int64 {
+	if x != nil {
+		return x.ActorAccountEpoch
+	}
+	return 0
+}
+
+func (x *TargetedInvitationEnvelope) GetSignerPeerId() string {
+	if x != nil {
+		return x.SignerPeerId
+	}
+	return ""
+}
+
+func (x *TargetedInvitationEnvelope) GetTargetAccountId() string {
+	if x != nil {
+		return x.TargetAccountId
+	}
+	return ""
+}
+
+func (x *TargetedInvitationEnvelope) GetTargetEntityId() string {
+	if x != nil {
+		return x.TargetEntityId
+	}
+	return ""
+}
+
+func (x *TargetedInvitationEnvelope) GetTargetEntityUuid() string {
+	if x != nil {
+		return x.TargetEntityUuid
+	}
+	return ""
+}
+
+func (x *TargetedInvitationEnvelope) GetTargetAccountEpoch() int64 {
+	if x != nil {
+		return x.TargetAccountEpoch
+	}
+	return 0
+}
+
+func (x *TargetedInvitationEnvelope) GetRole() string {
+	if x != nil {
+		return x.Role
+	}
+	return ""
+}
+
+func (x *TargetedInvitationEnvelope) GetExpiresAt() int64 {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return 0
+}
+
+func (x *TargetedInvitationEnvelope) GetNonce() []byte {
+	if x != nil {
+		return x.Nonce
+	}
+	return nil
+}
+
+func (x *TargetedInvitationEnvelope) GetPayload() []byte {
+	if x != nil {
+		return x.Payload
+	}
+	return nil
+}
+
+func (x *TargetedInvitationEnvelope) GetSignature() []byte {
+	if x != nil {
+		return x.Signature
+	}
+	return nil
+}
+
+// TargetedInvitationInfo is a recipient inbox row.
+type TargetedInvitationInfo struct {
+	unknownFields []byte
+	// Id is the invitation ULID.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// ActorAccountId is the inviter account id.
+	ActorAccountId string `protobuf:"bytes,2,opt,name=actor_account_id,json=actorAccountId,proto3" json:"actorAccountId,omitempty"`
+	// TargetAccountId is the recipient account id.
+	TargetAccountId string `protobuf:"bytes,3,opt,name=target_account_id,json=targetAccountId,proto3" json:"targetAccountId,omitempty"`
+	// TargetEntityId is the recipient username captured at create time.
+	TargetEntityId string `protobuf:"bytes,4,opt,name=target_entity_id,json=targetEntityId,proto3" json:"targetEntityId,omitempty"`
+	// TargetEntityUuid is the recipient entity UUID captured at create time.
+	TargetEntityUuid string `protobuf:"bytes,5,opt,name=target_entity_uuid,json=targetEntityUuid,proto3" json:"targetEntityUuid,omitempty"`
+	// TargetAccountEpoch is the recipient account epoch captured at create time.
+	TargetAccountEpoch int64 `protobuf:"varint,6,opt,name=target_account_epoch,json=targetAccountEpoch,proto3" json:"targetAccountEpoch,omitempty"`
+	// Purpose is the invite purpose.
+	Purpose TargetedInvitePurpose `protobuf:"varint,7,opt,name=purpose,proto3" json:"purpose,omitempty"`
+	// ContextId is the Space or organization id.
+	ContextId string `protobuf:"bytes,8,opt,name=context_id,json=contextId,proto3" json:"contextId,omitempty"`
+	// Role is the requested role.
+	Role string `protobuf:"bytes,9,opt,name=role,proto3" json:"role,omitempty"`
+	// Status is pending, revoked, accepted, declined, expired, or failed.
+	Status string `protobuf:"bytes,10,opt,name=status,proto3" json:"status,omitempty"`
+	// EnvelopeHash is the lowercase hex SHA-256 hash of Envelope bytes.
+	EnvelopeHash string `protobuf:"bytes,11,opt,name=envelope_hash,json=envelopeHash,proto3" json:"envelopeHash,omitempty"`
+	// Envelope is the signed envelope bytes for recipient-side verification.
+	Envelope *TargetedInvitationEnvelope `protobuf:"bytes,12,opt,name=envelope,proto3" json:"envelope,omitempty"`
+	// CreatedAt is the row creation timestamp (ms).
+	CreatedAt int64 `protobuf:"varint,13,opt,name=created_at,json=createdAt,proto3" json:"createdAt,omitempty"`
+	// UpdatedAt is the row update timestamp (ms).
+	UpdatedAt int64 `protobuf:"varint,14,opt,name=updated_at,json=updatedAt,proto3" json:"updatedAt,omitempty"`
+	// ExpiresAt is the Unix timestamp (ms) when the invite expires.
+	ExpiresAt int64 `protobuf:"varint,15,opt,name=expires_at,json=expiresAt,proto3" json:"expiresAt,omitempty"`
+	// DraftId is the optional targeted invite draft this invitation fulfilled.
+	DraftId string `protobuf:"bytes,16,opt,name=draft_id,json=draftId,proto3" json:"draftId,omitempty"`
+}
+
+func (x *TargetedInvitationInfo) Reset() {
+	*x = TargetedInvitationInfo{}
+}
+
+func (*TargetedInvitationInfo) ProtoMessage() {}
+
+func (x *TargetedInvitationInfo) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *TargetedInvitationInfo) GetActorAccountId() string {
+	if x != nil {
+		return x.ActorAccountId
+	}
+	return ""
+}
+
+func (x *TargetedInvitationInfo) GetTargetAccountId() string {
+	if x != nil {
+		return x.TargetAccountId
+	}
+	return ""
+}
+
+func (x *TargetedInvitationInfo) GetTargetEntityId() string {
+	if x != nil {
+		return x.TargetEntityId
+	}
+	return ""
+}
+
+func (x *TargetedInvitationInfo) GetTargetEntityUuid() string {
+	if x != nil {
+		return x.TargetEntityUuid
+	}
+	return ""
+}
+
+func (x *TargetedInvitationInfo) GetTargetAccountEpoch() int64 {
+	if x != nil {
+		return x.TargetAccountEpoch
+	}
+	return 0
+}
+
+func (x *TargetedInvitationInfo) GetPurpose() TargetedInvitePurpose {
+	if x != nil {
+		return x.Purpose
+	}
+	return TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_UNSPECIFIED
+}
+
+func (x *TargetedInvitationInfo) GetContextId() string {
+	if x != nil {
+		return x.ContextId
+	}
+	return ""
+}
+
+func (x *TargetedInvitationInfo) GetRole() string {
+	if x != nil {
+		return x.Role
+	}
+	return ""
+}
+
+func (x *TargetedInvitationInfo) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *TargetedInvitationInfo) GetEnvelopeHash() string {
+	if x != nil {
+		return x.EnvelopeHash
+	}
+	return ""
+}
+
+func (x *TargetedInvitationInfo) GetEnvelope() *TargetedInvitationEnvelope {
+	if x != nil {
+		return x.Envelope
+	}
+	return nil
+}
+
+func (x *TargetedInvitationInfo) GetCreatedAt() int64 {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return 0
+}
+
+func (x *TargetedInvitationInfo) GetUpdatedAt() int64 {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return 0
+}
+
+func (x *TargetedInvitationInfo) GetExpiresAt() int64 {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return 0
+}
+
+func (x *TargetedInvitationInfo) GetDraftId() string {
+	if x != nil {
+		return x.DraftId
+	}
+	return ""
+}
+
+// CreateTargetedInvitationRequest is the request for CreateTargetedInvitation.
+type CreateTargetedInvitationRequest struct {
+	unknownFields []byte
+	// TargetAccountId is the resolved target account id.
+	TargetAccountId string `protobuf:"bytes,1,opt,name=target_account_id,json=targetAccountId,proto3" json:"targetAccountId,omitempty"`
+	// Purpose is the invite purpose.
+	Purpose TargetedInvitePurpose `protobuf:"varint,2,opt,name=purpose,proto3" json:"purpose,omitempty"`
+	// SpaceId is set when purpose is TARGETED_INVITE_PURPOSE_SPACE.
+	SpaceId string `protobuf:"bytes,3,opt,name=space_id,json=spaceId,proto3" json:"spaceId,omitempty"`
+	// OrgId is set when purpose is TARGETED_INVITE_PURPOSE_ORGANIZATION.
+	OrgId string `protobuf:"bytes,4,opt,name=org_id,json=orgId,proto3" json:"orgId,omitempty"`
+	// Role is the requested role.
+	Role string `protobuf:"bytes,5,opt,name=role,proto3" json:"role,omitempty"`
+	// ExpiresAt is the Unix timestamp (ms) when the invite expires.
+	ExpiresAt int64 `protobuf:"varint,6,opt,name=expires_at,json=expiresAt,proto3" json:"expiresAt,omitempty"`
+	// Envelope is the signed targeted invitation envelope.
+	Envelope *TargetedInvitationEnvelope `protobuf:"bytes,7,opt,name=envelope,proto3" json:"envelope,omitempty"`
+	// DraftId is the optional targeted invite draft being fulfilled.
+	DraftId string `protobuf:"bytes,8,opt,name=draft_id,json=draftId,proto3" json:"draftId,omitempty"`
+}
+
+func (x *CreateTargetedInvitationRequest) Reset() {
+	*x = CreateTargetedInvitationRequest{}
+}
+
+func (*CreateTargetedInvitationRequest) ProtoMessage() {}
+
+func (x *CreateTargetedInvitationRequest) GetTargetAccountId() string {
+	if x != nil {
+		return x.TargetAccountId
+	}
+	return ""
+}
+
+func (x *CreateTargetedInvitationRequest) GetPurpose() TargetedInvitePurpose {
+	if x != nil {
+		return x.Purpose
+	}
+	return TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_UNSPECIFIED
+}
+
+func (x *CreateTargetedInvitationRequest) GetSpaceId() string {
+	if x != nil {
+		return x.SpaceId
+	}
+	return ""
+}
+
+func (x *CreateTargetedInvitationRequest) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+func (x *CreateTargetedInvitationRequest) GetRole() string {
+	if x != nil {
+		return x.Role
+	}
+	return ""
+}
+
+func (x *CreateTargetedInvitationRequest) GetExpiresAt() int64 {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return 0
+}
+
+func (x *CreateTargetedInvitationRequest) GetEnvelope() *TargetedInvitationEnvelope {
+	if x != nil {
+		return x.Envelope
+	}
+	return nil
+}
+
+func (x *CreateTargetedInvitationRequest) GetDraftId() string {
+	if x != nil {
+		return x.DraftId
+	}
+	return ""
+}
+
+// CreateTargetedInvitationResponse is the response for
+// CreateTargetedInvitation.
+type CreateTargetedInvitationResponse struct {
+	unknownFields []byte
+	// Invitation is the pending invitation row.
+	Invitation *TargetedInvitationInfo `protobuf:"bytes,1,opt,name=invitation,proto3" json:"invitation,omitempty"`
+}
+
+func (x *CreateTargetedInvitationResponse) Reset() {
+	*x = CreateTargetedInvitationResponse{}
+}
+
+func (*CreateTargetedInvitationResponse) ProtoMessage() {}
+
+func (x *CreateTargetedInvitationResponse) GetInvitation() *TargetedInvitationInfo {
+	if x != nil {
+		return x.Invitation
+	}
+	return nil
+}
+
+// CreateSpaceTargetedInvitationByUsernameRequest creates a Space targeted
+// invitation by exact username.
+type CreateSpaceTargetedInvitationByUsernameRequest struct {
+	unknownFields []byte
+	// Username is the exact Spacewave username being addressed.
+	Username string `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	// SpaceId is the Space shared object id.
+	SpaceId string `protobuf:"bytes,2,opt,name=space_id,json=spaceId,proto3" json:"spaceId,omitempty"`
+	// Role is the Space participant role string ("reader", "writer", etc.).
+	Role string `protobuf:"bytes,3,opt,name=role,proto3" json:"role,omitempty"`
+	// ExpiresAt is the Unix timestamp (ms) when the invite expires.
+	ExpiresAt int64 `protobuf:"varint,4,opt,name=expires_at,json=expiresAt,proto3" json:"expiresAt,omitempty"`
+}
+
+func (x *CreateSpaceTargetedInvitationByUsernameRequest) Reset() {
+	*x = CreateSpaceTargetedInvitationByUsernameRequest{}
+}
+
+func (*CreateSpaceTargetedInvitationByUsernameRequest) ProtoMessage() {}
+
+func (x *CreateSpaceTargetedInvitationByUsernameRequest) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *CreateSpaceTargetedInvitationByUsernameRequest) GetSpaceId() string {
+	if x != nil {
+		return x.SpaceId
+	}
+	return ""
+}
+
+func (x *CreateSpaceTargetedInvitationByUsernameRequest) GetRole() string {
+	if x != nil {
+		return x.Role
+	}
+	return ""
+}
+
+func (x *CreateSpaceTargetedInvitationByUsernameRequest) GetExpiresAt() int64 {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return 0
+}
+
+// CreateSpaceTargetedInvitationByUsernameResponse returns the pending targeted
+// invitation row.
+type CreateSpaceTargetedInvitationByUsernameResponse struct {
+	unknownFields []byte
+	// Invitation is the pending invitation row.
+	Invitation *TargetedInvitationInfo `protobuf:"bytes,1,opt,name=invitation,proto3" json:"invitation,omitempty"`
+}
+
+func (x *CreateSpaceTargetedInvitationByUsernameResponse) Reset() {
+	*x = CreateSpaceTargetedInvitationByUsernameResponse{}
+}
+
+func (*CreateSpaceTargetedInvitationByUsernameResponse) ProtoMessage() {}
+
+func (x *CreateSpaceTargetedInvitationByUsernameResponse) GetInvitation() *TargetedInvitationInfo {
+	if x != nil {
+		return x.Invitation
+	}
+	return nil
+}
+
+// AcceptSpaceTargetedInvitationRequest accepts a pending Space targeted
+// invitation through the mailbox-backed join path.
+type AcceptSpaceTargetedInvitationRequest struct {
+	unknownFields []byte
+	// Id is the targeted invitation ULID.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+}
+
+func (x *AcceptSpaceTargetedInvitationRequest) Reset() {
+	*x = AcceptSpaceTargetedInvitationRequest{}
+}
+
+func (*AcceptSpaceTargetedInvitationRequest) ProtoMessage() {}
+
+func (x *AcceptSpaceTargetedInvitationRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+// AcceptSpaceTargetedInvitationResponse returns the accepted invitation and
+// immediate Space join outcome.
+type AcceptSpaceTargetedInvitationResponse struct {
+	unknownFields []byte
+	// Invitation is the updated invitation row.
+	Invitation *TargetedInvitationInfo `protobuf:"bytes,1,opt,name=invitation,proto3" json:"invitation,omitempty"`
+	// SharedObjectId is the invited Space ID.
+	SharedObjectId string `protobuf:"bytes,2,opt,name=shared_object_id,json=sharedObjectId,proto3" json:"sharedObjectId,omitempty"`
+	// JoinResult is accepted, pending_owner_approval, rejected, or
+	// owner_must_be_online.
+	JoinResult string `protobuf:"bytes,3,opt,name=join_result,json=joinResult,proto3" json:"joinResult,omitempty"`
+}
+
+func (x *AcceptSpaceTargetedInvitationResponse) Reset() {
+	*x = AcceptSpaceTargetedInvitationResponse{}
+}
+
+func (*AcceptSpaceTargetedInvitationResponse) ProtoMessage() {}
+
+func (x *AcceptSpaceTargetedInvitationResponse) GetInvitation() *TargetedInvitationInfo {
+	if x != nil {
+		return x.Invitation
+	}
+	return nil
+}
+
+func (x *AcceptSpaceTargetedInvitationResponse) GetSharedObjectId() string {
+	if x != nil {
+		return x.SharedObjectId
+	}
+	return ""
+}
+
+func (x *AcceptSpaceTargetedInvitationResponse) GetJoinResult() string {
+	if x != nil {
+		return x.JoinResult
+	}
+	return ""
+}
+
+// CreateOrganizationTargetedInvitationByUsernameRequest creates an
+// organization targeted invitation by exact username.
+type CreateOrganizationTargetedInvitationByUsernameRequest struct {
+	unknownFields []byte
+	// Username is the exact Spacewave username being addressed.
+	Username string `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	// OrgId is the organization id.
+	OrgId string `protobuf:"bytes,2,opt,name=org_id,json=orgId,proto3" json:"orgId,omitempty"`
+	// Role is the organization role string. The seed supports "org:member".
+	Role string `protobuf:"bytes,3,opt,name=role,proto3" json:"role,omitempty"`
+	// ExpiresAt is the Unix timestamp (ms) when the invite expires.
+	ExpiresAt int64 `protobuf:"varint,4,opt,name=expires_at,json=expiresAt,proto3" json:"expiresAt,omitempty"`
+}
+
+func (x *CreateOrganizationTargetedInvitationByUsernameRequest) Reset() {
+	*x = CreateOrganizationTargetedInvitationByUsernameRequest{}
+}
+
+func (*CreateOrganizationTargetedInvitationByUsernameRequest) ProtoMessage() {}
+
+func (x *CreateOrganizationTargetedInvitationByUsernameRequest) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *CreateOrganizationTargetedInvitationByUsernameRequest) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+func (x *CreateOrganizationTargetedInvitationByUsernameRequest) GetRole() string {
+	if x != nil {
+		return x.Role
+	}
+	return ""
+}
+
+func (x *CreateOrganizationTargetedInvitationByUsernameRequest) GetExpiresAt() int64 {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return 0
+}
+
+// CreateOrganizationTargetedInvitationByUsernameResponse returns the pending
+// targeted invitation row.
+type CreateOrganizationTargetedInvitationByUsernameResponse struct {
+	unknownFields []byte
+	// Invitation is the pending invitation row.
+	Invitation *TargetedInvitationInfo `protobuf:"bytes,1,opt,name=invitation,proto3" json:"invitation,omitempty"`
+}
+
+func (x *CreateOrganizationTargetedInvitationByUsernameResponse) Reset() {
+	*x = CreateOrganizationTargetedInvitationByUsernameResponse{}
+}
+
+func (*CreateOrganizationTargetedInvitationByUsernameResponse) ProtoMessage() {}
+
+func (x *CreateOrganizationTargetedInvitationByUsernameResponse) GetInvitation() *TargetedInvitationInfo {
+	if x != nil {
+		return x.Invitation
+	}
+	return nil
+}
+
+// AcceptOrganizationTargetedInvitationRequest accepts a pending organization
+// targeted invitation.
+type AcceptOrganizationTargetedInvitationRequest struct {
+	unknownFields []byte
+	// Id is the targeted invitation ULID.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+}
+
+func (x *AcceptOrganizationTargetedInvitationRequest) Reset() {
+	*x = AcceptOrganizationTargetedInvitationRequest{}
+}
+
+func (*AcceptOrganizationTargetedInvitationRequest) ProtoMessage() {}
+
+func (x *AcceptOrganizationTargetedInvitationRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+// AcceptOrganizationTargetedInvitationResponse returns the fulfilled
+// invitation and resulting organization membership.
+type AcceptOrganizationTargetedInvitationResponse struct {
+	unknownFields []byte
+	// Invitation is the fulfilled invitation row.
+	Invitation *TargetedInvitationInfo `protobuf:"bytes,1,opt,name=invitation,proto3" json:"invitation,omitempty"`
+	// Organization is the joined organization.
+	Organization *OrganizationInfo `protobuf:"bytes,2,opt,name=organization,proto3" json:"organization,omitempty"`
+}
+
+func (x *AcceptOrganizationTargetedInvitationResponse) Reset() {
+	*x = AcceptOrganizationTargetedInvitationResponse{}
+}
+
+func (*AcceptOrganizationTargetedInvitationResponse) ProtoMessage() {}
+
+func (x *AcceptOrganizationTargetedInvitationResponse) GetInvitation() *TargetedInvitationInfo {
+	if x != nil {
+		return x.Invitation
+	}
+	return nil
+}
+
+func (x *AcceptOrganizationTargetedInvitationResponse) GetOrganization() *OrganizationInfo {
+	if x != nil {
+		return x.Organization
+	}
+	return nil
+}
+
+// ListTargetedInvitationsRequest is the request for ListTargetedInvitations.
+type ListTargetedInvitationsRequest struct {
+	unknownFields []byte
+}
+
+func (x *ListTargetedInvitationsRequest) Reset() {
+	*x = ListTargetedInvitationsRequest{}
+}
+
+func (*ListTargetedInvitationsRequest) ProtoMessage() {}
+
+// ListTargetedInvitationsResponse is the response for
+// ListTargetedInvitations.
+type ListTargetedInvitationsResponse struct {
+	unknownFields []byte
+	// Invitations are invitations visible to the caller.
+	Invitations []*TargetedInvitationInfo `protobuf:"bytes,1,rep,name=invitations,proto3" json:"invitations,omitempty"`
+}
+
+func (x *ListTargetedInvitationsResponse) Reset() {
+	*x = ListTargetedInvitationsResponse{}
+}
+
+func (*ListTargetedInvitationsResponse) ProtoMessage() {}
+
+func (x *ListTargetedInvitationsResponse) GetInvitations() []*TargetedInvitationInfo {
+	if x != nil {
+		return x.Invitations
+	}
+	return nil
+}
+
+// GetTargetedInvitationRequest is the request for GetTargetedInvitation.
+type GetTargetedInvitationRequest struct {
+	unknownFields []byte
+	// Id is the invitation ULID.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+}
+
+func (x *GetTargetedInvitationRequest) Reset() {
+	*x = GetTargetedInvitationRequest{}
+}
+
+func (*GetTargetedInvitationRequest) ProtoMessage() {}
+
+func (x *GetTargetedInvitationRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+// GetTargetedInvitationResponse is the response for GetTargetedInvitation.
+type GetTargetedInvitationResponse struct {
+	unknownFields []byte
+	// Invitation is the requested invitation.
+	Invitation *TargetedInvitationInfo `protobuf:"bytes,1,opt,name=invitation,proto3" json:"invitation,omitempty"`
+}
+
+func (x *GetTargetedInvitationResponse) Reset() {
+	*x = GetTargetedInvitationResponse{}
+}
+
+func (*GetTargetedInvitationResponse) ProtoMessage() {}
+
+func (x *GetTargetedInvitationResponse) GetInvitation() *TargetedInvitationInfo {
+	if x != nil {
+		return x.Invitation
+	}
+	return nil
+}
+
+// RevokeTargetedInvitationRequest is the request for RevokeTargetedInvitation.
+type RevokeTargetedInvitationRequest struct {
+	unknownFields []byte
+	// Id is the invitation ULID.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+}
+
+func (x *RevokeTargetedInvitationRequest) Reset() {
+	*x = RevokeTargetedInvitationRequest{}
+}
+
+func (*RevokeTargetedInvitationRequest) ProtoMessage() {}
+
+func (x *RevokeTargetedInvitationRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+// RevokeTargetedInvitationResponse is the response for
+// RevokeTargetedInvitation.
+type RevokeTargetedInvitationResponse struct {
+	unknownFields []byte
+	// Invitation is the revoked invitation.
+	Invitation *TargetedInvitationInfo `protobuf:"bytes,1,opt,name=invitation,proto3" json:"invitation,omitempty"`
+}
+
+func (x *RevokeTargetedInvitationResponse) Reset() {
+	*x = RevokeTargetedInvitationResponse{}
+}
+
+func (*RevokeTargetedInvitationResponse) ProtoMessage() {}
+
+func (x *RevokeTargetedInvitationResponse) GetInvitation() *TargetedInvitationInfo {
+	if x != nil {
+		return x.Invitation
+	}
+	return nil
+}
+
+// ProcessTargetedInvitationRequest is the request for ProcessTargetedInvitation.
+type ProcessTargetedInvitationRequest struct {
+	unknownFields []byte
+	// Id is the invitation ULID.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Action is accept, decline, block, or report.
+	Action string `protobuf:"bytes,2,opt,name=action,proto3" json:"action,omitempty"`
+}
+
+func (x *ProcessTargetedInvitationRequest) Reset() {
+	*x = ProcessTargetedInvitationRequest{}
+}
+
+func (*ProcessTargetedInvitationRequest) ProtoMessage() {}
+
+func (x *ProcessTargetedInvitationRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *ProcessTargetedInvitationRequest) GetAction() string {
+	if x != nil {
+		return x.Action
+	}
+	return ""
+}
+
+// ProcessTargetedInvitationResponse is the response for
+// ProcessTargetedInvitation.
+type ProcessTargetedInvitationResponse struct {
+	unknownFields []byte
+	// Invitation is the updated invitation.
+	Invitation *TargetedInvitationInfo `protobuf:"bytes,1,opt,name=invitation,proto3" json:"invitation,omitempty"`
+}
+
+func (x *ProcessTargetedInvitationResponse) Reset() {
+	*x = ProcessTargetedInvitationResponse{}
+}
+
+func (*ProcessTargetedInvitationResponse) ProtoMessage() {}
+
+func (x *ProcessTargetedInvitationResponse) GetInvitation() *TargetedInvitationInfo {
+	if x != nil {
+		return x.Invitation
+	}
+	return nil
+}
+
 // CreateOrgInviteRequest is the request for CreateOrgInvite.
 type CreateOrgInviteRequest struct {
 	unknownFields []byte
@@ -6918,7 +8005,9 @@ func (m *CreateAccountResponse) CloneVT() *CreateAccountResponse {
 		return (*CreateAccountResponse)(nil)
 	}
 	r := new(CreateAccountResponse)
-	r.SessionListEntry = m.SessionListEntry.CloneVT()
+	if rhs := m.SessionListEntry; rhs != nil {
+		r.SessionListEntry = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -7071,8 +8160,10 @@ func (m *LoginOrCreateAccountResponse) CloneVT() *LoginOrCreateAccountResponse {
 		return (*LoginOrCreateAccountResponse)(nil)
 	}
 	r := new(LoginOrCreateAccountResponse)
-	r.SessionListEntry = m.SessionListEntry.CloneVT()
 	r.IsNewAccount = m.IsNewAccount
+	if rhs := m.SessionListEntry; rhs != nil {
+		r.SessionListEntry = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -7106,7 +8197,9 @@ func (m *LoginWithEntityKeyResponse) CloneVT() *LoginWithEntityKeyResponse {
 		return (*LoginWithEntityKeyResponse)(nil)
 	}
 	r := new(LoginWithEntityKeyResponse)
-	r.SessionListEntry = m.SessionListEntry.CloneVT()
+	if rhs := m.SessionListEntry; rhs != nil {
+		r.SessionListEntry = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -7859,7 +8952,9 @@ func (m *StartBrowserHandoffResponse) CloneVT() *StartBrowserHandoffResponse {
 		return (*StartBrowserHandoffResponse)(nil)
 	}
 	r := new(StartBrowserHandoffResponse)
-	r.SessionListEntry = m.SessionListEntry.CloneVT()
+	if rhs := m.SessionListEntry; rhs != nil {
+		r.SessionListEntry = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -8277,7 +9372,9 @@ func (m *ResetSessionRequest) CloneVT() *ResetSessionRequest {
 	}
 	r := new(ResetSessionRequest)
 	r.SessionIdx = m.SessionIdx
-	r.Credential = m.Credential.CloneVT()
+	if rhs := m.Credential; rhs != nil {
+		r.Credential = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -8323,7 +9420,9 @@ func (m *CreateLinkedLocalSessionResponse) CloneVT() *CreateLinkedLocalSessionRe
 		return (*CreateLinkedLocalSessionResponse)(nil)
 	}
 	r := new(CreateLinkedLocalSessionResponse)
-	r.SessionListEntry = m.SessionListEntry.CloneVT()
+	if rhs := m.SessionListEntry; rhs != nil {
+		r.SessionListEntry = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -8951,6 +10050,462 @@ func (m *OrgInviteInfo) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *CreateTargetedInviteDraftByUsernameRequest) CloneVT() *CreateTargetedInviteDraftByUsernameRequest {
+	if m == nil {
+		return (*CreateTargetedInviteDraftByUsernameRequest)(nil)
+	}
+	r := new(CreateTargetedInviteDraftByUsernameRequest)
+	r.Username = m.Username
+	r.Purpose = m.Purpose
+	r.SpaceId = m.SpaceId
+	r.OrgId = m.OrgId
+	r.Role = m.Role
+	r.ExpiresAt = m.ExpiresAt
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CreateTargetedInviteDraftByUsernameRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CreateTargetedInviteDraftByUsernameResponse) CloneVT() *CreateTargetedInviteDraftByUsernameResponse {
+	if m == nil {
+		return (*CreateTargetedInviteDraftByUsernameResponse)(nil)
+	}
+	r := new(CreateTargetedInviteDraftByUsernameResponse)
+	r.Accepted = m.Accepted
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CreateTargetedInviteDraftByUsernameResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ResolveUsernameRequest) CloneVT() *ResolveUsernameRequest {
+	if m == nil {
+		return (*ResolveUsernameRequest)(nil)
+	}
+	r := new(ResolveUsernameRequest)
+	r.Username = m.Username
+	r.Purpose = m.Purpose
+	r.SpaceId = m.SpaceId
+	r.OrgId = m.OrgId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ResolveUsernameRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ResolveUsernameResponse) CloneVT() *ResolveUsernameResponse {
+	if m == nil {
+		return (*ResolveUsernameResponse)(nil)
+	}
+	r := new(ResolveUsernameResponse)
+	r.Found = m.Found
+	r.AccountId = m.AccountId
+	r.EntityId = m.EntityId
+	r.DomainId = m.DomainId
+	r.Relationship = m.Relationship
+	r.CanInvite = m.CanInvite
+	r.EntityUuid = m.EntityUuid
+	r.AccountEpoch = m.AccountEpoch
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ResolveUsernameResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *TargetedInvitationEnvelope) CloneVT() *TargetedInvitationEnvelope {
+	if m == nil {
+		return (*TargetedInvitationEnvelope)(nil)
+	}
+	r := new(TargetedInvitationEnvelope)
+	r.SchemaVersion = m.SchemaVersion
+	r.Purpose = m.Purpose
+	r.ContextId = m.ContextId
+	r.ActorAccountId = m.ActorAccountId
+	r.ActorEntityUuid = m.ActorEntityUuid
+	r.ActorAccountEpoch = m.ActorAccountEpoch
+	r.SignerPeerId = m.SignerPeerId
+	r.TargetAccountId = m.TargetAccountId
+	r.TargetEntityId = m.TargetEntityId
+	r.TargetEntityUuid = m.TargetEntityUuid
+	r.TargetAccountEpoch = m.TargetAccountEpoch
+	r.Role = m.Role
+	r.ExpiresAt = m.ExpiresAt
+	if rhs := m.Nonce; rhs != nil {
+		r.Nonce = slices.Clone(rhs)
+	}
+	if rhs := m.Payload; rhs != nil {
+		r.Payload = slices.Clone(rhs)
+	}
+	if rhs := m.Signature; rhs != nil {
+		r.Signature = slices.Clone(rhs)
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *TargetedInvitationEnvelope) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *TargetedInvitationInfo) CloneVT() *TargetedInvitationInfo {
+	if m == nil {
+		return (*TargetedInvitationInfo)(nil)
+	}
+	r := new(TargetedInvitationInfo)
+	r.Id = m.Id
+	r.ActorAccountId = m.ActorAccountId
+	r.TargetAccountId = m.TargetAccountId
+	r.TargetEntityId = m.TargetEntityId
+	r.TargetEntityUuid = m.TargetEntityUuid
+	r.TargetAccountEpoch = m.TargetAccountEpoch
+	r.Purpose = m.Purpose
+	r.ContextId = m.ContextId
+	r.Role = m.Role
+	r.Status = m.Status
+	r.EnvelopeHash = m.EnvelopeHash
+	r.Envelope = m.Envelope.CloneVT()
+	r.CreatedAt = m.CreatedAt
+	r.UpdatedAt = m.UpdatedAt
+	r.ExpiresAt = m.ExpiresAt
+	r.DraftId = m.DraftId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *TargetedInvitationInfo) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CreateTargetedInvitationRequest) CloneVT() *CreateTargetedInvitationRequest {
+	if m == nil {
+		return (*CreateTargetedInvitationRequest)(nil)
+	}
+	r := new(CreateTargetedInvitationRequest)
+	r.TargetAccountId = m.TargetAccountId
+	r.Purpose = m.Purpose
+	r.SpaceId = m.SpaceId
+	r.OrgId = m.OrgId
+	r.Role = m.Role
+	r.ExpiresAt = m.ExpiresAt
+	r.Envelope = m.Envelope.CloneVT()
+	r.DraftId = m.DraftId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CreateTargetedInvitationRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CreateTargetedInvitationResponse) CloneVT() *CreateTargetedInvitationResponse {
+	if m == nil {
+		return (*CreateTargetedInvitationResponse)(nil)
+	}
+	r := new(CreateTargetedInvitationResponse)
+	r.Invitation = m.Invitation.CloneVT()
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CreateTargetedInvitationResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CreateSpaceTargetedInvitationByUsernameRequest) CloneVT() *CreateSpaceTargetedInvitationByUsernameRequest {
+	if m == nil {
+		return (*CreateSpaceTargetedInvitationByUsernameRequest)(nil)
+	}
+	r := new(CreateSpaceTargetedInvitationByUsernameRequest)
+	r.Username = m.Username
+	r.SpaceId = m.SpaceId
+	r.Role = m.Role
+	r.ExpiresAt = m.ExpiresAt
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CreateSpaceTargetedInvitationByUsernameRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CreateSpaceTargetedInvitationByUsernameResponse) CloneVT() *CreateSpaceTargetedInvitationByUsernameResponse {
+	if m == nil {
+		return (*CreateSpaceTargetedInvitationByUsernameResponse)(nil)
+	}
+	r := new(CreateSpaceTargetedInvitationByUsernameResponse)
+	r.Invitation = m.Invitation.CloneVT()
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CreateSpaceTargetedInvitationByUsernameResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *AcceptSpaceTargetedInvitationRequest) CloneVT() *AcceptSpaceTargetedInvitationRequest {
+	if m == nil {
+		return (*AcceptSpaceTargetedInvitationRequest)(nil)
+	}
+	r := new(AcceptSpaceTargetedInvitationRequest)
+	r.Id = m.Id
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *AcceptSpaceTargetedInvitationRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *AcceptSpaceTargetedInvitationResponse) CloneVT() *AcceptSpaceTargetedInvitationResponse {
+	if m == nil {
+		return (*AcceptSpaceTargetedInvitationResponse)(nil)
+	}
+	r := new(AcceptSpaceTargetedInvitationResponse)
+	r.Invitation = m.Invitation.CloneVT()
+	r.SharedObjectId = m.SharedObjectId
+	r.JoinResult = m.JoinResult
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *AcceptSpaceTargetedInvitationResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CreateOrganizationTargetedInvitationByUsernameRequest) CloneVT() *CreateOrganizationTargetedInvitationByUsernameRequest {
+	if m == nil {
+		return (*CreateOrganizationTargetedInvitationByUsernameRequest)(nil)
+	}
+	r := new(CreateOrganizationTargetedInvitationByUsernameRequest)
+	r.Username = m.Username
+	r.OrgId = m.OrgId
+	r.Role = m.Role
+	r.ExpiresAt = m.ExpiresAt
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CreateOrganizationTargetedInvitationByUsernameRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CreateOrganizationTargetedInvitationByUsernameResponse) CloneVT() *CreateOrganizationTargetedInvitationByUsernameResponse {
+	if m == nil {
+		return (*CreateOrganizationTargetedInvitationByUsernameResponse)(nil)
+	}
+	r := new(CreateOrganizationTargetedInvitationByUsernameResponse)
+	r.Invitation = m.Invitation.CloneVT()
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CreateOrganizationTargetedInvitationByUsernameResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *AcceptOrganizationTargetedInvitationRequest) CloneVT() *AcceptOrganizationTargetedInvitationRequest {
+	if m == nil {
+		return (*AcceptOrganizationTargetedInvitationRequest)(nil)
+	}
+	r := new(AcceptOrganizationTargetedInvitationRequest)
+	r.Id = m.Id
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *AcceptOrganizationTargetedInvitationRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *AcceptOrganizationTargetedInvitationResponse) CloneVT() *AcceptOrganizationTargetedInvitationResponse {
+	if m == nil {
+		return (*AcceptOrganizationTargetedInvitationResponse)(nil)
+	}
+	r := new(AcceptOrganizationTargetedInvitationResponse)
+	r.Invitation = m.Invitation.CloneVT()
+	r.Organization = m.Organization.CloneVT()
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *AcceptOrganizationTargetedInvitationResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ListTargetedInvitationsRequest) CloneVT() *ListTargetedInvitationsRequest {
+	if m == nil {
+		return (*ListTargetedInvitationsRequest)(nil)
+	}
+	r := new(ListTargetedInvitationsRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ListTargetedInvitationsRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ListTargetedInvitationsResponse) CloneVT() *ListTargetedInvitationsResponse {
+	if m == nil {
+		return (*ListTargetedInvitationsResponse)(nil)
+	}
+	r := new(ListTargetedInvitationsResponse)
+	if rhs := m.Invitations; rhs != nil {
+		r.Invitations = make([]*TargetedInvitationInfo, len(rhs))
+		for k, v := range rhs {
+			r.Invitations[k] = v.CloneVT()
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ListTargetedInvitationsResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *GetTargetedInvitationRequest) CloneVT() *GetTargetedInvitationRequest {
+	if m == nil {
+		return (*GetTargetedInvitationRequest)(nil)
+	}
+	r := new(GetTargetedInvitationRequest)
+	r.Id = m.Id
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GetTargetedInvitationRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *GetTargetedInvitationResponse) CloneVT() *GetTargetedInvitationResponse {
+	if m == nil {
+		return (*GetTargetedInvitationResponse)(nil)
+	}
+	r := new(GetTargetedInvitationResponse)
+	r.Invitation = m.Invitation.CloneVT()
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GetTargetedInvitationResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RevokeTargetedInvitationRequest) CloneVT() *RevokeTargetedInvitationRequest {
+	if m == nil {
+		return (*RevokeTargetedInvitationRequest)(nil)
+	}
+	r := new(RevokeTargetedInvitationRequest)
+	r.Id = m.Id
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RevokeTargetedInvitationRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RevokeTargetedInvitationResponse) CloneVT() *RevokeTargetedInvitationResponse {
+	if m == nil {
+		return (*RevokeTargetedInvitationResponse)(nil)
+	}
+	r := new(RevokeTargetedInvitationResponse)
+	r.Invitation = m.Invitation.CloneVT()
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RevokeTargetedInvitationResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ProcessTargetedInvitationRequest) CloneVT() *ProcessTargetedInvitationRequest {
+	if m == nil {
+		return (*ProcessTargetedInvitationRequest)(nil)
+	}
+	r := new(ProcessTargetedInvitationRequest)
+	r.Id = m.Id
+	r.Action = m.Action
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ProcessTargetedInvitationRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ProcessTargetedInvitationResponse) CloneVT() *ProcessTargetedInvitationResponse {
+	if m == nil {
+		return (*ProcessTargetedInvitationResponse)(nil)
+	}
+	r := new(ProcessTargetedInvitationResponse)
+	r.Invitation = m.Invitation.CloneVT()
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ProcessTargetedInvitationResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *CreateOrgInviteRequest) CloneVT() *CreateOrgInviteRequest {
 	if m == nil {
 		return (*CreateOrgInviteRequest)(nil)
@@ -9176,8 +10731,10 @@ func (m *OrganizationRootStateInfo) CloneVT() *OrganizationRootStateInfo {
 	}
 	r := new(OrganizationRootStateInfo)
 	r.SharedObjectId = m.SharedObjectId
-	r.Health = m.Health.CloneVT()
 	r.MutationPermission = m.MutationPermission.CloneVT()
+	if rhs := m.Health; rhs != nil {
+		r.Health = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -10435,7 +11992,9 @@ func (m *LookupInviteCodeResponse) CloneVT() *LookupInviteCodeResponse {
 	}
 	r := new(LookupInviteCodeResponse)
 	r.InviteId = m.InviteId
-	r.InviteMessage = m.InviteMessage.CloneVT()
+	if rhs := m.InviteMessage; rhs != nil {
+		r.InviteMessage = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -13791,6 +15350,683 @@ func (this *OrgInviteInfo) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *CreateTargetedInviteDraftByUsernameRequest) EqualVT(that *CreateTargetedInviteDraftByUsernameRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Username != that.Username {
+		return false
+	}
+	if this.Purpose != that.Purpose {
+		return false
+	}
+	if this.SpaceId != that.SpaceId {
+		return false
+	}
+	if this.OrgId != that.OrgId {
+		return false
+	}
+	if this.Role != that.Role {
+		return false
+	}
+	if this.ExpiresAt != that.ExpiresAt {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CreateTargetedInviteDraftByUsernameRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CreateTargetedInviteDraftByUsernameRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *CreateTargetedInviteDraftByUsernameResponse) EqualVT(that *CreateTargetedInviteDraftByUsernameResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Accepted != that.Accepted {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CreateTargetedInviteDraftByUsernameResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CreateTargetedInviteDraftByUsernameResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ResolveUsernameRequest) EqualVT(that *ResolveUsernameRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Username != that.Username {
+		return false
+	}
+	if this.Purpose != that.Purpose {
+		return false
+	}
+	if this.SpaceId != that.SpaceId {
+		return false
+	}
+	if this.OrgId != that.OrgId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ResolveUsernameRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ResolveUsernameRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ResolveUsernameResponse) EqualVT(that *ResolveUsernameResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Found != that.Found {
+		return false
+	}
+	if this.AccountId != that.AccountId {
+		return false
+	}
+	if this.EntityId != that.EntityId {
+		return false
+	}
+	if this.DomainId != that.DomainId {
+		return false
+	}
+	if this.Relationship != that.Relationship {
+		return false
+	}
+	if this.CanInvite != that.CanInvite {
+		return false
+	}
+	if this.EntityUuid != that.EntityUuid {
+		return false
+	}
+	if this.AccountEpoch != that.AccountEpoch {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ResolveUsernameResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ResolveUsernameResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *TargetedInvitationEnvelope) EqualVT(that *TargetedInvitationEnvelope) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.SchemaVersion != that.SchemaVersion {
+		return false
+	}
+	if this.Purpose != that.Purpose {
+		return false
+	}
+	if this.ContextId != that.ContextId {
+		return false
+	}
+	if this.ActorAccountId != that.ActorAccountId {
+		return false
+	}
+	if this.ActorEntityUuid != that.ActorEntityUuid {
+		return false
+	}
+	if this.SignerPeerId != that.SignerPeerId {
+		return false
+	}
+	if this.TargetAccountId != that.TargetAccountId {
+		return false
+	}
+	if this.TargetEntityId != that.TargetEntityId {
+		return false
+	}
+	if this.TargetEntityUuid != that.TargetEntityUuid {
+		return false
+	}
+	if this.TargetAccountEpoch != that.TargetAccountEpoch {
+		return false
+	}
+	if this.Role != that.Role {
+		return false
+	}
+	if this.ExpiresAt != that.ExpiresAt {
+		return false
+	}
+	if string(this.Nonce) != string(that.Nonce) {
+		return false
+	}
+	if string(this.Payload) != string(that.Payload) {
+		return false
+	}
+	if string(this.Signature) != string(that.Signature) {
+		return false
+	}
+	if this.ActorAccountEpoch != that.ActorAccountEpoch {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *TargetedInvitationEnvelope) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*TargetedInvitationEnvelope)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *TargetedInvitationInfo) EqualVT(that *TargetedInvitationInfo) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Id != that.Id {
+		return false
+	}
+	if this.ActorAccountId != that.ActorAccountId {
+		return false
+	}
+	if this.TargetAccountId != that.TargetAccountId {
+		return false
+	}
+	if this.TargetEntityId != that.TargetEntityId {
+		return false
+	}
+	if this.TargetEntityUuid != that.TargetEntityUuid {
+		return false
+	}
+	if this.TargetAccountEpoch != that.TargetAccountEpoch {
+		return false
+	}
+	if this.Purpose != that.Purpose {
+		return false
+	}
+	if this.ContextId != that.ContextId {
+		return false
+	}
+	if this.Role != that.Role {
+		return false
+	}
+	if this.Status != that.Status {
+		return false
+	}
+	if this.EnvelopeHash != that.EnvelopeHash {
+		return false
+	}
+	if !this.Envelope.EqualVT(that.Envelope) {
+		return false
+	}
+	if this.CreatedAt != that.CreatedAt {
+		return false
+	}
+	if this.UpdatedAt != that.UpdatedAt {
+		return false
+	}
+	if this.ExpiresAt != that.ExpiresAt {
+		return false
+	}
+	if this.DraftId != that.DraftId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *TargetedInvitationInfo) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*TargetedInvitationInfo)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *CreateTargetedInvitationRequest) EqualVT(that *CreateTargetedInvitationRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.TargetAccountId != that.TargetAccountId {
+		return false
+	}
+	if this.Purpose != that.Purpose {
+		return false
+	}
+	if this.SpaceId != that.SpaceId {
+		return false
+	}
+	if this.OrgId != that.OrgId {
+		return false
+	}
+	if this.Role != that.Role {
+		return false
+	}
+	if this.ExpiresAt != that.ExpiresAt {
+		return false
+	}
+	if !this.Envelope.EqualVT(that.Envelope) {
+		return false
+	}
+	if this.DraftId != that.DraftId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CreateTargetedInvitationRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CreateTargetedInvitationRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *CreateTargetedInvitationResponse) EqualVT(that *CreateTargetedInvitationResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.Invitation.EqualVT(that.Invitation) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CreateTargetedInvitationResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CreateTargetedInvitationResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *CreateSpaceTargetedInvitationByUsernameRequest) EqualVT(that *CreateSpaceTargetedInvitationByUsernameRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Username != that.Username {
+		return false
+	}
+	if this.SpaceId != that.SpaceId {
+		return false
+	}
+	if this.Role != that.Role {
+		return false
+	}
+	if this.ExpiresAt != that.ExpiresAt {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CreateSpaceTargetedInvitationByUsernameRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CreateSpaceTargetedInvitationByUsernameRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *CreateSpaceTargetedInvitationByUsernameResponse) EqualVT(that *CreateSpaceTargetedInvitationByUsernameResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.Invitation.EqualVT(that.Invitation) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CreateSpaceTargetedInvitationByUsernameResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CreateSpaceTargetedInvitationByUsernameResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *AcceptSpaceTargetedInvitationRequest) EqualVT(that *AcceptSpaceTargetedInvitationRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Id != that.Id {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AcceptSpaceTargetedInvitationRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*AcceptSpaceTargetedInvitationRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *AcceptSpaceTargetedInvitationResponse) EqualVT(that *AcceptSpaceTargetedInvitationResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.Invitation.EqualVT(that.Invitation) {
+		return false
+	}
+	if this.SharedObjectId != that.SharedObjectId {
+		return false
+	}
+	if this.JoinResult != that.JoinResult {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AcceptSpaceTargetedInvitationResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*AcceptSpaceTargetedInvitationResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *CreateOrganizationTargetedInvitationByUsernameRequest) EqualVT(that *CreateOrganizationTargetedInvitationByUsernameRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Username != that.Username {
+		return false
+	}
+	if this.OrgId != that.OrgId {
+		return false
+	}
+	if this.Role != that.Role {
+		return false
+	}
+	if this.ExpiresAt != that.ExpiresAt {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CreateOrganizationTargetedInvitationByUsernameRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CreateOrganizationTargetedInvitationByUsernameRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *CreateOrganizationTargetedInvitationByUsernameResponse) EqualVT(that *CreateOrganizationTargetedInvitationByUsernameResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.Invitation.EqualVT(that.Invitation) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CreateOrganizationTargetedInvitationByUsernameResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CreateOrganizationTargetedInvitationByUsernameResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *AcceptOrganizationTargetedInvitationRequest) EqualVT(that *AcceptOrganizationTargetedInvitationRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Id != that.Id {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AcceptOrganizationTargetedInvitationRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*AcceptOrganizationTargetedInvitationRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *AcceptOrganizationTargetedInvitationResponse) EqualVT(that *AcceptOrganizationTargetedInvitationResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.Invitation.EqualVT(that.Invitation) {
+		return false
+	}
+	if !this.Organization.EqualVT(that.Organization) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AcceptOrganizationTargetedInvitationResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*AcceptOrganizationTargetedInvitationResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ListTargetedInvitationsRequest) EqualVT(that *ListTargetedInvitationsRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ListTargetedInvitationsRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ListTargetedInvitationsRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ListTargetedInvitationsResponse) EqualVT(that *ListTargetedInvitationsResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if len(this.Invitations) != len(that.Invitations) {
+		return false
+	}
+	for i, vx := range this.Invitations {
+		vy := that.Invitations[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &TargetedInvitationInfo{}
+			}
+			if q == nil {
+				q = &TargetedInvitationInfo{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ListTargetedInvitationsResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ListTargetedInvitationsResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *GetTargetedInvitationRequest) EqualVT(that *GetTargetedInvitationRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Id != that.Id {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GetTargetedInvitationRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GetTargetedInvitationRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *GetTargetedInvitationResponse) EqualVT(that *GetTargetedInvitationResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.Invitation.EqualVT(that.Invitation) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GetTargetedInvitationResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GetTargetedInvitationResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RevokeTargetedInvitationRequest) EqualVT(that *RevokeTargetedInvitationRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Id != that.Id {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RevokeTargetedInvitationRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RevokeTargetedInvitationRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RevokeTargetedInvitationResponse) EqualVT(that *RevokeTargetedInvitationResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.Invitation.EqualVT(that.Invitation) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RevokeTargetedInvitationResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RevokeTargetedInvitationResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ProcessTargetedInvitationRequest) EqualVT(that *ProcessTargetedInvitationRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Id != that.Id {
+		return false
+	}
+	if this.Action != that.Action {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ProcessTargetedInvitationRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ProcessTargetedInvitationRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ProcessTargetedInvitationResponse) EqualVT(that *ProcessTargetedInvitationResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.Invitation.EqualVT(that.Invitation) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ProcessTargetedInvitationResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ProcessTargetedInvitationResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 func (this *CreateOrgInviteRequest) EqualVT(that *CreateOrgInviteRequest) bool {
 	if this == that {
 		return true
@@ -16383,6 +18619,46 @@ func (x *SelfEnrollmentGateState) UnmarshalText(b []byte) error {
 
 // UnmarshalJSON unmarshals the SelfEnrollmentGateState from JSON.
 func (x *SelfEnrollmentGateState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the TargetedInvitePurpose to JSON.
+func (x TargetedInvitePurpose) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), TargetedInvitePurpose_name)
+}
+
+// MarshalText marshals the TargetedInvitePurpose to text.
+func (x TargetedInvitePurpose) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), TargetedInvitePurpose_name)), nil
+}
+
+// MarshalJSON marshals the TargetedInvitePurpose to JSON.
+func (x TargetedInvitePurpose) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the TargetedInvitePurpose from JSON.
+func (x *TargetedInvitePurpose) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(TargetedInvitePurpose_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read TargetedInvitePurpose enum: %v", err)
+		return
+	}
+	*x = TargetedInvitePurpose(v)
+}
+
+// UnmarshalText unmarshals the TargetedInvitePurpose from text.
+func (x *TargetedInvitePurpose) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), TargetedInvitePurpose_value)
+	if err != nil {
+		return err
+	}
+	*x = TargetedInvitePurpose(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the TargetedInvitePurpose from JSON.
+func (x *TargetedInvitePurpose) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -22316,6 +24592,1563 @@ func (x *OrgInviteInfo) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the OrgInviteInfo from JSON.
 func (x *OrgInviteInfo) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the CreateTargetedInviteDraftByUsernameRequest message to JSON.
+func (x *CreateTargetedInviteDraftByUsernameRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Username != "" || s.HasField("username") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("username")
+		s.WriteString(x.Username)
+	}
+	if x.Purpose != 0 || s.HasField("purpose") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("purpose")
+		x.Purpose.MarshalProtoJSON(s)
+	}
+	if x.SpaceId != "" || s.HasField("spaceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("spaceId")
+		s.WriteString(x.SpaceId)
+	}
+	if x.OrgId != "" || s.HasField("orgId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("orgId")
+		s.WriteString(x.OrgId)
+	}
+	if x.Role != "" || s.HasField("role") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("role")
+		s.WriteString(x.Role)
+	}
+	if x.ExpiresAt != 0 || s.HasField("expiresAt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("expiresAt")
+		s.WriteInt64(x.ExpiresAt)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CreateTargetedInviteDraftByUsernameRequest to JSON.
+func (x *CreateTargetedInviteDraftByUsernameRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CreateTargetedInviteDraftByUsernameRequest message from JSON.
+func (x *CreateTargetedInviteDraftByUsernameRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "username":
+			s.AddField("username")
+			x.Username = s.ReadString()
+		case "purpose":
+			s.AddField("purpose")
+			x.Purpose.UnmarshalProtoJSON(s)
+		case "space_id", "spaceId":
+			s.AddField("space_id")
+			x.SpaceId = s.ReadString()
+		case "org_id", "orgId":
+			s.AddField("org_id")
+			x.OrgId = s.ReadString()
+		case "role":
+			s.AddField("role")
+			x.Role = s.ReadString()
+		case "expires_at", "expiresAt":
+			s.AddField("expires_at")
+			x.ExpiresAt = s.ReadInt64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the CreateTargetedInviteDraftByUsernameRequest from JSON.
+func (x *CreateTargetedInviteDraftByUsernameRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the CreateTargetedInviteDraftByUsernameResponse message to JSON.
+func (x *CreateTargetedInviteDraftByUsernameResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Accepted || s.HasField("accepted") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("accepted")
+		s.WriteBool(x.Accepted)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CreateTargetedInviteDraftByUsernameResponse to JSON.
+func (x *CreateTargetedInviteDraftByUsernameResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CreateTargetedInviteDraftByUsernameResponse message from JSON.
+func (x *CreateTargetedInviteDraftByUsernameResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "accepted":
+			s.AddField("accepted")
+			x.Accepted = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the CreateTargetedInviteDraftByUsernameResponse from JSON.
+func (x *CreateTargetedInviteDraftByUsernameResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ResolveUsernameRequest message to JSON.
+func (x *ResolveUsernameRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Username != "" || s.HasField("username") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("username")
+		s.WriteString(x.Username)
+	}
+	if x.Purpose != 0 || s.HasField("purpose") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("purpose")
+		x.Purpose.MarshalProtoJSON(s)
+	}
+	if x.SpaceId != "" || s.HasField("spaceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("spaceId")
+		s.WriteString(x.SpaceId)
+	}
+	if x.OrgId != "" || s.HasField("orgId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("orgId")
+		s.WriteString(x.OrgId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ResolveUsernameRequest to JSON.
+func (x *ResolveUsernameRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ResolveUsernameRequest message from JSON.
+func (x *ResolveUsernameRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "username":
+			s.AddField("username")
+			x.Username = s.ReadString()
+		case "purpose":
+			s.AddField("purpose")
+			x.Purpose.UnmarshalProtoJSON(s)
+		case "space_id", "spaceId":
+			s.AddField("space_id")
+			x.SpaceId = s.ReadString()
+		case "org_id", "orgId":
+			s.AddField("org_id")
+			x.OrgId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ResolveUsernameRequest from JSON.
+func (x *ResolveUsernameRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ResolveUsernameResponse message to JSON.
+func (x *ResolveUsernameResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Found || s.HasField("found") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("found")
+		s.WriteBool(x.Found)
+	}
+	if x.AccountId != "" || s.HasField("accountId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("accountId")
+		s.WriteString(x.AccountId)
+	}
+	if x.EntityId != "" || s.HasField("entityId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("entityId")
+		s.WriteString(x.EntityId)
+	}
+	if x.DomainId != "" || s.HasField("domainId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("domainId")
+		s.WriteString(x.DomainId)
+	}
+	if x.Relationship != "" || s.HasField("relationship") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("relationship")
+		s.WriteString(x.Relationship)
+	}
+	if x.CanInvite || s.HasField("canInvite") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("canInvite")
+		s.WriteBool(x.CanInvite)
+	}
+	if x.EntityUuid != "" || s.HasField("entityUuid") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("entityUuid")
+		s.WriteString(x.EntityUuid)
+	}
+	if x.AccountEpoch != 0 || s.HasField("accountEpoch") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("accountEpoch")
+		s.WriteInt64(x.AccountEpoch)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ResolveUsernameResponse to JSON.
+func (x *ResolveUsernameResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ResolveUsernameResponse message from JSON.
+func (x *ResolveUsernameResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "found":
+			s.AddField("found")
+			x.Found = s.ReadBool()
+		case "account_id", "accountId":
+			s.AddField("account_id")
+			x.AccountId = s.ReadString()
+		case "entity_id", "entityId":
+			s.AddField("entity_id")
+			x.EntityId = s.ReadString()
+		case "domain_id", "domainId":
+			s.AddField("domain_id")
+			x.DomainId = s.ReadString()
+		case "relationship":
+			s.AddField("relationship")
+			x.Relationship = s.ReadString()
+		case "can_invite", "canInvite":
+			s.AddField("can_invite")
+			x.CanInvite = s.ReadBool()
+		case "entity_uuid", "entityUuid":
+			s.AddField("entity_uuid")
+			x.EntityUuid = s.ReadString()
+		case "account_epoch", "accountEpoch":
+			s.AddField("account_epoch")
+			x.AccountEpoch = s.ReadInt64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ResolveUsernameResponse from JSON.
+func (x *ResolveUsernameResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the TargetedInvitationEnvelope message to JSON.
+func (x *TargetedInvitationEnvelope) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.SchemaVersion != 0 || s.HasField("schemaVersion") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("schemaVersion")
+		s.WriteUint32(x.SchemaVersion)
+	}
+	if x.Purpose != 0 || s.HasField("purpose") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("purpose")
+		x.Purpose.MarshalProtoJSON(s)
+	}
+	if x.ContextId != "" || s.HasField("contextId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("contextId")
+		s.WriteString(x.ContextId)
+	}
+	if x.ActorAccountId != "" || s.HasField("actorAccountId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("actorAccountId")
+		s.WriteString(x.ActorAccountId)
+	}
+	if x.ActorEntityUuid != "" || s.HasField("actorEntityUuid") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("actorEntityUuid")
+		s.WriteString(x.ActorEntityUuid)
+	}
+	if x.SignerPeerId != "" || s.HasField("signerPeerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("signerPeerId")
+		s.WriteString(x.SignerPeerId)
+	}
+	if x.TargetAccountId != "" || s.HasField("targetAccountId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("targetAccountId")
+		s.WriteString(x.TargetAccountId)
+	}
+	if x.TargetEntityId != "" || s.HasField("targetEntityId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("targetEntityId")
+		s.WriteString(x.TargetEntityId)
+	}
+	if x.TargetEntityUuid != "" || s.HasField("targetEntityUuid") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("targetEntityUuid")
+		s.WriteString(x.TargetEntityUuid)
+	}
+	if x.TargetAccountEpoch != 0 || s.HasField("targetAccountEpoch") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("targetAccountEpoch")
+		s.WriteInt64(x.TargetAccountEpoch)
+	}
+	if x.Role != "" || s.HasField("role") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("role")
+		s.WriteString(x.Role)
+	}
+	if x.ExpiresAt != 0 || s.HasField("expiresAt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("expiresAt")
+		s.WriteInt64(x.ExpiresAt)
+	}
+	if len(x.Nonce) > 0 || s.HasField("nonce") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("nonce")
+		s.WriteBytes(x.Nonce)
+	}
+	if len(x.Payload) > 0 || s.HasField("payload") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("payload")
+		s.WriteBytes(x.Payload)
+	}
+	if len(x.Signature) > 0 || s.HasField("signature") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("signature")
+		s.WriteBytes(x.Signature)
+	}
+	if x.ActorAccountEpoch != 0 || s.HasField("actorAccountEpoch") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("actorAccountEpoch")
+		s.WriteInt64(x.ActorAccountEpoch)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the TargetedInvitationEnvelope to JSON.
+func (x *TargetedInvitationEnvelope) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the TargetedInvitationEnvelope message from JSON.
+func (x *TargetedInvitationEnvelope) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "schema_version", "schemaVersion":
+			s.AddField("schema_version")
+			x.SchemaVersion = s.ReadUint32()
+		case "purpose":
+			s.AddField("purpose")
+			x.Purpose.UnmarshalProtoJSON(s)
+		case "context_id", "contextId":
+			s.AddField("context_id")
+			x.ContextId = s.ReadString()
+		case "actor_account_id", "actorAccountId":
+			s.AddField("actor_account_id")
+			x.ActorAccountId = s.ReadString()
+		case "actor_entity_uuid", "actorEntityUuid":
+			s.AddField("actor_entity_uuid")
+			x.ActorEntityUuid = s.ReadString()
+		case "signer_peer_id", "signerPeerId":
+			s.AddField("signer_peer_id")
+			x.SignerPeerId = s.ReadString()
+		case "target_account_id", "targetAccountId":
+			s.AddField("target_account_id")
+			x.TargetAccountId = s.ReadString()
+		case "target_entity_id", "targetEntityId":
+			s.AddField("target_entity_id")
+			x.TargetEntityId = s.ReadString()
+		case "target_entity_uuid", "targetEntityUuid":
+			s.AddField("target_entity_uuid")
+			x.TargetEntityUuid = s.ReadString()
+		case "target_account_epoch", "targetAccountEpoch":
+			s.AddField("target_account_epoch")
+			x.TargetAccountEpoch = s.ReadInt64()
+		case "role":
+			s.AddField("role")
+			x.Role = s.ReadString()
+		case "expires_at", "expiresAt":
+			s.AddField("expires_at")
+			x.ExpiresAt = s.ReadInt64()
+		case "nonce":
+			s.AddField("nonce")
+			x.Nonce = s.ReadBytes()
+		case "payload":
+			s.AddField("payload")
+			x.Payload = s.ReadBytes()
+		case "signature":
+			s.AddField("signature")
+			x.Signature = s.ReadBytes()
+		case "actor_account_epoch", "actorAccountEpoch":
+			s.AddField("actor_account_epoch")
+			x.ActorAccountEpoch = s.ReadInt64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the TargetedInvitationEnvelope from JSON.
+func (x *TargetedInvitationEnvelope) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the TargetedInvitationInfo message to JSON.
+func (x *TargetedInvitationInfo) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Id != "" || s.HasField("id") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("id")
+		s.WriteString(x.Id)
+	}
+	if x.ActorAccountId != "" || s.HasField("actorAccountId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("actorAccountId")
+		s.WriteString(x.ActorAccountId)
+	}
+	if x.TargetAccountId != "" || s.HasField("targetAccountId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("targetAccountId")
+		s.WriteString(x.TargetAccountId)
+	}
+	if x.TargetEntityId != "" || s.HasField("targetEntityId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("targetEntityId")
+		s.WriteString(x.TargetEntityId)
+	}
+	if x.TargetEntityUuid != "" || s.HasField("targetEntityUuid") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("targetEntityUuid")
+		s.WriteString(x.TargetEntityUuid)
+	}
+	if x.TargetAccountEpoch != 0 || s.HasField("targetAccountEpoch") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("targetAccountEpoch")
+		s.WriteInt64(x.TargetAccountEpoch)
+	}
+	if x.Purpose != 0 || s.HasField("purpose") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("purpose")
+		x.Purpose.MarshalProtoJSON(s)
+	}
+	if x.ContextId != "" || s.HasField("contextId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("contextId")
+		s.WriteString(x.ContextId)
+	}
+	if x.Role != "" || s.HasField("role") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("role")
+		s.WriteString(x.Role)
+	}
+	if x.Status != "" || s.HasField("status") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("status")
+		s.WriteString(x.Status)
+	}
+	if x.EnvelopeHash != "" || s.HasField("envelopeHash") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("envelopeHash")
+		s.WriteString(x.EnvelopeHash)
+	}
+	if x.Envelope != nil || s.HasField("envelope") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("envelope")
+		x.Envelope.MarshalProtoJSON(s.WithField("envelope"))
+	}
+	if x.CreatedAt != 0 || s.HasField("createdAt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("createdAt")
+		s.WriteInt64(x.CreatedAt)
+	}
+	if x.UpdatedAt != 0 || s.HasField("updatedAt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("updatedAt")
+		s.WriteInt64(x.UpdatedAt)
+	}
+	if x.ExpiresAt != 0 || s.HasField("expiresAt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("expiresAt")
+		s.WriteInt64(x.ExpiresAt)
+	}
+	if x.DraftId != "" || s.HasField("draftId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("draftId")
+		s.WriteString(x.DraftId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the TargetedInvitationInfo to JSON.
+func (x *TargetedInvitationInfo) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the TargetedInvitationInfo message from JSON.
+func (x *TargetedInvitationInfo) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "id":
+			s.AddField("id")
+			x.Id = s.ReadString()
+		case "actor_account_id", "actorAccountId":
+			s.AddField("actor_account_id")
+			x.ActorAccountId = s.ReadString()
+		case "target_account_id", "targetAccountId":
+			s.AddField("target_account_id")
+			x.TargetAccountId = s.ReadString()
+		case "target_entity_id", "targetEntityId":
+			s.AddField("target_entity_id")
+			x.TargetEntityId = s.ReadString()
+		case "target_entity_uuid", "targetEntityUuid":
+			s.AddField("target_entity_uuid")
+			x.TargetEntityUuid = s.ReadString()
+		case "target_account_epoch", "targetAccountEpoch":
+			s.AddField("target_account_epoch")
+			x.TargetAccountEpoch = s.ReadInt64()
+		case "purpose":
+			s.AddField("purpose")
+			x.Purpose.UnmarshalProtoJSON(s)
+		case "context_id", "contextId":
+			s.AddField("context_id")
+			x.ContextId = s.ReadString()
+		case "role":
+			s.AddField("role")
+			x.Role = s.ReadString()
+		case "status":
+			s.AddField("status")
+			x.Status = s.ReadString()
+		case "envelope_hash", "envelopeHash":
+			s.AddField("envelope_hash")
+			x.EnvelopeHash = s.ReadString()
+		case "envelope":
+			if s.ReadNil() {
+				x.Envelope = nil
+				return
+			}
+			x.Envelope = &TargetedInvitationEnvelope{}
+			x.Envelope.UnmarshalProtoJSON(s.WithField("envelope", true))
+		case "created_at", "createdAt":
+			s.AddField("created_at")
+			x.CreatedAt = s.ReadInt64()
+		case "updated_at", "updatedAt":
+			s.AddField("updated_at")
+			x.UpdatedAt = s.ReadInt64()
+		case "expires_at", "expiresAt":
+			s.AddField("expires_at")
+			x.ExpiresAt = s.ReadInt64()
+		case "draft_id", "draftId":
+			s.AddField("draft_id")
+			x.DraftId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the TargetedInvitationInfo from JSON.
+func (x *TargetedInvitationInfo) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the CreateTargetedInvitationRequest message to JSON.
+func (x *CreateTargetedInvitationRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.TargetAccountId != "" || s.HasField("targetAccountId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("targetAccountId")
+		s.WriteString(x.TargetAccountId)
+	}
+	if x.Purpose != 0 || s.HasField("purpose") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("purpose")
+		x.Purpose.MarshalProtoJSON(s)
+	}
+	if x.SpaceId != "" || s.HasField("spaceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("spaceId")
+		s.WriteString(x.SpaceId)
+	}
+	if x.OrgId != "" || s.HasField("orgId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("orgId")
+		s.WriteString(x.OrgId)
+	}
+	if x.Role != "" || s.HasField("role") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("role")
+		s.WriteString(x.Role)
+	}
+	if x.ExpiresAt != 0 || s.HasField("expiresAt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("expiresAt")
+		s.WriteInt64(x.ExpiresAt)
+	}
+	if x.Envelope != nil || s.HasField("envelope") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("envelope")
+		x.Envelope.MarshalProtoJSON(s.WithField("envelope"))
+	}
+	if x.DraftId != "" || s.HasField("draftId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("draftId")
+		s.WriteString(x.DraftId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CreateTargetedInvitationRequest to JSON.
+func (x *CreateTargetedInvitationRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CreateTargetedInvitationRequest message from JSON.
+func (x *CreateTargetedInvitationRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "target_account_id", "targetAccountId":
+			s.AddField("target_account_id")
+			x.TargetAccountId = s.ReadString()
+		case "purpose":
+			s.AddField("purpose")
+			x.Purpose.UnmarshalProtoJSON(s)
+		case "space_id", "spaceId":
+			s.AddField("space_id")
+			x.SpaceId = s.ReadString()
+		case "org_id", "orgId":
+			s.AddField("org_id")
+			x.OrgId = s.ReadString()
+		case "role":
+			s.AddField("role")
+			x.Role = s.ReadString()
+		case "expires_at", "expiresAt":
+			s.AddField("expires_at")
+			x.ExpiresAt = s.ReadInt64()
+		case "envelope":
+			if s.ReadNil() {
+				x.Envelope = nil
+				return
+			}
+			x.Envelope = &TargetedInvitationEnvelope{}
+			x.Envelope.UnmarshalProtoJSON(s.WithField("envelope", true))
+		case "draft_id", "draftId":
+			s.AddField("draft_id")
+			x.DraftId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the CreateTargetedInvitationRequest from JSON.
+func (x *CreateTargetedInvitationRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the CreateTargetedInvitationResponse message to JSON.
+func (x *CreateTargetedInvitationResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Invitation != nil || s.HasField("invitation") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("invitation")
+		x.Invitation.MarshalProtoJSON(s.WithField("invitation"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CreateTargetedInvitationResponse to JSON.
+func (x *CreateTargetedInvitationResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CreateTargetedInvitationResponse message from JSON.
+func (x *CreateTargetedInvitationResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "invitation":
+			if s.ReadNil() {
+				x.Invitation = nil
+				return
+			}
+			x.Invitation = &TargetedInvitationInfo{}
+			x.Invitation.UnmarshalProtoJSON(s.WithField("invitation", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the CreateTargetedInvitationResponse from JSON.
+func (x *CreateTargetedInvitationResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the CreateSpaceTargetedInvitationByUsernameRequest message to JSON.
+func (x *CreateSpaceTargetedInvitationByUsernameRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Username != "" || s.HasField("username") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("username")
+		s.WriteString(x.Username)
+	}
+	if x.SpaceId != "" || s.HasField("spaceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("spaceId")
+		s.WriteString(x.SpaceId)
+	}
+	if x.Role != "" || s.HasField("role") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("role")
+		s.WriteString(x.Role)
+	}
+	if x.ExpiresAt != 0 || s.HasField("expiresAt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("expiresAt")
+		s.WriteInt64(x.ExpiresAt)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CreateSpaceTargetedInvitationByUsernameRequest to JSON.
+func (x *CreateSpaceTargetedInvitationByUsernameRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CreateSpaceTargetedInvitationByUsernameRequest message from JSON.
+func (x *CreateSpaceTargetedInvitationByUsernameRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "username":
+			s.AddField("username")
+			x.Username = s.ReadString()
+		case "space_id", "spaceId":
+			s.AddField("space_id")
+			x.SpaceId = s.ReadString()
+		case "role":
+			s.AddField("role")
+			x.Role = s.ReadString()
+		case "expires_at", "expiresAt":
+			s.AddField("expires_at")
+			x.ExpiresAt = s.ReadInt64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the CreateSpaceTargetedInvitationByUsernameRequest from JSON.
+func (x *CreateSpaceTargetedInvitationByUsernameRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the CreateSpaceTargetedInvitationByUsernameResponse message to JSON.
+func (x *CreateSpaceTargetedInvitationByUsernameResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Invitation != nil || s.HasField("invitation") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("invitation")
+		x.Invitation.MarshalProtoJSON(s.WithField("invitation"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CreateSpaceTargetedInvitationByUsernameResponse to JSON.
+func (x *CreateSpaceTargetedInvitationByUsernameResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CreateSpaceTargetedInvitationByUsernameResponse message from JSON.
+func (x *CreateSpaceTargetedInvitationByUsernameResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "invitation":
+			if s.ReadNil() {
+				x.Invitation = nil
+				return
+			}
+			x.Invitation = &TargetedInvitationInfo{}
+			x.Invitation.UnmarshalProtoJSON(s.WithField("invitation", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the CreateSpaceTargetedInvitationByUsernameResponse from JSON.
+func (x *CreateSpaceTargetedInvitationByUsernameResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the AcceptSpaceTargetedInvitationRequest message to JSON.
+func (x *AcceptSpaceTargetedInvitationRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Id != "" || s.HasField("id") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("id")
+		s.WriteString(x.Id)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AcceptSpaceTargetedInvitationRequest to JSON.
+func (x *AcceptSpaceTargetedInvitationRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AcceptSpaceTargetedInvitationRequest message from JSON.
+func (x *AcceptSpaceTargetedInvitationRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "id":
+			s.AddField("id")
+			x.Id = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the AcceptSpaceTargetedInvitationRequest from JSON.
+func (x *AcceptSpaceTargetedInvitationRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the AcceptSpaceTargetedInvitationResponse message to JSON.
+func (x *AcceptSpaceTargetedInvitationResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Invitation != nil || s.HasField("invitation") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("invitation")
+		x.Invitation.MarshalProtoJSON(s.WithField("invitation"))
+	}
+	if x.SharedObjectId != "" || s.HasField("sharedObjectId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sharedObjectId")
+		s.WriteString(x.SharedObjectId)
+	}
+	if x.JoinResult != "" || s.HasField("joinResult") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("joinResult")
+		s.WriteString(x.JoinResult)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AcceptSpaceTargetedInvitationResponse to JSON.
+func (x *AcceptSpaceTargetedInvitationResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AcceptSpaceTargetedInvitationResponse message from JSON.
+func (x *AcceptSpaceTargetedInvitationResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "invitation":
+			if s.ReadNil() {
+				x.Invitation = nil
+				return
+			}
+			x.Invitation = &TargetedInvitationInfo{}
+			x.Invitation.UnmarshalProtoJSON(s.WithField("invitation", true))
+		case "shared_object_id", "sharedObjectId":
+			s.AddField("shared_object_id")
+			x.SharedObjectId = s.ReadString()
+		case "join_result", "joinResult":
+			s.AddField("join_result")
+			x.JoinResult = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the AcceptSpaceTargetedInvitationResponse from JSON.
+func (x *AcceptSpaceTargetedInvitationResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the CreateOrganizationTargetedInvitationByUsernameRequest message to JSON.
+func (x *CreateOrganizationTargetedInvitationByUsernameRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Username != "" || s.HasField("username") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("username")
+		s.WriteString(x.Username)
+	}
+	if x.OrgId != "" || s.HasField("orgId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("orgId")
+		s.WriteString(x.OrgId)
+	}
+	if x.Role != "" || s.HasField("role") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("role")
+		s.WriteString(x.Role)
+	}
+	if x.ExpiresAt != 0 || s.HasField("expiresAt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("expiresAt")
+		s.WriteInt64(x.ExpiresAt)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CreateOrganizationTargetedInvitationByUsernameRequest to JSON.
+func (x *CreateOrganizationTargetedInvitationByUsernameRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CreateOrganizationTargetedInvitationByUsernameRequest message from JSON.
+func (x *CreateOrganizationTargetedInvitationByUsernameRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "username":
+			s.AddField("username")
+			x.Username = s.ReadString()
+		case "org_id", "orgId":
+			s.AddField("org_id")
+			x.OrgId = s.ReadString()
+		case "role":
+			s.AddField("role")
+			x.Role = s.ReadString()
+		case "expires_at", "expiresAt":
+			s.AddField("expires_at")
+			x.ExpiresAt = s.ReadInt64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the CreateOrganizationTargetedInvitationByUsernameRequest from JSON.
+func (x *CreateOrganizationTargetedInvitationByUsernameRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the CreateOrganizationTargetedInvitationByUsernameResponse message to JSON.
+func (x *CreateOrganizationTargetedInvitationByUsernameResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Invitation != nil || s.HasField("invitation") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("invitation")
+		x.Invitation.MarshalProtoJSON(s.WithField("invitation"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CreateOrganizationTargetedInvitationByUsernameResponse to JSON.
+func (x *CreateOrganizationTargetedInvitationByUsernameResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CreateOrganizationTargetedInvitationByUsernameResponse message from JSON.
+func (x *CreateOrganizationTargetedInvitationByUsernameResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "invitation":
+			if s.ReadNil() {
+				x.Invitation = nil
+				return
+			}
+			x.Invitation = &TargetedInvitationInfo{}
+			x.Invitation.UnmarshalProtoJSON(s.WithField("invitation", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the CreateOrganizationTargetedInvitationByUsernameResponse from JSON.
+func (x *CreateOrganizationTargetedInvitationByUsernameResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the AcceptOrganizationTargetedInvitationRequest message to JSON.
+func (x *AcceptOrganizationTargetedInvitationRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Id != "" || s.HasField("id") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("id")
+		s.WriteString(x.Id)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AcceptOrganizationTargetedInvitationRequest to JSON.
+func (x *AcceptOrganizationTargetedInvitationRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AcceptOrganizationTargetedInvitationRequest message from JSON.
+func (x *AcceptOrganizationTargetedInvitationRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "id":
+			s.AddField("id")
+			x.Id = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the AcceptOrganizationTargetedInvitationRequest from JSON.
+func (x *AcceptOrganizationTargetedInvitationRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the AcceptOrganizationTargetedInvitationResponse message to JSON.
+func (x *AcceptOrganizationTargetedInvitationResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Invitation != nil || s.HasField("invitation") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("invitation")
+		x.Invitation.MarshalProtoJSON(s.WithField("invitation"))
+	}
+	if x.Organization != nil || s.HasField("organization") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("organization")
+		x.Organization.MarshalProtoJSON(s.WithField("organization"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AcceptOrganizationTargetedInvitationResponse to JSON.
+func (x *AcceptOrganizationTargetedInvitationResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AcceptOrganizationTargetedInvitationResponse message from JSON.
+func (x *AcceptOrganizationTargetedInvitationResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "invitation":
+			if s.ReadNil() {
+				x.Invitation = nil
+				return
+			}
+			x.Invitation = &TargetedInvitationInfo{}
+			x.Invitation.UnmarshalProtoJSON(s.WithField("invitation", true))
+		case "organization":
+			if s.ReadNil() {
+				x.Organization = nil
+				return
+			}
+			x.Organization = &OrganizationInfo{}
+			x.Organization.UnmarshalProtoJSON(s.WithField("organization", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the AcceptOrganizationTargetedInvitationResponse from JSON.
+func (x *AcceptOrganizationTargetedInvitationResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ListTargetedInvitationsRequest message to JSON.
+func (x *ListTargetedInvitationsRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ListTargetedInvitationsRequest to JSON.
+func (x *ListTargetedInvitationsRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ListTargetedInvitationsRequest message from JSON.
+func (x *ListTargetedInvitationsRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the ListTargetedInvitationsRequest from JSON.
+func (x *ListTargetedInvitationsRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ListTargetedInvitationsResponse message to JSON.
+func (x *ListTargetedInvitationsResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Invitations) > 0 || s.HasField("invitations") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("invitations")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Invitations {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("invitations"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ListTargetedInvitationsResponse to JSON.
+func (x *ListTargetedInvitationsResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ListTargetedInvitationsResponse message from JSON.
+func (x *ListTargetedInvitationsResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "invitations":
+			s.AddField("invitations")
+			if s.ReadNil() {
+				x.Invitations = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Invitations = append(x.Invitations, nil)
+					return
+				}
+				v := &TargetedInvitationInfo{}
+				v.UnmarshalProtoJSON(s.WithField("invitations", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Invitations = append(x.Invitations, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ListTargetedInvitationsResponse from JSON.
+func (x *ListTargetedInvitationsResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the GetTargetedInvitationRequest message to JSON.
+func (x *GetTargetedInvitationRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Id != "" || s.HasField("id") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("id")
+		s.WriteString(x.Id)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GetTargetedInvitationRequest to JSON.
+func (x *GetTargetedInvitationRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GetTargetedInvitationRequest message from JSON.
+func (x *GetTargetedInvitationRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "id":
+			s.AddField("id")
+			x.Id = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the GetTargetedInvitationRequest from JSON.
+func (x *GetTargetedInvitationRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the GetTargetedInvitationResponse message to JSON.
+func (x *GetTargetedInvitationResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Invitation != nil || s.HasField("invitation") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("invitation")
+		x.Invitation.MarshalProtoJSON(s.WithField("invitation"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GetTargetedInvitationResponse to JSON.
+func (x *GetTargetedInvitationResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GetTargetedInvitationResponse message from JSON.
+func (x *GetTargetedInvitationResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "invitation":
+			if s.ReadNil() {
+				x.Invitation = nil
+				return
+			}
+			x.Invitation = &TargetedInvitationInfo{}
+			x.Invitation.UnmarshalProtoJSON(s.WithField("invitation", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the GetTargetedInvitationResponse from JSON.
+func (x *GetTargetedInvitationResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RevokeTargetedInvitationRequest message to JSON.
+func (x *RevokeTargetedInvitationRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Id != "" || s.HasField("id") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("id")
+		s.WriteString(x.Id)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RevokeTargetedInvitationRequest to JSON.
+func (x *RevokeTargetedInvitationRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RevokeTargetedInvitationRequest message from JSON.
+func (x *RevokeTargetedInvitationRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "id":
+			s.AddField("id")
+			x.Id = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RevokeTargetedInvitationRequest from JSON.
+func (x *RevokeTargetedInvitationRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RevokeTargetedInvitationResponse message to JSON.
+func (x *RevokeTargetedInvitationResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Invitation != nil || s.HasField("invitation") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("invitation")
+		x.Invitation.MarshalProtoJSON(s.WithField("invitation"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RevokeTargetedInvitationResponse to JSON.
+func (x *RevokeTargetedInvitationResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RevokeTargetedInvitationResponse message from JSON.
+func (x *RevokeTargetedInvitationResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "invitation":
+			if s.ReadNil() {
+				x.Invitation = nil
+				return
+			}
+			x.Invitation = &TargetedInvitationInfo{}
+			x.Invitation.UnmarshalProtoJSON(s.WithField("invitation", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RevokeTargetedInvitationResponse from JSON.
+func (x *RevokeTargetedInvitationResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ProcessTargetedInvitationRequest message to JSON.
+func (x *ProcessTargetedInvitationRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Id != "" || s.HasField("id") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("id")
+		s.WriteString(x.Id)
+	}
+	if x.Action != "" || s.HasField("action") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("action")
+		s.WriteString(x.Action)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ProcessTargetedInvitationRequest to JSON.
+func (x *ProcessTargetedInvitationRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ProcessTargetedInvitationRequest message from JSON.
+func (x *ProcessTargetedInvitationRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "id":
+			s.AddField("id")
+			x.Id = s.ReadString()
+		case "action":
+			s.AddField("action")
+			x.Action = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ProcessTargetedInvitationRequest from JSON.
+func (x *ProcessTargetedInvitationRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ProcessTargetedInvitationResponse message to JSON.
+func (x *ProcessTargetedInvitationResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Invitation != nil || s.HasField("invitation") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("invitation")
+		x.Invitation.MarshalProtoJSON(s.WithField("invitation"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ProcessTargetedInvitationResponse to JSON.
+func (x *ProcessTargetedInvitationResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ProcessTargetedInvitationResponse message from JSON.
+func (x *ProcessTargetedInvitationResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "invitation":
+			if s.ReadNil() {
+				x.Invitation = nil
+				return
+			}
+			x.Invitation = &TargetedInvitationInfo{}
+			x.Invitation.UnmarshalProtoJSON(s.WithField("invitation", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ProcessTargetedInvitationResponse from JSON.
+func (x *ProcessTargetedInvitationResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -33060,6 +36893,1408 @@ func (m *OrgInviteInfo) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *CreateTargetedInviteDraftByUsernameRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CreateTargetedInviteDraftByUsernameRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CreateTargetedInviteDraftByUsernameRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.ExpiresAt != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ExpiresAt))
+		i--
+		dAtA[i] = 0x30
+	}
+	if len(m.Role) > 0 {
+		i -= len(m.Role)
+		copy(dAtA[i:], m.Role)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Role)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.OrgId) > 0 {
+		i -= len(m.OrgId)
+		copy(dAtA[i:], m.OrgId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.OrgId)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.SpaceId) > 0 {
+		i -= len(m.SpaceId)
+		copy(dAtA[i:], m.SpaceId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SpaceId)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Purpose != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Purpose))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Username) > 0 {
+		i -= len(m.Username)
+		copy(dAtA[i:], m.Username)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Username)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CreateTargetedInviteDraftByUsernameResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CreateTargetedInviteDraftByUsernameResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CreateTargetedInviteDraftByUsernameResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Accepted {
+		i--
+		if m.Accepted {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ResolveUsernameRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ResolveUsernameRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ResolveUsernameRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.OrgId) > 0 {
+		i -= len(m.OrgId)
+		copy(dAtA[i:], m.OrgId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.OrgId)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.SpaceId) > 0 {
+		i -= len(m.SpaceId)
+		copy(dAtA[i:], m.SpaceId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SpaceId)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Purpose != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Purpose))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Username) > 0 {
+		i -= len(m.Username)
+		copy(dAtA[i:], m.Username)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Username)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ResolveUsernameResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ResolveUsernameResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ResolveUsernameResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.AccountEpoch != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.AccountEpoch))
+		i--
+		dAtA[i] = 0x40
+	}
+	if len(m.EntityUuid) > 0 {
+		i -= len(m.EntityUuid)
+		copy(dAtA[i:], m.EntityUuid)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.EntityUuid)))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if m.CanInvite {
+		i--
+		if m.CanInvite {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x30
+	}
+	if len(m.Relationship) > 0 {
+		i -= len(m.Relationship)
+		copy(dAtA[i:], m.Relationship)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Relationship)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.DomainId) > 0 {
+		i -= len(m.DomainId)
+		copy(dAtA[i:], m.DomainId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.DomainId)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.EntityId) > 0 {
+		i -= len(m.EntityId)
+		copy(dAtA[i:], m.EntityId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.EntityId)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.AccountId) > 0 {
+		i -= len(m.AccountId)
+		copy(dAtA[i:], m.AccountId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.AccountId)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Found {
+		i--
+		if m.Found {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *TargetedInvitationEnvelope) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *TargetedInvitationEnvelope) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *TargetedInvitationEnvelope) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.ActorAccountEpoch != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ActorAccountEpoch))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	if len(m.Signature) > 0 {
+		i -= len(m.Signature)
+		copy(dAtA[i:], m.Signature)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Signature)))
+		i--
+		dAtA[i] = 0x7a
+	}
+	if len(m.Payload) > 0 {
+		i -= len(m.Payload)
+		copy(dAtA[i:], m.Payload)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Payload)))
+		i--
+		dAtA[i] = 0x72
+	}
+	if len(m.Nonce) > 0 {
+		i -= len(m.Nonce)
+		copy(dAtA[i:], m.Nonce)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Nonce)))
+		i--
+		dAtA[i] = 0x6a
+	}
+	if m.ExpiresAt != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ExpiresAt))
+		i--
+		dAtA[i] = 0x60
+	}
+	if len(m.Role) > 0 {
+		i -= len(m.Role)
+		copy(dAtA[i:], m.Role)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Role)))
+		i--
+		dAtA[i] = 0x5a
+	}
+	if m.TargetAccountEpoch != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.TargetAccountEpoch))
+		i--
+		dAtA[i] = 0x50
+	}
+	if len(m.TargetEntityUuid) > 0 {
+		i -= len(m.TargetEntityUuid)
+		copy(dAtA[i:], m.TargetEntityUuid)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.TargetEntityUuid)))
+		i--
+		dAtA[i] = 0x4a
+	}
+	if len(m.TargetEntityId) > 0 {
+		i -= len(m.TargetEntityId)
+		copy(dAtA[i:], m.TargetEntityId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.TargetEntityId)))
+		i--
+		dAtA[i] = 0x42
+	}
+	if len(m.TargetAccountId) > 0 {
+		i -= len(m.TargetAccountId)
+		copy(dAtA[i:], m.TargetAccountId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.TargetAccountId)))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if len(m.SignerPeerId) > 0 {
+		i -= len(m.SignerPeerId)
+		copy(dAtA[i:], m.SignerPeerId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SignerPeerId)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if len(m.ActorEntityUuid) > 0 {
+		i -= len(m.ActorEntityUuid)
+		copy(dAtA[i:], m.ActorEntityUuid)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ActorEntityUuid)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.ActorAccountId) > 0 {
+		i -= len(m.ActorAccountId)
+		copy(dAtA[i:], m.ActorAccountId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ActorAccountId)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.ContextId) > 0 {
+		i -= len(m.ContextId)
+		copy(dAtA[i:], m.ContextId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ContextId)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Purpose != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Purpose))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.SchemaVersion != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.SchemaVersion))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *TargetedInvitationInfo) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *TargetedInvitationInfo) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *TargetedInvitationInfo) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.DraftId) > 0 {
+		i -= len(m.DraftId)
+		copy(dAtA[i:], m.DraftId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.DraftId)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x82
+	}
+	if m.ExpiresAt != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ExpiresAt))
+		i--
+		dAtA[i] = 0x78
+	}
+	if m.UpdatedAt != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.UpdatedAt))
+		i--
+		dAtA[i] = 0x70
+	}
+	if m.CreatedAt != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CreatedAt))
+		i--
+		dAtA[i] = 0x68
+	}
+	if m.Envelope != nil {
+		size, err := m.Envelope.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x62
+	}
+	if len(m.EnvelopeHash) > 0 {
+		i -= len(m.EnvelopeHash)
+		copy(dAtA[i:], m.EnvelopeHash)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.EnvelopeHash)))
+		i--
+		dAtA[i] = 0x5a
+	}
+	if len(m.Status) > 0 {
+		i -= len(m.Status)
+		copy(dAtA[i:], m.Status)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Status)))
+		i--
+		dAtA[i] = 0x52
+	}
+	if len(m.Role) > 0 {
+		i -= len(m.Role)
+		copy(dAtA[i:], m.Role)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Role)))
+		i--
+		dAtA[i] = 0x4a
+	}
+	if len(m.ContextId) > 0 {
+		i -= len(m.ContextId)
+		copy(dAtA[i:], m.ContextId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ContextId)))
+		i--
+		dAtA[i] = 0x42
+	}
+	if m.Purpose != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Purpose))
+		i--
+		dAtA[i] = 0x38
+	}
+	if m.TargetAccountEpoch != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.TargetAccountEpoch))
+		i--
+		dAtA[i] = 0x30
+	}
+	if len(m.TargetEntityUuid) > 0 {
+		i -= len(m.TargetEntityUuid)
+		copy(dAtA[i:], m.TargetEntityUuid)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.TargetEntityUuid)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.TargetEntityId) > 0 {
+		i -= len(m.TargetEntityId)
+		copy(dAtA[i:], m.TargetEntityId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.TargetEntityId)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.TargetAccountId) > 0 {
+		i -= len(m.TargetAccountId)
+		copy(dAtA[i:], m.TargetAccountId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.TargetAccountId)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.ActorAccountId) > 0 {
+		i -= len(m.ActorAccountId)
+		copy(dAtA[i:], m.ActorAccountId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ActorAccountId)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Id) > 0 {
+		i -= len(m.Id)
+		copy(dAtA[i:], m.Id)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Id)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CreateTargetedInvitationRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CreateTargetedInvitationRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CreateTargetedInvitationRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.DraftId) > 0 {
+		i -= len(m.DraftId)
+		copy(dAtA[i:], m.DraftId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.DraftId)))
+		i--
+		dAtA[i] = 0x42
+	}
+	if m.Envelope != nil {
+		size, err := m.Envelope.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if m.ExpiresAt != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ExpiresAt))
+		i--
+		dAtA[i] = 0x30
+	}
+	if len(m.Role) > 0 {
+		i -= len(m.Role)
+		copy(dAtA[i:], m.Role)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Role)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.OrgId) > 0 {
+		i -= len(m.OrgId)
+		copy(dAtA[i:], m.OrgId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.OrgId)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.SpaceId) > 0 {
+		i -= len(m.SpaceId)
+		copy(dAtA[i:], m.SpaceId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SpaceId)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Purpose != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Purpose))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.TargetAccountId) > 0 {
+		i -= len(m.TargetAccountId)
+		copy(dAtA[i:], m.TargetAccountId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.TargetAccountId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CreateTargetedInvitationResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CreateTargetedInvitationResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CreateTargetedInvitationResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Invitation != nil {
+		size, err := m.Invitation.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CreateSpaceTargetedInvitationByUsernameRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CreateSpaceTargetedInvitationByUsernameRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CreateSpaceTargetedInvitationByUsernameRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.ExpiresAt != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ExpiresAt))
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.Role) > 0 {
+		i -= len(m.Role)
+		copy(dAtA[i:], m.Role)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Role)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.SpaceId) > 0 {
+		i -= len(m.SpaceId)
+		copy(dAtA[i:], m.SpaceId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SpaceId)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Username) > 0 {
+		i -= len(m.Username)
+		copy(dAtA[i:], m.Username)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Username)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CreateSpaceTargetedInvitationByUsernameResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CreateSpaceTargetedInvitationByUsernameResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CreateSpaceTargetedInvitationByUsernameResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Invitation != nil {
+		size, err := m.Invitation.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *AcceptSpaceTargetedInvitationRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AcceptSpaceTargetedInvitationRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AcceptSpaceTargetedInvitationRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Id) > 0 {
+		i -= len(m.Id)
+		copy(dAtA[i:], m.Id)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Id)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *AcceptSpaceTargetedInvitationResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AcceptSpaceTargetedInvitationResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AcceptSpaceTargetedInvitationResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.JoinResult) > 0 {
+		i -= len(m.JoinResult)
+		copy(dAtA[i:], m.JoinResult)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.JoinResult)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.SharedObjectId) > 0 {
+		i -= len(m.SharedObjectId)
+		copy(dAtA[i:], m.SharedObjectId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SharedObjectId)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Invitation != nil {
+		size, err := m.Invitation.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CreateOrganizationTargetedInvitationByUsernameRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CreateOrganizationTargetedInvitationByUsernameRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CreateOrganizationTargetedInvitationByUsernameRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.ExpiresAt != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ExpiresAt))
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.Role) > 0 {
+		i -= len(m.Role)
+		copy(dAtA[i:], m.Role)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Role)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.OrgId) > 0 {
+		i -= len(m.OrgId)
+		copy(dAtA[i:], m.OrgId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.OrgId)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Username) > 0 {
+		i -= len(m.Username)
+		copy(dAtA[i:], m.Username)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Username)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CreateOrganizationTargetedInvitationByUsernameResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CreateOrganizationTargetedInvitationByUsernameResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CreateOrganizationTargetedInvitationByUsernameResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Invitation != nil {
+		size, err := m.Invitation.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *AcceptOrganizationTargetedInvitationRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AcceptOrganizationTargetedInvitationRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AcceptOrganizationTargetedInvitationRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Id) > 0 {
+		i -= len(m.Id)
+		copy(dAtA[i:], m.Id)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Id)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *AcceptOrganizationTargetedInvitationResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AcceptOrganizationTargetedInvitationResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AcceptOrganizationTargetedInvitationResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Organization != nil {
+		size, err := m.Organization.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Invitation != nil {
+		size, err := m.Invitation.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ListTargetedInvitationsRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ListTargetedInvitationsRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ListTargetedInvitationsRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ListTargetedInvitationsResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ListTargetedInvitationsResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ListTargetedInvitationsResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Invitations) > 0 {
+		for iNdEx := len(m.Invitations) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Invitations[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *GetTargetedInvitationRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetTargetedInvitationRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GetTargetedInvitationRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Id) > 0 {
+		i -= len(m.Id)
+		copy(dAtA[i:], m.Id)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Id)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *GetTargetedInvitationResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetTargetedInvitationResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GetTargetedInvitationResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Invitation != nil {
+		size, err := m.Invitation.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RevokeTargetedInvitationRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RevokeTargetedInvitationRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RevokeTargetedInvitationRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Id) > 0 {
+		i -= len(m.Id)
+		copy(dAtA[i:], m.Id)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Id)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RevokeTargetedInvitationResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RevokeTargetedInvitationResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RevokeTargetedInvitationResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Invitation != nil {
+		size, err := m.Invitation.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ProcessTargetedInvitationRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ProcessTargetedInvitationRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ProcessTargetedInvitationRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Action) > 0 {
+		i -= len(m.Action)
+		copy(dAtA[i:], m.Action)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Action)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Id) > 0 {
+		i -= len(m.Id)
+		copy(dAtA[i:], m.Id)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Id)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ProcessTargetedInvitationResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ProcessTargetedInvitationResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ProcessTargetedInvitationResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Invitation != nil {
+		size, err := m.Invitation.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *CreateOrgInviteRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -39843,6 +45078,567 @@ func (m *OrgInviteInfo) SizeVT() (n int) {
 	return n
 }
 
+func (m *CreateTargetedInviteDraftByUsernameRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Username)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Purpose != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Purpose))
+	}
+	l = len(m.SpaceId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.OrgId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Role)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.ExpiresAt != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.ExpiresAt))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CreateTargetedInviteDraftByUsernameResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Accepted {
+		n += 2
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ResolveUsernameRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Username)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Purpose != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Purpose))
+	}
+	l = len(m.SpaceId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.OrgId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ResolveUsernameResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Found {
+		n += 2
+	}
+	l = len(m.AccountId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.EntityId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.DomainId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Relationship)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.CanInvite {
+		n += 2
+	}
+	l = len(m.EntityUuid)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.AccountEpoch != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.AccountEpoch))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *TargetedInvitationEnvelope) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.SchemaVersion != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.SchemaVersion))
+	}
+	if m.Purpose != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Purpose))
+	}
+	l = len(m.ContextId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ActorAccountId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ActorEntityUuid)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.SignerPeerId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.TargetAccountId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.TargetEntityId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.TargetEntityUuid)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.TargetAccountEpoch != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.TargetAccountEpoch))
+	}
+	l = len(m.Role)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.ExpiresAt != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.ExpiresAt))
+	}
+	l = len(m.Nonce)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Payload)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Signature)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.ActorAccountEpoch != 0 {
+		n += 2 + protobuf_go_lite.SizeOfVarint(uint64(m.ActorAccountEpoch))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *TargetedInvitationInfo) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Id)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ActorAccountId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.TargetAccountId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.TargetEntityId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.TargetEntityUuid)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.TargetAccountEpoch != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.TargetAccountEpoch))
+	}
+	if m.Purpose != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Purpose))
+	}
+	l = len(m.ContextId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Role)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Status)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.EnvelopeHash)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Envelope != nil {
+		l = m.Envelope.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.CreatedAt != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.CreatedAt))
+	}
+	if m.UpdatedAt != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.UpdatedAt))
+	}
+	if m.ExpiresAt != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.ExpiresAt))
+	}
+	l = len(m.DraftId)
+	if l > 0 {
+		n += 2 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CreateTargetedInvitationRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.TargetAccountId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Purpose != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Purpose))
+	}
+	l = len(m.SpaceId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.OrgId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Role)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.ExpiresAt != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.ExpiresAt))
+	}
+	if m.Envelope != nil {
+		l = m.Envelope.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.DraftId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CreateTargetedInvitationResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Invitation != nil {
+		l = m.Invitation.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CreateSpaceTargetedInvitationByUsernameRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Username)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.SpaceId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Role)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.ExpiresAt != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.ExpiresAt))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CreateSpaceTargetedInvitationByUsernameResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Invitation != nil {
+		l = m.Invitation.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *AcceptSpaceTargetedInvitationRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Id)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *AcceptSpaceTargetedInvitationResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Invitation != nil {
+		l = m.Invitation.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.SharedObjectId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.JoinResult)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CreateOrganizationTargetedInvitationByUsernameRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Username)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.OrgId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Role)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.ExpiresAt != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.ExpiresAt))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CreateOrganizationTargetedInvitationByUsernameResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Invitation != nil {
+		l = m.Invitation.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *AcceptOrganizationTargetedInvitationRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Id)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *AcceptOrganizationTargetedInvitationResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Invitation != nil {
+		l = m.Invitation.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Organization != nil {
+		l = m.Organization.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ListTargetedInvitationsRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ListTargetedInvitationsResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Invitations) > 0 {
+		for _, e := range m.Invitations {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GetTargetedInvitationRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Id)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GetTargetedInvitationResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Invitation != nil {
+		l = m.Invitation.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RevokeTargetedInvitationRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Id)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RevokeTargetedInvitationResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Invitation != nil {
+		l = m.Invitation.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ProcessTargetedInvitationRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Id)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Action)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ProcessTargetedInvitationResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Invitation != nil {
+		l = m.Invitation.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *CreateOrgInviteRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -41505,6 +47301,10 @@ func (x CheckoutStatus) MarshalProtoText() string {
 }
 
 func (x SelfEnrollmentGateState) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x TargetedInvitePurpose) MarshalProtoText() string {
 	return x.String()
 }
 
@@ -44678,6 +50478,887 @@ func (x *OrgInviteInfo) MarshalProtoText() string {
 }
 
 func (x *OrgInviteInfo) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CreateTargetedInviteDraftByUsernameRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("CreateTargetedInviteDraftByUsernameRequest {")
+	if x.Username != "" {
+		if sb.Len() > 44 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("username: ")
+		sb.WriteString(strconv.Quote(x.Username))
+	}
+	if x.Purpose != 0 {
+		if sb.Len() > 44 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("purpose: ")
+		sb.WriteString("\"")
+		sb.WriteString(TargetedInvitePurpose(x.Purpose).String())
+		sb.WriteString("\"")
+	}
+	if x.SpaceId != "" {
+		if sb.Len() > 44 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("space_id: ")
+		sb.WriteString(strconv.Quote(x.SpaceId))
+	}
+	if x.OrgId != "" {
+		if sb.Len() > 44 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("org_id: ")
+		sb.WriteString(strconv.Quote(x.OrgId))
+	}
+	if x.Role != "" {
+		if sb.Len() > 44 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("role: ")
+		sb.WriteString(strconv.Quote(x.Role))
+	}
+	if x.ExpiresAt != 0 {
+		if sb.Len() > 44 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("expires_at: ")
+		sb.WriteString(strconv.FormatInt(int64(x.ExpiresAt), 10))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *CreateTargetedInviteDraftByUsernameRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CreateTargetedInviteDraftByUsernameResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("CreateTargetedInviteDraftByUsernameResponse {")
+	if x.Accepted != false {
+		if sb.Len() > 45 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("accepted: ")
+		sb.WriteString(strconv.FormatBool(x.Accepted))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *CreateTargetedInviteDraftByUsernameResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ResolveUsernameRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("ResolveUsernameRequest {")
+	if x.Username != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("username: ")
+		sb.WriteString(strconv.Quote(x.Username))
+	}
+	if x.Purpose != 0 {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("purpose: ")
+		sb.WriteString("\"")
+		sb.WriteString(TargetedInvitePurpose(x.Purpose).String())
+		sb.WriteString("\"")
+	}
+	if x.SpaceId != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("space_id: ")
+		sb.WriteString(strconv.Quote(x.SpaceId))
+	}
+	if x.OrgId != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("org_id: ")
+		sb.WriteString(strconv.Quote(x.OrgId))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *ResolveUsernameRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ResolveUsernameResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("ResolveUsernameResponse {")
+	if x.Found != false {
+		if sb.Len() > 25 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("found: ")
+		sb.WriteString(strconv.FormatBool(x.Found))
+	}
+	if x.AccountId != "" {
+		if sb.Len() > 25 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("account_id: ")
+		sb.WriteString(strconv.Quote(x.AccountId))
+	}
+	if x.EntityId != "" {
+		if sb.Len() > 25 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("entity_id: ")
+		sb.WriteString(strconv.Quote(x.EntityId))
+	}
+	if x.DomainId != "" {
+		if sb.Len() > 25 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("domain_id: ")
+		sb.WriteString(strconv.Quote(x.DomainId))
+	}
+	if x.Relationship != "" {
+		if sb.Len() > 25 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("relationship: ")
+		sb.WriteString(strconv.Quote(x.Relationship))
+	}
+	if x.CanInvite != false {
+		if sb.Len() > 25 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("can_invite: ")
+		sb.WriteString(strconv.FormatBool(x.CanInvite))
+	}
+	if x.EntityUuid != "" {
+		if sb.Len() > 25 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("entity_uuid: ")
+		sb.WriteString(strconv.Quote(x.EntityUuid))
+	}
+	if x.AccountEpoch != 0 {
+		if sb.Len() > 25 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("account_epoch: ")
+		sb.WriteString(strconv.FormatInt(int64(x.AccountEpoch), 10))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *ResolveUsernameResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *TargetedInvitationEnvelope) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("TargetedInvitationEnvelope {")
+	if x.SchemaVersion != 0 {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("schema_version: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.SchemaVersion), 10))
+	}
+	if x.Purpose != 0 {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("purpose: ")
+		sb.WriteString("\"")
+		sb.WriteString(TargetedInvitePurpose(x.Purpose).String())
+		sb.WriteString("\"")
+	}
+	if x.ContextId != "" {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("context_id: ")
+		sb.WriteString(strconv.Quote(x.ContextId))
+	}
+	if x.ActorAccountId != "" {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("actor_account_id: ")
+		sb.WriteString(strconv.Quote(x.ActorAccountId))
+	}
+	if x.ActorEntityUuid != "" {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("actor_entity_uuid: ")
+		sb.WriteString(strconv.Quote(x.ActorEntityUuid))
+	}
+	if x.SignerPeerId != "" {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("signer_peer_id: ")
+		sb.WriteString(strconv.Quote(x.SignerPeerId))
+	}
+	if x.TargetAccountId != "" {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("target_account_id: ")
+		sb.WriteString(strconv.Quote(x.TargetAccountId))
+	}
+	if x.TargetEntityId != "" {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("target_entity_id: ")
+		sb.WriteString(strconv.Quote(x.TargetEntityId))
+	}
+	if x.TargetEntityUuid != "" {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("target_entity_uuid: ")
+		sb.WriteString(strconv.Quote(x.TargetEntityUuid))
+	}
+	if x.TargetAccountEpoch != 0 {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("target_account_epoch: ")
+		sb.WriteString(strconv.FormatInt(int64(x.TargetAccountEpoch), 10))
+	}
+	if x.Role != "" {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("role: ")
+		sb.WriteString(strconv.Quote(x.Role))
+	}
+	if x.ExpiresAt != 0 {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("expires_at: ")
+		sb.WriteString(strconv.FormatInt(int64(x.ExpiresAt), 10))
+	}
+	if x.Nonce != nil {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("nonce: ")
+		sb.WriteString("\"")
+		sb.WriteString(base64.StdEncoding.EncodeToString(x.Nonce))
+		sb.WriteString("\"")
+	}
+	if x.Payload != nil {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("payload: ")
+		sb.WriteString("\"")
+		sb.WriteString(base64.StdEncoding.EncodeToString(x.Payload))
+		sb.WriteString("\"")
+	}
+	if x.Signature != nil {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("signature: ")
+		sb.WriteString("\"")
+		sb.WriteString(base64.StdEncoding.EncodeToString(x.Signature))
+		sb.WriteString("\"")
+	}
+	if x.ActorAccountEpoch != 0 {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("actor_account_epoch: ")
+		sb.WriteString(strconv.FormatInt(int64(x.ActorAccountEpoch), 10))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *TargetedInvitationEnvelope) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *TargetedInvitationInfo) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("TargetedInvitationInfo {")
+	if x.Id != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("id: ")
+		sb.WriteString(strconv.Quote(x.Id))
+	}
+	if x.ActorAccountId != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("actor_account_id: ")
+		sb.WriteString(strconv.Quote(x.ActorAccountId))
+	}
+	if x.TargetAccountId != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("target_account_id: ")
+		sb.WriteString(strconv.Quote(x.TargetAccountId))
+	}
+	if x.TargetEntityId != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("target_entity_id: ")
+		sb.WriteString(strconv.Quote(x.TargetEntityId))
+	}
+	if x.TargetEntityUuid != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("target_entity_uuid: ")
+		sb.WriteString(strconv.Quote(x.TargetEntityUuid))
+	}
+	if x.TargetAccountEpoch != 0 {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("target_account_epoch: ")
+		sb.WriteString(strconv.FormatInt(int64(x.TargetAccountEpoch), 10))
+	}
+	if x.Purpose != 0 {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("purpose: ")
+		sb.WriteString("\"")
+		sb.WriteString(TargetedInvitePurpose(x.Purpose).String())
+		sb.WriteString("\"")
+	}
+	if x.ContextId != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("context_id: ")
+		sb.WriteString(strconv.Quote(x.ContextId))
+	}
+	if x.Role != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("role: ")
+		sb.WriteString(strconv.Quote(x.Role))
+	}
+	if x.Status != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("status: ")
+		sb.WriteString(strconv.Quote(x.Status))
+	}
+	if x.EnvelopeHash != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("envelope_hash: ")
+		sb.WriteString(strconv.Quote(x.EnvelopeHash))
+	}
+	if x.Envelope != nil {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("envelope: ")
+		sb.WriteString(x.Envelope.MarshalProtoText())
+	}
+	if x.CreatedAt != 0 {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("created_at: ")
+		sb.WriteString(strconv.FormatInt(int64(x.CreatedAt), 10))
+	}
+	if x.UpdatedAt != 0 {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("updated_at: ")
+		sb.WriteString(strconv.FormatInt(int64(x.UpdatedAt), 10))
+	}
+	if x.ExpiresAt != 0 {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("expires_at: ")
+		sb.WriteString(strconv.FormatInt(int64(x.ExpiresAt), 10))
+	}
+	if x.DraftId != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("draft_id: ")
+		sb.WriteString(strconv.Quote(x.DraftId))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *TargetedInvitationInfo) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CreateTargetedInvitationRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("CreateTargetedInvitationRequest {")
+	if x.TargetAccountId != "" {
+		if sb.Len() > 33 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("target_account_id: ")
+		sb.WriteString(strconv.Quote(x.TargetAccountId))
+	}
+	if x.Purpose != 0 {
+		if sb.Len() > 33 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("purpose: ")
+		sb.WriteString("\"")
+		sb.WriteString(TargetedInvitePurpose(x.Purpose).String())
+		sb.WriteString("\"")
+	}
+	if x.SpaceId != "" {
+		if sb.Len() > 33 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("space_id: ")
+		sb.WriteString(strconv.Quote(x.SpaceId))
+	}
+	if x.OrgId != "" {
+		if sb.Len() > 33 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("org_id: ")
+		sb.WriteString(strconv.Quote(x.OrgId))
+	}
+	if x.Role != "" {
+		if sb.Len() > 33 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("role: ")
+		sb.WriteString(strconv.Quote(x.Role))
+	}
+	if x.ExpiresAt != 0 {
+		if sb.Len() > 33 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("expires_at: ")
+		sb.WriteString(strconv.FormatInt(int64(x.ExpiresAt), 10))
+	}
+	if x.Envelope != nil {
+		if sb.Len() > 33 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("envelope: ")
+		sb.WriteString(x.Envelope.MarshalProtoText())
+	}
+	if x.DraftId != "" {
+		if sb.Len() > 33 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("draft_id: ")
+		sb.WriteString(strconv.Quote(x.DraftId))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *CreateTargetedInvitationRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CreateTargetedInvitationResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("CreateTargetedInvitationResponse {")
+	if x.Invitation != nil {
+		if sb.Len() > 34 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("invitation: ")
+		sb.WriteString(x.Invitation.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *CreateTargetedInvitationResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CreateSpaceTargetedInvitationByUsernameRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("CreateSpaceTargetedInvitationByUsernameRequest {")
+	if x.Username != "" {
+		if sb.Len() > 48 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("username: ")
+		sb.WriteString(strconv.Quote(x.Username))
+	}
+	if x.SpaceId != "" {
+		if sb.Len() > 48 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("space_id: ")
+		sb.WriteString(strconv.Quote(x.SpaceId))
+	}
+	if x.Role != "" {
+		if sb.Len() > 48 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("role: ")
+		sb.WriteString(strconv.Quote(x.Role))
+	}
+	if x.ExpiresAt != 0 {
+		if sb.Len() > 48 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("expires_at: ")
+		sb.WriteString(strconv.FormatInt(int64(x.ExpiresAt), 10))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *CreateSpaceTargetedInvitationByUsernameRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CreateSpaceTargetedInvitationByUsernameResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("CreateSpaceTargetedInvitationByUsernameResponse {")
+	if x.Invitation != nil {
+		if sb.Len() > 49 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("invitation: ")
+		sb.WriteString(x.Invitation.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *CreateSpaceTargetedInvitationByUsernameResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *AcceptSpaceTargetedInvitationRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("AcceptSpaceTargetedInvitationRequest {")
+	if x.Id != "" {
+		if sb.Len() > 38 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("id: ")
+		sb.WriteString(strconv.Quote(x.Id))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *AcceptSpaceTargetedInvitationRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *AcceptSpaceTargetedInvitationResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("AcceptSpaceTargetedInvitationResponse {")
+	if x.Invitation != nil {
+		if sb.Len() > 39 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("invitation: ")
+		sb.WriteString(x.Invitation.MarshalProtoText())
+	}
+	if x.SharedObjectId != "" {
+		if sb.Len() > 39 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("shared_object_id: ")
+		sb.WriteString(strconv.Quote(x.SharedObjectId))
+	}
+	if x.JoinResult != "" {
+		if sb.Len() > 39 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("join_result: ")
+		sb.WriteString(strconv.Quote(x.JoinResult))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *AcceptSpaceTargetedInvitationResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CreateOrganizationTargetedInvitationByUsernameRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("CreateOrganizationTargetedInvitationByUsernameRequest {")
+	if x.Username != "" {
+		if sb.Len() > 55 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("username: ")
+		sb.WriteString(strconv.Quote(x.Username))
+	}
+	if x.OrgId != "" {
+		if sb.Len() > 55 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("org_id: ")
+		sb.WriteString(strconv.Quote(x.OrgId))
+	}
+	if x.Role != "" {
+		if sb.Len() > 55 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("role: ")
+		sb.WriteString(strconv.Quote(x.Role))
+	}
+	if x.ExpiresAt != 0 {
+		if sb.Len() > 55 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("expires_at: ")
+		sb.WriteString(strconv.FormatInt(int64(x.ExpiresAt), 10))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *CreateOrganizationTargetedInvitationByUsernameRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CreateOrganizationTargetedInvitationByUsernameResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("CreateOrganizationTargetedInvitationByUsernameResponse {")
+	if x.Invitation != nil {
+		if sb.Len() > 56 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("invitation: ")
+		sb.WriteString(x.Invitation.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *CreateOrganizationTargetedInvitationByUsernameResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *AcceptOrganizationTargetedInvitationRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("AcceptOrganizationTargetedInvitationRequest {")
+	if x.Id != "" {
+		if sb.Len() > 45 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("id: ")
+		sb.WriteString(strconv.Quote(x.Id))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *AcceptOrganizationTargetedInvitationRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *AcceptOrganizationTargetedInvitationResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("AcceptOrganizationTargetedInvitationResponse {")
+	if x.Invitation != nil {
+		if sb.Len() > 46 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("invitation: ")
+		sb.WriteString(x.Invitation.MarshalProtoText())
+	}
+	if x.Organization != nil {
+		if sb.Len() > 46 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("organization: ")
+		sb.WriteString(x.Organization.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *AcceptOrganizationTargetedInvitationResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ListTargetedInvitationsRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("ListTargetedInvitationsRequest {")
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *ListTargetedInvitationsRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ListTargetedInvitationsResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("ListTargetedInvitationsResponse {")
+	if len(x.Invitations) > 0 {
+		if sb.Len() > 33 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("invitations: [")
+		for i, v := range x.Invitations {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *ListTargetedInvitationsResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *GetTargetedInvitationRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("GetTargetedInvitationRequest {")
+	if x.Id != "" {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("id: ")
+		sb.WriteString(strconv.Quote(x.Id))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *GetTargetedInvitationRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *GetTargetedInvitationResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("GetTargetedInvitationResponse {")
+	if x.Invitation != nil {
+		if sb.Len() > 31 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("invitation: ")
+		sb.WriteString(x.Invitation.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *GetTargetedInvitationResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RevokeTargetedInvitationRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("RevokeTargetedInvitationRequest {")
+	if x.Id != "" {
+		if sb.Len() > 33 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("id: ")
+		sb.WriteString(strconv.Quote(x.Id))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *RevokeTargetedInvitationRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RevokeTargetedInvitationResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("RevokeTargetedInvitationResponse {")
+	if x.Invitation != nil {
+		if sb.Len() > 34 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("invitation: ")
+		sb.WriteString(x.Invitation.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *RevokeTargetedInvitationResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ProcessTargetedInvitationRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("ProcessTargetedInvitationRequest {")
+	if x.Id != "" {
+		if sb.Len() > 34 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("id: ")
+		sb.WriteString(strconv.Quote(x.Id))
+	}
+	if x.Action != "" {
+		if sb.Len() > 34 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("action: ")
+		sb.WriteString(strconv.Quote(x.Action))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *ProcessTargetedInvitationRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ProcessTargetedInvitationResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("ProcessTargetedInvitationResponse {")
+	if x.Invitation != nil {
+		if sb.Len() > 35 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("invitation: ")
+		sb.WriteString(x.Invitation.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *ProcessTargetedInvitationResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -56943,6 +63624,2736 @@ func (m *OrgInviteInfo) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CreateTargetedInviteDraftByUsernameRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CreateTargetedInviteDraftByUsernameRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CreateTargetedInviteDraftByUsernameRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Username", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Username = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Purpose", wireType)
+			}
+			m.Purpose = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Purpose = TargetedInvitePurpose(_v)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SpaceId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SpaceId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OrgId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.OrgId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Role", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Role = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExpiresAt", wireType)
+			}
+			m.ExpiresAt = 0
+			m.ExpiresAt, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CreateTargetedInviteDraftByUsernameResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CreateTargetedInviteDraftByUsernameResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CreateTargetedInviteDraftByUsernameResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Accepted", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.Accepted = bool(v != 0)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ResolveUsernameRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ResolveUsernameRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ResolveUsernameRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Username", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Username = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Purpose", wireType)
+			}
+			m.Purpose = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Purpose = TargetedInvitePurpose(_v)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SpaceId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SpaceId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OrgId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.OrgId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ResolveUsernameResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ResolveUsernameResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ResolveUsernameResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Found", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.Found = bool(v != 0)
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AccountId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.AccountId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EntityId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.EntityId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DomainId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DomainId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Relationship", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Relationship = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanInvite", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.CanInvite = bool(v != 0)
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EntityUuid", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.EntityUuid = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AccountEpoch", wireType)
+			}
+			m.AccountEpoch = 0
+			m.AccountEpoch, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *TargetedInvitationEnvelope) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TargetedInvitationEnvelope: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TargetedInvitationEnvelope: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SchemaVersion", wireType)
+			}
+			m.SchemaVersion = 0
+			m.SchemaVersion, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Purpose", wireType)
+			}
+			m.Purpose = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Purpose = TargetedInvitePurpose(_v)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ContextId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ContextId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ActorAccountId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ActorAccountId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ActorEntityUuid", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ActorEntityUuid = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SignerPeerId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SignerPeerId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TargetAccountId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.TargetAccountId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TargetEntityId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.TargetEntityId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TargetEntityUuid", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.TargetEntityUuid = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TargetAccountEpoch", wireType)
+			}
+			m.TargetAccountEpoch = 0
+			m.TargetAccountEpoch, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Role", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Role = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 12:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExpiresAt", wireType)
+			}
+			m.ExpiresAt = 0
+			m.ExpiresAt, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 13:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Nonce", wireType)
+			}
+			var byteLen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			byteLen = int(_v)
+			if err != nil {
+				return err
+			}
+			if byteLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Nonce = append(m.Nonce[:0], dAtA[iNdEx:postIndex]...)
+			if m.Nonce == nil {
+				m.Nonce = []byte{}
+			}
+			iNdEx = postIndex
+		case 14:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Payload", wireType)
+			}
+			var byteLen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			byteLen = int(_v)
+			if err != nil {
+				return err
+			}
+			if byteLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Payload = append(m.Payload[:0], dAtA[iNdEx:postIndex]...)
+			if m.Payload == nil {
+				m.Payload = []byte{}
+			}
+			iNdEx = postIndex
+		case 15:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Signature", wireType)
+			}
+			var byteLen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			byteLen = int(_v)
+			if err != nil {
+				return err
+			}
+			if byteLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Signature = append(m.Signature[:0], dAtA[iNdEx:postIndex]...)
+			if m.Signature == nil {
+				m.Signature = []byte{}
+			}
+			iNdEx = postIndex
+		case 16:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ActorAccountEpoch", wireType)
+			}
+			m.ActorAccountEpoch = 0
+			m.ActorAccountEpoch, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *TargetedInvitationInfo) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TargetedInvitationInfo: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TargetedInvitationInfo: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Id = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ActorAccountId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ActorAccountId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TargetAccountId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.TargetAccountId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TargetEntityId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.TargetEntityId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TargetEntityUuid", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.TargetEntityUuid = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TargetAccountEpoch", wireType)
+			}
+			m.TargetAccountEpoch = 0
+			m.TargetAccountEpoch, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Purpose", wireType)
+			}
+			m.Purpose = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Purpose = TargetedInvitePurpose(_v)
+			if err != nil {
+				return err
+			}
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ContextId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ContextId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Role", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Role = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Status = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EnvelopeHash", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.EnvelopeHash = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Envelope", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Envelope == nil {
+				m.Envelope = &TargetedInvitationEnvelope{}
+			}
+			if err := m.Envelope.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 13:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CreatedAt", wireType)
+			}
+			m.CreatedAt = 0
+			m.CreatedAt, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 14:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UpdatedAt", wireType)
+			}
+			m.UpdatedAt = 0
+			m.UpdatedAt, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 15:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExpiresAt", wireType)
+			}
+			m.ExpiresAt = 0
+			m.ExpiresAt, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 16:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DraftId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DraftId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CreateTargetedInvitationRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CreateTargetedInvitationRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CreateTargetedInvitationRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TargetAccountId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.TargetAccountId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Purpose", wireType)
+			}
+			m.Purpose = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Purpose = TargetedInvitePurpose(_v)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SpaceId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SpaceId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OrgId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.OrgId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Role", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Role = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExpiresAt", wireType)
+			}
+			m.ExpiresAt = 0
+			m.ExpiresAt, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Envelope", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Envelope == nil {
+				m.Envelope = &TargetedInvitationEnvelope{}
+			}
+			if err := m.Envelope.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DraftId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DraftId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CreateTargetedInvitationResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CreateTargetedInvitationResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CreateTargetedInvitationResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Invitation", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Invitation == nil {
+				m.Invitation = &TargetedInvitationInfo{}
+			}
+			if err := m.Invitation.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CreateSpaceTargetedInvitationByUsernameRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CreateSpaceTargetedInvitationByUsernameRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CreateSpaceTargetedInvitationByUsernameRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Username", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Username = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SpaceId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SpaceId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Role", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Role = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExpiresAt", wireType)
+			}
+			m.ExpiresAt = 0
+			m.ExpiresAt, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CreateSpaceTargetedInvitationByUsernameResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CreateSpaceTargetedInvitationByUsernameResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CreateSpaceTargetedInvitationByUsernameResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Invitation", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Invitation == nil {
+				m.Invitation = &TargetedInvitationInfo{}
+			}
+			if err := m.Invitation.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *AcceptSpaceTargetedInvitationRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AcceptSpaceTargetedInvitationRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AcceptSpaceTargetedInvitationRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Id = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *AcceptSpaceTargetedInvitationResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AcceptSpaceTargetedInvitationResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AcceptSpaceTargetedInvitationResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Invitation", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Invitation == nil {
+				m.Invitation = &TargetedInvitationInfo{}
+			}
+			if err := m.Invitation.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SharedObjectId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SharedObjectId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field JoinResult", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.JoinResult = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CreateOrganizationTargetedInvitationByUsernameRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CreateOrganizationTargetedInvitationByUsernameRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CreateOrganizationTargetedInvitationByUsernameRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Username", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Username = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OrgId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.OrgId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Role", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Role = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExpiresAt", wireType)
+			}
+			m.ExpiresAt = 0
+			m.ExpiresAt, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CreateOrganizationTargetedInvitationByUsernameResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CreateOrganizationTargetedInvitationByUsernameResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CreateOrganizationTargetedInvitationByUsernameResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Invitation", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Invitation == nil {
+				m.Invitation = &TargetedInvitationInfo{}
+			}
+			if err := m.Invitation.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *AcceptOrganizationTargetedInvitationRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AcceptOrganizationTargetedInvitationRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AcceptOrganizationTargetedInvitationRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Id = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *AcceptOrganizationTargetedInvitationResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AcceptOrganizationTargetedInvitationResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AcceptOrganizationTargetedInvitationResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Invitation", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Invitation == nil {
+				m.Invitation = &TargetedInvitationInfo{}
+			}
+			if err := m.Invitation.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Organization", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Organization == nil {
+				m.Organization = &OrganizationInfo{}
+			}
+			if err := m.Organization.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ListTargetedInvitationsRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ListTargetedInvitationsRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ListTargetedInvitationsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ListTargetedInvitationsResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ListTargetedInvitationsResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ListTargetedInvitationsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Invitations", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Invitations = append(m.Invitations, &TargetedInvitationInfo{})
+			if err := m.Invitations[len(m.Invitations)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *GetTargetedInvitationRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetTargetedInvitationRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetTargetedInvitationRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Id = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *GetTargetedInvitationResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetTargetedInvitationResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetTargetedInvitationResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Invitation", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Invitation == nil {
+				m.Invitation = &TargetedInvitationInfo{}
+			}
+			if err := m.Invitation.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RevokeTargetedInvitationRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RevokeTargetedInvitationRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RevokeTargetedInvitationRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Id = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RevokeTargetedInvitationResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RevokeTargetedInvitationResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RevokeTargetedInvitationResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Invitation", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Invitation == nil {
+				m.Invitation = &TargetedInvitationInfo{}
+			}
+			if err := m.Invitation.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ProcessTargetedInvitationRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ProcessTargetedInvitationRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ProcessTargetedInvitationRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Id = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Action", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Action = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ProcessTargetedInvitationResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ProcessTargetedInvitationResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ProcessTargetedInvitationResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Invitation", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Invitation == nil {
+				m.Invitation = &TargetedInvitationInfo{}
+			}
+			if err := m.Invitation.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

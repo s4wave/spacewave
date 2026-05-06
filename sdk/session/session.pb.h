@@ -14287,8 +14287,24 @@ class JoinSpaceViaInviteRequest final : public ::google::protobuf::Message
 
   // accessors -------------------------------------------------------
   enum : int {
+    kTargetedInvitationEnvelopeFieldNumber = 2,
     kInviteMessageFieldNumber = 1,
   };
+  // bytes targeted_invitation_envelope = 2;
+  void clear_targeted_invitation_envelope() ;
+  const ::std::string& targeted_invitation_envelope() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_targeted_invitation_envelope(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_targeted_invitation_envelope();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_targeted_invitation_envelope();
+  void set_allocated_targeted_invitation_envelope(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_targeted_invitation_envelope() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_targeted_invitation_envelope(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_targeted_invitation_envelope();
+
+  public:
   // .sobject.SOInviteMessage invite_message = 1;
   bool has_invite_message() const;
   void clear_invite_message() ;
@@ -14308,7 +14324,7 @@ class JoinSpaceViaInviteRequest final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<0, 1,
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
                                    1, 0,
                                    2>
       _table_;
@@ -14330,6 +14346,7 @@ class JoinSpaceViaInviteRequest final : public ::google::protobuf::Message
         const JoinSpaceViaInviteRequest& from_msg);
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr targeted_invitation_envelope_;
     ::sobject::SOInviteMessage* PROTOBUF_NULLABLE invite_message_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
@@ -22072,7 +22089,7 @@ inline void RevokeSpaceInviteRequest::set_allocated_invite_id(::std::string* PRO
 
 // .sobject.SOInviteMessage invite_message = 1;
 inline bool JoinSpaceViaInviteRequest::has_invite_message() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
   PROTOBUF_ASSUME(!value || _impl_.invite_message_ != nullptr);
   return value;
 }
@@ -22093,16 +22110,16 @@ inline void JoinSpaceViaInviteRequest::unsafe_arena_set_allocated_invite_message
   }
   _impl_.invite_message_ = reinterpret_cast<::sobject::SOInviteMessage*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.session.JoinSpaceViaInviteRequest.invite_message)
 }
 inline ::sobject::SOInviteMessage* PROTOBUF_NULLABLE JoinSpaceViaInviteRequest::release_invite_message() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   ::sobject::SOInviteMessage* released = _impl_.invite_message_;
   _impl_.invite_message_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -22122,7 +22139,7 @@ inline ::sobject::SOInviteMessage* PROTOBUF_NULLABLE JoinSpaceViaInviteRequest::
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:s4wave.session.JoinSpaceViaInviteRequest.invite_message)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   ::sobject::SOInviteMessage* temp = _impl_.invite_message_;
   _impl_.invite_message_ = nullptr;
   return temp;
@@ -22137,7 +22154,7 @@ inline ::sobject::SOInviteMessage* PROTOBUF_NONNULL JoinSpaceViaInviteRequest::_
 }
 inline ::sobject::SOInviteMessage* PROTOBUF_NONNULL JoinSpaceViaInviteRequest::mutable_invite_message()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   ::sobject::SOInviteMessage* _msg = _internal_mutable_invite_message();
   // @@protoc_insertion_point(field_mutable:s4wave.session.JoinSpaceViaInviteRequest.invite_message)
   return _msg;
@@ -22154,13 +22171,78 @@ inline void JoinSpaceViaInviteRequest::set_allocated_invite_message(::sobject::S
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   }
 
   _impl_.invite_message_ = reinterpret_cast<::sobject::SOInviteMessage*>(value);
   // @@protoc_insertion_point(field_set_allocated:s4wave.session.JoinSpaceViaInviteRequest.invite_message)
+}
+
+// bytes targeted_invitation_envelope = 2;
+inline void JoinSpaceViaInviteRequest::clear_targeted_invitation_envelope() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.targeted_invitation_envelope_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& JoinSpaceViaInviteRequest::targeted_invitation_envelope() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.session.JoinSpaceViaInviteRequest.targeted_invitation_envelope)
+  return _internal_targeted_invitation_envelope();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void JoinSpaceViaInviteRequest::set_targeted_invitation_envelope(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.targeted_invitation_envelope_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.session.JoinSpaceViaInviteRequest.targeted_invitation_envelope)
+}
+inline ::std::string* PROTOBUF_NONNULL JoinSpaceViaInviteRequest::mutable_targeted_invitation_envelope()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_targeted_invitation_envelope();
+  // @@protoc_insertion_point(field_mutable:s4wave.session.JoinSpaceViaInviteRequest.targeted_invitation_envelope)
+  return _s;
+}
+inline const ::std::string& JoinSpaceViaInviteRequest::_internal_targeted_invitation_envelope() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.targeted_invitation_envelope_.Get();
+}
+inline void JoinSpaceViaInviteRequest::_internal_set_targeted_invitation_envelope(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.targeted_invitation_envelope_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL JoinSpaceViaInviteRequest::_internal_mutable_targeted_invitation_envelope() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.targeted_invitation_envelope_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE JoinSpaceViaInviteRequest::release_targeted_invitation_envelope() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.session.JoinSpaceViaInviteRequest.targeted_invitation_envelope)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.targeted_invitation_envelope_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.targeted_invitation_envelope_.Set("", GetArena());
+  }
+  return released;
+}
+inline void JoinSpaceViaInviteRequest::set_allocated_targeted_invitation_envelope(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.targeted_invitation_envelope_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.targeted_invitation_envelope_.IsDefault()) {
+    _impl_.targeted_invitation_envelope_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.session.JoinSpaceViaInviteRequest.targeted_invitation_envelope)
 }
 
 // -------------------------------------------------------------------

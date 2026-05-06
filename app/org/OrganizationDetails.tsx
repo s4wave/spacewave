@@ -13,6 +13,7 @@ import {
   LuShieldAlert,
   LuTriangleAlert,
   LuFingerprint,
+  LuUserPlus,
   LuX,
 } from 'react-icons/lu'
 
@@ -251,6 +252,9 @@ export function OrganizationDetails({
 
   // Member management
   const [creatingInvite, setCreatingInvite] = useState(false)
+  const [usernameInvite, setUsernameInvite] = useState('')
+  const [usernameInvitePending, setUsernameInvitePending] = useState(false)
+  const [usernameInviteSent, setUsernameInviteSent] = useState(false)
 
   const handleRemoveMember = useCallback(
     async (memberId: string) => {
@@ -280,6 +284,24 @@ export function OrganizationDetails({
       setCreatingInvite(false)
     }
   }, [session, creatingInvite, orgId])
+
+  const handleCreateUsernameInvite = useCallback(async () => {
+    const username = usernameInvite.trim()
+    if (!session || !username || usernameInvitePending) return
+    setUsernameInvitePending(true)
+    setUsernameInviteSent(false)
+    try {
+      await session.spacewave.createOrganizationTargetedInvitationByUsername(
+        username,
+        orgId,
+        'org:member',
+      )
+      setUsernameInvite('')
+      setUsernameInviteSent(true)
+    } finally {
+      setUsernameInvitePending(false)
+    }
+  }, [session, orgId, usernameInvite, usernameInvitePending])
 
   const handleRevokeInvite = useCallback(
     async (inviteId: string) => {
@@ -603,6 +625,40 @@ export function OrganizationDetails({
                 </button>
               }
             >
+              <div className="border-foreground/8 bg-background-card/20 mb-3 rounded-md border px-3 py-2">
+                <label className="text-foreground-alt mb-1.5 block text-[0.6rem] select-none">
+                  Spacewave username
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    value={usernameInvite}
+                    onChange={(e) => {
+                      setUsernameInvite(e.target.value)
+                      setUsernameInviteSent(false)
+                    }}
+                    placeholder="alice"
+                    className={cn(
+                      'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 min-w-0 flex-1 rounded-md border px-2 py-1.5 font-mono text-xs transition-colors outline-none',
+                      'focus:border-brand/50',
+                    )}
+                  />
+                  <DashboardButton
+                    icon={<LuUserPlus className="h-3 w-3" />}
+                    onClick={() => void handleCreateUsernameInvite()}
+                    disabled={
+                      usernameInvitePending ||
+                      !usernameInvite.trim() ||
+                      !session
+                    }
+                  >
+                    {usernameInvitePending ?
+                      'Sending...'
+                    : usernameInviteSent ?
+                      'Sent'
+                    : 'Invite'}
+                  </DashboardButton>
+                </div>
+              </div>
               <OrgInviteSection
                 invites={invites}
                 onRevoke={handleRevokeInvite}

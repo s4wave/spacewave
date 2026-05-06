@@ -656,6 +656,10 @@ message RevokeSpaceInviteResponse {}
 message JoinSpaceViaInviteRequest {
   // InviteMessage is the out-of-band SOInviteMessage from the space owner.
   .sobject.SOInviteMessage invite_message = 1;
+  // TargetedInvitationEnvelope is the optional serialized
+  // provider.spacewave.api.TargetedInvitationEnvelope proof for
+  // username-addressed invites.
+  bytes targeted_invitation_envelope = 2;
 }
 
 // JoinSpaceViaInviteResult describes the immediate outcome of an invite join.

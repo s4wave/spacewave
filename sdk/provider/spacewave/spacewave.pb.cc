@@ -708,6 +708,68 @@ struct TransferResourceRequestDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 TransferResourceRequestDefaultTypeInternal _TransferResourceRequest_default_instance_;
+
+inline constexpr TargetedInvitationEnvelope::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        context_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        actor_account_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        actor_entity_uuid_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        signer_peer_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        target_account_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        target_entity_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        target_entity_uuid_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        role_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        nonce_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        payload_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        signature_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        schema_version_{0u},
+        purpose_{static_cast< ::s4wave::provider::spacewave::TargetedInvitePurpose >(0)},
+        target_account_epoch_{::int64_t{0}},
+        expires_at_{::int64_t{0}},
+        actor_account_epoch_{::int64_t{0}} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR TargetedInvitationEnvelope::TargetedInvitationEnvelope(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(TargetedInvitationEnvelope_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct TargetedInvitationEnvelopeDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR TargetedInvitationEnvelopeDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~TargetedInvitationEnvelopeDefaultTypeInternal() {}
+  union {
+    TargetedInvitationEnvelope _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 TargetedInvitationEnvelopeDefaultTypeInternal _TargetedInvitationEnvelope_default_instance_;
 template <typename>
 PROTOBUF_CONSTEXPR SwitchBillingIntervalResponse::SwitchBillingIntervalResponse(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -1270,6 +1332,33 @@ struct SSOCodeExchangeRequestDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SSOCodeExchangeRequestDefaultTypeInternal _SSOCodeExchangeRequest_default_instance_;
+
+inline constexpr RevokeTargetedInvitationRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR RevokeTargetedInvitationRequest::RevokeTargetedInvitationRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(RevokeTargetedInvitationRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct RevokeTargetedInvitationRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR RevokeTargetedInvitationRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~RevokeTargetedInvitationRequestDefaultTypeInternal() {}
+  union {
+    RevokeTargetedInvitationRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RevokeTargetedInvitationRequestDefaultTypeInternal _RevokeTargetedInvitationRequest_default_instance_;
 template <typename>
 PROTOBUF_CONSTEXPR RevokeOrgInviteResponse::RevokeOrgInviteResponse(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -1318,6 +1407,82 @@ struct RevokeOrgInviteRequestDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RevokeOrgInviteRequestDefaultTypeInternal _RevokeOrgInviteRequest_default_instance_;
+
+inline constexpr ResolveUsernameResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        account_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        entity_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        domain_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        relationship_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        entity_uuid_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        account_epoch_{::int64_t{0}},
+        found_{false},
+        can_invite_{false} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR ResolveUsernameResponse::ResolveUsernameResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(ResolveUsernameResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct ResolveUsernameResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ResolveUsernameResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ResolveUsernameResponseDefaultTypeInternal() {}
+  union {
+    ResolveUsernameResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ResolveUsernameResponseDefaultTypeInternal _ResolveUsernameResponse_default_instance_;
+
+inline constexpr ResolveUsernameRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        username_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        space_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        org_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        purpose_{static_cast< ::s4wave::provider::spacewave::TargetedInvitePurpose >(0)} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR ResolveUsernameRequest::ResolveUsernameRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(ResolveUsernameRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct ResolveUsernameRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ResolveUsernameRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ResolveUsernameRequestDefaultTypeInternal() {}
+  union {
+    ResolveUsernameRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ResolveUsernameRequestDefaultTypeInternal _ResolveUsernameRequest_default_instance_;
 template <typename>
 PROTOBUF_CONSTEXPR ResetSessionResponse::ResetSessionResponse(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -1994,6 +2159,36 @@ struct ReactivateSubscriptionRequestDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ReactivateSubscriptionRequestDefaultTypeInternal _ReactivateSubscriptionRequest_default_instance_;
+
+inline constexpr ProcessTargetedInvitationRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        action_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR ProcessTargetedInvitationRequest::ProcessTargetedInvitationRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(ProcessTargetedInvitationRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct ProcessTargetedInvitationRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ProcessTargetedInvitationRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ProcessTargetedInvitationRequestDefaultTypeInternal() {}
+  union {
+    ProcessTargetedInvitationRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ProcessTargetedInvitationRequestDefaultTypeInternal _ProcessTargetedInvitationRequest_default_instance_;
 template <typename>
 PROTOBUF_CONSTEXPR ProcessMailboxEntryResponse::ProcessMailboxEntryResponse(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -2827,6 +3022,24 @@ struct LoginOrCreateAccountRequestDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 LoginOrCreateAccountRequestDefaultTypeInternal _LoginOrCreateAccountRequest_default_instance_;
 template <typename>
+PROTOBUF_CONSTEXPR ListTargetedInvitationsRequest::ListTargetedInvitationsRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(ListTargetedInvitationsRequest_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct ListTargetedInvitationsRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ListTargetedInvitationsRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ListTargetedInvitationsRequestDefaultTypeInternal() {}
+  union {
+    ListTargetedInvitationsRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ListTargetedInvitationsRequestDefaultTypeInternal _ListTargetedInvitationsRequest_default_instance_;
+template <typename>
 PROTOBUF_CONSTEXPR ListOrganizationsRequest::ListOrganizationsRequest(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
     : ::google::protobuf::internal::ZeroFieldsBase(ListOrganizationsRequest_class_data_.base()){}
@@ -2979,6 +3192,33 @@ struct JoinOrganizationRequestDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 JoinOrganizationRequestDefaultTypeInternal _JoinOrganizationRequest_default_instance_;
+
+inline constexpr GetTargetedInvitationRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR GetTargetedInvitationRequest::GetTargetedInvitationRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(GetTargetedInvitationRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct GetTargetedInvitationRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR GetTargetedInvitationRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~GetTargetedInvitationRequestDefaultTypeInternal() {}
+  union {
+    GetTargetedInvitationRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GetTargetedInvitationRequestDefaultTypeInternal _GetTargetedInvitationRequest_default_instance_;
 
 inline constexpr GetSubscriptionStatusResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -3875,6 +4115,137 @@ struct DeleteBillingAccountRequestDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DeleteBillingAccountRequestDefaultTypeInternal _DeleteBillingAccountRequest_default_instance_;
 
+inline constexpr CreateTargetedInviteDraftByUsernameResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        accepted_{false} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR CreateTargetedInviteDraftByUsernameResponse::CreateTargetedInviteDraftByUsernameResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(CreateTargetedInviteDraftByUsernameResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct CreateTargetedInviteDraftByUsernameResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR CreateTargetedInviteDraftByUsernameResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~CreateTargetedInviteDraftByUsernameResponseDefaultTypeInternal() {}
+  union {
+    CreateTargetedInviteDraftByUsernameResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CreateTargetedInviteDraftByUsernameResponseDefaultTypeInternal _CreateTargetedInviteDraftByUsernameResponse_default_instance_;
+
+inline constexpr CreateTargetedInviteDraftByUsernameRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        username_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        space_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        org_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        role_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        expires_at_{::int64_t{0}},
+        purpose_{static_cast< ::s4wave::provider::spacewave::TargetedInvitePurpose >(0)} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR CreateTargetedInviteDraftByUsernameRequest::CreateTargetedInviteDraftByUsernameRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(CreateTargetedInviteDraftByUsernameRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct CreateTargetedInviteDraftByUsernameRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR CreateTargetedInviteDraftByUsernameRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~CreateTargetedInviteDraftByUsernameRequestDefaultTypeInternal() {}
+  union {
+    CreateTargetedInviteDraftByUsernameRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CreateTargetedInviteDraftByUsernameRequestDefaultTypeInternal _CreateTargetedInviteDraftByUsernameRequest_default_instance_;
+
+inline constexpr CreateSpaceTargetedInvitationByUsernameRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        username_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        space_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        role_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        expires_at_{::int64_t{0}} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR CreateSpaceTargetedInvitationByUsernameRequest::CreateSpaceTargetedInvitationByUsernameRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(CreateSpaceTargetedInvitationByUsernameRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct CreateSpaceTargetedInvitationByUsernameRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR CreateSpaceTargetedInvitationByUsernameRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~CreateSpaceTargetedInvitationByUsernameRequestDefaultTypeInternal() {}
+  union {
+    CreateSpaceTargetedInvitationByUsernameRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CreateSpaceTargetedInvitationByUsernameRequestDefaultTypeInternal _CreateSpaceTargetedInvitationByUsernameRequest_default_instance_;
+
+inline constexpr CreateOrganizationTargetedInvitationByUsernameRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        username_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        org_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        role_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        expires_at_{::int64_t{0}} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR CreateOrganizationTargetedInvitationByUsernameRequest::CreateOrganizationTargetedInvitationByUsernameRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(CreateOrganizationTargetedInvitationByUsernameRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct CreateOrganizationTargetedInvitationByUsernameRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR CreateOrganizationTargetedInvitationByUsernameRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~CreateOrganizationTargetedInvitationByUsernameRequestDefaultTypeInternal() {}
+  union {
+    CreateOrganizationTargetedInvitationByUsernameRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CreateOrganizationTargetedInvitationByUsernameRequestDefaultTypeInternal _CreateOrganizationTargetedInvitationByUsernameRequest_default_instance_;
+
 inline constexpr CreateOrganizationRequest::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -4724,6 +5095,60 @@ struct AddEmailRequestDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 AddEmailRequestDefaultTypeInternal _AddEmailRequest_default_instance_;
 
+inline constexpr AcceptSpaceTargetedInvitationRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR AcceptSpaceTargetedInvitationRequest::AcceptSpaceTargetedInvitationRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(AcceptSpaceTargetedInvitationRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct AcceptSpaceTargetedInvitationRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR AcceptSpaceTargetedInvitationRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~AcceptSpaceTargetedInvitationRequestDefaultTypeInternal() {}
+  union {
+    AcceptSpaceTargetedInvitationRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 AcceptSpaceTargetedInvitationRequestDefaultTypeInternal _AcceptSpaceTargetedInvitationRequest_default_instance_;
+
+inline constexpr AcceptOrganizationTargetedInvitationRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR AcceptOrganizationTargetedInvitationRequest::AcceptOrganizationTargetedInvitationRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(AcceptOrganizationTargetedInvitationRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct AcceptOrganizationTargetedInvitationRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR AcceptOrganizationTargetedInvitationRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~AcceptOrganizationTargetedInvitationRequestDefaultTypeInternal() {}
+  union {
+    AcceptOrganizationTargetedInvitationRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 AcceptOrganizationTargetedInvitationRequestDefaultTypeInternal _AcceptOrganizationTargetedInvitationRequest_default_instance_;
+
 inline constexpr WatchSubscriptionStatusResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -4824,6 +5249,66 @@ struct WatchBillingStateResponseDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WatchBillingStateResponseDefaultTypeInternal _WatchBillingStateResponse_default_instance_;
+
+inline constexpr TargetedInvitationInfo::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        actor_account_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        target_account_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        target_entity_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        target_entity_uuid_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        context_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        role_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        status_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        envelope_hash_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        draft_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        envelope_{nullptr},
+        target_account_epoch_{::int64_t{0}},
+        created_at_{::int64_t{0}},
+        updated_at_{::int64_t{0}},
+        expires_at_{::int64_t{0}},
+        purpose_{static_cast< ::s4wave::provider::spacewave::TargetedInvitePurpose >(0)} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR TargetedInvitationInfo::TargetedInvitationInfo(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(TargetedInvitationInfo_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct TargetedInvitationInfoDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR TargetedInvitationInfoDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~TargetedInvitationInfoDefaultTypeInternal() {}
+  union {
+    TargetedInvitationInfo _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 TargetedInvitationInfoDefaultTypeInternal _TargetedInvitationInfo_default_instance_;
 
 inline constexpr StartDesktopSSOResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -5315,6 +5800,48 @@ struct EnrollSpaceMemberResponseDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 EnrollSpaceMemberResponseDefaultTypeInternal _EnrollSpaceMemberResponse_default_instance_;
 
+inline constexpr CreateTargetedInvitationRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        target_account_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        space_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        org_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        role_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        draft_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        envelope_{nullptr},
+        expires_at_{::int64_t{0}},
+        purpose_{static_cast< ::s4wave::provider::spacewave::TargetedInvitePurpose >(0)} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR CreateTargetedInvitationRequest::CreateTargetedInvitationRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(CreateTargetedInvitationRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct CreateTargetedInvitationRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR CreateTargetedInvitationRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~CreateTargetedInvitationRequestDefaultTypeInternal() {}
+  union {
+    CreateTargetedInvitationRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CreateTargetedInvitationRequestDefaultTypeInternal _CreateTargetedInvitationRequest_default_instance_;
+
 inline constexpr CreateOrganizationResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -5426,6 +5953,56 @@ struct WatchOrganizationStateResponseDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WatchOrganizationStateResponseDefaultTypeInternal _WatchOrganizationStateResponse_default_instance_;
 
+inline constexpr RevokeTargetedInvitationResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        invitation_{nullptr} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR RevokeTargetedInvitationResponse::RevokeTargetedInvitationResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(RevokeTargetedInvitationResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct RevokeTargetedInvitationResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR RevokeTargetedInvitationResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~RevokeTargetedInvitationResponseDefaultTypeInternal() {}
+  union {
+    RevokeTargetedInvitationResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RevokeTargetedInvitationResponseDefaultTypeInternal _RevokeTargetedInvitationResponse_default_instance_;
+
+inline constexpr ProcessTargetedInvitationResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        invitation_{nullptr} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR ProcessTargetedInvitationResponse::ProcessTargetedInvitationResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(ProcessTargetedInvitationResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct ProcessTargetedInvitationResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ProcessTargetedInvitationResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ProcessTargetedInvitationResponseDefaultTypeInternal() {}
+  union {
+    ProcessTargetedInvitationResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ProcessTargetedInvitationResponseDefaultTypeInternal _ProcessTargetedInvitationResponse_default_instance_;
+
 inline constexpr LookupInviteCodeResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -5454,6 +6031,31 @@ struct LookupInviteCodeResponseDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 LookupInviteCodeResponseDefaultTypeInternal _LookupInviteCodeResponse_default_instance_;
 
+inline constexpr ListTargetedInvitationsResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        invitations_{} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR ListTargetedInvitationsResponse::ListTargetedInvitationsResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(ListTargetedInvitationsResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct ListTargetedInvitationsResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ListTargetedInvitationsResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ListTargetedInvitationsResponseDefaultTypeInternal() {}
+  union {
+    ListTargetedInvitationsResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ListTargetedInvitationsResponseDefaultTypeInternal _ListTargetedInvitationsResponse_default_instance_;
+
 inline constexpr ListManagedBillingAccountsResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -5478,6 +6080,31 @@ struct ListManagedBillingAccountsResponseDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ListManagedBillingAccountsResponseDefaultTypeInternal _ListManagedBillingAccountsResponse_default_instance_;
+
+inline constexpr GetTargetedInvitationResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        invitation_{nullptr} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR GetTargetedInvitationResponse::GetTargetedInvitationResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(GetTargetedInvitationResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct GetTargetedInvitationResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR GetTargetedInvitationResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~GetTargetedInvitationResponseDefaultTypeInternal() {}
+  union {
+    GetTargetedInvitationResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GetTargetedInvitationResponseDefaultTypeInternal _GetTargetedInvitationResponse_default_instance_;
 
 inline constexpr GetOrganizationResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -5506,6 +6133,138 @@ struct GetOrganizationResponseDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GetOrganizationResponseDefaultTypeInternal _GetOrganizationResponse_default_instance_;
+
+inline constexpr CreateTargetedInvitationResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        invitation_{nullptr} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR CreateTargetedInvitationResponse::CreateTargetedInvitationResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(CreateTargetedInvitationResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct CreateTargetedInvitationResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR CreateTargetedInvitationResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~CreateTargetedInvitationResponseDefaultTypeInternal() {}
+  union {
+    CreateTargetedInvitationResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CreateTargetedInvitationResponseDefaultTypeInternal _CreateTargetedInvitationResponse_default_instance_;
+
+inline constexpr CreateSpaceTargetedInvitationByUsernameResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        invitation_{nullptr} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR CreateSpaceTargetedInvitationByUsernameResponse::CreateSpaceTargetedInvitationByUsernameResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(CreateSpaceTargetedInvitationByUsernameResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct CreateSpaceTargetedInvitationByUsernameResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR CreateSpaceTargetedInvitationByUsernameResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~CreateSpaceTargetedInvitationByUsernameResponseDefaultTypeInternal() {}
+  union {
+    CreateSpaceTargetedInvitationByUsernameResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CreateSpaceTargetedInvitationByUsernameResponseDefaultTypeInternal _CreateSpaceTargetedInvitationByUsernameResponse_default_instance_;
+
+inline constexpr CreateOrganizationTargetedInvitationByUsernameResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        invitation_{nullptr} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR CreateOrganizationTargetedInvitationByUsernameResponse::CreateOrganizationTargetedInvitationByUsernameResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(CreateOrganizationTargetedInvitationByUsernameResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct CreateOrganizationTargetedInvitationByUsernameResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR CreateOrganizationTargetedInvitationByUsernameResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~CreateOrganizationTargetedInvitationByUsernameResponseDefaultTypeInternal() {}
+  union {
+    CreateOrganizationTargetedInvitationByUsernameResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CreateOrganizationTargetedInvitationByUsernameResponseDefaultTypeInternal _CreateOrganizationTargetedInvitationByUsernameResponse_default_instance_;
+
+inline constexpr AcceptSpaceTargetedInvitationResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        shared_object_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        join_result_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        invitation_{nullptr} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR AcceptSpaceTargetedInvitationResponse::AcceptSpaceTargetedInvitationResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(AcceptSpaceTargetedInvitationResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct AcceptSpaceTargetedInvitationResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR AcceptSpaceTargetedInvitationResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~AcceptSpaceTargetedInvitationResponseDefaultTypeInternal() {}
+  union {
+    AcceptSpaceTargetedInvitationResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 AcceptSpaceTargetedInvitationResponseDefaultTypeInternal _AcceptSpaceTargetedInvitationResponse_default_instance_;
+
+inline constexpr AcceptOrganizationTargetedInvitationResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        invitation_{nullptr},
+        organization_{nullptr} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR AcceptOrganizationTargetedInvitationResponse::AcceptOrganizationTargetedInvitationResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(AcceptOrganizationTargetedInvitationResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct AcceptOrganizationTargetedInvitationResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR AcceptOrganizationTargetedInvitationResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~AcceptOrganizationTargetedInvitationResponseDefaultTypeInternal() {}
+  union {
+    AcceptOrganizationTargetedInvitationResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 AcceptOrganizationTargetedInvitationResponseDefaultTypeInternal _AcceptOrganizationTargetedInvitationResponse_default_instance_;
 
 inline constexpr StartBrowserHandoffResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -5662,7 +6421,7 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace provider
 }  // namespace s4wave
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
-    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto[6];
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto[7];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
     file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto = nullptr;
 const ::uint32_t
@@ -6497,6 +7256,246 @@ const ::uint32_t
         4,
         5,
         0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateTargetedInviteDraftByUsernameRequest, _impl_._has_bits_),
+        9, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateTargetedInviteDraftByUsernameRequest, _impl_.username_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateTargetedInviteDraftByUsernameRequest, _impl_.purpose_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateTargetedInviteDraftByUsernameRequest, _impl_.space_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateTargetedInviteDraftByUsernameRequest, _impl_.org_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateTargetedInviteDraftByUsernameRequest, _impl_.role_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateTargetedInviteDraftByUsernameRequest, _impl_.expires_at_),
+        0,
+        5,
+        1,
+        2,
+        3,
+        4,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateTargetedInviteDraftByUsernameResponse, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateTargetedInviteDraftByUsernameResponse, _impl_.accepted_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::ResolveUsernameRequest, _impl_._has_bits_),
+        7, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::ResolveUsernameRequest, _impl_.username_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::ResolveUsernameRequest, _impl_.purpose_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::ResolveUsernameRequest, _impl_.space_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::ResolveUsernameRequest, _impl_.org_id_),
+        0,
+        3,
+        1,
+        2,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::ResolveUsernameResponse, _impl_._has_bits_),
+        11, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::ResolveUsernameResponse, _impl_.found_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::ResolveUsernameResponse, _impl_.account_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::ResolveUsernameResponse, _impl_.entity_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::ResolveUsernameResponse, _impl_.domain_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::ResolveUsernameResponse, _impl_.relationship_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::ResolveUsernameResponse, _impl_.can_invite_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::ResolveUsernameResponse, _impl_.entity_uuid_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::ResolveUsernameResponse, _impl_.account_epoch_),
+        6,
+        0,
+        1,
+        2,
+        3,
+        7,
+        4,
+        5,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::TargetedInvitationEnvelope, _impl_._has_bits_),
+        19, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::TargetedInvitationEnvelope, _impl_.schema_version_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::TargetedInvitationEnvelope, _impl_.purpose_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::TargetedInvitationEnvelope, _impl_.context_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::TargetedInvitationEnvelope, _impl_.actor_account_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::TargetedInvitationEnvelope, _impl_.actor_entity_uuid_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::TargetedInvitationEnvelope, _impl_.actor_account_epoch_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::TargetedInvitationEnvelope, _impl_.signer_peer_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::TargetedInvitationEnvelope, _impl_.target_account_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::TargetedInvitationEnvelope, _impl_.target_entity_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::TargetedInvitationEnvelope, _impl_.target_entity_uuid_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::TargetedInvitationEnvelope, _impl_.target_account_epoch_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::TargetedInvitationEnvelope, _impl_.role_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::TargetedInvitationEnvelope, _impl_.expires_at_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::TargetedInvitationEnvelope, _impl_.nonce_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::TargetedInvitationEnvelope, _impl_.payload_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::TargetedInvitationEnvelope, _impl_.signature_),
+        11,
+        12,
+        0,
+        1,
+        2,
+        15,
+        3,
+        4,
+        5,
+        6,
+        13,
+        7,
+        14,
+        8,
+        9,
+        10,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::TargetedInvitationInfo, _impl_._has_bits_),
+        19, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::TargetedInvitationInfo, _impl_.id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::TargetedInvitationInfo, _impl_.actor_account_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::TargetedInvitationInfo, _impl_.target_account_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::TargetedInvitationInfo, _impl_.target_entity_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::TargetedInvitationInfo, _impl_.target_entity_uuid_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::TargetedInvitationInfo, _impl_.target_account_epoch_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::TargetedInvitationInfo, _impl_.purpose_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::TargetedInvitationInfo, _impl_.context_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::TargetedInvitationInfo, _impl_.role_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::TargetedInvitationInfo, _impl_.status_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::TargetedInvitationInfo, _impl_.envelope_hash_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::TargetedInvitationInfo, _impl_.envelope_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::TargetedInvitationInfo, _impl_.created_at_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::TargetedInvitationInfo, _impl_.updated_at_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::TargetedInvitationInfo, _impl_.expires_at_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::TargetedInvitationInfo, _impl_.draft_id_),
+        0,
+        1,
+        2,
+        3,
+        4,
+        11,
+        15,
+        5,
+        6,
+        7,
+        8,
+        10,
+        12,
+        13,
+        14,
+        9,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateTargetedInvitationRequest, _impl_._has_bits_),
+        11, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateTargetedInvitationRequest, _impl_.target_account_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateTargetedInvitationRequest, _impl_.purpose_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateTargetedInvitationRequest, _impl_.space_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateTargetedInvitationRequest, _impl_.org_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateTargetedInvitationRequest, _impl_.role_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateTargetedInvitationRequest, _impl_.expires_at_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateTargetedInvitationRequest, _impl_.envelope_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateTargetedInvitationRequest, _impl_.draft_id_),
+        0,
+        7,
+        1,
+        2,
+        3,
+        6,
+        5,
+        4,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateTargetedInvitationResponse, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateTargetedInvitationResponse, _impl_.invitation_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateSpaceTargetedInvitationByUsernameRequest, _impl_._has_bits_),
+        7, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateSpaceTargetedInvitationByUsernameRequest, _impl_.username_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateSpaceTargetedInvitationByUsernameRequest, _impl_.space_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateSpaceTargetedInvitationByUsernameRequest, _impl_.role_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateSpaceTargetedInvitationByUsernameRequest, _impl_.expires_at_),
+        0,
+        1,
+        2,
+        3,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateSpaceTargetedInvitationByUsernameResponse, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateSpaceTargetedInvitationByUsernameResponse, _impl_.invitation_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::AcceptSpaceTargetedInvitationRequest, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::AcceptSpaceTargetedInvitationRequest, _impl_.id_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::AcceptSpaceTargetedInvitationResponse, _impl_._has_bits_),
+        6, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::AcceptSpaceTargetedInvitationResponse, _impl_.invitation_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::AcceptSpaceTargetedInvitationResponse, _impl_.shared_object_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::AcceptSpaceTargetedInvitationResponse, _impl_.join_result_),
+        2,
+        0,
+        1,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateOrganizationTargetedInvitationByUsernameRequest, _impl_._has_bits_),
+        7, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateOrganizationTargetedInvitationByUsernameRequest, _impl_.username_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateOrganizationTargetedInvitationByUsernameRequest, _impl_.org_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateOrganizationTargetedInvitationByUsernameRequest, _impl_.role_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateOrganizationTargetedInvitationByUsernameRequest, _impl_.expires_at_),
+        0,
+        1,
+        2,
+        3,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateOrganizationTargetedInvitationByUsernameResponse, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateOrganizationTargetedInvitationByUsernameResponse, _impl_.invitation_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::AcceptOrganizationTargetedInvitationRequest, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::AcceptOrganizationTargetedInvitationRequest, _impl_.id_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::AcceptOrganizationTargetedInvitationResponse, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::AcceptOrganizationTargetedInvitationResponse, _impl_.invitation_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::AcceptOrganizationTargetedInvitationResponse, _impl_.organization_),
+        0,
+        1,
+        0x000, // bitmap
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::ListTargetedInvitationsResponse, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::ListTargetedInvitationsResponse, _impl_.invitations_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::GetTargetedInvitationRequest, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::GetTargetedInvitationRequest, _impl_.id_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::GetTargetedInvitationResponse, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::GetTargetedInvitationResponse, _impl_.invitation_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::RevokeTargetedInvitationRequest, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::RevokeTargetedInvitationRequest, _impl_.id_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::RevokeTargetedInvitationResponse, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::RevokeTargetedInvitationResponse, _impl_.invitation_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::ProcessTargetedInvitationRequest, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::ProcessTargetedInvitationRequest, _impl_.id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::ProcessTargetedInvitationRequest, _impl_.action_),
+        0,
+        1,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::ProcessTargetedInvitationResponse, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::ProcessTargetedInvitationResponse, _impl_.invitation_),
+        0,
+        0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateOrgInviteRequest, _impl_._has_bits_),
         8, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::CreateOrgInviteRequest, _impl_.org_id_),
@@ -7193,104 +8192,128 @@ static const ::_pbi::MigrationSchema
         {803, sizeof(::s4wave::provider::spacewave::CreateOrganizationRequest)},
         {808, sizeof(::s4wave::provider::spacewave::CreateOrganizationResponse)},
         {813, sizeof(::s4wave::provider::spacewave::OrgInviteInfo)},
-        {828, sizeof(::s4wave::provider::spacewave::CreateOrgInviteRequest)},
-        {841, sizeof(::s4wave::provider::spacewave::CreateOrgInviteResponse)},
-        {846, sizeof(::s4wave::provider::spacewave::JoinOrganizationRequest)},
-        {851, sizeof(::s4wave::provider::spacewave::JoinOrganizationResponse)},
-        {856, sizeof(::s4wave::provider::spacewave::UpdateOrganizationRequest)},
-        {863, sizeof(::s4wave::provider::spacewave::UpdateOrganizationResponse)},
-        {864, sizeof(::s4wave::provider::spacewave::DeleteOrganizationRequest)},
-        {869, sizeof(::s4wave::provider::spacewave::DeleteOrganizationResponse)},
-        {870, sizeof(::s4wave::provider::spacewave::GetOrganizationRequest)},
-        {875, sizeof(::s4wave::provider::spacewave::WatchOrganizationStateRequest)},
-        {880, sizeof(::s4wave::provider::spacewave::OrgMemberInfo)},
-        {893, sizeof(::s4wave::provider::spacewave::OrgSpaceInfo)},
-        {902, sizeof(::s4wave::provider::spacewave::SharedObjectMutationPermission)},
-        {911, sizeof(::s4wave::provider::spacewave::OrganizationRootStateInfo)},
-        {920, sizeof(::s4wave::provider::spacewave::GetOrganizationResponse)},
-        {931, sizeof(::s4wave::provider::spacewave::WatchOrganizationStateResponse)},
-        {944, sizeof(::s4wave::provider::spacewave::RepairSharedObjectRequest)},
-        {949, sizeof(::s4wave::provider::spacewave::RepairSharedObjectResponse)},
-        {950, sizeof(::s4wave::provider::spacewave::ReinitializeSharedObjectRequest)},
-        {955, sizeof(::s4wave::provider::spacewave::ReinitializeSharedObjectResponse)},
-        {956, sizeof(::s4wave::provider::spacewave::ListOrgInvitesRequest)},
-        {961, sizeof(::s4wave::provider::spacewave::ListOrgInvitesResponse)},
-        {966, sizeof(::s4wave::provider::spacewave::RevokeOrgInviteRequest)},
-        {973, sizeof(::s4wave::provider::spacewave::RevokeOrgInviteResponse)},
-        {974, sizeof(::s4wave::provider::spacewave::LeaveOrganizationRequest)},
-        {979, sizeof(::s4wave::provider::spacewave::LeaveOrganizationResponse)},
-        {980, sizeof(::s4wave::provider::spacewave::RemoveOrgMemberRequest)},
-        {987, sizeof(::s4wave::provider::spacewave::RemoveOrgMemberResponse)},
-        {988, sizeof(::s4wave::provider::spacewave::TransferResourceRequest)},
-        {997, sizeof(::s4wave::provider::spacewave::TransferResourceResponse)},
-        {998, sizeof(::s4wave::provider::spacewave::AssignBillingAccountRequest)},
-        {1007, sizeof(::s4wave::provider::spacewave::AssignBillingAccountResponse)},
-        {1008, sizeof(::s4wave::provider::spacewave::DetachBillingAccountRequest)},
-        {1015, sizeof(::s4wave::provider::spacewave::DetachBillingAccountResponse)},
-        {1016, sizeof(::s4wave::provider::spacewave::ManagedBillingAccount)},
-        {1035, sizeof(::s4wave::provider::spacewave::PrincipalAssignment)},
-        {1044, sizeof(::s4wave::provider::spacewave::CreateBillingAccountRequest)},
-        {1049, sizeof(::s4wave::provider::spacewave::RenameBillingAccountRequest)},
-        {1056, sizeof(::s4wave::provider::spacewave::RenameBillingAccountResponse)},
-        {1057, sizeof(::s4wave::provider::spacewave::DeleteBillingAccountRequest)},
-        {1062, sizeof(::s4wave::provider::spacewave::DeleteBillingAccountResponse)},
-        {1063, sizeof(::s4wave::provider::spacewave::CreateBillingAccountResponse)},
-        {1068, sizeof(::s4wave::provider::spacewave::ListManagedBillingAccountsRequest)},
-        {1069, sizeof(::s4wave::provider::spacewave::ListManagedBillingAccountsResponse)},
-        {1074, sizeof(::s4wave::provider::spacewave::GetBillingAccountRequest)},
-        {1079, sizeof(::s4wave::provider::spacewave::GetBillingAccountResponse)},
-        {1084, sizeof(::s4wave::provider::spacewave::GetBillingUsageRequest)},
-        {1089, sizeof(::s4wave::provider::spacewave::GetBillingUsageResponse)},
-        {1094, sizeof(::s4wave::provider::spacewave::RefreshBillingStateRequest)},
-        {1099, sizeof(::s4wave::provider::spacewave::RefreshBillingStateResponse)},
-        {1100, sizeof(::s4wave::provider::spacewave::CancelSubscriptionRequest)},
-        {1105, sizeof(::s4wave::provider::spacewave::CancelSubscriptionResponse)},
-        {1106, sizeof(::s4wave::provider::spacewave::ReactivateSubscriptionRequest)},
-        {1111, sizeof(::s4wave::provider::spacewave::ReactivateSubscriptionResponse)},
-        {1116, sizeof(::s4wave::provider::spacewave::SwitchBillingIntervalRequest)},
-        {1123, sizeof(::s4wave::provider::spacewave::SwitchBillingIntervalResponse)},
-        {1124, sizeof(::s4wave::provider::spacewave::CreateBillingPortalRequest)},
-        {1129, sizeof(::s4wave::provider::spacewave::CreateBillingPortalResponse)},
-        {1134, sizeof(::s4wave::provider::spacewave::RequestDeleteNowEmailRequest)},
-        {1135, sizeof(::s4wave::provider::spacewave::RequestDeleteNowEmailResponse)},
-        {1144, sizeof(::s4wave::provider::spacewave::ConfirmDeleteNowCodeRequest)},
-        {1149, sizeof(::s4wave::provider::spacewave::ConfirmDeleteNowCodeResponse)},
-        {1168, sizeof(::s4wave::provider::spacewave::UndoDeleteNowRequest)},
-        {1169, sizeof(::s4wave::provider::spacewave::UndoDeleteNowResponse)},
-        {1170, sizeof(::s4wave::provider::spacewave::EmailInfo)},
-        {1181, sizeof(::s4wave::provider::spacewave::ListEmailsRequest)},
-        {1182, sizeof(::s4wave::provider::spacewave::ListEmailsResponse)},
-        {1187, sizeof(::s4wave::provider::spacewave::WatchEmailsRequest)},
-        {1188, sizeof(::s4wave::provider::spacewave::WatchEmailsResponse)},
-        {1193, sizeof(::s4wave::provider::spacewave::SendVerificationEmailRequest)},
-        {1198, sizeof(::s4wave::provider::spacewave::SendVerificationEmailResponse)},
-        {1205, sizeof(::s4wave::provider::spacewave::VerifyEmailCodeRequest)},
-        {1212, sizeof(::s4wave::provider::spacewave::VerifyEmailCodeResponse)},
-        {1217, sizeof(::s4wave::provider::spacewave::AddEmailRequest)},
-        {1222, sizeof(::s4wave::provider::spacewave::AddEmailResponse)},
-        {1229, sizeof(::s4wave::provider::spacewave::RemoveEmailRequest)},
-        {1234, sizeof(::s4wave::provider::spacewave::RemoveEmailResponse)},
-        {1235, sizeof(::s4wave::provider::spacewave::SetPrimaryEmailRequest)},
-        {1240, sizeof(::s4wave::provider::spacewave::SetPrimaryEmailResponse)},
-        {1245, sizeof(::s4wave::provider::spacewave::EnrollSpaceMemberRequest)},
-        {1254, sizeof(::s4wave::provider::spacewave::EnrollSpaceMemberResult)},
-        {1265, sizeof(::s4wave::provider::spacewave::EnrollSpaceMemberResponse)},
-        {1270, sizeof(::s4wave::provider::spacewave::RemoveSpaceMemberRequest)},
-        {1277, sizeof(::s4wave::provider::spacewave::RemoveSpaceMemberResult)},
-        {1288, sizeof(::s4wave::provider::spacewave::RemoveSpaceMemberResponse)},
-        {1293, sizeof(::s4wave::provider::spacewave::LookupInviteCodeRequest)},
-        {1298, sizeof(::s4wave::provider::spacewave::LookupInviteCodeResponse)},
-        {1305, sizeof(::s4wave::provider::spacewave::GetMailboxEntriesRequest)},
-        {1310, sizeof(::s4wave::provider::spacewave::GetMailboxEntriesResponse)},
-        {1315, sizeof(::s4wave::provider::spacewave::MailboxEntryInfo)},
-        {1332, sizeof(::s4wave::provider::spacewave::ProcessMailboxEntryRequest)},
-        {1341, sizeof(::s4wave::provider::spacewave::ProcessMailboxEntryResponse)},
-        {1342, sizeof(::s4wave::provider::spacewave::SpaceLinkAuthRequest)},
-        {1363, sizeof(::s4wave::provider::spacewave::SpaceLinkAuthTicket)},
-        {1370, sizeof(::s4wave::provider::spacewave::PreviewSpaceLinkRequest)},
-        {1375, sizeof(::s4wave::provider::spacewave::PreviewSpaceLinkResponse)},
-        {1394, sizeof(::s4wave::provider::spacewave::ApproveSpaceLinkRequest)},
-        {1401, sizeof(::s4wave::provider::spacewave::ApproveSpaceLinkResponse)},
+        {828, sizeof(::s4wave::provider::spacewave::CreateTargetedInviteDraftByUsernameRequest)},
+        {843, sizeof(::s4wave::provider::spacewave::CreateTargetedInviteDraftByUsernameResponse)},
+        {848, sizeof(::s4wave::provider::spacewave::ResolveUsernameRequest)},
+        {859, sizeof(::s4wave::provider::spacewave::ResolveUsernameResponse)},
+        {878, sizeof(::s4wave::provider::spacewave::TargetedInvitationEnvelope)},
+        {913, sizeof(::s4wave::provider::spacewave::TargetedInvitationInfo)},
+        {948, sizeof(::s4wave::provider::spacewave::CreateTargetedInvitationRequest)},
+        {967, sizeof(::s4wave::provider::spacewave::CreateTargetedInvitationResponse)},
+        {972, sizeof(::s4wave::provider::spacewave::CreateSpaceTargetedInvitationByUsernameRequest)},
+        {983, sizeof(::s4wave::provider::spacewave::CreateSpaceTargetedInvitationByUsernameResponse)},
+        {988, sizeof(::s4wave::provider::spacewave::AcceptSpaceTargetedInvitationRequest)},
+        {993, sizeof(::s4wave::provider::spacewave::AcceptSpaceTargetedInvitationResponse)},
+        {1002, sizeof(::s4wave::provider::spacewave::CreateOrganizationTargetedInvitationByUsernameRequest)},
+        {1013, sizeof(::s4wave::provider::spacewave::CreateOrganizationTargetedInvitationByUsernameResponse)},
+        {1018, sizeof(::s4wave::provider::spacewave::AcceptOrganizationTargetedInvitationRequest)},
+        {1023, sizeof(::s4wave::provider::spacewave::AcceptOrganizationTargetedInvitationResponse)},
+        {1030, sizeof(::s4wave::provider::spacewave::ListTargetedInvitationsRequest)},
+        {1031, sizeof(::s4wave::provider::spacewave::ListTargetedInvitationsResponse)},
+        {1036, sizeof(::s4wave::provider::spacewave::GetTargetedInvitationRequest)},
+        {1041, sizeof(::s4wave::provider::spacewave::GetTargetedInvitationResponse)},
+        {1046, sizeof(::s4wave::provider::spacewave::RevokeTargetedInvitationRequest)},
+        {1051, sizeof(::s4wave::provider::spacewave::RevokeTargetedInvitationResponse)},
+        {1056, sizeof(::s4wave::provider::spacewave::ProcessTargetedInvitationRequest)},
+        {1063, sizeof(::s4wave::provider::spacewave::ProcessTargetedInvitationResponse)},
+        {1068, sizeof(::s4wave::provider::spacewave::CreateOrgInviteRequest)},
+        {1081, sizeof(::s4wave::provider::spacewave::CreateOrgInviteResponse)},
+        {1086, sizeof(::s4wave::provider::spacewave::JoinOrganizationRequest)},
+        {1091, sizeof(::s4wave::provider::spacewave::JoinOrganizationResponse)},
+        {1096, sizeof(::s4wave::provider::spacewave::UpdateOrganizationRequest)},
+        {1103, sizeof(::s4wave::provider::spacewave::UpdateOrganizationResponse)},
+        {1104, sizeof(::s4wave::provider::spacewave::DeleteOrganizationRequest)},
+        {1109, sizeof(::s4wave::provider::spacewave::DeleteOrganizationResponse)},
+        {1110, sizeof(::s4wave::provider::spacewave::GetOrganizationRequest)},
+        {1115, sizeof(::s4wave::provider::spacewave::WatchOrganizationStateRequest)},
+        {1120, sizeof(::s4wave::provider::spacewave::OrgMemberInfo)},
+        {1133, sizeof(::s4wave::provider::spacewave::OrgSpaceInfo)},
+        {1142, sizeof(::s4wave::provider::spacewave::SharedObjectMutationPermission)},
+        {1151, sizeof(::s4wave::provider::spacewave::OrganizationRootStateInfo)},
+        {1160, sizeof(::s4wave::provider::spacewave::GetOrganizationResponse)},
+        {1171, sizeof(::s4wave::provider::spacewave::WatchOrganizationStateResponse)},
+        {1184, sizeof(::s4wave::provider::spacewave::RepairSharedObjectRequest)},
+        {1189, sizeof(::s4wave::provider::spacewave::RepairSharedObjectResponse)},
+        {1190, sizeof(::s4wave::provider::spacewave::ReinitializeSharedObjectRequest)},
+        {1195, sizeof(::s4wave::provider::spacewave::ReinitializeSharedObjectResponse)},
+        {1196, sizeof(::s4wave::provider::spacewave::ListOrgInvitesRequest)},
+        {1201, sizeof(::s4wave::provider::spacewave::ListOrgInvitesResponse)},
+        {1206, sizeof(::s4wave::provider::spacewave::RevokeOrgInviteRequest)},
+        {1213, sizeof(::s4wave::provider::spacewave::RevokeOrgInviteResponse)},
+        {1214, sizeof(::s4wave::provider::spacewave::LeaveOrganizationRequest)},
+        {1219, sizeof(::s4wave::provider::spacewave::LeaveOrganizationResponse)},
+        {1220, sizeof(::s4wave::provider::spacewave::RemoveOrgMemberRequest)},
+        {1227, sizeof(::s4wave::provider::spacewave::RemoveOrgMemberResponse)},
+        {1228, sizeof(::s4wave::provider::spacewave::TransferResourceRequest)},
+        {1237, sizeof(::s4wave::provider::spacewave::TransferResourceResponse)},
+        {1238, sizeof(::s4wave::provider::spacewave::AssignBillingAccountRequest)},
+        {1247, sizeof(::s4wave::provider::spacewave::AssignBillingAccountResponse)},
+        {1248, sizeof(::s4wave::provider::spacewave::DetachBillingAccountRequest)},
+        {1255, sizeof(::s4wave::provider::spacewave::DetachBillingAccountResponse)},
+        {1256, sizeof(::s4wave::provider::spacewave::ManagedBillingAccount)},
+        {1275, sizeof(::s4wave::provider::spacewave::PrincipalAssignment)},
+        {1284, sizeof(::s4wave::provider::spacewave::CreateBillingAccountRequest)},
+        {1289, sizeof(::s4wave::provider::spacewave::RenameBillingAccountRequest)},
+        {1296, sizeof(::s4wave::provider::spacewave::RenameBillingAccountResponse)},
+        {1297, sizeof(::s4wave::provider::spacewave::DeleteBillingAccountRequest)},
+        {1302, sizeof(::s4wave::provider::spacewave::DeleteBillingAccountResponse)},
+        {1303, sizeof(::s4wave::provider::spacewave::CreateBillingAccountResponse)},
+        {1308, sizeof(::s4wave::provider::spacewave::ListManagedBillingAccountsRequest)},
+        {1309, sizeof(::s4wave::provider::spacewave::ListManagedBillingAccountsResponse)},
+        {1314, sizeof(::s4wave::provider::spacewave::GetBillingAccountRequest)},
+        {1319, sizeof(::s4wave::provider::spacewave::GetBillingAccountResponse)},
+        {1324, sizeof(::s4wave::provider::spacewave::GetBillingUsageRequest)},
+        {1329, sizeof(::s4wave::provider::spacewave::GetBillingUsageResponse)},
+        {1334, sizeof(::s4wave::provider::spacewave::RefreshBillingStateRequest)},
+        {1339, sizeof(::s4wave::provider::spacewave::RefreshBillingStateResponse)},
+        {1340, sizeof(::s4wave::provider::spacewave::CancelSubscriptionRequest)},
+        {1345, sizeof(::s4wave::provider::spacewave::CancelSubscriptionResponse)},
+        {1346, sizeof(::s4wave::provider::spacewave::ReactivateSubscriptionRequest)},
+        {1351, sizeof(::s4wave::provider::spacewave::ReactivateSubscriptionResponse)},
+        {1356, sizeof(::s4wave::provider::spacewave::SwitchBillingIntervalRequest)},
+        {1363, sizeof(::s4wave::provider::spacewave::SwitchBillingIntervalResponse)},
+        {1364, sizeof(::s4wave::provider::spacewave::CreateBillingPortalRequest)},
+        {1369, sizeof(::s4wave::provider::spacewave::CreateBillingPortalResponse)},
+        {1374, sizeof(::s4wave::provider::spacewave::RequestDeleteNowEmailRequest)},
+        {1375, sizeof(::s4wave::provider::spacewave::RequestDeleteNowEmailResponse)},
+        {1384, sizeof(::s4wave::provider::spacewave::ConfirmDeleteNowCodeRequest)},
+        {1389, sizeof(::s4wave::provider::spacewave::ConfirmDeleteNowCodeResponse)},
+        {1408, sizeof(::s4wave::provider::spacewave::UndoDeleteNowRequest)},
+        {1409, sizeof(::s4wave::provider::spacewave::UndoDeleteNowResponse)},
+        {1410, sizeof(::s4wave::provider::spacewave::EmailInfo)},
+        {1421, sizeof(::s4wave::provider::spacewave::ListEmailsRequest)},
+        {1422, sizeof(::s4wave::provider::spacewave::ListEmailsResponse)},
+        {1427, sizeof(::s4wave::provider::spacewave::WatchEmailsRequest)},
+        {1428, sizeof(::s4wave::provider::spacewave::WatchEmailsResponse)},
+        {1433, sizeof(::s4wave::provider::spacewave::SendVerificationEmailRequest)},
+        {1438, sizeof(::s4wave::provider::spacewave::SendVerificationEmailResponse)},
+        {1445, sizeof(::s4wave::provider::spacewave::VerifyEmailCodeRequest)},
+        {1452, sizeof(::s4wave::provider::spacewave::VerifyEmailCodeResponse)},
+        {1457, sizeof(::s4wave::provider::spacewave::AddEmailRequest)},
+        {1462, sizeof(::s4wave::provider::spacewave::AddEmailResponse)},
+        {1469, sizeof(::s4wave::provider::spacewave::RemoveEmailRequest)},
+        {1474, sizeof(::s4wave::provider::spacewave::RemoveEmailResponse)},
+        {1475, sizeof(::s4wave::provider::spacewave::SetPrimaryEmailRequest)},
+        {1480, sizeof(::s4wave::provider::spacewave::SetPrimaryEmailResponse)},
+        {1485, sizeof(::s4wave::provider::spacewave::EnrollSpaceMemberRequest)},
+        {1494, sizeof(::s4wave::provider::spacewave::EnrollSpaceMemberResult)},
+        {1505, sizeof(::s4wave::provider::spacewave::EnrollSpaceMemberResponse)},
+        {1510, sizeof(::s4wave::provider::spacewave::RemoveSpaceMemberRequest)},
+        {1517, sizeof(::s4wave::provider::spacewave::RemoveSpaceMemberResult)},
+        {1528, sizeof(::s4wave::provider::spacewave::RemoveSpaceMemberResponse)},
+        {1533, sizeof(::s4wave::provider::spacewave::LookupInviteCodeRequest)},
+        {1538, sizeof(::s4wave::provider::spacewave::LookupInviteCodeResponse)},
+        {1545, sizeof(::s4wave::provider::spacewave::GetMailboxEntriesRequest)},
+        {1550, sizeof(::s4wave::provider::spacewave::GetMailboxEntriesResponse)},
+        {1555, sizeof(::s4wave::provider::spacewave::MailboxEntryInfo)},
+        {1572, sizeof(::s4wave::provider::spacewave::ProcessMailboxEntryRequest)},
+        {1581, sizeof(::s4wave::provider::spacewave::ProcessMailboxEntryResponse)},
+        {1582, sizeof(::s4wave::provider::spacewave::SpaceLinkAuthRequest)},
+        {1603, sizeof(::s4wave::provider::spacewave::SpaceLinkAuthTicket)},
+        {1610, sizeof(::s4wave::provider::spacewave::PreviewSpaceLinkRequest)},
+        {1615, sizeof(::s4wave::provider::spacewave::PreviewSpaceLinkResponse)},
+        {1634, sizeof(::s4wave::provider::spacewave::ApproveSpaceLinkRequest)},
+        {1641, sizeof(::s4wave::provider::spacewave::ApproveSpaceLinkResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::provider::spacewave::_PasswordCredential_default_instance_._instance,
@@ -7400,6 +8423,30 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::provider::spacewave::_CreateOrganizationRequest_default_instance_._instance,
     &::s4wave::provider::spacewave::_CreateOrganizationResponse_default_instance_._instance,
     &::s4wave::provider::spacewave::_OrgInviteInfo_default_instance_._instance,
+    &::s4wave::provider::spacewave::_CreateTargetedInviteDraftByUsernameRequest_default_instance_._instance,
+    &::s4wave::provider::spacewave::_CreateTargetedInviteDraftByUsernameResponse_default_instance_._instance,
+    &::s4wave::provider::spacewave::_ResolveUsernameRequest_default_instance_._instance,
+    &::s4wave::provider::spacewave::_ResolveUsernameResponse_default_instance_._instance,
+    &::s4wave::provider::spacewave::_TargetedInvitationEnvelope_default_instance_._instance,
+    &::s4wave::provider::spacewave::_TargetedInvitationInfo_default_instance_._instance,
+    &::s4wave::provider::spacewave::_CreateTargetedInvitationRequest_default_instance_._instance,
+    &::s4wave::provider::spacewave::_CreateTargetedInvitationResponse_default_instance_._instance,
+    &::s4wave::provider::spacewave::_CreateSpaceTargetedInvitationByUsernameRequest_default_instance_._instance,
+    &::s4wave::provider::spacewave::_CreateSpaceTargetedInvitationByUsernameResponse_default_instance_._instance,
+    &::s4wave::provider::spacewave::_AcceptSpaceTargetedInvitationRequest_default_instance_._instance,
+    &::s4wave::provider::spacewave::_AcceptSpaceTargetedInvitationResponse_default_instance_._instance,
+    &::s4wave::provider::spacewave::_CreateOrganizationTargetedInvitationByUsernameRequest_default_instance_._instance,
+    &::s4wave::provider::spacewave::_CreateOrganizationTargetedInvitationByUsernameResponse_default_instance_._instance,
+    &::s4wave::provider::spacewave::_AcceptOrganizationTargetedInvitationRequest_default_instance_._instance,
+    &::s4wave::provider::spacewave::_AcceptOrganizationTargetedInvitationResponse_default_instance_._instance,
+    &::s4wave::provider::spacewave::_ListTargetedInvitationsRequest_default_instance_._instance,
+    &::s4wave::provider::spacewave::_ListTargetedInvitationsResponse_default_instance_._instance,
+    &::s4wave::provider::spacewave::_GetTargetedInvitationRequest_default_instance_._instance,
+    &::s4wave::provider::spacewave::_GetTargetedInvitationResponse_default_instance_._instance,
+    &::s4wave::provider::spacewave::_RevokeTargetedInvitationRequest_default_instance_._instance,
+    &::s4wave::provider::spacewave::_RevokeTargetedInvitationResponse_default_instance_._instance,
+    &::s4wave::provider::spacewave::_ProcessTargetedInvitationRequest_default_instance_._instance,
+    &::s4wave::provider::spacewave::_ProcessTargetedInvitationResponse_default_instance_._instance,
     &::s4wave::provider::spacewave::_CreateOrgInviteRequest_default_instance_._instance,
     &::s4wave::provider::spacewave::_CreateOrgInviteResponse_default_instance_._instance,
     &::s4wave::provider::spacewave::_JoinOrganizationRequest_default_instance_._instance,
@@ -7786,323 +8833,413 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fp
     "rovider.spacewave.OrganizationInfo\"l\n\rOr"
     "gInviteInfo\022\n\n\002id\030\001 \001(\t\022\014\n\004type\030\002 \001(\t\022\r\n"
     "\005token\030\003 \001(\t\022\014\n\004uses\030\004 \001(\005\022\020\n\010max_uses\030\005"
-    " \001(\005\022\022\n\nexpires_at\030\006 \001(\003\"k\n\026CreateOrgInv"
-    "iteRequest\022\016\n\006org_id\030\001 \001(\t\022\014\n\004type\030\002 \001(\t"
-    "\022\020\n\010max_uses\030\003 \001(\005\022\022\n\nexpires_at\030\004 \001(\003\022\r"
-    "\n\005email\030\005 \001(\t\"S\n\027CreateOrgInviteResponse"
-    "\0228\n\006invite\030\001 \001(\0132(.s4wave.provider.space"
-    "wave.OrgInviteInfo\"(\n\027JoinOrganizationRe"
-    "quest\022\r\n\005token\030\001 \001(\t\"]\n\030JoinOrganization"
-    "Response\022A\n\014organization\030\001 \001(\0132+.s4wave."
-    "provider.spacewave.OrganizationInfo\"A\n\031U"
-    "pdateOrganizationRequest\022\016\n\006org_id\030\001 \001(\t"
-    "\022\024\n\014display_name\030\002 \001(\t\"\034\n\032UpdateOrganiza"
-    "tionResponse\"+\n\031DeleteOrganizationReques"
-    "t\022\016\n\006org_id\030\001 \001(\t\"\034\n\032DeleteOrganizationR"
-    "esponse\"(\n\026GetOrganizationRequest\022\016\n\006org"
-    "_id\030\001 \001(\t\"/\n\035WatchOrganizationStateReque"
-    "st\022\016\n\006org_id\030\001 \001(\t\"g\n\rOrgMemberInfo\022\n\n\002i"
-    "d\030\001 \001(\t\022\022\n\nsubject_id\030\002 \001(\t\022\017\n\007role_id\030\003"
-    " \001(\t\022\022\n\ncreated_at\030\004 \001(\003\022\021\n\tentity_id\030\005 "
-    "\001(\t\"E\n\014OrgSpaceInfo\022\n\n\002id\030\001 \001(\t\022\024\n\014displ"
-    "ay_name\030\002 \001(\t\022\023\n\013object_type\030\003 \001(\t\"g\n\036Sh"
-    "aredObjectMutationPermission\022\022\n\ncan_repa"
-    "ir\030\001 \001(\010\022\030\n\020can_reinitialize\030\002 \001(\010\022\027\n\017di"
-    "sabled_reason\030\003 \001(\t\"\272\001\n\031OrganizationRoot"
-    "StateInfo\022\030\n\020shared_object_id\030\001 \001(\t\022+\n\006h"
-    "ealth\030\002 \001(\0132\033.sobject.SharedObjectHealth"
-    "\022V\n\023mutation_permission\030\003 \001(\01329.s4wave.p"
-    "rovider.spacewave.SharedObjectMutationPe"
-    "rmission\"\232\002\n\027GetOrganizationResponse\022A\n\014"
-    "organization\030\001 \001(\0132+.s4wave.provider.spa"
-    "cewave.OrganizationInfo\0229\n\007members\030\002 \003(\013"
-    "2(.s4wave.provider.spacewave.OrgMemberIn"
-    "fo\0227\n\006spaces\030\003 \003(\0132\'.s4wave.provider.spa"
-    "cewave.OrgSpaceInfo\022H\n\nroot_state\030\004 \001(\0132"
-    "4.s4wave.provider.spacewave.Organization"
-    "RootStateInfo\"\334\002\n\036WatchOrganizationState"
-    "Response\022A\n\014organization\030\001 \001(\0132+.s4wave."
-    "provider.spacewave.OrganizationInfo\0229\n\007m"
-    "embers\030\002 \003(\0132(.s4wave.provider.spacewave"
-    ".OrgMemberInfo\0227\n\006spaces\030\003 \003(\0132\'.s4wave."
-    "provider.spacewave.OrgSpaceInfo\0229\n\007invit"
-    "es\030\004 \003(\0132(.s4wave.provider.spacewave.Org"
-    "InviteInfo\022H\n\nroot_state\030\005 \001(\01324.s4wave."
-    "provider.spacewave.OrganizationRootState"
-    "Info\"5\n\031RepairSharedObjectRequest\022\030\n\020sha"
-    "red_object_id\030\001 \001(\t\"\034\n\032RepairSharedObjec"
-    "tResponse\";\n\037ReinitializeSharedObjectReq"
-    "uest\022\030\n\020shared_object_id\030\001 \001(\t\"\"\n Reinit"
-    "ializeSharedObjectResponse\"\'\n\025ListOrgInv"
-    "itesRequest\022\016\n\006org_id\030\001 \001(\t\"S\n\026ListOrgIn"
-    "vitesResponse\0229\n\007invites\030\001 \003(\0132(.s4wave."
-    "provider.spacewave.OrgInviteInfo\";\n\026Revo"
-    "keOrgInviteRequest\022\016\n\006org_id\030\001 \001(\t\022\021\n\tin"
-    "vite_id\030\002 \001(\t\"\031\n\027RevokeOrgInviteResponse"
-    "\"*\n\030LeaveOrganizationRequest\022\016\n\006org_id\030\001"
-    " \001(\t\"\033\n\031LeaveOrganizationResponse\";\n\026Rem"
-    "oveOrgMemberRequest\022\016\n\006org_id\030\001 \001(\t\022\021\n\tm"
-    "ember_id\030\002 \001(\t\"\031\n\027RemoveOrgMemberRespons"
-    "e\"\\\n\027TransferResourceRequest\022\023\n\013resource"
-    "_id\030\001 \001(\t\022\026\n\016new_owner_type\030\002 \001(\t\022\024\n\014new"
-    "_owner_id\030\003 \001(\t\"\032\n\030TransferResourceRespo"
-    "nse\"m\n\033AssignBillingAccountRequest\022\032\n\022bi"
-    "lling_account_id\030\001 \001(\t\022\031\n\021target_owner_t"
-    "ype\030\002 \001(\t\022\027\n\017target_owner_id\030\003 \001(\t\"\036\n\034As"
-    "signBillingAccountResponse\"Q\n\033DetachBill"
-    "ingAccountRequest\022\031\n\021target_owner_type\030\001"
-    " \001(\t\022\027\n\017target_owner_id\030\002 \001(\t\"\036\n\034DetachB"
-    "illingAccountResponse\"\322\002\n\025ManagedBilling"
-    "Account\022\n\n\002id\030\001 \001(\t\022\032\n\022stripe_customer_i"
-    "d\030\002 \001(\t\022E\n\023subscription_status\030\003 \001(\0162(.s"
-    "4wave.provider.spacewave.BillingStatus\022I"
-    "\n\017lifecycle_state\030\004 \001(\01620.s4wave.provide"
-    "r.spacewave.AccountLifecycleState\022\022\n\ncre"
-    "ated_at\030\005 \001(\003\022\022\n\nupdated_at\030\006 \001(\003\022A\n\tass"
-    "ignees\030\007 \003(\0132..s4wave.provider.spacewave"
-    ".PrincipalAssignment\022\024\n\014display_name\030\010 \001"
-    "(\t\"Q\n\023PrincipalAssignment\022\022\n\nowner_type\030"
-    "\001 \001(\t\022\020\n\010owner_id\030\002 \001(\t\022\024\n\014display_name\030"
-    "\003 \001(\t\"3\n\033CreateBillingAccountRequest\022\024\n\014"
-    "display_name\030\001 \001(\t\"O\n\033RenameBillingAccou"
-    "ntRequest\022\032\n\022billing_account_id\030\001 \001(\t\022\024\n"
-    "\014display_name\030\002 \001(\t\"\036\n\034RenameBillingAcco"
-    "untResponse\"9\n\033DeleteBillingAccountReque"
-    "st\022\032\n\022billing_account_id\030\001 \001(\t\"\036\n\034Delete"
-    "BillingAccountResponse\":\n\034CreateBillingA"
-    "ccountResponse\022\032\n\022billing_account_id\030\001 \001"
-    "(\t\"#\n!ListManagedBillingAccountsRequest\""
-    "h\n\"ListManagedBillingAccountsResponse\022B\n"
-    "\010accounts\030\001 \003(\01320.s4wave.provider.spacew"
-    "ave.ManagedBillingAccount\"6\n\030GetBillingA"
-    "ccountRequest\022\032\n\022billing_account_id\030\001 \001("
-    "\t\"[\n\031GetBillingAccountResponse\022>\n\007accoun"
-    "t\030\001 \001(\0132-.s4wave.provider.spacewave.Bill"
-    "ingAccountInfo\"4\n\026GetBillingUsageRequest"
-    "\022\032\n\022billing_account_id\030\001 \001(\t\"U\n\027GetBilli"
-    "ngUsageResponse\022:\n\005usage\030\001 \001(\0132+.s4wave."
-    "provider.spacewave.BillingUsageInfo\"8\n\032R"
-    "efreshBillingStateRequest\022\032\n\022billing_acc"
-    "ount_id\030\001 \001(\t\"\035\n\033RefreshBillingStateResp"
-    "onse\"7\n\031CancelSubscriptionRequest\022\032\n\022bil"
-    "ling_account_id\030\001 \001(\t\"\034\n\032CancelSubscript"
-    "ionResponse\";\n\035ReactivateSubscriptionReq"
-    "uest\022\032\n\022billing_account_id\030\001 \001(\t\"8\n\036Reac"
-    "tivateSubscriptionResponse\022\026\n\016needs_chec"
-    "kout\030\001 \001(\010\"\200\001\n\034SwitchBillingIntervalRequ"
-    "est\022D\n\020billing_interval\030\001 \001(\0162*.s4wave.p"
-    "rovider.spacewave.BillingInterval\022\032\n\022bil"
-    "ling_account_id\030\002 \001(\t\"\037\n\035SwitchBillingIn"
-    "tervalResponse\"8\n\032CreateBillingPortalReq"
-    "uest\022\032\n\022billing_account_id\030\001 \001(\t\"*\n\033Crea"
-    "teBillingPortalResponse\022\013\n\003url\030\001 \001(\t\"\036\n\034"
-    "RequestDeleteNowEmailRequest\"Q\n\035RequestD"
-    "eleteNowEmailResponse\022\014\n\004sent\030\001 \001(\010\022\023\n\013r"
-    "etry_after\030\002 \001(\r\022\r\n\005email\030\003 \001(\t\"+\n\033Confi"
-    "rmDeleteNowCodeRequest\022\014\n\004code\030\001 \001(\t\"\340\001\n"
-    "\034ConfirmDeleteNowCodeResponse\022\021\n\tdelete_"
-    "at\030\001 \001(\004\022\025\n\rinvoice_total\030\002 \001(\003\022\032\n\022invoi"
-    "ce_amount_due\030\003 \001(\003\022\030\n\020invoice_currency\030"
-    "\004 \001(\t\022\026\n\016invoice_status\030\005 \001(\t\022\030\n\020charge_"
-    "attempted\030\006 \001(\010\022\025\n\rrefund_amount\030\007 \001(\003\022\027"
-    "\n\017refund_currency\030\010 \001(\t\"\026\n\024UndoDeleteNow"
-    "Request\"\027\n\025UndoDeleteNowResponse\"M\n\tEmai"
-    "lInfo\022\r\n\005email\030\001 \001(\t\022\020\n\010verified\030\002 \001(\010\022\016"
-    "\n\006source\030\003 \001(\t\022\017\n\007primary\030\004 \001(\010\"\023\n\021ListE"
-    "mailsRequest\"J\n\022ListEmailsResponse\0224\n\006em"
-    "ails\030\001 \003(\0132$.s4wave.provider.spacewave.E"
-    "mailInfo\"\024\n\022WatchEmailsRequest\"K\n\023WatchE"
-    "mailsResponse\0224\n\006emails\030\001 \003(\0132$.s4wave.p"
-    "rovider.spacewave.EmailInfo\"-\n\034SendVerif"
-    "icationEmailRequest\022\r\n\005email\030\001 \001(\t\"B\n\035Se"
-    "ndVerificationEmailResponse\022\014\n\004sent\030\001 \001("
-    "\010\022\023\n\013retry_after\030\002 \001(\r\"5\n\026VerifyEmailCod"
-    "eRequest\022\r\n\005email\030\001 \001(\t\022\014\n\004code\030\002 \001(\t\"+\n"
-    "\027VerifyEmailCodeResponse\022\020\n\010verified\030\001 \001"
-    "(\010\" \n\017AddEmailRequest\022\r\n\005email\030\001 \001(\t\"5\n\020"
-    "AddEmailResponse\022\014\n\004sent\030\001 \001(\010\022\023\n\013retry_"
-    "after\030\002 \001(\r\"#\n\022RemoveEmailRequest\022\r\n\005ema"
-    "il\030\001 \001(\t\"\025\n\023RemoveEmailResponse\"\'\n\026SetPr"
-    "imaryEmailRequest\022\r\n\005email\030\001 \001(\t\"*\n\027SetP"
-    "rimaryEmailResponse\022\017\n\007primary\030\001 \001(\t\"j\n\030"
-    "EnrollSpaceMemberRequest\022\020\n\010space_id\030\001 \001"
-    "(\t\022\022\n\naccount_id\030\002 \001(\t\022(\n\004role\030\003 \001(\0162\032.s"
-    "object.SOParticipantRole\"h\n\027EnrollSpaceM"
-    "emberResult\022\017\n\007peer_id\030\001 \001(\t\022\020\n\010enrolled"
-    "\030\002 \001(\010\022\033\n\023already_participant\030\003 \001(\010\022\r\n\005e"
-    "rror\030\004 \001(\t\"`\n\031EnrollSpaceMemberResponse\022"
-    "C\n\007results\030\001 \003(\01322.s4wave.provider.space"
-    "wave.EnrollSpaceMemberResult\"@\n\030RemoveSp"
-    "aceMemberRequest\022\020\n\010space_id\030\001 \001(\t\022\022\n\nac"
-    "count_id\030\002 \001(\t\"c\n\027RemoveSpaceMemberResul"
-    "t\022\017\n\007peer_id\030\001 \001(\t\022\017\n\007removed\030\002 \001(\010\022\027\n\017n"
-    "ot_participant\030\003 \001(\010\022\r\n\005error\030\004 \001(\t\"`\n\031R"
-    "emoveSpaceMemberResponse\022C\n\007results\030\001 \003("
-    "\01322.s4wave.provider.spacewave.RemoveSpac"
-    "eMemberResult\"\'\n\027LookupInviteCodeRequest"
-    "\022\014\n\004code\030\001 \001(\t\"_\n\030LookupInviteCodeRespon"
-    "se\022\021\n\tinvite_id\030\001 \001(\t\0220\n\016invite_message\030"
-    "\002 \001(\0132\030.sobject.SOInviteMessage\",\n\030GetMa"
-    "ilboxEntriesRequest\022\020\n\010space_id\030\001 \001(\t\"Y\n"
-    "\031GetMailboxEntriesResponse\022<\n\007entries\030\001 "
-    "\003(\0132+.s4wave.provider.spacewave.MailboxE"
-    "ntryInfo\"\215\001\n\020MailboxEntryInfo\022\n\n\002id\030\001 \001("
-    "\003\022\021\n\tinvite_id\030\002 \001(\t\022\017\n\007peer_id\030\003 \001(\t\022\016\n"
-    "\006status\030\004 \001(\t\022\022\n\ncreated_at\030\005 \001(\003\022\022\n\nacc"
-    "ount_id\030\006 \001(\t\022\021\n\tentity_id\030\007 \001(\t\"P\n\032Proc"
-    "essMailboxEntryRequest\022\020\n\010space_id\030\001 \001(\t"
-    "\022\020\n\010entry_id\030\002 \001(\003\022\016\n\006accept\030\003 \001(\010\"\035\n\033Pr"
-    "ocessMailboxEntryResponse\"\373\001\n\024SpaceLinkA"
-    "uthRequest\022\017\n\007version\030\001 \001(\r\022*\n\014session_t"
-    "ype\030\002 \001(\0162\024.session.SessionType\022\025\n\ragent"
-    "_peer_id\030\003 \001(\014\022\r\n\005label\030\004 \001(\t\022\024\n\014callbac"
-    "k_url\030\005 \001(\t\0222\n\016requested_role\030\006 \001(\0162\032.so"
-    "bject.SOParticipantRole\022\r\n\005nonce\030\007 \001(\014\022\022"
-    "\n\nexpires_at\030\010 \001(\003\022\023\n\013target_hint\030\t \001(\014\""
-    "\?\n\023SpaceLinkAuthTicket\022\017\n\007payload\030\001 \001(\014\022"
-    "\027\n\017agent_signature\030\002 \001(\014\")\n\027PreviewSpace"
-    "LinkRequest\022\016\n\006ticket\030\001 \001(\014\"\356\001\n\030PreviewS"
-    "paceLinkResponse\022\r\n\005label\030\001 \001(\t\022*\n\014sessi"
-    "on_type\030\002 \001(\0162\024.session.SessionType\022\025\n\ra"
-    "gent_peer_id\030\003 \001(\014\0222\n\016requested_role\030\004 \001"
-    "(\0162\032.sobject.SOParticipantRole\022\023\n\013target"
-    "_hint\030\005 \001(\014\022\r\n\005nonce\030\006 \001(\014\022\022\n\nexpires_at"
-    "\030\007 \001(\003\022\024\n\014callback_url\030\010 \001(\t\">\n\027ApproveS"
-    "paceLinkRequest\022\016\n\006ticket\030\001 \001(\014\022\023\n\013resou"
-    "rce_id\030\002 \001(\014\"\201\001\n\030ApproveSpaceLinkRespons"
-    "e\022\022\n\naccount_id\030\001 \001(\t\022\023\n\013resource_id\030\002 \001"
-    "(\014\022\027\n\017session_peer_id\030\003 \001(\014\022\r\n\005nonce\030\004 \001"
-    "(\014\022\024\n\014callback_url\030\005 \001(\t*t\n\027PasskeyPrfWr"
-    "apAlgorithm\022*\n&PASSKEY_PRF_WRAP_ALGORITH"
-    "M_UNSPECIFIED\020\000\022-\n)PASSKEY_PRF_WRAP_ALGO"
-    "RITHM_AES_256_GCM_V1\020\001*\212\002\n\rBillingStatus"
-    "\022\031\n\025BillingStatus_UNKNOWN\020\000\022\026\n\022BillingSt"
-    "atus_NONE\020\001\022\030\n\024BillingStatus_ACTIVE\020\002\022\032\n"
-    "\026BillingStatus_PAST_DUE\020\003\022#\n\037BillingStat"
-    "us_PAST_DUE_READONLY\020\004\022\032\n\026BillingStatus_"
-    "CANCELED\020\005\022\031\n\025BillingStatus_DELETED\020\006\022\032\n"
-    "\026BillingStatus_TRIALING\020\007\022\030\n\024BillingStat"
-    "us_LAPSED\020\010*\256\003\n\025AccountLifecycleState\022!\n"
-    "\035AccountLifecycleState_UNKNOWN\020\000\022 \n\034Acco"
-    "untLifecycleState_ACTIVE\020\001\022:\n6AccountLif"
-    "ecycleState_ACTIVE_WITH_CANCEL_AT_PERIOD"
-    "_END\020\002\0221\n-AccountLifecycleState_CANCELED"
-    "_GRACE_READONLY\020\003\0221\n-AccountLifecycleSta"
-    "te_PENDING_DELETE_READONLY\020\004\022)\n%AccountL"
-    "ifecycleState_LAPSED_READONLY\020\005\022/\n+Accou"
-    "ntLifecycleState_DELETED_PENDING_PURGE\020\006"
-    "\022!\n\035AccountLifecycleState_DELETED\020\007\022/\n+A"
-    "ccountLifecycleState_DISPUTED_HARD_SUSPE"
-    "ND\020\010*c\n\017BillingInterval\022\033\n\027BillingInterv"
-    "al_UNKNOWN\020\000\022\031\n\025BillingInterval_MONTH\020\001\022"
-    "\030\n\024BillingInterval_YEAR\020\002*\237\001\n\016CheckoutSt"
-    "atus\022\032\n\026CheckoutStatus_UNKNOWN\020\000\022\032\n\026Chec"
-    "koutStatus_PENDING\020\001\022\034\n\030CheckoutStatus_C"
-    "OMPLETED\020\002\022\032\n\026CheckoutStatus_EXPIRED\020\003\022\033"
-    "\n\027CheckoutStatus_CANCELED\020\004*\360\001\n\027SelfEnro"
-    "llmentGateState\022&\n\"SELF_ENROLLMENT_GATE_"
-    "STATE_UNKNOWN\020\000\022\'\n#SELF_ENROLLMENT_GATE_"
-    "STATE_CHECKING\020\001\022.\n*SELF_ENROLLMENT_GATE"
-    "_STATE_AUTO_CONNECTING\020\002\022.\n*SELF_ENROLLM"
-    "ENT_GATE_STATE_ACTION_REQUIRED\020\003\022$\n SELF"
-    "_ENROLLMENT_GATE_STATE_READY\020\0042\205\036\n Space"
-    "waveProviderResourceService\022\202\001\n\026GetCloud"
-    "ProviderConfig\0228.s4wave.provider.spacewa"
-    "ve.GetCloudProviderConfigRequest\032..s4wav"
-    "e.provider.spacewave.CloudProviderConfig"
-    "\022\212\001\n\025GetLinkedCloudSession\0227.s4wave.prov"
-    "ider.spacewave.GetLinkedCloudSessionRequ"
-    "est\0328.s4wave.provider.spacewave.GetLinke"
-    "dCloudSessionResponse\022\207\001\n\024GenerateAuthKe"
-    "ypairs\0226.s4wave.provider.spacewave.Gener"
-    "ateAuthKeypairsRequest\0327.s4wave.provider"
-    ".spacewave.GenerateAuthKeypairsResponse\022"
-    "u\n\016WrapPemWithPin\0220.s4wave.provider.spac"
-    "ewave.WrapPemWithPinRequest\0321.s4wave.pro"
-    "vider.spacewave.WrapPemWithPinResponse\022{"
-    "\n\020UnwrapPemWithPin\0222.s4wave.provider.spa"
-    "cewave.UnwrapPemWithPinRequest\0323.s4wave."
-    "provider.spacewave.UnwrapPemWithPinRespo"
-    "nse\022\215\001\n\026GeneratePasskeyPrfSalt\0228.s4wave."
-    "provider.spacewave.GeneratePasskeyPrfSal"
-    "tRequest\0329.s4wave.provider.spacewave.Gen"
-    "eratePasskeyPrfSaltResponse\022\201\001\n\022WrapWith"
-    "PasskeyPrf\0224.s4wave.provider.spacewave.W"
-    "rapWithPasskeyPrfRequest\0325.s4wave.provid"
-    "er.spacewave.WrapWithPasskeyPrfResponse\022"
-    "\207\001\n\024UnwrapWithPasskeyPrf\0226.s4wave.provid"
-    "er.spacewave.UnwrapWithPasskeyPrfRequest"
-    "\0327.s4wave.provider.spacewave.UnwrapWithP"
-    "asskeyPrfResponse\022r\n\rCreateAccount\022/.s4w"
-    "ave.provider.spacewave.CreateAccountRequ"
-    "est\0320.s4wave.provider.spacewave.CreateAc"
-    "countResponse\022o\n\014LoginAccount\022..s4wave.p"
-    "rovider.spacewave.LoginAccountRequest\032/."
-    "s4wave.provider.spacewave.LoginAccountRe"
-    "sponse\022\207\001\n\024LoginOrCreateAccount\0226.s4wave"
-    ".provider.spacewave.LoginOrCreateAccount"
-    "Request\0327.s4wave.provider.spacewave.Logi"
-    "nOrCreateAccountResponse\022\201\001\n\022LoginWithEn"
-    "tityKey\0224.s4wave.provider.spacewave.Logi"
-    "nWithEntityKeyRequest\0325.s4wave.provider."
-    "spacewave.LoginWithEntityKeyResponse\022\212\001\n"
-    "\025ReauthenticateSession\0227.s4wave.provider"
-    ".spacewave.ReauthenticateSessionRequest\032"
-    "8.s4wave.provider.spacewave.Reauthentica"
-    "teSessionResponse\022\204\001\n\023StartBrowserHandof"
-    "f\0225.s4wave.provider.spacewave.StartBrows"
-    "erHandoffRequest\0326.s4wave.provider.space"
-    "wave.StartBrowserHandoffResponse\022x\n\017SSOC"
-    "odeExchange\0221.s4wave.provider.spacewave."
-    "SSOCodeExchangeRequest\0322.s4wave.provider"
-    ".spacewave.SSOCodeExchangeResponse\022z\n\020SS"
-    "ONonceExchange\0222.s4wave.provider.spacewa"
-    "ve.SSONonceExchangeRequest\0322.s4wave.prov"
-    "ider.spacewave.SSOCodeExchangeResponse\022x"
-    "\n\017StartDesktopSSO\0221.s4wave.provider.spac"
-    "ewave.StartDesktopSSORequest\0322.s4wave.pr"
-    "ovider.spacewave.StartDesktopSSOResponse"
-    "\022~\n\021ConfirmDesktopSSO\0223.s4wave.provider."
-    "spacewave.ConfirmDesktopSSORequest\0324.s4w"
-    "ave.provider.spacewave.ConfirmDesktopSSO"
-    "Response\022\207\001\n\024PasskeyCheckUsername\0226.s4wa"
-    "ve.provider.spacewave.PasskeyCheckUserna"
-    "meRequest\0327.s4wave.provider.spacewave.Pa"
-    "sskeyCheckUsernameResponse\022\223\001\n\030PasskeyRe"
-    "gisterChallenge\022:.s4wave.provider.spacew"
-    "ave.PasskeyRegisterChallengeRequest\032;.s4"
-    "wave.provider.spacewave.PasskeyRegisterC"
-    "hallengeResponse\022\207\001\n\024PasskeyConfirmSignu"
-    "p\0226.s4wave.provider.spacewave.PasskeyCon"
-    "firmSignupRequest\0327.s4wave.provider.spac"
-    "ewave.PasskeyConfirmSignupResponse\022\201\001\n\022P"
-    "asskeyAuthOptions\0224.s4wave.provider.spac"
-    "ewave.PasskeyAuthOptionsRequest\0325.s4wave"
-    ".provider.spacewave.PasskeyAuthOptionsRe"
-    "sponse\022~\n\021PasskeyAuthVerify\0223.s4wave.pro"
-    "vider.spacewave.PasskeyAuthVerifyRequest"
-    "\0324.s4wave.provider.spacewave.PasskeyAuth"
-    "VerifyResponse\022\204\001\n\023StartDesktopPasskey\0225"
-    ".s4wave.provider.spacewave.StartDesktopP"
-    "asskeyRequest\0326.s4wave.provider.spacewav"
-    "e.StartDesktopPasskeyResponse\022\212\001\n\025Confir"
-    "mDesktopPasskey\0227.s4wave.provider.spacew"
-    "ave.ConfirmDesktopPasskeyRequest\0328.s4wav"
-    "e.provider.spacewave.ConfirmDesktopPassk"
-    "eyResponse\022\204\001\n\023RelayDesktopPasskey\0225.s4w"
-    "ave.provider.spacewave.RelayDesktopPassk"
-    "eyRequest\0326.s4wave.provider.spacewave.Re"
-    "layDesktopPasskeyResponse\022\207\001\n\024RequestRec"
-    "overyEmail\0226.s4wave.provider.spacewave.R"
-    "equestRecoveryEmailRequest\0327.s4wave.prov"
-    "ider.spacewave.RequestRecoveryEmailRespo"
-    "nse\022r\n\rRecoverVerify\022/.s4wave.provider.s"
-    "pacewave.RecoverVerifyRequest\0320.s4wave.p"
-    "rovider.spacewave.RecoverVerifyResponse\022"
-    "u\n\016RecoverExecute\0220.s4wave.provider.spac"
-    "ewave.RecoverExecuteRequest\0321.s4wave.pro"
-    "vider.spacewave.RecoverExecuteResponseb\006"
-    "proto3"
+    " \001(\005\022\022\n\nexpires_at\030\006 \001(\003\"\305\001\n*CreateTarge"
+    "tedInviteDraftByUsernameRequest\022\020\n\010usern"
+    "ame\030\001 \001(\t\022A\n\007purpose\030\002 \001(\01620.s4wave.prov"
+    "ider.spacewave.TargetedInvitePurpose\022\020\n\010"
+    "space_id\030\003 \001(\t\022\016\n\006org_id\030\004 \001(\t\022\014\n\004role\030\005"
+    " \001(\t\022\022\n\nexpires_at\030\006 \001(\003\"\?\n+CreateTarget"
+    "edInviteDraftByUsernameResponse\022\020\n\010accep"
+    "ted\030\001 \001(\010\"\217\001\n\026ResolveUsernameRequest\022\020\n\010"
+    "username\030\001 \001(\t\022A\n\007purpose\030\002 \001(\01620.s4wave"
+    ".provider.spacewave.TargetedInvitePurpos"
+    "e\022\020\n\010space_id\030\003 \001(\t\022\016\n\006org_id\030\004 \001(\t\"\270\001\n\027"
+    "ResolveUsernameResponse\022\r\n\005found\030\001 \001(\010\022\022"
+    "\n\naccount_id\030\002 \001(\t\022\021\n\tentity_id\030\003 \001(\t\022\021\n"
+    "\tdomain_id\030\004 \001(\t\022\024\n\014relationship\030\005 \001(\t\022\022"
+    "\n\ncan_invite\030\006 \001(\010\022\023\n\013entity_uuid\030\007 \001(\t\022"
+    "\025\n\raccount_epoch\030\010 \001(\003\"\271\003\n\032TargetedInvit"
+    "ationEnvelope\022\026\n\016schema_version\030\001 \001(\r\022A\n"
+    "\007purpose\030\002 \001(\01620.s4wave.provider.spacewa"
+    "ve.TargetedInvitePurpose\022\022\n\ncontext_id\030\003"
+    " \001(\t\022\030\n\020actor_account_id\030\004 \001(\t\022\031\n\021actor_"
+    "entity_uuid\030\005 \001(\t\022\033\n\023actor_account_epoch"
+    "\030\020 \001(\003\022\026\n\016signer_peer_id\030\006 \001(\t\022\031\n\021target"
+    "_account_id\030\007 \001(\t\022\030\n\020target_entity_id\030\010 "
+    "\001(\t\022\032\n\022target_entity_uuid\030\t \001(\t\022\034\n\024targe"
+    "t_account_epoch\030\n \001(\003\022\014\n\004role\030\013 \001(\t\022\022\n\ne"
+    "xpires_at\030\014 \001(\003\022\r\n\005nonce\030\r \001(\014\022\017\n\007payloa"
+    "d\030\016 \001(\014\022\021\n\tsignature\030\017 \001(\014\"\320\003\n\026TargetedI"
+    "nvitationInfo\022\n\n\002id\030\001 \001(\t\022\030\n\020actor_accou"
+    "nt_id\030\002 \001(\t\022\031\n\021target_account_id\030\003 \001(\t\022\030"
+    "\n\020target_entity_id\030\004 \001(\t\022\032\n\022target_entit"
+    "y_uuid\030\005 \001(\t\022\034\n\024target_account_epoch\030\006 \001"
+    "(\003\022A\n\007purpose\030\007 \001(\01620.s4wave.provider.sp"
+    "acewave.TargetedInvitePurpose\022\022\n\ncontext"
+    "_id\030\010 \001(\t\022\014\n\004role\030\t \001(\t\022\016\n\006status\030\n \001(\t\022"
+    "\025\n\renvelope_hash\030\013 \001(\t\022G\n\010envelope\030\014 \001(\013"
+    "25.s4wave.provider.spacewave.TargetedInv"
+    "itationEnvelope\022\022\n\ncreated_at\030\r \001(\003\022\022\n\nu"
+    "pdated_at\030\016 \001(\003\022\022\n\nexpires_at\030\017 \001(\003\022\020\n\010d"
+    "raft_id\030\020 \001(\t\"\236\002\n\037CreateTargetedInvitati"
+    "onRequest\022\031\n\021target_account_id\030\001 \001(\t\022A\n\007"
+    "purpose\030\002 \001(\01620.s4wave.provider.spacewav"
+    "e.TargetedInvitePurpose\022\020\n\010space_id\030\003 \001("
+    "\t\022\016\n\006org_id\030\004 \001(\t\022\014\n\004role\030\005 \001(\t\022\022\n\nexpir"
+    "es_at\030\006 \001(\003\022G\n\010envelope\030\007 \001(\01325.s4wave.p"
+    "rovider.spacewave.TargetedInvitationEnve"
+    "lope\022\020\n\010draft_id\030\010 \001(\t\"i\n CreateTargeted"
+    "InvitationResponse\022E\n\ninvitation\030\001 \001(\01321"
+    ".s4wave.provider.spacewave.TargetedInvit"
+    "ationInfo\"v\n.CreateSpaceTargetedInvitati"
+    "onByUsernameRequest\022\020\n\010username\030\001 \001(\t\022\020\n"
+    "\010space_id\030\002 \001(\t\022\014\n\004role\030\003 \001(\t\022\022\n\nexpires"
+    "_at\030\004 \001(\003\"x\n/CreateSpaceTargetedInvitati"
+    "onByUsernameResponse\022E\n\ninvitation\030\001 \001(\013"
+    "21.s4wave.provider.spacewave.TargetedInv"
+    "itationInfo\"2\n$AcceptSpaceTargetedInvita"
+    "tionRequest\022\n\n\002id\030\001 \001(\t\"\235\001\n%AcceptSpaceT"
+    "argetedInvitationResponse\022E\n\ninvitation\030"
+    "\001 \001(\01321.s4wave.provider.spacewave.Target"
+    "edInvitationInfo\022\030\n\020shared_object_id\030\002 \001"
+    "(\t\022\023\n\013join_result\030\003 \001(\t\"{\n5CreateOrganiz"
+    "ationTargetedInvitationByUsernameRequest"
+    "\022\020\n\010username\030\001 \001(\t\022\016\n\006org_id\030\002 \001(\t\022\014\n\004ro"
+    "le\030\003 \001(\t\022\022\n\nexpires_at\030\004 \001(\003\"\177\n6CreateOr"
+    "ganizationTargetedInvitationByUsernameRe"
+    "sponse\022E\n\ninvitation\030\001 \001(\01321.s4wave.prov"
+    "ider.spacewave.TargetedInvitationInfo\"9\n"
+    "+AcceptOrganizationTargetedInvitationReq"
+    "uest\022\n\n\002id\030\001 \001(\t\"\270\001\n,AcceptOrganizationT"
+    "argetedInvitationResponse\022E\n\ninvitation\030"
+    "\001 \001(\01321.s4wave.provider.spacewave.Target"
+    "edInvitationInfo\022A\n\014organization\030\002 \001(\0132+"
+    ".s4wave.provider.spacewave.OrganizationI"
+    "nfo\" \n\036ListTargetedInvitationsRequest\"i\n"
+    "\037ListTargetedInvitationsResponse\022F\n\013invi"
+    "tations\030\001 \003(\01321.s4wave.provider.spacewav"
+    "e.TargetedInvitationInfo\"*\n\034GetTargetedI"
+    "nvitationRequest\022\n\n\002id\030\001 \001(\t\"f\n\035GetTarge"
+    "tedInvitationResponse\022E\n\ninvitation\030\001 \001("
+    "\01321.s4wave.provider.spacewave.TargetedIn"
+    "vitationInfo\"-\n\037RevokeTargetedInvitation"
+    "Request\022\n\n\002id\030\001 \001(\t\"i\n RevokeTargetedInv"
+    "itationResponse\022E\n\ninvitation\030\001 \001(\01321.s4"
+    "wave.provider.spacewave.TargetedInvitati"
+    "onInfo\">\n ProcessTargetedInvitationReque"
+    "st\022\n\n\002id\030\001 \001(\t\022\016\n\006action\030\002 \001(\t\"j\n!Proces"
+    "sTargetedInvitationResponse\022E\n\ninvitatio"
+    "n\030\001 \001(\01321.s4wave.provider.spacewave.Targ"
+    "etedInvitationInfo\"k\n\026CreateOrgInviteReq"
+    "uest\022\016\n\006org_id\030\001 \001(\t\022\014\n\004type\030\002 \001(\t\022\020\n\010ma"
+    "x_uses\030\003 \001(\005\022\022\n\nexpires_at\030\004 \001(\003\022\r\n\005emai"
+    "l\030\005 \001(\t\"S\n\027CreateOrgInviteResponse\0228\n\006in"
+    "vite\030\001 \001(\0132(.s4wave.provider.spacewave.O"
+    "rgInviteInfo\"(\n\027JoinOrganizationRequest\022"
+    "\r\n\005token\030\001 \001(\t\"]\n\030JoinOrganizationRespon"
+    "se\022A\n\014organization\030\001 \001(\0132+.s4wave.provid"
+    "er.spacewave.OrganizationInfo\"A\n\031UpdateO"
+    "rganizationRequest\022\016\n\006org_id\030\001 \001(\t\022\024\n\014di"
+    "splay_name\030\002 \001(\t\"\034\n\032UpdateOrganizationRe"
+    "sponse\"+\n\031DeleteOrganizationRequest\022\016\n\006o"
+    "rg_id\030\001 \001(\t\"\034\n\032DeleteOrganizationRespons"
+    "e\"(\n\026GetOrganizationRequest\022\016\n\006org_id\030\001 "
+    "\001(\t\"/\n\035WatchOrganizationStateRequest\022\016\n\006"
+    "org_id\030\001 \001(\t\"g\n\rOrgMemberInfo\022\n\n\002id\030\001 \001("
+    "\t\022\022\n\nsubject_id\030\002 \001(\t\022\017\n\007role_id\030\003 \001(\t\022\022"
+    "\n\ncreated_at\030\004 \001(\003\022\021\n\tentity_id\030\005 \001(\t\"E\n"
+    "\014OrgSpaceInfo\022\n\n\002id\030\001 \001(\t\022\024\n\014display_nam"
+    "e\030\002 \001(\t\022\023\n\013object_type\030\003 \001(\t\"g\n\036SharedOb"
+    "jectMutationPermission\022\022\n\ncan_repair\030\001 \001"
+    "(\010\022\030\n\020can_reinitialize\030\002 \001(\010\022\027\n\017disabled"
+    "_reason\030\003 \001(\t\"\272\001\n\031OrganizationRootStateI"
+    "nfo\022\030\n\020shared_object_id\030\001 \001(\t\022+\n\006health\030"
+    "\002 \001(\0132\033.sobject.SharedObjectHealth\022V\n\023mu"
+    "tation_permission\030\003 \001(\01329.s4wave.provide"
+    "r.spacewave.SharedObjectMutationPermissi"
+    "on\"\232\002\n\027GetOrganizationResponse\022A\n\014organi"
+    "zation\030\001 \001(\0132+.s4wave.provider.spacewave"
+    ".OrganizationInfo\0229\n\007members\030\002 \003(\0132(.s4w"
+    "ave.provider.spacewave.OrgMemberInfo\0227\n\006"
+    "spaces\030\003 \003(\0132\'.s4wave.provider.spacewave"
+    ".OrgSpaceInfo\022H\n\nroot_state\030\004 \001(\01324.s4wa"
+    "ve.provider.spacewave.OrganizationRootSt"
+    "ateInfo\"\334\002\n\036WatchOrganizationStateRespon"
+    "se\022A\n\014organization\030\001 \001(\0132+.s4wave.provid"
+    "er.spacewave.OrganizationInfo\0229\n\007members"
+    "\030\002 \003(\0132(.s4wave.provider.spacewave.OrgMe"
+    "mberInfo\0227\n\006spaces\030\003 \003(\0132\'.s4wave.provid"
+    "er.spacewave.OrgSpaceInfo\0229\n\007invites\030\004 \003"
+    "(\0132(.s4wave.provider.spacewave.OrgInvite"
+    "Info\022H\n\nroot_state\030\005 \001(\01324.s4wave.provid"
+    "er.spacewave.OrganizationRootStateInfo\"5"
+    "\n\031RepairSharedObjectRequest\022\030\n\020shared_ob"
+    "ject_id\030\001 \001(\t\"\034\n\032RepairSharedObjectRespo"
+    "nse\";\n\037ReinitializeSharedObjectRequest\022\030"
+    "\n\020shared_object_id\030\001 \001(\t\"\"\n Reinitialize"
+    "SharedObjectResponse\"\'\n\025ListOrgInvitesRe"
+    "quest\022\016\n\006org_id\030\001 \001(\t\"S\n\026ListOrgInvitesR"
+    "esponse\0229\n\007invites\030\001 \003(\0132(.s4wave.provid"
+    "er.spacewave.OrgInviteInfo\";\n\026RevokeOrgI"
+    "nviteRequest\022\016\n\006org_id\030\001 \001(\t\022\021\n\tinvite_i"
+    "d\030\002 \001(\t\"\031\n\027RevokeOrgInviteResponse\"*\n\030Le"
+    "aveOrganizationRequest\022\016\n\006org_id\030\001 \001(\t\"\033"
+    "\n\031LeaveOrganizationResponse\";\n\026RemoveOrg"
+    "MemberRequest\022\016\n\006org_id\030\001 \001(\t\022\021\n\tmember_"
+    "id\030\002 \001(\t\"\031\n\027RemoveOrgMemberResponse\"\\\n\027T"
+    "ransferResourceRequest\022\023\n\013resource_id\030\001 "
+    "\001(\t\022\026\n\016new_owner_type\030\002 \001(\t\022\024\n\014new_owner"
+    "_id\030\003 \001(\t\"\032\n\030TransferResourceResponse\"m\n"
+    "\033AssignBillingAccountRequest\022\032\n\022billing_"
+    "account_id\030\001 \001(\t\022\031\n\021target_owner_type\030\002 "
+    "\001(\t\022\027\n\017target_owner_id\030\003 \001(\t\"\036\n\034AssignBi"
+    "llingAccountResponse\"Q\n\033DetachBillingAcc"
+    "ountRequest\022\031\n\021target_owner_type\030\001 \001(\t\022\027"
+    "\n\017target_owner_id\030\002 \001(\t\"\036\n\034DetachBilling"
+    "AccountResponse\"\322\002\n\025ManagedBillingAccoun"
+    "t\022\n\n\002id\030\001 \001(\t\022\032\n\022stripe_customer_id\030\002 \001("
+    "\t\022E\n\023subscription_status\030\003 \001(\0162(.s4wave."
+    "provider.spacewave.BillingStatus\022I\n\017life"
+    "cycle_state\030\004 \001(\01620.s4wave.provider.spac"
+    "ewave.AccountLifecycleState\022\022\n\ncreated_a"
+    "t\030\005 \001(\003\022\022\n\nupdated_at\030\006 \001(\003\022A\n\tassignees"
+    "\030\007 \003(\0132..s4wave.provider.spacewave.Princ"
+    "ipalAssignment\022\024\n\014display_name\030\010 \001(\t\"Q\n\023"
+    "PrincipalAssignment\022\022\n\nowner_type\030\001 \001(\t\022"
+    "\020\n\010owner_id\030\002 \001(\t\022\024\n\014display_name\030\003 \001(\t\""
+    "3\n\033CreateBillingAccountRequest\022\024\n\014displa"
+    "y_name\030\001 \001(\t\"O\n\033RenameBillingAccountRequ"
+    "est\022\032\n\022billing_account_id\030\001 \001(\t\022\024\n\014displ"
+    "ay_name\030\002 \001(\t\"\036\n\034RenameBillingAccountRes"
+    "ponse\"9\n\033DeleteBillingAccountRequest\022\032\n\022"
+    "billing_account_id\030\001 \001(\t\"\036\n\034DeleteBillin"
+    "gAccountResponse\":\n\034CreateBillingAccount"
+    "Response\022\032\n\022billing_account_id\030\001 \001(\t\"#\n!"
+    "ListManagedBillingAccountsRequest\"h\n\"Lis"
+    "tManagedBillingAccountsResponse\022B\n\010accou"
+    "nts\030\001 \003(\01320.s4wave.provider.spacewave.Ma"
+    "nagedBillingAccount\"6\n\030GetBillingAccount"
+    "Request\022\032\n\022billing_account_id\030\001 \001(\t\"[\n\031G"
+    "etBillingAccountResponse\022>\n\007account\030\001 \001("
+    "\0132-.s4wave.provider.spacewave.BillingAcc"
+    "ountInfo\"4\n\026GetBillingUsageRequest\022\032\n\022bi"
+    "lling_account_id\030\001 \001(\t\"U\n\027GetBillingUsag"
+    "eResponse\022:\n\005usage\030\001 \001(\0132+.s4wave.provid"
+    "er.spacewave.BillingUsageInfo\"8\n\032Refresh"
+    "BillingStateRequest\022\032\n\022billing_account_i"
+    "d\030\001 \001(\t\"\035\n\033RefreshBillingStateResponse\"7"
+    "\n\031CancelSubscriptionRequest\022\032\n\022billing_a"
+    "ccount_id\030\001 \001(\t\"\034\n\032CancelSubscriptionRes"
+    "ponse\";\n\035ReactivateSubscriptionRequest\022\032"
+    "\n\022billing_account_id\030\001 \001(\t\"8\n\036Reactivate"
+    "SubscriptionResponse\022\026\n\016needs_checkout\030\001"
+    " \001(\010\"\200\001\n\034SwitchBillingIntervalRequest\022D\n"
+    "\020billing_interval\030\001 \001(\0162*.s4wave.provide"
+    "r.spacewave.BillingInterval\022\032\n\022billing_a"
+    "ccount_id\030\002 \001(\t\"\037\n\035SwitchBillingInterval"
+    "Response\"8\n\032CreateBillingPortalRequest\022\032"
+    "\n\022billing_account_id\030\001 \001(\t\"*\n\033CreateBill"
+    "ingPortalResponse\022\013\n\003url\030\001 \001(\t\"\036\n\034Reques"
+    "tDeleteNowEmailRequest\"Q\n\035RequestDeleteN"
+    "owEmailResponse\022\014\n\004sent\030\001 \001(\010\022\023\n\013retry_a"
+    "fter\030\002 \001(\r\022\r\n\005email\030\003 \001(\t\"+\n\033ConfirmDele"
+    "teNowCodeRequest\022\014\n\004code\030\001 \001(\t\"\340\001\n\034Confi"
+    "rmDeleteNowCodeResponse\022\021\n\tdelete_at\030\001 \001"
+    "(\004\022\025\n\rinvoice_total\030\002 \001(\003\022\032\n\022invoice_amo"
+    "unt_due\030\003 \001(\003\022\030\n\020invoice_currency\030\004 \001(\t\022"
+    "\026\n\016invoice_status\030\005 \001(\t\022\030\n\020charge_attemp"
+    "ted\030\006 \001(\010\022\025\n\rrefund_amount\030\007 \001(\003\022\027\n\017refu"
+    "nd_currency\030\010 \001(\t\"\026\n\024UndoDeleteNowReques"
+    "t\"\027\n\025UndoDeleteNowResponse\"M\n\tEmailInfo\022"
+    "\r\n\005email\030\001 \001(\t\022\020\n\010verified\030\002 \001(\010\022\016\n\006sour"
+    "ce\030\003 \001(\t\022\017\n\007primary\030\004 \001(\010\"\023\n\021ListEmailsR"
+    "equest\"J\n\022ListEmailsResponse\0224\n\006emails\030\001"
+    " \003(\0132$.s4wave.provider.spacewave.EmailIn"
+    "fo\"\024\n\022WatchEmailsRequest\"K\n\023WatchEmailsR"
+    "esponse\0224\n\006emails\030\001 \003(\0132$.s4wave.provide"
+    "r.spacewave.EmailInfo\"-\n\034SendVerificatio"
+    "nEmailRequest\022\r\n\005email\030\001 \001(\t\"B\n\035SendVeri"
+    "ficationEmailResponse\022\014\n\004sent\030\001 \001(\010\022\023\n\013r"
+    "etry_after\030\002 \001(\r\"5\n\026VerifyEmailCodeReque"
+    "st\022\r\n\005email\030\001 \001(\t\022\014\n\004code\030\002 \001(\t\"+\n\027Verif"
+    "yEmailCodeResponse\022\020\n\010verified\030\001 \001(\010\" \n\017"
+    "AddEmailRequest\022\r\n\005email\030\001 \001(\t\"5\n\020AddEma"
+    "ilResponse\022\014\n\004sent\030\001 \001(\010\022\023\n\013retry_after\030"
+    "\002 \001(\r\"#\n\022RemoveEmailRequest\022\r\n\005email\030\001 \001"
+    "(\t\"\025\n\023RemoveEmailResponse\"\'\n\026SetPrimaryE"
+    "mailRequest\022\r\n\005email\030\001 \001(\t\"*\n\027SetPrimary"
+    "EmailResponse\022\017\n\007primary\030\001 \001(\t\"j\n\030Enroll"
+    "SpaceMemberRequest\022\020\n\010space_id\030\001 \001(\t\022\022\n\n"
+    "account_id\030\002 \001(\t\022(\n\004role\030\003 \001(\0162\032.sobject"
+    ".SOParticipantRole\"h\n\027EnrollSpaceMemberR"
+    "esult\022\017\n\007peer_id\030\001 \001(\t\022\020\n\010enrolled\030\002 \001(\010"
+    "\022\033\n\023already_participant\030\003 \001(\010\022\r\n\005error\030\004"
+    " \001(\t\"`\n\031EnrollSpaceMemberResponse\022C\n\007res"
+    "ults\030\001 \003(\01322.s4wave.provider.spacewave.E"
+    "nrollSpaceMemberResult\"@\n\030RemoveSpaceMem"
+    "berRequest\022\020\n\010space_id\030\001 \001(\t\022\022\n\naccount_"
+    "id\030\002 \001(\t\"c\n\027RemoveSpaceMemberResult\022\017\n\007p"
+    "eer_id\030\001 \001(\t\022\017\n\007removed\030\002 \001(\010\022\027\n\017not_par"
+    "ticipant\030\003 \001(\010\022\r\n\005error\030\004 \001(\t\"`\n\031RemoveS"
+    "paceMemberResponse\022C\n\007results\030\001 \003(\01322.s4"
+    "wave.provider.spacewave.RemoveSpaceMembe"
+    "rResult\"\'\n\027LookupInviteCodeRequest\022\014\n\004co"
+    "de\030\001 \001(\t\"_\n\030LookupInviteCodeResponse\022\021\n\t"
+    "invite_id\030\001 \001(\t\0220\n\016invite_message\030\002 \001(\0132"
+    "\030.sobject.SOInviteMessage\",\n\030GetMailboxE"
+    "ntriesRequest\022\020\n\010space_id\030\001 \001(\t\"Y\n\031GetMa"
+    "ilboxEntriesResponse\022<\n\007entries\030\001 \003(\0132+."
+    "s4wave.provider.spacewave.MailboxEntryIn"
+    "fo\"\215\001\n\020MailboxEntryInfo\022\n\n\002id\030\001 \001(\003\022\021\n\ti"
+    "nvite_id\030\002 \001(\t\022\017\n\007peer_id\030\003 \001(\t\022\016\n\006statu"
+    "s\030\004 \001(\t\022\022\n\ncreated_at\030\005 \001(\003\022\022\n\naccount_i"
+    "d\030\006 \001(\t\022\021\n\tentity_id\030\007 \001(\t\"P\n\032ProcessMai"
+    "lboxEntryRequest\022\020\n\010space_id\030\001 \001(\t\022\020\n\010en"
+    "try_id\030\002 \001(\003\022\016\n\006accept\030\003 \001(\010\"\035\n\033ProcessM"
+    "ailboxEntryResponse\"\373\001\n\024SpaceLinkAuthReq"
+    "uest\022\017\n\007version\030\001 \001(\r\022*\n\014session_type\030\002 "
+    "\001(\0162\024.session.SessionType\022\025\n\ragent_peer_"
+    "id\030\003 \001(\014\022\r\n\005label\030\004 \001(\t\022\024\n\014callback_url\030"
+    "\005 \001(\t\0222\n\016requested_role\030\006 \001(\0162\032.sobject."
+    "SOParticipantRole\022\r\n\005nonce\030\007 \001(\014\022\022\n\nexpi"
+    "res_at\030\010 \001(\003\022\023\n\013target_hint\030\t \001(\014\"\?\n\023Spa"
+    "ceLinkAuthTicket\022\017\n\007payload\030\001 \001(\014\022\027\n\017age"
+    "nt_signature\030\002 \001(\014\")\n\027PreviewSpaceLinkRe"
+    "quest\022\016\n\006ticket\030\001 \001(\014\"\356\001\n\030PreviewSpaceLi"
+    "nkResponse\022\r\n\005label\030\001 \001(\t\022*\n\014session_typ"
+    "e\030\002 \001(\0162\024.session.SessionType\022\025\n\ragent_p"
+    "eer_id\030\003 \001(\014\0222\n\016requested_role\030\004 \001(\0162\032.s"
+    "object.SOParticipantRole\022\023\n\013target_hint\030"
+    "\005 \001(\014\022\r\n\005nonce\030\006 \001(\014\022\022\n\nexpires_at\030\007 \001(\003"
+    "\022\024\n\014callback_url\030\010 \001(\t\">\n\027ApproveSpaceLi"
+    "nkRequest\022\016\n\006ticket\030\001 \001(\014\022\023\n\013resource_id"
+    "\030\002 \001(\014\"\201\001\n\030ApproveSpaceLinkResponse\022\022\n\na"
+    "ccount_id\030\001 \001(\t\022\023\n\013resource_id\030\002 \001(\014\022\027\n\017"
+    "session_peer_id\030\003 \001(\014\022\r\n\005nonce\030\004 \001(\014\022\024\n\014"
+    "callback_url\030\005 \001(\t*t\n\027PasskeyPrfWrapAlgo"
+    "rithm\022*\n&PASSKEY_PRF_WRAP_ALGORITHM_UNSP"
+    "ECIFIED\020\000\022-\n)PASSKEY_PRF_WRAP_ALGORITHM_"
+    "AES_256_GCM_V1\020\001*\212\002\n\rBillingStatus\022\031\n\025Bi"
+    "llingStatus_UNKNOWN\020\000\022\026\n\022BillingStatus_N"
+    "ONE\020\001\022\030\n\024BillingStatus_ACTIVE\020\002\022\032\n\026Billi"
+    "ngStatus_PAST_DUE\020\003\022#\n\037BillingStatus_PAS"
+    "T_DUE_READONLY\020\004\022\032\n\026BillingStatus_CANCEL"
+    "ED\020\005\022\031\n\025BillingStatus_DELETED\020\006\022\032\n\026Billi"
+    "ngStatus_TRIALING\020\007\022\030\n\024BillingStatus_LAP"
+    "SED\020\010*\256\003\n\025AccountLifecycleState\022!\n\035Accou"
+    "ntLifecycleState_UNKNOWN\020\000\022 \n\034AccountLif"
+    "ecycleState_ACTIVE\020\001\022:\n6AccountLifecycle"
+    "State_ACTIVE_WITH_CANCEL_AT_PERIOD_END\020\002"
+    "\0221\n-AccountLifecycleState_CANCELED_GRACE"
+    "_READONLY\020\003\0221\n-AccountLifecycleState_PEN"
+    "DING_DELETE_READONLY\020\004\022)\n%AccountLifecyc"
+    "leState_LAPSED_READONLY\020\005\022/\n+AccountLife"
+    "cycleState_DELETED_PENDING_PURGE\020\006\022!\n\035Ac"
+    "countLifecycleState_DELETED\020\007\022/\n+Account"
+    "LifecycleState_DISPUTED_HARD_SUSPEND\020\010*c"
+    "\n\017BillingInterval\022\033\n\027BillingInterval_UNK"
+    "NOWN\020\000\022\031\n\025BillingInterval_MONTH\020\001\022\030\n\024Bil"
+    "lingInterval_YEAR\020\002*\237\001\n\016CheckoutStatus\022\032"
+    "\n\026CheckoutStatus_UNKNOWN\020\000\022\032\n\026CheckoutSt"
+    "atus_PENDING\020\001\022\034\n\030CheckoutStatus_COMPLET"
+    "ED\020\002\022\032\n\026CheckoutStatus_EXPIRED\020\003\022\033\n\027Chec"
+    "koutStatus_CANCELED\020\004*\360\001\n\027SelfEnrollment"
+    "GateState\022&\n\"SELF_ENROLLMENT_GATE_STATE_"
+    "UNKNOWN\020\000\022\'\n#SELF_ENROLLMENT_GATE_STATE_"
+    "CHECKING\020\001\022.\n*SELF_ENROLLMENT_GATE_STATE"
+    "_AUTO_CONNECTING\020\002\022.\n*SELF_ENROLLMENT_GA"
+    "TE_STATE_ACTION_REQUIRED\020\003\022$\n SELF_ENROL"
+    "LMENT_GATE_STATE_READY\020\004*\215\001\n\025TargetedInv"
+    "itePurpose\022\'\n#TARGETED_INVITE_PURPOSE_UN"
+    "SPECIFIED\020\000\022!\n\035TARGETED_INVITE_PURPOSE_S"
+    "PACE\020\001\022(\n$TARGETED_INVITE_PURPOSE_ORGANI"
+    "ZATION\020\0022\205\036\n SpacewaveProviderResourceSe"
+    "rvice\022\202\001\n\026GetCloudProviderConfig\0228.s4wav"
+    "e.provider.spacewave.GetCloudProviderCon"
+    "figRequest\032..s4wave.provider.spacewave.C"
+    "loudProviderConfig\022\212\001\n\025GetLinkedCloudSes"
+    "sion\0227.s4wave.provider.spacewave.GetLink"
+    "edCloudSessionRequest\0328.s4wave.provider."
+    "spacewave.GetLinkedCloudSessionResponse\022"
+    "\207\001\n\024GenerateAuthKeypairs\0226.s4wave.provid"
+    "er.spacewave.GenerateAuthKeypairsRequest"
+    "\0327.s4wave.provider.spacewave.GenerateAut"
+    "hKeypairsResponse\022u\n\016WrapPemWithPin\0220.s4"
+    "wave.provider.spacewave.WrapPemWithPinRe"
+    "quest\0321.s4wave.provider.spacewave.WrapPe"
+    "mWithPinResponse\022{\n\020UnwrapPemWithPin\0222.s"
+    "4wave.provider.spacewave.UnwrapPemWithPi"
+    "nRequest\0323.s4wave.provider.spacewave.Unw"
+    "rapPemWithPinResponse\022\215\001\n\026GeneratePasske"
+    "yPrfSalt\0228.s4wave.provider.spacewave.Gen"
+    "eratePasskeyPrfSaltRequest\0329.s4wave.prov"
+    "ider.spacewave.GeneratePasskeyPrfSaltRes"
+    "ponse\022\201\001\n\022WrapWithPasskeyPrf\0224.s4wave.pr"
+    "ovider.spacewave.WrapWithPasskeyPrfReque"
+    "st\0325.s4wave.provider.spacewave.WrapWithP"
+    "asskeyPrfResponse\022\207\001\n\024UnwrapWithPasskeyP"
+    "rf\0226.s4wave.provider.spacewave.UnwrapWit"
+    "hPasskeyPrfRequest\0327.s4wave.provider.spa"
+    "cewave.UnwrapWithPasskeyPrfResponse\022r\n\rC"
+    "reateAccount\022/.s4wave.provider.spacewave"
+    ".CreateAccountRequest\0320.s4wave.provider."
+    "spacewave.CreateAccountResponse\022o\n\014Login"
+    "Account\022..s4wave.provider.spacewave.Logi"
+    "nAccountRequest\032/.s4wave.provider.spacew"
+    "ave.LoginAccountResponse\022\207\001\n\024LoginOrCrea"
+    "teAccount\0226.s4wave.provider.spacewave.Lo"
+    "ginOrCreateAccountRequest\0327.s4wave.provi"
+    "der.spacewave.LoginOrCreateAccountRespon"
+    "se\022\201\001\n\022LoginWithEntityKey\0224.s4wave.provi"
+    "der.spacewave.LoginWithEntityKeyRequest\032"
+    "5.s4wave.provider.spacewave.LoginWithEnt"
+    "ityKeyResponse\022\212\001\n\025ReauthenticateSession"
+    "\0227.s4wave.provider.spacewave.Reauthentic"
+    "ateSessionRequest\0328.s4wave.provider.spac"
+    "ewave.ReauthenticateSessionResponse\022\204\001\n\023"
+    "StartBrowserHandoff\0225.s4wave.provider.sp"
+    "acewave.StartBrowserHandoffRequest\0326.s4w"
+    "ave.provider.spacewave.StartBrowserHando"
+    "ffResponse\022x\n\017SSOCodeExchange\0221.s4wave.p"
+    "rovider.spacewave.SSOCodeExchangeRequest"
+    "\0322.s4wave.provider.spacewave.SSOCodeExch"
+    "angeResponse\022z\n\020SSONonceExchange\0222.s4wav"
+    "e.provider.spacewave.SSONonceExchangeReq"
+    "uest\0322.s4wave.provider.spacewave.SSOCode"
+    "ExchangeResponse\022x\n\017StartDesktopSSO\0221.s4"
+    "wave.provider.spacewave.StartDesktopSSOR"
+    "equest\0322.s4wave.provider.spacewave.Start"
+    "DesktopSSOResponse\022~\n\021ConfirmDesktopSSO\022"
+    "3.s4wave.provider.spacewave.ConfirmDeskt"
+    "opSSORequest\0324.s4wave.provider.spacewave"
+    ".ConfirmDesktopSSOResponse\022\207\001\n\024PasskeyCh"
+    "eckUsername\0226.s4wave.provider.spacewave."
+    "PasskeyCheckUsernameRequest\0327.s4wave.pro"
+    "vider.spacewave.PasskeyCheckUsernameResp"
+    "onse\022\223\001\n\030PasskeyRegisterChallenge\022:.s4wa"
+    "ve.provider.spacewave.PasskeyRegisterCha"
+    "llengeRequest\032;.s4wave.provider.spacewav"
+    "e.PasskeyRegisterChallengeResponse\022\207\001\n\024P"
+    "asskeyConfirmSignup\0226.s4wave.provider.sp"
+    "acewave.PasskeyConfirmSignupRequest\0327.s4"
+    "wave.provider.spacewave.PasskeyConfirmSi"
+    "gnupResponse\022\201\001\n\022PasskeyAuthOptions\0224.s4"
+    "wave.provider.spacewave.PasskeyAuthOptio"
+    "nsRequest\0325.s4wave.provider.spacewave.Pa"
+    "sskeyAuthOptionsResponse\022~\n\021PasskeyAuthV"
+    "erify\0223.s4wave.provider.spacewave.Passke"
+    "yAuthVerifyRequest\0324.s4wave.provider.spa"
+    "cewave.PasskeyAuthVerifyResponse\022\204\001\n\023Sta"
+    "rtDesktopPasskey\0225.s4wave.provider.space"
+    "wave.StartDesktopPasskeyRequest\0326.s4wave"
+    ".provider.spacewave.StartDesktopPasskeyR"
+    "esponse\022\212\001\n\025ConfirmDesktopPasskey\0227.s4wa"
+    "ve.provider.spacewave.ConfirmDesktopPass"
+    "keyRequest\0328.s4wave.provider.spacewave.C"
+    "onfirmDesktopPasskeyResponse\022\204\001\n\023RelayDe"
+    "sktopPasskey\0225.s4wave.provider.spacewave"
+    ".RelayDesktopPasskeyRequest\0326.s4wave.pro"
+    "vider.spacewave.RelayDesktopPasskeyRespo"
+    "nse\022\207\001\n\024RequestRecoveryEmail\0226.s4wave.pr"
+    "ovider.spacewave.RequestRecoveryEmailReq"
+    "uest\0327.s4wave.provider.spacewave.Request"
+    "RecoveryEmailResponse\022r\n\rRecoverVerify\022/"
+    ".s4wave.provider.spacewave.RecoverVerify"
+    "Request\0320.s4wave.provider.spacewave.Reco"
+    "verVerifyResponse\022u\n\016RecoverExecute\0220.s4"
+    "wave.provider.spacewave.RecoverExecuteRe"
+    "quest\0321.s4wave.provider.spacewave.Recove"
+    "rExecuteResponseb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto_deps[3] = {
@@ -8114,13 +9251,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto = {
     false,
     false,
-    24046,
+    27664,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto,
     "github.com/s4wave/spacewave/sdk/provider/spacewave/spacewave.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto_deps,
     3,
-    205,
+    229,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto::offsets,
@@ -8166,6 +9303,12 @@ const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SelfEnrollmentGateSta
 }
 PROTOBUF_CONSTINIT const uint32_t SelfEnrollmentGateState_internal_data_[] = {
     327680u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL TargetedInvitePurpose_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto[6];
+}
+PROTOBUF_CONSTINIT const uint32_t TargetedInvitePurpose_internal_data_[] = {
+    196608u, 0u, };
 // ===================================================================
 
 class PasswordCredential::_Internal {
@@ -41747,6 +42890,8805 @@ void OrgInviteInfo::InternalSwap(OrgInviteInfo* PROTOBUF_RESTRICT PROTOBUF_NONNU
 }
 
 ::google::protobuf::Metadata OrgInviteInfo::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class CreateTargetedInviteDraftByUsernameRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<CreateTargetedInviteDraftByUsernameRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(CreateTargetedInviteDraftByUsernameRequest, _impl_._has_bits_);
+};
+
+CreateTargetedInviteDraftByUsernameRequest::CreateTargetedInviteDraftByUsernameRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, CreateTargetedInviteDraftByUsernameRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest)
+}
+PROTOBUF_NDEBUG_INLINE CreateTargetedInviteDraftByUsernameRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::provider::spacewave::CreateTargetedInviteDraftByUsernameRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        username_(arena, from.username_),
+        space_id_(arena, from.space_id_),
+        org_id_(arena, from.org_id_),
+        role_(arena, from.role_) {}
+
+CreateTargetedInviteDraftByUsernameRequest::CreateTargetedInviteDraftByUsernameRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const CreateTargetedInviteDraftByUsernameRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, CreateTargetedInviteDraftByUsernameRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  CreateTargetedInviteDraftByUsernameRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, expires_at_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, expires_at_),
+           offsetof(Impl_, purpose_) -
+               offsetof(Impl_, expires_at_) +
+               sizeof(Impl_::purpose_));
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest)
+}
+PROTOBUF_NDEBUG_INLINE CreateTargetedInviteDraftByUsernameRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        username_(arena),
+        space_id_(arena),
+        org_id_(arena),
+        role_(arena) {}
+
+inline void CreateTargetedInviteDraftByUsernameRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, expires_at_),
+           0,
+           offsetof(Impl_, purpose_) -
+               offsetof(Impl_, expires_at_) +
+               sizeof(Impl_::purpose_));
+}
+CreateTargetedInviteDraftByUsernameRequest::~CreateTargetedInviteDraftByUsernameRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest)
+  SharedDtor(*this);
+}
+inline void CreateTargetedInviteDraftByUsernameRequest::SharedDtor(MessageLite& self) {
+  CreateTargetedInviteDraftByUsernameRequest& this_ = static_cast<CreateTargetedInviteDraftByUsernameRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.username_.Destroy();
+  this_._impl_.space_id_.Destroy();
+  this_._impl_.org_id_.Destroy();
+  this_._impl_.role_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL CreateTargetedInviteDraftByUsernameRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) CreateTargetedInviteDraftByUsernameRequest(arena);
+}
+constexpr auto CreateTargetedInviteDraftByUsernameRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(CreateTargetedInviteDraftByUsernameRequest),
+                                            alignof(CreateTargetedInviteDraftByUsernameRequest));
+}
+constexpr auto CreateTargetedInviteDraftByUsernameRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_CreateTargetedInviteDraftByUsernameRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &CreateTargetedInviteDraftByUsernameRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<CreateTargetedInviteDraftByUsernameRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &CreateTargetedInviteDraftByUsernameRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<CreateTargetedInviteDraftByUsernameRequest>(), &CreateTargetedInviteDraftByUsernameRequest::ByteSizeLong,
+              &CreateTargetedInviteDraftByUsernameRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(CreateTargetedInviteDraftByUsernameRequest, _impl_._cached_size_),
+          false,
+      },
+      &CreateTargetedInviteDraftByUsernameRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull CreateTargetedInviteDraftByUsernameRequest_class_data_ =
+        CreateTargetedInviteDraftByUsernameRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+CreateTargetedInviteDraftByUsernameRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&CreateTargetedInviteDraftByUsernameRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(CreateTargetedInviteDraftByUsernameRequest_class_data_.tc_table);
+  return CreateTargetedInviteDraftByUsernameRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 6, 0, 103, 2>
+CreateTargetedInviteDraftByUsernameRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(CreateTargetedInviteDraftByUsernameRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    6, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967232,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    6,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    CreateTargetedInviteDraftByUsernameRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::CreateTargetedInviteDraftByUsernameRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // string username = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(CreateTargetedInviteDraftByUsernameRequest, _impl_.username_)}},
+    // .s4wave.provider.spacewave.TargetedInvitePurpose purpose = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(CreateTargetedInviteDraftByUsernameRequest, _impl_.purpose_), 5>(),
+     {16, 5, 0,
+      PROTOBUF_FIELD_OFFSET(CreateTargetedInviteDraftByUsernameRequest, _impl_.purpose_)}},
+    // string space_id = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 1, 0,
+      PROTOBUF_FIELD_OFFSET(CreateTargetedInviteDraftByUsernameRequest, _impl_.space_id_)}},
+    // string org_id = 4;
+    {::_pbi::TcParser::FastUS1,
+     {34, 2, 0,
+      PROTOBUF_FIELD_OFFSET(CreateTargetedInviteDraftByUsernameRequest, _impl_.org_id_)}},
+    // string role = 5;
+    {::_pbi::TcParser::FastUS1,
+     {42, 3, 0,
+      PROTOBUF_FIELD_OFFSET(CreateTargetedInviteDraftByUsernameRequest, _impl_.role_)}},
+    // int64 expires_at = 6;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(CreateTargetedInviteDraftByUsernameRequest, _impl_.expires_at_), 4>(),
+     {48, 4, 0,
+      PROTOBUF_FIELD_OFFSET(CreateTargetedInviteDraftByUsernameRequest, _impl_.expires_at_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string username = 1;
+    {PROTOBUF_FIELD_OFFSET(CreateTargetedInviteDraftByUsernameRequest, _impl_.username_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .s4wave.provider.spacewave.TargetedInvitePurpose purpose = 2;
+    {PROTOBUF_FIELD_OFFSET(CreateTargetedInviteDraftByUsernameRequest, _impl_.purpose_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // string space_id = 3;
+    {PROTOBUF_FIELD_OFFSET(CreateTargetedInviteDraftByUsernameRequest, _impl_.space_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string org_id = 4;
+    {PROTOBUF_FIELD_OFFSET(CreateTargetedInviteDraftByUsernameRequest, _impl_.org_id_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string role = 5;
+    {PROTOBUF_FIELD_OFFSET(CreateTargetedInviteDraftByUsernameRequest, _impl_.role_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // int64 expires_at = 6;
+    {PROTOBUF_FIELD_OFFSET(CreateTargetedInviteDraftByUsernameRequest, _impl_.expires_at_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt64)},
+  }},
+  // no aux_entries
+  {{
+    "\104\10\0\10\6\4\0\0"
+    "s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest"
+    "username"
+    "space_id"
+    "org_id"
+    "role"
+  }},
+};
+PROTOBUF_NOINLINE void CreateTargetedInviteDraftByUsernameRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.username_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.space_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.org_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.role_.ClearNonDefaultToEmpty();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000030U)) {
+    ::memset(&_impl_.expires_at_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.purpose_) -
+        reinterpret_cast<char*>(&_impl_.expires_at_)) + sizeof(_impl_.purpose_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL CreateTargetedInviteDraftByUsernameRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const CreateTargetedInviteDraftByUsernameRequest& this_ = static_cast<const CreateTargetedInviteDraftByUsernameRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL CreateTargetedInviteDraftByUsernameRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const CreateTargetedInviteDraftByUsernameRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string username = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_username().empty()) {
+      const ::std::string& _s = this_._internal_username();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest.username");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // .s4wave.provider.spacewave.TargetedInvitePurpose purpose = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (this_._internal_purpose() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          2, this_._internal_purpose(), target);
+    }
+  }
+
+  // string space_id = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_space_id().empty()) {
+      const ::std::string& _s = this_._internal_space_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest.space_id");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // string org_id = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_org_id().empty()) {
+      const ::std::string& _s = this_._internal_org_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest.org_id");
+      target = stream->WriteStringMaybeAliased(4, _s, target);
+    }
+  }
+
+  // string role = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_role().empty()) {
+      const ::std::string& _s = this_._internal_role();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest.role");
+      target = stream->WriteStringMaybeAliased(5, _s, target);
+    }
+  }
+
+  // int64 expires_at = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (this_._internal_expires_at() != 0) {
+      target =
+          ::google::protobuf::internal::WireFormatLite::WriteInt64ToArrayWithField<6>(
+              stream, this_._internal_expires_at(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t CreateTargetedInviteDraftByUsernameRequest::ByteSizeLong(const MessageLite& base) {
+  const CreateTargetedInviteDraftByUsernameRequest& this_ = static_cast<const CreateTargetedInviteDraftByUsernameRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t CreateTargetedInviteDraftByUsernameRequest::ByteSizeLong() const {
+  const CreateTargetedInviteDraftByUsernameRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+    // string username = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_username().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_username());
+      }
+    }
+    // string space_id = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_space_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_space_id());
+      }
+    }
+    // string org_id = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_org_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_org_id());
+      }
+    }
+    // string role = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_role().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_role());
+      }
+    }
+    // int64 expires_at = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (this_._internal_expires_at() != 0) {
+        total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(
+            this_._internal_expires_at());
+      }
+    }
+    // .s4wave.provider.spacewave.TargetedInvitePurpose purpose = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (this_._internal_purpose() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_purpose());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void CreateTargetedInviteDraftByUsernameRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<CreateTargetedInviteDraftByUsernameRequest*>(&to_msg);
+  auto& from = static_cast<const CreateTargetedInviteDraftByUsernameRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_username().empty()) {
+        _this->_internal_set_username(from._internal_username());
+      } else {
+        if (_this->_impl_.username_.IsDefault()) {
+          _this->_internal_set_username("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_space_id().empty()) {
+        _this->_internal_set_space_id(from._internal_space_id());
+      } else {
+        if (_this->_impl_.space_id_.IsDefault()) {
+          _this->_internal_set_space_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_org_id().empty()) {
+        _this->_internal_set_org_id(from._internal_org_id());
+      } else {
+        if (_this->_impl_.org_id_.IsDefault()) {
+          _this->_internal_set_org_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_role().empty()) {
+        _this->_internal_set_role(from._internal_role());
+      } else {
+        if (_this->_impl_.role_.IsDefault()) {
+          _this->_internal_set_role("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (from._internal_expires_at() != 0) {
+        _this->_impl_.expires_at_ = from._impl_.expires_at_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (from._internal_purpose() != 0) {
+        _this->_impl_.purpose_ = from._impl_.purpose_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void CreateTargetedInviteDraftByUsernameRequest::CopyFrom(const CreateTargetedInviteDraftByUsernameRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void CreateTargetedInviteDraftByUsernameRequest::InternalSwap(CreateTargetedInviteDraftByUsernameRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.username_, &other->_impl_.username_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.space_id_, &other->_impl_.space_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.org_id_, &other->_impl_.org_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.role_, &other->_impl_.role_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(CreateTargetedInviteDraftByUsernameRequest, _impl_.purpose_)
+      + sizeof(CreateTargetedInviteDraftByUsernameRequest::_impl_.purpose_)
+      - PROTOBUF_FIELD_OFFSET(CreateTargetedInviteDraftByUsernameRequest, _impl_.expires_at_)>(
+          reinterpret_cast<char*>(&_impl_.expires_at_),
+          reinterpret_cast<char*>(&other->_impl_.expires_at_));
+}
+
+::google::protobuf::Metadata CreateTargetedInviteDraftByUsernameRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class CreateTargetedInviteDraftByUsernameResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<CreateTargetedInviteDraftByUsernameResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(CreateTargetedInviteDraftByUsernameResponse, _impl_._has_bits_);
+};
+
+CreateTargetedInviteDraftByUsernameResponse::CreateTargetedInviteDraftByUsernameResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, CreateTargetedInviteDraftByUsernameResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameResponse)
+}
+CreateTargetedInviteDraftByUsernameResponse::CreateTargetedInviteDraftByUsernameResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const CreateTargetedInviteDraftByUsernameResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, CreateTargetedInviteDraftByUsernameResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(from._impl_) {
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+PROTOBUF_NDEBUG_INLINE CreateTargetedInviteDraftByUsernameResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void CreateTargetedInviteDraftByUsernameResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.accepted_ = {};
+}
+CreateTargetedInviteDraftByUsernameResponse::~CreateTargetedInviteDraftByUsernameResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameResponse)
+  SharedDtor(*this);
+}
+inline void CreateTargetedInviteDraftByUsernameResponse::SharedDtor(MessageLite& self) {
+  CreateTargetedInviteDraftByUsernameResponse& this_ = static_cast<CreateTargetedInviteDraftByUsernameResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL CreateTargetedInviteDraftByUsernameResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) CreateTargetedInviteDraftByUsernameResponse(arena);
+}
+constexpr auto CreateTargetedInviteDraftByUsernameResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(CreateTargetedInviteDraftByUsernameResponse),
+                                            alignof(CreateTargetedInviteDraftByUsernameResponse));
+}
+constexpr auto CreateTargetedInviteDraftByUsernameResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_CreateTargetedInviteDraftByUsernameResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &CreateTargetedInviteDraftByUsernameResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<CreateTargetedInviteDraftByUsernameResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &CreateTargetedInviteDraftByUsernameResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<CreateTargetedInviteDraftByUsernameResponse>(), &CreateTargetedInviteDraftByUsernameResponse::ByteSizeLong,
+              &CreateTargetedInviteDraftByUsernameResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(CreateTargetedInviteDraftByUsernameResponse, _impl_._cached_size_),
+          false,
+      },
+      &CreateTargetedInviteDraftByUsernameResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull CreateTargetedInviteDraftByUsernameResponse_class_data_ =
+        CreateTargetedInviteDraftByUsernameResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+CreateTargetedInviteDraftByUsernameResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&CreateTargetedInviteDraftByUsernameResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(CreateTargetedInviteDraftByUsernameResponse_class_data_.tc_table);
+  return CreateTargetedInviteDraftByUsernameResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 0, 0, 2>
+CreateTargetedInviteDraftByUsernameResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(CreateTargetedInviteDraftByUsernameResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    CreateTargetedInviteDraftByUsernameResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::CreateTargetedInviteDraftByUsernameResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // bool accepted = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(CreateTargetedInviteDraftByUsernameResponse, _impl_.accepted_), 0>(),
+     {8, 0, 0,
+      PROTOBUF_FIELD_OFFSET(CreateTargetedInviteDraftByUsernameResponse, _impl_.accepted_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // bool accepted = 1;
+    {PROTOBUF_FIELD_OFFSET(CreateTargetedInviteDraftByUsernameResponse, _impl_.accepted_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+  }},
+  // no aux_entries
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void CreateTargetedInviteDraftByUsernameResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.accepted_ = false;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL CreateTargetedInviteDraftByUsernameResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const CreateTargetedInviteDraftByUsernameResponse& this_ = static_cast<const CreateTargetedInviteDraftByUsernameResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL CreateTargetedInviteDraftByUsernameResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const CreateTargetedInviteDraftByUsernameResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // bool accepted = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (this_._internal_accepted() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          1, this_._internal_accepted(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t CreateTargetedInviteDraftByUsernameResponse::ByteSizeLong(const MessageLite& base) {
+  const CreateTargetedInviteDraftByUsernameResponse& this_ = static_cast<const CreateTargetedInviteDraftByUsernameResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t CreateTargetedInviteDraftByUsernameResponse::ByteSizeLong() const {
+  const CreateTargetedInviteDraftByUsernameResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // bool accepted = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (this_._internal_accepted() != 0) {
+        total_size += 2;
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void CreateTargetedInviteDraftByUsernameResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<CreateTargetedInviteDraftByUsernameResponse*>(&to_msg);
+  auto& from = static_cast<const CreateTargetedInviteDraftByUsernameResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (from._internal_accepted() != 0) {
+      _this->_impl_.accepted_ = from._impl_.accepted_;
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void CreateTargetedInviteDraftByUsernameResponse::CopyFrom(const CreateTargetedInviteDraftByUsernameResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void CreateTargetedInviteDraftByUsernameResponse::InternalSwap(CreateTargetedInviteDraftByUsernameResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.accepted_, other->_impl_.accepted_);
+}
+
+::google::protobuf::Metadata CreateTargetedInviteDraftByUsernameResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class ResolveUsernameRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<ResolveUsernameRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(ResolveUsernameRequest, _impl_._has_bits_);
+};
+
+ResolveUsernameRequest::ResolveUsernameRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ResolveUsernameRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.provider.spacewave.ResolveUsernameRequest)
+}
+PROTOBUF_NDEBUG_INLINE ResolveUsernameRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::provider::spacewave::ResolveUsernameRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        username_(arena, from.username_),
+        space_id_(arena, from.space_id_),
+        org_id_(arena, from.org_id_) {}
+
+ResolveUsernameRequest::ResolveUsernameRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const ResolveUsernameRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ResolveUsernameRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  ResolveUsernameRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.purpose_ = from._impl_.purpose_;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.provider.spacewave.ResolveUsernameRequest)
+}
+PROTOBUF_NDEBUG_INLINE ResolveUsernameRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        username_(arena),
+        space_id_(arena),
+        org_id_(arena) {}
+
+inline void ResolveUsernameRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.purpose_ = {};
+}
+ResolveUsernameRequest::~ResolveUsernameRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.provider.spacewave.ResolveUsernameRequest)
+  SharedDtor(*this);
+}
+inline void ResolveUsernameRequest::SharedDtor(MessageLite& self) {
+  ResolveUsernameRequest& this_ = static_cast<ResolveUsernameRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.username_.Destroy();
+  this_._impl_.space_id_.Destroy();
+  this_._impl_.org_id_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL ResolveUsernameRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) ResolveUsernameRequest(arena);
+}
+constexpr auto ResolveUsernameRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(ResolveUsernameRequest),
+                                            alignof(ResolveUsernameRequest));
+}
+constexpr auto ResolveUsernameRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_ResolveUsernameRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &ResolveUsernameRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<ResolveUsernameRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &ResolveUsernameRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<ResolveUsernameRequest>(), &ResolveUsernameRequest::ByteSizeLong,
+              &ResolveUsernameRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(ResolveUsernameRequest, _impl_._cached_size_),
+          false,
+      },
+      &ResolveUsernameRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull ResolveUsernameRequest_class_data_ =
+        ResolveUsernameRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+ResolveUsernameRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&ResolveUsernameRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(ResolveUsernameRequest_class_data_.tc_table);
+  return ResolveUsernameRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 4, 0, 79, 2>
+ResolveUsernameRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(ResolveUsernameRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    4, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967280,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    4,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    ResolveUsernameRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::ResolveUsernameRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string org_id = 4;
+    {::_pbi::TcParser::FastUS1,
+     {34, 2, 0,
+      PROTOBUF_FIELD_OFFSET(ResolveUsernameRequest, _impl_.org_id_)}},
+    // string username = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(ResolveUsernameRequest, _impl_.username_)}},
+    // .s4wave.provider.spacewave.TargetedInvitePurpose purpose = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(ResolveUsernameRequest, _impl_.purpose_), 3>(),
+     {16, 3, 0,
+      PROTOBUF_FIELD_OFFSET(ResolveUsernameRequest, _impl_.purpose_)}},
+    // string space_id = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 1, 0,
+      PROTOBUF_FIELD_OFFSET(ResolveUsernameRequest, _impl_.space_id_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string username = 1;
+    {PROTOBUF_FIELD_OFFSET(ResolveUsernameRequest, _impl_.username_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .s4wave.provider.spacewave.TargetedInvitePurpose purpose = 2;
+    {PROTOBUF_FIELD_OFFSET(ResolveUsernameRequest, _impl_.purpose_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // string space_id = 3;
+    {PROTOBUF_FIELD_OFFSET(ResolveUsernameRequest, _impl_.space_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string org_id = 4;
+    {PROTOBUF_FIELD_OFFSET(ResolveUsernameRequest, _impl_.org_id_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\60\10\0\10\6\0\0\0"
+    "s4wave.provider.spacewave.ResolveUsernameRequest"
+    "username"
+    "space_id"
+    "org_id"
+  }},
+};
+PROTOBUF_NOINLINE void ResolveUsernameRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.provider.spacewave.ResolveUsernameRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.username_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.space_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.org_id_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_.purpose_ = 0;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL ResolveUsernameRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const ResolveUsernameRequest& this_ = static_cast<const ResolveUsernameRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL ResolveUsernameRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const ResolveUsernameRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.provider.spacewave.ResolveUsernameRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string username = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_username().empty()) {
+      const ::std::string& _s = this_._internal_username();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.ResolveUsernameRequest.username");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // .s4wave.provider.spacewave.TargetedInvitePurpose purpose = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (this_._internal_purpose() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          2, this_._internal_purpose(), target);
+    }
+  }
+
+  // string space_id = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_space_id().empty()) {
+      const ::std::string& _s = this_._internal_space_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.ResolveUsernameRequest.space_id");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // string org_id = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_org_id().empty()) {
+      const ::std::string& _s = this_._internal_org_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.ResolveUsernameRequest.org_id");
+      target = stream->WriteStringMaybeAliased(4, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.provider.spacewave.ResolveUsernameRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t ResolveUsernameRequest::ByteSizeLong(const MessageLite& base) {
+  const ResolveUsernameRequest& this_ = static_cast<const ResolveUsernameRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t ResolveUsernameRequest::ByteSizeLong() const {
+  const ResolveUsernameRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.provider.spacewave.ResolveUsernameRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    // string username = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_username().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_username());
+      }
+    }
+    // string space_id = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_space_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_space_id());
+      }
+    }
+    // string org_id = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_org_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_org_id());
+      }
+    }
+    // .s4wave.provider.spacewave.TargetedInvitePurpose purpose = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (this_._internal_purpose() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_purpose());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void ResolveUsernameRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<ResolveUsernameRequest*>(&to_msg);
+  auto& from = static_cast<const ResolveUsernameRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.provider.spacewave.ResolveUsernameRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_username().empty()) {
+        _this->_internal_set_username(from._internal_username());
+      } else {
+        if (_this->_impl_.username_.IsDefault()) {
+          _this->_internal_set_username("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_space_id().empty()) {
+        _this->_internal_set_space_id(from._internal_space_id());
+      } else {
+        if (_this->_impl_.space_id_.IsDefault()) {
+          _this->_internal_set_space_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_org_id().empty()) {
+        _this->_internal_set_org_id(from._internal_org_id());
+      } else {
+        if (_this->_impl_.org_id_.IsDefault()) {
+          _this->_internal_set_org_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (from._internal_purpose() != 0) {
+        _this->_impl_.purpose_ = from._impl_.purpose_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void ResolveUsernameRequest::CopyFrom(const ResolveUsernameRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.provider.spacewave.ResolveUsernameRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void ResolveUsernameRequest::InternalSwap(ResolveUsernameRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.username_, &other->_impl_.username_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.space_id_, &other->_impl_.space_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.org_id_, &other->_impl_.org_id_, arena);
+  swap(_impl_.purpose_, other->_impl_.purpose_);
+}
+
+::google::protobuf::Metadata ResolveUsernameRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class ResolveUsernameResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<ResolveUsernameResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(ResolveUsernameResponse, _impl_._has_bits_);
+};
+
+ResolveUsernameResponse::ResolveUsernameResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ResolveUsernameResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.provider.spacewave.ResolveUsernameResponse)
+}
+PROTOBUF_NDEBUG_INLINE ResolveUsernameResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::provider::spacewave::ResolveUsernameResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        account_id_(arena, from.account_id_),
+        entity_id_(arena, from.entity_id_),
+        domain_id_(arena, from.domain_id_),
+        relationship_(arena, from.relationship_),
+        entity_uuid_(arena, from.entity_uuid_) {}
+
+ResolveUsernameResponse::ResolveUsernameResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const ResolveUsernameResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ResolveUsernameResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  ResolveUsernameResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, account_epoch_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, account_epoch_),
+           offsetof(Impl_, can_invite_) -
+               offsetof(Impl_, account_epoch_) +
+               sizeof(Impl_::can_invite_));
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.provider.spacewave.ResolveUsernameResponse)
+}
+PROTOBUF_NDEBUG_INLINE ResolveUsernameResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        account_id_(arena),
+        entity_id_(arena),
+        domain_id_(arena),
+        relationship_(arena),
+        entity_uuid_(arena) {}
+
+inline void ResolveUsernameResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, account_epoch_),
+           0,
+           offsetof(Impl_, can_invite_) -
+               offsetof(Impl_, account_epoch_) +
+               sizeof(Impl_::can_invite_));
+}
+ResolveUsernameResponse::~ResolveUsernameResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.provider.spacewave.ResolveUsernameResponse)
+  SharedDtor(*this);
+}
+inline void ResolveUsernameResponse::SharedDtor(MessageLite& self) {
+  ResolveUsernameResponse& this_ = static_cast<ResolveUsernameResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.account_id_.Destroy();
+  this_._impl_.entity_id_.Destroy();
+  this_._impl_.domain_id_.Destroy();
+  this_._impl_.relationship_.Destroy();
+  this_._impl_.entity_uuid_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL ResolveUsernameResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) ResolveUsernameResponse(arena);
+}
+constexpr auto ResolveUsernameResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(ResolveUsernameResponse),
+                                            alignof(ResolveUsernameResponse));
+}
+constexpr auto ResolveUsernameResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_ResolveUsernameResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &ResolveUsernameResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<ResolveUsernameResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &ResolveUsernameResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<ResolveUsernameResponse>(), &ResolveUsernameResponse::ByteSizeLong,
+              &ResolveUsernameResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(ResolveUsernameResponse, _impl_._cached_size_),
+          false,
+      },
+      &ResolveUsernameResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull ResolveUsernameResponse_class_data_ =
+        ResolveUsernameResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+ResolveUsernameResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&ResolveUsernameResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(ResolveUsernameResponse_class_data_.tc_table);
+  return ResolveUsernameResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 8, 0, 117, 2>
+ResolveUsernameResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(ResolveUsernameResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    8, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967040,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    8,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    ResolveUsernameResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::ResolveUsernameResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // int64 account_epoch = 8;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(ResolveUsernameResponse, _impl_.account_epoch_), 5>(),
+     {64, 5, 0,
+      PROTOBUF_FIELD_OFFSET(ResolveUsernameResponse, _impl_.account_epoch_)}},
+    // bool found = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(ResolveUsernameResponse, _impl_.found_), 6>(),
+     {8, 6, 0,
+      PROTOBUF_FIELD_OFFSET(ResolveUsernameResponse, _impl_.found_)}},
+    // string account_id = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 0, 0,
+      PROTOBUF_FIELD_OFFSET(ResolveUsernameResponse, _impl_.account_id_)}},
+    // string entity_id = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 1, 0,
+      PROTOBUF_FIELD_OFFSET(ResolveUsernameResponse, _impl_.entity_id_)}},
+    // string domain_id = 4;
+    {::_pbi::TcParser::FastUS1,
+     {34, 2, 0,
+      PROTOBUF_FIELD_OFFSET(ResolveUsernameResponse, _impl_.domain_id_)}},
+    // string relationship = 5;
+    {::_pbi::TcParser::FastUS1,
+     {42, 3, 0,
+      PROTOBUF_FIELD_OFFSET(ResolveUsernameResponse, _impl_.relationship_)}},
+    // bool can_invite = 6;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(ResolveUsernameResponse, _impl_.can_invite_), 7>(),
+     {48, 7, 0,
+      PROTOBUF_FIELD_OFFSET(ResolveUsernameResponse, _impl_.can_invite_)}},
+    // string entity_uuid = 7;
+    {::_pbi::TcParser::FastUS1,
+     {58, 4, 0,
+      PROTOBUF_FIELD_OFFSET(ResolveUsernameResponse, _impl_.entity_uuid_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // bool found = 1;
+    {PROTOBUF_FIELD_OFFSET(ResolveUsernameResponse, _impl_.found_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // string account_id = 2;
+    {PROTOBUF_FIELD_OFFSET(ResolveUsernameResponse, _impl_.account_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string entity_id = 3;
+    {PROTOBUF_FIELD_OFFSET(ResolveUsernameResponse, _impl_.entity_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string domain_id = 4;
+    {PROTOBUF_FIELD_OFFSET(ResolveUsernameResponse, _impl_.domain_id_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string relationship = 5;
+    {PROTOBUF_FIELD_OFFSET(ResolveUsernameResponse, _impl_.relationship_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // bool can_invite = 6;
+    {PROTOBUF_FIELD_OFFSET(ResolveUsernameResponse, _impl_.can_invite_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // string entity_uuid = 7;
+    {PROTOBUF_FIELD_OFFSET(ResolveUsernameResponse, _impl_.entity_uuid_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // int64 account_epoch = 8;
+    {PROTOBUF_FIELD_OFFSET(ResolveUsernameResponse, _impl_.account_epoch_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt64)},
+  }},
+  // no aux_entries
+  {{
+    "\61\0\12\11\11\14\0\13\0\0\0\0\0\0\0\0"
+    "s4wave.provider.spacewave.ResolveUsernameResponse"
+    "account_id"
+    "entity_id"
+    "domain_id"
+    "relationship"
+    "entity_uuid"
+  }},
+};
+PROTOBUF_NOINLINE void ResolveUsernameResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.provider.spacewave.ResolveUsernameResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.account_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.entity_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.domain_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.relationship_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      _impl_.entity_uuid_.ClearNonDefaultToEmpty();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x000000e0U)) {
+    ::memset(&_impl_.account_epoch_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.can_invite_) -
+        reinterpret_cast<char*>(&_impl_.account_epoch_)) + sizeof(_impl_.can_invite_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL ResolveUsernameResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const ResolveUsernameResponse& this_ = static_cast<const ResolveUsernameResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL ResolveUsernameResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const ResolveUsernameResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.provider.spacewave.ResolveUsernameResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // bool found = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (this_._internal_found() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          1, this_._internal_found(), target);
+    }
+  }
+
+  // string account_id = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_account_id().empty()) {
+      const ::std::string& _s = this_._internal_account_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.ResolveUsernameResponse.account_id");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // string entity_id = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_entity_id().empty()) {
+      const ::std::string& _s = this_._internal_entity_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.ResolveUsernameResponse.entity_id");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // string domain_id = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_domain_id().empty()) {
+      const ::std::string& _s = this_._internal_domain_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.ResolveUsernameResponse.domain_id");
+      target = stream->WriteStringMaybeAliased(4, _s, target);
+    }
+  }
+
+  // string relationship = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_relationship().empty()) {
+      const ::std::string& _s = this_._internal_relationship();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.ResolveUsernameResponse.relationship");
+      target = stream->WriteStringMaybeAliased(5, _s, target);
+    }
+  }
+
+  // bool can_invite = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (this_._internal_can_invite() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          6, this_._internal_can_invite(), target);
+    }
+  }
+
+  // string entity_uuid = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (!this_._internal_entity_uuid().empty()) {
+      const ::std::string& _s = this_._internal_entity_uuid();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.ResolveUsernameResponse.entity_uuid");
+      target = stream->WriteStringMaybeAliased(7, _s, target);
+    }
+  }
+
+  // int64 account_epoch = 8;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (this_._internal_account_epoch() != 0) {
+      target =
+          ::google::protobuf::internal::WireFormatLite::WriteInt64ToArrayWithField<8>(
+              stream, this_._internal_account_epoch(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.provider.spacewave.ResolveUsernameResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t ResolveUsernameResponse::ByteSizeLong(const MessageLite& base) {
+  const ResolveUsernameResponse& this_ = static_cast<const ResolveUsernameResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t ResolveUsernameResponse::ByteSizeLong() const {
+  const ResolveUsernameResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.provider.spacewave.ResolveUsernameResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    // string account_id = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_account_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_account_id());
+      }
+    }
+    // string entity_id = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_entity_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_entity_id());
+      }
+    }
+    // string domain_id = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_domain_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_domain_id());
+      }
+    }
+    // string relationship = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_relationship().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_relationship());
+      }
+    }
+    // string entity_uuid = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!this_._internal_entity_uuid().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_entity_uuid());
+      }
+    }
+    // int64 account_epoch = 8;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (this_._internal_account_epoch() != 0) {
+        total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(
+            this_._internal_account_epoch());
+      }
+    }
+    // bool found = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (this_._internal_found() != 0) {
+        total_size += 2;
+      }
+    }
+    // bool can_invite = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (this_._internal_can_invite() != 0) {
+        total_size += 2;
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void ResolveUsernameResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<ResolveUsernameResponse*>(&to_msg);
+  auto& from = static_cast<const ResolveUsernameResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.provider.spacewave.ResolveUsernameResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_account_id().empty()) {
+        _this->_internal_set_account_id(from._internal_account_id());
+      } else {
+        if (_this->_impl_.account_id_.IsDefault()) {
+          _this->_internal_set_account_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_entity_id().empty()) {
+        _this->_internal_set_entity_id(from._internal_entity_id());
+      } else {
+        if (_this->_impl_.entity_id_.IsDefault()) {
+          _this->_internal_set_entity_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_domain_id().empty()) {
+        _this->_internal_set_domain_id(from._internal_domain_id());
+      } else {
+        if (_this->_impl_.domain_id_.IsDefault()) {
+          _this->_internal_set_domain_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_relationship().empty()) {
+        _this->_internal_set_relationship(from._internal_relationship());
+      } else {
+        if (_this->_impl_.relationship_.IsDefault()) {
+          _this->_internal_set_relationship("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!from._internal_entity_uuid().empty()) {
+        _this->_internal_set_entity_uuid(from._internal_entity_uuid());
+      } else {
+        if (_this->_impl_.entity_uuid_.IsDefault()) {
+          _this->_internal_set_entity_uuid("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (from._internal_account_epoch() != 0) {
+        _this->_impl_.account_epoch_ = from._impl_.account_epoch_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (from._internal_found() != 0) {
+        _this->_impl_.found_ = from._impl_.found_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (from._internal_can_invite() != 0) {
+        _this->_impl_.can_invite_ = from._impl_.can_invite_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void ResolveUsernameResponse::CopyFrom(const ResolveUsernameResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.provider.spacewave.ResolveUsernameResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void ResolveUsernameResponse::InternalSwap(ResolveUsernameResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.account_id_, &other->_impl_.account_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.entity_id_, &other->_impl_.entity_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.domain_id_, &other->_impl_.domain_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.relationship_, &other->_impl_.relationship_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.entity_uuid_, &other->_impl_.entity_uuid_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(ResolveUsernameResponse, _impl_.can_invite_)
+      + sizeof(ResolveUsernameResponse::_impl_.can_invite_)
+      - PROTOBUF_FIELD_OFFSET(ResolveUsernameResponse, _impl_.account_epoch_)>(
+          reinterpret_cast<char*>(&_impl_.account_epoch_),
+          reinterpret_cast<char*>(&other->_impl_.account_epoch_));
+}
+
+::google::protobuf::Metadata ResolveUsernameResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class TargetedInvitationEnvelope::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<TargetedInvitationEnvelope>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_._has_bits_);
+};
+
+TargetedInvitationEnvelope::TargetedInvitationEnvelope(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, TargetedInvitationEnvelope_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.provider.spacewave.TargetedInvitationEnvelope)
+}
+PROTOBUF_NDEBUG_INLINE TargetedInvitationEnvelope::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::provider::spacewave::TargetedInvitationEnvelope& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        context_id_(arena, from.context_id_),
+        actor_account_id_(arena, from.actor_account_id_),
+        actor_entity_uuid_(arena, from.actor_entity_uuid_),
+        signer_peer_id_(arena, from.signer_peer_id_),
+        target_account_id_(arena, from.target_account_id_),
+        target_entity_id_(arena, from.target_entity_id_),
+        target_entity_uuid_(arena, from.target_entity_uuid_),
+        role_(arena, from.role_),
+        nonce_(arena, from.nonce_),
+        payload_(arena, from.payload_),
+        signature_(arena, from.signature_) {}
+
+TargetedInvitationEnvelope::TargetedInvitationEnvelope(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const TargetedInvitationEnvelope& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, TargetedInvitationEnvelope_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  TargetedInvitationEnvelope* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, schema_version_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, schema_version_),
+           offsetof(Impl_, actor_account_epoch_) -
+               offsetof(Impl_, schema_version_) +
+               sizeof(Impl_::actor_account_epoch_));
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.provider.spacewave.TargetedInvitationEnvelope)
+}
+PROTOBUF_NDEBUG_INLINE TargetedInvitationEnvelope::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        context_id_(arena),
+        actor_account_id_(arena),
+        actor_entity_uuid_(arena),
+        signer_peer_id_(arena),
+        target_account_id_(arena),
+        target_entity_id_(arena),
+        target_entity_uuid_(arena),
+        role_(arena),
+        nonce_(arena),
+        payload_(arena),
+        signature_(arena) {}
+
+inline void TargetedInvitationEnvelope::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, schema_version_),
+           0,
+           offsetof(Impl_, actor_account_epoch_) -
+               offsetof(Impl_, schema_version_) +
+               sizeof(Impl_::actor_account_epoch_));
+}
+TargetedInvitationEnvelope::~TargetedInvitationEnvelope() {
+  // @@protoc_insertion_point(destructor:s4wave.provider.spacewave.TargetedInvitationEnvelope)
+  SharedDtor(*this);
+}
+inline void TargetedInvitationEnvelope::SharedDtor(MessageLite& self) {
+  TargetedInvitationEnvelope& this_ = static_cast<TargetedInvitationEnvelope&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.context_id_.Destroy();
+  this_._impl_.actor_account_id_.Destroy();
+  this_._impl_.actor_entity_uuid_.Destroy();
+  this_._impl_.signer_peer_id_.Destroy();
+  this_._impl_.target_account_id_.Destroy();
+  this_._impl_.target_entity_id_.Destroy();
+  this_._impl_.target_entity_uuid_.Destroy();
+  this_._impl_.role_.Destroy();
+  this_._impl_.nonce_.Destroy();
+  this_._impl_.payload_.Destroy();
+  this_._impl_.signature_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL TargetedInvitationEnvelope::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) TargetedInvitationEnvelope(arena);
+}
+constexpr auto TargetedInvitationEnvelope::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(TargetedInvitationEnvelope),
+                                            alignof(TargetedInvitationEnvelope));
+}
+constexpr auto TargetedInvitationEnvelope::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_TargetedInvitationEnvelope_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &TargetedInvitationEnvelope::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<TargetedInvitationEnvelope>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &TargetedInvitationEnvelope::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<TargetedInvitationEnvelope>(), &TargetedInvitationEnvelope::ByteSizeLong,
+              &TargetedInvitationEnvelope::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_._cached_size_),
+          false,
+      },
+      &TargetedInvitationEnvelope::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull TargetedInvitationEnvelope_class_data_ =
+        TargetedInvitationEnvelope::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+TargetedInvitationEnvelope::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&TargetedInvitationEnvelope_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(TargetedInvitationEnvelope_class_data_.tc_table);
+  return TargetedInvitationEnvelope_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<4, 16, 0, 189, 2>
+TargetedInvitationEnvelope::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_._has_bits_),
+    0, // no _extensions_
+    16, 120,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294901760,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    16,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    TargetedInvitationEnvelope_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::TargetedInvitationEnvelope>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // int64 actor_account_epoch = 16;
+    {::_pbi::TcParser::FastV64S2,
+     {384, 15, 0,
+      PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_.actor_account_epoch_)}},
+    // uint32 schema_version = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(TargetedInvitationEnvelope, _impl_.schema_version_), 11>(),
+     {8, 11, 0,
+      PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_.schema_version_)}},
+    // .s4wave.provider.spacewave.TargetedInvitePurpose purpose = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(TargetedInvitationEnvelope, _impl_.purpose_), 12>(),
+     {16, 12, 0,
+      PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_.purpose_)}},
+    // string context_id = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 0, 0,
+      PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_.context_id_)}},
+    // string actor_account_id = 4;
+    {::_pbi::TcParser::FastUS1,
+     {34, 1, 0,
+      PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_.actor_account_id_)}},
+    // string actor_entity_uuid = 5;
+    {::_pbi::TcParser::FastUS1,
+     {42, 2, 0,
+      PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_.actor_entity_uuid_)}},
+    // string signer_peer_id = 6;
+    {::_pbi::TcParser::FastUS1,
+     {50, 3, 0,
+      PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_.signer_peer_id_)}},
+    // string target_account_id = 7;
+    {::_pbi::TcParser::FastUS1,
+     {58, 4, 0,
+      PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_.target_account_id_)}},
+    // string target_entity_id = 8;
+    {::_pbi::TcParser::FastUS1,
+     {66, 5, 0,
+      PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_.target_entity_id_)}},
+    // string target_entity_uuid = 9;
+    {::_pbi::TcParser::FastUS1,
+     {74, 6, 0,
+      PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_.target_entity_uuid_)}},
+    // int64 target_account_epoch = 10;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(TargetedInvitationEnvelope, _impl_.target_account_epoch_), 13>(),
+     {80, 13, 0,
+      PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_.target_account_epoch_)}},
+    // string role = 11;
+    {::_pbi::TcParser::FastUS1,
+     {90, 7, 0,
+      PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_.role_)}},
+    // int64 expires_at = 12;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(TargetedInvitationEnvelope, _impl_.expires_at_), 14>(),
+     {96, 14, 0,
+      PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_.expires_at_)}},
+    // bytes nonce = 13;
+    {::_pbi::TcParser::FastBS1,
+     {106, 8, 0,
+      PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_.nonce_)}},
+    // bytes payload = 14;
+    {::_pbi::TcParser::FastBS1,
+     {114, 9, 0,
+      PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_.payload_)}},
+    // bytes signature = 15;
+    {::_pbi::TcParser::FastBS1,
+     {122, 10, 0,
+      PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_.signature_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // uint32 schema_version = 1;
+    {PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_.schema_version_), _Internal::kHasBitsOffset + 11, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // .s4wave.provider.spacewave.TargetedInvitePurpose purpose = 2;
+    {PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_.purpose_), _Internal::kHasBitsOffset + 12, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // string context_id = 3;
+    {PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_.context_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string actor_account_id = 4;
+    {PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_.actor_account_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string actor_entity_uuid = 5;
+    {PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_.actor_entity_uuid_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string signer_peer_id = 6;
+    {PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_.signer_peer_id_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string target_account_id = 7;
+    {PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_.target_account_id_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string target_entity_id = 8;
+    {PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_.target_entity_id_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string target_entity_uuid = 9;
+    {PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_.target_entity_uuid_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // int64 target_account_epoch = 10;
+    {PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_.target_account_epoch_), _Internal::kHasBitsOffset + 13, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt64)},
+    // string role = 11;
+    {PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_.role_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // int64 expires_at = 12;
+    {PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_.expires_at_), _Internal::kHasBitsOffset + 14, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt64)},
+    // bytes nonce = 13;
+    {PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_.nonce_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // bytes payload = 14;
+    {PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_.payload_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // bytes signature = 15;
+    {PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_.signature_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // int64 actor_account_epoch = 16;
+    {PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_.actor_account_epoch_), _Internal::kHasBitsOffset + 15, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt64)},
+  }},
+  // no aux_entries
+  {{
+    "\64\0\0\12\20\21\16\21\20\22\0\4\0\0\0\0\0\0\0\0\0\0\0\0"
+    "s4wave.provider.spacewave.TargetedInvitationEnvelope"
+    "context_id"
+    "actor_account_id"
+    "actor_entity_uuid"
+    "signer_peer_id"
+    "target_account_id"
+    "target_entity_id"
+    "target_entity_uuid"
+    "role"
+  }},
+};
+PROTOBUF_NOINLINE void TargetedInvitationEnvelope::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.provider.spacewave.TargetedInvitationEnvelope)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.context_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.actor_account_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.actor_entity_uuid_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.signer_peer_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      _impl_.target_account_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      _impl_.target_entity_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      _impl_.target_entity_uuid_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      _impl_.role_.ClearNonDefaultToEmpty();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      _impl_.nonce_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      _impl_.payload_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      _impl_.signature_.ClearNonDefaultToEmpty();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x0000f800U)) {
+    ::memset(&_impl_.schema_version_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.actor_account_epoch_) -
+        reinterpret_cast<char*>(&_impl_.schema_version_)) + sizeof(_impl_.actor_account_epoch_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL TargetedInvitationEnvelope::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const TargetedInvitationEnvelope& this_ = static_cast<const TargetedInvitationEnvelope&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL TargetedInvitationEnvelope::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const TargetedInvitationEnvelope& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.provider.spacewave.TargetedInvitationEnvelope)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // uint32 schema_version = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+    if (this_._internal_schema_version() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          1, this_._internal_schema_version(), target);
+    }
+  }
+
+  // .s4wave.provider.spacewave.TargetedInvitePurpose purpose = 2;
+  if (CheckHasBit(cached_has_bits, 0x00001000U)) {
+    if (this_._internal_purpose() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          2, this_._internal_purpose(), target);
+    }
+  }
+
+  // string context_id = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_context_id().empty()) {
+      const ::std::string& _s = this_._internal_context_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.TargetedInvitationEnvelope.context_id");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // string actor_account_id = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_actor_account_id().empty()) {
+      const ::std::string& _s = this_._internal_actor_account_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.TargetedInvitationEnvelope.actor_account_id");
+      target = stream->WriteStringMaybeAliased(4, _s, target);
+    }
+  }
+
+  // string actor_entity_uuid = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_actor_entity_uuid().empty()) {
+      const ::std::string& _s = this_._internal_actor_entity_uuid();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.TargetedInvitationEnvelope.actor_entity_uuid");
+      target = stream->WriteStringMaybeAliased(5, _s, target);
+    }
+  }
+
+  // string signer_peer_id = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_signer_peer_id().empty()) {
+      const ::std::string& _s = this_._internal_signer_peer_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.TargetedInvitationEnvelope.signer_peer_id");
+      target = stream->WriteStringMaybeAliased(6, _s, target);
+    }
+  }
+
+  // string target_account_id = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (!this_._internal_target_account_id().empty()) {
+      const ::std::string& _s = this_._internal_target_account_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.TargetedInvitationEnvelope.target_account_id");
+      target = stream->WriteStringMaybeAliased(7, _s, target);
+    }
+  }
+
+  // string target_entity_id = 8;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (!this_._internal_target_entity_id().empty()) {
+      const ::std::string& _s = this_._internal_target_entity_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.TargetedInvitationEnvelope.target_entity_id");
+      target = stream->WriteStringMaybeAliased(8, _s, target);
+    }
+  }
+
+  // string target_entity_uuid = 9;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (!this_._internal_target_entity_uuid().empty()) {
+      const ::std::string& _s = this_._internal_target_entity_uuid();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.TargetedInvitationEnvelope.target_entity_uuid");
+      target = stream->WriteStringMaybeAliased(9, _s, target);
+    }
+  }
+
+  // int64 target_account_epoch = 10;
+  if (CheckHasBit(cached_has_bits, 0x00002000U)) {
+    if (this_._internal_target_account_epoch() != 0) {
+      target =
+          ::google::protobuf::internal::WireFormatLite::WriteInt64ToArrayWithField<10>(
+              stream, this_._internal_target_account_epoch(), target);
+    }
+  }
+
+  // string role = 11;
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (!this_._internal_role().empty()) {
+      const ::std::string& _s = this_._internal_role();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.TargetedInvitationEnvelope.role");
+      target = stream->WriteStringMaybeAliased(11, _s, target);
+    }
+  }
+
+  // int64 expires_at = 12;
+  if (CheckHasBit(cached_has_bits, 0x00004000U)) {
+    if (this_._internal_expires_at() != 0) {
+      target =
+          ::google::protobuf::internal::WireFormatLite::WriteInt64ToArrayWithField<12>(
+              stream, this_._internal_expires_at(), target);
+    }
+  }
+
+  // bytes nonce = 13;
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (!this_._internal_nonce().empty()) {
+      const ::std::string& _s = this_._internal_nonce();
+      target = stream->WriteBytesMaybeAliased(13, _s, target);
+    }
+  }
+
+  // bytes payload = 14;
+  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+    if (!this_._internal_payload().empty()) {
+      const ::std::string& _s = this_._internal_payload();
+      target = stream->WriteBytesMaybeAliased(14, _s, target);
+    }
+  }
+
+  // bytes signature = 15;
+  if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+    if (!this_._internal_signature().empty()) {
+      const ::std::string& _s = this_._internal_signature();
+      target = stream->WriteBytesMaybeAliased(15, _s, target);
+    }
+  }
+
+  // int64 actor_account_epoch = 16;
+  if (CheckHasBit(cached_has_bits, 0x00008000U)) {
+    if (this_._internal_actor_account_epoch() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteInt64ToArray(
+          16, this_._internal_actor_account_epoch(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.provider.spacewave.TargetedInvitationEnvelope)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t TargetedInvitationEnvelope::ByteSizeLong(const MessageLite& base) {
+  const TargetedInvitationEnvelope& this_ = static_cast<const TargetedInvitationEnvelope&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t TargetedInvitationEnvelope::ByteSizeLong() const {
+  const TargetedInvitationEnvelope& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.provider.spacewave.TargetedInvitationEnvelope)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    // string context_id = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_context_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_context_id());
+      }
+    }
+    // string actor_account_id = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_actor_account_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_actor_account_id());
+      }
+    }
+    // string actor_entity_uuid = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_actor_entity_uuid().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_actor_entity_uuid());
+      }
+    }
+    // string signer_peer_id = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_signer_peer_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_signer_peer_id());
+      }
+    }
+    // string target_account_id = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!this_._internal_target_account_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_target_account_id());
+      }
+    }
+    // string target_entity_id = 8;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (!this_._internal_target_entity_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_target_entity_id());
+      }
+    }
+    // string target_entity_uuid = 9;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (!this_._internal_target_entity_uuid().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_target_entity_uuid());
+      }
+    }
+    // string role = 11;
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (!this_._internal_role().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_role());
+      }
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x0000ff00U)) {
+    // bytes nonce = 13;
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      if (!this_._internal_nonce().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_nonce());
+      }
+    }
+    // bytes payload = 14;
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (!this_._internal_payload().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_payload());
+      }
+    }
+    // bytes signature = 15;
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      if (!this_._internal_signature().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_signature());
+      }
+    }
+    // uint32 schema_version = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+      if (this_._internal_schema_version() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_schema_version());
+      }
+    }
+    // .s4wave.provider.spacewave.TargetedInvitePurpose purpose = 2;
+    if (CheckHasBit(cached_has_bits, 0x00001000U)) {
+      if (this_._internal_purpose() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_purpose());
+      }
+    }
+    // int64 target_account_epoch = 10;
+    if (CheckHasBit(cached_has_bits, 0x00002000U)) {
+      if (this_._internal_target_account_epoch() != 0) {
+        total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(
+            this_._internal_target_account_epoch());
+      }
+    }
+    // int64 expires_at = 12;
+    if (CheckHasBit(cached_has_bits, 0x00004000U)) {
+      if (this_._internal_expires_at() != 0) {
+        total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(
+            this_._internal_expires_at());
+      }
+    }
+    // int64 actor_account_epoch = 16;
+    if (CheckHasBit(cached_has_bits, 0x00008000U)) {
+      if (this_._internal_actor_account_epoch() != 0) {
+        total_size += 2 + ::_pbi::WireFormatLite::Int64Size(
+                                        this_._internal_actor_account_epoch());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void TargetedInvitationEnvelope::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<TargetedInvitationEnvelope*>(&to_msg);
+  auto& from = static_cast<const TargetedInvitationEnvelope&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.provider.spacewave.TargetedInvitationEnvelope)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_context_id().empty()) {
+        _this->_internal_set_context_id(from._internal_context_id());
+      } else {
+        if (_this->_impl_.context_id_.IsDefault()) {
+          _this->_internal_set_context_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_actor_account_id().empty()) {
+        _this->_internal_set_actor_account_id(from._internal_actor_account_id());
+      } else {
+        if (_this->_impl_.actor_account_id_.IsDefault()) {
+          _this->_internal_set_actor_account_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_actor_entity_uuid().empty()) {
+        _this->_internal_set_actor_entity_uuid(from._internal_actor_entity_uuid());
+      } else {
+        if (_this->_impl_.actor_entity_uuid_.IsDefault()) {
+          _this->_internal_set_actor_entity_uuid("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_signer_peer_id().empty()) {
+        _this->_internal_set_signer_peer_id(from._internal_signer_peer_id());
+      } else {
+        if (_this->_impl_.signer_peer_id_.IsDefault()) {
+          _this->_internal_set_signer_peer_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!from._internal_target_account_id().empty()) {
+        _this->_internal_set_target_account_id(from._internal_target_account_id());
+      } else {
+        if (_this->_impl_.target_account_id_.IsDefault()) {
+          _this->_internal_set_target_account_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (!from._internal_target_entity_id().empty()) {
+        _this->_internal_set_target_entity_id(from._internal_target_entity_id());
+      } else {
+        if (_this->_impl_.target_entity_id_.IsDefault()) {
+          _this->_internal_set_target_entity_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (!from._internal_target_entity_uuid().empty()) {
+        _this->_internal_set_target_entity_uuid(from._internal_target_entity_uuid());
+      } else {
+        if (_this->_impl_.target_entity_uuid_.IsDefault()) {
+          _this->_internal_set_target_entity_uuid("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (!from._internal_role().empty()) {
+        _this->_internal_set_role(from._internal_role());
+      } else {
+        if (_this->_impl_.role_.IsDefault()) {
+          _this->_internal_set_role("");
+        }
+      }
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x0000ff00U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      if (!from._internal_nonce().empty()) {
+        _this->_internal_set_nonce(from._internal_nonce());
+      } else {
+        if (_this->_impl_.nonce_.IsDefault()) {
+          _this->_internal_set_nonce("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (!from._internal_payload().empty()) {
+        _this->_internal_set_payload(from._internal_payload());
+      } else {
+        if (_this->_impl_.payload_.IsDefault()) {
+          _this->_internal_set_payload("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      if (!from._internal_signature().empty()) {
+        _this->_internal_set_signature(from._internal_signature());
+      } else {
+        if (_this->_impl_.signature_.IsDefault()) {
+          _this->_internal_set_signature("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+      if (from._internal_schema_version() != 0) {
+        _this->_impl_.schema_version_ = from._impl_.schema_version_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00001000U)) {
+      if (from._internal_purpose() != 0) {
+        _this->_impl_.purpose_ = from._impl_.purpose_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00002000U)) {
+      if (from._internal_target_account_epoch() != 0) {
+        _this->_impl_.target_account_epoch_ = from._impl_.target_account_epoch_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00004000U)) {
+      if (from._internal_expires_at() != 0) {
+        _this->_impl_.expires_at_ = from._impl_.expires_at_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00008000U)) {
+      if (from._internal_actor_account_epoch() != 0) {
+        _this->_impl_.actor_account_epoch_ = from._impl_.actor_account_epoch_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void TargetedInvitationEnvelope::CopyFrom(const TargetedInvitationEnvelope& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.provider.spacewave.TargetedInvitationEnvelope)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void TargetedInvitationEnvelope::InternalSwap(TargetedInvitationEnvelope* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.context_id_, &other->_impl_.context_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.actor_account_id_, &other->_impl_.actor_account_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.actor_entity_uuid_, &other->_impl_.actor_entity_uuid_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.signer_peer_id_, &other->_impl_.signer_peer_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.target_account_id_, &other->_impl_.target_account_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.target_entity_id_, &other->_impl_.target_entity_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.target_entity_uuid_, &other->_impl_.target_entity_uuid_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.role_, &other->_impl_.role_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.nonce_, &other->_impl_.nonce_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.payload_, &other->_impl_.payload_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.signature_, &other->_impl_.signature_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_.actor_account_epoch_)
+      + sizeof(TargetedInvitationEnvelope::_impl_.actor_account_epoch_)
+      - PROTOBUF_FIELD_OFFSET(TargetedInvitationEnvelope, _impl_.schema_version_)>(
+          reinterpret_cast<char*>(&_impl_.schema_version_),
+          reinterpret_cast<char*>(&other->_impl_.schema_version_));
+}
+
+::google::protobuf::Metadata TargetedInvitationEnvelope::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class TargetedInvitationInfo::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<TargetedInvitationInfo>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_._has_bits_);
+};
+
+TargetedInvitationInfo::TargetedInvitationInfo(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, TargetedInvitationInfo_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.provider.spacewave.TargetedInvitationInfo)
+}
+PROTOBUF_NDEBUG_INLINE TargetedInvitationInfo::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::provider::spacewave::TargetedInvitationInfo& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        id_(arena, from.id_),
+        actor_account_id_(arena, from.actor_account_id_),
+        target_account_id_(arena, from.target_account_id_),
+        target_entity_id_(arena, from.target_entity_id_),
+        target_entity_uuid_(arena, from.target_entity_uuid_),
+        context_id_(arena, from.context_id_),
+        role_(arena, from.role_),
+        status_(arena, from.status_),
+        envelope_hash_(arena, from.envelope_hash_),
+        draft_id_(arena, from.draft_id_) {}
+
+TargetedInvitationInfo::TargetedInvitationInfo(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const TargetedInvitationInfo& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, TargetedInvitationInfo_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  TargetedInvitationInfo* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.envelope_ = (CheckHasBit(cached_has_bits, 0x00000400U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.envelope_)
+                : nullptr;
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, target_account_epoch_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, target_account_epoch_),
+           offsetof(Impl_, purpose_) -
+               offsetof(Impl_, target_account_epoch_) +
+               sizeof(Impl_::purpose_));
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.provider.spacewave.TargetedInvitationInfo)
+}
+PROTOBUF_NDEBUG_INLINE TargetedInvitationInfo::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        id_(arena),
+        actor_account_id_(arena),
+        target_account_id_(arena),
+        target_entity_id_(arena),
+        target_entity_uuid_(arena),
+        context_id_(arena),
+        role_(arena),
+        status_(arena),
+        envelope_hash_(arena),
+        draft_id_(arena) {}
+
+inline void TargetedInvitationInfo::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, envelope_),
+           0,
+           offsetof(Impl_, purpose_) -
+               offsetof(Impl_, envelope_) +
+               sizeof(Impl_::purpose_));
+}
+TargetedInvitationInfo::~TargetedInvitationInfo() {
+  // @@protoc_insertion_point(destructor:s4wave.provider.spacewave.TargetedInvitationInfo)
+  SharedDtor(*this);
+}
+inline void TargetedInvitationInfo::SharedDtor(MessageLite& self) {
+  TargetedInvitationInfo& this_ = static_cast<TargetedInvitationInfo&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.id_.Destroy();
+  this_._impl_.actor_account_id_.Destroy();
+  this_._impl_.target_account_id_.Destroy();
+  this_._impl_.target_entity_id_.Destroy();
+  this_._impl_.target_entity_uuid_.Destroy();
+  this_._impl_.context_id_.Destroy();
+  this_._impl_.role_.Destroy();
+  this_._impl_.status_.Destroy();
+  this_._impl_.envelope_hash_.Destroy();
+  this_._impl_.draft_id_.Destroy();
+  delete this_._impl_.envelope_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL TargetedInvitationInfo::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) TargetedInvitationInfo(arena);
+}
+constexpr auto TargetedInvitationInfo::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(TargetedInvitationInfo),
+                                            alignof(TargetedInvitationInfo));
+}
+constexpr auto TargetedInvitationInfo::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_TargetedInvitationInfo_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &TargetedInvitationInfo::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<TargetedInvitationInfo>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &TargetedInvitationInfo::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<TargetedInvitationInfo>(), &TargetedInvitationInfo::ByteSizeLong,
+              &TargetedInvitationInfo::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_._cached_size_),
+          false,
+      },
+      &TargetedInvitationInfo::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull TargetedInvitationInfo_class_data_ =
+        TargetedInvitationInfo::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+TargetedInvitationInfo::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&TargetedInvitationInfo_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(TargetedInvitationInfo_class_data_.tc_table);
+  return TargetedInvitationInfo_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<4, 16, 1, 183, 2>
+TargetedInvitationInfo::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_._has_bits_),
+    0, // no _extensions_
+    16, 120,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294901760,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    16,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    TargetedInvitationInfo_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::TargetedInvitationInfo>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string draft_id = 16;
+    {::_pbi::TcParser::FastUS2,
+     {386, 9, 0,
+      PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_.draft_id_)}},
+    // string id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_.id_)}},
+    // string actor_account_id = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_.actor_account_id_)}},
+    // string target_account_id = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 2, 0,
+      PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_.target_account_id_)}},
+    // string target_entity_id = 4;
+    {::_pbi::TcParser::FastUS1,
+     {34, 3, 0,
+      PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_.target_entity_id_)}},
+    // string target_entity_uuid = 5;
+    {::_pbi::TcParser::FastUS1,
+     {42, 4, 0,
+      PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_.target_entity_uuid_)}},
+    // int64 target_account_epoch = 6;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(TargetedInvitationInfo, _impl_.target_account_epoch_), 11>(),
+     {48, 11, 0,
+      PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_.target_account_epoch_)}},
+    // .s4wave.provider.spacewave.TargetedInvitePurpose purpose = 7;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(TargetedInvitationInfo, _impl_.purpose_), 15>(),
+     {56, 15, 0,
+      PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_.purpose_)}},
+    // string context_id = 8;
+    {::_pbi::TcParser::FastUS1,
+     {66, 5, 0,
+      PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_.context_id_)}},
+    // string role = 9;
+    {::_pbi::TcParser::FastUS1,
+     {74, 6, 0,
+      PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_.role_)}},
+    // string status = 10;
+    {::_pbi::TcParser::FastUS1,
+     {82, 7, 0,
+      PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_.status_)}},
+    // string envelope_hash = 11;
+    {::_pbi::TcParser::FastUS1,
+     {90, 8, 0,
+      PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_.envelope_hash_)}},
+    // .s4wave.provider.spacewave.TargetedInvitationEnvelope envelope = 12;
+    {::_pbi::TcParser::FastMtS1,
+     {98, 10, 0,
+      PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_.envelope_)}},
+    // int64 created_at = 13;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(TargetedInvitationInfo, _impl_.created_at_), 12>(),
+     {104, 12, 0,
+      PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_.created_at_)}},
+    // int64 updated_at = 14;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(TargetedInvitationInfo, _impl_.updated_at_), 13>(),
+     {112, 13, 0,
+      PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_.updated_at_)}},
+    // int64 expires_at = 15;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(TargetedInvitationInfo, _impl_.expires_at_), 14>(),
+     {120, 14, 0,
+      PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_.expires_at_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string id = 1;
+    {PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_.id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string actor_account_id = 2;
+    {PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_.actor_account_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string target_account_id = 3;
+    {PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_.target_account_id_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string target_entity_id = 4;
+    {PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_.target_entity_id_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string target_entity_uuid = 5;
+    {PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_.target_entity_uuid_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // int64 target_account_epoch = 6;
+    {PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_.target_account_epoch_), _Internal::kHasBitsOffset + 11, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt64)},
+    // .s4wave.provider.spacewave.TargetedInvitePurpose purpose = 7;
+    {PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_.purpose_), _Internal::kHasBitsOffset + 15, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // string context_id = 8;
+    {PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_.context_id_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string role = 9;
+    {PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_.role_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string status = 10;
+    {PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_.status_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string envelope_hash = 11;
+    {PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_.envelope_hash_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .s4wave.provider.spacewave.TargetedInvitationEnvelope envelope = 12;
+    {PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_.envelope_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // int64 created_at = 13;
+    {PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_.created_at_), _Internal::kHasBitsOffset + 12, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt64)},
+    // int64 updated_at = 14;
+    {PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_.updated_at_), _Internal::kHasBitsOffset + 13, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt64)},
+    // int64 expires_at = 15;
+    {PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_.expires_at_), _Internal::kHasBitsOffset + 14, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt64)},
+    // string draft_id = 16;
+    {PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_.draft_id_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::TargetedInvitationEnvelope>()},
+  }},
+  {{
+    "\60\2\20\21\20\22\0\0\12\4\6\15\0\0\0\0\10\0\0\0\0\0\0\0"
+    "s4wave.provider.spacewave.TargetedInvitationInfo"
+    "id"
+    "actor_account_id"
+    "target_account_id"
+    "target_entity_id"
+    "target_entity_uuid"
+    "context_id"
+    "role"
+    "status"
+    "envelope_hash"
+    "draft_id"
+  }},
+};
+PROTOBUF_NOINLINE void TargetedInvitationInfo::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.provider.spacewave.TargetedInvitationInfo)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.actor_account_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.target_account_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.target_entity_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      _impl_.target_entity_uuid_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      _impl_.context_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      _impl_.role_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      _impl_.status_.ClearNonDefaultToEmpty();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      _impl_.envelope_hash_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      _impl_.draft_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      ABSL_DCHECK(_impl_.envelope_ != nullptr);
+      _impl_.envelope_->Clear();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x0000f800U)) {
+    ::memset(&_impl_.target_account_epoch_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.purpose_) -
+        reinterpret_cast<char*>(&_impl_.target_account_epoch_)) + sizeof(_impl_.purpose_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL TargetedInvitationInfo::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const TargetedInvitationInfo& this_ = static_cast<const TargetedInvitationInfo&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL TargetedInvitationInfo::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const TargetedInvitationInfo& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.provider.spacewave.TargetedInvitationInfo)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_id().empty()) {
+      const ::std::string& _s = this_._internal_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.TargetedInvitationInfo.id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string actor_account_id = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_actor_account_id().empty()) {
+      const ::std::string& _s = this_._internal_actor_account_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.TargetedInvitationInfo.actor_account_id");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // string target_account_id = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_target_account_id().empty()) {
+      const ::std::string& _s = this_._internal_target_account_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.TargetedInvitationInfo.target_account_id");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // string target_entity_id = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_target_entity_id().empty()) {
+      const ::std::string& _s = this_._internal_target_entity_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.TargetedInvitationInfo.target_entity_id");
+      target = stream->WriteStringMaybeAliased(4, _s, target);
+    }
+  }
+
+  // string target_entity_uuid = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (!this_._internal_target_entity_uuid().empty()) {
+      const ::std::string& _s = this_._internal_target_entity_uuid();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.TargetedInvitationInfo.target_entity_uuid");
+      target = stream->WriteStringMaybeAliased(5, _s, target);
+    }
+  }
+
+  // int64 target_account_epoch = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+    if (this_._internal_target_account_epoch() != 0) {
+      target =
+          ::google::protobuf::internal::WireFormatLite::WriteInt64ToArrayWithField<6>(
+              stream, this_._internal_target_account_epoch(), target);
+    }
+  }
+
+  // .s4wave.provider.spacewave.TargetedInvitePurpose purpose = 7;
+  if (CheckHasBit(cached_has_bits, 0x00008000U)) {
+    if (this_._internal_purpose() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          7, this_._internal_purpose(), target);
+    }
+  }
+
+  // string context_id = 8;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (!this_._internal_context_id().empty()) {
+      const ::std::string& _s = this_._internal_context_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.TargetedInvitationInfo.context_id");
+      target = stream->WriteStringMaybeAliased(8, _s, target);
+    }
+  }
+
+  // string role = 9;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (!this_._internal_role().empty()) {
+      const ::std::string& _s = this_._internal_role();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.TargetedInvitationInfo.role");
+      target = stream->WriteStringMaybeAliased(9, _s, target);
+    }
+  }
+
+  // string status = 10;
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (!this_._internal_status().empty()) {
+      const ::std::string& _s = this_._internal_status();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.TargetedInvitationInfo.status");
+      target = stream->WriteStringMaybeAliased(10, _s, target);
+    }
+  }
+
+  // string envelope_hash = 11;
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (!this_._internal_envelope_hash().empty()) {
+      const ::std::string& _s = this_._internal_envelope_hash();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.TargetedInvitationInfo.envelope_hash");
+      target = stream->WriteStringMaybeAliased(11, _s, target);
+    }
+  }
+
+  // .s4wave.provider.spacewave.TargetedInvitationEnvelope envelope = 12;
+  if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        12, *this_._impl_.envelope_, this_._impl_.envelope_->GetCachedSize(), target,
+        stream);
+  }
+
+  // int64 created_at = 13;
+  if (CheckHasBit(cached_has_bits, 0x00001000U)) {
+    if (this_._internal_created_at() != 0) {
+      target =
+          ::google::protobuf::internal::WireFormatLite::WriteInt64ToArrayWithField<13>(
+              stream, this_._internal_created_at(), target);
+    }
+  }
+
+  // int64 updated_at = 14;
+  if (CheckHasBit(cached_has_bits, 0x00002000U)) {
+    if (this_._internal_updated_at() != 0) {
+      target =
+          ::google::protobuf::internal::WireFormatLite::WriteInt64ToArrayWithField<14>(
+              stream, this_._internal_updated_at(), target);
+    }
+  }
+
+  // int64 expires_at = 15;
+  if (CheckHasBit(cached_has_bits, 0x00004000U)) {
+    if (this_._internal_expires_at() != 0) {
+      target =
+          ::google::protobuf::internal::WireFormatLite::WriteInt64ToArrayWithField<15>(
+              stream, this_._internal_expires_at(), target);
+    }
+  }
+
+  // string draft_id = 16;
+  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+    if (!this_._internal_draft_id().empty()) {
+      const ::std::string& _s = this_._internal_draft_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.TargetedInvitationInfo.draft_id");
+      target = stream->WriteStringMaybeAliased(16, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.provider.spacewave.TargetedInvitationInfo)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t TargetedInvitationInfo::ByteSizeLong(const MessageLite& base) {
+  const TargetedInvitationInfo& this_ = static_cast<const TargetedInvitationInfo&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t TargetedInvitationInfo::ByteSizeLong() const {
+  const TargetedInvitationInfo& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.provider.spacewave.TargetedInvitationInfo)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    // string id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_id());
+      }
+    }
+    // string actor_account_id = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_actor_account_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_actor_account_id());
+      }
+    }
+    // string target_account_id = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_target_account_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_target_account_id());
+      }
+    }
+    // string target_entity_id = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_target_entity_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_target_entity_id());
+      }
+    }
+    // string target_entity_uuid = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!this_._internal_target_entity_uuid().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_target_entity_uuid());
+      }
+    }
+    // string context_id = 8;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (!this_._internal_context_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_context_id());
+      }
+    }
+    // string role = 9;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (!this_._internal_role().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_role());
+      }
+    }
+    // string status = 10;
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (!this_._internal_status().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_status());
+      }
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x0000ff00U)) {
+    // string envelope_hash = 11;
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      if (!this_._internal_envelope_hash().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_envelope_hash());
+      }
+    }
+    // string draft_id = 16;
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (!this_._internal_draft_id().empty()) {
+        total_size += 2 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_draft_id());
+      }
+    }
+    // .s4wave.provider.spacewave.TargetedInvitationEnvelope envelope = 12;
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.envelope_);
+    }
+    // int64 target_account_epoch = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+      if (this_._internal_target_account_epoch() != 0) {
+        total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(
+            this_._internal_target_account_epoch());
+      }
+    }
+    // int64 created_at = 13;
+    if (CheckHasBit(cached_has_bits, 0x00001000U)) {
+      if (this_._internal_created_at() != 0) {
+        total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(
+            this_._internal_created_at());
+      }
+    }
+    // int64 updated_at = 14;
+    if (CheckHasBit(cached_has_bits, 0x00002000U)) {
+      if (this_._internal_updated_at() != 0) {
+        total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(
+            this_._internal_updated_at());
+      }
+    }
+    // int64 expires_at = 15;
+    if (CheckHasBit(cached_has_bits, 0x00004000U)) {
+      if (this_._internal_expires_at() != 0) {
+        total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(
+            this_._internal_expires_at());
+      }
+    }
+    // .s4wave.provider.spacewave.TargetedInvitePurpose purpose = 7;
+    if (CheckHasBit(cached_has_bits, 0x00008000U)) {
+      if (this_._internal_purpose() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_purpose());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void TargetedInvitationInfo::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<TargetedInvitationInfo*>(&to_msg);
+  auto& from = static_cast<const TargetedInvitationInfo&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.provider.spacewave.TargetedInvitationInfo)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_id().empty()) {
+        _this->_internal_set_id(from._internal_id());
+      } else {
+        if (_this->_impl_.id_.IsDefault()) {
+          _this->_internal_set_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_actor_account_id().empty()) {
+        _this->_internal_set_actor_account_id(from._internal_actor_account_id());
+      } else {
+        if (_this->_impl_.actor_account_id_.IsDefault()) {
+          _this->_internal_set_actor_account_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_target_account_id().empty()) {
+        _this->_internal_set_target_account_id(from._internal_target_account_id());
+      } else {
+        if (_this->_impl_.target_account_id_.IsDefault()) {
+          _this->_internal_set_target_account_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_target_entity_id().empty()) {
+        _this->_internal_set_target_entity_id(from._internal_target_entity_id());
+      } else {
+        if (_this->_impl_.target_entity_id_.IsDefault()) {
+          _this->_internal_set_target_entity_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!from._internal_target_entity_uuid().empty()) {
+        _this->_internal_set_target_entity_uuid(from._internal_target_entity_uuid());
+      } else {
+        if (_this->_impl_.target_entity_uuid_.IsDefault()) {
+          _this->_internal_set_target_entity_uuid("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (!from._internal_context_id().empty()) {
+        _this->_internal_set_context_id(from._internal_context_id());
+      } else {
+        if (_this->_impl_.context_id_.IsDefault()) {
+          _this->_internal_set_context_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (!from._internal_role().empty()) {
+        _this->_internal_set_role(from._internal_role());
+      } else {
+        if (_this->_impl_.role_.IsDefault()) {
+          _this->_internal_set_role("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (!from._internal_status().empty()) {
+        _this->_internal_set_status(from._internal_status());
+      } else {
+        if (_this->_impl_.status_.IsDefault()) {
+          _this->_internal_set_status("");
+        }
+      }
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x0000ff00U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      if (!from._internal_envelope_hash().empty()) {
+        _this->_internal_set_envelope_hash(from._internal_envelope_hash());
+      } else {
+        if (_this->_impl_.envelope_hash_.IsDefault()) {
+          _this->_internal_set_envelope_hash("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (!from._internal_draft_id().empty()) {
+        _this->_internal_set_draft_id(from._internal_draft_id());
+      } else {
+        if (_this->_impl_.draft_id_.IsDefault()) {
+          _this->_internal_set_draft_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      ABSL_DCHECK(from._impl_.envelope_ != nullptr);
+      if (_this->_impl_.envelope_ == nullptr) {
+        _this->_impl_.envelope_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.envelope_);
+      } else {
+        _this->_impl_.envelope_->MergeFrom(*from._impl_.envelope_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+      if (from._internal_target_account_epoch() != 0) {
+        _this->_impl_.target_account_epoch_ = from._impl_.target_account_epoch_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00001000U)) {
+      if (from._internal_created_at() != 0) {
+        _this->_impl_.created_at_ = from._impl_.created_at_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00002000U)) {
+      if (from._internal_updated_at() != 0) {
+        _this->_impl_.updated_at_ = from._impl_.updated_at_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00004000U)) {
+      if (from._internal_expires_at() != 0) {
+        _this->_impl_.expires_at_ = from._impl_.expires_at_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00008000U)) {
+      if (from._internal_purpose() != 0) {
+        _this->_impl_.purpose_ = from._impl_.purpose_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void TargetedInvitationInfo::CopyFrom(const TargetedInvitationInfo& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.provider.spacewave.TargetedInvitationInfo)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void TargetedInvitationInfo::InternalSwap(TargetedInvitationInfo* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.id_, &other->_impl_.id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.actor_account_id_, &other->_impl_.actor_account_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.target_account_id_, &other->_impl_.target_account_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.target_entity_id_, &other->_impl_.target_entity_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.target_entity_uuid_, &other->_impl_.target_entity_uuid_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.context_id_, &other->_impl_.context_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.role_, &other->_impl_.role_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.status_, &other->_impl_.status_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.envelope_hash_, &other->_impl_.envelope_hash_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.draft_id_, &other->_impl_.draft_id_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_.purpose_)
+      + sizeof(TargetedInvitationInfo::_impl_.purpose_)
+      - PROTOBUF_FIELD_OFFSET(TargetedInvitationInfo, _impl_.envelope_)>(
+          reinterpret_cast<char*>(&_impl_.envelope_),
+          reinterpret_cast<char*>(&other->_impl_.envelope_));
+}
+
+::google::protobuf::Metadata TargetedInvitationInfo::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class CreateTargetedInvitationRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<CreateTargetedInvitationRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(CreateTargetedInvitationRequest, _impl_._has_bits_);
+};
+
+CreateTargetedInvitationRequest::CreateTargetedInvitationRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, CreateTargetedInvitationRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.provider.spacewave.CreateTargetedInvitationRequest)
+}
+PROTOBUF_NDEBUG_INLINE CreateTargetedInvitationRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::provider::spacewave::CreateTargetedInvitationRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        target_account_id_(arena, from.target_account_id_),
+        space_id_(arena, from.space_id_),
+        org_id_(arena, from.org_id_),
+        role_(arena, from.role_),
+        draft_id_(arena, from.draft_id_) {}
+
+CreateTargetedInvitationRequest::CreateTargetedInvitationRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const CreateTargetedInvitationRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, CreateTargetedInvitationRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  CreateTargetedInvitationRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.envelope_ = (CheckHasBit(cached_has_bits, 0x00000020U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.envelope_)
+                : nullptr;
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, expires_at_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, expires_at_),
+           offsetof(Impl_, purpose_) -
+               offsetof(Impl_, expires_at_) +
+               sizeof(Impl_::purpose_));
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.provider.spacewave.CreateTargetedInvitationRequest)
+}
+PROTOBUF_NDEBUG_INLINE CreateTargetedInvitationRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        target_account_id_(arena),
+        space_id_(arena),
+        org_id_(arena),
+        role_(arena),
+        draft_id_(arena) {}
+
+inline void CreateTargetedInvitationRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, envelope_),
+           0,
+           offsetof(Impl_, purpose_) -
+               offsetof(Impl_, envelope_) +
+               sizeof(Impl_::purpose_));
+}
+CreateTargetedInvitationRequest::~CreateTargetedInvitationRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.provider.spacewave.CreateTargetedInvitationRequest)
+  SharedDtor(*this);
+}
+inline void CreateTargetedInvitationRequest::SharedDtor(MessageLite& self) {
+  CreateTargetedInvitationRequest& this_ = static_cast<CreateTargetedInvitationRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.target_account_id_.Destroy();
+  this_._impl_.space_id_.Destroy();
+  this_._impl_.org_id_.Destroy();
+  this_._impl_.role_.Destroy();
+  this_._impl_.draft_id_.Destroy();
+  delete this_._impl_.envelope_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL CreateTargetedInvitationRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) CreateTargetedInvitationRequest(arena);
+}
+constexpr auto CreateTargetedInvitationRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(CreateTargetedInvitationRequest),
+                                            alignof(CreateTargetedInvitationRequest));
+}
+constexpr auto CreateTargetedInvitationRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_CreateTargetedInvitationRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &CreateTargetedInvitationRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<CreateTargetedInvitationRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &CreateTargetedInvitationRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<CreateTargetedInvitationRequest>(), &CreateTargetedInvitationRequest::ByteSizeLong,
+              &CreateTargetedInvitationRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(CreateTargetedInvitationRequest, _impl_._cached_size_),
+          false,
+      },
+      &CreateTargetedInvitationRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull CreateTargetedInvitationRequest_class_data_ =
+        CreateTargetedInvitationRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+CreateTargetedInvitationRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&CreateTargetedInvitationRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(CreateTargetedInvitationRequest_class_data_.tc_table);
+  return CreateTargetedInvitationRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 8, 1, 117, 2>
+CreateTargetedInvitationRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(CreateTargetedInvitationRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    8, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967040,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    8,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    CreateTargetedInvitationRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::CreateTargetedInvitationRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string draft_id = 8;
+    {::_pbi::TcParser::FastUS1,
+     {66, 4, 0,
+      PROTOBUF_FIELD_OFFSET(CreateTargetedInvitationRequest, _impl_.draft_id_)}},
+    // string target_account_id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(CreateTargetedInvitationRequest, _impl_.target_account_id_)}},
+    // .s4wave.provider.spacewave.TargetedInvitePurpose purpose = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(CreateTargetedInvitationRequest, _impl_.purpose_), 7>(),
+     {16, 7, 0,
+      PROTOBUF_FIELD_OFFSET(CreateTargetedInvitationRequest, _impl_.purpose_)}},
+    // string space_id = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 1, 0,
+      PROTOBUF_FIELD_OFFSET(CreateTargetedInvitationRequest, _impl_.space_id_)}},
+    // string org_id = 4;
+    {::_pbi::TcParser::FastUS1,
+     {34, 2, 0,
+      PROTOBUF_FIELD_OFFSET(CreateTargetedInvitationRequest, _impl_.org_id_)}},
+    // string role = 5;
+    {::_pbi::TcParser::FastUS1,
+     {42, 3, 0,
+      PROTOBUF_FIELD_OFFSET(CreateTargetedInvitationRequest, _impl_.role_)}},
+    // int64 expires_at = 6;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(CreateTargetedInvitationRequest, _impl_.expires_at_), 6>(),
+     {48, 6, 0,
+      PROTOBUF_FIELD_OFFSET(CreateTargetedInvitationRequest, _impl_.expires_at_)}},
+    // .s4wave.provider.spacewave.TargetedInvitationEnvelope envelope = 7;
+    {::_pbi::TcParser::FastMtS1,
+     {58, 5, 0,
+      PROTOBUF_FIELD_OFFSET(CreateTargetedInvitationRequest, _impl_.envelope_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string target_account_id = 1;
+    {PROTOBUF_FIELD_OFFSET(CreateTargetedInvitationRequest, _impl_.target_account_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .s4wave.provider.spacewave.TargetedInvitePurpose purpose = 2;
+    {PROTOBUF_FIELD_OFFSET(CreateTargetedInvitationRequest, _impl_.purpose_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // string space_id = 3;
+    {PROTOBUF_FIELD_OFFSET(CreateTargetedInvitationRequest, _impl_.space_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string org_id = 4;
+    {PROTOBUF_FIELD_OFFSET(CreateTargetedInvitationRequest, _impl_.org_id_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string role = 5;
+    {PROTOBUF_FIELD_OFFSET(CreateTargetedInvitationRequest, _impl_.role_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // int64 expires_at = 6;
+    {PROTOBUF_FIELD_OFFSET(CreateTargetedInvitationRequest, _impl_.expires_at_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt64)},
+    // .s4wave.provider.spacewave.TargetedInvitationEnvelope envelope = 7;
+    {PROTOBUF_FIELD_OFFSET(CreateTargetedInvitationRequest, _impl_.envelope_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // string draft_id = 8;
+    {PROTOBUF_FIELD_OFFSET(CreateTargetedInvitationRequest, _impl_.draft_id_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::TargetedInvitationEnvelope>()},
+  }},
+  {{
+    "\71\21\0\10\6\4\0\0\10\0\0\0\0\0\0\0"
+    "s4wave.provider.spacewave.CreateTargetedInvitationRequest"
+    "target_account_id"
+    "space_id"
+    "org_id"
+    "role"
+    "draft_id"
+  }},
+};
+PROTOBUF_NOINLINE void CreateTargetedInvitationRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.provider.spacewave.CreateTargetedInvitationRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.target_account_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.space_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.org_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.role_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      _impl_.draft_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      ABSL_DCHECK(_impl_.envelope_ != nullptr);
+      _impl_.envelope_->Clear();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x000000c0U)) {
+    ::memset(&_impl_.expires_at_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.purpose_) -
+        reinterpret_cast<char*>(&_impl_.expires_at_)) + sizeof(_impl_.purpose_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL CreateTargetedInvitationRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const CreateTargetedInvitationRequest& this_ = static_cast<const CreateTargetedInvitationRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL CreateTargetedInvitationRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const CreateTargetedInvitationRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.provider.spacewave.CreateTargetedInvitationRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string target_account_id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_target_account_id().empty()) {
+      const ::std::string& _s = this_._internal_target_account_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.CreateTargetedInvitationRequest.target_account_id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // .s4wave.provider.spacewave.TargetedInvitePurpose purpose = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (this_._internal_purpose() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          2, this_._internal_purpose(), target);
+    }
+  }
+
+  // string space_id = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_space_id().empty()) {
+      const ::std::string& _s = this_._internal_space_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.CreateTargetedInvitationRequest.space_id");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // string org_id = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_org_id().empty()) {
+      const ::std::string& _s = this_._internal_org_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.CreateTargetedInvitationRequest.org_id");
+      target = stream->WriteStringMaybeAliased(4, _s, target);
+    }
+  }
+
+  // string role = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_role().empty()) {
+      const ::std::string& _s = this_._internal_role();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.CreateTargetedInvitationRequest.role");
+      target = stream->WriteStringMaybeAliased(5, _s, target);
+    }
+  }
+
+  // int64 expires_at = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (this_._internal_expires_at() != 0) {
+      target =
+          ::google::protobuf::internal::WireFormatLite::WriteInt64ToArrayWithField<6>(
+              stream, this_._internal_expires_at(), target);
+    }
+  }
+
+  // .s4wave.provider.spacewave.TargetedInvitationEnvelope envelope = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        7, *this_._impl_.envelope_, this_._impl_.envelope_->GetCachedSize(), target,
+        stream);
+  }
+
+  // string draft_id = 8;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (!this_._internal_draft_id().empty()) {
+      const ::std::string& _s = this_._internal_draft_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.CreateTargetedInvitationRequest.draft_id");
+      target = stream->WriteStringMaybeAliased(8, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.provider.spacewave.CreateTargetedInvitationRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t CreateTargetedInvitationRequest::ByteSizeLong(const MessageLite& base) {
+  const CreateTargetedInvitationRequest& this_ = static_cast<const CreateTargetedInvitationRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t CreateTargetedInvitationRequest::ByteSizeLong() const {
+  const CreateTargetedInvitationRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.provider.spacewave.CreateTargetedInvitationRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    // string target_account_id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_target_account_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_target_account_id());
+      }
+    }
+    // string space_id = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_space_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_space_id());
+      }
+    }
+    // string org_id = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_org_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_org_id());
+      }
+    }
+    // string role = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_role().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_role());
+      }
+    }
+    // string draft_id = 8;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!this_._internal_draft_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_draft_id());
+      }
+    }
+    // .s4wave.provider.spacewave.TargetedInvitationEnvelope envelope = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.envelope_);
+    }
+    // int64 expires_at = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (this_._internal_expires_at() != 0) {
+        total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(
+            this_._internal_expires_at());
+      }
+    }
+    // .s4wave.provider.spacewave.TargetedInvitePurpose purpose = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (this_._internal_purpose() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_purpose());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void CreateTargetedInvitationRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<CreateTargetedInvitationRequest*>(&to_msg);
+  auto& from = static_cast<const CreateTargetedInvitationRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.provider.spacewave.CreateTargetedInvitationRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_target_account_id().empty()) {
+        _this->_internal_set_target_account_id(from._internal_target_account_id());
+      } else {
+        if (_this->_impl_.target_account_id_.IsDefault()) {
+          _this->_internal_set_target_account_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_space_id().empty()) {
+        _this->_internal_set_space_id(from._internal_space_id());
+      } else {
+        if (_this->_impl_.space_id_.IsDefault()) {
+          _this->_internal_set_space_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_org_id().empty()) {
+        _this->_internal_set_org_id(from._internal_org_id());
+      } else {
+        if (_this->_impl_.org_id_.IsDefault()) {
+          _this->_internal_set_org_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_role().empty()) {
+        _this->_internal_set_role(from._internal_role());
+      } else {
+        if (_this->_impl_.role_.IsDefault()) {
+          _this->_internal_set_role("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!from._internal_draft_id().empty()) {
+        _this->_internal_set_draft_id(from._internal_draft_id());
+      } else {
+        if (_this->_impl_.draft_id_.IsDefault()) {
+          _this->_internal_set_draft_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      ABSL_DCHECK(from._impl_.envelope_ != nullptr);
+      if (_this->_impl_.envelope_ == nullptr) {
+        _this->_impl_.envelope_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.envelope_);
+      } else {
+        _this->_impl_.envelope_->MergeFrom(*from._impl_.envelope_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (from._internal_expires_at() != 0) {
+        _this->_impl_.expires_at_ = from._impl_.expires_at_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (from._internal_purpose() != 0) {
+        _this->_impl_.purpose_ = from._impl_.purpose_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void CreateTargetedInvitationRequest::CopyFrom(const CreateTargetedInvitationRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.provider.spacewave.CreateTargetedInvitationRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void CreateTargetedInvitationRequest::InternalSwap(CreateTargetedInvitationRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.target_account_id_, &other->_impl_.target_account_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.space_id_, &other->_impl_.space_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.org_id_, &other->_impl_.org_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.role_, &other->_impl_.role_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.draft_id_, &other->_impl_.draft_id_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(CreateTargetedInvitationRequest, _impl_.purpose_)
+      + sizeof(CreateTargetedInvitationRequest::_impl_.purpose_)
+      - PROTOBUF_FIELD_OFFSET(CreateTargetedInvitationRequest, _impl_.envelope_)>(
+          reinterpret_cast<char*>(&_impl_.envelope_),
+          reinterpret_cast<char*>(&other->_impl_.envelope_));
+}
+
+::google::protobuf::Metadata CreateTargetedInvitationRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class CreateTargetedInvitationResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<CreateTargetedInvitationResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(CreateTargetedInvitationResponse, _impl_._has_bits_);
+};
+
+CreateTargetedInvitationResponse::CreateTargetedInvitationResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, CreateTargetedInvitationResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.provider.spacewave.CreateTargetedInvitationResponse)
+}
+PROTOBUF_NDEBUG_INLINE CreateTargetedInvitationResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::provider::spacewave::CreateTargetedInvitationResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0} {}
+
+CreateTargetedInvitationResponse::CreateTargetedInvitationResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const CreateTargetedInvitationResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, CreateTargetedInvitationResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  CreateTargetedInvitationResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.invitation_ = (CheckHasBit(cached_has_bits, 0x00000001U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.invitation_)
+                : nullptr;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.provider.spacewave.CreateTargetedInvitationResponse)
+}
+PROTOBUF_NDEBUG_INLINE CreateTargetedInvitationResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void CreateTargetedInvitationResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.invitation_ = {};
+}
+CreateTargetedInvitationResponse::~CreateTargetedInvitationResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.provider.spacewave.CreateTargetedInvitationResponse)
+  SharedDtor(*this);
+}
+inline void CreateTargetedInvitationResponse::SharedDtor(MessageLite& self) {
+  CreateTargetedInvitationResponse& this_ = static_cast<CreateTargetedInvitationResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  delete this_._impl_.invitation_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL CreateTargetedInvitationResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) CreateTargetedInvitationResponse(arena);
+}
+constexpr auto CreateTargetedInvitationResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(CreateTargetedInvitationResponse),
+                                            alignof(CreateTargetedInvitationResponse));
+}
+constexpr auto CreateTargetedInvitationResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_CreateTargetedInvitationResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &CreateTargetedInvitationResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<CreateTargetedInvitationResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &CreateTargetedInvitationResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<CreateTargetedInvitationResponse>(), &CreateTargetedInvitationResponse::ByteSizeLong,
+              &CreateTargetedInvitationResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(CreateTargetedInvitationResponse, _impl_._cached_size_),
+          false,
+      },
+      &CreateTargetedInvitationResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull CreateTargetedInvitationResponse_class_data_ =
+        CreateTargetedInvitationResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+CreateTargetedInvitationResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&CreateTargetedInvitationResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(CreateTargetedInvitationResponse_class_data_.tc_table);
+  return CreateTargetedInvitationResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 1, 0, 2>
+CreateTargetedInvitationResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(CreateTargetedInvitationResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    CreateTargetedInvitationResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::CreateTargetedInvitationResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(CreateTargetedInvitationResponse, _impl_.invitation_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+    {PROTOBUF_FIELD_OFFSET(CreateTargetedInvitationResponse, _impl_.invitation_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::TargetedInvitationInfo>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void CreateTargetedInvitationResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.provider.spacewave.CreateTargetedInvitationResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    ABSL_DCHECK(_impl_.invitation_ != nullptr);
+    _impl_.invitation_->Clear();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL CreateTargetedInvitationResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const CreateTargetedInvitationResponse& this_ = static_cast<const CreateTargetedInvitationResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL CreateTargetedInvitationResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const CreateTargetedInvitationResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.provider.spacewave.CreateTargetedInvitationResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        1, *this_._impl_.invitation_, this_._impl_.invitation_->GetCachedSize(), target,
+        stream);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.provider.spacewave.CreateTargetedInvitationResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t CreateTargetedInvitationResponse::ByteSizeLong(const MessageLite& base) {
+  const CreateTargetedInvitationResponse& this_ = static_cast<const CreateTargetedInvitationResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t CreateTargetedInvitationResponse::ByteSizeLong() const {
+  const CreateTargetedInvitationResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.provider.spacewave.CreateTargetedInvitationResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.invitation_);
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void CreateTargetedInvitationResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<CreateTargetedInvitationResponse*>(&to_msg);
+  auto& from = static_cast<const CreateTargetedInvitationResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.provider.spacewave.CreateTargetedInvitationResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    ABSL_DCHECK(from._impl_.invitation_ != nullptr);
+    if (_this->_impl_.invitation_ == nullptr) {
+      _this->_impl_.invitation_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.invitation_);
+    } else {
+      _this->_impl_.invitation_->MergeFrom(*from._impl_.invitation_);
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void CreateTargetedInvitationResponse::CopyFrom(const CreateTargetedInvitationResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.provider.spacewave.CreateTargetedInvitationResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void CreateTargetedInvitationResponse::InternalSwap(CreateTargetedInvitationResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.invitation_, other->_impl_.invitation_);
+}
+
+::google::protobuf::Metadata CreateTargetedInvitationResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class CreateSpaceTargetedInvitationByUsernameRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<CreateSpaceTargetedInvitationByUsernameRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(CreateSpaceTargetedInvitationByUsernameRequest, _impl_._has_bits_);
+};
+
+CreateSpaceTargetedInvitationByUsernameRequest::CreateSpaceTargetedInvitationByUsernameRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, CreateSpaceTargetedInvitationByUsernameRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest)
+}
+PROTOBUF_NDEBUG_INLINE CreateSpaceTargetedInvitationByUsernameRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::provider::spacewave::CreateSpaceTargetedInvitationByUsernameRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        username_(arena, from.username_),
+        space_id_(arena, from.space_id_),
+        role_(arena, from.role_) {}
+
+CreateSpaceTargetedInvitationByUsernameRequest::CreateSpaceTargetedInvitationByUsernameRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const CreateSpaceTargetedInvitationByUsernameRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, CreateSpaceTargetedInvitationByUsernameRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  CreateSpaceTargetedInvitationByUsernameRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.expires_at_ = from._impl_.expires_at_;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest)
+}
+PROTOBUF_NDEBUG_INLINE CreateSpaceTargetedInvitationByUsernameRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        username_(arena),
+        space_id_(arena),
+        role_(arena) {}
+
+inline void CreateSpaceTargetedInvitationByUsernameRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.expires_at_ = {};
+}
+CreateSpaceTargetedInvitationByUsernameRequest::~CreateSpaceTargetedInvitationByUsernameRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest)
+  SharedDtor(*this);
+}
+inline void CreateSpaceTargetedInvitationByUsernameRequest::SharedDtor(MessageLite& self) {
+  CreateSpaceTargetedInvitationByUsernameRequest& this_ = static_cast<CreateSpaceTargetedInvitationByUsernameRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.username_.Destroy();
+  this_._impl_.space_id_.Destroy();
+  this_._impl_.role_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL CreateSpaceTargetedInvitationByUsernameRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) CreateSpaceTargetedInvitationByUsernameRequest(arena);
+}
+constexpr auto CreateSpaceTargetedInvitationByUsernameRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(CreateSpaceTargetedInvitationByUsernameRequest),
+                                            alignof(CreateSpaceTargetedInvitationByUsernameRequest));
+}
+constexpr auto CreateSpaceTargetedInvitationByUsernameRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_CreateSpaceTargetedInvitationByUsernameRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &CreateSpaceTargetedInvitationByUsernameRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<CreateSpaceTargetedInvitationByUsernameRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &CreateSpaceTargetedInvitationByUsernameRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<CreateSpaceTargetedInvitationByUsernameRequest>(), &CreateSpaceTargetedInvitationByUsernameRequest::ByteSizeLong,
+              &CreateSpaceTargetedInvitationByUsernameRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(CreateSpaceTargetedInvitationByUsernameRequest, _impl_._cached_size_),
+          false,
+      },
+      &CreateSpaceTargetedInvitationByUsernameRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull CreateSpaceTargetedInvitationByUsernameRequest_class_data_ =
+        CreateSpaceTargetedInvitationByUsernameRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+CreateSpaceTargetedInvitationByUsernameRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&CreateSpaceTargetedInvitationByUsernameRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(CreateSpaceTargetedInvitationByUsernameRequest_class_data_.tc_table);
+  return CreateSpaceTargetedInvitationByUsernameRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 4, 0, 101, 2>
+CreateSpaceTargetedInvitationByUsernameRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(CreateSpaceTargetedInvitationByUsernameRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    4, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967280,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    4,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    CreateSpaceTargetedInvitationByUsernameRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::CreateSpaceTargetedInvitationByUsernameRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // int64 expires_at = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(CreateSpaceTargetedInvitationByUsernameRequest, _impl_.expires_at_), 3>(),
+     {32, 3, 0,
+      PROTOBUF_FIELD_OFFSET(CreateSpaceTargetedInvitationByUsernameRequest, _impl_.expires_at_)}},
+    // string username = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(CreateSpaceTargetedInvitationByUsernameRequest, _impl_.username_)}},
+    // string space_id = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(CreateSpaceTargetedInvitationByUsernameRequest, _impl_.space_id_)}},
+    // string role = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 2, 0,
+      PROTOBUF_FIELD_OFFSET(CreateSpaceTargetedInvitationByUsernameRequest, _impl_.role_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string username = 1;
+    {PROTOBUF_FIELD_OFFSET(CreateSpaceTargetedInvitationByUsernameRequest, _impl_.username_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string space_id = 2;
+    {PROTOBUF_FIELD_OFFSET(CreateSpaceTargetedInvitationByUsernameRequest, _impl_.space_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string role = 3;
+    {PROTOBUF_FIELD_OFFSET(CreateSpaceTargetedInvitationByUsernameRequest, _impl_.role_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // int64 expires_at = 4;
+    {PROTOBUF_FIELD_OFFSET(CreateSpaceTargetedInvitationByUsernameRequest, _impl_.expires_at_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt64)},
+  }},
+  // no aux_entries
+  {{
+    "\110\10\10\4\0\0\0\0"
+    "s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest"
+    "username"
+    "space_id"
+    "role"
+  }},
+};
+PROTOBUF_NOINLINE void CreateSpaceTargetedInvitationByUsernameRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.username_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.space_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.role_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_.expires_at_ = ::int64_t{0};
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL CreateSpaceTargetedInvitationByUsernameRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const CreateSpaceTargetedInvitationByUsernameRequest& this_ = static_cast<const CreateSpaceTargetedInvitationByUsernameRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL CreateSpaceTargetedInvitationByUsernameRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const CreateSpaceTargetedInvitationByUsernameRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string username = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_username().empty()) {
+      const ::std::string& _s = this_._internal_username();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest.username");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string space_id = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_space_id().empty()) {
+      const ::std::string& _s = this_._internal_space_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest.space_id");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // string role = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_role().empty()) {
+      const ::std::string& _s = this_._internal_role();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest.role");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // int64 expires_at = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (this_._internal_expires_at() != 0) {
+      target =
+          ::google::protobuf::internal::WireFormatLite::WriteInt64ToArrayWithField<4>(
+              stream, this_._internal_expires_at(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t CreateSpaceTargetedInvitationByUsernameRequest::ByteSizeLong(const MessageLite& base) {
+  const CreateSpaceTargetedInvitationByUsernameRequest& this_ = static_cast<const CreateSpaceTargetedInvitationByUsernameRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t CreateSpaceTargetedInvitationByUsernameRequest::ByteSizeLong() const {
+  const CreateSpaceTargetedInvitationByUsernameRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    // string username = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_username().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_username());
+      }
+    }
+    // string space_id = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_space_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_space_id());
+      }
+    }
+    // string role = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_role().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_role());
+      }
+    }
+    // int64 expires_at = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (this_._internal_expires_at() != 0) {
+        total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(
+            this_._internal_expires_at());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void CreateSpaceTargetedInvitationByUsernameRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<CreateSpaceTargetedInvitationByUsernameRequest*>(&to_msg);
+  auto& from = static_cast<const CreateSpaceTargetedInvitationByUsernameRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_username().empty()) {
+        _this->_internal_set_username(from._internal_username());
+      } else {
+        if (_this->_impl_.username_.IsDefault()) {
+          _this->_internal_set_username("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_space_id().empty()) {
+        _this->_internal_set_space_id(from._internal_space_id());
+      } else {
+        if (_this->_impl_.space_id_.IsDefault()) {
+          _this->_internal_set_space_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_role().empty()) {
+        _this->_internal_set_role(from._internal_role());
+      } else {
+        if (_this->_impl_.role_.IsDefault()) {
+          _this->_internal_set_role("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (from._internal_expires_at() != 0) {
+        _this->_impl_.expires_at_ = from._impl_.expires_at_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void CreateSpaceTargetedInvitationByUsernameRequest::CopyFrom(const CreateSpaceTargetedInvitationByUsernameRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void CreateSpaceTargetedInvitationByUsernameRequest::InternalSwap(CreateSpaceTargetedInvitationByUsernameRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.username_, &other->_impl_.username_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.space_id_, &other->_impl_.space_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.role_, &other->_impl_.role_, arena);
+  swap(_impl_.expires_at_, other->_impl_.expires_at_);
+}
+
+::google::protobuf::Metadata CreateSpaceTargetedInvitationByUsernameRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class CreateSpaceTargetedInvitationByUsernameResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<CreateSpaceTargetedInvitationByUsernameResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(CreateSpaceTargetedInvitationByUsernameResponse, _impl_._has_bits_);
+};
+
+CreateSpaceTargetedInvitationByUsernameResponse::CreateSpaceTargetedInvitationByUsernameResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, CreateSpaceTargetedInvitationByUsernameResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameResponse)
+}
+PROTOBUF_NDEBUG_INLINE CreateSpaceTargetedInvitationByUsernameResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::provider::spacewave::CreateSpaceTargetedInvitationByUsernameResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0} {}
+
+CreateSpaceTargetedInvitationByUsernameResponse::CreateSpaceTargetedInvitationByUsernameResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const CreateSpaceTargetedInvitationByUsernameResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, CreateSpaceTargetedInvitationByUsernameResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  CreateSpaceTargetedInvitationByUsernameResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.invitation_ = (CheckHasBit(cached_has_bits, 0x00000001U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.invitation_)
+                : nullptr;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameResponse)
+}
+PROTOBUF_NDEBUG_INLINE CreateSpaceTargetedInvitationByUsernameResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void CreateSpaceTargetedInvitationByUsernameResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.invitation_ = {};
+}
+CreateSpaceTargetedInvitationByUsernameResponse::~CreateSpaceTargetedInvitationByUsernameResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameResponse)
+  SharedDtor(*this);
+}
+inline void CreateSpaceTargetedInvitationByUsernameResponse::SharedDtor(MessageLite& self) {
+  CreateSpaceTargetedInvitationByUsernameResponse& this_ = static_cast<CreateSpaceTargetedInvitationByUsernameResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  delete this_._impl_.invitation_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL CreateSpaceTargetedInvitationByUsernameResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) CreateSpaceTargetedInvitationByUsernameResponse(arena);
+}
+constexpr auto CreateSpaceTargetedInvitationByUsernameResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(CreateSpaceTargetedInvitationByUsernameResponse),
+                                            alignof(CreateSpaceTargetedInvitationByUsernameResponse));
+}
+constexpr auto CreateSpaceTargetedInvitationByUsernameResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_CreateSpaceTargetedInvitationByUsernameResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &CreateSpaceTargetedInvitationByUsernameResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<CreateSpaceTargetedInvitationByUsernameResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &CreateSpaceTargetedInvitationByUsernameResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<CreateSpaceTargetedInvitationByUsernameResponse>(), &CreateSpaceTargetedInvitationByUsernameResponse::ByteSizeLong,
+              &CreateSpaceTargetedInvitationByUsernameResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(CreateSpaceTargetedInvitationByUsernameResponse, _impl_._cached_size_),
+          false,
+      },
+      &CreateSpaceTargetedInvitationByUsernameResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull CreateSpaceTargetedInvitationByUsernameResponse_class_data_ =
+        CreateSpaceTargetedInvitationByUsernameResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+CreateSpaceTargetedInvitationByUsernameResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&CreateSpaceTargetedInvitationByUsernameResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(CreateSpaceTargetedInvitationByUsernameResponse_class_data_.tc_table);
+  return CreateSpaceTargetedInvitationByUsernameResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 1, 0, 2>
+CreateSpaceTargetedInvitationByUsernameResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(CreateSpaceTargetedInvitationByUsernameResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    CreateSpaceTargetedInvitationByUsernameResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::CreateSpaceTargetedInvitationByUsernameResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(CreateSpaceTargetedInvitationByUsernameResponse, _impl_.invitation_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+    {PROTOBUF_FIELD_OFFSET(CreateSpaceTargetedInvitationByUsernameResponse, _impl_.invitation_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::TargetedInvitationInfo>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void CreateSpaceTargetedInvitationByUsernameResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    ABSL_DCHECK(_impl_.invitation_ != nullptr);
+    _impl_.invitation_->Clear();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL CreateSpaceTargetedInvitationByUsernameResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const CreateSpaceTargetedInvitationByUsernameResponse& this_ = static_cast<const CreateSpaceTargetedInvitationByUsernameResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL CreateSpaceTargetedInvitationByUsernameResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const CreateSpaceTargetedInvitationByUsernameResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        1, *this_._impl_.invitation_, this_._impl_.invitation_->GetCachedSize(), target,
+        stream);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t CreateSpaceTargetedInvitationByUsernameResponse::ByteSizeLong(const MessageLite& base) {
+  const CreateSpaceTargetedInvitationByUsernameResponse& this_ = static_cast<const CreateSpaceTargetedInvitationByUsernameResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t CreateSpaceTargetedInvitationByUsernameResponse::ByteSizeLong() const {
+  const CreateSpaceTargetedInvitationByUsernameResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.invitation_);
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void CreateSpaceTargetedInvitationByUsernameResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<CreateSpaceTargetedInvitationByUsernameResponse*>(&to_msg);
+  auto& from = static_cast<const CreateSpaceTargetedInvitationByUsernameResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    ABSL_DCHECK(from._impl_.invitation_ != nullptr);
+    if (_this->_impl_.invitation_ == nullptr) {
+      _this->_impl_.invitation_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.invitation_);
+    } else {
+      _this->_impl_.invitation_->MergeFrom(*from._impl_.invitation_);
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void CreateSpaceTargetedInvitationByUsernameResponse::CopyFrom(const CreateSpaceTargetedInvitationByUsernameResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void CreateSpaceTargetedInvitationByUsernameResponse::InternalSwap(CreateSpaceTargetedInvitationByUsernameResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.invitation_, other->_impl_.invitation_);
+}
+
+::google::protobuf::Metadata CreateSpaceTargetedInvitationByUsernameResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class AcceptSpaceTargetedInvitationRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<AcceptSpaceTargetedInvitationRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(AcceptSpaceTargetedInvitationRequest, _impl_._has_bits_);
+};
+
+AcceptSpaceTargetedInvitationRequest::AcceptSpaceTargetedInvitationRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, AcceptSpaceTargetedInvitationRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationRequest)
+}
+PROTOBUF_NDEBUG_INLINE AcceptSpaceTargetedInvitationRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::provider::spacewave::AcceptSpaceTargetedInvitationRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        id_(arena, from.id_) {}
+
+AcceptSpaceTargetedInvitationRequest::AcceptSpaceTargetedInvitationRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const AcceptSpaceTargetedInvitationRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, AcceptSpaceTargetedInvitationRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  AcceptSpaceTargetedInvitationRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationRequest)
+}
+PROTOBUF_NDEBUG_INLINE AcceptSpaceTargetedInvitationRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        id_(arena) {}
+
+inline void AcceptSpaceTargetedInvitationRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+AcceptSpaceTargetedInvitationRequest::~AcceptSpaceTargetedInvitationRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationRequest)
+  SharedDtor(*this);
+}
+inline void AcceptSpaceTargetedInvitationRequest::SharedDtor(MessageLite& self) {
+  AcceptSpaceTargetedInvitationRequest& this_ = static_cast<AcceptSpaceTargetedInvitationRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.id_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL AcceptSpaceTargetedInvitationRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) AcceptSpaceTargetedInvitationRequest(arena);
+}
+constexpr auto AcceptSpaceTargetedInvitationRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(AcceptSpaceTargetedInvitationRequest),
+                                            alignof(AcceptSpaceTargetedInvitationRequest));
+}
+constexpr auto AcceptSpaceTargetedInvitationRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_AcceptSpaceTargetedInvitationRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &AcceptSpaceTargetedInvitationRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<AcceptSpaceTargetedInvitationRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &AcceptSpaceTargetedInvitationRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<AcceptSpaceTargetedInvitationRequest>(), &AcceptSpaceTargetedInvitationRequest::ByteSizeLong,
+              &AcceptSpaceTargetedInvitationRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(AcceptSpaceTargetedInvitationRequest, _impl_._cached_size_),
+          false,
+      },
+      &AcceptSpaceTargetedInvitationRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull AcceptSpaceTargetedInvitationRequest_class_data_ =
+        AcceptSpaceTargetedInvitationRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+AcceptSpaceTargetedInvitationRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&AcceptSpaceTargetedInvitationRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(AcceptSpaceTargetedInvitationRequest_class_data_.tc_table);
+  return AcceptSpaceTargetedInvitationRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 0, 73, 2>
+AcceptSpaceTargetedInvitationRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(AcceptSpaceTargetedInvitationRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    AcceptSpaceTargetedInvitationRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::AcceptSpaceTargetedInvitationRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(AcceptSpaceTargetedInvitationRequest, _impl_.id_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string id = 1;
+    {PROTOBUF_FIELD_OFFSET(AcceptSpaceTargetedInvitationRequest, _impl_.id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\76\2\0\0\0\0\0\0"
+    "s4wave.provider.spacewave.AcceptSpaceTargetedInvitationRequest"
+    "id"
+  }},
+};
+PROTOBUF_NOINLINE void AcceptSpaceTargetedInvitationRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    _impl_.id_.ClearNonDefaultToEmpty();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL AcceptSpaceTargetedInvitationRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const AcceptSpaceTargetedInvitationRequest& this_ = static_cast<const AcceptSpaceTargetedInvitationRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL AcceptSpaceTargetedInvitationRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const AcceptSpaceTargetedInvitationRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_id().empty()) {
+      const ::std::string& _s = this_._internal_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.AcceptSpaceTargetedInvitationRequest.id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t AcceptSpaceTargetedInvitationRequest::ByteSizeLong(const MessageLite& base) {
+  const AcceptSpaceTargetedInvitationRequest& this_ = static_cast<const AcceptSpaceTargetedInvitationRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t AcceptSpaceTargetedInvitationRequest::ByteSizeLong() const {
+  const AcceptSpaceTargetedInvitationRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // string id = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_id());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void AcceptSpaceTargetedInvitationRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<AcceptSpaceTargetedInvitationRequest*>(&to_msg);
+  auto& from = static_cast<const AcceptSpaceTargetedInvitationRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!from._internal_id().empty()) {
+      _this->_internal_set_id(from._internal_id());
+    } else {
+      if (_this->_impl_.id_.IsDefault()) {
+        _this->_internal_set_id("");
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void AcceptSpaceTargetedInvitationRequest::CopyFrom(const AcceptSpaceTargetedInvitationRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void AcceptSpaceTargetedInvitationRequest::InternalSwap(AcceptSpaceTargetedInvitationRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.id_, &other->_impl_.id_, arena);
+}
+
+::google::protobuf::Metadata AcceptSpaceTargetedInvitationRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class AcceptSpaceTargetedInvitationResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<AcceptSpaceTargetedInvitationResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(AcceptSpaceTargetedInvitationResponse, _impl_._has_bits_);
+};
+
+AcceptSpaceTargetedInvitationResponse::AcceptSpaceTargetedInvitationResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, AcceptSpaceTargetedInvitationResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationResponse)
+}
+PROTOBUF_NDEBUG_INLINE AcceptSpaceTargetedInvitationResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::provider::spacewave::AcceptSpaceTargetedInvitationResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        shared_object_id_(arena, from.shared_object_id_),
+        join_result_(arena, from.join_result_) {}
+
+AcceptSpaceTargetedInvitationResponse::AcceptSpaceTargetedInvitationResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const AcceptSpaceTargetedInvitationResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, AcceptSpaceTargetedInvitationResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  AcceptSpaceTargetedInvitationResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.invitation_ = (CheckHasBit(cached_has_bits, 0x00000004U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.invitation_)
+                : nullptr;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationResponse)
+}
+PROTOBUF_NDEBUG_INLINE AcceptSpaceTargetedInvitationResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        shared_object_id_(arena),
+        join_result_(arena) {}
+
+inline void AcceptSpaceTargetedInvitationResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.invitation_ = {};
+}
+AcceptSpaceTargetedInvitationResponse::~AcceptSpaceTargetedInvitationResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationResponse)
+  SharedDtor(*this);
+}
+inline void AcceptSpaceTargetedInvitationResponse::SharedDtor(MessageLite& self) {
+  AcceptSpaceTargetedInvitationResponse& this_ = static_cast<AcceptSpaceTargetedInvitationResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.shared_object_id_.Destroy();
+  this_._impl_.join_result_.Destroy();
+  delete this_._impl_.invitation_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL AcceptSpaceTargetedInvitationResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) AcceptSpaceTargetedInvitationResponse(arena);
+}
+constexpr auto AcceptSpaceTargetedInvitationResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(AcceptSpaceTargetedInvitationResponse),
+                                            alignof(AcceptSpaceTargetedInvitationResponse));
+}
+constexpr auto AcceptSpaceTargetedInvitationResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_AcceptSpaceTargetedInvitationResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &AcceptSpaceTargetedInvitationResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<AcceptSpaceTargetedInvitationResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &AcceptSpaceTargetedInvitationResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<AcceptSpaceTargetedInvitationResponse>(), &AcceptSpaceTargetedInvitationResponse::ByteSizeLong,
+              &AcceptSpaceTargetedInvitationResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(AcceptSpaceTargetedInvitationResponse, _impl_._cached_size_),
+          false,
+      },
+      &AcceptSpaceTargetedInvitationResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull AcceptSpaceTargetedInvitationResponse_class_data_ =
+        AcceptSpaceTargetedInvitationResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+AcceptSpaceTargetedInvitationResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&AcceptSpaceTargetedInvitationResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(AcceptSpaceTargetedInvitationResponse_class_data_.tc_table);
+  return AcceptSpaceTargetedInvitationResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 3, 1, 99, 2>
+AcceptSpaceTargetedInvitationResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(AcceptSpaceTargetedInvitationResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    3, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967288,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    3,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    AcceptSpaceTargetedInvitationResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::AcceptSpaceTargetedInvitationResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 2, 0,
+      PROTOBUF_FIELD_OFFSET(AcceptSpaceTargetedInvitationResponse, _impl_.invitation_)}},
+    // string shared_object_id = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 0, 0,
+      PROTOBUF_FIELD_OFFSET(AcceptSpaceTargetedInvitationResponse, _impl_.shared_object_id_)}},
+    // string join_result = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 1, 0,
+      PROTOBUF_FIELD_OFFSET(AcceptSpaceTargetedInvitationResponse, _impl_.join_result_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+    {PROTOBUF_FIELD_OFFSET(AcceptSpaceTargetedInvitationResponse, _impl_.invitation_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // string shared_object_id = 2;
+    {PROTOBUF_FIELD_OFFSET(AcceptSpaceTargetedInvitationResponse, _impl_.shared_object_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string join_result = 3;
+    {PROTOBUF_FIELD_OFFSET(AcceptSpaceTargetedInvitationResponse, _impl_.join_result_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::TargetedInvitationInfo>()},
+  }},
+  {{
+    "\77\0\20\13\0\0\0\0"
+    "s4wave.provider.spacewave.AcceptSpaceTargetedInvitationResponse"
+    "shared_object_id"
+    "join_result"
+  }},
+};
+PROTOBUF_NOINLINE void AcceptSpaceTargetedInvitationResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.shared_object_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.join_result_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(_impl_.invitation_ != nullptr);
+      _impl_.invitation_->Clear();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL AcceptSpaceTargetedInvitationResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const AcceptSpaceTargetedInvitationResponse& this_ = static_cast<const AcceptSpaceTargetedInvitationResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL AcceptSpaceTargetedInvitationResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const AcceptSpaceTargetedInvitationResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        1, *this_._impl_.invitation_, this_._impl_.invitation_->GetCachedSize(), target,
+        stream);
+  }
+
+  // string shared_object_id = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_shared_object_id().empty()) {
+      const ::std::string& _s = this_._internal_shared_object_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.AcceptSpaceTargetedInvitationResponse.shared_object_id");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // string join_result = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_join_result().empty()) {
+      const ::std::string& _s = this_._internal_join_result();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.AcceptSpaceTargetedInvitationResponse.join_result");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t AcceptSpaceTargetedInvitationResponse::ByteSizeLong(const MessageLite& base) {
+  const AcceptSpaceTargetedInvitationResponse& this_ = static_cast<const AcceptSpaceTargetedInvitationResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t AcceptSpaceTargetedInvitationResponse::ByteSizeLong() const {
+  const AcceptSpaceTargetedInvitationResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    // string shared_object_id = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_shared_object_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_shared_object_id());
+      }
+    }
+    // string join_result = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_join_result().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_join_result());
+      }
+    }
+    // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.invitation_);
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void AcceptSpaceTargetedInvitationResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<AcceptSpaceTargetedInvitationResponse*>(&to_msg);
+  auto& from = static_cast<const AcceptSpaceTargetedInvitationResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_shared_object_id().empty()) {
+        _this->_internal_set_shared_object_id(from._internal_shared_object_id());
+      } else {
+        if (_this->_impl_.shared_object_id_.IsDefault()) {
+          _this->_internal_set_shared_object_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_join_result().empty()) {
+        _this->_internal_set_join_result(from._internal_join_result());
+      } else {
+        if (_this->_impl_.join_result_.IsDefault()) {
+          _this->_internal_set_join_result("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(from._impl_.invitation_ != nullptr);
+      if (_this->_impl_.invitation_ == nullptr) {
+        _this->_impl_.invitation_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.invitation_);
+      } else {
+        _this->_impl_.invitation_->MergeFrom(*from._impl_.invitation_);
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void AcceptSpaceTargetedInvitationResponse::CopyFrom(const AcceptSpaceTargetedInvitationResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.provider.spacewave.AcceptSpaceTargetedInvitationResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void AcceptSpaceTargetedInvitationResponse::InternalSwap(AcceptSpaceTargetedInvitationResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.shared_object_id_, &other->_impl_.shared_object_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.join_result_, &other->_impl_.join_result_, arena);
+  swap(_impl_.invitation_, other->_impl_.invitation_);
+}
+
+::google::protobuf::Metadata AcceptSpaceTargetedInvitationResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class CreateOrganizationTargetedInvitationByUsernameRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<CreateOrganizationTargetedInvitationByUsernameRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(CreateOrganizationTargetedInvitationByUsernameRequest, _impl_._has_bits_);
+};
+
+CreateOrganizationTargetedInvitationByUsernameRequest::CreateOrganizationTargetedInvitationByUsernameRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, CreateOrganizationTargetedInvitationByUsernameRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest)
+}
+PROTOBUF_NDEBUG_INLINE CreateOrganizationTargetedInvitationByUsernameRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::provider::spacewave::CreateOrganizationTargetedInvitationByUsernameRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        username_(arena, from.username_),
+        org_id_(arena, from.org_id_),
+        role_(arena, from.role_) {}
+
+CreateOrganizationTargetedInvitationByUsernameRequest::CreateOrganizationTargetedInvitationByUsernameRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const CreateOrganizationTargetedInvitationByUsernameRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, CreateOrganizationTargetedInvitationByUsernameRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  CreateOrganizationTargetedInvitationByUsernameRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.expires_at_ = from._impl_.expires_at_;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest)
+}
+PROTOBUF_NDEBUG_INLINE CreateOrganizationTargetedInvitationByUsernameRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        username_(arena),
+        org_id_(arena),
+        role_(arena) {}
+
+inline void CreateOrganizationTargetedInvitationByUsernameRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.expires_at_ = {};
+}
+CreateOrganizationTargetedInvitationByUsernameRequest::~CreateOrganizationTargetedInvitationByUsernameRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest)
+  SharedDtor(*this);
+}
+inline void CreateOrganizationTargetedInvitationByUsernameRequest::SharedDtor(MessageLite& self) {
+  CreateOrganizationTargetedInvitationByUsernameRequest& this_ = static_cast<CreateOrganizationTargetedInvitationByUsernameRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.username_.Destroy();
+  this_._impl_.org_id_.Destroy();
+  this_._impl_.role_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL CreateOrganizationTargetedInvitationByUsernameRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) CreateOrganizationTargetedInvitationByUsernameRequest(arena);
+}
+constexpr auto CreateOrganizationTargetedInvitationByUsernameRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(CreateOrganizationTargetedInvitationByUsernameRequest),
+                                            alignof(CreateOrganizationTargetedInvitationByUsernameRequest));
+}
+constexpr auto CreateOrganizationTargetedInvitationByUsernameRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_CreateOrganizationTargetedInvitationByUsernameRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &CreateOrganizationTargetedInvitationByUsernameRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<CreateOrganizationTargetedInvitationByUsernameRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &CreateOrganizationTargetedInvitationByUsernameRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<CreateOrganizationTargetedInvitationByUsernameRequest>(), &CreateOrganizationTargetedInvitationByUsernameRequest::ByteSizeLong,
+              &CreateOrganizationTargetedInvitationByUsernameRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(CreateOrganizationTargetedInvitationByUsernameRequest, _impl_._cached_size_),
+          false,
+      },
+      &CreateOrganizationTargetedInvitationByUsernameRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull CreateOrganizationTargetedInvitationByUsernameRequest_class_data_ =
+        CreateOrganizationTargetedInvitationByUsernameRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+CreateOrganizationTargetedInvitationByUsernameRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&CreateOrganizationTargetedInvitationByUsernameRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(CreateOrganizationTargetedInvitationByUsernameRequest_class_data_.tc_table);
+  return CreateOrganizationTargetedInvitationByUsernameRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 4, 0, 106, 2>
+CreateOrganizationTargetedInvitationByUsernameRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(CreateOrganizationTargetedInvitationByUsernameRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    4, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967280,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    4,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    CreateOrganizationTargetedInvitationByUsernameRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::CreateOrganizationTargetedInvitationByUsernameRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // int64 expires_at = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(CreateOrganizationTargetedInvitationByUsernameRequest, _impl_.expires_at_), 3>(),
+     {32, 3, 0,
+      PROTOBUF_FIELD_OFFSET(CreateOrganizationTargetedInvitationByUsernameRequest, _impl_.expires_at_)}},
+    // string username = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(CreateOrganizationTargetedInvitationByUsernameRequest, _impl_.username_)}},
+    // string org_id = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(CreateOrganizationTargetedInvitationByUsernameRequest, _impl_.org_id_)}},
+    // string role = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 2, 0,
+      PROTOBUF_FIELD_OFFSET(CreateOrganizationTargetedInvitationByUsernameRequest, _impl_.role_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string username = 1;
+    {PROTOBUF_FIELD_OFFSET(CreateOrganizationTargetedInvitationByUsernameRequest, _impl_.username_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string org_id = 2;
+    {PROTOBUF_FIELD_OFFSET(CreateOrganizationTargetedInvitationByUsernameRequest, _impl_.org_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string role = 3;
+    {PROTOBUF_FIELD_OFFSET(CreateOrganizationTargetedInvitationByUsernameRequest, _impl_.role_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // int64 expires_at = 4;
+    {PROTOBUF_FIELD_OFFSET(CreateOrganizationTargetedInvitationByUsernameRequest, _impl_.expires_at_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt64)},
+  }},
+  // no aux_entries
+  {{
+    "\117\10\6\4\0\0\0\0"
+    "s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest"
+    "username"
+    "org_id"
+    "role"
+  }},
+};
+PROTOBUF_NOINLINE void CreateOrganizationTargetedInvitationByUsernameRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.username_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.org_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.role_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_.expires_at_ = ::int64_t{0};
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL CreateOrganizationTargetedInvitationByUsernameRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const CreateOrganizationTargetedInvitationByUsernameRequest& this_ = static_cast<const CreateOrganizationTargetedInvitationByUsernameRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL CreateOrganizationTargetedInvitationByUsernameRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const CreateOrganizationTargetedInvitationByUsernameRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string username = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_username().empty()) {
+      const ::std::string& _s = this_._internal_username();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest.username");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string org_id = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_org_id().empty()) {
+      const ::std::string& _s = this_._internal_org_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest.org_id");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // string role = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_role().empty()) {
+      const ::std::string& _s = this_._internal_role();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest.role");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // int64 expires_at = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (this_._internal_expires_at() != 0) {
+      target =
+          ::google::protobuf::internal::WireFormatLite::WriteInt64ToArrayWithField<4>(
+              stream, this_._internal_expires_at(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t CreateOrganizationTargetedInvitationByUsernameRequest::ByteSizeLong(const MessageLite& base) {
+  const CreateOrganizationTargetedInvitationByUsernameRequest& this_ = static_cast<const CreateOrganizationTargetedInvitationByUsernameRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t CreateOrganizationTargetedInvitationByUsernameRequest::ByteSizeLong() const {
+  const CreateOrganizationTargetedInvitationByUsernameRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    // string username = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_username().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_username());
+      }
+    }
+    // string org_id = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_org_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_org_id());
+      }
+    }
+    // string role = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_role().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_role());
+      }
+    }
+    // int64 expires_at = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (this_._internal_expires_at() != 0) {
+        total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(
+            this_._internal_expires_at());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void CreateOrganizationTargetedInvitationByUsernameRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<CreateOrganizationTargetedInvitationByUsernameRequest*>(&to_msg);
+  auto& from = static_cast<const CreateOrganizationTargetedInvitationByUsernameRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_username().empty()) {
+        _this->_internal_set_username(from._internal_username());
+      } else {
+        if (_this->_impl_.username_.IsDefault()) {
+          _this->_internal_set_username("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_org_id().empty()) {
+        _this->_internal_set_org_id(from._internal_org_id());
+      } else {
+        if (_this->_impl_.org_id_.IsDefault()) {
+          _this->_internal_set_org_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_role().empty()) {
+        _this->_internal_set_role(from._internal_role());
+      } else {
+        if (_this->_impl_.role_.IsDefault()) {
+          _this->_internal_set_role("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (from._internal_expires_at() != 0) {
+        _this->_impl_.expires_at_ = from._impl_.expires_at_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void CreateOrganizationTargetedInvitationByUsernameRequest::CopyFrom(const CreateOrganizationTargetedInvitationByUsernameRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void CreateOrganizationTargetedInvitationByUsernameRequest::InternalSwap(CreateOrganizationTargetedInvitationByUsernameRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.username_, &other->_impl_.username_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.org_id_, &other->_impl_.org_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.role_, &other->_impl_.role_, arena);
+  swap(_impl_.expires_at_, other->_impl_.expires_at_);
+}
+
+::google::protobuf::Metadata CreateOrganizationTargetedInvitationByUsernameRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class CreateOrganizationTargetedInvitationByUsernameResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<CreateOrganizationTargetedInvitationByUsernameResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(CreateOrganizationTargetedInvitationByUsernameResponse, _impl_._has_bits_);
+};
+
+CreateOrganizationTargetedInvitationByUsernameResponse::CreateOrganizationTargetedInvitationByUsernameResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, CreateOrganizationTargetedInvitationByUsernameResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameResponse)
+}
+PROTOBUF_NDEBUG_INLINE CreateOrganizationTargetedInvitationByUsernameResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::provider::spacewave::CreateOrganizationTargetedInvitationByUsernameResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0} {}
+
+CreateOrganizationTargetedInvitationByUsernameResponse::CreateOrganizationTargetedInvitationByUsernameResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const CreateOrganizationTargetedInvitationByUsernameResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, CreateOrganizationTargetedInvitationByUsernameResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  CreateOrganizationTargetedInvitationByUsernameResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.invitation_ = (CheckHasBit(cached_has_bits, 0x00000001U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.invitation_)
+                : nullptr;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameResponse)
+}
+PROTOBUF_NDEBUG_INLINE CreateOrganizationTargetedInvitationByUsernameResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void CreateOrganizationTargetedInvitationByUsernameResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.invitation_ = {};
+}
+CreateOrganizationTargetedInvitationByUsernameResponse::~CreateOrganizationTargetedInvitationByUsernameResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameResponse)
+  SharedDtor(*this);
+}
+inline void CreateOrganizationTargetedInvitationByUsernameResponse::SharedDtor(MessageLite& self) {
+  CreateOrganizationTargetedInvitationByUsernameResponse& this_ = static_cast<CreateOrganizationTargetedInvitationByUsernameResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  delete this_._impl_.invitation_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL CreateOrganizationTargetedInvitationByUsernameResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) CreateOrganizationTargetedInvitationByUsernameResponse(arena);
+}
+constexpr auto CreateOrganizationTargetedInvitationByUsernameResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(CreateOrganizationTargetedInvitationByUsernameResponse),
+                                            alignof(CreateOrganizationTargetedInvitationByUsernameResponse));
+}
+constexpr auto CreateOrganizationTargetedInvitationByUsernameResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_CreateOrganizationTargetedInvitationByUsernameResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &CreateOrganizationTargetedInvitationByUsernameResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<CreateOrganizationTargetedInvitationByUsernameResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &CreateOrganizationTargetedInvitationByUsernameResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<CreateOrganizationTargetedInvitationByUsernameResponse>(), &CreateOrganizationTargetedInvitationByUsernameResponse::ByteSizeLong,
+              &CreateOrganizationTargetedInvitationByUsernameResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(CreateOrganizationTargetedInvitationByUsernameResponse, _impl_._cached_size_),
+          false,
+      },
+      &CreateOrganizationTargetedInvitationByUsernameResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull CreateOrganizationTargetedInvitationByUsernameResponse_class_data_ =
+        CreateOrganizationTargetedInvitationByUsernameResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+CreateOrganizationTargetedInvitationByUsernameResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&CreateOrganizationTargetedInvitationByUsernameResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(CreateOrganizationTargetedInvitationByUsernameResponse_class_data_.tc_table);
+  return CreateOrganizationTargetedInvitationByUsernameResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 1, 0, 2>
+CreateOrganizationTargetedInvitationByUsernameResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(CreateOrganizationTargetedInvitationByUsernameResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    CreateOrganizationTargetedInvitationByUsernameResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::CreateOrganizationTargetedInvitationByUsernameResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(CreateOrganizationTargetedInvitationByUsernameResponse, _impl_.invitation_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+    {PROTOBUF_FIELD_OFFSET(CreateOrganizationTargetedInvitationByUsernameResponse, _impl_.invitation_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::TargetedInvitationInfo>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void CreateOrganizationTargetedInvitationByUsernameResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    ABSL_DCHECK(_impl_.invitation_ != nullptr);
+    _impl_.invitation_->Clear();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL CreateOrganizationTargetedInvitationByUsernameResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const CreateOrganizationTargetedInvitationByUsernameResponse& this_ = static_cast<const CreateOrganizationTargetedInvitationByUsernameResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL CreateOrganizationTargetedInvitationByUsernameResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const CreateOrganizationTargetedInvitationByUsernameResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        1, *this_._impl_.invitation_, this_._impl_.invitation_->GetCachedSize(), target,
+        stream);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t CreateOrganizationTargetedInvitationByUsernameResponse::ByteSizeLong(const MessageLite& base) {
+  const CreateOrganizationTargetedInvitationByUsernameResponse& this_ = static_cast<const CreateOrganizationTargetedInvitationByUsernameResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t CreateOrganizationTargetedInvitationByUsernameResponse::ByteSizeLong() const {
+  const CreateOrganizationTargetedInvitationByUsernameResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.invitation_);
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void CreateOrganizationTargetedInvitationByUsernameResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<CreateOrganizationTargetedInvitationByUsernameResponse*>(&to_msg);
+  auto& from = static_cast<const CreateOrganizationTargetedInvitationByUsernameResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    ABSL_DCHECK(from._impl_.invitation_ != nullptr);
+    if (_this->_impl_.invitation_ == nullptr) {
+      _this->_impl_.invitation_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.invitation_);
+    } else {
+      _this->_impl_.invitation_->MergeFrom(*from._impl_.invitation_);
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void CreateOrganizationTargetedInvitationByUsernameResponse::CopyFrom(const CreateOrganizationTargetedInvitationByUsernameResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void CreateOrganizationTargetedInvitationByUsernameResponse::InternalSwap(CreateOrganizationTargetedInvitationByUsernameResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.invitation_, other->_impl_.invitation_);
+}
+
+::google::protobuf::Metadata CreateOrganizationTargetedInvitationByUsernameResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class AcceptOrganizationTargetedInvitationRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<AcceptOrganizationTargetedInvitationRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(AcceptOrganizationTargetedInvitationRequest, _impl_._has_bits_);
+};
+
+AcceptOrganizationTargetedInvitationRequest::AcceptOrganizationTargetedInvitationRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, AcceptOrganizationTargetedInvitationRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationRequest)
+}
+PROTOBUF_NDEBUG_INLINE AcceptOrganizationTargetedInvitationRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::provider::spacewave::AcceptOrganizationTargetedInvitationRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        id_(arena, from.id_) {}
+
+AcceptOrganizationTargetedInvitationRequest::AcceptOrganizationTargetedInvitationRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const AcceptOrganizationTargetedInvitationRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, AcceptOrganizationTargetedInvitationRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  AcceptOrganizationTargetedInvitationRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationRequest)
+}
+PROTOBUF_NDEBUG_INLINE AcceptOrganizationTargetedInvitationRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        id_(arena) {}
+
+inline void AcceptOrganizationTargetedInvitationRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+AcceptOrganizationTargetedInvitationRequest::~AcceptOrganizationTargetedInvitationRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationRequest)
+  SharedDtor(*this);
+}
+inline void AcceptOrganizationTargetedInvitationRequest::SharedDtor(MessageLite& self) {
+  AcceptOrganizationTargetedInvitationRequest& this_ = static_cast<AcceptOrganizationTargetedInvitationRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.id_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL AcceptOrganizationTargetedInvitationRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) AcceptOrganizationTargetedInvitationRequest(arena);
+}
+constexpr auto AcceptOrganizationTargetedInvitationRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(AcceptOrganizationTargetedInvitationRequest),
+                                            alignof(AcceptOrganizationTargetedInvitationRequest));
+}
+constexpr auto AcceptOrganizationTargetedInvitationRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_AcceptOrganizationTargetedInvitationRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &AcceptOrganizationTargetedInvitationRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<AcceptOrganizationTargetedInvitationRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &AcceptOrganizationTargetedInvitationRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<AcceptOrganizationTargetedInvitationRequest>(), &AcceptOrganizationTargetedInvitationRequest::ByteSizeLong,
+              &AcceptOrganizationTargetedInvitationRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(AcceptOrganizationTargetedInvitationRequest, _impl_._cached_size_),
+          false,
+      },
+      &AcceptOrganizationTargetedInvitationRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull AcceptOrganizationTargetedInvitationRequest_class_data_ =
+        AcceptOrganizationTargetedInvitationRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+AcceptOrganizationTargetedInvitationRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&AcceptOrganizationTargetedInvitationRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(AcceptOrganizationTargetedInvitationRequest_class_data_.tc_table);
+  return AcceptOrganizationTargetedInvitationRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 0, 80, 2>
+AcceptOrganizationTargetedInvitationRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(AcceptOrganizationTargetedInvitationRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    AcceptOrganizationTargetedInvitationRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::AcceptOrganizationTargetedInvitationRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(AcceptOrganizationTargetedInvitationRequest, _impl_.id_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string id = 1;
+    {PROTOBUF_FIELD_OFFSET(AcceptOrganizationTargetedInvitationRequest, _impl_.id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\105\2\0\0\0\0\0\0"
+    "s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationRequest"
+    "id"
+  }},
+};
+PROTOBUF_NOINLINE void AcceptOrganizationTargetedInvitationRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    _impl_.id_.ClearNonDefaultToEmpty();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL AcceptOrganizationTargetedInvitationRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const AcceptOrganizationTargetedInvitationRequest& this_ = static_cast<const AcceptOrganizationTargetedInvitationRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL AcceptOrganizationTargetedInvitationRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const AcceptOrganizationTargetedInvitationRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_id().empty()) {
+      const ::std::string& _s = this_._internal_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationRequest.id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t AcceptOrganizationTargetedInvitationRequest::ByteSizeLong(const MessageLite& base) {
+  const AcceptOrganizationTargetedInvitationRequest& this_ = static_cast<const AcceptOrganizationTargetedInvitationRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t AcceptOrganizationTargetedInvitationRequest::ByteSizeLong() const {
+  const AcceptOrganizationTargetedInvitationRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // string id = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_id());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void AcceptOrganizationTargetedInvitationRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<AcceptOrganizationTargetedInvitationRequest*>(&to_msg);
+  auto& from = static_cast<const AcceptOrganizationTargetedInvitationRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!from._internal_id().empty()) {
+      _this->_internal_set_id(from._internal_id());
+    } else {
+      if (_this->_impl_.id_.IsDefault()) {
+        _this->_internal_set_id("");
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void AcceptOrganizationTargetedInvitationRequest::CopyFrom(const AcceptOrganizationTargetedInvitationRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void AcceptOrganizationTargetedInvitationRequest::InternalSwap(AcceptOrganizationTargetedInvitationRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.id_, &other->_impl_.id_, arena);
+}
+
+::google::protobuf::Metadata AcceptOrganizationTargetedInvitationRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class AcceptOrganizationTargetedInvitationResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<AcceptOrganizationTargetedInvitationResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(AcceptOrganizationTargetedInvitationResponse, _impl_._has_bits_);
+};
+
+AcceptOrganizationTargetedInvitationResponse::AcceptOrganizationTargetedInvitationResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, AcceptOrganizationTargetedInvitationResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationResponse)
+}
+PROTOBUF_NDEBUG_INLINE AcceptOrganizationTargetedInvitationResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::provider::spacewave::AcceptOrganizationTargetedInvitationResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0} {}
+
+AcceptOrganizationTargetedInvitationResponse::AcceptOrganizationTargetedInvitationResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const AcceptOrganizationTargetedInvitationResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, AcceptOrganizationTargetedInvitationResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  AcceptOrganizationTargetedInvitationResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.invitation_ = (CheckHasBit(cached_has_bits, 0x00000001U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.invitation_)
+                : nullptr;
+  _impl_.organization_ = (CheckHasBit(cached_has_bits, 0x00000002U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.organization_)
+                : nullptr;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationResponse)
+}
+PROTOBUF_NDEBUG_INLINE AcceptOrganizationTargetedInvitationResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void AcceptOrganizationTargetedInvitationResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, invitation_),
+           0,
+           offsetof(Impl_, organization_) -
+               offsetof(Impl_, invitation_) +
+               sizeof(Impl_::organization_));
+}
+AcceptOrganizationTargetedInvitationResponse::~AcceptOrganizationTargetedInvitationResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationResponse)
+  SharedDtor(*this);
+}
+inline void AcceptOrganizationTargetedInvitationResponse::SharedDtor(MessageLite& self) {
+  AcceptOrganizationTargetedInvitationResponse& this_ = static_cast<AcceptOrganizationTargetedInvitationResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  delete this_._impl_.invitation_;
+  delete this_._impl_.organization_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL AcceptOrganizationTargetedInvitationResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) AcceptOrganizationTargetedInvitationResponse(arena);
+}
+constexpr auto AcceptOrganizationTargetedInvitationResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(AcceptOrganizationTargetedInvitationResponse),
+                                            alignof(AcceptOrganizationTargetedInvitationResponse));
+}
+constexpr auto AcceptOrganizationTargetedInvitationResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_AcceptOrganizationTargetedInvitationResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &AcceptOrganizationTargetedInvitationResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<AcceptOrganizationTargetedInvitationResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &AcceptOrganizationTargetedInvitationResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<AcceptOrganizationTargetedInvitationResponse>(), &AcceptOrganizationTargetedInvitationResponse::ByteSizeLong,
+              &AcceptOrganizationTargetedInvitationResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(AcceptOrganizationTargetedInvitationResponse, _impl_._cached_size_),
+          false,
+      },
+      &AcceptOrganizationTargetedInvitationResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull AcceptOrganizationTargetedInvitationResponse_class_data_ =
+        AcceptOrganizationTargetedInvitationResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+AcceptOrganizationTargetedInvitationResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&AcceptOrganizationTargetedInvitationResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(AcceptOrganizationTargetedInvitationResponse_class_data_.tc_table);
+  return AcceptOrganizationTargetedInvitationResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 2, 0, 2>
+AcceptOrganizationTargetedInvitationResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(AcceptOrganizationTargetedInvitationResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    2,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    AcceptOrganizationTargetedInvitationResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::AcceptOrganizationTargetedInvitationResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .s4wave.provider.spacewave.OrganizationInfo organization = 2;
+    {::_pbi::TcParser::FastMtS1,
+     {18, 1, 1,
+      PROTOBUF_FIELD_OFFSET(AcceptOrganizationTargetedInvitationResponse, _impl_.organization_)}},
+    // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(AcceptOrganizationTargetedInvitationResponse, _impl_.invitation_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+    {PROTOBUF_FIELD_OFFSET(AcceptOrganizationTargetedInvitationResponse, _impl_.invitation_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .s4wave.provider.spacewave.OrganizationInfo organization = 2;
+    {PROTOBUF_FIELD_OFFSET(AcceptOrganizationTargetedInvitationResponse, _impl_.organization_), _Internal::kHasBitsOffset + 1, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::TargetedInvitationInfo>()},
+      {::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::OrganizationInfo>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void AcceptOrganizationTargetedInvitationResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      ABSL_DCHECK(_impl_.invitation_ != nullptr);
+      _impl_.invitation_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(_impl_.organization_ != nullptr);
+      _impl_.organization_->Clear();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL AcceptOrganizationTargetedInvitationResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const AcceptOrganizationTargetedInvitationResponse& this_ = static_cast<const AcceptOrganizationTargetedInvitationResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL AcceptOrganizationTargetedInvitationResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const AcceptOrganizationTargetedInvitationResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        1, *this_._impl_.invitation_, this_._impl_.invitation_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .s4wave.provider.spacewave.OrganizationInfo organization = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        2, *this_._impl_.organization_, this_._impl_.organization_->GetCachedSize(), target,
+        stream);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t AcceptOrganizationTargetedInvitationResponse::ByteSizeLong(const MessageLite& base) {
+  const AcceptOrganizationTargetedInvitationResponse& this_ = static_cast<const AcceptOrganizationTargetedInvitationResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t AcceptOrganizationTargetedInvitationResponse::ByteSizeLong() const {
+  const AcceptOrganizationTargetedInvitationResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.invitation_);
+    }
+    // .s4wave.provider.spacewave.OrganizationInfo organization = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.organization_);
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void AcceptOrganizationTargetedInvitationResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<AcceptOrganizationTargetedInvitationResponse*>(&to_msg);
+  auto& from = static_cast<const AcceptOrganizationTargetedInvitationResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      ABSL_DCHECK(from._impl_.invitation_ != nullptr);
+      if (_this->_impl_.invitation_ == nullptr) {
+        _this->_impl_.invitation_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.invitation_);
+      } else {
+        _this->_impl_.invitation_->MergeFrom(*from._impl_.invitation_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(from._impl_.organization_ != nullptr);
+      if (_this->_impl_.organization_ == nullptr) {
+        _this->_impl_.organization_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.organization_);
+      } else {
+        _this->_impl_.organization_->MergeFrom(*from._impl_.organization_);
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void AcceptOrganizationTargetedInvitationResponse::CopyFrom(const AcceptOrganizationTargetedInvitationResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void AcceptOrganizationTargetedInvitationResponse::InternalSwap(AcceptOrganizationTargetedInvitationResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(AcceptOrganizationTargetedInvitationResponse, _impl_.organization_)
+      + sizeof(AcceptOrganizationTargetedInvitationResponse::_impl_.organization_)
+      - PROTOBUF_FIELD_OFFSET(AcceptOrganizationTargetedInvitationResponse, _impl_.invitation_)>(
+          reinterpret_cast<char*>(&_impl_.invitation_),
+          reinterpret_cast<char*>(&other->_impl_.invitation_));
+}
+
+::google::protobuf::Metadata AcceptOrganizationTargetedInvitationResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class ListTargetedInvitationsRequest::_Internal {
+ public:
+};
+
+ListTargetedInvitationsRequest::ListTargetedInvitationsRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, ListTargetedInvitationsRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(arena_constructor:s4wave.provider.spacewave.ListTargetedInvitationsRequest)
+}
+ListTargetedInvitationsRequest::ListTargetedInvitationsRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const ListTargetedInvitationsRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, ListTargetedInvitationsRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  ListTargetedInvitationsRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.provider.spacewave.ListTargetedInvitationsRequest)
+}
+
+inline void* PROTOBUF_NONNULL ListTargetedInvitationsRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) ListTargetedInvitationsRequest(arena);
+}
+constexpr auto ListTargetedInvitationsRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(ListTargetedInvitationsRequest),
+                                            alignof(ListTargetedInvitationsRequest));
+}
+constexpr auto ListTargetedInvitationsRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_ListTargetedInvitationsRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &ListTargetedInvitationsRequest::MergeImpl,
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<ListTargetedInvitationsRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &ListTargetedInvitationsRequest::SharedDtor,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<ListTargetedInvitationsRequest>(), &ListTargetedInvitationsRequest::ByteSizeLong,
+              &ListTargetedInvitationsRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(ListTargetedInvitationsRequest, _impl_._cached_size_),
+          false,
+      },
+      &ListTargetedInvitationsRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull ListTargetedInvitationsRequest_class_data_ =
+        ListTargetedInvitationsRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+ListTargetedInvitationsRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&ListTargetedInvitationsRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(ListTargetedInvitationsRequest_class_data_.tc_table);
+  return ListTargetedInvitationsRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+ListTargetedInvitationsRequest::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    0, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    ListTargetedInvitationsRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::ListTargetedInvitationsRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, // no field_entries, or aux_entries
+  {{
+  }},
+};
+
+
+
+
+
+
+
+::google::protobuf::Metadata ListTargetedInvitationsRequest::GetMetadata() const {
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class ListTargetedInvitationsResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<ListTargetedInvitationsResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(ListTargetedInvitationsResponse, _impl_._has_bits_);
+};
+
+ListTargetedInvitationsResponse::ListTargetedInvitationsResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ListTargetedInvitationsResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.provider.spacewave.ListTargetedInvitationsResponse)
+}
+PROTOBUF_NDEBUG_INLINE ListTargetedInvitationsResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::provider::spacewave::ListTargetedInvitationsResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        invitations_{visibility, arena, from.invitations_} {}
+
+ListTargetedInvitationsResponse::ListTargetedInvitationsResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const ListTargetedInvitationsResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ListTargetedInvitationsResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  ListTargetedInvitationsResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.provider.spacewave.ListTargetedInvitationsResponse)
+}
+PROTOBUF_NDEBUG_INLINE ListTargetedInvitationsResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        invitations_{visibility, arena} {}
+
+inline void ListTargetedInvitationsResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+ListTargetedInvitationsResponse::~ListTargetedInvitationsResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.provider.spacewave.ListTargetedInvitationsResponse)
+  SharedDtor(*this);
+}
+inline void ListTargetedInvitationsResponse::SharedDtor(MessageLite& self) {
+  ListTargetedInvitationsResponse& this_ = static_cast<ListTargetedInvitationsResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL ListTargetedInvitationsResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) ListTargetedInvitationsResponse(arena);
+}
+constexpr auto ListTargetedInvitationsResponse::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(ListTargetedInvitationsResponse, _impl_.invitations_) +
+          decltype(ListTargetedInvitationsResponse::_impl_.invitations_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::ZeroInit(
+        sizeof(ListTargetedInvitationsResponse), alignof(ListTargetedInvitationsResponse), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&ListTargetedInvitationsResponse::PlacementNew_,
+                                 sizeof(ListTargetedInvitationsResponse),
+                                 alignof(ListTargetedInvitationsResponse));
+  }
+}
+constexpr auto ListTargetedInvitationsResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_ListTargetedInvitationsResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &ListTargetedInvitationsResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<ListTargetedInvitationsResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &ListTargetedInvitationsResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<ListTargetedInvitationsResponse>(), &ListTargetedInvitationsResponse::ByteSizeLong,
+              &ListTargetedInvitationsResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(ListTargetedInvitationsResponse, _impl_._cached_size_),
+          false,
+      },
+      &ListTargetedInvitationsResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull ListTargetedInvitationsResponse_class_data_ =
+        ListTargetedInvitationsResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+ListTargetedInvitationsResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&ListTargetedInvitationsResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(ListTargetedInvitationsResponse_class_data_.tc_table);
+  return ListTargetedInvitationsResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 1, 0, 2>
+ListTargetedInvitationsResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(ListTargetedInvitationsResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    ListTargetedInvitationsResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::ListTargetedInvitationsResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // repeated .s4wave.provider.spacewave.TargetedInvitationInfo invitations = 1;
+    {::_pbi::TcParser::FastMtR1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(ListTargetedInvitationsResponse, _impl_.invitations_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // repeated .s4wave.provider.spacewave.TargetedInvitationInfo invitations = 1;
+    {PROTOBUF_FIELD_OFFSET(ListTargetedInvitationsResponse, _impl_.invitations_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::TargetedInvitationInfo>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void ListTargetedInvitationsResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.provider.spacewave.ListTargetedInvitationsResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    _impl_.invitations_.Clear();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL ListTargetedInvitationsResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const ListTargetedInvitationsResponse& this_ = static_cast<const ListTargetedInvitationsResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL ListTargetedInvitationsResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const ListTargetedInvitationsResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.provider.spacewave.ListTargetedInvitationsResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // repeated .s4wave.provider.spacewave.TargetedInvitationInfo invitations = 1;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_invitations_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_invitations().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              1, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.provider.spacewave.ListTargetedInvitationsResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t ListTargetedInvitationsResponse::ByteSizeLong(const MessageLite& base) {
+  const ListTargetedInvitationsResponse& this_ = static_cast<const ListTargetedInvitationsResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t ListTargetedInvitationsResponse::ByteSizeLong() const {
+  const ListTargetedInvitationsResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.provider.spacewave.ListTargetedInvitationsResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+   {
+    // repeated .s4wave.provider.spacewave.TargetedInvitationInfo invitations = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size += 1UL * this_._internal_invitations_size();
+      for (const auto& msg : this_._internal_invitations()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void ListTargetedInvitationsResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<ListTargetedInvitationsResponse*>(&to_msg);
+  auto& from = static_cast<const ListTargetedInvitationsResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.provider.spacewave.ListTargetedInvitationsResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    _this->_internal_mutable_invitations()->InternalMergeFromWithArena(
+        ::google::protobuf::MessageLite::internal_visibility(), arena,
+        from._internal_invitations());
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void ListTargetedInvitationsResponse::CopyFrom(const ListTargetedInvitationsResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.provider.spacewave.ListTargetedInvitationsResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void ListTargetedInvitationsResponse::InternalSwap(ListTargetedInvitationsResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.invitations_.InternalSwap(&other->_impl_.invitations_);
+}
+
+::google::protobuf::Metadata ListTargetedInvitationsResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class GetTargetedInvitationRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<GetTargetedInvitationRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(GetTargetedInvitationRequest, _impl_._has_bits_);
+};
+
+GetTargetedInvitationRequest::GetTargetedInvitationRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, GetTargetedInvitationRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.provider.spacewave.GetTargetedInvitationRequest)
+}
+PROTOBUF_NDEBUG_INLINE GetTargetedInvitationRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::provider::spacewave::GetTargetedInvitationRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        id_(arena, from.id_) {}
+
+GetTargetedInvitationRequest::GetTargetedInvitationRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const GetTargetedInvitationRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, GetTargetedInvitationRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  GetTargetedInvitationRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.provider.spacewave.GetTargetedInvitationRequest)
+}
+PROTOBUF_NDEBUG_INLINE GetTargetedInvitationRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        id_(arena) {}
+
+inline void GetTargetedInvitationRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+GetTargetedInvitationRequest::~GetTargetedInvitationRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.provider.spacewave.GetTargetedInvitationRequest)
+  SharedDtor(*this);
+}
+inline void GetTargetedInvitationRequest::SharedDtor(MessageLite& self) {
+  GetTargetedInvitationRequest& this_ = static_cast<GetTargetedInvitationRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.id_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL GetTargetedInvitationRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) GetTargetedInvitationRequest(arena);
+}
+constexpr auto GetTargetedInvitationRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(GetTargetedInvitationRequest),
+                                            alignof(GetTargetedInvitationRequest));
+}
+constexpr auto GetTargetedInvitationRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_GetTargetedInvitationRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &GetTargetedInvitationRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<GetTargetedInvitationRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &GetTargetedInvitationRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<GetTargetedInvitationRequest>(), &GetTargetedInvitationRequest::ByteSizeLong,
+              &GetTargetedInvitationRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(GetTargetedInvitationRequest, _impl_._cached_size_),
+          false,
+      },
+      &GetTargetedInvitationRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull GetTargetedInvitationRequest_class_data_ =
+        GetTargetedInvitationRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+GetTargetedInvitationRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&GetTargetedInvitationRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(GetTargetedInvitationRequest_class_data_.tc_table);
+  return GetTargetedInvitationRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 0, 65, 2>
+GetTargetedInvitationRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(GetTargetedInvitationRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    GetTargetedInvitationRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::GetTargetedInvitationRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(GetTargetedInvitationRequest, _impl_.id_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string id = 1;
+    {PROTOBUF_FIELD_OFFSET(GetTargetedInvitationRequest, _impl_.id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\66\2\0\0\0\0\0\0"
+    "s4wave.provider.spacewave.GetTargetedInvitationRequest"
+    "id"
+  }},
+};
+PROTOBUF_NOINLINE void GetTargetedInvitationRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.provider.spacewave.GetTargetedInvitationRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    _impl_.id_.ClearNonDefaultToEmpty();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL GetTargetedInvitationRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const GetTargetedInvitationRequest& this_ = static_cast<const GetTargetedInvitationRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL GetTargetedInvitationRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const GetTargetedInvitationRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.provider.spacewave.GetTargetedInvitationRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_id().empty()) {
+      const ::std::string& _s = this_._internal_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.GetTargetedInvitationRequest.id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.provider.spacewave.GetTargetedInvitationRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t GetTargetedInvitationRequest::ByteSizeLong(const MessageLite& base) {
+  const GetTargetedInvitationRequest& this_ = static_cast<const GetTargetedInvitationRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t GetTargetedInvitationRequest::ByteSizeLong() const {
+  const GetTargetedInvitationRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.provider.spacewave.GetTargetedInvitationRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // string id = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_id());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void GetTargetedInvitationRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<GetTargetedInvitationRequest*>(&to_msg);
+  auto& from = static_cast<const GetTargetedInvitationRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.provider.spacewave.GetTargetedInvitationRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!from._internal_id().empty()) {
+      _this->_internal_set_id(from._internal_id());
+    } else {
+      if (_this->_impl_.id_.IsDefault()) {
+        _this->_internal_set_id("");
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void GetTargetedInvitationRequest::CopyFrom(const GetTargetedInvitationRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.provider.spacewave.GetTargetedInvitationRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void GetTargetedInvitationRequest::InternalSwap(GetTargetedInvitationRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.id_, &other->_impl_.id_, arena);
+}
+
+::google::protobuf::Metadata GetTargetedInvitationRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class GetTargetedInvitationResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<GetTargetedInvitationResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(GetTargetedInvitationResponse, _impl_._has_bits_);
+};
+
+GetTargetedInvitationResponse::GetTargetedInvitationResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, GetTargetedInvitationResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.provider.spacewave.GetTargetedInvitationResponse)
+}
+PROTOBUF_NDEBUG_INLINE GetTargetedInvitationResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::provider::spacewave::GetTargetedInvitationResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0} {}
+
+GetTargetedInvitationResponse::GetTargetedInvitationResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const GetTargetedInvitationResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, GetTargetedInvitationResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  GetTargetedInvitationResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.invitation_ = (CheckHasBit(cached_has_bits, 0x00000001U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.invitation_)
+                : nullptr;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.provider.spacewave.GetTargetedInvitationResponse)
+}
+PROTOBUF_NDEBUG_INLINE GetTargetedInvitationResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void GetTargetedInvitationResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.invitation_ = {};
+}
+GetTargetedInvitationResponse::~GetTargetedInvitationResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.provider.spacewave.GetTargetedInvitationResponse)
+  SharedDtor(*this);
+}
+inline void GetTargetedInvitationResponse::SharedDtor(MessageLite& self) {
+  GetTargetedInvitationResponse& this_ = static_cast<GetTargetedInvitationResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  delete this_._impl_.invitation_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL GetTargetedInvitationResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) GetTargetedInvitationResponse(arena);
+}
+constexpr auto GetTargetedInvitationResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(GetTargetedInvitationResponse),
+                                            alignof(GetTargetedInvitationResponse));
+}
+constexpr auto GetTargetedInvitationResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_GetTargetedInvitationResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &GetTargetedInvitationResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<GetTargetedInvitationResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &GetTargetedInvitationResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<GetTargetedInvitationResponse>(), &GetTargetedInvitationResponse::ByteSizeLong,
+              &GetTargetedInvitationResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(GetTargetedInvitationResponse, _impl_._cached_size_),
+          false,
+      },
+      &GetTargetedInvitationResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull GetTargetedInvitationResponse_class_data_ =
+        GetTargetedInvitationResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+GetTargetedInvitationResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&GetTargetedInvitationResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(GetTargetedInvitationResponse_class_data_.tc_table);
+  return GetTargetedInvitationResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 1, 0, 2>
+GetTargetedInvitationResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(GetTargetedInvitationResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    GetTargetedInvitationResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::GetTargetedInvitationResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(GetTargetedInvitationResponse, _impl_.invitation_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+    {PROTOBUF_FIELD_OFFSET(GetTargetedInvitationResponse, _impl_.invitation_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::TargetedInvitationInfo>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void GetTargetedInvitationResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.provider.spacewave.GetTargetedInvitationResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    ABSL_DCHECK(_impl_.invitation_ != nullptr);
+    _impl_.invitation_->Clear();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL GetTargetedInvitationResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const GetTargetedInvitationResponse& this_ = static_cast<const GetTargetedInvitationResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL GetTargetedInvitationResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const GetTargetedInvitationResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.provider.spacewave.GetTargetedInvitationResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        1, *this_._impl_.invitation_, this_._impl_.invitation_->GetCachedSize(), target,
+        stream);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.provider.spacewave.GetTargetedInvitationResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t GetTargetedInvitationResponse::ByteSizeLong(const MessageLite& base) {
+  const GetTargetedInvitationResponse& this_ = static_cast<const GetTargetedInvitationResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t GetTargetedInvitationResponse::ByteSizeLong() const {
+  const GetTargetedInvitationResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.provider.spacewave.GetTargetedInvitationResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.invitation_);
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void GetTargetedInvitationResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<GetTargetedInvitationResponse*>(&to_msg);
+  auto& from = static_cast<const GetTargetedInvitationResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.provider.spacewave.GetTargetedInvitationResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    ABSL_DCHECK(from._impl_.invitation_ != nullptr);
+    if (_this->_impl_.invitation_ == nullptr) {
+      _this->_impl_.invitation_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.invitation_);
+    } else {
+      _this->_impl_.invitation_->MergeFrom(*from._impl_.invitation_);
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void GetTargetedInvitationResponse::CopyFrom(const GetTargetedInvitationResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.provider.spacewave.GetTargetedInvitationResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void GetTargetedInvitationResponse::InternalSwap(GetTargetedInvitationResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.invitation_, other->_impl_.invitation_);
+}
+
+::google::protobuf::Metadata GetTargetedInvitationResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class RevokeTargetedInvitationRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<RevokeTargetedInvitationRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(RevokeTargetedInvitationRequest, _impl_._has_bits_);
+};
+
+RevokeTargetedInvitationRequest::RevokeTargetedInvitationRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, RevokeTargetedInvitationRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.provider.spacewave.RevokeTargetedInvitationRequest)
+}
+PROTOBUF_NDEBUG_INLINE RevokeTargetedInvitationRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::provider::spacewave::RevokeTargetedInvitationRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        id_(arena, from.id_) {}
+
+RevokeTargetedInvitationRequest::RevokeTargetedInvitationRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const RevokeTargetedInvitationRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, RevokeTargetedInvitationRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  RevokeTargetedInvitationRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.provider.spacewave.RevokeTargetedInvitationRequest)
+}
+PROTOBUF_NDEBUG_INLINE RevokeTargetedInvitationRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        id_(arena) {}
+
+inline void RevokeTargetedInvitationRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+RevokeTargetedInvitationRequest::~RevokeTargetedInvitationRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.provider.spacewave.RevokeTargetedInvitationRequest)
+  SharedDtor(*this);
+}
+inline void RevokeTargetedInvitationRequest::SharedDtor(MessageLite& self) {
+  RevokeTargetedInvitationRequest& this_ = static_cast<RevokeTargetedInvitationRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.id_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL RevokeTargetedInvitationRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) RevokeTargetedInvitationRequest(arena);
+}
+constexpr auto RevokeTargetedInvitationRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(RevokeTargetedInvitationRequest),
+                                            alignof(RevokeTargetedInvitationRequest));
+}
+constexpr auto RevokeTargetedInvitationRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_RevokeTargetedInvitationRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &RevokeTargetedInvitationRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<RevokeTargetedInvitationRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &RevokeTargetedInvitationRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<RevokeTargetedInvitationRequest>(), &RevokeTargetedInvitationRequest::ByteSizeLong,
+              &RevokeTargetedInvitationRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(RevokeTargetedInvitationRequest, _impl_._cached_size_),
+          false,
+      },
+      &RevokeTargetedInvitationRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull RevokeTargetedInvitationRequest_class_data_ =
+        RevokeTargetedInvitationRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+RevokeTargetedInvitationRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&RevokeTargetedInvitationRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(RevokeTargetedInvitationRequest_class_data_.tc_table);
+  return RevokeTargetedInvitationRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 0, 68, 2>
+RevokeTargetedInvitationRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(RevokeTargetedInvitationRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    RevokeTargetedInvitationRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::RevokeTargetedInvitationRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(RevokeTargetedInvitationRequest, _impl_.id_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string id = 1;
+    {PROTOBUF_FIELD_OFFSET(RevokeTargetedInvitationRequest, _impl_.id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\71\2\0\0\0\0\0\0"
+    "s4wave.provider.spacewave.RevokeTargetedInvitationRequest"
+    "id"
+  }},
+};
+PROTOBUF_NOINLINE void RevokeTargetedInvitationRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.provider.spacewave.RevokeTargetedInvitationRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    _impl_.id_.ClearNonDefaultToEmpty();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL RevokeTargetedInvitationRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const RevokeTargetedInvitationRequest& this_ = static_cast<const RevokeTargetedInvitationRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL RevokeTargetedInvitationRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const RevokeTargetedInvitationRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.provider.spacewave.RevokeTargetedInvitationRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_id().empty()) {
+      const ::std::string& _s = this_._internal_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.RevokeTargetedInvitationRequest.id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.provider.spacewave.RevokeTargetedInvitationRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t RevokeTargetedInvitationRequest::ByteSizeLong(const MessageLite& base) {
+  const RevokeTargetedInvitationRequest& this_ = static_cast<const RevokeTargetedInvitationRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t RevokeTargetedInvitationRequest::ByteSizeLong() const {
+  const RevokeTargetedInvitationRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.provider.spacewave.RevokeTargetedInvitationRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // string id = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_id());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void RevokeTargetedInvitationRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<RevokeTargetedInvitationRequest*>(&to_msg);
+  auto& from = static_cast<const RevokeTargetedInvitationRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.provider.spacewave.RevokeTargetedInvitationRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!from._internal_id().empty()) {
+      _this->_internal_set_id(from._internal_id());
+    } else {
+      if (_this->_impl_.id_.IsDefault()) {
+        _this->_internal_set_id("");
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void RevokeTargetedInvitationRequest::CopyFrom(const RevokeTargetedInvitationRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.provider.spacewave.RevokeTargetedInvitationRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void RevokeTargetedInvitationRequest::InternalSwap(RevokeTargetedInvitationRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.id_, &other->_impl_.id_, arena);
+}
+
+::google::protobuf::Metadata RevokeTargetedInvitationRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class RevokeTargetedInvitationResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<RevokeTargetedInvitationResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(RevokeTargetedInvitationResponse, _impl_._has_bits_);
+};
+
+RevokeTargetedInvitationResponse::RevokeTargetedInvitationResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, RevokeTargetedInvitationResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.provider.spacewave.RevokeTargetedInvitationResponse)
+}
+PROTOBUF_NDEBUG_INLINE RevokeTargetedInvitationResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::provider::spacewave::RevokeTargetedInvitationResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0} {}
+
+RevokeTargetedInvitationResponse::RevokeTargetedInvitationResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const RevokeTargetedInvitationResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, RevokeTargetedInvitationResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  RevokeTargetedInvitationResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.invitation_ = (CheckHasBit(cached_has_bits, 0x00000001U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.invitation_)
+                : nullptr;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.provider.spacewave.RevokeTargetedInvitationResponse)
+}
+PROTOBUF_NDEBUG_INLINE RevokeTargetedInvitationResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void RevokeTargetedInvitationResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.invitation_ = {};
+}
+RevokeTargetedInvitationResponse::~RevokeTargetedInvitationResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.provider.spacewave.RevokeTargetedInvitationResponse)
+  SharedDtor(*this);
+}
+inline void RevokeTargetedInvitationResponse::SharedDtor(MessageLite& self) {
+  RevokeTargetedInvitationResponse& this_ = static_cast<RevokeTargetedInvitationResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  delete this_._impl_.invitation_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL RevokeTargetedInvitationResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) RevokeTargetedInvitationResponse(arena);
+}
+constexpr auto RevokeTargetedInvitationResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(RevokeTargetedInvitationResponse),
+                                            alignof(RevokeTargetedInvitationResponse));
+}
+constexpr auto RevokeTargetedInvitationResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_RevokeTargetedInvitationResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &RevokeTargetedInvitationResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<RevokeTargetedInvitationResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &RevokeTargetedInvitationResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<RevokeTargetedInvitationResponse>(), &RevokeTargetedInvitationResponse::ByteSizeLong,
+              &RevokeTargetedInvitationResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(RevokeTargetedInvitationResponse, _impl_._cached_size_),
+          false,
+      },
+      &RevokeTargetedInvitationResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull RevokeTargetedInvitationResponse_class_data_ =
+        RevokeTargetedInvitationResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+RevokeTargetedInvitationResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&RevokeTargetedInvitationResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(RevokeTargetedInvitationResponse_class_data_.tc_table);
+  return RevokeTargetedInvitationResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 1, 0, 2>
+RevokeTargetedInvitationResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(RevokeTargetedInvitationResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    RevokeTargetedInvitationResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::RevokeTargetedInvitationResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(RevokeTargetedInvitationResponse, _impl_.invitation_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+    {PROTOBUF_FIELD_OFFSET(RevokeTargetedInvitationResponse, _impl_.invitation_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::TargetedInvitationInfo>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void RevokeTargetedInvitationResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.provider.spacewave.RevokeTargetedInvitationResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    ABSL_DCHECK(_impl_.invitation_ != nullptr);
+    _impl_.invitation_->Clear();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL RevokeTargetedInvitationResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const RevokeTargetedInvitationResponse& this_ = static_cast<const RevokeTargetedInvitationResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL RevokeTargetedInvitationResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const RevokeTargetedInvitationResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.provider.spacewave.RevokeTargetedInvitationResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        1, *this_._impl_.invitation_, this_._impl_.invitation_->GetCachedSize(), target,
+        stream);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.provider.spacewave.RevokeTargetedInvitationResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t RevokeTargetedInvitationResponse::ByteSizeLong(const MessageLite& base) {
+  const RevokeTargetedInvitationResponse& this_ = static_cast<const RevokeTargetedInvitationResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t RevokeTargetedInvitationResponse::ByteSizeLong() const {
+  const RevokeTargetedInvitationResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.provider.spacewave.RevokeTargetedInvitationResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.invitation_);
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void RevokeTargetedInvitationResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<RevokeTargetedInvitationResponse*>(&to_msg);
+  auto& from = static_cast<const RevokeTargetedInvitationResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.provider.spacewave.RevokeTargetedInvitationResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    ABSL_DCHECK(from._impl_.invitation_ != nullptr);
+    if (_this->_impl_.invitation_ == nullptr) {
+      _this->_impl_.invitation_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.invitation_);
+    } else {
+      _this->_impl_.invitation_->MergeFrom(*from._impl_.invitation_);
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void RevokeTargetedInvitationResponse::CopyFrom(const RevokeTargetedInvitationResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.provider.spacewave.RevokeTargetedInvitationResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void RevokeTargetedInvitationResponse::InternalSwap(RevokeTargetedInvitationResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.invitation_, other->_impl_.invitation_);
+}
+
+::google::protobuf::Metadata RevokeTargetedInvitationResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class ProcessTargetedInvitationRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<ProcessTargetedInvitationRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(ProcessTargetedInvitationRequest, _impl_._has_bits_);
+};
+
+ProcessTargetedInvitationRequest::ProcessTargetedInvitationRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ProcessTargetedInvitationRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.provider.spacewave.ProcessTargetedInvitationRequest)
+}
+PROTOBUF_NDEBUG_INLINE ProcessTargetedInvitationRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::provider::spacewave::ProcessTargetedInvitationRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        id_(arena, from.id_),
+        action_(arena, from.action_) {}
+
+ProcessTargetedInvitationRequest::ProcessTargetedInvitationRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const ProcessTargetedInvitationRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ProcessTargetedInvitationRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  ProcessTargetedInvitationRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.provider.spacewave.ProcessTargetedInvitationRequest)
+}
+PROTOBUF_NDEBUG_INLINE ProcessTargetedInvitationRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        id_(arena),
+        action_(arena) {}
+
+inline void ProcessTargetedInvitationRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+ProcessTargetedInvitationRequest::~ProcessTargetedInvitationRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.provider.spacewave.ProcessTargetedInvitationRequest)
+  SharedDtor(*this);
+}
+inline void ProcessTargetedInvitationRequest::SharedDtor(MessageLite& self) {
+  ProcessTargetedInvitationRequest& this_ = static_cast<ProcessTargetedInvitationRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.id_.Destroy();
+  this_._impl_.action_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL ProcessTargetedInvitationRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) ProcessTargetedInvitationRequest(arena);
+}
+constexpr auto ProcessTargetedInvitationRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(ProcessTargetedInvitationRequest),
+                                            alignof(ProcessTargetedInvitationRequest));
+}
+constexpr auto ProcessTargetedInvitationRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_ProcessTargetedInvitationRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &ProcessTargetedInvitationRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<ProcessTargetedInvitationRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &ProcessTargetedInvitationRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<ProcessTargetedInvitationRequest>(), &ProcessTargetedInvitationRequest::ByteSizeLong,
+              &ProcessTargetedInvitationRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(ProcessTargetedInvitationRequest, _impl_._cached_size_),
+          false,
+      },
+      &ProcessTargetedInvitationRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull ProcessTargetedInvitationRequest_class_data_ =
+        ProcessTargetedInvitationRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+ProcessTargetedInvitationRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&ProcessTargetedInvitationRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(ProcessTargetedInvitationRequest_class_data_.tc_table);
+  return ProcessTargetedInvitationRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 0, 75, 2>
+ProcessTargetedInvitationRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(ProcessTargetedInvitationRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    ProcessTargetedInvitationRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::ProcessTargetedInvitationRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string action = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(ProcessTargetedInvitationRequest, _impl_.action_)}},
+    // string id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(ProcessTargetedInvitationRequest, _impl_.id_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string id = 1;
+    {PROTOBUF_FIELD_OFFSET(ProcessTargetedInvitationRequest, _impl_.id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string action = 2;
+    {PROTOBUF_FIELD_OFFSET(ProcessTargetedInvitationRequest, _impl_.action_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\72\2\6\0\0\0\0\0"
+    "s4wave.provider.spacewave.ProcessTargetedInvitationRequest"
+    "id"
+    "action"
+  }},
+};
+PROTOBUF_NOINLINE void ProcessTargetedInvitationRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.provider.spacewave.ProcessTargetedInvitationRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.action_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL ProcessTargetedInvitationRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const ProcessTargetedInvitationRequest& this_ = static_cast<const ProcessTargetedInvitationRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL ProcessTargetedInvitationRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const ProcessTargetedInvitationRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.provider.spacewave.ProcessTargetedInvitationRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_id().empty()) {
+      const ::std::string& _s = this_._internal_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.ProcessTargetedInvitationRequest.id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string action = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_action().empty()) {
+      const ::std::string& _s = this_._internal_action();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.ProcessTargetedInvitationRequest.action");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.provider.spacewave.ProcessTargetedInvitationRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t ProcessTargetedInvitationRequest::ByteSizeLong(const MessageLite& base) {
+  const ProcessTargetedInvitationRequest& this_ = static_cast<const ProcessTargetedInvitationRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t ProcessTargetedInvitationRequest::ByteSizeLong() const {
+  const ProcessTargetedInvitationRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.provider.spacewave.ProcessTargetedInvitationRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    // string id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_id());
+      }
+    }
+    // string action = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_action().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_action());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void ProcessTargetedInvitationRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<ProcessTargetedInvitationRequest*>(&to_msg);
+  auto& from = static_cast<const ProcessTargetedInvitationRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.provider.spacewave.ProcessTargetedInvitationRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_id().empty()) {
+        _this->_internal_set_id(from._internal_id());
+      } else {
+        if (_this->_impl_.id_.IsDefault()) {
+          _this->_internal_set_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_action().empty()) {
+        _this->_internal_set_action(from._internal_action());
+      } else {
+        if (_this->_impl_.action_.IsDefault()) {
+          _this->_internal_set_action("");
+        }
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void ProcessTargetedInvitationRequest::CopyFrom(const ProcessTargetedInvitationRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.provider.spacewave.ProcessTargetedInvitationRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void ProcessTargetedInvitationRequest::InternalSwap(ProcessTargetedInvitationRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.id_, &other->_impl_.id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.action_, &other->_impl_.action_, arena);
+}
+
+::google::protobuf::Metadata ProcessTargetedInvitationRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class ProcessTargetedInvitationResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<ProcessTargetedInvitationResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(ProcessTargetedInvitationResponse, _impl_._has_bits_);
+};
+
+ProcessTargetedInvitationResponse::ProcessTargetedInvitationResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ProcessTargetedInvitationResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.provider.spacewave.ProcessTargetedInvitationResponse)
+}
+PROTOBUF_NDEBUG_INLINE ProcessTargetedInvitationResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::provider::spacewave::ProcessTargetedInvitationResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0} {}
+
+ProcessTargetedInvitationResponse::ProcessTargetedInvitationResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const ProcessTargetedInvitationResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ProcessTargetedInvitationResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  ProcessTargetedInvitationResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.invitation_ = (CheckHasBit(cached_has_bits, 0x00000001U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.invitation_)
+                : nullptr;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.provider.spacewave.ProcessTargetedInvitationResponse)
+}
+PROTOBUF_NDEBUG_INLINE ProcessTargetedInvitationResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void ProcessTargetedInvitationResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.invitation_ = {};
+}
+ProcessTargetedInvitationResponse::~ProcessTargetedInvitationResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.provider.spacewave.ProcessTargetedInvitationResponse)
+  SharedDtor(*this);
+}
+inline void ProcessTargetedInvitationResponse::SharedDtor(MessageLite& self) {
+  ProcessTargetedInvitationResponse& this_ = static_cast<ProcessTargetedInvitationResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  delete this_._impl_.invitation_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL ProcessTargetedInvitationResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) ProcessTargetedInvitationResponse(arena);
+}
+constexpr auto ProcessTargetedInvitationResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(ProcessTargetedInvitationResponse),
+                                            alignof(ProcessTargetedInvitationResponse));
+}
+constexpr auto ProcessTargetedInvitationResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_ProcessTargetedInvitationResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &ProcessTargetedInvitationResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<ProcessTargetedInvitationResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &ProcessTargetedInvitationResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<ProcessTargetedInvitationResponse>(), &ProcessTargetedInvitationResponse::ByteSizeLong,
+              &ProcessTargetedInvitationResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(ProcessTargetedInvitationResponse, _impl_._cached_size_),
+          false,
+      },
+      &ProcessTargetedInvitationResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull ProcessTargetedInvitationResponse_class_data_ =
+        ProcessTargetedInvitationResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+ProcessTargetedInvitationResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&ProcessTargetedInvitationResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(ProcessTargetedInvitationResponse_class_data_.tc_table);
+  return ProcessTargetedInvitationResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 1, 0, 2>
+ProcessTargetedInvitationResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(ProcessTargetedInvitationResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    ProcessTargetedInvitationResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::ProcessTargetedInvitationResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(ProcessTargetedInvitationResponse, _impl_.invitation_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+    {PROTOBUF_FIELD_OFFSET(ProcessTargetedInvitationResponse, _impl_.invitation_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::TargetedInvitationInfo>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void ProcessTargetedInvitationResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.provider.spacewave.ProcessTargetedInvitationResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    ABSL_DCHECK(_impl_.invitation_ != nullptr);
+    _impl_.invitation_->Clear();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL ProcessTargetedInvitationResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const ProcessTargetedInvitationResponse& this_ = static_cast<const ProcessTargetedInvitationResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL ProcessTargetedInvitationResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const ProcessTargetedInvitationResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.provider.spacewave.ProcessTargetedInvitationResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        1, *this_._impl_.invitation_, this_._impl_.invitation_->GetCachedSize(), target,
+        stream);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.provider.spacewave.ProcessTargetedInvitationResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t ProcessTargetedInvitationResponse::ByteSizeLong(const MessageLite& base) {
+  const ProcessTargetedInvitationResponse& this_ = static_cast<const ProcessTargetedInvitationResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t ProcessTargetedInvitationResponse::ByteSizeLong() const {
+  const ProcessTargetedInvitationResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.provider.spacewave.ProcessTargetedInvitationResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // .s4wave.provider.spacewave.TargetedInvitationInfo invitation = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.invitation_);
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void ProcessTargetedInvitationResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<ProcessTargetedInvitationResponse*>(&to_msg);
+  auto& from = static_cast<const ProcessTargetedInvitationResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.provider.spacewave.ProcessTargetedInvitationResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    ABSL_DCHECK(from._impl_.invitation_ != nullptr);
+    if (_this->_impl_.invitation_ == nullptr) {
+      _this->_impl_.invitation_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.invitation_);
+    } else {
+      _this->_impl_.invitation_->MergeFrom(*from._impl_.invitation_);
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void ProcessTargetedInvitationResponse::CopyFrom(const ProcessTargetedInvitationResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.provider.spacewave.ProcessTargetedInvitationResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void ProcessTargetedInvitationResponse::InternalSwap(ProcessTargetedInvitationResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.invitation_, other->_impl_.invitation_);
+}
+
+::google::protobuf::Metadata ProcessTargetedInvitationResponse::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================

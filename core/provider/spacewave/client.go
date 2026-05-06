@@ -37,6 +37,8 @@ const (
 	packReadTicketReuseTTL = 25 * time.Second
 )
 
+const targetedInvitationSignatureContext = "spacewave targeted invitation envelope v1"
+
 // readResponseBody reads an HTTP response body with a size limit.
 // Returns an error if the body exceeds maxResponseBodySize.
 func readResponseBody(resp *http.Response) ([]byte, error) {
@@ -2595,6 +2597,192 @@ func (c *SessionClient) CreateOrgInvite(ctx context.Context, orgID string, invit
 		return nil, err
 	}
 	return c.doPost(ctx, "/api/org/"+orgID+"/invite", "application/octet-stream", body, nil, SeedReasonMutation)
+}
+
+// CreateTargetedInviteDraftByUsername creates an opaque targeted invite draft.
+func (c *SessionClient) CreateTargetedInviteDraftByUsername(ctx context.Context, req *api.CreateTargetedInviteDraftByUsernameRequest) (*api.CreateTargetedInviteDraftByUsernameResponse, error) {
+	body, err := req.MarshalVT()
+	if err != nil {
+		return nil, errors.Wrap(err, "marshal targeted invite draft request")
+	}
+	data, err := c.doPostBinary(ctx, "/api/account/targeted-invite/draft/by-username", body, nil, SeedReasonMutation)
+	if err != nil {
+		return nil, errors.Wrap(err, "create targeted invite draft")
+	}
+	var resp api.CreateTargetedInviteDraftByUsernameResponse
+	if err := resp.UnmarshalVT(data); err != nil {
+		return nil, errors.Wrap(err, "unmarshal targeted invite draft response")
+	}
+	return &resp, nil
+}
+
+// ResolveUsername resolves an exact username for an allowed context.
+func (c *SessionClient) ResolveUsername(ctx context.Context, req *api.ResolveUsernameRequest) (*api.ResolveUsernameResponse, error) {
+	body, err := req.MarshalVT()
+	if err != nil {
+		return nil, errors.Wrap(err, "marshal username resolve request")
+	}
+	data, err := c.doPostBinary(ctx, "/api/account/username/resolve", body, nil, SeedReasonMutation)
+	if err != nil {
+		return nil, errors.Wrap(err, "resolve username")
+	}
+	var resp api.ResolveUsernameResponse
+	if err := resp.UnmarshalVT(data); err != nil {
+		return nil, errors.Wrap(err, "unmarshal username resolve response")
+	}
+	return &resp, nil
+}
+
+// CreateTargetedInvitation creates a signed pending targeted invitation.
+func (c *SessionClient) CreateTargetedInvitation(ctx context.Context, req *api.CreateTargetedInvitationRequest) (*api.CreateTargetedInvitationResponse, error) {
+	body, err := req.MarshalVT()
+	if err != nil {
+		return nil, errors.Wrap(err, "marshal targeted invitation request")
+	}
+	data, err := c.doPostBinary(ctx, "/api/account/targeted-invitation", body, nil, SeedReasonMutation)
+	if err != nil {
+		return nil, errors.Wrap(err, "create targeted invitation")
+	}
+	var resp api.CreateTargetedInvitationResponse
+	if err := resp.UnmarshalVT(data); err != nil {
+		return nil, errors.Wrap(err, "unmarshal targeted invitation response")
+	}
+	return &resp, nil
+}
+
+// SignTargetedInvitationEnvelope signs a targeted invitation envelope with the
+// current session key after clearing the signature field.
+func (c *SessionClient) SignTargetedInvitationEnvelope(envelope *api.TargetedInvitationEnvelope) error {
+	if envelope == nil {
+		return errors.New("targeted invitation envelope is nil")
+	}
+	if c.priv == nil {
+		return errors.New("no private key configured for signing")
+	}
+	payload, err := targetedInvitationSignaturePayload(envelope)
+	if err != nil {
+		return err
+	}
+	sig, err := c.priv.Sign(payload)
+	if err != nil {
+		return errors.Wrap(err, "sign targeted invitation envelope")
+	}
+	envelope.Signature = sig
+	return nil
+}
+
+// VerifyTargetedInvitationEnvelope verifies a targeted invitation envelope
+// signature against the embedded signer peer ID.
+func VerifyTargetedInvitationEnvelope(envelope *api.TargetedInvitationEnvelope) error {
+	if envelope == nil {
+		return errors.New("targeted invitation envelope is nil")
+	}
+	if len(envelope.GetSignature()) == 0 {
+		return errors.New("targeted invitation envelope signature is required")
+	}
+	pub, err := session.ExtractPublicKeyFromPeerID(envelope.GetSignerPeerId())
+	if err != nil {
+		return err
+	}
+	payload, err := targetedInvitationSignaturePayload(envelope)
+	if err != nil {
+		return err
+	}
+	valid, err := pub.Verify(payload, envelope.GetSignature())
+	if err != nil {
+		return errors.Wrap(err, "verify targeted invitation envelope")
+	}
+	if !valid {
+		return errors.New("targeted invitation envelope signature is invalid")
+	}
+	return nil
+}
+
+func targetedInvitationSignaturePayload(envelope *api.TargetedInvitationEnvelope) ([]byte, error) {
+	if envelope == nil {
+		return nil, errors.New("targeted invitation envelope is nil")
+	}
+	body := envelope.CloneVT()
+	body.Signature = nil
+	payload, err := body.MarshalVT()
+	if err != nil {
+		return nil, errors.Wrap(err, "marshal targeted invitation envelope")
+	}
+	return append([]byte(targetedInvitationSignatureContext), payload...), nil
+}
+
+// ListTargetedInvitations lists the caller's targeted invitation inbox.
+func (c *SessionClient) ListTargetedInvitations(ctx context.Context) (*api.ListTargetedInvitationsResponse, error) {
+	data, err := c.doGetBinary(ctx, "/api/account/targeted-invitations", SeedReasonColdSeed)
+	if err != nil {
+		return nil, errors.Wrap(err, "list targeted invitations")
+	}
+	var resp api.ListTargetedInvitationsResponse
+	if err := resp.UnmarshalVT(data); err != nil {
+		return nil, errors.Wrap(err, "unmarshal targeted invitations response")
+	}
+	return &resp, nil
+}
+
+// GetTargetedInvitation reads a single targeted invitation.
+func (c *SessionClient) GetTargetedInvitation(ctx context.Context, id string) (*api.GetTargetedInvitationResponse, error) {
+	data, err := c.doGetBinary(ctx, "/api/account/targeted-invitation/"+url.PathEscape(id), SeedReasonColdSeed)
+	if err != nil {
+		return nil, errors.Wrap(err, "get targeted invitation")
+	}
+	var resp api.GetTargetedInvitationResponse
+	if err := resp.UnmarshalVT(data); err != nil {
+		return nil, errors.Wrap(err, "unmarshal targeted invitation response")
+	}
+	return &resp, nil
+}
+
+// RevokeTargetedInvitation revokes a pending targeted invitation.
+func (c *SessionClient) RevokeTargetedInvitation(ctx context.Context, id string) (*api.RevokeTargetedInvitationResponse, error) {
+	data, err := c.doPostBinary(ctx, "/api/account/targeted-invitation/"+url.PathEscape(id)+"/revoke", nil, nil, SeedReasonMutation)
+	if err != nil {
+		return nil, errors.Wrap(err, "revoke targeted invitation")
+	}
+	var resp api.RevokeTargetedInvitationResponse
+	if err := resp.UnmarshalVT(data); err != nil {
+		return nil, errors.Wrap(err, "unmarshal targeted invitation revoke response")
+	}
+	return &resp, nil
+}
+
+// ProcessTargetedInvitation applies a recipient lifecycle action.
+func (c *SessionClient) ProcessTargetedInvitation(ctx context.Context, req *api.ProcessTargetedInvitationRequest) (*api.ProcessTargetedInvitationResponse, error) {
+	body, err := req.MarshalVT()
+	if err != nil {
+		return nil, errors.Wrap(err, "marshal targeted invitation process request")
+	}
+	data, err := c.doPostBinary(ctx, "/api/account/targeted-invitation/"+url.PathEscape(req.GetId())+"/process", body, nil, SeedReasonMutation)
+	if err != nil {
+		return nil, errors.Wrap(err, "process targeted invitation")
+	}
+	var resp api.ProcessTargetedInvitationResponse
+	if err := resp.UnmarshalVT(data); err != nil {
+		return nil, errors.Wrap(err, "unmarshal targeted invitation process response")
+	}
+	return &resp, nil
+}
+
+// AcceptTargetedOrganizationInvitation fulfills a pending organization targeted
+// invitation for the authenticated recipient.
+func (c *SessionClient) AcceptTargetedOrganizationInvitation(ctx context.Context, orgID string, req *api.AcceptTargetedOrganizationInvitationRequest) (*api.AcceptTargetedOrganizationInvitationResponse, error) {
+	body, err := req.MarshalVT()
+	if err != nil {
+		return nil, errors.Wrap(err, "marshal targeted organization invitation accept request")
+	}
+	data, err := c.doPostBinary(ctx, "/api/org/"+url.PathEscape(orgID)+"/targeted-invitation/fulfill", body, nil, SeedReasonMutation)
+	if err != nil {
+		return nil, errors.Wrap(err, "accept targeted organization invitation")
+	}
+	var resp api.AcceptTargetedOrganizationInvitationResponse
+	if err := resp.UnmarshalVT(data); err != nil {
+		return nil, errors.Wrap(err, "unmarshal targeted organization invitation accept response")
+	}
+	return &resp, nil
 }
 
 // JoinOrganization joins an organization via invite token.

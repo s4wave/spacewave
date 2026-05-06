@@ -1817,6 +1817,9 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 inline constexpr JoinSpaceViaInviteRequest::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
+        targeted_invitation_envelope_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
         invite_message_{nullptr} {}
 
 template <typename>
@@ -2453,8 +2456,10 @@ const ::uint32_t
         0x000, // bitmap
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::session::JoinSpaceViaInviteRequest, _impl_._has_bits_),
-        4, // hasbit index offset
+        5, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::session::JoinSpaceViaInviteRequest, _impl_.invite_message_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::session::JoinSpaceViaInviteRequest, _impl_.targeted_invitation_envelope_),
+        1,
         0,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::session::JoinSpaceViaInviteResponse, _impl_._has_bits_),
@@ -2585,17 +2590,17 @@ static const ::_pbi::MigrationSchema
         {411, sizeof(::s4wave::session::RevokeSpaceInviteRequest)},
         {418, sizeof(::s4wave::session::RevokeSpaceInviteResponse)},
         {419, sizeof(::s4wave::session::JoinSpaceViaInviteRequest)},
-        {424, sizeof(::s4wave::session::JoinSpaceViaInviteResponse)},
-        {431, sizeof(::s4wave::session::GetTransferStatusRequest)},
-        {432, sizeof(::s4wave::session::GetTransferStatusResponse)},
-        {441, sizeof(::s4wave::session::LocalPairingOffer)},
-        {448, sizeof(::s4wave::session::LocalPairingAnswer)},
-        {455, sizeof(::s4wave::session::CreateLocalPairingOfferRequest)},
-        {456, sizeof(::s4wave::session::CreateLocalPairingOfferResponse)},
-        {461, sizeof(::s4wave::session::AcceptLocalPairingOfferRequest)},
-        {466, sizeof(::s4wave::session::AcceptLocalPairingOfferResponse)},
-        {471, sizeof(::s4wave::session::AcceptLocalPairingAnswerRequest)},
-        {476, sizeof(::s4wave::session::AcceptLocalPairingAnswerResponse)},
+        {426, sizeof(::s4wave::session::JoinSpaceViaInviteResponse)},
+        {433, sizeof(::s4wave::session::GetTransferStatusRequest)},
+        {434, sizeof(::s4wave::session::GetTransferStatusResponse)},
+        {443, sizeof(::s4wave::session::LocalPairingOffer)},
+        {450, sizeof(::s4wave::session::LocalPairingAnswer)},
+        {457, sizeof(::s4wave::session::CreateLocalPairingOfferRequest)},
+        {458, sizeof(::s4wave::session::CreateLocalPairingOfferResponse)},
+        {463, sizeof(::s4wave::session::AcceptLocalPairingOfferRequest)},
+        {468, sizeof(::s4wave::session::AcceptLocalPairingOfferResponse)},
+        {473, sizeof(::s4wave::session::AcceptLocalPairingAnswerRequest)},
+        {478, sizeof(::s4wave::session::AcceptLocalPairingAnswerResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::session::_GetSessionInfoRequest_default_instance_._instance,
@@ -2837,157 +2842,158 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fs
     "\030\002 \001(\t\"1\n\036RemoveSpaceParticipantResponse"
     "\022\017\n\007removed\030\001 \001(\010\"\?\n\030RevokeSpaceInviteRe"
     "quest\022\020\n\010space_id\030\001 \001(\t\022\021\n\tinvite_id\030\002 \001"
-    "(\t\"\033\n\031RevokeSpaceInviteResponse\"M\n\031JoinS"
+    "(\t\"\033\n\031RevokeSpaceInviteResponse\"s\n\031JoinS"
     "paceViaInviteRequest\0220\n\016invite_message\030\001"
-    " \001(\0132\030.sobject.SOInviteMessage\"p\n\032JoinSp"
-    "aceViaInviteResponse\022\030\n\020shared_object_id"
-    "\030\001 \001(\t\0228\n\006result\030\002 \001(\0162(.s4wave.session."
-    "JoinSpaceViaInviteResult\"\032\n\030GetTransferS"
-    "tatusRequest\"t\n\031GetTransferStatusRespons"
-    "e\022\016\n\006active\030\001 \001(\010\022\026\n\016has_checkpoint\030\002 \001("
-    "\010\022/\n\005state\030\003 \001(\0132 .provider.transfer.Tra"
-    "nsferState\"1\n\021LocalPairingOffer\022\013\n\003sdp\030\001"
-    " \001(\t\022\017\n\007peer_id\030\002 \001(\t\"2\n\022LocalPairingAns"
-    "wer\022\013\n\003sdp\030\001 \001(\t\022\017\n\007peer_id\030\002 \001(\t\" \n\036Cre"
-    "ateLocalPairingOfferRequest\"8\n\037CreateLoc"
-    "alPairingOfferResponse\022\025\n\roffer_payload\030"
-    "\001 \001(\t\"7\n\036AcceptLocalPairingOfferRequest\022"
-    "\025\n\roffer_payload\030\001 \001(\t\"9\n\037AcceptLocalPai"
-    "ringOfferResponse\022\026\n\016answer_payload\030\001 \001("
-    "\t\"9\n\037AcceptLocalPairingAnswerRequest\022\026\n\016"
-    "answer_payload\030\001 \001(\t\":\n AcceptLocalPairi"
-    "ngAnswerResponse\022\026\n\016remote_peer_id\030\001 \001(\t"
-    "*d\n\017SyncStatusState\022\032\n\026SyncStatusState_S"
-    "YNCED\020\000\022\032\n\026SyncStatusState_ACTIVE\020\001\022\031\n\025S"
-    "yncStatusState_ERROR\020\002*\250\001\n\025SyncActivityD"
-    "irection\022\036\n\032SyncActivityDirection_NONE\020\000"
-    "\022 \n\034SyncActivityDirection_UPLOAD\020\001\022\"\n\036Sy"
-    "ncActivityDirection_DOWNLOAD\020\002\022)\n%SyncAc"
-    "tivityDirection_UPLOAD_DOWNLOAD\020\003*\270\001\n\022Sy"
-    "ncTransportState\022\036\n\032SyncTransportState_U"
-    "NKNOWN\020\000\022\"\n\036SyncTransportState_UNAVAILAB"
-    "LE\020\001\022!\n\035SyncTransportState_CONNECTING\020\002\022"
-    "\035\n\031SyncTransportState_ONLINE\020\003\022\034\n\030SyncTr"
-    "ansportState_ERROR\020\004*\213\001\n\014SyncP2PState\022\030\n"
-    "\024SyncP2PState_UNKNOWN\020\000\022\031\n\025SyncP2PState_"
-    "NO_PEERS\020\001\022\025\n\021SyncP2PState_IDLE\020\002\022\027\n\023Syn"
-    "cP2PState_ACTIVE\020\003\022\026\n\022SyncP2PState_ERROR"
-    "\020\004*\316\003\n\rPairingStatus\022\026\n\022PairingStatus_ID"
-    "LE\020\000\022 \n\034PairingStatus_CODE_GENERATED\020\001\022\""
-    "\n\036PairingStatus_WAITING_FOR_PEER\020\002\022 \n\034Pa"
-    "iringStatus_PEER_CONNECTED\020\003\022!\n\035PairingS"
-    "tatus_VERIFYING_EMOJI\020\004\022\032\n\026PairingStatus"
-    "_VERIFIED\020\005\022\030\n\024PairingStatus_FAILED\020\006\022\"\n"
-    "\036PairingStatus_SIGNALING_FAILED\020\007\022$\n Pai"
-    "ringStatus_CONNECTION_TIMEOUT\020\010\022,\n(Pairi"
-    "ngStatus_WAITING_FOR_REMOTE_CONFIRM\020\t\022 \n"
-    "\034PairingStatus_BOTH_CONFIRMED\020\n\022\"\n\036Pairi"
-    "ngStatus_PAIRING_REJECTED\020\013\022&\n\"PairingSt"
-    "atus_CONFIRMATION_TIMEOUT\020\014*\372\001\n\030JoinSpac"
-    "eViaInviteResult\022(\n$JoinSpaceViaInviteRe"
-    "sult_UNSPECIFIED\020\000\022%\n!JoinSpaceViaInvite"
-    "Result_ACCEPTED\020\001\0223\n/JoinSpaceViaInviteR"
-    "esult_PENDING_OWNER_APPROVAL\020\002\022%\n!JoinSp"
-    "aceViaInviteResult_REJECTED\020\003\0221\n-JoinSpa"
-    "ceViaInviteResult_OWNER_MUST_BE_ONLINE\020\004"
-    "2\301\036\n\026SessionResourceService\022_\n\016GetSessio"
-    "nInfo\022%.s4wave.session.GetSessionInfoReq"
-    "uest\032&.s4wave.session.GetSessionInfoResp"
-    "onse\022m\n\022WatchResourcesList\022).s4wave.sess"
-    "ion.WatchResourcesListRequest\032*.s4wave.s"
-    "ession.WatchResourcesListResponse0\001\022V\n\013C"
-    "reateSpace\022\".s4wave.session.CreateSpaceR"
-    "equest\032#.s4wave.session.CreateSpaceRespo"
-    "nse\022j\n\021MountSharedObject\022(.s4wave.sessio"
-    "n.MountSharedObjectRequest\032).s4wave.sess"
-    "ion.MountSharedObjectResponse\"\000\022|\n\027Watch"
-    "SharedObjectHealth\022..s4wave.session.Watc"
-    "hSharedObjectHealthRequest\032/.s4wave.sess"
-    "ion.WatchSharedObjectHealthResponse0\001\022d\n"
-    "\017WatchSyncStatus\022&.s4wave.session.WatchS"
-    "yncStatusRequest\032\'.s4wave.session.WatchS"
-    "yncStatusResponse0\001\022V\n\013DeleteSpace\022\".s4w"
-    "ave.session.DeleteSpaceRequest\032#.s4wave."
-    "session.DeleteSpaceResponse\022V\n\013RenameSpa"
-    "ce\022\".s4wave.session.RenameSpaceRequest\032#"
-    ".s4wave.session.RenameSpaceResponse\022a\n\016W"
-    "atchLockState\022%.s4wave.session.WatchLock"
-    "StateRequest\032&.s4wave.session.WatchLockS"
-    "tateResponse0\001\022V\n\013SetLockMode\022\".s4wave.s"
-    "ession.SetLockModeRequest\032#.s4wave.sessi"
-    "on.SetLockModeResponse\022\\\n\rUnlockSession\022"
-    "$.s4wave.session.UnlockSessionRequest\032%."
-    "s4wave.session.UnlockSessionResponse\022V\n\013"
-    "LockSession\022\".s4wave.session.LockSession"
-    "Request\032#.s4wave.session.LockSessionResp"
-    "onse\022n\n\023GeneratePairingCode\022*.s4wave.ses"
-    "sion.GeneratePairingCodeRequest\032+.s4wave"
-    ".session.GeneratePairingCodeResponse\022b\n\017"
-    "CompletePairing\022&.s4wave.session.Complet"
-    "ePairingRequest\032\'.s4wave.session.Complet"
-    "ePairingResponse\022V\n\013GetSASEmoji\022\".s4wave"
-    ".session.GetSASEmojiRequest\032#.s4wave.ses"
-    "sion.GetSASEmojiResponse\022b\n\017ConfirmSASMa"
-    "tch\022&.s4wave.session.ConfirmSASMatchRequ"
-    "est\032\'.s4wave.session.ConfirmSASMatchResp"
-    "onse\022_\n\016ConfirmPairing\022%.s4wave.session."
-    "ConfirmPairingRequest\032&.s4wave.session.C"
-    "onfirmPairingResponse\022\\\n\rDeleteAccount\022$"
-    ".s4wave.session.DeleteAccountRequest\032%.s"
-    "4wave.session.DeleteAccountResponse\022p\n\017A"
-    "ccessStateAtom\022-.s4wave.session.AccessSe"
-    "ssionStateAtomRequest\032..s4wave.session.A"
-    "ccessSessionStateAtomResponse\022r\n\017WatchSt"
-    "ateAtoms\022-.s4wave.session.WatchSessionSt"
-    "ateAtomsRequest\032..s4wave.session.WatchSe"
-    "ssionStateAtomsResponse0\001\022q\n\024GetTransfer"
-    "Inventory\022+.s4wave.session.GetTransferIn"
-    "ventoryRequest\032,.s4wave.session.GetTrans"
-    "ferInventoryResponse\022\\\n\rStartTransfer\022$."
-    "s4wave.session.StartTransferRequest\032%.s4"
-    "wave.session.StartTransferResponse\022v\n\025Wa"
-    "tchTransferProgress\022,.s4wave.session.Wat"
-    "chTransferProgressRequest\032-.s4wave.sessi"
-    "on.WatchTransferProgressResponse0\001\022_\n\016Ca"
-    "ncelTransfer\022%.s4wave.session.CancelTran"
-    "sferRequest\032&.s4wave.session.CancelTrans"
-    "ferResponse\022h\n\021GetTransferStatus\022(.s4wav"
-    "e.session.GetTransferStatusRequest\032).s4w"
-    "ave.session.GetTransferStatusResponse\022m\n"
-    "\022WatchPairedDevices\022).s4wave.session.Wat"
-    "chPairedDevicesRequest\032*.s4wave.session."
-    "WatchPairedDevicesResponse0\001\022m\n\022WatchPai"
-    "ringStatus\022).s4wave.session.WatchPairing"
-    "StatusRequest\032*.s4wave.session.WatchPair"
-    "ingStatusResponse0\001\022Y\n\014UnlinkDevice\022#.s4"
-    "wave.session.UnlinkDeviceRequest\032$.s4wav"
-    "e.session.UnlinkDeviceResponse\022h\n\021Create"
-    "SpaceInvite\022(.s4wave.session.CreateSpace"
-    "InviteRequest\032).s4wave.session.CreateSpa"
-    "ceInviteResponse\022e\n\020ListSpaceInvites\022\'.s"
-    "4wave.session.ListSpaceInvitesRequest\032(."
-    "s4wave.session.ListSpaceInvitesResponse\022"
-    "t\n\025ListSpaceParticipants\022,.s4wave.sessio"
-    "n.ListSpaceParticipantsRequest\032-.s4wave."
-    "session.ListSpaceParticipantsResponse\022w\n"
-    "\026RemoveSpaceParticipant\022-.s4wave.session"
-    ".RemoveSpaceParticipantRequest\032..s4wave."
-    "session.RemoveSpaceParticipantResponse\022h"
-    "\n\021RevokeSpaceInvite\022(.s4wave.session.Rev"
-    "okeSpaceInviteRequest\032).s4wave.session.R"
-    "evokeSpaceInviteResponse\022k\n\022JoinSpaceVia"
-    "Invite\022).s4wave.session.JoinSpaceViaInvi"
-    "teRequest\032*.s4wave.session.JoinSpaceViaI"
-    "nviteResponse\022z\n\027CreateLocalPairingOffer"
-    "\022..s4wave.session.CreateLocalPairingOffe"
-    "rRequest\032/.s4wave.session.CreateLocalPai"
-    "ringOfferResponse\022z\n\027AcceptLocalPairingO"
-    "ffer\022..s4wave.session.AcceptLocalPairing"
-    "OfferRequest\032/.s4wave.session.AcceptLoca"
-    "lPairingOfferResponse\022}\n\030AcceptLocalPair"
-    "ingAnswer\022/.s4wave.session.AcceptLocalPa"
-    "iringAnswerRequest\0320.s4wave.session.Acce"
-    "ptLocalPairingAnswerResponseb\006proto3"
+    " \001(\0132\030.sobject.SOInviteMessage\022$\n\034target"
+    "ed_invitation_envelope\030\002 \001(\014\"p\n\032JoinSpac"
+    "eViaInviteResponse\022\030\n\020shared_object_id\030\001"
+    " \001(\t\0228\n\006result\030\002 \001(\0162(.s4wave.session.Jo"
+    "inSpaceViaInviteResult\"\032\n\030GetTransferSta"
+    "tusRequest\"t\n\031GetTransferStatusResponse\022"
+    "\016\n\006active\030\001 \001(\010\022\026\n\016has_checkpoint\030\002 \001(\010\022"
+    "/\n\005state\030\003 \001(\0132 .provider.transfer.Trans"
+    "ferState\"1\n\021LocalPairingOffer\022\013\n\003sdp\030\001 \001"
+    "(\t\022\017\n\007peer_id\030\002 \001(\t\"2\n\022LocalPairingAnswe"
+    "r\022\013\n\003sdp\030\001 \001(\t\022\017\n\007peer_id\030\002 \001(\t\" \n\036Creat"
+    "eLocalPairingOfferRequest\"8\n\037CreateLocal"
+    "PairingOfferResponse\022\025\n\roffer_payload\030\001 "
+    "\001(\t\"7\n\036AcceptLocalPairingOfferRequest\022\025\n"
+    "\roffer_payload\030\001 \001(\t\"9\n\037AcceptLocalPairi"
+    "ngOfferResponse\022\026\n\016answer_payload\030\001 \001(\t\""
+    "9\n\037AcceptLocalPairingAnswerRequest\022\026\n\016an"
+    "swer_payload\030\001 \001(\t\":\n AcceptLocalPairing"
+    "AnswerResponse\022\026\n\016remote_peer_id\030\001 \001(\t*d"
+    "\n\017SyncStatusState\022\032\n\026SyncStatusState_SYN"
+    "CED\020\000\022\032\n\026SyncStatusState_ACTIVE\020\001\022\031\n\025Syn"
+    "cStatusState_ERROR\020\002*\250\001\n\025SyncActivityDir"
+    "ection\022\036\n\032SyncActivityDirection_NONE\020\000\022 "
+    "\n\034SyncActivityDirection_UPLOAD\020\001\022\"\n\036Sync"
+    "ActivityDirection_DOWNLOAD\020\002\022)\n%SyncActi"
+    "vityDirection_UPLOAD_DOWNLOAD\020\003*\270\001\n\022Sync"
+    "TransportState\022\036\n\032SyncTransportState_UNK"
+    "NOWN\020\000\022\"\n\036SyncTransportState_UNAVAILABLE"
+    "\020\001\022!\n\035SyncTransportState_CONNECTING\020\002\022\035\n"
+    "\031SyncTransportState_ONLINE\020\003\022\034\n\030SyncTran"
+    "sportState_ERROR\020\004*\213\001\n\014SyncP2PState\022\030\n\024S"
+    "yncP2PState_UNKNOWN\020\000\022\031\n\025SyncP2PState_NO"
+    "_PEERS\020\001\022\025\n\021SyncP2PState_IDLE\020\002\022\027\n\023SyncP"
+    "2PState_ACTIVE\020\003\022\026\n\022SyncP2PState_ERROR\020\004"
+    "*\316\003\n\rPairingStatus\022\026\n\022PairingStatus_IDLE"
+    "\020\000\022 \n\034PairingStatus_CODE_GENERATED\020\001\022\"\n\036"
+    "PairingStatus_WAITING_FOR_PEER\020\002\022 \n\034Pair"
+    "ingStatus_PEER_CONNECTED\020\003\022!\n\035PairingSta"
+    "tus_VERIFYING_EMOJI\020\004\022\032\n\026PairingStatus_V"
+    "ERIFIED\020\005\022\030\n\024PairingStatus_FAILED\020\006\022\"\n\036P"
+    "airingStatus_SIGNALING_FAILED\020\007\022$\n Pairi"
+    "ngStatus_CONNECTION_TIMEOUT\020\010\022,\n(Pairing"
+    "Status_WAITING_FOR_REMOTE_CONFIRM\020\t\022 \n\034P"
+    "airingStatus_BOTH_CONFIRMED\020\n\022\"\n\036Pairing"
+    "Status_PAIRING_REJECTED\020\013\022&\n\"PairingStat"
+    "us_CONFIRMATION_TIMEOUT\020\014*\372\001\n\030JoinSpaceV"
+    "iaInviteResult\022(\n$JoinSpaceViaInviteResu"
+    "lt_UNSPECIFIED\020\000\022%\n!JoinSpaceViaInviteRe"
+    "sult_ACCEPTED\020\001\0223\n/JoinSpaceViaInviteRes"
+    "ult_PENDING_OWNER_APPROVAL\020\002\022%\n!JoinSpac"
+    "eViaInviteResult_REJECTED\020\003\0221\n-JoinSpace"
+    "ViaInviteResult_OWNER_MUST_BE_ONLINE\020\0042\301"
+    "\036\n\026SessionResourceService\022_\n\016GetSessionI"
+    "nfo\022%.s4wave.session.GetSessionInfoReque"
+    "st\032&.s4wave.session.GetSessionInfoRespon"
+    "se\022m\n\022WatchResourcesList\022).s4wave.sessio"
+    "n.WatchResourcesListRequest\032*.s4wave.ses"
+    "sion.WatchResourcesListResponse0\001\022V\n\013Cre"
+    "ateSpace\022\".s4wave.session.CreateSpaceReq"
+    "uest\032#.s4wave.session.CreateSpaceRespons"
+    "e\022j\n\021MountSharedObject\022(.s4wave.session."
+    "MountSharedObjectRequest\032).s4wave.sessio"
+    "n.MountSharedObjectResponse\"\000\022|\n\027WatchSh"
+    "aredObjectHealth\022..s4wave.session.WatchS"
+    "haredObjectHealthRequest\032/.s4wave.sessio"
+    "n.WatchSharedObjectHealthResponse0\001\022d\n\017W"
+    "atchSyncStatus\022&.s4wave.session.WatchSyn"
+    "cStatusRequest\032\'.s4wave.session.WatchSyn"
+    "cStatusResponse0\001\022V\n\013DeleteSpace\022\".s4wav"
+    "e.session.DeleteSpaceRequest\032#.s4wave.se"
+    "ssion.DeleteSpaceResponse\022V\n\013RenameSpace"
+    "\022\".s4wave.session.RenameSpaceRequest\032#.s"
+    "4wave.session.RenameSpaceResponse\022a\n\016Wat"
+    "chLockState\022%.s4wave.session.WatchLockSt"
+    "ateRequest\032&.s4wave.session.WatchLockSta"
+    "teResponse0\001\022V\n\013SetLockMode\022\".s4wave.ses"
+    "sion.SetLockModeRequest\032#.s4wave.session"
+    ".SetLockModeResponse\022\\\n\rUnlockSession\022$."
+    "s4wave.session.UnlockSessionRequest\032%.s4"
+    "wave.session.UnlockSessionResponse\022V\n\013Lo"
+    "ckSession\022\".s4wave.session.LockSessionRe"
+    "quest\032#.s4wave.session.LockSessionRespon"
+    "se\022n\n\023GeneratePairingCode\022*.s4wave.sessi"
+    "on.GeneratePairingCodeRequest\032+.s4wave.s"
+    "ession.GeneratePairingCodeResponse\022b\n\017Co"
+    "mpletePairing\022&.s4wave.session.CompleteP"
+    "airingRequest\032\'.s4wave.session.CompleteP"
+    "airingResponse\022V\n\013GetSASEmoji\022\".s4wave.s"
+    "ession.GetSASEmojiRequest\032#.s4wave.sessi"
+    "on.GetSASEmojiResponse\022b\n\017ConfirmSASMatc"
+    "h\022&.s4wave.session.ConfirmSASMatchReques"
+    "t\032\'.s4wave.session.ConfirmSASMatchRespon"
+    "se\022_\n\016ConfirmPairing\022%.s4wave.session.Co"
+    "nfirmPairingRequest\032&.s4wave.session.Con"
+    "firmPairingResponse\022\\\n\rDeleteAccount\022$.s"
+    "4wave.session.DeleteAccountRequest\032%.s4w"
+    "ave.session.DeleteAccountResponse\022p\n\017Acc"
+    "essStateAtom\022-.s4wave.session.AccessSess"
+    "ionStateAtomRequest\032..s4wave.session.Acc"
+    "essSessionStateAtomResponse\022r\n\017WatchStat"
+    "eAtoms\022-.s4wave.session.WatchSessionStat"
+    "eAtomsRequest\032..s4wave.session.WatchSess"
+    "ionStateAtomsResponse0\001\022q\n\024GetTransferIn"
+    "ventory\022+.s4wave.session.GetTransferInve"
+    "ntoryRequest\032,.s4wave.session.GetTransfe"
+    "rInventoryResponse\022\\\n\rStartTransfer\022$.s4"
+    "wave.session.StartTransferRequest\032%.s4wa"
+    "ve.session.StartTransferResponse\022v\n\025Watc"
+    "hTransferProgress\022,.s4wave.session.Watch"
+    "TransferProgressRequest\032-.s4wave.session"
+    ".WatchTransferProgressResponse0\001\022_\n\016Canc"
+    "elTransfer\022%.s4wave.session.CancelTransf"
+    "erRequest\032&.s4wave.session.CancelTransfe"
+    "rResponse\022h\n\021GetTransferStatus\022(.s4wave."
+    "session.GetTransferStatusRequest\032).s4wav"
+    "e.session.GetTransferStatusResponse\022m\n\022W"
+    "atchPairedDevices\022).s4wave.session.Watch"
+    "PairedDevicesRequest\032*.s4wave.session.Wa"
+    "tchPairedDevicesResponse0\001\022m\n\022WatchPairi"
+    "ngStatus\022).s4wave.session.WatchPairingSt"
+    "atusRequest\032*.s4wave.session.WatchPairin"
+    "gStatusResponse0\001\022Y\n\014UnlinkDevice\022#.s4wa"
+    "ve.session.UnlinkDeviceRequest\032$.s4wave."
+    "session.UnlinkDeviceResponse\022h\n\021CreateSp"
+    "aceInvite\022(.s4wave.session.CreateSpaceIn"
+    "viteRequest\032).s4wave.session.CreateSpace"
+    "InviteResponse\022e\n\020ListSpaceInvites\022\'.s4w"
+    "ave.session.ListSpaceInvitesRequest\032(.s4"
+    "wave.session.ListSpaceInvitesResponse\022t\n"
+    "\025ListSpaceParticipants\022,.s4wave.session."
+    "ListSpaceParticipantsRequest\032-.s4wave.se"
+    "ssion.ListSpaceParticipantsResponse\022w\n\026R"
+    "emoveSpaceParticipant\022-.s4wave.session.R"
+    "emoveSpaceParticipantRequest\032..s4wave.se"
+    "ssion.RemoveSpaceParticipantResponse\022h\n\021"
+    "RevokeSpaceInvite\022(.s4wave.session.Revok"
+    "eSpaceInviteRequest\032).s4wave.session.Rev"
+    "okeSpaceInviteResponse\022k\n\022JoinSpaceViaIn"
+    "vite\022).s4wave.session.JoinSpaceViaInvite"
+    "Request\032*.s4wave.session.JoinSpaceViaInv"
+    "iteResponse\022z\n\027CreateLocalPairingOffer\022."
+    ".s4wave.session.CreateLocalPairingOfferR"
+    "equest\032/.s4wave.session.CreateLocalPairi"
+    "ngOfferResponse\022z\n\027AcceptLocalPairingOff"
+    "er\022..s4wave.session.AcceptLocalPairingOf"
+    "ferRequest\032/.s4wave.session.AcceptLocalP"
+    "airingOfferResponse\022}\n\030AcceptLocalPairin"
+    "gAnswer\022/.s4wave.session.AcceptLocalPair"
+    "ingAnswerRequest\0320.s4wave.session.Accept"
+    "LocalPairingAnswerResponseb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto_deps[7] = {
@@ -3003,7 +3009,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto = {
     false,
     false,
-    12316,
+    12354,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto,
     "github.com/s4wave/spacewave/sdk/session/session.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto_once,
@@ -20548,7 +20554,7 @@ void JoinSpaceViaInviteRequest::clear_invite_message() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.invite_message_ != nullptr) _impl_.invite_message_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000001U);
+                  0x00000002U);
 }
 JoinSpaceViaInviteRequest::JoinSpaceViaInviteRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -20564,7 +20570,8 @@ PROTOBUF_NDEBUG_INLINE JoinSpaceViaInviteRequest::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
     [[maybe_unused]] const ::s4wave::session::JoinSpaceViaInviteRequest& from_msg)
       : _has_bits_{from._has_bits_},
-        _cached_size_{0} {}
+        _cached_size_{0},
+        targeted_invitation_envelope_(arena, from.targeted_invitation_envelope_) {}
 
 JoinSpaceViaInviteRequest::JoinSpaceViaInviteRequest(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -20580,7 +20587,7 @@ JoinSpaceViaInviteRequest::JoinSpaceViaInviteRequest(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
   ::uint32_t cached_has_bits = _impl_._has_bits_[0];
-  _impl_.invite_message_ = (CheckHasBit(cached_has_bits, 0x00000001U))
+  _impl_.invite_message_ = (CheckHasBit(cached_has_bits, 0x00000002U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.invite_message_)
                 : nullptr;
 
@@ -20589,7 +20596,8 @@ JoinSpaceViaInviteRequest::JoinSpaceViaInviteRequest(
 PROTOBUF_NDEBUG_INLINE JoinSpaceViaInviteRequest::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
-      : _cached_size_{0} {}
+      : _cached_size_{0},
+        targeted_invitation_envelope_(arena) {}
 
 inline void JoinSpaceViaInviteRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -20606,6 +20614,7 @@ inline void JoinSpaceViaInviteRequest::SharedDtor(MessageLite& self) {
   }
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.targeted_invitation_envelope_.Destroy();
   delete this_._impl_.invite_message_;
   this_._impl_.~Impl_();
 }
@@ -20616,7 +20625,7 @@ inline void* PROTOBUF_NONNULL JoinSpaceViaInviteRequest::PlacementNew_(
   return ::new (mem) JoinSpaceViaInviteRequest(arena);
 }
 constexpr auto JoinSpaceViaInviteRequest::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(JoinSpaceViaInviteRequest),
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(JoinSpaceViaInviteRequest),
                                             alignof(JoinSpaceViaInviteRequest));
 }
 constexpr auto JoinSpaceViaInviteRequest::InternalGenerateClassData_() {
@@ -20653,16 +20662,16 @@ JoinSpaceViaInviteRequest::GetClassData() const {
   return JoinSpaceViaInviteRequest_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<0, 1, 1, 0, 2>
+const ::_pbi::TcParseTable<1, 2, 1, 0, 2>
 JoinSpaceViaInviteRequest::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(JoinSpaceViaInviteRequest, _impl_._has_bits_),
     0, // no _extensions_
-    1, 0,  // max_field_number, fast_idx_mask
+    2, 8,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967294,  // skipmap
+    4294967292,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    1,  // num_field_entries
+    2,  // num_field_entries
     1,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     JoinSpaceViaInviteRequest_class_data_.base(),
@@ -20672,15 +20681,21 @@ JoinSpaceViaInviteRequest::_table_ = {
     ::_pbi::TcParser::GetTable<::s4wave::session::JoinSpaceViaInviteRequest>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
+    // bytes targeted_invitation_envelope = 2;
+    {::_pbi::TcParser::FastBS1,
+     {18, 0, 0,
+      PROTOBUF_FIELD_OFFSET(JoinSpaceViaInviteRequest, _impl_.targeted_invitation_envelope_)}},
     // .sobject.SOInviteMessage invite_message = 1;
     {::_pbi::TcParser::FastMtS1,
-     {10, 0, 0,
+     {10, 1, 0,
       PROTOBUF_FIELD_OFFSET(JoinSpaceViaInviteRequest, _impl_.invite_message_)}},
   }}, {{
     65535, 65535
   }}, {{
     // .sobject.SOInviteMessage invite_message = 1;
-    {PROTOBUF_FIELD_OFFSET(JoinSpaceViaInviteRequest, _impl_.invite_message_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(JoinSpaceViaInviteRequest, _impl_.invite_message_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // bytes targeted_invitation_envelope = 2;
+    {PROTOBUF_FIELD_OFFSET(JoinSpaceViaInviteRequest, _impl_.targeted_invitation_envelope_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::sobject::SOInviteMessage>()},
@@ -20696,9 +20711,14 @@ PROTOBUF_NOINLINE void JoinSpaceViaInviteRequest::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    ABSL_DCHECK(_impl_.invite_message_ != nullptr);
-    _impl_.invite_message_->Clear();
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.targeted_invitation_envelope_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(_impl_.invite_message_ != nullptr);
+      _impl_.invite_message_->Clear();
+    }
   }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
@@ -20724,10 +20744,18 @@ PROTOBUF_NOINLINE void JoinSpaceViaInviteRequest::Clear() {
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // .sobject.SOInviteMessage invite_message = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         1, *this_._impl_.invite_message_, this_._impl_.invite_message_->GetCachedSize(), target,
         stream);
+  }
+
+  // bytes targeted_invitation_envelope = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_targeted_invitation_envelope().empty()) {
+      const ::std::string& _s = this_._internal_targeted_invitation_envelope();
+      target = stream->WriteBytesMaybeAliased(2, _s, target);
+    }
   }
 
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
@@ -20753,10 +20781,18 @@ PROTOBUF_NOINLINE void JoinSpaceViaInviteRequest::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void)cached_has_bits;
 
-   {
-    // .sobject.SOInviteMessage invite_message = 1;
-    cached_has_bits = this_._impl_._has_bits_[0];
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    // bytes targeted_invitation_envelope = 2;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_targeted_invitation_envelope().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_targeted_invitation_envelope());
+      }
+    }
+    // .sobject.SOInviteMessage invite_message = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.invite_message_);
     }
@@ -20780,12 +20816,23 @@ void JoinSpaceViaInviteRequest::MergeImpl(::google::protobuf::MessageLite& to_ms
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    ABSL_DCHECK(from._impl_.invite_message_ != nullptr);
-    if (_this->_impl_.invite_message_ == nullptr) {
-      _this->_impl_.invite_message_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.invite_message_);
-    } else {
-      _this->_impl_.invite_message_->MergeFrom(*from._impl_.invite_message_);
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_targeted_invitation_envelope().empty()) {
+        _this->_internal_set_targeted_invitation_envelope(from._internal_targeted_invitation_envelope());
+      } else {
+        if (_this->_impl_.targeted_invitation_envelope_.IsDefault()) {
+          _this->_internal_set_targeted_invitation_envelope("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(from._impl_.invite_message_ != nullptr);
+      if (_this->_impl_.invite_message_ == nullptr) {
+        _this->_impl_.invite_message_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.invite_message_);
+      } else {
+        _this->_impl_.invite_message_->MergeFrom(*from._impl_.invite_message_);
+      }
     }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
@@ -20803,8 +20850,11 @@ void JoinSpaceViaInviteRequest::CopyFrom(const JoinSpaceViaInviteRequest& from) 
 
 void JoinSpaceViaInviteRequest::InternalSwap(JoinSpaceViaInviteRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.targeted_invitation_envelope_, &other->_impl_.targeted_invitation_envelope_, arena);
   swap(_impl_.invite_message_, other->_impl_.invite_message_);
 }
 

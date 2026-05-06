@@ -1340,6 +1340,374 @@ pub struct OrgInviteInfo {
     #[prost(int64, tag="6")]
     pub expires_at: i64,
 }
+/// CreateTargetedInviteDraftByUsernameRequest is the request for
+/// CreateTargetedInviteDraftByUsername.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CreateTargetedInviteDraftByUsernameRequest {
+    /// Username is the exact Spacewave username being addressed.
+    #[prost(string, tag="1")]
+    pub username: ::prost::alloc::string::String,
+    /// Purpose is the invite purpose.
+    #[prost(enumeration="TargetedInvitePurpose", tag="2")]
+    pub purpose: i32,
+    /// SpaceId is set when purpose is TARGETED_INVITE_PURPOSE_SPACE.
+    #[prost(string, tag="3")]
+    pub space_id: ::prost::alloc::string::String,
+    /// OrgId is set when purpose is TARGETED_INVITE_PURPOSE_ORGANIZATION.
+    #[prost(string, tag="4")]
+    pub org_id: ::prost::alloc::string::String,
+    /// Role is the requested role for the eventual invite.
+    #[prost(string, tag="5")]
+    pub role: ::prost::alloc::string::String,
+    /// ExpiresAt is the Unix timestamp (ms) when the draft should expire.
+    #[prost(int64, tag="6")]
+    pub expires_at: i64,
+}
+/// CreateTargetedInviteDraftByUsernameResponse is the response for
+/// CreateTargetedInviteDraftByUsername.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CreateTargetedInviteDraftByUsernameResponse {
+    /// Accepted is always true for syntactically valid requests. The response does
+    /// not reveal whether the username matched a deliverable account.
+    #[prost(bool, tag="1")]
+    pub accepted: bool,
+}
+/// ResolveUsernameRequest is the request for ResolveUsername.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ResolveUsernameRequest {
+    /// Username is the exact Spacewave username being addressed.
+    #[prost(string, tag="1")]
+    pub username: ::prost::alloc::string::String,
+    /// Purpose is the resolution purpose.
+    #[prost(enumeration="TargetedInvitePurpose", tag="2")]
+    pub purpose: i32,
+    /// SpaceId is set when purpose is TARGETED_INVITE_PURPOSE_SPACE.
+    #[prost(string, tag="3")]
+    pub space_id: ::prost::alloc::string::String,
+    /// OrgId is set when purpose is TARGETED_INVITE_PURPOSE_ORGANIZATION.
+    #[prost(string, tag="4")]
+    pub org_id: ::prost::alloc::string::String,
+}
+/// ResolveUsernameResponse is the response for ResolveUsername.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ResolveUsernameResponse {
+    /// Found is true only when AccountId is populated.
+    #[prost(bool, tag="1")]
+    pub found: bool,
+    /// AccountId is the resolved target account id when the actor may see it.
+    #[prost(string, tag="2")]
+    pub account_id: ::prost::alloc::string::String,
+    /// EntityId is the canonical username when AccountId is populated.
+    #[prost(string, tag="3")]
+    pub entity_id: ::prost::alloc::string::String,
+    /// DomainId is the target provider domain when AccountId is populated.
+    #[prost(string, tag="4")]
+    pub domain_id: ::prost::alloc::string::String,
+    /// Relationship is self, org_member, space_member, or none.
+    #[prost(string, tag="5")]
+    pub relationship: ::prost::alloc::string::String,
+    /// CanInvite reports whether the target privacy policy permits addressing.
+    #[prost(bool, tag="6")]
+    pub can_invite: bool,
+    /// EntityUuid is the stable target entity generation when Found is true.
+    #[prost(string, tag="7")]
+    pub entity_uuid: ::prost::alloc::string::String,
+    /// AccountEpoch is the target account epoch when Found is true.
+    #[prost(int64, tag="8")]
+    pub account_epoch: i64,
+}
+/// TargetedInvitationEnvelope is the signed invite body carried through the
+/// recipient inbox and verified again during fulfillment.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TargetedInvitationEnvelope {
+    /// SchemaVersion identifies the envelope wire contract.
+    #[prost(uint32, tag="1")]
+    pub schema_version: u32,
+    /// Purpose is the invite purpose bound into the signature.
+    #[prost(enumeration="TargetedInvitePurpose", tag="2")]
+    pub purpose: i32,
+    /// ContextId is the Space or organization id bound into the signature.
+    #[prost(string, tag="3")]
+    pub context_id: ::prost::alloc::string::String,
+    /// ActorAccountId is the inviter account id.
+    #[prost(string, tag="4")]
+    pub actor_account_id: ::prost::alloc::string::String,
+    /// ActorEntityUuid is the inviter entity UUID or generation anchor.
+    #[prost(string, tag="5")]
+    pub actor_entity_uuid: ::prost::alloc::string::String,
+    /// ActorAccountEpoch is the inviter account epoch at create time.
+    #[prost(int64, tag="16")]
+    pub actor_account_epoch: i64,
+    /// SignerPeerId is the session peer that signed this envelope.
+    #[prost(string, tag="6")]
+    pub signer_peer_id: ::prost::alloc::string::String,
+    /// TargetAccountId is the resolved recipient account id.
+    #[prost(string, tag="7")]
+    pub target_account_id: ::prost::alloc::string::String,
+    /// TargetEntityId is the resolved recipient username.
+    #[prost(string, tag="8")]
+    pub target_entity_id: ::prost::alloc::string::String,
+    /// TargetEntityUuid is the resolved recipient entity UUID.
+    #[prost(string, tag="9")]
+    pub target_entity_uuid: ::prost::alloc::string::String,
+    /// TargetAccountEpoch is the resolved recipient account epoch.
+    #[prost(int64, tag="10")]
+    pub target_account_epoch: i64,
+    /// Role is the purpose-specific role requested by the inviter.
+    #[prost(string, tag="11")]
+    pub role: ::prost::alloc::string::String,
+    /// ExpiresAt is the Unix timestamp (ms) when the invite expires.
+    #[prost(int64, tag="12")]
+    pub expires_at: i64,
+    /// Nonce is fresh caller-provided entropy for replay protection.
+    #[prost(bytes="vec", tag="13")]
+    pub nonce: ::prost::alloc::vec::Vec<u8>,
+    /// Payload is the purpose-specific signed payload.
+    #[prost(bytes="vec", tag="14")]
+    pub payload: ::prost::alloc::vec::Vec<u8>,
+    /// Signature is the signature over this envelope's canonical body.
+    #[prost(bytes="vec", tag="15")]
+    pub signature: ::prost::alloc::vec::Vec<u8>,
+}
+/// TargetedInvitationInfo is a recipient inbox row.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TargetedInvitationInfo {
+    /// Id is the invitation ULID.
+    #[prost(string, tag="1")]
+    pub id: ::prost::alloc::string::String,
+    /// ActorAccountId is the inviter account id.
+    #[prost(string, tag="2")]
+    pub actor_account_id: ::prost::alloc::string::String,
+    /// TargetAccountId is the recipient account id.
+    #[prost(string, tag="3")]
+    pub target_account_id: ::prost::alloc::string::String,
+    /// TargetEntityId is the recipient username captured at create time.
+    #[prost(string, tag="4")]
+    pub target_entity_id: ::prost::alloc::string::String,
+    /// TargetEntityUuid is the recipient entity UUID captured at create time.
+    #[prost(string, tag="5")]
+    pub target_entity_uuid: ::prost::alloc::string::String,
+    /// TargetAccountEpoch is the recipient account epoch captured at create time.
+    #[prost(int64, tag="6")]
+    pub target_account_epoch: i64,
+    /// Purpose is the invite purpose.
+    #[prost(enumeration="TargetedInvitePurpose", tag="7")]
+    pub purpose: i32,
+    /// ContextId is the Space or organization id.
+    #[prost(string, tag="8")]
+    pub context_id: ::prost::alloc::string::String,
+    /// Role is the requested role.
+    #[prost(string, tag="9")]
+    pub role: ::prost::alloc::string::String,
+    /// Status is pending, revoked, accepted, declined, expired, or failed.
+    #[prost(string, tag="10")]
+    pub status: ::prost::alloc::string::String,
+    /// EnvelopeHash is the lowercase hex SHA-256 hash of Envelope bytes.
+    #[prost(string, tag="11")]
+    pub envelope_hash: ::prost::alloc::string::String,
+    /// Envelope is the signed envelope bytes for recipient-side verification.
+    #[prost(message, optional, tag="12")]
+    pub envelope: ::core::option::Option<TargetedInvitationEnvelope>,
+    /// CreatedAt is the row creation timestamp (ms).
+    #[prost(int64, tag="13")]
+    pub created_at: i64,
+    /// UpdatedAt is the row update timestamp (ms).
+    #[prost(int64, tag="14")]
+    pub updated_at: i64,
+    /// ExpiresAt is the Unix timestamp (ms) when the invite expires.
+    #[prost(int64, tag="15")]
+    pub expires_at: i64,
+    /// DraftId is the optional targeted invite draft this invitation fulfilled.
+    #[prost(string, tag="16")]
+    pub draft_id: ::prost::alloc::string::String,
+}
+/// CreateTargetedInvitationRequest is the request for CreateTargetedInvitation.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CreateTargetedInvitationRequest {
+    /// TargetAccountId is the resolved target account id.
+    #[prost(string, tag="1")]
+    pub target_account_id: ::prost::alloc::string::String,
+    /// Purpose is the invite purpose.
+    #[prost(enumeration="TargetedInvitePurpose", tag="2")]
+    pub purpose: i32,
+    /// SpaceId is set when purpose is TARGETED_INVITE_PURPOSE_SPACE.
+    #[prost(string, tag="3")]
+    pub space_id: ::prost::alloc::string::String,
+    /// OrgId is set when purpose is TARGETED_INVITE_PURPOSE_ORGANIZATION.
+    #[prost(string, tag="4")]
+    pub org_id: ::prost::alloc::string::String,
+    /// Role is the requested role.
+    #[prost(string, tag="5")]
+    pub role: ::prost::alloc::string::String,
+    /// ExpiresAt is the Unix timestamp (ms) when the invite expires.
+    #[prost(int64, tag="6")]
+    pub expires_at: i64,
+    /// Envelope is the signed targeted invitation envelope.
+    #[prost(message, optional, tag="7")]
+    pub envelope: ::core::option::Option<TargetedInvitationEnvelope>,
+    /// DraftId is the optional targeted invite draft being fulfilled.
+    #[prost(string, tag="8")]
+    pub draft_id: ::prost::alloc::string::String,
+}
+/// CreateTargetedInvitationResponse is the response for
+/// CreateTargetedInvitation.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CreateTargetedInvitationResponse {
+    /// Invitation is the pending invitation row.
+    #[prost(message, optional, tag="1")]
+    pub invitation: ::core::option::Option<TargetedInvitationInfo>,
+}
+/// CreateSpaceTargetedInvitationByUsernameRequest creates a Space targeted
+/// invitation by exact username.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CreateSpaceTargetedInvitationByUsernameRequest {
+    /// Username is the exact Spacewave username being addressed.
+    #[prost(string, tag="1")]
+    pub username: ::prost::alloc::string::String,
+    /// SpaceId is the Space shared object id.
+    #[prost(string, tag="2")]
+    pub space_id: ::prost::alloc::string::String,
+    /// Role is the Space participant role string ("reader", "writer", etc.).
+    #[prost(string, tag="3")]
+    pub role: ::prost::alloc::string::String,
+    /// ExpiresAt is the Unix timestamp (ms) when the invite expires.
+    #[prost(int64, tag="4")]
+    pub expires_at: i64,
+}
+/// CreateSpaceTargetedInvitationByUsernameResponse returns the pending targeted
+/// invitation row.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CreateSpaceTargetedInvitationByUsernameResponse {
+    /// Invitation is the pending invitation row.
+    #[prost(message, optional, tag="1")]
+    pub invitation: ::core::option::Option<TargetedInvitationInfo>,
+}
+/// AcceptSpaceTargetedInvitationRequest accepts a pending Space targeted
+/// invitation through the mailbox-backed join path.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AcceptSpaceTargetedInvitationRequest {
+    /// Id is the targeted invitation ULID.
+    #[prost(string, tag="1")]
+    pub id: ::prost::alloc::string::String,
+}
+/// AcceptSpaceTargetedInvitationResponse returns the accepted invitation and
+/// immediate Space join outcome.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AcceptSpaceTargetedInvitationResponse {
+    /// Invitation is the updated invitation row.
+    #[prost(message, optional, tag="1")]
+    pub invitation: ::core::option::Option<TargetedInvitationInfo>,
+    /// SharedObjectId is the invited Space ID.
+    #[prost(string, tag="2")]
+    pub shared_object_id: ::prost::alloc::string::String,
+    /// JoinResult is accepted, pending_owner_approval, rejected, or
+    /// owner_must_be_online.
+    #[prost(string, tag="3")]
+    pub join_result: ::prost::alloc::string::String,
+}
+/// CreateOrganizationTargetedInvitationByUsernameRequest creates an
+/// organization targeted invitation by exact username.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CreateOrganizationTargetedInvitationByUsernameRequest {
+    /// Username is the exact Spacewave username being addressed.
+    #[prost(string, tag="1")]
+    pub username: ::prost::alloc::string::String,
+    /// OrgId is the organization id.
+    #[prost(string, tag="2")]
+    pub org_id: ::prost::alloc::string::String,
+    /// Role is the organization role string. The seed supports "org:member".
+    #[prost(string, tag="3")]
+    pub role: ::prost::alloc::string::String,
+    /// ExpiresAt is the Unix timestamp (ms) when the invite expires.
+    #[prost(int64, tag="4")]
+    pub expires_at: i64,
+}
+/// CreateOrganizationTargetedInvitationByUsernameResponse returns the pending
+/// targeted invitation row.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CreateOrganizationTargetedInvitationByUsernameResponse {
+    /// Invitation is the pending invitation row.
+    #[prost(message, optional, tag="1")]
+    pub invitation: ::core::option::Option<TargetedInvitationInfo>,
+}
+/// AcceptOrganizationTargetedInvitationRequest accepts a pending organization
+/// targeted invitation.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AcceptOrganizationTargetedInvitationRequest {
+    /// Id is the targeted invitation ULID.
+    #[prost(string, tag="1")]
+    pub id: ::prost::alloc::string::String,
+}
+/// AcceptOrganizationTargetedInvitationResponse returns the fulfilled
+/// invitation and resulting organization membership.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AcceptOrganizationTargetedInvitationResponse {
+    /// Invitation is the fulfilled invitation row.
+    #[prost(message, optional, tag="1")]
+    pub invitation: ::core::option::Option<TargetedInvitationInfo>,
+    /// Organization is the joined organization.
+    #[prost(message, optional, tag="2")]
+    pub organization: ::core::option::Option<OrganizationInfo>,
+}
+/// ListTargetedInvitationsRequest is the request for ListTargetedInvitations.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListTargetedInvitationsRequest {
+}
+/// ListTargetedInvitationsResponse is the response for
+/// ListTargetedInvitations.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListTargetedInvitationsResponse {
+    /// Invitations are invitations visible to the caller.
+    #[prost(message, repeated, tag="1")]
+    pub invitations: ::prost::alloc::vec::Vec<TargetedInvitationInfo>,
+}
+/// GetTargetedInvitationRequest is the request for GetTargetedInvitation.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetTargetedInvitationRequest {
+    /// Id is the invitation ULID.
+    #[prost(string, tag="1")]
+    pub id: ::prost::alloc::string::String,
+}
+/// GetTargetedInvitationResponse is the response for GetTargetedInvitation.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetTargetedInvitationResponse {
+    /// Invitation is the requested invitation.
+    #[prost(message, optional, tag="1")]
+    pub invitation: ::core::option::Option<TargetedInvitationInfo>,
+}
+/// RevokeTargetedInvitationRequest is the request for RevokeTargetedInvitation.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RevokeTargetedInvitationRequest {
+    /// Id is the invitation ULID.
+    #[prost(string, tag="1")]
+    pub id: ::prost::alloc::string::String,
+}
+/// RevokeTargetedInvitationResponse is the response for
+/// RevokeTargetedInvitation.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RevokeTargetedInvitationResponse {
+    /// Invitation is the revoked invitation.
+    #[prost(message, optional, tag="1")]
+    pub invitation: ::core::option::Option<TargetedInvitationInfo>,
+}
+/// ProcessTargetedInvitationRequest is the request for ProcessTargetedInvitation.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ProcessTargetedInvitationRequest {
+    /// Id is the invitation ULID.
+    #[prost(string, tag="1")]
+    pub id: ::prost::alloc::string::String,
+    /// Action is accept, decline, block, or report.
+    #[prost(string, tag="2")]
+    pub action: ::prost::alloc::string::String,
+}
+/// ProcessTargetedInvitationResponse is the response for
+/// ProcessTargetedInvitation.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ProcessTargetedInvitationResponse {
+    /// Invitation is the updated invitation.
+    #[prost(message, optional, tag="1")]
+    pub invitation: ::core::option::Option<TargetedInvitationInfo>,
+}
 /// CreateOrgInviteRequest is the request for CreateOrgInvite.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CreateOrgInviteRequest {
@@ -2520,6 +2888,40 @@ impl SelfEnrollmentGateState {
             "SELF_ENROLLMENT_GATE_STATE_AUTO_CONNECTING" => Some(Self::AutoConnecting),
             "SELF_ENROLLMENT_GATE_STATE_ACTION_REQUIRED" => Some(Self::ActionRequired),
             "SELF_ENROLLMENT_GATE_STATE_READY" => Some(Self::Ready),
+            _ => None,
+        }
+    }
+}
+/// TargetedInvitePurpose identifies what a targeted invite draft is for.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum TargetedInvitePurpose {
+    /// TARGETED_INVITE_PURPOSE_UNSPECIFIED means no purpose was supplied.
+    Unspecified = 0,
+    /// TARGETED_INVITE_PURPOSE_SPACE creates a draft for sharing a Space.
+    Space = 1,
+    /// TARGETED_INVITE_PURPOSE_ORGANIZATION creates a draft for inviting an
+    /// organization member.
+    Organization = 2,
+}
+impl TargetedInvitePurpose {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "TARGETED_INVITE_PURPOSE_UNSPECIFIED",
+            Self::Space => "TARGETED_INVITE_PURPOSE_SPACE",
+            Self::Organization => "TARGETED_INVITE_PURPOSE_ORGANIZATION",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "TARGETED_INVITE_PURPOSE_UNSPECIFIED" => Some(Self::Unspecified),
+            "TARGETED_INVITE_PURPOSE_SPACE" => Some(Self::Space),
+            "TARGETED_INVITE_PURPOSE_ORGANIZATION" => Some(Self::Organization),
             _ => None,
         }
     }

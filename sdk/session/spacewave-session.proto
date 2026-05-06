@@ -33,6 +33,18 @@ service SpacewaveSessionResourceService {
   rpc CreateOrganization(.s4wave.provider.spacewave.CreateOrganizationRequest) returns (.s4wave.provider.spacewave.CreateOrganizationResponse);
   rpc WatchOrganizationState(.s4wave.provider.spacewave.WatchOrganizationStateRequest) returns (stream .s4wave.provider.spacewave.WatchOrganizationStateResponse);
   rpc DeleteOrganization(.s4wave.provider.spacewave.DeleteOrganizationRequest) returns (.s4wave.provider.spacewave.DeleteOrganizationResponse);
+  rpc CreateTargetedInviteDraftByUsername(.s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest) returns (.s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameResponse);
+  rpc ResolveUsername(.s4wave.provider.spacewave.ResolveUsernameRequest) returns (.s4wave.provider.spacewave.ResolveUsernameResponse);
+  rpc CreateTargetedInvitation(.s4wave.provider.spacewave.CreateTargetedInvitationRequest) returns (.s4wave.provider.spacewave.CreateTargetedInvitationResponse);
+  rpc CreateSpaceTargetedInvitationByUsername(.s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest) returns (.s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameResponse);
+  rpc AcceptSpaceTargetedInvitation(.s4wave.provider.spacewave.AcceptSpaceTargetedInvitationRequest) returns (.s4wave.provider.spacewave.AcceptSpaceTargetedInvitationResponse);
+  rpc CreateOrganizationTargetedInvitationByUsername(.s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest) returns (.s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameResponse);
+  rpc AcceptOrganizationTargetedInvitation(.s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationRequest) returns (.s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationResponse);
+  rpc ListTargetedInvitations(.s4wave.provider.spacewave.ListTargetedInvitationsRequest) returns (.s4wave.provider.spacewave.ListTargetedInvitationsResponse);
+  rpc WatchTargetedInvitations(.s4wave.provider.spacewave.ListTargetedInvitationsRequest) returns (stream .s4wave.provider.spacewave.ListTargetedInvitationsResponse);
+  rpc GetTargetedInvitation(.s4wave.provider.spacewave.GetTargetedInvitationRequest) returns (.s4wave.provider.spacewave.GetTargetedInvitationResponse);
+  rpc RevokeTargetedInvitation(.s4wave.provider.spacewave.RevokeTargetedInvitationRequest) returns (.s4wave.provider.spacewave.RevokeTargetedInvitationResponse);
+  rpc ProcessTargetedInvitation(.s4wave.provider.spacewave.ProcessTargetedInvitationRequest) returns (.s4wave.provider.spacewave.ProcessTargetedInvitationResponse);
   rpc CreateOrgInvite(.s4wave.provider.spacewave.CreateOrgInviteRequest) returns (.s4wave.provider.spacewave.CreateOrgInviteResponse);
   rpc JoinOrganization(.s4wave.provider.spacewave.JoinOrganizationRequest) returns (.s4wave.provider.spacewave.JoinOrganizationResponse);
   rpc RevokeOrgInvite(.s4wave.provider.spacewave.RevokeOrgInviteRequest) returns (.s4wave.provider.spacewave.RevokeOrgInviteResponse);

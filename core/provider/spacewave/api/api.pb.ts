@@ -201,6 +201,45 @@ export const AccountLifecycleState_Enum = createEnumType(
 )
 
 /**
+ * TargetedInvitePurpose identifies what a targeted invite draft is for.
+ *
+ * @generated from enum provider.spacewave.api.TargetedInvitePurpose
+ */
+export enum TargetedInvitePurpose {
+  /**
+   * TARGETED_INVITE_PURPOSE_UNSPECIFIED means no purpose was supplied.
+   *
+   * @generated from enum value: TARGETED_INVITE_PURPOSE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * TARGETED_INVITE_PURPOSE_SPACE creates a draft for sharing a Space.
+   *
+   * @generated from enum value: TARGETED_INVITE_PURPOSE_SPACE = 1;
+   */
+  SPACE = 1,
+
+  /**
+   * TARGETED_INVITE_PURPOSE_ORGANIZATION creates a draft for inviting an
+   * organization member.
+   *
+   * @generated from enum value: TARGETED_INVITE_PURPOSE_ORGANIZATION = 2;
+   */
+  ORGANIZATION = 2,
+}
+
+// TargetedInvitePurpose_Enum is the enum type for TargetedInvitePurpose.
+export const TargetedInvitePurpose_Enum = createEnumType(
+  'provider.spacewave.api.TargetedInvitePurpose',
+  [
+    { no: 0, name: 'TARGETED_INVITE_PURPOSE_UNSPECIFIED' },
+    { no: 1, name: 'TARGETED_INVITE_PURPOSE_SPACE' },
+    { no: 2, name: 'TARGETED_INVITE_PURPOSE_ORGANIZATION' },
+  ],
+)
+
+/**
  * AccountAuthMethodKind identifies the account auth-method row type.
  *
  * @generated from enum provider.spacewave.api.AccountAuthMethodKind
@@ -1470,6 +1509,161 @@ export const MemberSessionChangedPayload: MessageType<MemberSessionChangedPayloa
   })
 
 /**
+ * TargetedInvitationEnvelope is the signed invite body carried through the
+ * recipient inbox and verified again during fulfillment.
+ *
+ * @generated from message provider.spacewave.api.TargetedInvitationEnvelope
+ */
+export interface TargetedInvitationEnvelope {
+  /**
+   * SchemaVersion identifies the envelope wire contract.
+   *
+   * @generated from field: uint32 schema_version = 1;
+   */
+  schemaVersion?: number
+  /**
+   * Purpose is the invite purpose bound into the signature.
+   *
+   * @generated from field: provider.spacewave.api.TargetedInvitePurpose purpose = 2;
+   */
+  purpose?: TargetedInvitePurpose
+  /**
+   * ContextId is the Space or organization id bound into the signature.
+   *
+   * @generated from field: string context_id = 3;
+   */
+  contextId?: string
+  /**
+   * ActorAccountId is the inviter account id.
+   *
+   * @generated from field: string actor_account_id = 4;
+   */
+  actorAccountId?: string
+  /**
+   * ActorEntityUuid is the inviter entity UUID or generation anchor.
+   *
+   * @generated from field: string actor_entity_uuid = 5;
+   */
+  actorEntityUuid?: string
+  /**
+   * ActorAccountEpoch is the inviter account epoch at create time.
+   *
+   * @generated from field: int64 actor_account_epoch = 16;
+   */
+  actorAccountEpoch?: bigint
+  /**
+   * SignerPeerId is the session peer that signed this envelope.
+   *
+   * @generated from field: string signer_peer_id = 6;
+   */
+  signerPeerId?: string
+  /**
+   * TargetAccountId is the resolved recipient account id.
+   *
+   * @generated from field: string target_account_id = 7;
+   */
+  targetAccountId?: string
+  /**
+   * TargetEntityId is the resolved recipient username.
+   *
+   * @generated from field: string target_entity_id = 8;
+   */
+  targetEntityId?: string
+  /**
+   * TargetEntityUuid is the resolved recipient entity UUID.
+   *
+   * @generated from field: string target_entity_uuid = 9;
+   */
+  targetEntityUuid?: string
+  /**
+   * TargetAccountEpoch is the resolved recipient account epoch.
+   *
+   * @generated from field: int64 target_account_epoch = 10;
+   */
+  targetAccountEpoch?: bigint
+  /**
+   * Role is the purpose-specific role requested by the inviter.
+   *
+   * @generated from field: string role = 11;
+   */
+  role?: string
+  /**
+   * ExpiresAt is the Unix timestamp (ms) when the invite expires.
+   *
+   * @generated from field: int64 expires_at = 12;
+   */
+  expiresAt?: bigint
+  /**
+   * Nonce is fresh caller-provided entropy for replay protection.
+   *
+   * @generated from field: bytes nonce = 13;
+   */
+  nonce?: Uint8Array
+  /**
+   * Payload is the purpose-specific signed payload.
+   *
+   * @generated from field: bytes payload = 14;
+   */
+  payload?: Uint8Array
+  /**
+   * Signature is the signature over this envelope's canonical body.
+   *
+   * @generated from field: bytes signature = 15;
+   */
+  signature?: Uint8Array
+}
+
+// TargetedInvitationEnvelope contains the message type declaration for TargetedInvitationEnvelope.
+export const TargetedInvitationEnvelope: MessageType<TargetedInvitationEnvelope> =
+  createMessageType({
+    typeName: 'provider.spacewave.api.TargetedInvitationEnvelope',
+    fields: [
+      { no: 1, name: 'schema_version', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 2, name: 'purpose', kind: 'enum', T: TargetedInvitePurpose_Enum },
+      { no: 3, name: 'context_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'actor_account_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 5,
+        name: 'actor_entity_uuid',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 16,
+        name: 'actor_account_epoch',
+        kind: 'scalar',
+        T: ScalarType.INT64,
+      },
+      { no: 6, name: 'signer_peer_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 7,
+        name: 'target_account_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 8, name: 'target_entity_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 9,
+        name: 'target_entity_uuid',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 10,
+        name: 'target_account_epoch',
+        kind: 'scalar',
+        T: ScalarType.INT64,
+      },
+      { no: 11, name: 'role', kind: 'scalar', T: ScalarType.STRING },
+      { no: 12, name: 'expires_at', kind: 'scalar', T: ScalarType.INT64 },
+      { no: 13, name: 'nonce', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 14, name: 'payload', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 15, name: 'signature', kind: 'scalar', T: ScalarType.BYTES },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * MailboxEntry is a single mailbox entry.
  *
  * @generated from message provider.spacewave.api.MailboxEntry
@@ -1523,6 +1717,13 @@ export interface MailboxEntry {
    * @generated from field: string entity_id = 8;
    */
   entityId?: string
+  /**
+   * TargetedEnvelope is the optional signed targeted invitation proof for
+   * username-addressed invites.
+   *
+   * @generated from field: provider.spacewave.api.TargetedInvitationEnvelope targeted_envelope = 9;
+   */
+  targetedEnvelope?: TargetedInvitationEnvelope
 }
 
 // MailboxEntry contains the message type declaration for MailboxEntry.
@@ -1537,6 +1738,12 @@ export const MailboxEntry: MessageType<MailboxEntry> = createMessageType({
     { no: 6, name: 'created_at', kind: 'scalar', T: ScalarType.INT64 },
     { no: 7, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 8, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
+    {
+      no: 9,
+      name: 'targeted_envelope',
+      kind: 'message',
+      T: () => TargetedInvitationEnvelope,
+    },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -3146,6 +3353,711 @@ export const CreateOrgRequest: MessageType<CreateOrgRequest> =
   })
 
 /**
+ * CreateTargetedInviteDraftByUsernameRequest is the request body for POST
+ * /account/targeted-invite/draft/by-username.
+ *
+ * @generated from message provider.spacewave.api.CreateTargetedInviteDraftByUsernameRequest
+ */
+export interface CreateTargetedInviteDraftByUsernameRequest {
+  /**
+   * Username is the exact Spacewave username being addressed.
+   *
+   * @generated from field: string username = 1;
+   */
+  username?: string
+  /**
+   * Purpose is the invite purpose.
+   *
+   * @generated from field: provider.spacewave.api.TargetedInvitePurpose purpose = 2;
+   */
+  purpose?: TargetedInvitePurpose
+  /**
+   * SpaceId is set when purpose is TARGETED_INVITE_PURPOSE_SPACE.
+   *
+   * @generated from field: string space_id = 3;
+   */
+  spaceId?: string
+  /**
+   * OrgId is set when purpose is TARGETED_INVITE_PURPOSE_ORGANIZATION.
+   *
+   * @generated from field: string org_id = 4;
+   */
+  orgId?: string
+  /**
+   * Role is the requested role for the eventual invite.
+   *
+   * @generated from field: string role = 5;
+   */
+  role?: string
+  /**
+   * ExpiresAt is the Unix timestamp (ms) when the draft should expire.
+   *
+   * @generated from field: int64 expires_at = 6;
+   */
+  expiresAt?: bigint
+}
+
+// CreateTargetedInviteDraftByUsernameRequest contains the message type declaration for CreateTargetedInviteDraftByUsernameRequest.
+export const CreateTargetedInviteDraftByUsernameRequest: MessageType<CreateTargetedInviteDraftByUsernameRequest> =
+  createMessageType({
+    typeName:
+      'provider.spacewave.api.CreateTargetedInviteDraftByUsernameRequest',
+    fields: [
+      { no: 1, name: 'username', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'purpose', kind: 'enum', T: TargetedInvitePurpose_Enum },
+      { no: 3, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'org_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'role', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'expires_at', kind: 'scalar', T: ScalarType.INT64 },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * CreateTargetedInviteDraftByUsernameResponse is the response body for POST
+ * /account/targeted-invite/draft/by-username.
+ *
+ * @generated from message provider.spacewave.api.CreateTargetedInviteDraftByUsernameResponse
+ */
+export interface CreateTargetedInviteDraftByUsernameResponse {
+  /**
+   * Accepted is always true for syntactically valid requests. The response does
+   * not reveal whether the username matched a deliverable account.
+   *
+   * @generated from field: bool accepted = 1;
+   */
+  accepted?: boolean
+}
+
+// CreateTargetedInviteDraftByUsernameResponse contains the message type declaration for CreateTargetedInviteDraftByUsernameResponse.
+export const CreateTargetedInviteDraftByUsernameResponse: MessageType<CreateTargetedInviteDraftByUsernameResponse> =
+  createMessageType({
+    typeName:
+      'provider.spacewave.api.CreateTargetedInviteDraftByUsernameResponse',
+    fields: [
+      { no: 1, name: 'accepted', kind: 'scalar', T: ScalarType.BOOL },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ResolveUsernameRequest is the request body for POST /account/username/resolve.
+ *
+ * @generated from message provider.spacewave.api.ResolveUsernameRequest
+ */
+export interface ResolveUsernameRequest {
+  /**
+   * Username is the exact Spacewave username being addressed.
+   *
+   * @generated from field: string username = 1;
+   */
+  username?: string
+  /**
+   * Purpose is the resolution purpose.
+   *
+   * @generated from field: provider.spacewave.api.TargetedInvitePurpose purpose = 2;
+   */
+  purpose?: TargetedInvitePurpose
+  /**
+   * SpaceId is set when purpose is TARGETED_INVITE_PURPOSE_SPACE.
+   *
+   * @generated from field: string space_id = 3;
+   */
+  spaceId?: string
+  /**
+   * OrgId is set when purpose is TARGETED_INVITE_PURPOSE_ORGANIZATION.
+   *
+   * @generated from field: string org_id = 4;
+   */
+  orgId?: string
+}
+
+// ResolveUsernameRequest contains the message type declaration for ResolveUsernameRequest.
+export const ResolveUsernameRequest: MessageType<ResolveUsernameRequest> =
+  createMessageType({
+    typeName: 'provider.spacewave.api.ResolveUsernameRequest',
+    fields: [
+      { no: 1, name: 'username', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'purpose', kind: 'enum', T: TargetedInvitePurpose_Enum },
+      { no: 3, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'org_id', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ResolveUsernameResponse is the response body for POST
+ * /account/username/resolve.
+ *
+ * @generated from message provider.spacewave.api.ResolveUsernameResponse
+ */
+export interface ResolveUsernameResponse {
+  /**
+   * Found is true only when AccountId is populated.
+   *
+   * @generated from field: bool found = 1;
+   */
+  found?: boolean
+  /**
+   * AccountId is the resolved target account id when the actor may see it.
+   *
+   * @generated from field: string account_id = 2;
+   */
+  accountId?: string
+  /**
+   * EntityId is the canonical username when AccountId is populated.
+   *
+   * @generated from field: string entity_id = 3;
+   */
+  entityId?: string
+  /**
+   * DomainId is the target provider domain when AccountId is populated.
+   *
+   * @generated from field: string domain_id = 4;
+   */
+  domainId?: string
+  /**
+   * Relationship is self, org_member, space_member, or none.
+   *
+   * @generated from field: string relationship = 5;
+   */
+  relationship?: string
+  /**
+   * CanInvite reports whether the target privacy policy permits addressing.
+   *
+   * @generated from field: bool can_invite = 6;
+   */
+  canInvite?: boolean
+  /**
+   * EntityUuid is the stable target entity generation when Found is true.
+   *
+   * @generated from field: string entity_uuid = 7;
+   */
+  entityUuid?: string
+  /**
+   * AccountEpoch is the target account epoch when Found is true.
+   *
+   * @generated from field: int64 account_epoch = 8;
+   */
+  accountEpoch?: bigint
+}
+
+// ResolveUsernameResponse contains the message type declaration for ResolveUsernameResponse.
+export const ResolveUsernameResponse: MessageType<ResolveUsernameResponse> =
+  createMessageType({
+    typeName: 'provider.spacewave.api.ResolveUsernameResponse',
+    fields: [
+      { no: 1, name: 'found', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 2, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'domain_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'relationship', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'can_invite', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 7, name: 'entity_uuid', kind: 'scalar', T: ScalarType.STRING },
+      { no: 8, name: 'account_epoch', kind: 'scalar', T: ScalarType.INT64 },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * TargetedInvitationInfo is a recipient inbox row.
+ *
+ * @generated from message provider.spacewave.api.TargetedInvitationInfo
+ */
+export interface TargetedInvitationInfo {
+  /**
+   * Id is the invitation ULID.
+   *
+   * @generated from field: string id = 1;
+   */
+  id?: string
+  /**
+   * ActorAccountId is the inviter account id.
+   *
+   * @generated from field: string actor_account_id = 2;
+   */
+  actorAccountId?: string
+  /**
+   * TargetAccountId is the recipient account id.
+   *
+   * @generated from field: string target_account_id = 3;
+   */
+  targetAccountId?: string
+  /**
+   * TargetEntityId is the recipient username captured at create time.
+   *
+   * @generated from field: string target_entity_id = 4;
+   */
+  targetEntityId?: string
+  /**
+   * TargetEntityUuid is the recipient entity UUID captured at create time.
+   *
+   * @generated from field: string target_entity_uuid = 5;
+   */
+  targetEntityUuid?: string
+  /**
+   * TargetAccountEpoch is the recipient account epoch captured at create time.
+   *
+   * @generated from field: int64 target_account_epoch = 6;
+   */
+  targetAccountEpoch?: bigint
+  /**
+   * Purpose is the invite purpose.
+   *
+   * @generated from field: provider.spacewave.api.TargetedInvitePurpose purpose = 7;
+   */
+  purpose?: TargetedInvitePurpose
+  /**
+   * ContextId is the Space or organization id.
+   *
+   * @generated from field: string context_id = 8;
+   */
+  contextId?: string
+  /**
+   * Role is the requested role.
+   *
+   * @generated from field: string role = 9;
+   */
+  role?: string
+  /**
+   * Status is pending, revoked, accepted, declined, expired, or failed.
+   *
+   * @generated from field: string status = 10;
+   */
+  status?: string
+  /**
+   * EnvelopeHash is the lowercase hex SHA-256 hash of Envelope bytes.
+   *
+   * @generated from field: string envelope_hash = 11;
+   */
+  envelopeHash?: string
+  /**
+   * Envelope is the signed envelope bytes for recipient-side verification.
+   *
+   * @generated from field: provider.spacewave.api.TargetedInvitationEnvelope envelope = 12;
+   */
+  envelope?: TargetedInvitationEnvelope
+  /**
+   * CreatedAt is the row creation timestamp (ms).
+   *
+   * @generated from field: int64 created_at = 13;
+   */
+  createdAt?: bigint
+  /**
+   * UpdatedAt is the row update timestamp (ms).
+   *
+   * @generated from field: int64 updated_at = 14;
+   */
+  updatedAt?: bigint
+  /**
+   * ExpiresAt is the Unix timestamp (ms) when the invite expires.
+   *
+   * @generated from field: int64 expires_at = 15;
+   */
+  expiresAt?: bigint
+  /**
+   * DraftId is the optional targeted invite draft this invitation fulfilled.
+   *
+   * @generated from field: string draft_id = 16;
+   */
+  draftId?: string
+}
+
+// TargetedInvitationInfo contains the message type declaration for TargetedInvitationInfo.
+export const TargetedInvitationInfo: MessageType<TargetedInvitationInfo> =
+  createMessageType({
+    typeName: 'provider.spacewave.api.TargetedInvitationInfo',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'actor_account_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'target_account_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 4, name: 'target_entity_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 5,
+        name: 'target_entity_uuid',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 6,
+        name: 'target_account_epoch',
+        kind: 'scalar',
+        T: ScalarType.INT64,
+      },
+      { no: 7, name: 'purpose', kind: 'enum', T: TargetedInvitePurpose_Enum },
+      { no: 8, name: 'context_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 9, name: 'role', kind: 'scalar', T: ScalarType.STRING },
+      { no: 10, name: 'status', kind: 'scalar', T: ScalarType.STRING },
+      { no: 11, name: 'envelope_hash', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 12,
+        name: 'envelope',
+        kind: 'message',
+        T: () => TargetedInvitationEnvelope,
+      },
+      { no: 13, name: 'created_at', kind: 'scalar', T: ScalarType.INT64 },
+      { no: 14, name: 'updated_at', kind: 'scalar', T: ScalarType.INT64 },
+      { no: 15, name: 'expires_at', kind: 'scalar', T: ScalarType.INT64 },
+      { no: 16, name: 'draft_id', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * CreateTargetedInvitationRequest creates a pending targeted invitation.
+ *
+ * @generated from message provider.spacewave.api.CreateTargetedInvitationRequest
+ */
+export interface CreateTargetedInvitationRequest {
+  /**
+   * TargetAccountId is the resolved target account id.
+   *
+   * @generated from field: string target_account_id = 1;
+   */
+  targetAccountId?: string
+  /**
+   * Purpose is the invite purpose.
+   *
+   * @generated from field: provider.spacewave.api.TargetedInvitePurpose purpose = 2;
+   */
+  purpose?: TargetedInvitePurpose
+  /**
+   * SpaceId is set when purpose is TARGETED_INVITE_PURPOSE_SPACE.
+   *
+   * @generated from field: string space_id = 3;
+   */
+  spaceId?: string
+  /**
+   * OrgId is set when purpose is TARGETED_INVITE_PURPOSE_ORGANIZATION.
+   *
+   * @generated from field: string org_id = 4;
+   */
+  orgId?: string
+  /**
+   * Role is the requested role.
+   *
+   * @generated from field: string role = 5;
+   */
+  role?: string
+  /**
+   * ExpiresAt is the Unix timestamp (ms) when the invite expires.
+   *
+   * @generated from field: int64 expires_at = 6;
+   */
+  expiresAt?: bigint
+  /**
+   * Envelope is the signed targeted invitation envelope.
+   *
+   * @generated from field: provider.spacewave.api.TargetedInvitationEnvelope envelope = 7;
+   */
+  envelope?: TargetedInvitationEnvelope
+  /**
+   * DraftId is the optional targeted invite draft being fulfilled.
+   *
+   * @generated from field: string draft_id = 8;
+   */
+  draftId?: string
+}
+
+// CreateTargetedInvitationRequest contains the message type declaration for CreateTargetedInvitationRequest.
+export const CreateTargetedInvitationRequest: MessageType<CreateTargetedInvitationRequest> =
+  createMessageType({
+    typeName: 'provider.spacewave.api.CreateTargetedInvitationRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'target_account_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 2, name: 'purpose', kind: 'enum', T: TargetedInvitePurpose_Enum },
+      { no: 3, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'org_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'role', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'expires_at', kind: 'scalar', T: ScalarType.INT64 },
+      {
+        no: 7,
+        name: 'envelope',
+        kind: 'message',
+        T: () => TargetedInvitationEnvelope,
+      },
+      { no: 8, name: 'draft_id', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * CreateTargetedInvitationResponse is the create response.
+ *
+ * @generated from message provider.spacewave.api.CreateTargetedInvitationResponse
+ */
+export interface CreateTargetedInvitationResponse {
+  /**
+   * Invitation is the pending invitation row.
+   *
+   * @generated from field: provider.spacewave.api.TargetedInvitationInfo invitation = 1;
+   */
+  invitation?: TargetedInvitationInfo
+}
+
+// CreateTargetedInvitationResponse contains the message type declaration for CreateTargetedInvitationResponse.
+export const CreateTargetedInvitationResponse: MessageType<CreateTargetedInvitationResponse> =
+  createMessageType({
+    typeName: 'provider.spacewave.api.CreateTargetedInvitationResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'invitation',
+        kind: 'message',
+        T: () => TargetedInvitationInfo,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ListTargetedInvitationsRequest lists recipient inbox invitations.
+ *
+ * @generated from message provider.spacewave.api.ListTargetedInvitationsRequest
+ */
+export interface ListTargetedInvitationsRequest {}
+
+// ListTargetedInvitationsRequest contains the message type declaration for ListTargetedInvitationsRequest.
+export const ListTargetedInvitationsRequest: MessageType<ListTargetedInvitationsRequest> =
+  createMessageType({
+    typeName: 'provider.spacewave.api.ListTargetedInvitationsRequest',
+    fields: [] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ListTargetedInvitationsResponse lists recipient inbox invitations.
+ *
+ * @generated from message provider.spacewave.api.ListTargetedInvitationsResponse
+ */
+export interface ListTargetedInvitationsResponse {
+  /**
+   * Invitations are invitations visible to the caller.
+   *
+   * @generated from field: repeated provider.spacewave.api.TargetedInvitationInfo invitations = 1;
+   */
+  invitations?: TargetedInvitationInfo[]
+}
+
+// ListTargetedInvitationsResponse contains the message type declaration for ListTargetedInvitationsResponse.
+export const ListTargetedInvitationsResponse: MessageType<ListTargetedInvitationsResponse> =
+  createMessageType({
+    typeName: 'provider.spacewave.api.ListTargetedInvitationsResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'invitations',
+        kind: 'message',
+        T: () => TargetedInvitationInfo,
+        repeated: true,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * GetTargetedInvitationRequest reads one invitation.
+ *
+ * @generated from message provider.spacewave.api.GetTargetedInvitationRequest
+ */
+export interface GetTargetedInvitationRequest {
+  /**
+   * Id is the invitation ULID.
+   *
+   * @generated from field: string id = 1;
+   */
+  id?: string
+}
+
+// GetTargetedInvitationRequest contains the message type declaration for GetTargetedInvitationRequest.
+export const GetTargetedInvitationRequest: MessageType<GetTargetedInvitationRequest> =
+  createMessageType({
+    typeName: 'provider.spacewave.api.GetTargetedInvitationRequest',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * GetTargetedInvitationResponse returns one invitation.
+ *
+ * @generated from message provider.spacewave.api.GetTargetedInvitationResponse
+ */
+export interface GetTargetedInvitationResponse {
+  /**
+   * Invitation is the requested invitation.
+   *
+   * @generated from field: provider.spacewave.api.TargetedInvitationInfo invitation = 1;
+   */
+  invitation?: TargetedInvitationInfo
+}
+
+// GetTargetedInvitationResponse contains the message type declaration for GetTargetedInvitationResponse.
+export const GetTargetedInvitationResponse: MessageType<GetTargetedInvitationResponse> =
+  createMessageType({
+    typeName: 'provider.spacewave.api.GetTargetedInvitationResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'invitation',
+        kind: 'message',
+        T: () => TargetedInvitationInfo,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * RevokeTargetedInvitationRequest revokes one pending invitation.
+ *
+ * @generated from message provider.spacewave.api.RevokeTargetedInvitationRequest
+ */
+export interface RevokeTargetedInvitationRequest {
+  /**
+   * Id is the invitation ULID.
+   *
+   * @generated from field: string id = 1;
+   */
+  id?: string
+}
+
+// RevokeTargetedInvitationRequest contains the message type declaration for RevokeTargetedInvitationRequest.
+export const RevokeTargetedInvitationRequest: MessageType<RevokeTargetedInvitationRequest> =
+  createMessageType({
+    typeName: 'provider.spacewave.api.RevokeTargetedInvitationRequest',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * RevokeTargetedInvitationResponse returns the revoked invitation.
+ *
+ * @generated from message provider.spacewave.api.RevokeTargetedInvitationResponse
+ */
+export interface RevokeTargetedInvitationResponse {
+  /**
+   * Invitation is the revoked invitation.
+   *
+   * @generated from field: provider.spacewave.api.TargetedInvitationInfo invitation = 1;
+   */
+  invitation?: TargetedInvitationInfo
+}
+
+// RevokeTargetedInvitationResponse contains the message type declaration for RevokeTargetedInvitationResponse.
+export const RevokeTargetedInvitationResponse: MessageType<RevokeTargetedInvitationResponse> =
+  createMessageType({
+    typeName: 'provider.spacewave.api.RevokeTargetedInvitationResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'invitation',
+        kind: 'message',
+        T: () => TargetedInvitationInfo,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ProcessTargetedInvitationRequest applies a recipient lifecycle action.
+ *
+ * @generated from message provider.spacewave.api.ProcessTargetedInvitationRequest
+ */
+export interface ProcessTargetedInvitationRequest {
+  /**
+   * Id is the invitation ULID.
+   *
+   * @generated from field: string id = 1;
+   */
+  id?: string
+  /**
+   * Action is accept, decline, block, or report.
+   *
+   * @generated from field: string action = 2;
+   */
+  action?: string
+}
+
+// ProcessTargetedInvitationRequest contains the message type declaration for ProcessTargetedInvitationRequest.
+export const ProcessTargetedInvitationRequest: MessageType<ProcessTargetedInvitationRequest> =
+  createMessageType({
+    typeName: 'provider.spacewave.api.ProcessTargetedInvitationRequest',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'action', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ProcessTargetedInvitationResponse returns the updated invitation.
+ *
+ * @generated from message provider.spacewave.api.ProcessTargetedInvitationResponse
+ */
+export interface ProcessTargetedInvitationResponse {
+  /**
+   * Invitation is the updated invitation.
+   *
+   * @generated from field: provider.spacewave.api.TargetedInvitationInfo invitation = 1;
+   */
+  invitation?: TargetedInvitationInfo
+}
+
+// ProcessTargetedInvitationResponse contains the message type declaration for ProcessTargetedInvitationResponse.
+export const ProcessTargetedInvitationResponse: MessageType<ProcessTargetedInvitationResponse> =
+  createMessageType({
+    typeName: 'provider.spacewave.api.ProcessTargetedInvitationResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'invitation',
+        kind: 'message',
+        T: () => TargetedInvitationInfo,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * AcceptTargetedOrganizationInvitationRequest fulfills a pending organization
+ * targeted invitation for the authenticated recipient.
+ *
+ * @generated from message provider.spacewave.api.AcceptTargetedOrganizationInvitationRequest
+ */
+export interface AcceptTargetedOrganizationInvitationRequest {
+  /**
+   * Id is the targeted invitation ULID.
+   *
+   * @generated from field: string id = 1;
+   */
+  id?: string
+}
+
+// AcceptTargetedOrganizationInvitationRequest contains the message type declaration for AcceptTargetedOrganizationInvitationRequest.
+export const AcceptTargetedOrganizationInvitationRequest: MessageType<AcceptTargetedOrganizationInvitationRequest> =
+  createMessageType({
+    typeName:
+      'provider.spacewave.api.AcceptTargetedOrganizationInvitationRequest',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * OrgResponse is a shared response for organization create/join operations.
  *
  * @generated from message provider.spacewave.api.OrgResponse
@@ -3194,6 +4106,44 @@ export const OrgResponse: MessageType<OrgResponse> = createMessageType({
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
+
+/**
+ * AcceptTargetedOrganizationInvitationResponse returns the fulfilled
+ * invitation and resulting organization membership.
+ *
+ * @generated from message provider.spacewave.api.AcceptTargetedOrganizationInvitationResponse
+ */
+export interface AcceptTargetedOrganizationInvitationResponse {
+  /**
+   * Invitation is the fulfilled invitation row.
+   *
+   * @generated from field: provider.spacewave.api.TargetedInvitationInfo invitation = 1;
+   */
+  invitation?: TargetedInvitationInfo
+  /**
+   * Organization is the joined organization.
+   *
+   * @generated from field: provider.spacewave.api.OrgResponse organization = 2;
+   */
+  organization?: OrgResponse
+}
+
+// AcceptTargetedOrganizationInvitationResponse contains the message type declaration for AcceptTargetedOrganizationInvitationResponse.
+export const AcceptTargetedOrganizationInvitationResponse: MessageType<AcceptTargetedOrganizationInvitationResponse> =
+  createMessageType({
+    typeName:
+      'provider.spacewave.api.AcceptTargetedOrganizationInvitationResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'invitation',
+        kind: 'message',
+        T: () => TargetedInvitationInfo,
+      },
+      { no: 2, name: 'organization', kind: 'message', T: () => OrgResponse },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * CreateOrgInviteRequest is the request body for POST /org/:id/invite.
@@ -4216,6 +5166,12 @@ export interface AccountInfoResponse {
    * @generated from field: int64 deleted_at = 12;
    */
   deletedAt?: bigint
+  /**
+   * EntityUuid is the stable entity generation for this account.
+   *
+   * @generated from field: string entity_uuid = 13;
+   */
+  entityUuid?: string
 }
 
 // AccountInfoResponse contains the message type declaration for AccountInfoResponse.
@@ -4255,6 +5211,7 @@ export const AccountInfoResponse: MessageType<AccountInfoResponse> =
         T: ScalarType.INT64,
       },
       { no: 12, name: 'deleted_at', kind: 'scalar', T: ScalarType.INT64 },
+      { no: 13, name: 'entity_uuid', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -7837,6 +8794,13 @@ export interface SubmitMailboxEntryRequest {
    * @generated from field: sobject.SOJoinResponse join_response = 3;
    */
   joinResponse?: SOJoinResponse
+  /**
+   * TargetedEnvelope is the optional signed targeted invitation proof for
+   * username-addressed invites.
+   *
+   * @generated from field: provider.spacewave.api.TargetedInvitationEnvelope targeted_envelope = 4;
+   */
+  targetedEnvelope?: TargetedInvitationEnvelope
 }
 
 // SubmitMailboxEntryRequest contains the message type declaration for SubmitMailboxEntryRequest.
@@ -7851,6 +8815,12 @@ export const SubmitMailboxEntryRequest: MessageType<SubmitMailboxEntryRequest> =
         name: 'join_response',
         kind: 'message',
         T: () => SOJoinResponse,
+      },
+      {
+        no: 4,
+        name: 'targeted_envelope',
+        kind: 'message',
+        T: () => TargetedInvitationEnvelope,
       },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
