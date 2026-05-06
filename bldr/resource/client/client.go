@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/bldr/resource"
+	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 )
 
 // ResourceRef is a reference to a remote resource.
@@ -371,6 +372,44 @@ func (c *Client) DetachResource(ctx context.Context, resourceID uint32) error {
 	return nil
 }
 
+type attachedResourceOwner struct {
+	client *Client
+}
+
+func (o *attachedResourceOwner) Context() context.Context {
+	return o.client.ctx
+}
+
+func (o *attachedResourceOwner) AddResource(mux srpc.Invoker, releaseFn func()) (uint32, error) {
+	return o.AddResourceValue(mux, nil, releaseFn)
+}
+
+func (o *attachedResourceOwner) AddResourceValue(mux srpc.Invoker, _ any, releaseFn func()) (uint32, error) {
+	resourceID, err := o.client.AttachResource(o.client.ctx, "attached-child", mux)
+	if err != nil {
+		return 0, err
+	}
+	if releaseFn != nil {
+		go func() {
+			<-o.client.ctx.Done()
+			releaseFn()
+		}()
+	}
+	return resourceID, nil
+}
+
+func (o *attachedResourceOwner) ReleaseResource(resourceID uint32) bool {
+	return o.client.DetachResource(o.client.ctx, resourceID) == nil
+}
+
+func (o *attachedResourceOwner) GetResourceValue(resourceID uint32) (any, error) {
+	return nil, resource.ErrResourceNotFound
+}
+
+func (o *attachedResourceOwner) GetAttachedResource(id uint32) (srpc.Client, error) {
+	return nil, resource.ErrResourceNotFound
+}
+
 // ensureAttachSession opens the ResourceAttach stream if not already open.
 func (c *Client) ensureAttachSession() (*attachSession, error) {
 	for {
@@ -445,7 +484,10 @@ func (c *Client) openAttachSession() (*attachSession, error) {
 		return nil, errors.New(ack.GetError())
 	}
 
-	router := resource.NewRoutedInvoker()
+	owner := &attachedResourceOwner{client: c}
+	router := resource.NewRoutedInvokerWithContext(func(ctx context.Context, _ uint32) context.Context {
+		return resource_server.WithResourceClientContext(ctx, owner)
+	})
 	sess := &attachSession{
 		ctx:     c.ctx,
 		strm:    strm,

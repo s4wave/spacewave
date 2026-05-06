@@ -251,6 +251,7 @@ interface AttachSession {
     {
       resolve: (resourceId: number) => void
       reject: (err: Error) => void
+      canceled?: boolean
     }
   >
 }
@@ -283,6 +284,7 @@ export class Client {
   private _connectionGeneration = 0
   private _reconnectResolve: ((state: ClientInitState) => void) | null = null
   private attachSession: AttachSession | null = null
+  private attachSessionInitPromise: Promise<AttachSession> | null = null
 
   constructor(
     public readonly service: ResourceService,
@@ -357,7 +359,10 @@ export class Client {
         const resultPromise = new Promise<number>((resolve, reject) => {
           sess.pending.set(attachId, { resolve, reject })
           signal?.addEventListener('abort', () => {
-            sess.pending.delete(attachId)
+            const pending = sess.pending.get(attachId)
+            if (pending) {
+              pending.canceled = true
+            }
             reject(new Error('aborted'))
           }, { once: true })
         })
@@ -417,6 +422,17 @@ export class Client {
   private async ensureAttachSession(
   ): Promise<AttachSession> {
     if (this.attachSession) return this.attachSession
+    if (this.attachSessionInitPromise) return this.attachSessionInitPromise
+
+    this.attachSessionInitPromise = this.openAttachSession()
+      .finally(() => {
+        this.attachSessionInitPromise = null
+      })
+    return this.attachSessionInitPromise
+  }
+
+  // openAttachSession opens the ResourceAttach bidi stream.
+  private async openAttachSession(): Promise<AttachSession> {
     const state = await this.ensureInitialized()
     const controller = createAbortController(this.signal)
 
@@ -505,14 +521,27 @@ export class Client {
           yield body.value
         } else if (body?.case === 'addAck') {
           const addAck = body.value
+          const attachId = addAck.attachId ?? 0
+          const pending = sess.pending.get(attachId)
+          sess.pending.delete(attachId)
+          if (!pending) {
+            continue
+          }
+          if (pending.canceled) {
+            if (!addAck.error) {
+              outgoing.push({
+                body: {
+                  case: 'detach' as const,
+                  value: { resourceId: addAck.resourceId ?? 0 },
+                },
+              })
+            }
+            continue
+          }
           if (!addAck.error) {
-            const pending = sess.pending.get(addAck.attachId ?? 0)
-            sess.pending.delete(addAck.attachId ?? 0)
-            pending?.resolve(addAck.resourceId ?? 0)
+            pending.resolve(addAck.resourceId ?? 0)
           } else {
-            const pending = sess.pending.get(addAck.attachId ?? 0)
-            sess.pending.delete(addAck.attachId ?? 0)
-            pending?.reject(new Error(addAck.error))
+            pending.reject(new Error(addAck.error))
           }
         }
         // detachAck: no action needed.

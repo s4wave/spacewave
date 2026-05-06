@@ -40,13 +40,23 @@ func (c *routedClient) NewStream(ctx context.Context, service, method string, fi
 // resource ID prefix from the service ID. Used by the client to route
 // incoming yamux sub-stream RPCs to the right attached resource.
 type RoutedInvoker struct {
-	mu    sync.Mutex
-	muxes map[uint32]srpc.Invoker
+	mu        sync.Mutex
+	muxes     map[uint32]srpc.Invoker
+	contextFn func(context.Context, uint32) context.Context
 }
 
 // NewRoutedInvoker creates a new RoutedInvoker.
 func NewRoutedInvoker() *RoutedInvoker {
 	return &RoutedInvoker{muxes: make(map[uint32]srpc.Invoker)}
+}
+
+// NewRoutedInvokerWithContext creates a RoutedInvoker that can replace the
+// stream context before invoking a routed mux.
+func NewRoutedInvokerWithContext(contextFn func(context.Context, uint32) context.Context) *RoutedInvoker {
+	return &RoutedInvoker{
+		muxes:     make(map[uint32]srpc.Invoker),
+		contextFn: contextFn,
+	}
 }
 
 // SetMux registers or replaces a mux for a resource ID.
@@ -75,9 +85,13 @@ func (r *RoutedInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Strea
 	}
 	r.mu.Lock()
 	mux := r.muxes[uint32(id)]
+	contextFn := r.contextFn
 	r.mu.Unlock()
 	if mux == nil {
 		return false, ErrResourceNotFound
+	}
+	if contextFn != nil {
+		strm = srpc.NewStreamWithContext(strm, contextFn(strm.Context(), uint32(id)))
 	}
 	return mux.InvokeMethod(rest, methodID, strm)
 }

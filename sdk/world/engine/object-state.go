@@ -14,14 +14,14 @@ import (
 // SDKObjectState implements world.ObjectState over SRPC by delegating to
 // ObjectStateResourceService calls on a remote resource.
 type SDKObjectState struct {
-	client    *resource_client.Client
+	client    ResourceClient
 	ref       resource_client.ResourceRef
 	service   s4wave_world.SRPCObjectStateResourceServiceClient
 	objectKey string
 }
 
 // NewSDKObjectState creates a new SDKObjectState wrapping a resource reference.
-func NewSDKObjectState(client *resource_client.Client, ref resource_client.ResourceRef, objectKey string) (*SDKObjectState, error) {
+func NewSDKObjectState(client ResourceClient, ref resource_client.ResourceRef, objectKey string) (*SDKObjectState, error) {
 	srpcClient, err := ref.GetClient()
 	if err != nil {
 		return nil, err

@@ -3,12 +3,26 @@ package resource_server
 import (
 	"context"
 
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/bldr/resource"
 )
 
 // ResourceClientContext is the value attached to a Context containing
 // information about the Resource RPC request.
-type ResourceClientContext = *RemoteResourceClient
+type ResourceClientContext interface {
+	// Context returns the resource owner lifetime context.
+	Context() context.Context
+	// AddResource adds a child resource with a release callback.
+	AddResource(mux srpc.Invoker, releaseFn func()) (uint32, error)
+	// AddResourceValue adds a child resource with an optional typed value.
+	AddResourceValue(mux srpc.Invoker, value any, releaseFn func()) (uint32, error)
+	// ReleaseResource releases a child resource owned by this context.
+	ReleaseResource(resourceID uint32) bool
+	// GetResourceValue returns the typed value for a resource.
+	GetResourceValue(resourceID uint32) (any, error)
+	// GetAttachedResource returns a raw attached SRPC client.
+	GetAttachedResource(id uint32) (srpc.Client, error)
+}
 
 // mountedStreamContextKey is the context key used for WithValue.
 type mountedStreamContextKey struct{}

@@ -61,7 +61,7 @@ func newSDKBucketLookupCursor(
 
 func accessSDKBucketLookupCursor(
 	ctx context.Context,
-	client *resource_client.Client,
+	client ResourceClient,
 	resourceID uint32,
 	cb func(*bucket_lookup.Cursor) error,
 ) error {

@@ -10,6 +10,7 @@ import (
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/bldr/resource"
+	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 )
 
 type mockResourceService struct {
@@ -434,6 +435,74 @@ func TestCanceledAttachDetachesLateSuccessfulAck(t *testing.T) {
 		}
 	case <-time.After(time.Second):
 		t.Fatal("expected detach after late successful AddAck")
+	}
+}
+
+func TestAttachedResourceCanPublishCallableChild(t *testing.T) {
+	rootMux := srpc.NewMux()
+	server := resource_server.NewResourceServer(rootMux)
+	serverMux := srpc.NewMux()
+	if err := server.Register(serverMux); err != nil {
+		t.Fatalf("register resource server: %v", err)
+	}
+	service := resource.NewSRPCResourceServiceClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(serverMux))))
+	client, err := NewClient(t.Context(), service)
+	if err != nil {
+		t.Fatalf("NewClient: %v", err)
+	}
+	defer client.Release()
+
+	rootID, err := client.AttachResource(t.Context(), "test-root", srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+		if serviceID != "test.Root" || methodID != "CreateChild" {
+			return false, nil
+		}
+		if err := strm.MsgRecv(&resource.ResourceRefReleaseRequest{}); err != nil {
+			return true, err
+		}
+		owner, err := resource_server.MustGetResourceClientContext(strm.Context())
+		if err != nil {
+			return true, err
+		}
+		childID, err := owner.AddResource(srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+			if serviceID != "test.Child" || methodID != "Ping" {
+				return false, nil
+			}
+			if err := strm.MsgRecv(&resource.ResourceRefReleaseRequest{}); err != nil {
+				return true, err
+			}
+			return true, strm.MsgSend(&resource.ResourceRefReleaseResponse{})
+		}), nil)
+		if err != nil {
+			return true, err
+		}
+		return true, strm.MsgSend(&resource.ResourceAttachAddAck{ResourceId: childID})
+	}))
+	if err != nil {
+		t.Fatalf("AttachResource: %v", err)
+	}
+
+	rootRef := client.CreateResourceReference(rootID)
+	defer rootRef.Release()
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatalf("root client: %v", err)
+	}
+	child := new(resource.ResourceAttachAddAck)
+	if err := rootClient.ExecCall(t.Context(), "test.Root", "CreateChild", &resource.ResourceRefReleaseRequest{}, child); err != nil {
+		t.Fatalf("CreateChild: %v", err)
+	}
+	if child.GetResourceId() == 0 {
+		t.Fatal("CreateChild returned empty child resource id")
+	}
+
+	childRef := client.CreateResourceReference(child.GetResourceId())
+	defer childRef.Release()
+	childClient, err := childRef.GetClient()
+	if err != nil {
+		t.Fatalf("child client: %v", err)
+	}
+	if err := childClient.ExecCall(t.Context(), "test.Child", "Ping", &resource.ResourceRefReleaseRequest{}, &resource.ResourceRefReleaseResponse{}); err != nil {
+		t.Fatalf("Ping child: %v", err)
 	}
 }
 

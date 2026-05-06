@@ -17,14 +17,14 @@ import (
 // SDKWorldState implements world.WorldState over SRPC by delegating to
 // WorldStateResourceService calls on a remote resource.
 type SDKWorldState struct {
-	client   *resource_client.Client
+	client   ResourceClient
 	ref      resource_client.ResourceRef
 	service  s4wave_world.SRPCWorldStateResourceServiceClient
 	readOnly bool
 }
 
 // NewSDKWorldState creates a new SDKWorldState wrapping a resource reference.
-func NewSDKWorldState(client *resource_client.Client, ref resource_client.ResourceRef, readOnly bool) (*SDKWorldState, error) {
+func NewSDKWorldState(client ResourceClient, ref resource_client.ResourceRef, readOnly bool) (*SDKWorldState, error) {
 	srpcClient, err := ref.GetClient()
 	if err != nil {
 		return nil, err

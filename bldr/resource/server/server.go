@@ -3,6 +3,7 @@ package resource_server
 import (
 	"context"
 	"strconv"
+	"sync"
 
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -166,9 +167,9 @@ func (s *ResourceServer) ResourceRpc(
 			}
 			resourceIDU32 := uint32(resourceIDU64)
 
-			// Look up the resource in all clients
+			// Look up the resource in all clients.
 			var mux srpc.Invoker
-			var client *RemoteResourceClient
+			var client ResourceClientContext
 			s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 				for _, c := range s.clients {
 					if c.released {
@@ -179,6 +180,11 @@ func (s *ResourceServer) ResourceRpc(
 					if res != nil {
 						mux = res.mux
 						client = c
+						break
+					}
+					ar := c.attachedResources[resourceIDU32]
+					if ar != nil {
+						mux = srpc.NewClientInvoker(ar.srpcClient)
 						break
 					}
 				}
@@ -196,14 +202,17 @@ func (s *ResourceServer) ResourceRpc(
 // resourceServerClientInvoker wraps an invoker to use a specific stream context.
 type resourceServerClientInvoker struct {
 	mux    srpc.Invoker
-	client *RemoteResourceClient
+	client ResourceClientContext
 }
 
 func (c *resourceServerClientInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bool, error) {
 	// Add client context to the stream
-	childCtx := WithResourceClientContext(strm.Context(), c.client)
-	childStrm := srpc.NewStreamWithContext(strm, childCtx)
-	return c.mux.InvokeMethod(serviceID, methodID, childStrm)
+	if c.client != nil {
+		childCtx := WithResourceClientContext(strm.Context(), c.client)
+		childStrm := srpc.NewStreamWithContext(strm, childCtx)
+		return c.mux.InvokeMethod(serviceID, methodID, childStrm)
+	}
+	return c.mux.InvokeMethod(serviceID, methodID, strm)
 }
 
 // ResourceRefRelease releases a client's resource.
@@ -219,6 +228,7 @@ func (s *ResourceServer) ResourceRefRelease(
 
 	var found bool
 	var isRootResource bool
+	var attachedCancel context.CancelFunc
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		client := s.clients[clientID]
 		if client == nil || client.released {
@@ -226,25 +236,33 @@ func (s *ResourceServer) ResourceRefRelease(
 		}
 
 		res := client.resources[resourceID]
-		if res == nil {
+		if res != nil {
+			// Check if this is a root resource (has no releaseFn)
+			isRootResource = res.releaseFn == nil
+
+			// Don't actually delete root resources, just mark as found
+			if !isRootResource {
+				delete(client.resources, resourceID)
+				broadcast()
+
+				// Call release callback if provided
+				if res.releaseFn != nil {
+					go res.releaseFn()
+				}
+			}
+			found = true
 			return
 		}
-
-		// Check if this is a root resource (has no releaseFn)
-		isRootResource = res.releaseFn == nil
-
-		// Don't actually delete root resources, just mark as found
-		if !isRootResource {
-			delete(client.resources, resourceID)
-			broadcast()
-
-			// Call release callback if provided
-			if res.releaseFn != nil {
-				go res.releaseFn()
-			}
+		if ar := client.attachedResources[resourceID]; ar != nil {
+			attachedCancel = ar.cancel
+			delete(client.attachedResources, resourceID)
+			found = true
 		}
-		found = true
 	})
+
+	if attachedCancel != nil {
+		attachedCancel()
+	}
 
 	if !found {
 		return nil, resource.ErrResourceNotFound
@@ -306,10 +324,25 @@ func (s *ResourceServer) ResourceAttach(
 		}
 	}()
 
-	// srpcClient is the shared SRPC client over the yamux session.
-	// Assigned after mc is created. onControl uses it to create routed
-	// clients per resource.
-	var srpcClient srpc.Client
+	// srpcClient is the shared SRPC client over the yamux session. Add control
+	// packets can arrive while the yamux connection is still being built, so
+	// the Client waits for the OpenStreamFunc to be bound before routing.
+	var openStream srpc.OpenStreamFunc
+	var openStreamMtx sync.Mutex
+	openStreamReady := make(chan struct{})
+	srpcClient := srpc.NewClient(func(ctx context.Context, msgHandler srpc.PacketDataHandler, closeHandler srpc.CloseHandler) (srpc.PacketWriter, error) {
+		select {
+		case <-openStreamReady:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-attachCtx.Done():
+			return nil, attachCtx.Err()
+		}
+		openStreamMtx.Lock()
+		fn := openStream
+		openStreamMtx.Unlock()
+		return fn(ctx, msgHandler, closeHandler)
+	})
 
 	// onControl handles Add and Detach messages inline from the recv loop.
 	onControl := func(req *resource.ResourceAttachRequest) {
@@ -407,7 +440,10 @@ func (s *ResourceServer) ResourceAttach(
 	if mcErr != nil {
 		return mcErr
 	}
-	srpcClient = srpc.NewClientWithMuxedConn(mc)
+	openStreamMtx.Lock()
+	openStream = srpc.NewOpenStreamWithMuxedConn(mc)
+	openStreamMtx.Unlock()
+	close(openStreamReady)
 
 	// Block until the attach context is canceled (stream closes or client disconnects).
 	<-attachCtx.Done()

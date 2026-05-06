@@ -25,5 +25,10 @@ export function useAccessTypedHandle<T extends SDKResource>(
       return cleanup(new HandleClass(ref))
     },
     [objectKey],
+    {
+      retryOnReleasedResource: {
+        getResourceIds: (handle) => [handle.id],
+      },
+    },
   )
 }

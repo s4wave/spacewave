@@ -13,13 +13,13 @@ import (
 // SDKEngine implements world.Engine over SRPC by delegating to
 // EngineResourceService calls on a remote resource.
 type SDKEngine struct {
-	client  *resource_client.Client
+	client  ResourceClient
 	ref     resource_client.ResourceRef
 	service s4wave_world.SRPCEngineResourceServiceClient
 }
 
 // NewSDKEngine creates a new SDKEngine wrapping a resource reference.
-func NewSDKEngine(client *resource_client.Client, ref resource_client.ResourceRef) (*SDKEngine, error) {
+func NewSDKEngine(client ResourceClient, ref resource_client.ResourceRef) (*SDKEngine, error) {
 	srpcClient, err := ref.GetClient()
 	if err != nil {
 		return nil, err
