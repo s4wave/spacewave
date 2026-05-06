@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver/v4"
+	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_world "github.com/s4wave/spacewave/core/resource/world"
 	"github.com/s4wave/spacewave/db/world"
 	s4wave_objecttype_registry "github.com/s4wave/spacewave/sdk/objecttype/registry"
@@ -119,7 +120,12 @@ func (r *bridgeResolver) invokePlugin(
 	objectKey string,
 	engine world.Engine,
 ) (srpc.Invoker, func(), error) {
-	resources, err := s4wave_plugin.ConnectPluginResources(ctx, r.b, r.reg.GetPluginId())
+	resourceCtx := resource_server.GetResourceClientContext(ctx)
+	resourceClientCtx := ctx
+	if resourceCtx != nil {
+		resourceClientCtx = resourceCtx.Context()
+	}
+	resources, err := s4wave_plugin.ConnectPluginResources(resourceClientCtx, r.b, r.reg.GetPluginId())
 	if err != nil {
 		return nil, nil, err
 	}
