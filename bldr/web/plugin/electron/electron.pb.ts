@@ -74,6 +74,45 @@ export const QuitPolicy_Enum = createEnumType('electron.QuitPolicy', [
 ])
 
 /**
+ * DesktopPresencePolicy configures whether the Electron runtime exits when its
+ * last window closes or remains present in the operating-system desktop shell.
+ *
+ * @generated from enum electron.DesktopPresencePolicy
+ */
+export enum DesktopPresencePolicy {
+  /**
+   * DESKTOP_PRESENCE_POLICY_UNSPECIFIED preserves the runtime default.
+   *
+   * @generated from enum value: DESKTOP_PRESENCE_POLICY_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME exits when the window lifetime ends.
+   *
+   * @generated from enum value: DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME = 1;
+   */
+  WINDOW_LIFETIME = 1,
+
+  /**
+   * DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND keeps a tray-backed runtime alive.
+   *
+   * @generated from enum value: DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND = 2;
+   */
+  TRAY_BACKGROUND = 2,
+}
+
+// DesktopPresencePolicy_Enum is the enum type for DesktopPresencePolicy.
+export const DesktopPresencePolicy_Enum = createEnumType(
+  'electron.DesktopPresencePolicy',
+  [
+    { no: 0, name: 'DESKTOP_PRESENCE_POLICY_UNSPECIFIED' },
+    { no: 1, name: 'DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME' },
+    { no: 2, name: 'DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND' },
+  ],
+)
+
+/**
  * ElectronInit is passed from Go to the Electron main process on startup.
  *
  * @generated from message electron.ElectronInit
@@ -127,6 +166,24 @@ export interface ElectronInit {
    * @generated from field: electron.QuitPolicy quit_policy = 8;
    */
   quitPolicy?: QuitPolicy
+  /**
+   * DesktopPresencePolicy configures last-window-close desktop presence.
+   *
+   * @generated from field: electron.DesktopPresencePolicy desktop_presence_policy = 9;
+   */
+  desktopPresencePolicy?: DesktopPresencePolicy
+  /**
+   * TrayIconPath is the path to the tray icon.
+   *
+   * @generated from field: string tray_icon_path = 10;
+   */
+  trayIconPath?: string
+  /**
+   * MacosTemplateTrayIconPath is the path to the macOS template tray icon.
+   *
+   * @generated from field: string macos_template_tray_icon_path = 11;
+   */
+  macosTemplateTrayIconPath?: string
 }
 
 // ElectronInit contains the message type declaration for ElectronInit.
@@ -141,6 +198,19 @@ export const ElectronInit: MessageType<ElectronInit> = createMessageType({
     { no: 6, name: 'dev_tools', kind: 'scalar', T: ScalarType.BOOL },
     { no: 7, name: 'theme_source', kind: 'scalar', T: ScalarType.STRING },
     { no: 8, name: 'quit_policy', kind: 'enum', T: QuitPolicy_Enum },
+    {
+      no: 9,
+      name: 'desktop_presence_policy',
+      kind: 'enum',
+      T: DesktopPresencePolicy_Enum,
+    },
+    { no: 10, name: 'tray_icon_path', kind: 'scalar', T: ScalarType.STRING },
+    {
+      no: 11,
+      name: 'macos_template_tray_icon_path',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+    },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -235,6 +305,24 @@ export interface Config {
    * @generated from field: electron.QuitPolicy quit_policy = 13;
    */
   quitPolicy?: QuitPolicy
+  /**
+   * DesktopPresencePolicy configures last-window-close desktop presence.
+   *
+   * @generated from field: electron.DesktopPresencePolicy desktop_presence_policy = 14;
+   */
+  desktopPresencePolicy?: DesktopPresencePolicy
+  /**
+   * TrayIconPath is the path to the tray icon.
+   *
+   * @generated from field: string tray_icon_path = 15;
+   */
+  trayIconPath?: string
+  /**
+   * MacosTemplateTrayIconPath is the path to the macOS template tray icon.
+   *
+   * @generated from field: string macos_template_tray_icon_path = 16;
+   */
+  macosTemplateTrayIconPath?: string
 }
 
 // Config contains the message type declaration for Config.
@@ -260,6 +348,19 @@ export const Config: MessageType<Config> = createMessageType({
     { no: 11, name: 'dev_tools', kind: 'scalar', T: ScalarType.BOOL },
     { no: 12, name: 'theme_source', kind: 'scalar', T: ScalarType.STRING },
     { no: 13, name: 'quit_policy', kind: 'enum', T: QuitPolicy_Enum },
+    {
+      no: 14,
+      name: 'desktop_presence_policy',
+      kind: 'enum',
+      T: DesktopPresencePolicy_Enum,
+    },
+    { no: 15, name: 'tray_icon_path', kind: 'scalar', T: ScalarType.STRING },
+    {
+      no: 16,
+      name: 'macos_template_tray_icon_path',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+    },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

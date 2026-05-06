@@ -56,6 +56,8 @@ extern "C" {
 extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2felectron_2felectron_2eproto;
 }  // extern "C"
 namespace electron {
+enum DesktopPresencePolicy : int;
+extern const uint32_t DesktopPresencePolicy_internal_data_[];
 enum ExternalLinks : int;
 extern const uint32_t ExternalLinks_internal_data_[];
 enum QuitPolicy : int;
@@ -71,6 +73,9 @@ extern const ::google::protobuf::internal::ClassDataFull ElectronInit_class_data
 }  // namespace electron
 namespace google {
 namespace protobuf {
+template <>
+internal::EnumTraitsT<::electron::DesktopPresencePolicy_internal_data_>
+    internal::EnumTraitsImpl::value<::electron::DesktopPresencePolicy>;
 template <>
 internal::EnumTraitsT<::electron::ExternalLinks_internal_data_>
     internal::EnumTraitsImpl::value<::electron::ExternalLinks>;
@@ -152,6 +157,43 @@ inline const ::std::string& QuitPolicy_Name(QuitPolicy value) {
 inline bool QuitPolicy_Parse(
     ::absl::string_view name, QuitPolicy* PROTOBUF_NONNULL value) {
   return ::google::protobuf::internal::ParseNamedEnum<QuitPolicy>(QuitPolicy_descriptor(), name,
+                                           value);
+}
+enum DesktopPresencePolicy : int {
+  DESKTOP_PRESENCE_POLICY_UNSPECIFIED = 0,
+  DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME = 1,
+  DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND = 2,
+  DesktopPresencePolicy_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  DesktopPresencePolicy_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t DesktopPresencePolicy_internal_data_[];
+inline constexpr DesktopPresencePolicy DesktopPresencePolicy_MIN =
+    static_cast<DesktopPresencePolicy>(0);
+inline constexpr DesktopPresencePolicy DesktopPresencePolicy_MAX =
+    static_cast<DesktopPresencePolicy>(2);
+inline bool DesktopPresencePolicy_IsValid(int value) {
+  return 0 <= value && value <= 2;
+}
+inline constexpr int DesktopPresencePolicy_ARRAYSIZE = 2 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DesktopPresencePolicy_descriptor();
+template <typename T>
+const ::std::string& DesktopPresencePolicy_Name(T value) {
+  static_assert(::std::is_same<T, DesktopPresencePolicy>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to DesktopPresencePolicy_Name().");
+  return DesktopPresencePolicy_Name(static_cast<DesktopPresencePolicy>(value));
+}
+template <>
+inline const ::std::string& DesktopPresencePolicy_Name(DesktopPresencePolicy value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<DesktopPresencePolicy_descriptor, 0, 2>(
+      static_cast<int>(value));
+}
+inline bool DesktopPresencePolicy_Parse(
+    ::absl::string_view name, DesktopPresencePolicy* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<DesktopPresencePolicy>(DesktopPresencePolicy_descriptor(), name,
                                            value);
 }
 
@@ -305,11 +347,14 @@ class ElectronInit final : public ::google::protobuf::Message
     kAppNameFieldNumber = 2,
     kWindowTitleFieldNumber = 3,
     kThemeSourceFieldNumber = 7,
+    kTrayIconPathFieldNumber = 10,
+    kMacosTemplateTrayIconPathFieldNumber = 11,
     kExternalLinksFieldNumber = 1,
     kWindowWidthFieldNumber = 4,
     kWindowHeightFieldNumber = 5,
     kDevToolsFieldNumber = 6,
     kQuitPolicyFieldNumber = 8,
+    kDesktopPresencePolicyFieldNumber = 9,
   };
   // string app_name = 2;
   void clear_app_name() ;
@@ -354,6 +399,36 @@ class ElectronInit final : public ::google::protobuf::Message
   const ::std::string& _internal_theme_source() const;
   PROTOBUF_ALWAYS_INLINE void _internal_set_theme_source(const ::std::string& value);
   ::std::string* PROTOBUF_NONNULL _internal_mutable_theme_source();
+
+  public:
+  // string tray_icon_path = 10;
+  void clear_tray_icon_path() ;
+  const ::std::string& tray_icon_path() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_tray_icon_path(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_tray_icon_path();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_tray_icon_path();
+  void set_allocated_tray_icon_path(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_tray_icon_path() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_tray_icon_path(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_tray_icon_path();
+
+  public:
+  // string macos_template_tray_icon_path = 11;
+  void clear_macos_template_tray_icon_path() ;
+  const ::std::string& macos_template_tray_icon_path() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_macos_template_tray_icon_path(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_macos_template_tray_icon_path();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_macos_template_tray_icon_path();
+  void set_allocated_macos_template_tray_icon_path(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_macos_template_tray_icon_path() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_macos_template_tray_icon_path(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_macos_template_tray_icon_path();
 
   public:
   // .electron.ExternalLinks external_links = 1;
@@ -406,12 +481,22 @@ class ElectronInit final : public ::google::protobuf::Message
   void _internal_set_quit_policy(::electron::QuitPolicy value);
 
   public:
+  // .electron.DesktopPresencePolicy desktop_presence_policy = 9;
+  void clear_desktop_presence_policy() ;
+  ::electron::DesktopPresencePolicy desktop_presence_policy() const;
+  void set_desktop_presence_policy(::electron::DesktopPresencePolicy value);
+
+  private:
+  ::electron::DesktopPresencePolicy _internal_desktop_presence_policy() const;
+  void _internal_set_desktop_presence_policy(::electron::DesktopPresencePolicy value);
+
+  public:
   // @@protoc_insertion_point(class_scope:electron.ElectronInit)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 8,
-                                   0, 70,
+  static const ::google::protobuf::internal::TcParseTable<4, 11,
+                                   0, 113,
                                    2>
       _table_;
 
@@ -435,11 +520,14 @@ class ElectronInit final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr app_name_;
     ::google::protobuf::internal::ArenaStringPtr window_title_;
     ::google::protobuf::internal::ArenaStringPtr theme_source_;
+    ::google::protobuf::internal::ArenaStringPtr tray_icon_path_;
+    ::google::protobuf::internal::ArenaStringPtr macos_template_tray_icon_path_;
     int external_links_;
     ::uint32_t window_width_;
     ::uint32_t window_height_;
     bool dev_tools_;
     int quit_policy_;
+    int desktop_presence_policy_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -599,11 +687,14 @@ class Config final : public ::google::protobuf::Message
     kAppNameFieldNumber = 7,
     kWindowTitleFieldNumber = 8,
     kThemeSourceFieldNumber = 12,
+    kTrayIconPathFieldNumber = 15,
+    kMacosTemplateTrayIconPathFieldNumber = 16,
     kExternalLinksFieldNumber = 6,
     kWindowWidthFieldNumber = 9,
     kWindowHeightFieldNumber = 10,
     kDevToolsFieldNumber = 11,
     kQuitPolicyFieldNumber = 13,
+    kDesktopPresencePolicyFieldNumber = 14,
   };
   // repeated string electron_flags = 4;
   int electron_flags_size() const;
@@ -732,6 +823,36 @@ class Config final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_theme_source();
 
   public:
+  // string tray_icon_path = 15;
+  void clear_tray_icon_path() ;
+  const ::std::string& tray_icon_path() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_tray_icon_path(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_tray_icon_path();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_tray_icon_path();
+  void set_allocated_tray_icon_path(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_tray_icon_path() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_tray_icon_path(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_tray_icon_path();
+
+  public:
+  // string macos_template_tray_icon_path = 16;
+  void clear_macos_template_tray_icon_path() ;
+  const ::std::string& macos_template_tray_icon_path() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_macos_template_tray_icon_path(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_macos_template_tray_icon_path();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_macos_template_tray_icon_path();
+  void set_allocated_macos_template_tray_icon_path(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_macos_template_tray_icon_path() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_macos_template_tray_icon_path(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_macos_template_tray_icon_path();
+
+  public:
   // .electron.ExternalLinks external_links = 6;
   void clear_external_links() ;
   ::electron::ExternalLinks external_links() const;
@@ -782,12 +903,22 @@ class Config final : public ::google::protobuf::Message
   void _internal_set_quit_policy(::electron::QuitPolicy value);
 
   public:
+  // .electron.DesktopPresencePolicy desktop_presence_policy = 14;
+  void clear_desktop_presence_policy() ;
+  ::electron::DesktopPresencePolicy desktop_presence_policy() const;
+  void set_desktop_presence_policy(::electron::DesktopPresencePolicy value);
+
+  private:
+  ::electron::DesktopPresencePolicy _internal_desktop_presence_policy() const;
+  void _internal_set_desktop_presence_policy(::electron::DesktopPresencePolicy value);
+
+  public:
   // @@protoc_insertion_point(class_scope:electron.Config)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<4, 13,
-                                   0, 130,
+  static const ::google::protobuf::internal::TcParseTable<4, 16,
+                                   0, 181,
                                    2>
       _table_;
 
@@ -816,11 +947,14 @@ class Config final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr app_name_;
     ::google::protobuf::internal::ArenaStringPtr window_title_;
     ::google::protobuf::internal::ArenaStringPtr theme_source_;
+    ::google::protobuf::internal::ArenaStringPtr tray_icon_path_;
+    ::google::protobuf::internal::ArenaStringPtr macos_template_tray_icon_path_;
     int external_links_;
     ::uint32_t window_width_;
     ::uint32_t window_height_;
     bool dev_tools_;
     int quit_policy_;
+    int desktop_presence_policy_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -850,7 +984,7 @@ inline void ElectronInit::clear_external_links() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.external_links_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000008U);
+                  0x00000020U);
 }
 inline ::electron::ExternalLinks ElectronInit::external_links() const {
   // @@protoc_insertion_point(field_get:electron.ElectronInit.external_links)
@@ -858,7 +992,7 @@ inline ::electron::ExternalLinks ElectronInit::external_links() const {
 }
 inline void ElectronInit::set_external_links(::electron::ExternalLinks value) {
   _internal_set_external_links(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   // @@protoc_insertion_point(field_set:electron.ElectronInit.external_links)
 }
 inline ::electron::ExternalLinks ElectronInit::_internal_external_links() const {
@@ -1005,7 +1139,7 @@ inline void ElectronInit::clear_window_width() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.window_width_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000010U);
+                  0x00000040U);
 }
 inline ::uint32_t ElectronInit::window_width() const {
   // @@protoc_insertion_point(field_get:electron.ElectronInit.window_width)
@@ -1013,7 +1147,7 @@ inline ::uint32_t ElectronInit::window_width() const {
 }
 inline void ElectronInit::set_window_width(::uint32_t value) {
   _internal_set_window_width(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   // @@protoc_insertion_point(field_set:electron.ElectronInit.window_width)
 }
 inline ::uint32_t ElectronInit::_internal_window_width() const {
@@ -1030,7 +1164,7 @@ inline void ElectronInit::clear_window_height() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.window_height_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000020U);
+                  0x00000080U);
 }
 inline ::uint32_t ElectronInit::window_height() const {
   // @@protoc_insertion_point(field_get:electron.ElectronInit.window_height)
@@ -1038,7 +1172,7 @@ inline ::uint32_t ElectronInit::window_height() const {
 }
 inline void ElectronInit::set_window_height(::uint32_t value) {
   _internal_set_window_height(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
   // @@protoc_insertion_point(field_set:electron.ElectronInit.window_height)
 }
 inline ::uint32_t ElectronInit::_internal_window_height() const {
@@ -1055,7 +1189,7 @@ inline void ElectronInit::clear_dev_tools() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.dev_tools_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000040U);
+                  0x00000100U);
 }
 inline bool ElectronInit::dev_tools() const {
   // @@protoc_insertion_point(field_get:electron.ElectronInit.dev_tools)
@@ -1063,7 +1197,7 @@ inline bool ElectronInit::dev_tools() const {
 }
 inline void ElectronInit::set_dev_tools(bool value) {
   _internal_set_dev_tools(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
   // @@protoc_insertion_point(field_set:electron.ElectronInit.dev_tools)
 }
 inline bool ElectronInit::_internal_dev_tools() const {
@@ -1145,7 +1279,7 @@ inline void ElectronInit::clear_quit_policy() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.quit_policy_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000080U);
+                  0x00000200U);
 }
 inline ::electron::QuitPolicy ElectronInit::quit_policy() const {
   // @@protoc_insertion_point(field_get:electron.ElectronInit.quit_policy)
@@ -1153,7 +1287,7 @@ inline ::electron::QuitPolicy ElectronInit::quit_policy() const {
 }
 inline void ElectronInit::set_quit_policy(::electron::QuitPolicy value) {
   _internal_set_quit_policy(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
   // @@protoc_insertion_point(field_set:electron.ElectronInit.quit_policy)
 }
 inline ::electron::QuitPolicy ElectronInit::_internal_quit_policy() const {
@@ -1163,6 +1297,161 @@ inline ::electron::QuitPolicy ElectronInit::_internal_quit_policy() const {
 inline void ElectronInit::_internal_set_quit_policy(::electron::QuitPolicy value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.quit_policy_ = value;
+}
+
+// .electron.DesktopPresencePolicy desktop_presence_policy = 9;
+inline void ElectronInit::clear_desktop_presence_policy() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.desktop_presence_policy_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000400U);
+}
+inline ::electron::DesktopPresencePolicy ElectronInit::desktop_presence_policy() const {
+  // @@protoc_insertion_point(field_get:electron.ElectronInit.desktop_presence_policy)
+  return _internal_desktop_presence_policy();
+}
+inline void ElectronInit::set_desktop_presence_policy(::electron::DesktopPresencePolicy value) {
+  _internal_set_desktop_presence_policy(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  // @@protoc_insertion_point(field_set:electron.ElectronInit.desktop_presence_policy)
+}
+inline ::electron::DesktopPresencePolicy ElectronInit::_internal_desktop_presence_policy() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::electron::DesktopPresencePolicy>(_impl_.desktop_presence_policy_);
+}
+inline void ElectronInit::_internal_set_desktop_presence_policy(::electron::DesktopPresencePolicy value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.desktop_presence_policy_ = value;
+}
+
+// string tray_icon_path = 10;
+inline void ElectronInit::clear_tray_icon_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.tray_icon_path_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& ElectronInit::tray_icon_path() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.ElectronInit.tray_icon_path)
+  return _internal_tray_icon_path();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ElectronInit::set_tray_icon_path(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.tray_icon_path_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.ElectronInit.tray_icon_path)
+}
+inline ::std::string* PROTOBUF_NONNULL ElectronInit::mutable_tray_icon_path()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_tray_icon_path();
+  // @@protoc_insertion_point(field_mutable:electron.ElectronInit.tray_icon_path)
+  return _s;
+}
+inline const ::std::string& ElectronInit::_internal_tray_icon_path() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.tray_icon_path_.Get();
+}
+inline void ElectronInit::_internal_set_tray_icon_path(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.tray_icon_path_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ElectronInit::_internal_mutable_tray_icon_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.tray_icon_path_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ElectronInit::release_tray_icon_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.ElectronInit.tray_icon_path)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.tray_icon_path_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.tray_icon_path_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ElectronInit::set_allocated_tray_icon_path(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.tray_icon_path_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.tray_icon_path_.IsDefault()) {
+    _impl_.tray_icon_path_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.ElectronInit.tray_icon_path)
+}
+
+// string macos_template_tray_icon_path = 11;
+inline void ElectronInit::clear_macos_template_tray_icon_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.macos_template_tray_icon_path_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::std::string& ElectronInit::macos_template_tray_icon_path() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.ElectronInit.macos_template_tray_icon_path)
+  return _internal_macos_template_tray_icon_path();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ElectronInit::set_macos_template_tray_icon_path(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  _impl_.macos_template_tray_icon_path_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.ElectronInit.macos_template_tray_icon_path)
+}
+inline ::std::string* PROTOBUF_NONNULL ElectronInit::mutable_macos_template_tray_icon_path()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::std::string* _s = _internal_mutable_macos_template_tray_icon_path();
+  // @@protoc_insertion_point(field_mutable:electron.ElectronInit.macos_template_tray_icon_path)
+  return _s;
+}
+inline const ::std::string& ElectronInit::_internal_macos_template_tray_icon_path() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.macos_template_tray_icon_path_.Get();
+}
+inline void ElectronInit::_internal_set_macos_template_tray_icon_path(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.macos_template_tray_icon_path_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ElectronInit::_internal_mutable_macos_template_tray_icon_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.macos_template_tray_icon_path_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ElectronInit::release_macos_template_tray_icon_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.ElectronInit.macos_template_tray_icon_path)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  auto* released = _impl_.macos_template_tray_icon_path_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.macos_template_tray_icon_path_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ElectronInit::set_allocated_macos_template_tray_icon_path(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  _impl_.macos_template_tray_icon_path_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.macos_template_tray_icon_path_.IsDefault()) {
+    _impl_.macos_template_tray_icon_path_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.ElectronInit.macos_template_tray_icon_path)
 }
 
 // -------------------------------------------------------------------
@@ -1506,7 +1795,7 @@ inline void Config::clear_external_links() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.external_links_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000100U);
+                  0x00000400U);
 }
 inline ::electron::ExternalLinks Config::external_links() const {
   // @@protoc_insertion_point(field_get:electron.Config.external_links)
@@ -1514,7 +1803,7 @@ inline ::electron::ExternalLinks Config::external_links() const {
 }
 inline void Config::set_external_links(::electron::ExternalLinks value) {
   _internal_set_external_links(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
   // @@protoc_insertion_point(field_set:electron.Config.external_links)
 }
 inline ::electron::ExternalLinks Config::_internal_external_links() const {
@@ -1661,7 +1950,7 @@ inline void Config::clear_window_width() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.window_width_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000200U);
+                  0x00000800U);
 }
 inline ::uint32_t Config::window_width() const {
   // @@protoc_insertion_point(field_get:electron.Config.window_width)
@@ -1669,7 +1958,7 @@ inline ::uint32_t Config::window_width() const {
 }
 inline void Config::set_window_width(::uint32_t value) {
   _internal_set_window_width(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000800U);
   // @@protoc_insertion_point(field_set:electron.Config.window_width)
 }
 inline ::uint32_t Config::_internal_window_width() const {
@@ -1686,7 +1975,7 @@ inline void Config::clear_window_height() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.window_height_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000400U);
+                  0x00001000U);
 }
 inline ::uint32_t Config::window_height() const {
   // @@protoc_insertion_point(field_get:electron.Config.window_height)
@@ -1694,7 +1983,7 @@ inline ::uint32_t Config::window_height() const {
 }
 inline void Config::set_window_height(::uint32_t value) {
   _internal_set_window_height(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  SetHasBit(_impl_._has_bits_[0], 0x00001000U);
   // @@protoc_insertion_point(field_set:electron.Config.window_height)
 }
 inline ::uint32_t Config::_internal_window_height() const {
@@ -1711,7 +2000,7 @@ inline void Config::clear_dev_tools() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.dev_tools_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000800U);
+                  0x00002000U);
 }
 inline bool Config::dev_tools() const {
   // @@protoc_insertion_point(field_get:electron.Config.dev_tools)
@@ -1719,7 +2008,7 @@ inline bool Config::dev_tools() const {
 }
 inline void Config::set_dev_tools(bool value) {
   _internal_set_dev_tools(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000800U);
+  SetHasBit(_impl_._has_bits_[0], 0x00002000U);
   // @@protoc_insertion_point(field_set:electron.Config.dev_tools)
 }
 inline bool Config::_internal_dev_tools() const {
@@ -1801,7 +2090,7 @@ inline void Config::clear_quit_policy() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.quit_policy_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00001000U);
+                  0x00004000U);
 }
 inline ::electron::QuitPolicy Config::quit_policy() const {
   // @@protoc_insertion_point(field_get:electron.Config.quit_policy)
@@ -1809,7 +2098,7 @@ inline ::electron::QuitPolicy Config::quit_policy() const {
 }
 inline void Config::set_quit_policy(::electron::QuitPolicy value) {
   _internal_set_quit_policy(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00001000U);
+  SetHasBit(_impl_._has_bits_[0], 0x00004000U);
   // @@protoc_insertion_point(field_set:electron.Config.quit_policy)
 }
 inline ::electron::QuitPolicy Config::_internal_quit_policy() const {
@@ -1819,6 +2108,161 @@ inline ::electron::QuitPolicy Config::_internal_quit_policy() const {
 inline void Config::_internal_set_quit_policy(::electron::QuitPolicy value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.quit_policy_ = value;
+}
+
+// .electron.DesktopPresencePolicy desktop_presence_policy = 14;
+inline void Config::clear_desktop_presence_policy() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.desktop_presence_policy_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00008000U);
+}
+inline ::electron::DesktopPresencePolicy Config::desktop_presence_policy() const {
+  // @@protoc_insertion_point(field_get:electron.Config.desktop_presence_policy)
+  return _internal_desktop_presence_policy();
+}
+inline void Config::set_desktop_presence_policy(::electron::DesktopPresencePolicy value) {
+  _internal_set_desktop_presence_policy(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00008000U);
+  // @@protoc_insertion_point(field_set:electron.Config.desktop_presence_policy)
+}
+inline ::electron::DesktopPresencePolicy Config::_internal_desktop_presence_policy() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::electron::DesktopPresencePolicy>(_impl_.desktop_presence_policy_);
+}
+inline void Config::_internal_set_desktop_presence_policy(::electron::DesktopPresencePolicy value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.desktop_presence_policy_ = value;
+}
+
+// string tray_icon_path = 15;
+inline void Config::clear_tray_icon_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.tray_icon_path_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000100U);
+}
+inline const ::std::string& Config::tray_icon_path() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.Config.tray_icon_path)
+  return _internal_tray_icon_path();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void Config::set_tray_icon_path(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  _impl_.tray_icon_path_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.Config.tray_icon_path)
+}
+inline ::std::string* PROTOBUF_NONNULL Config::mutable_tray_icon_path()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  ::std::string* _s = _internal_mutable_tray_icon_path();
+  // @@protoc_insertion_point(field_mutable:electron.Config.tray_icon_path)
+  return _s;
+}
+inline const ::std::string& Config::_internal_tray_icon_path() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.tray_icon_path_.Get();
+}
+inline void Config::_internal_set_tray_icon_path(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.tray_icon_path_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL Config::_internal_mutable_tray_icon_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.tray_icon_path_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE Config::release_tray_icon_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.Config.tray_icon_path)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000100U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+  auto* released = _impl_.tray_icon_path_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.tray_icon_path_.Set("", GetArena());
+  }
+  return released;
+}
+inline void Config::set_allocated_tray_icon_path(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+  }
+  _impl_.tray_icon_path_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.tray_icon_path_.IsDefault()) {
+    _impl_.tray_icon_path_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.Config.tray_icon_path)
+}
+
+// string macos_template_tray_icon_path = 16;
+inline void Config::clear_macos_template_tray_icon_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.macos_template_tray_icon_path_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000200U);
+}
+inline const ::std::string& Config::macos_template_tray_icon_path() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.Config.macos_template_tray_icon_path)
+  return _internal_macos_template_tray_icon_path();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void Config::set_macos_template_tray_icon_path(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  _impl_.macos_template_tray_icon_path_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.Config.macos_template_tray_icon_path)
+}
+inline ::std::string* PROTOBUF_NONNULL Config::mutable_macos_template_tray_icon_path()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  ::std::string* _s = _internal_mutable_macos_template_tray_icon_path();
+  // @@protoc_insertion_point(field_mutable:electron.Config.macos_template_tray_icon_path)
+  return _s;
+}
+inline const ::std::string& Config::_internal_macos_template_tray_icon_path() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.macos_template_tray_icon_path_.Get();
+}
+inline void Config::_internal_set_macos_template_tray_icon_path(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.macos_template_tray_icon_path_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL Config::_internal_mutable_macos_template_tray_icon_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.macos_template_tray_icon_path_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE Config::release_macos_template_tray_icon_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.Config.macos_template_tray_icon_path)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000200U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000200U);
+  auto* released = _impl_.macos_template_tray_icon_path_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.macos_template_tray_icon_path_.Set("", GetArena());
+  }
+  return released;
+}
+inline void Config::set_allocated_macos_template_tray_icon_path(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000200U);
+  }
+  _impl_.macos_template_tray_icon_path_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.macos_template_tray_icon_path_.IsDefault()) {
+    _impl_.macos_template_tray_icon_path_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.Config.macos_template_tray_icon_path)
 }
 
 #ifdef __GNUC__
@@ -1843,6 +2287,12 @@ struct is_proto_enum<::electron::QuitPolicy> : std::true_type {};
 template <>
 inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::electron::QuitPolicy>() {
   return ::electron::QuitPolicy_descriptor();
+}
+template <>
+struct is_proto_enum<::electron::DesktopPresencePolicy> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::electron::DesktopPresencePolicy>() {
+  return ::electron::DesktopPresencePolicy_descriptor();
 }
 
 }  // namespace protobuf

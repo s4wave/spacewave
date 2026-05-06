@@ -62,6 +62,27 @@ func getElectronQuitPolicy(
 	}
 }
 
+func getElectronDesktopPresencePolicy(nativeApp *NativeAppConfig) electron.DesktopPresencePolicy {
+	if nativeApp == nil {
+		return electron.DesktopPresencePolicy_DESKTOP_PRESENCE_POLICY_UNSPECIFIED
+	}
+	switch nativeApp.GetDesktopPresencePolicy() {
+	case DesktopPresencePolicy_DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME:
+		return electron.DesktopPresencePolicy_DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME
+	case DesktopPresencePolicy_DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND:
+		return electron.DesktopPresencePolicy_DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND
+	default:
+		return electron.DesktopPresencePolicy_DESKTOP_PRESENCE_POLICY_UNSPECIFIED
+	}
+}
+
+func getNativeAppSourcePath(sourcePath string, nativePath string) string {
+	if nativePath == "" {
+		return ""
+	}
+	return filepath.Join(sourcePath, nativePath)
+}
+
 // controllerDescrip is the controller description.
 var controllerDescrip = "web runtime plugin compiler controller"
 
@@ -296,6 +317,9 @@ func (c *Controller) BundleElectronHook(
 		ElectronFlags: extraElectronFlags,
 		DevTools:      buildType.IsDev(),
 		QuitPolicy:    getElectronQuitPolicy(buildType, c.GetConfig().GetNativeApp()),
+		DesktopPresencePolicy: getElectronDesktopPresencePolicy(
+			c.GetConfig().GetNativeApp(),
+		),
 	}
 
 	// Copy native app branding from compiler config to electron config.
@@ -308,6 +332,14 @@ func (c *Controller) BundleElectronHook(
 			electronConf.DevTools = true
 		}
 		electronConf.ThemeSource = nativeApp.GetThemeSource()
+		electronConf.TrayIconPath = getNativeAppSourcePath(
+			builderConf.GetSourcePath(),
+			nativeApp.GetTrayIconPath(),
+		)
+		electronConf.MacosTemplateTrayIconPath = getNativeAppSourcePath(
+			builderConf.GetSourcePath(),
+			nativeApp.GetMacosTemplateTrayIconPath(),
+		)
 	}
 
 	electronCtrlConf, err := configset_proto.NewControllerConfig(configset.NewControllerConfig(1, electronConf), false)

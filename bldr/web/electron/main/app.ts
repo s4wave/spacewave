@@ -22,9 +22,12 @@ import {
   connectToPipe,
 } from '@go/github.com/aperturerobotics/util/pipesock/pipesock.js'
 import {
+  DesktopPresencePolicy,
   ExternalLinks,
   type ElectronInit,
 } from '../../plugin/electron/electron.pb.js'
+import { DesktopRuntimeResource } from './desktop-runtime.js'
+import { DesktopTrayController } from './desktop-tray.js'
 
 export const isMac = os.platform() === 'darwin'
 // BLDR_DEBUG is set if this is a debug build.
@@ -49,6 +52,10 @@ export class BldrElectronApp {
   public readonly serviceWorkerHostServiceClient: ServiceWorkerHostClient
   // electronInit contains initialization config from Go runtime.
   private readonly electronInit: ElectronInit
+  // desktopRuntimeResource exposes Electron main desktop-shell lifecycle.
+  public readonly desktopRuntimeResource: DesktopRuntimeResource
+  // desktopTrayController owns the process-lifetime native status icon.
+  private desktopTrayController?: DesktopTrayController
 
   // browserWindows contains the list of created browser windows.
   private browserWindows: Record<string, electron.BrowserWindow> = {}
@@ -87,6 +94,11 @@ export class BldrElectronApp {
     this.serviceWorkerHostServiceClient = new ServiceWorkerHostClient(
       this.serviceWorkerHostClient,
     )
+
+    this.desktopRuntimeResource = new DesktopRuntimeResource({
+      openOrFocusMainWindow: this.openOrFocusMainWindow.bind(this),
+      quitDesktopRuntime: this.quitDesktopRuntime.bind(this),
+    })
   }
 
   // init initializes the app
@@ -104,9 +116,21 @@ export class BldrElectronApp {
       nativeTheme.themeSource = init.themeSource as 'dark' | 'light' | 'system'
     }
 
-    app.on('window-all-closed', () => {
+    if (app.requestSingleInstanceLock && !app.requestSingleInstanceLock()) {
       app.quit()
+      return
+    }
+
+    app.on('second-instance', () => {
+      void this.desktopRuntimeResource.OpenOrFocusMainWindow({})
     })
+    app.on('activate', () => {
+      void this.desktopRuntimeResource.OpenOrFocusMainWindow({})
+    })
+    app.on('before-quit', () => {
+      this.desktopRuntimeResource.setQuitting(true)
+    })
+    app.on('window-all-closed', this.onWindowAllClosed.bind(this))
   }
 
   // serviceWorkerFetch performs a request as if it was sent from the ServiceWorker.
@@ -126,15 +150,10 @@ export class BldrElectronApp {
     }
 
     const trackedFetch = this.fetchTracker.trackFetch(clientId)
-    return proxyFetch(
-      this.serviceWorkerHostServiceClient,
-      req,
-      clientId,
-      {
-        abortSignal: trackedFetch.abortController.signal,
-        headerTimeoutMs: proxyFetchHeaderTimeoutMs,
-      },
-    ).finally(() => trackedFetch.release())
+    return proxyFetch(this.serviceWorkerHostServiceClient, req, clientId, {
+      abortSignal: trackedFetch.abortController.signal,
+      headerTimeoutMs: proxyFetchHeaderTimeoutMs,
+    }).finally(() => trackedFetch.release())
   }
 
   // onAppReady handles when the app becomes ready.
@@ -143,19 +162,17 @@ export class BldrElectronApp {
     // menu from intercepting keyboard shortcuts (e.g. Cmd+K) before they
     // reach the renderer's KeyboardManager.
     const menuTemplate: Electron.MenuItemConstructorOptions[] = [
-      ...(isMac
-        ? [{ role: 'appMenu' as const }]
-        : []),
+      ...(isMac ? [{ role: 'appMenu' as const }] : []),
       { role: 'editMenu' as const },
       {
         label: 'View',
         submenu: [
-          ...(isDebug
-            ? [
-                { role: 'toggleDevTools' as const },
-                { type: 'separator' as const },
-              ]
-            : []),
+          ...(isDebug ?
+            [
+              { role: 'toggleDevTools' as const },
+              { type: 'separator' as const },
+            ]
+          : []),
           { role: 'resetZoom' as const },
           { role: 'zoomIn' as const },
           { role: 'zoomOut' as const },
@@ -181,8 +198,23 @@ export class BldrElectronApp {
     // setup native filesystem picker ipc
     this.setupNativeDirectoryPicker()
 
+    if (this.hasTrayBackgroundPresence()) {
+      this.desktopTrayController = new DesktopTrayController({
+        init: this.electronInit,
+        resource: this.desktopRuntimeResource,
+      })
+      this.desktopTrayController.init()
+    }
+
     // create the first window
     this.createWebDocument({ id: 'electron-init' })
+  }
+
+  private onWindowAllClosed() {
+    if (this.hasTrayBackgroundPresence()) {
+      return
+    }
+    this.app.quit()
   }
 
   private setupNativeDirectoryPicker() {
@@ -406,6 +438,9 @@ export class BldrElectronApp {
       if (this.browserWindows[webDocumentId] === nwindow) {
         delete this.browserWindows[webDocumentId]
       }
+      if (webDocumentId === 'electron-init') {
+        this.desktopRuntimeResource.setMainWindowOpen(false)
+      }
     })
   }
 
@@ -417,6 +452,31 @@ export class BldrElectronApp {
     this.fetchTracker.abortClient(
       webDocumentId,
       new Error(reason ?? `web document closed: ${webDocumentId}`),
+    )
+  }
+
+  private async openOrFocusMainWindow() {
+    const nwindow = this.browserWindows['electron-init']
+    if (!nwindow || nwindow.isDestroyed()) {
+      await this.createWebDocument({ id: 'electron-init' })
+      return
+    }
+
+    if (nwindow.isMinimized()) {
+      nwindow.restore()
+    }
+    nwindow.show()
+    nwindow.focus()
+  }
+
+  private quitDesktopRuntime() {
+    this.app.quit()
+  }
+
+  private hasTrayBackgroundPresence(): boolean {
+    return (
+      this.electronInit.desktopPresencePolicy ===
+      DesktopPresencePolicy.TRAY_BACKGROUND
     )
   }
 
@@ -440,6 +500,9 @@ export class BldrElectronApp {
     }
     const nwindow = this.createWindow(id)
     this.browserWindows[id] = nwindow
+    if (id === 'electron-init') {
+      this.desktopRuntimeResource.setMainWindowOpen(true)
+    }
     return { created: true }
   }
 

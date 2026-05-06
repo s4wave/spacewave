@@ -181,6 +181,20 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 			t.Fatalf("spacewave-core config missing %s: %s", want, coreCfg)
 		}
 	}
+	web := result.Config.GetManifests()["web"]
+	if web == nil {
+		t.Fatal("web manifest not found")
+	}
+	webCfg := string(web.GetBuilder().GetConfig())
+	for _, want := range []string{
+		`"desktopPresencePolicy":"DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND"`,
+		`"trayIconPath":"web/images/spacewave-icon.png"`,
+		`"macosTemplateTrayIconPath":"web/images/spacewave-tray-template.png"`,
+	} {
+		if !strings.Contains(webCfg, want) {
+			t.Fatalf("web config missing %s: %s", want, webCfg)
+		}
+	}
 
 	bc := result.Config.GetBuild()["release-desktop-darwin-arm64"]
 	if bc == nil {

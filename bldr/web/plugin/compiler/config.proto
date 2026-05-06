@@ -32,6 +32,18 @@ enum QuitPolicy {
   QUIT_POLICY_EXIT = 2;
 }
 
+// DesktopPresencePolicy configures whether a native desktop runtime exits when
+// its last window closes or remains present in the operating-system desktop
+// shell.
+enum DesktopPresencePolicy {
+  // DESKTOP_PRESENCE_POLICY_UNSPECIFIED preserves the renderer default.
+  DESKTOP_PRESENCE_POLICY_UNSPECIFIED = 0;
+  // DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME exits when the window lifetime ends.
+  DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME = 1;
+  // DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND keeps a tray-backed runtime alive.
+  DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND = 2;
+}
+
 // NativeAppConfig configures branding for native app renderers.
 message NativeAppConfig {
   // AppName is the display name of the application.
@@ -51,4 +63,11 @@ message NativeAppConfig {
   string icon_path = 7;
   // QuitPolicy configures whether user quit should restart or exit.
   QuitPolicy quit_policy = 8;
+  // DesktopPresencePolicy configures last-window-close desktop presence.
+  DesktopPresencePolicy desktop_presence_policy = 9;
+  // TrayIconPath is the path to the tray icon (relative to project root).
+  string tray_icon_path = 10;
+  // MacosTemplateTrayIconPath is the path to a macOS template tray icon
+  // (relative to project root).
+  string macos_template_tray_icon_path = 11;
 }

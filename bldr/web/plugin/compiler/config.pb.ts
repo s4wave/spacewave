@@ -50,6 +50,46 @@ export const QuitPolicy_Enum = createEnumType(
 )
 
 /**
+ * DesktopPresencePolicy configures whether a native desktop runtime exits when
+ * its last window closes or remains present in the operating-system desktop
+ * shell.
+ *
+ * @generated from enum bldr.web.plugin.compiler.DesktopPresencePolicy
+ */
+export enum DesktopPresencePolicy {
+  /**
+   * DESKTOP_PRESENCE_POLICY_UNSPECIFIED preserves the renderer default.
+   *
+   * @generated from enum value: DESKTOP_PRESENCE_POLICY_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME exits when the window lifetime ends.
+   *
+   * @generated from enum value: DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME = 1;
+   */
+  WINDOW_LIFETIME = 1,
+
+  /**
+   * DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND keeps a tray-backed runtime alive.
+   *
+   * @generated from enum value: DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND = 2;
+   */
+  TRAY_BACKGROUND = 2,
+}
+
+// DesktopPresencePolicy_Enum is the enum type for DesktopPresencePolicy.
+export const DesktopPresencePolicy_Enum = createEnumType(
+  'bldr.web.plugin.compiler.DesktopPresencePolicy',
+  [
+    { no: 0, name: 'DESKTOP_PRESENCE_POLICY_UNSPECIFIED' },
+    { no: 1, name: 'DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME' },
+    { no: 2, name: 'DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND' },
+  ],
+)
+
+/**
  * NativeAppConfig configures branding for native app renderers.
  *
  * @generated from message bldr.web.plugin.compiler.NativeAppConfig
@@ -104,6 +144,25 @@ export interface NativeAppConfig {
    * @generated from field: bldr.web.plugin.compiler.QuitPolicy quit_policy = 8;
    */
   quitPolicy?: QuitPolicy
+  /**
+   * DesktopPresencePolicy configures last-window-close desktop presence.
+   *
+   * @generated from field: bldr.web.plugin.compiler.DesktopPresencePolicy desktop_presence_policy = 9;
+   */
+  desktopPresencePolicy?: DesktopPresencePolicy
+  /**
+   * TrayIconPath is the path to the tray icon (relative to project root).
+   *
+   * @generated from field: string tray_icon_path = 10;
+   */
+  trayIconPath?: string
+  /**
+   * MacosTemplateTrayIconPath is the path to a macOS template tray icon
+   * (relative to project root).
+   *
+   * @generated from field: string macos_template_tray_icon_path = 11;
+   */
+  macosTemplateTrayIconPath?: string
 }
 
 // NativeAppConfig contains the message type declaration for NativeAppConfig.
@@ -118,6 +177,19 @@ export const NativeAppConfig: MessageType<NativeAppConfig> = createMessageType({
     { no: 6, name: 'theme_source', kind: 'scalar', T: ScalarType.STRING },
     { no: 7, name: 'icon_path', kind: 'scalar', T: ScalarType.STRING },
     { no: 8, name: 'quit_policy', kind: 'enum', T: QuitPolicy_Enum },
+    {
+      no: 9,
+      name: 'desktop_presence_policy',
+      kind: 'enum',
+      T: DesktopPresencePolicy_Enum,
+    },
+    { no: 10, name: 'tray_icon_path', kind: 'scalar', T: ScalarType.STRING },
+    {
+      no: 11,
+      name: 'macos_template_tray_icon_path',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+    },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

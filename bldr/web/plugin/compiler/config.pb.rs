@@ -50,6 +50,16 @@ pub struct NativeAppConfig {
     /// QuitPolicy configures whether user quit should restart or exit.
     #[prost(enumeration="QuitPolicy", tag="8")]
     pub quit_policy: i32,
+    /// DesktopPresencePolicy configures last-window-close desktop presence.
+    #[prost(enumeration="DesktopPresencePolicy", tag="9")]
+    pub desktop_presence_policy: i32,
+    /// TrayIconPath is the path to the tray icon (relative to project root).
+    #[prost(string, tag="10")]
+    pub tray_icon_path: ::prost::alloc::string::String,
+    /// MacosTemplateTrayIconPath is the path to a macOS template tray icon
+    /// (relative to project root).
+    #[prost(string, tag="11")]
+    pub macos_template_tray_icon_path: ::prost::alloc::string::String,
 }
 /// QuitPolicy configures how native desktop runtimes should behave on user quit.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
@@ -80,6 +90,41 @@ impl QuitPolicy {
             "QUIT_POLICY_UNSPECIFIED" => Some(Self::Unspecified),
             "QUIT_POLICY_RESTART" => Some(Self::Restart),
             "QUIT_POLICY_EXIT" => Some(Self::Exit),
+            _ => None,
+        }
+    }
+}
+/// DesktopPresencePolicy configures whether a native desktop runtime exits when
+/// its last window closes or remains present in the operating-system desktop
+/// shell.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum DesktopPresencePolicy {
+    /// DESKTOP_PRESENCE_POLICY_UNSPECIFIED preserves the renderer default.
+    Unspecified = 0,
+    /// DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME exits when the window lifetime ends.
+    WindowLifetime = 1,
+    /// DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND keeps a tray-backed runtime alive.
+    TrayBackground = 2,
+}
+impl DesktopPresencePolicy {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "DESKTOP_PRESENCE_POLICY_UNSPECIFIED",
+            Self::WindowLifetime => "DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME",
+            Self::TrayBackground => "DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "DESKTOP_PRESENCE_POLICY_UNSPECIFIED" => Some(Self::Unspecified),
+            "DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME" => Some(Self::WindowLifetime),
+            "DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND" => Some(Self::TrayBackground),
             _ => None,
         }
     }

@@ -19,6 +19,17 @@ enum QuitPolicy {
   QUIT_POLICY_EXIT = 2;
 }
 
+// DesktopPresencePolicy configures whether the Electron runtime exits when its
+// last window closes or remains present in the operating-system desktop shell.
+enum DesktopPresencePolicy {
+  // DESKTOP_PRESENCE_POLICY_UNSPECIFIED preserves the runtime default.
+  DESKTOP_PRESENCE_POLICY_UNSPECIFIED = 0;
+  // DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME exits when the window lifetime ends.
+  DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME = 1;
+  // DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND keeps a tray-backed runtime alive.
+  DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND = 2;
+}
+
 // ElectronInit is passed from Go to the Electron main process on startup.
 message ElectronInit {
   // ExternalLinks configures how external links are handled.
@@ -37,6 +48,12 @@ message ElectronInit {
   string theme_source = 7;
   // QuitPolicy configures whether user quit should restart or exit.
   QuitPolicy quit_policy = 8;
+  // DesktopPresencePolicy configures last-window-close desktop presence.
+  DesktopPresencePolicy desktop_presence_policy = 9;
+  // TrayIconPath is the path to the tray icon.
+  string tray_icon_path = 10;
+  // MacosTemplateTrayIconPath is the path to the macOS template tray icon.
+  string macos_template_tray_icon_path = 11;
 }
 
 // Config is the configuration for the electron runtime.
@@ -79,4 +96,10 @@ message Config {
   string theme_source = 12;
   // QuitPolicy configures whether user quit should restart or exit.
   QuitPolicy quit_policy = 13;
+  // DesktopPresencePolicy configures last-window-close desktop presence.
+  DesktopPresencePolicy desktop_presence_policy = 14;
+  // TrayIconPath is the path to the tray icon.
+  string tray_icon_path = 15;
+  // MacosTemplateTrayIconPath is the path to the macOS template tray icon.
+  string macos_template_tray_icon_path = 16;
 }

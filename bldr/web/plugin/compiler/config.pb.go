@@ -55,6 +55,48 @@ func (x QuitPolicy) String() string {
 	return strconv.Itoa(int(x))
 }
 
+// DesktopPresencePolicy configures whether a native desktop runtime exits when
+// its last window closes or remains present in the operating-system desktop
+// shell.
+type DesktopPresencePolicy int32
+
+const (
+	// DESKTOP_PRESENCE_POLICY_UNSPECIFIED preserves the renderer default.
+	DesktopPresencePolicy_DESKTOP_PRESENCE_POLICY_UNSPECIFIED DesktopPresencePolicy = 0
+	// DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME exits when the window lifetime ends.
+	DesktopPresencePolicy_DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME DesktopPresencePolicy = 1
+	// DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND keeps a tray-backed runtime alive.
+	DesktopPresencePolicy_DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND DesktopPresencePolicy = 2
+)
+
+// Enum value maps for DesktopPresencePolicy.
+var (
+	DesktopPresencePolicy_name = map[int32]string{
+		0: "DESKTOP_PRESENCE_POLICY_UNSPECIFIED",
+		1: "DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME",
+		2: "DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND",
+	}
+	DesktopPresencePolicy_value = map[string]int32{
+		"DESKTOP_PRESENCE_POLICY_UNSPECIFIED":     0,
+		"DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME": 1,
+		"DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND": 2,
+	}
+)
+
+func (x DesktopPresencePolicy) Enum() *DesktopPresencePolicy {
+	p := new(DesktopPresencePolicy)
+	*p = x
+	return p
+}
+
+func (x DesktopPresencePolicy) String() string {
+	name, valid := DesktopPresencePolicy_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // Config configures the web plugin builder.
 type Config struct {
 	unknownFields []byte
@@ -128,6 +170,13 @@ type NativeAppConfig struct {
 	IconPath string `protobuf:"bytes,7,opt,name=icon_path,json=iconPath,proto3" json:"iconPath,omitempty"`
 	// QuitPolicy configures whether user quit should restart or exit.
 	QuitPolicy QuitPolicy `protobuf:"varint,8,opt,name=quit_policy,json=quitPolicy,proto3" json:"quitPolicy,omitempty"`
+	// DesktopPresencePolicy configures last-window-close desktop presence.
+	DesktopPresencePolicy DesktopPresencePolicy `protobuf:"varint,9,opt,name=desktop_presence_policy,json=desktopPresencePolicy,proto3" json:"desktopPresencePolicy,omitempty"`
+	// TrayIconPath is the path to the tray icon (relative to project root).
+	TrayIconPath string `protobuf:"bytes,10,opt,name=tray_icon_path,json=trayIconPath,proto3" json:"trayIconPath,omitempty"`
+	// MacosTemplateTrayIconPath is the path to a macOS template tray icon
+	// (relative to project root).
+	MacosTemplateTrayIconPath string `protobuf:"bytes,11,opt,name=macos_template_tray_icon_path,json=macosTemplateTrayIconPath,proto3" json:"macosTemplateTrayIconPath,omitempty"`
 }
 
 func (x *NativeAppConfig) Reset() {
@@ -192,6 +241,27 @@ func (x *NativeAppConfig) GetQuitPolicy() QuitPolicy {
 	return QuitPolicy_QUIT_POLICY_UNSPECIFIED
 }
 
+func (x *NativeAppConfig) GetDesktopPresencePolicy() DesktopPresencePolicy {
+	if x != nil {
+		return x.DesktopPresencePolicy
+	}
+	return DesktopPresencePolicy_DESKTOP_PRESENCE_POLICY_UNSPECIFIED
+}
+
+func (x *NativeAppConfig) GetTrayIconPath() string {
+	if x != nil {
+		return x.TrayIconPath
+	}
+	return ""
+}
+
+func (x *NativeAppConfig) GetMacosTemplateTrayIconPath() string {
+	if x != nil {
+		return x.MacosTemplateTrayIconPath
+	}
+	return ""
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -224,6 +294,9 @@ func (m *NativeAppConfig) CloneVT() *NativeAppConfig {
 	r.ThemeSource = m.ThemeSource
 	r.IconPath = m.IconPath
 	r.QuitPolicy = m.QuitPolicy
+	r.DesktopPresencePolicy = m.DesktopPresencePolicy
+	r.TrayIconPath = m.TrayIconPath
+	r.MacosTemplateTrayIconPath = m.MacosTemplateTrayIconPath
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -293,6 +366,15 @@ func (this *NativeAppConfig) EqualVT(that *NativeAppConfig) bool {
 	if this.QuitPolicy != that.QuitPolicy {
 		return false
 	}
+	if this.DesktopPresencePolicy != that.DesktopPresencePolicy {
+		return false
+	}
+	if this.TrayIconPath != that.TrayIconPath {
+		return false
+	}
+	if this.MacosTemplateTrayIconPath != that.MacosTemplateTrayIconPath {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -341,6 +423,46 @@ func (x *QuitPolicy) UnmarshalText(b []byte) error {
 
 // UnmarshalJSON unmarshals the QuitPolicy from JSON.
 func (x *QuitPolicy) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the DesktopPresencePolicy to JSON.
+func (x DesktopPresencePolicy) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), DesktopPresencePolicy_name)
+}
+
+// MarshalText marshals the DesktopPresencePolicy to text.
+func (x DesktopPresencePolicy) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), DesktopPresencePolicy_name)), nil
+}
+
+// MarshalJSON marshals the DesktopPresencePolicy to JSON.
+func (x DesktopPresencePolicy) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DesktopPresencePolicy from JSON.
+func (x *DesktopPresencePolicy) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(DesktopPresencePolicy_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read DesktopPresencePolicy enum: %v", err)
+		return
+	}
+	*x = DesktopPresencePolicy(v)
+}
+
+// UnmarshalText unmarshals the DesktopPresencePolicy from text.
+func (x *DesktopPresencePolicy) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), DesktopPresencePolicy_value)
+	if err != nil {
+		return err
+	}
+	*x = DesktopPresencePolicy(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the DesktopPresencePolicy from JSON.
+func (x *DesktopPresencePolicy) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -462,6 +584,21 @@ func (x *NativeAppConfig) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("quitPolicy")
 		x.QuitPolicy.MarshalProtoJSON(s)
 	}
+	if x.DesktopPresencePolicy != 0 || s.HasField("desktopPresencePolicy") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("desktopPresencePolicy")
+		x.DesktopPresencePolicy.MarshalProtoJSON(s)
+	}
+	if x.TrayIconPath != "" || s.HasField("trayIconPath") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("trayIconPath")
+		s.WriteString(x.TrayIconPath)
+	}
+	if x.MacosTemplateTrayIconPath != "" || s.HasField("macosTemplateTrayIconPath") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("macosTemplateTrayIconPath")
+		s.WriteString(x.MacosTemplateTrayIconPath)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -503,6 +640,15 @@ func (x *NativeAppConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "quit_policy", "quitPolicy":
 			s.AddField("quit_policy")
 			x.QuitPolicy.UnmarshalProtoJSON(s)
+		case "desktop_presence_policy", "desktopPresencePolicy":
+			s.AddField("desktop_presence_policy")
+			x.DesktopPresencePolicy.UnmarshalProtoJSON(s)
+		case "tray_icon_path", "trayIconPath":
+			s.AddField("tray_icon_path")
+			x.TrayIconPath = s.ReadString()
+		case "macos_template_tray_icon_path", "macosTemplateTrayIconPath":
+			s.AddField("macos_template_tray_icon_path")
+			x.MacosTemplateTrayIconPath = s.ReadString()
 		}
 	})
 }
@@ -605,6 +751,25 @@ func (m *NativeAppConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.MacosTemplateTrayIconPath) > 0 {
+		i -= len(m.MacosTemplateTrayIconPath)
+		copy(dAtA[i:], m.MacosTemplateTrayIconPath)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.MacosTemplateTrayIconPath)))
+		i--
+		dAtA[i] = 0x5a
+	}
+	if len(m.TrayIconPath) > 0 {
+		i -= len(m.TrayIconPath)
+		copy(dAtA[i:], m.TrayIconPath)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.TrayIconPath)))
+		i--
+		dAtA[i] = 0x52
+	}
+	if m.DesktopPresencePolicy != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.DesktopPresencePolicy))
+		i--
+		dAtA[i] = 0x48
 	}
 	if m.QuitPolicy != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.QuitPolicy))
@@ -722,11 +887,26 @@ func (m *NativeAppConfig) SizeVT() (n int) {
 	if m.QuitPolicy != 0 {
 		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.QuitPolicy))
 	}
+	if m.DesktopPresencePolicy != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.DesktopPresencePolicy))
+	}
+	l = len(m.TrayIconPath)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.MacosTemplateTrayIconPath)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
 
 func (x QuitPolicy) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x DesktopPresencePolicy) MarshalProtoText() string {
 	return x.String()
 }
 
@@ -829,6 +1009,29 @@ func (x *NativeAppConfig) MarshalProtoText() string {
 		sb.WriteString("\"")
 		sb.WriteString(QuitPolicy(x.QuitPolicy).String())
 		sb.WriteString("\"")
+	}
+	if x.DesktopPresencePolicy != 0 {
+		if sb.Len() > 17 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("desktop_presence_policy: ")
+		sb.WriteString("\"")
+		sb.WriteString(DesktopPresencePolicy(x.DesktopPresencePolicy).String())
+		sb.WriteString("\"")
+	}
+	if x.TrayIconPath != "" {
+		if sb.Len() > 17 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("tray_icon_path: ")
+		sb.WriteString(strconv.Quote(x.TrayIconPath))
+	}
+	if x.MacosTemplateTrayIconPath != "" {
+		if sb.Len() > 17 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("macos_template_tray_icon_path: ")
+		sb.WriteString(strconv.Quote(x.MacosTemplateTrayIconPath))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -1124,6 +1327,61 @@ func (m *NativeAppConfig) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DesktopPresencePolicy", wireType)
+			}
+			m.DesktopPresencePolicy = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.DesktopPresencePolicy = DesktopPresencePolicy(_v)
+			if err != nil {
+				return err
+			}
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TrayIconPath", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.TrayIconPath = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MacosTemplateTrayIconPath", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.MacosTemplateTrayIconPath = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

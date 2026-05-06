@@ -1,0 +1,47 @@
+syntax = "proto3";
+package electron.desktop_runtime;
+
+option go_package = "github.com/s4wave/spacewave/bldr/web/electron/desktop-runtime;desktop_runtime";
+
+// DesktopRuntimeResourceService exposes Electron main desktop-shell lifecycle.
+service DesktopRuntimeResourceService {
+  // WatchDesktopState streams the current desktop shell state.
+  rpc WatchDesktopState(WatchDesktopStateRequest) returns (stream WatchDesktopStateResponse);
+
+  // OpenOrFocusMainWindow opens or focuses the main app window.
+  rpc OpenOrFocusMainWindow(OpenOrFocusMainWindowRequest) returns (OpenOrFocusMainWindowResponse);
+
+  // QuitDesktopRuntime requests a clean user-initiated runtime quit.
+  rpc QuitDesktopRuntime(QuitDesktopRuntimeRequest) returns (QuitDesktopRuntimeResponse);
+}
+
+// DesktopRuntimeState describes Electron main desktop-shell state.
+message DesktopRuntimeState {
+  // MainWindowOpen is set when the main app window exists.
+  bool main_window_open = 1;
+  // Quitting is set after explicit user quit begins.
+  bool quitting = 2;
+  // StatusText is short display text for native status surfaces.
+  string status_text = 3;
+}
+
+// WatchDesktopStateRequest is the request for WatchDesktopState.
+message WatchDesktopStateRequest {}
+
+// WatchDesktopStateResponse is the response for WatchDesktopState.
+message WatchDesktopStateResponse {
+  // State is the current desktop runtime state.
+  DesktopRuntimeState state = 1;
+}
+
+// OpenOrFocusMainWindowRequest is the request for OpenOrFocusMainWindow.
+message OpenOrFocusMainWindowRequest {}
+
+// OpenOrFocusMainWindowResponse is the response for OpenOrFocusMainWindow.
+message OpenOrFocusMainWindowResponse {}
+
+// QuitDesktopRuntimeRequest is the request for QuitDesktopRuntime.
+message QuitDesktopRuntimeRequest {}
+
+// QuitDesktopRuntimeResponse is the response for QuitDesktopRuntime.
+message QuitDesktopRuntimeResponse {}

@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "protocFlagsHash": "1c28c09115aa511ff35b1be26994db5c0c847fc8e5879acca1694ab90f3ae614",
+  "protocFlagsHash": "9b66f11208c6785e85f46df047996046d52c9f74221572b8e43c6a51a607768e",
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.13.0,starpc=v0.49.7,protobuf-es-lite=1.0.2",
   "packages": {
     "github.com/s4wave/spacewave/auth/derive": {
@@ -706,6 +706,24 @@
         "bldr/web/document/document.proto"
       ]
     },
+    "github.com/s4wave/spacewave/bldr/web/electron/desktop-runtime": {
+      "hash": "34deaa155278a4c54c1e5ff5c356af5460dbbc858f379901cfaadea1c9ec23e0",
+      "generatedFiles": [
+        "bldr/web/electron/desktop-runtime/desktop-runtime.pb.cc",
+        "bldr/web/electron/desktop-runtime/desktop-runtime.pb.go",
+        "bldr/web/electron/desktop-runtime/desktop-runtime.pb.h",
+        "bldr/web/electron/desktop-runtime/desktop-runtime.pb.rs",
+        "bldr/web/electron/desktop-runtime/desktop-runtime.pb.ts",
+        "bldr/web/electron/desktop-runtime/desktop-runtime_srpc.pb.cpp",
+        "bldr/web/electron/desktop-runtime/desktop-runtime_srpc.pb.go",
+        "bldr/web/electron/desktop-runtime/desktop-runtime_srpc.pb.hpp",
+        "bldr/web/electron/desktop-runtime/desktop-runtime_srpc.pb.rs",
+        "bldr/web/electron/desktop-runtime/desktop-runtime_srpc.pb.ts"
+      ],
+      "protoFiles": [
+        "bldr/web/electron/desktop-runtime/desktop-runtime.proto"
+      ]
+    },
     "github.com/s4wave/spacewave/bldr/web/entrypoint/browser": {
       "hash": "6db81bbd7cf2834896cfea4fb88fff90292cefd42ae0c76e216b73492d149ed8",
       "generatedFiles": [
@@ -883,7 +901,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/web/plugin/compiler": {
-      "hash": "e4675f543adf7d4bb38736ea8990e21a60cec93c5145dd95f45651ef475f7823",
+      "hash": "b9261c6635ee4bf2cf71669c98ea01fa994d81d7b1adc7bcdf913ad9d952d7fc",
       "generatedFiles": [
         "bldr/web/plugin/compiler/config.pb.cc",
         "bldr/web/plugin/compiler/config.pb.go",
@@ -909,7 +927,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/web/plugin/electron": {
-      "hash": "b5ca57d8e3bef466a0f1bbd6d83f996ec4fd2ee53ec5ea7bf946ca4093c1ce6d",
+      "hash": "0022fc9e7ef606b274e2ee59d01e7ad055bebf51787f8934d61c02b058a1fd9e",
       "generatedFiles": [
         "bldr/web/plugin/electron/electron.pb.cc",
         "bldr/web/plugin/electron/electron.pb.go",

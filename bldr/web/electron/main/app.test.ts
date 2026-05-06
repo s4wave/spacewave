@@ -11,6 +11,7 @@ const mockElectronApp = {
   },
   on: vi.fn(),
   quit: vi.fn(),
+  requestSingleInstanceLock: vi.fn(() => true),
   setName: vi.fn(),
 }
 
@@ -31,8 +32,11 @@ class MockWebContents extends EventEmitter {
 
 class MockBrowserWindow extends EventEmitter {
   public readonly webContents = new MockWebContents()
+  public readonly focus = vi.fn()
   public readonly show = vi.fn()
   public readonly isDestroyed = vi.fn(() => false)
+  public readonly isMinimized = vi.fn(() => false)
+  public readonly restore = vi.fn()
   public readonly opts: object
   public readonly loadURL = vi.fn((url: string) => {
     this.webContents.setURL(url)
@@ -136,6 +140,21 @@ vi.mock('./ipc.js', () => ({
   messagePortMainToMessagePort: vi.fn(),
 }))
 
+vi.mock('./desktop-runtime.js', () => ({
+  DesktopRuntimeResource: class {
+    public readonly OpenOrFocusMainWindow = vi.fn(async () => ({}))
+    public readonly QuitDesktopRuntime = vi.fn(async () => ({}))
+    public readonly getState = vi.fn(() => ({
+      mainWindowOpen: false,
+      quitting: false,
+      statusText: 'Running',
+    }))
+    public readonly setMainWindowOpen = vi.fn()
+    public readonly setQuitting = vi.fn()
+    public readonly resourceServer = {}
+  },
+}))
+
 vi.mock('@go/github.com/aperturerobotics/util/pipesock/pipesock.js', () => ({
   buildPipeName: vi.fn(() => '/tmp/mock-pipe'),
   connectToPipe: vi.fn(() => ({
@@ -149,6 +168,7 @@ describe('BldrElectronApp', () => {
     browserWindows.length = 0
     webRuntimeInstances.length = 0
     vi.clearAllMocks()
+    mockElectronApp.requestSingleInstanceLock.mockReturnValue(true)
     vi.resetModules()
   })
 
@@ -278,6 +298,89 @@ describe('BldrElectronApp', () => {
     handler()
 
     expect(mockElectronApp.quit).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the Electron main process alive when tray background presence is enabled', async () => {
+    const { DesktopPresencePolicy } =
+      await import('../../plugin/electron/electron.pb.js')
+    const { BldrElectronApp } = await import('./app.js')
+    const app = Reflect.construct(BldrElectronApp, [
+      mockElectronApp,
+      'runtime-1',
+      { desktopPresencePolicy: DesktopPresencePolicy.TRAY_BACKGROUND },
+    ])
+    Reflect.apply(Reflect.get(app, 'init'), app, [])
+
+    const handler = getAppHandler('window-all-closed')
+    handler()
+
+    expect(mockElectronApp.quit).not.toHaveBeenCalled()
+  })
+
+  it('routes dock activation and second launch through the desktop runtime resource', async () => {
+    const { BldrElectronApp } = await import('./app.js')
+    const app = Reflect.construct(BldrElectronApp, [
+      mockElectronApp,
+      'runtime-1',
+      {},
+    ])
+    Reflect.apply(Reflect.get(app, 'init'), app, [])
+
+    getAppHandler('activate')()
+    getAppHandler('second-instance')()
+
+    const resource = Reflect.get(app, 'desktopRuntimeResource')
+    expect(resource.OpenOrFocusMainWindow).toHaveBeenCalledTimes(2)
+  })
+
+  it('marks the desktop runtime as quitting for native quit paths', async () => {
+    const { BldrElectronApp } = await import('./app.js')
+    const app = Reflect.construct(BldrElectronApp, [
+      mockElectronApp,
+      'runtime-1',
+      {},
+    ])
+    Reflect.apply(Reflect.get(app, 'init'), app, [])
+
+    getAppHandler('before-quit')()
+
+    const resource = Reflect.get(app, 'desktopRuntimeResource')
+    expect(resource.setQuitting).toHaveBeenCalledWith(true)
+  })
+
+  it('opens or focuses the singleton main window', async () => {
+    const { BldrElectronApp } = await import('./app.js')
+    const app = Reflect.construct(BldrElectronApp, [
+      mockElectronApp,
+      'runtime-1',
+      {},
+    ])
+    const openOrFocusMainWindow = Reflect.get(app, 'openOrFocusMainWindow')
+
+    await Reflect.apply(openOrFocusMainWindow, app, [])
+    await Reflect.apply(openOrFocusMainWindow, app, [])
+
+    expect(browserWindows).toHaveLength(1)
+    expect(browserWindows[0]?.show).toHaveBeenCalledTimes(1)
+    expect(browserWindows[0]?.focus).toHaveBeenCalledTimes(1)
+  })
+
+  it('quits duplicate instances after failing the singleton lock', async () => {
+    mockElectronApp.requestSingleInstanceLock.mockReturnValue(false)
+    const { BldrElectronApp } = await import('./app.js')
+    const app = Reflect.construct(BldrElectronApp, [
+      mockElectronApp,
+      'runtime-1',
+      {},
+    ])
+
+    Reflect.apply(Reflect.get(app, 'init'), app, [])
+
+    expect(mockElectronApp.quit).toHaveBeenCalledTimes(1)
+    expect(mockElectronApp.on).not.toHaveBeenCalledWith(
+      'window-all-closed',
+      expect.any(Function),
+    )
   })
 
   it('registers a native directory picker ipc handler', async () => {

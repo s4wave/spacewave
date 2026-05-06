@@ -59,6 +59,8 @@ namespace bldr {
 namespace web {
 namespace plugin {
 namespace compiler {
+enum DesktopPresencePolicy : int;
+extern const uint32_t DesktopPresencePolicy_internal_data_[];
 enum QuitPolicy : int;
 extern const uint32_t QuitPolicy_internal_data_[];
 class Config;
@@ -75,6 +77,9 @@ extern const ::google::protobuf::internal::ClassDataFull NativeAppConfig_class_d
 }  // namespace bldr
 namespace google {
 namespace protobuf {
+template <>
+internal::EnumTraitsT<::bldr::web::plugin::compiler::DesktopPresencePolicy_internal_data_>
+    internal::EnumTraitsImpl::value<::bldr::web::plugin::compiler::DesktopPresencePolicy>;
 template <>
 internal::EnumTraitsT<::bldr::web::plugin::compiler::QuitPolicy_internal_data_>
     internal::EnumTraitsImpl::value<::bldr::web::plugin::compiler::QuitPolicy>;
@@ -120,6 +125,43 @@ inline const ::std::string& QuitPolicy_Name(QuitPolicy value) {
 inline bool QuitPolicy_Parse(
     ::absl::string_view name, QuitPolicy* PROTOBUF_NONNULL value) {
   return ::google::protobuf::internal::ParseNamedEnum<QuitPolicy>(QuitPolicy_descriptor(), name,
+                                           value);
+}
+enum DesktopPresencePolicy : int {
+  DESKTOP_PRESENCE_POLICY_UNSPECIFIED = 0,
+  DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME = 1,
+  DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND = 2,
+  DesktopPresencePolicy_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  DesktopPresencePolicy_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t DesktopPresencePolicy_internal_data_[];
+inline constexpr DesktopPresencePolicy DesktopPresencePolicy_MIN =
+    static_cast<DesktopPresencePolicy>(0);
+inline constexpr DesktopPresencePolicy DesktopPresencePolicy_MAX =
+    static_cast<DesktopPresencePolicy>(2);
+inline bool DesktopPresencePolicy_IsValid(int value) {
+  return 0 <= value && value <= 2;
+}
+inline constexpr int DesktopPresencePolicy_ARRAYSIZE = 2 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DesktopPresencePolicy_descriptor();
+template <typename T>
+const ::std::string& DesktopPresencePolicy_Name(T value) {
+  static_assert(::std::is_same<T, DesktopPresencePolicy>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to DesktopPresencePolicy_Name().");
+  return DesktopPresencePolicy_Name(static_cast<DesktopPresencePolicy>(value));
+}
+template <>
+inline const ::std::string& DesktopPresencePolicy_Name(DesktopPresencePolicy value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<DesktopPresencePolicy_descriptor, 0, 2>(
+      static_cast<int>(value));
+}
+inline bool DesktopPresencePolicy_Parse(
+    ::absl::string_view name, DesktopPresencePolicy* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<DesktopPresencePolicy>(DesktopPresencePolicy_descriptor(), name,
                                            value);
 }
 
@@ -274,10 +316,13 @@ class NativeAppConfig final : public ::google::protobuf::Message
     kWindowTitleFieldNumber = 2,
     kThemeSourceFieldNumber = 6,
     kIconPathFieldNumber = 7,
+    kTrayIconPathFieldNumber = 10,
+    kMacosTemplateTrayIconPathFieldNumber = 11,
     kWindowWidthFieldNumber = 3,
     kWindowHeightFieldNumber = 4,
     kDevToolsFieldNumber = 5,
     kQuitPolicyFieldNumber = 8,
+    kDesktopPresencePolicyFieldNumber = 9,
   };
   // string app_name = 1;
   void clear_app_name() ;
@@ -339,6 +384,36 @@ class NativeAppConfig final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_icon_path();
 
   public:
+  // string tray_icon_path = 10;
+  void clear_tray_icon_path() ;
+  const ::std::string& tray_icon_path() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_tray_icon_path(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_tray_icon_path();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_tray_icon_path();
+  void set_allocated_tray_icon_path(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_tray_icon_path() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_tray_icon_path(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_tray_icon_path();
+
+  public:
+  // string macos_template_tray_icon_path = 11;
+  void clear_macos_template_tray_icon_path() ;
+  const ::std::string& macos_template_tray_icon_path() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_macos_template_tray_icon_path(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_macos_template_tray_icon_path();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_macos_template_tray_icon_path();
+  void set_allocated_macos_template_tray_icon_path(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_macos_template_tray_icon_path() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_macos_template_tray_icon_path(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_macos_template_tray_icon_path();
+
+  public:
   // uint32 window_width = 3;
   void clear_window_width() ;
   ::uint32_t window_width() const;
@@ -379,12 +454,22 @@ class NativeAppConfig final : public ::google::protobuf::Message
   void _internal_set_quit_policy(::bldr::web::plugin::compiler::QuitPolicy value);
 
   public:
+  // .bldr.web.plugin.compiler.DesktopPresencePolicy desktop_presence_policy = 9;
+  void clear_desktop_presence_policy() ;
+  ::bldr::web::plugin::compiler::DesktopPresencePolicy desktop_presence_policy() const;
+  void set_desktop_presence_policy(::bldr::web::plugin::compiler::DesktopPresencePolicy value);
+
+  private:
+  ::bldr::web::plugin::compiler::DesktopPresencePolicy _internal_desktop_presence_policy() const;
+  void _internal_set_desktop_presence_policy(::bldr::web::plugin::compiler::DesktopPresencePolicy value);
+
+  public:
   // @@protoc_insertion_point(class_scope:bldr.web.plugin.compiler.NativeAppConfig)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 8,
-                                   0, 98,
+  static const ::google::protobuf::internal::TcParseTable<4, 11,
+                                   0, 141,
                                    2>
       _table_;
 
@@ -409,10 +494,13 @@ class NativeAppConfig final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr window_title_;
     ::google::protobuf::internal::ArenaStringPtr theme_source_;
     ::google::protobuf::internal::ArenaStringPtr icon_path_;
+    ::google::protobuf::internal::ArenaStringPtr tray_icon_path_;
+    ::google::protobuf::internal::ArenaStringPtr macos_template_tray_icon_path_;
     ::uint32_t window_width_;
     ::uint32_t window_height_;
     bool dev_tools_;
     int quit_policy_;
+    int desktop_presence_policy_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -1116,7 +1204,7 @@ inline void NativeAppConfig::clear_window_width() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.window_width_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000010U);
+                  0x00000040U);
 }
 inline ::uint32_t NativeAppConfig::window_width() const {
   // @@protoc_insertion_point(field_get:bldr.web.plugin.compiler.NativeAppConfig.window_width)
@@ -1124,7 +1212,7 @@ inline ::uint32_t NativeAppConfig::window_width() const {
 }
 inline void NativeAppConfig::set_window_width(::uint32_t value) {
   _internal_set_window_width(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   // @@protoc_insertion_point(field_set:bldr.web.plugin.compiler.NativeAppConfig.window_width)
 }
 inline ::uint32_t NativeAppConfig::_internal_window_width() const {
@@ -1141,7 +1229,7 @@ inline void NativeAppConfig::clear_window_height() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.window_height_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000020U);
+                  0x00000080U);
 }
 inline ::uint32_t NativeAppConfig::window_height() const {
   // @@protoc_insertion_point(field_get:bldr.web.plugin.compiler.NativeAppConfig.window_height)
@@ -1149,7 +1237,7 @@ inline ::uint32_t NativeAppConfig::window_height() const {
 }
 inline void NativeAppConfig::set_window_height(::uint32_t value) {
   _internal_set_window_height(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
   // @@protoc_insertion_point(field_set:bldr.web.plugin.compiler.NativeAppConfig.window_height)
 }
 inline ::uint32_t NativeAppConfig::_internal_window_height() const {
@@ -1166,7 +1254,7 @@ inline void NativeAppConfig::clear_dev_tools() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.dev_tools_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000040U);
+                  0x00000100U);
 }
 inline bool NativeAppConfig::dev_tools() const {
   // @@protoc_insertion_point(field_get:bldr.web.plugin.compiler.NativeAppConfig.dev_tools)
@@ -1174,7 +1262,7 @@ inline bool NativeAppConfig::dev_tools() const {
 }
 inline void NativeAppConfig::set_dev_tools(bool value) {
   _internal_set_dev_tools(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
   // @@protoc_insertion_point(field_set:bldr.web.plugin.compiler.NativeAppConfig.dev_tools)
 }
 inline bool NativeAppConfig::_internal_dev_tools() const {
@@ -1321,7 +1409,7 @@ inline void NativeAppConfig::clear_quit_policy() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.quit_policy_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000080U);
+                  0x00000200U);
 }
 inline ::bldr::web::plugin::compiler::QuitPolicy NativeAppConfig::quit_policy() const {
   // @@protoc_insertion_point(field_get:bldr.web.plugin.compiler.NativeAppConfig.quit_policy)
@@ -1329,7 +1417,7 @@ inline ::bldr::web::plugin::compiler::QuitPolicy NativeAppConfig::quit_policy() 
 }
 inline void NativeAppConfig::set_quit_policy(::bldr::web::plugin::compiler::QuitPolicy value) {
   _internal_set_quit_policy(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
   // @@protoc_insertion_point(field_set:bldr.web.plugin.compiler.NativeAppConfig.quit_policy)
 }
 inline ::bldr::web::plugin::compiler::QuitPolicy NativeAppConfig::_internal_quit_policy() const {
@@ -1339,6 +1427,161 @@ inline ::bldr::web::plugin::compiler::QuitPolicy NativeAppConfig::_internal_quit
 inline void NativeAppConfig::_internal_set_quit_policy(::bldr::web::plugin::compiler::QuitPolicy value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.quit_policy_ = value;
+}
+
+// .bldr.web.plugin.compiler.DesktopPresencePolicy desktop_presence_policy = 9;
+inline void NativeAppConfig::clear_desktop_presence_policy() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.desktop_presence_policy_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000400U);
+}
+inline ::bldr::web::plugin::compiler::DesktopPresencePolicy NativeAppConfig::desktop_presence_policy() const {
+  // @@protoc_insertion_point(field_get:bldr.web.plugin.compiler.NativeAppConfig.desktop_presence_policy)
+  return _internal_desktop_presence_policy();
+}
+inline void NativeAppConfig::set_desktop_presence_policy(::bldr::web::plugin::compiler::DesktopPresencePolicy value) {
+  _internal_set_desktop_presence_policy(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  // @@protoc_insertion_point(field_set:bldr.web.plugin.compiler.NativeAppConfig.desktop_presence_policy)
+}
+inline ::bldr::web::plugin::compiler::DesktopPresencePolicy NativeAppConfig::_internal_desktop_presence_policy() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::bldr::web::plugin::compiler::DesktopPresencePolicy>(_impl_.desktop_presence_policy_);
+}
+inline void NativeAppConfig::_internal_set_desktop_presence_policy(::bldr::web::plugin::compiler::DesktopPresencePolicy value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.desktop_presence_policy_ = value;
+}
+
+// string tray_icon_path = 10;
+inline void NativeAppConfig::clear_tray_icon_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.tray_icon_path_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::std::string& NativeAppConfig::tray_icon_path() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.web.plugin.compiler.NativeAppConfig.tray_icon_path)
+  return _internal_tray_icon_path();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void NativeAppConfig::set_tray_icon_path(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  _impl_.tray_icon_path_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.web.plugin.compiler.NativeAppConfig.tray_icon_path)
+}
+inline ::std::string* PROTOBUF_NONNULL NativeAppConfig::mutable_tray_icon_path()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::std::string* _s = _internal_mutable_tray_icon_path();
+  // @@protoc_insertion_point(field_mutable:bldr.web.plugin.compiler.NativeAppConfig.tray_icon_path)
+  return _s;
+}
+inline const ::std::string& NativeAppConfig::_internal_tray_icon_path() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.tray_icon_path_.Get();
+}
+inline void NativeAppConfig::_internal_set_tray_icon_path(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.tray_icon_path_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL NativeAppConfig::_internal_mutable_tray_icon_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.tray_icon_path_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE NativeAppConfig::release_tray_icon_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.web.plugin.compiler.NativeAppConfig.tray_icon_path)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  auto* released = _impl_.tray_icon_path_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.tray_icon_path_.Set("", GetArena());
+  }
+  return released;
+}
+inline void NativeAppConfig::set_allocated_tray_icon_path(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  _impl_.tray_icon_path_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.tray_icon_path_.IsDefault()) {
+    _impl_.tray_icon_path_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.web.plugin.compiler.NativeAppConfig.tray_icon_path)
+}
+
+// string macos_template_tray_icon_path = 11;
+inline void NativeAppConfig::clear_macos_template_tray_icon_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.macos_template_tray_icon_path_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline const ::std::string& NativeAppConfig::macos_template_tray_icon_path() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.web.plugin.compiler.NativeAppConfig.macos_template_tray_icon_path)
+  return _internal_macos_template_tray_icon_path();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void NativeAppConfig::set_macos_template_tray_icon_path(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  _impl_.macos_template_tray_icon_path_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.web.plugin.compiler.NativeAppConfig.macos_template_tray_icon_path)
+}
+inline ::std::string* PROTOBUF_NONNULL NativeAppConfig::mutable_macos_template_tray_icon_path()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::std::string* _s = _internal_mutable_macos_template_tray_icon_path();
+  // @@protoc_insertion_point(field_mutable:bldr.web.plugin.compiler.NativeAppConfig.macos_template_tray_icon_path)
+  return _s;
+}
+inline const ::std::string& NativeAppConfig::_internal_macos_template_tray_icon_path() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.macos_template_tray_icon_path_.Get();
+}
+inline void NativeAppConfig::_internal_set_macos_template_tray_icon_path(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.macos_template_tray_icon_path_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL NativeAppConfig::_internal_mutable_macos_template_tray_icon_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.macos_template_tray_icon_path_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE NativeAppConfig::release_macos_template_tray_icon_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.web.plugin.compiler.NativeAppConfig.macos_template_tray_icon_path)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000020U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  auto* released = _impl_.macos_template_tray_icon_path_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.macos_template_tray_icon_path_.Set("", GetArena());
+  }
+  return released;
+}
+inline void NativeAppConfig::set_allocated_macos_template_tray_icon_path(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+  _impl_.macos_template_tray_icon_path_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.macos_template_tray_icon_path_.IsDefault()) {
+    _impl_.macos_template_tray_icon_path_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.web.plugin.compiler.NativeAppConfig.macos_template_tray_icon_path)
 }
 
 #ifdef __GNUC__
@@ -1360,6 +1603,12 @@ struct is_proto_enum<::bldr::web::plugin::compiler::QuitPolicy> : std::true_type
 template <>
 inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::bldr::web::plugin::compiler::QuitPolicy>() {
   return ::bldr::web::plugin::compiler::QuitPolicy_descriptor();
+}
+template <>
+struct is_proto_enum<::bldr::web::plugin::compiler::DesktopPresencePolicy> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::bldr::web::plugin::compiler::DesktopPresencePolicy>() {
+  return ::bldr::web::plugin::compiler::DesktopPresencePolicy_descriptor();
 }
 
 }  // namespace protobuf
