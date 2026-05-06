@@ -1,9 +1,15 @@
 import { EventEmitter } from 'events'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type {
+import {
+  DesktopRuntimeHealth,
+  DesktopRuntimeSeverity,
+  type DesktopRuntimeActionItem,
+  type DesktopRuntimeActivityItem,
+  type DesktopRuntimeAttentionItem,
+  type DesktopRuntimeNavigationItem,
   DesktopRuntimeState,
-  WatchDesktopStateResponse,
+  type WatchDesktopStateResponse,
 } from '../desktop-runtime/desktop-runtime.pb.js'
 
 const platformState = { value: 'linux' }
@@ -24,6 +30,7 @@ class MockNativeImage {
 class MockTray extends EventEmitter {
   public readonly setToolTip = vi.fn()
   public readonly setContextMenu = vi.fn()
+  public readonly setTitle = vi.fn()
 
   constructor(public readonly image: MockNativeImage) {
     super()
@@ -85,10 +92,12 @@ describe('DesktopTrayController', () => {
     controller.init()
 
     expect(trayInstances).toHaveLength(1)
-    expect(trayInstances[0]?.setToolTip).toHaveBeenCalledWith('Spacewave')
+    expect(trayInstances[0]?.setToolTip).toHaveBeenCalledWith(
+      'Spacewave: Running',
+    )
     expect(trayInstances[0]?.setContextMenu).toHaveBeenCalledTimes(1)
     expect(menuTemplates[0]).toContainEqual({
-      label: 'Status: Running',
+      label: 'Spacewave: Running',
       enabled: false,
     })
     expect(mockResource.WatchDesktopState).toHaveBeenCalledTimes(1)
@@ -115,9 +124,163 @@ describe('DesktopTrayController', () => {
 
     expect(trayInstances[0]?.setContextMenu).toHaveBeenCalledTimes(2)
     expect(menuTemplates[1]).toContainEqual({
-      label: 'Status: Disconnected',
+      label: 'Spacewave: Disconnected',
       enabled: false,
     })
+  })
+
+  it('renders healthy menu sections in daemon-console order', async () => {
+    const state = {
+      ...defaultRuntimeState(),
+      statusText: 'Running',
+      listener: {
+        label: 'CLI reachable',
+        detail: '1 CLI client connected',
+      },
+      sessions: [
+        {
+          label: 'christian@aperture.us',
+          detail: 'Cloud',
+          statusText: 'Ready',
+        },
+      ] satisfies DesktopRuntimeNavigationItem[],
+      spaces: [
+        {
+          label: 'Project Alpha',
+          detail: 'christian@aperture.us',
+          statusText: 'Shared',
+        },
+      ] satisfies DesktopRuntimeNavigationItem[],
+      activity: [
+        {
+          label: 'Uploading changes',
+          detail: '2 sync items',
+        },
+      ] satisfies DesktopRuntimeActivityItem[],
+      actions: [
+        {
+          label: 'Copy diagnostics',
+          detail: 'CLI socket',
+          enabled: true,
+        },
+      ] satisfies DesktopRuntimeActionItem[],
+    }
+    mockResource.getState.mockReturnValue(state)
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+
+    controller.init()
+
+    expect(templateLabels(menuTemplates[0])).toEqual([
+      'Spacewave: Running',
+      '---',
+      'Open Spacewave',
+      'New Window',
+      '---',
+      'Status',
+      'CLI reachable - 1 CLI client connected',
+      '---',
+      'Sessions',
+      'christian@aperture.us - Cloud - Ready',
+      '---',
+      'Spaces',
+      'Project Alpha - christian@aperture.us - Shared',
+      '---',
+      'Activity',
+      'Uploading changes - 2 sync items',
+      '---',
+      'Quick Actions',
+      'Copy diagnostics - CLI socket',
+      '---',
+      'Settings...',
+      'About Spacewave',
+      '---',
+      'Quit',
+    ])
+  })
+
+  it('collapses attention mode to the highest-priority item', async () => {
+    const state = {
+      ...defaultRuntimeState(),
+      statusText: 'Needs attention',
+      attentionItems: [
+        {
+          severity: DesktopRuntimeSeverity.INFO,
+          label: 'Update ready',
+          detail: '1.2.3',
+        },
+        {
+          severity: DesktopRuntimeSeverity.CRITICAL,
+          label: 'Sign in required',
+          detail: 'christian@aperture.us',
+        },
+      ] satisfies DesktopRuntimeAttentionItem[],
+    }
+    mockResource.getState.mockReturnValue(state)
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+
+    controller.init()
+
+    expect(templateLabels(menuTemplates[0])).toEqual([
+      'Spacewave: Needs attention',
+      'Sign in required',
+      'christian@aperture.us',
+      '---',
+      'Open Spacewave',
+      '---',
+      'Quit',
+    ])
+  })
+
+  it('uses native icon state fallbacks for status variants', async () => {
+    platformState.value = 'darwin'
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+    controller.init()
+
+    emitState({
+      ...defaultRuntimeState(),
+      statusText: 'Syncing',
+      health: DesktopRuntimeHealth.ACTIVE,
+    })
+    await Promise.resolve()
+    emitState({
+      ...defaultRuntimeState(),
+      statusText: 'Needs attention',
+      health: DesktopRuntimeHealth.NEEDS_ATTENTION,
+    })
+    await Promise.resolve()
+    emitState({
+      ...defaultRuntimeState(),
+      statusText: 'Disconnected',
+      health: DesktopRuntimeHealth.DISCONNECTED,
+    })
+    await Promise.resolve()
+    emitState({
+      ...defaultRuntimeState(),
+      statusText: 'Quitting',
+      health: DesktopRuntimeHealth.QUITTING,
+    })
+    await Promise.resolve()
+
+    expect(trayInstances[0]?.setTitle).toHaveBeenNthCalledWith(1, '')
+    expect(trayInstances[0]?.setTitle).toHaveBeenNthCalledWith(2, '*')
+    expect(trayInstances[0]?.setTitle).toHaveBeenNthCalledWith(3, '!')
+    expect(trayInstances[0]?.setTitle).toHaveBeenNthCalledWith(4, 'x')
+    expect(trayInstances[0]?.setTitle).toHaveBeenNthCalledWith(5, '...')
+    expect(trayInstances[0]?.setToolTip).toHaveBeenLastCalledWith(
+      'Spacewave: Quitting',
+    )
   })
 
   it('routes menu and tray commands through the desktop runtime resource', async () => {
@@ -180,6 +343,17 @@ async function clickMenuItem(label: string): Promise<void> {
   }
   Reflect.apply(item.click, undefined, [])
   await Promise.resolve()
+}
+
+function templateLabels(
+  template: Electron.MenuItemConstructorOptions[] | undefined,
+): string[] {
+  return (template ?? []).map((item) => {
+    if (item.type === 'separator') {
+      return '---'
+    }
+    return String(item.label)
+  })
 }
 
 function defaultRuntimeState(): DesktopRuntimeState {
