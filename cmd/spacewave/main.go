@@ -10,7 +10,9 @@ import (
 	auth_method_password "github.com/s4wave/spacewave/auth/method/password"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	plugin_host_configset "github.com/s4wave/spacewave/bldr/plugin/host/configset"
+	plugin_host_process "github.com/s4wave/spacewave/bldr/plugin/host/process"
 	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
+	plugin_host_quickjs "github.com/s4wave/spacewave/bldr/plugin/host/wazero-quickjs"
 	storage_volume "github.com/s4wave/spacewave/bldr/storage/volume"
 	cli "github.com/s4wave/spacewave/cmd/spacewave/cli"
 	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
@@ -85,7 +87,11 @@ var factories = []cli_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Fac
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{plugin_host_configset.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
+	return []controller.Factory{plugin_host_process.NewFactory(b)}
+}, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{plugin_host_scheduler.NewFactory(b)}
+}, func(b bus.Bus) []controller.Factory {
+	return []controller.Factory{plugin_host_quickjs.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{plugin_space.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {

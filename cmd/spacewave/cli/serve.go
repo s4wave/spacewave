@@ -15,12 +15,17 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
+	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
+	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	resource_root "github.com/s4wave/spacewave/core/resource/root"
+	db_world "github.com/s4wave/spacewave/db/world"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
 )
+
+const daemonPluginHostObjectKey = "plugin-host"
 
 // newServeCommand builds the serve command that starts the daemon
 // with a resource service socket listener.
@@ -74,6 +79,12 @@ func newServeCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 			le = cliBus.GetLogger()
 			serveCtx, serveCancel := context.WithCancel(ctx)
 			defer serveCancel()
+			releasePluginRuntime, err := startDaemonPluginRuntime(serveCtx, resolved, cliBus)
+			if err != nil {
+				return err
+			}
+			defer releasePluginRuntime()
+
 			idleTimeout, err := getDaemonIdleTimeout()
 			if err != nil {
 				return err
@@ -149,6 +160,80 @@ func newServeCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 			return err
 		},
 	}
+}
+
+func startDaemonPluginRuntime(
+	ctx context.Context,
+	stateRoot string,
+	cliBus cli_entrypoint.CliBus,
+) (func(), error) {
+	pluginRoot := filepath.Join(stateRoot, "plugin")
+	pluginStateRoot := filepath.Join(pluginRoot, "state")
+	pluginDistRoot := filepath.Join(pluginRoot, "dist")
+	for _, dir := range []string{pluginStateRoot, pluginDistRoot} {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return nil, err
+		}
+	}
+
+	var rels []func()
+	rel := func() {
+		for i := len(rels) - 1; i >= 0; i-- {
+			rels[i]()
+		}
+	}
+
+	lookupOpCtrl := db_world.NewLookupOpController(
+		"bldr-manifest-ops",
+		cliBus.GetWorldEngineID(),
+		bldr_manifest_world.LookupOp,
+	)
+	relLookupCtrl, err := cliBus.GetBus().AddController(ctx, lookupOpCtrl, nil)
+	if err != nil {
+		return nil, err
+	}
+	rels = append(rels, relLookupCtrl)
+
+	if _, err := bldr_manifest_world.CreateManifestStoreInEngine(
+		ctx,
+		cliBus.GetWorldEngine(),
+		daemonPluginHostObjectKey,
+	); err != nil {
+		rel()
+		return nil, err
+	}
+
+	_, relPluginSched, err := plugin_host_default.StartPluginScheduler(
+		ctx,
+		cliBus.GetBus(),
+		cliBus.GetWorldEngineID(),
+		daemonPluginHostObjectKey,
+		cliBus.GetVolume().GetID(),
+		cliBus.GetVolume().GetPeerID().String(),
+		true,
+		true,
+		true,
+	)
+	if err != nil {
+		rel()
+		return nil, err
+	}
+	rels = append(rels, relPluginSched)
+
+	_, relPluginHost, err := plugin_host_default.StartPluginHost(
+		ctx,
+		cliBus.GetBus(),
+		pluginStateRoot,
+		pluginDistRoot,
+		"",
+	)
+	if err != nil {
+		rel()
+		return nil, err
+	}
+	rels = append(rels, relPluginHost)
+
+	return rel, nil
 }
 
 // waitForResourceService waits for the resource service to appear, and on dist
