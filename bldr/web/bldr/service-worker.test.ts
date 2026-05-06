@@ -7,6 +7,7 @@ import type {
 } from './browser-release-state.js'
 import {
   handleBrowserReleaseRequest,
+  handleServiceWorkerMessage,
   resetServiceWorkerTestState,
 } from './service-worker.js'
 
@@ -101,6 +102,13 @@ async function writeBrowserReleaseState(
   )
 }
 
+function buildMessageEvent(data: unknown): ExtendableMessageEvent {
+  return {
+    data,
+    waitUntil: vi.fn(),
+  } as unknown as ExtendableMessageEvent
+}
+
 describe('service worker browser release requests', () => {
   beforeEach(() => {
     resetServiceWorkerTestState()
@@ -150,5 +158,31 @@ describe('service worker browser release requests', () => {
 
     expect(await response.json()).toEqual(release)
     expect(waitUntilPromises).toHaveLength(1)
+  })
+})
+
+describe('service worker messages', () => {
+  it('does not handle bldrSyncManifest messages yet', () => {
+    const ev = buildMessageEvent({ bldrSyncManifest: true })
+    const deps = {
+      clients: {} as Clients,
+      fetchTracker: {
+        abortClient: vi.fn(),
+      },
+      webDocumentTracker: {
+        handleWebDocumentMessage: vi.fn(),
+      },
+      handleCrossTabMessage: vi.fn(),
+    }
+
+    handleServiceWorkerMessage(ev, deps)
+
+    expect(ev.waitUntil).not.toHaveBeenCalled()
+    expect(deps.handleCrossTabMessage).not.toHaveBeenCalled()
+    expect(
+      deps.webDocumentTracker.handleWebDocumentMessage,
+    ).toHaveBeenCalledWith({
+      bldrSyncManifest: true,
+    })
   })
 })

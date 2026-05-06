@@ -47,6 +47,18 @@ const CACHES: Record<string, Cache | undefined> = {
 const serviceWorkerFetchTracker = new ServiceWorkerFetchTracker()
 const proxyFetchHeaderTimeoutMs = 30_000
 
+// ServiceWorkerMessageDeps collects message-handler collaborators.
+export interface ServiceWorkerMessageDeps {
+  clients: Clients
+  fetchTracker: ServiceWorkerFetchTracker
+  webDocumentTracker: WebDocumentTracker
+  handleCrossTabMessage(
+    clients: Clients,
+    senderId: string,
+    data: unknown,
+  ): Promise<void>
+}
+
 // resetServiceWorkerTestState clears module-level cache handles for unit tests.
 export function resetServiceWorkerTestState(): void {
   CACHES[controlCacheName] = undefined
@@ -471,6 +483,28 @@ async function swActivate() {
   await syncLatestBrowserRelease()
 }
 
+// handleServiceWorkerMessage routes a page message to the ServiceWorker owner.
+export function handleServiceWorkerMessage(
+  ev: ExtendableMessageEvent,
+  deps: ServiceWorkerMessageDeps,
+): void {
+  // Cross-tab channel broker: handle hello/goodbye before WebDocument messages.
+  if (isCrossTabMessage(ev.data)) {
+    const senderId = (ev.source as Client)?.id
+    if (senderId) {
+      if (ev.data.crossTab === 'goodbye') {
+        deps.fetchTracker.abortClient(
+          senderId,
+          new Error('service worker client closed'),
+        )
+      }
+      ev.waitUntil(deps.handleCrossTabMessage(deps.clients, senderId, ev.data))
+    }
+    return
+  }
+  deps.webDocumentTracker.handleWebDocumentMessage(ev.data)
+}
+
 // isSwOrigin checks if the given origin matches the local origin.
 function isSwOrigin(origin: string): boolean {
   return origin === self.location.origin
@@ -622,21 +656,12 @@ function initServiceWorker() {
 
   // message event is called when receiving a message from the page.
   self.addEventListener('message', (ev: ExtendableMessageEvent) => {
-    // Cross-tab channel broker: handle hello/goodbye before WebDocument messages.
-    if (isCrossTabMessage(ev.data)) {
-      const senderId = (ev.source as Client)?.id
-      if (senderId) {
-        if (ev.data.crossTab === 'goodbye') {
-          serviceWorkerFetchTracker.abortClient(
-            senderId,
-            new Error('service worker client closed'),
-          )
-        }
-        ev.waitUntil(handleCrossTabMessage(self.clients, senderId, ev.data))
-      }
-      return
-    }
-    webDocumentTracker.handleWebDocumentMessage(ev.data)
+    handleServiceWorkerMessage(ev, {
+      clients: self.clients,
+      fetchTracker: serviceWorkerFetchTracker,
+      webDocumentTracker,
+      handleCrossTabMessage,
+    })
   })
 
   // fetch event is called when a URL within the scope is accessed.
