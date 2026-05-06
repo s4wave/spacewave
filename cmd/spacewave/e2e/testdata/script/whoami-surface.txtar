@@ -1,0 +1,8 @@
+# Whoami exposes the current-session identity command and connect-only behavior.
+spacewave whoami --help
+stdout "show current session identity"
+stdout "--state-path value"
+stdout "--session-index value"
+
+! spacewave whoami --state-path $WORK/state
+stderr "no daemon listening"

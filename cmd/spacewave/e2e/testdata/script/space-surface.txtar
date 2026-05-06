@@ -1,0 +1,16 @@
+# Space exposes the user-visible Space command hierarchy and list behavior.
+spacewave space --help
+stdout "manage spaces"
+stdout "list             list spaces in the current session"
+stdout "create           create a new space"
+stdout "delete           delete a space by ID"
+stdout "rename           rename a space by ID"
+stdout "settings         show space settings"
+stdout "import-git       import a git repository into a space's world"
+
+spacewave space list --help
+stdout "list spaces in the current session"
+stdout "--watch, -w"
+
+! spacewave --state-path $WORK/state space list
+stderr "no daemon listening"

@@ -1,0 +1,14 @@
+# Session exposes list/info/revoke and preserves connect-only list behavior.
+spacewave session --help
+stdout "manage sessions"
+stdout "list     list sessions"
+stdout "info     show session details and peer info"
+stdout "revoke   revoke a session by peer ID"
+
+spacewave session list --help
+stdout "list sessions"
+stdout "--state-path value"
+stdout "--session-index value"
+
+! spacewave session list --state-path $WORK/state
+stderr "no daemon listening"

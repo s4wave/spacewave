@@ -39,16 +39,20 @@ func TestSpacewaveCLITrajectoryScripts(t *testing.T) {
 		t.Fatalf("build spacewave CLI: %v\n%s", err, out)
 	}
 
-	scripts, err := filepath.Glob(filepath.Join(repoRoot, "cmd", "spacewave", "e2e", "testdata", "script", "*.txt"))
-	if err != nil {
-		t.Fatal(err)
+	var scripts []string
+	for _, ext := range []string{"*.txt", "*.txtar"} {
+		matches, err := filepath.Glob(filepath.Join(repoRoot, "cmd", "spacewave", "e2e", "testdata", "script", ext))
+		if err != nil {
+			t.Fatal(err)
+		}
+		scripts = append(scripts, matches...)
 	}
 	if len(scripts) == 0 {
 		t.Fatal("no CLI trajectory scripts found")
 	}
 
 	for _, script := range scripts {
-		t.Run(strings.TrimSuffix(filepath.Base(script), ".txt"), func(t *testing.T) {
+		t.Run(strings.TrimSuffix(filepath.Base(script), filepath.Ext(script)), func(t *testing.T) {
 			runScript(t, script, scriptState{
 				bin:  bin,
 				work: t.TempDir(),

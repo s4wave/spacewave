@@ -1,0 +1,14 @@
+# Login exposes the account entrypoint and primary browser/local subcommands.
+spacewave login --help
+stdout "sign up or log in to a Spacewave account"
+stdout "local    create a local offline account"
+stdout "browser  sign in via the browser handoff flow"
+stdout "--username value"
+stdout "--pem-file value"
+
+spacewave login browser --help
+stdout "sign in via the browser handoff flow"
+stdout "prefill the browser auth flow with this username"
+
+! spacewave login --username cli@example.test --password test-pass --state-path $WORK/state
+stderr "no daemon listening"

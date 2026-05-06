@@ -1,0 +1,8 @@
+# Logout exposes the cloud-session revocation command and credential boundary.
+spacewave logout --help
+stdout "revoke the current cloud session"
+stdout "--pem-file value"
+stdout "--session-index value"
+
+! spacewave logout --pem-file $WORK/missing.pem --state-path $WORK/state
+stderr "read PEM file:"
