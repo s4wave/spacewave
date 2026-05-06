@@ -47,6 +47,11 @@ const CACHES: Record<string, Cache | undefined> = {
 const serviceWorkerFetchTracker = new ServiceWorkerFetchTracker()
 const proxyFetchHeaderTimeoutMs = 30_000
 
+// resetServiceWorkerTestState clears module-level cache handles for unit tests.
+export function resetServiceWorkerTestState(): void {
+  CACHES[controlCacheName] = undefined
+}
+
 function buildCacheRequest(path: string): Request {
   return new Request(new URL(path, baseURL).toString())
 }
@@ -389,7 +394,9 @@ async function matchPromotedGenerationResponse(
   return null
 }
 
-async function handleBrowserReleaseRequest(ev: FetchEvent): Promise<Response> {
+export async function handleBrowserReleaseRequest(
+  ev: FetchEvent,
+): Promise<Response> {
   const request = ev.request
   const state = await loadBrowserReleaseState()
   if (state.promotedCurrent) {
