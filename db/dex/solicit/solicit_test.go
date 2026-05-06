@@ -20,7 +20,7 @@ func TestSolicitE2E_DEX(t *testing.T) {
 		t,
 		func(bc *bucket.Config) error {
 			lookupConf := &lc.Config{
-				NotFoundBehavior:  lc.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE,
+				NotFoundBehavior:  lc.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE_WAIT,
 				PutBlockBehavior:  lc.PutBlockBehavior_PutBlockBehavior_ALL,
 				WritebackBehavior: lc.WritebackBehavior_WritebackBehavior_ALL,
 			}

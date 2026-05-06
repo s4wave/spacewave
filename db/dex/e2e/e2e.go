@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
@@ -42,7 +43,10 @@ func TestMultiNodeDEX(
 	prepareBcCb PrepareBucketConfigFunc,
 	prepareTestbedCb PrepareTestbedFunc,
 ) {
-	subCtx, subCtxCancel := context.WithCancel(context.Background())
+	ctx, ctxCancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer ctxCancel()
+
+	subCtx, subCtxCancel := context.WithCancel(ctx)
 	defer subCtxCancel()
 
 	log := logrus.New()
@@ -57,9 +61,6 @@ func TestMultiNodeDEX(
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-
-	ctx, ctxCancel := context.WithCancel(context.Background())
-	defer ctxCancel()
 
 	nnodes := 3
 	var testbeds []*testbed.Testbed

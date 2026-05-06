@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/pkg/errors"
@@ -249,9 +248,7 @@ func (a *ProviderAccount) startInviteServer(ctx context.Context, childBus bus.Bu
 // startDEXSolicit loads a DEX solicit controller on the child bus for
 // the given block store bucket.
 func (a *ProviderAccount) startDEXSolicit(ctx context.Context, childBus bus.Bus, bucketID string, state *p2pSyncState) error {
-	_, _, dexRef, err := loader.WaitExecControllerRunning(
-		ctx,
-		childBus,
+	_, dexRef, err := childBus.AddDirective(
 		resolver.NewLoadControllerWithConfig(&dex_solicit.Config{
 			BucketId: bucketID,
 		}),
