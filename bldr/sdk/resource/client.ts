@@ -383,13 +383,17 @@ export class Client {
         const attachId = ++sess.attachIdCtr
         const resultPromise = new Promise<number>((resolve, reject) => {
           sess.pending.set(attachId, { resolve, reject })
-          signal?.addEventListener('abort', () => {
-            const pending = sess.pending.get(attachId)
-            if (pending) {
-              pending.canceled = true
-            }
-            reject(new Error('aborted'))
-          }, { once: true })
+          signal?.addEventListener(
+            'abort',
+            () => {
+              const pending = sess.pending.get(attachId)
+              if (pending) {
+                pending.canceled = true
+              }
+              reject(new Error('aborted'))
+            },
+            { once: true },
+          )
         })
 
         // Send Add.
@@ -447,15 +451,13 @@ export class Client {
   }
 
   // ensureAttachSession opens the ResourceAttach bidi stream if needed.
-  private async ensureAttachSession(
-  ): Promise<AttachSession> {
+  private async ensureAttachSession(): Promise<AttachSession> {
     if (this.attachSession) return this.attachSession
     if (this.attachSessionInitPromise) return this.attachSessionInitPromise
 
-    this.attachSessionInitPromise = this.openAttachSession()
-      .finally(() => {
-        this.attachSessionInitPromise = null
-      })
+    this.attachSessionInitPromise = this.openAttachSession().finally(() => {
+      this.attachSessionInitPromise = null
+    })
     return this.attachSessionInitPromise
   }
 
@@ -524,7 +526,10 @@ export class Client {
     // Create yamux StreamConn.
     // CLIENT side is yamux server (inbound) -- accepts streams
     // and routes to the correct mux via service ID prefix routing.
-    const routedLookup: LookupMethod = async (serviceId: string, methodId: string) => {
+    const routedLookup: LookupMethod = async (
+      serviceId: string,
+      methodId: string,
+    ) => {
       const slashIdx = serviceId.indexOf('/')
       if (slashIdx < 0) return null
       const resourceId = parseInt(serviceId.substring(0, slashIdx), 10)
@@ -538,6 +543,8 @@ export class Client {
       direction: 'inbound',
       yamuxParams: { enableKeepAlive: false },
     })
+
+    const client = this
 
     // Pipe mux_data between ResourceAttach stream and yamux.
     // Incoming packets -> dispatch control or extract mux_data bytes.
@@ -574,7 +581,7 @@ export class Client {
           }
         }
         if (body?.case === 'detachAck') {
-          this.releaseAttachedResource(sess, body.value.resourceId ?? 0)
+          client.releaseAttachedResource(sess, body.value.resourceId ?? 0)
         }
       }
     })()
@@ -595,11 +602,13 @@ export class Client {
         }
         outgoing.end()
       },
-    ).catch(() => {
-      outgoing.end()
-    }).finally(() => {
-      this.clearAttachSession(sess)
-    })
+    )
+      .catch(() => {
+        outgoing.end()
+      })
+      .finally(() => {
+        this.clearAttachSession(sess)
+      })
 
     this.attachSession = sess
     return sess
@@ -928,7 +937,9 @@ export class Client {
   /**
    * Flush pending releases until the queue is empty or the client is aborted.
    */
-  private async flushPendingResourceReleases(signal: AbortSignal): Promise<void> {
+  private async flushPendingResourceReleases(
+    signal: AbortSignal,
+  ): Promise<void> {
     while (
       !signal.aborted &&
       !this.disposed &&
@@ -1120,7 +1131,10 @@ export class Client {
     this.releaseAllAttachedResources(current)
   }
 
-  private releaseAttachedResource(sess: AttachSession, resourceId: number): void {
+  private releaseAttachedResource(
+    sess: AttachSession,
+    resourceId: number,
+  ): void {
     const releaseFn = sess.releaseFns.get(resourceId)
     sess.releaseFns.delete(resourceId)
     sess.muxes.delete(resourceId)

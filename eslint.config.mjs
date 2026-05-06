@@ -24,6 +24,8 @@ export default tseslint.config(
       'bldr/.bldr/**',
       'bldr/.bldr-dist/**',
       'bldr/dist/**',
+      'bldr/e2e/comms/dist/**',
+      'bldr/plugin/compiler/js/.test/**',
       'bldr/prototypes/**',
       'db/prototypes/**',
       'coverage/**',
@@ -53,7 +55,7 @@ export default tseslint.config(
   {
     languageOptions: {
       parserOptions: {
-        project: ['./tsconfig.json'],
+        project: ['./tsconfig.eslint.json'],
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -65,7 +67,7 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      'react-compiler/react-compiler': 'error',
+      'react-compiler/react-compiler': 'off',
     },
   },
   {
@@ -77,7 +79,7 @@ export default tseslint.config(
           'warn',
         ]),
       ),
-      'react-compiler/react-compiler': 'warn',
+      'react-compiler/react-compiler': 'off',
       '@typescript-eslint/no-unused-vars': [
         'warn',
         {

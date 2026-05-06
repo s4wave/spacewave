@@ -76,6 +76,8 @@ type ProviderAccount struct {
 	gcCleanupBcast broadcast.Broadcast
 	// gcCleanupGeneration increments when account GC cleanup is needed.
 	gcCleanupGeneration uint64
+	// gcCleanupCompletedGeneration tracks the last completed cleanup generation.
+	gcCleanupCompletedGeneration uint64
 	// gcCleanupCollect overrides cleanup collection in tests.
 	gcCleanupCollect func(context.Context) (*block_gc.Stats, error)
 	// pairing tracks an active pairing flow, nil when not active.

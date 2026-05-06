@@ -16,15 +16,42 @@ func (a *ProviderAccount) triggerGCCleanup() {
 	})
 }
 
+// WaitGCCleanup waits for pending account GC cleanup to finish.
+func (a *ProviderAccount) WaitGCCleanup(ctx context.Context) error {
+	var target uint64
+	for {
+		var (
+			done   bool
+			waitCh <-chan struct{}
+		)
+		a.gcCleanupBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			if target == 0 {
+				target = a.gcCleanupGeneration
+			}
+			done = a.gcCleanupCompletedGeneration >= target
+			if !done {
+				waitCh = getWaitCh()
+			}
+		})
+		if done {
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-waitCh:
+		}
+	}
+}
+
 func (a *ProviderAccount) runGCCleanup(ctx context.Context) error {
-	var completed uint64
 	for {
 		var (
 			generation uint64
 			waitCh     <-chan struct{}
 		)
 		a.gcCleanupBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			if a.gcCleanupGeneration > completed {
+			if a.gcCleanupGeneration > a.gcCleanupCompletedGeneration {
 				generation = a.gcCleanupGeneration
 				return
 			}
@@ -51,7 +78,12 @@ func (a *ProviderAccount) runGCCleanup(ctx context.Context) error {
 			"GC swept nodes after local provider account cleanup",
 			stats,
 		)
-		completed = generation
+		a.gcCleanupBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			if generation > a.gcCleanupCompletedGeneration {
+				a.gcCleanupCompletedGeneration = generation
+				broadcast()
+			}
+		})
 	}
 }
 

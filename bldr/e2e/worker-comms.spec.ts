@@ -40,7 +40,7 @@ test.describe('worker communication lifecycle', () => {
   test('detects worker comms config', async ({ page }) => {
     const configPromise = waitForConsole(page, 'worker-comms: detected config')
 
-    await page.goto('/')
+    await page.goto('/#/')
     const msg = await configPromise
     // Should detect a valid config (A, B, C, or F).
     expect(msg).toMatch(/detected config [ABCF]/)
@@ -49,7 +49,7 @@ test.describe('worker communication lifecycle', () => {
   test('creates SAB bus for plugin IPC', async ({ page }) => {
     const busPromise = waitForConsole(page, 'SAB bus')
 
-    await page.goto('/')
+    await page.goto('/#/')
     const msg = await busPromise
     // Either "created SAB bus" or "SAB bus transport available".
     expect(msg).toMatch(/SAB bus/)
@@ -58,7 +58,7 @@ test.describe('worker communication lifecycle', () => {
   test('plugin registers on SAB bus', async ({ page }) => {
     const regPromise = waitForConsole(page, 'registered on SAB bus')
 
-    await page.goto('/')
+    await page.goto('/#/')
     const msg = await regPromise
     expect(msg).toContain('registered on SAB bus with pluginId')
   })
@@ -66,7 +66,7 @@ test.describe('worker communication lifecycle', () => {
   test('plugin starts native worker', async ({ page }) => {
     const startPromise = waitForConsole(page, 'starting native plugin')
 
-    await page.goto('/')
+    await page.goto('/#/')
     const msg = await startPromise
     expect(msg).toContain('starting native plugin')
   })
@@ -93,7 +93,7 @@ test.describe('worker communication lifecycle', () => {
       }
     })
 
-    await page.goto('/')
+    await page.goto('/#/')
 
     // Wait for the page to render content (plugin loaded).
     const root = page.locator('#bldr-root')
@@ -130,10 +130,10 @@ test.describe('cross-tab communication', () => {
     pageB.on('console', (msg) => allB.push(msg.text()))
 
     // Navigate both pages to the app.
-    await pageA.goto('/')
+    await pageA.goto('/#/')
     await pageA.waitForSelector('#bldr-root', { timeout: 60_000 })
 
-    await pageB.goto('/')
+    await pageB.goto('/#/')
     await pageB.waitForSelector('#bldr-root', { timeout: 60_000 })
 
     // Wait for cross-tab system to initialize on both pages.
@@ -168,15 +168,19 @@ test.describe('singleton coordinator (no SharedWorker)', () => {
     const pageA = await context.newPage()
     const pageB = await context.newPage()
 
+    const pageALock = waitForConsole(pageA, 'acquired plugin singleton lock')
+    const pageAStart = waitForConsole(pageA, 'starting native plugin')
+    const pageBWait = waitForConsole(pageB, 'waiting for plugin singleton lock')
+
     // Page A loads and acquires the singleton plugin lock.
-    await pageA.goto('/')
-    await waitForConsole(pageA, 'acquired plugin singleton lock')
-    await waitForConsole(pageA, 'starting native plugin')
+    await pageA.goto('/#/')
+    await pageALock
+    await pageAStart
 
     // Page B loads. Wait until Go has attempted CreateWebWorker and is
     // blocked on the singleton lock (deterministic, not a timeout).
-    await pageB.goto('/')
-    await waitForConsole(pageB, 'waiting for plugin singleton lock')
+    await pageB.goto('/#/')
+    await pageBWait
 
     // Page B is blocked - verify no plugin started.
     const pluginStartB: string[] = []
@@ -195,20 +199,25 @@ test.describe('singleton coordinator (no SharedWorker)', () => {
     const pageA = await context.newPage()
     const pageB = await context.newPage()
 
+    const pageAStart = waitForConsole(pageA, 'starting native plugin')
+    const pageBWait = waitForConsole(pageB, 'waiting for plugin singleton lock')
+    const pageBLock = waitForConsole(pageB, 'acquired plugin singleton lock')
+    const pageBStart = waitForConsole(pageB, 'starting native plugin')
+
     // Page A acquires the singleton.
-    await pageA.goto('/')
-    await waitForConsole(pageA, 'starting native plugin')
+    await pageA.goto('/#/')
+    await pageAStart
 
     // Page B is blocked on the lock.
-    await pageB.goto('/')
-    await waitForConsole(pageB, 'waiting for plugin singleton lock')
+    await pageB.goto('/#/')
+    await pageBWait
 
     // Close page A, releasing the singleton lock.
     await pageA.close()
 
     // Page B should acquire the lock and start plugins.
-    await waitForConsole(pageB, 'acquired plugin singleton lock')
-    await waitForConsole(pageB, 'starting native plugin')
+    await pageBLock
+    await pageBStart
 
     await context.close()
   })

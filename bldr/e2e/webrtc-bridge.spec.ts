@@ -50,7 +50,7 @@ test.describe('WebRTC bridge bootstrap', () => {
       'WebDocument: WebRTC bridge opened for',
     )
 
-    await page.goto('/')
+    await page.goto('/#/')
 
     const msg = await bridgePromise
     expect(msg).toContain('WebRTC bridge opened for')
@@ -82,7 +82,7 @@ test.describe('WebRTC bridge bootstrap', () => {
       w.on('console', errorHandler)
     })
 
-    await page.goto('/')
+    await page.goto('/#/')
     await waitForConsole(page, 'WebDocument: WebRTC bridge opened for')
 
     // Allow time for transport initialization after bridge setup.
@@ -98,7 +98,7 @@ test.describe('WebRTC bridge bootstrap', () => {
 test.describe('cross-browser bridge bootstrap', () => {
   test('Chromium and Firefox both bootstrap bridge', async () => {
     const port = Number.parseInt(process.env.E2E_PORT ?? '', 10) || 8080
-    const url = `http://localhost:${port}`
+    const url = `http://localhost:${port}/#/`
 
     // Launch two separate browser instances.
     const chrBrowser = await chromium.launch()

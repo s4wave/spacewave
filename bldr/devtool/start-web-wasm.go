@@ -115,7 +115,7 @@ func (d *DevtoolBus) ExecuteWebWasm(
 	// run esbuild to compile the web entrypoint
 	le.Info("building web wasm entrypoint")
 	entrypoint_browser_bundle.EsbuildLogLevel = esbuild.LogLevelError
-	_, err := entrypoint_browser_bundle.BuildBrowserBundle(
+	bundleResult, err := entrypoint_browser_bundle.BuildBrowserBundle(
 		ctx,
 		le,
 		stateDir,
@@ -283,6 +283,16 @@ func (d *DevtoolBus) ExecuteWebWasm(
 		nil,
 		nil,
 	); err != nil {
+		return err
+	}
+	manifest := &entrypoint_browser_bundle.BuildManifest{
+		Entrypoint:    bundleResult.EntrypointPath,
+		ServiceWorker: bundleResult.ServiceWorkerFilename,
+		SharedWorker:  bundleResult.SharedWorkerFilename,
+		Wasm:          "entrypoint/runtime.wasm",
+		CSS:           bundleResult.CSSPaths,
+	}
+	if err := entrypoint_browser_bundle.WriteBuildManifest(entrypointDir, manifest); err != nil {
 		return err
 	}
 

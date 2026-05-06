@@ -203,19 +203,31 @@ func (a *ProviderAccount) EnsureSessionTransport(
 	sessionPriv crypto.PrivKey,
 	relayURL string,
 ) error {
+	_, _, err := a.ensureSessionTransport(ctx, sessionPriv, relayURL)
+	return err
+}
+
+func (a *ProviderAccount) ensureSessionTransport(
+	ctx context.Context,
+	sessionPriv crypto.PrivKey,
+	relayURL string,
+) (*sessionTransportState, bool, error) {
 	rel, err := a.mtx.Lock(ctx)
 	if err != nil {
-		return err
+		return nil, false, err
 	}
 	defer rel()
 
-	st := a.GetSessionTransport()
-	if st != nil {
+	var sts *sessionTransportState
+	a.transportBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		sts = a.sessionTransport
+	})
+	if sts != nil {
 		a.le.Debug("session transport already exists, skipping creation")
-		return st.AwaitReady(ctx)
+		return sts, false, sts.transport.AwaitReady(ctx)
 	}
-	_, err = a.createSessionTransportLocked(ctx, sessionPriv, relayURL)
-	return err
+	sts, err = a.createSessionTransportLocked(ctx, sessionPriv, relayURL)
+	return sts, true, err
 }
 
 // GetOnlinePeerIDs returns the base58 peer IDs of paired devices that

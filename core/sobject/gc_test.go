@@ -145,8 +145,11 @@ func TestGarbageCollection(t *testing.T) {
 	// Unmount the shared object before deleting.
 	soRef.Release()
 
-	// Delete the shared object (removes GC hierarchy, runs immediate collect).
+	// Delete the shared object and wait for background GC cleanup.
 	if err := wsProv.DeleteSharedObject(ctx, sobjectID); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := provAcc.(*provider_local.ProviderAccount).WaitGCCleanup(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
 
@@ -238,6 +241,9 @@ func TestGarbageCollection_MultipleSpaces(t *testing.T) {
 	// Unmount space A, delete it.
 	soARef.Release()
 	if err := wsProv.DeleteSharedObject(ctx, "space-a"); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := provAcc.(*provider_local.ProviderAccount).WaitGCCleanup(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
 
@@ -447,6 +453,9 @@ func TestStorageLifecycleGC(t *testing.T) {
 	if err := wsProv.DeleteSharedObject(ctx, spaceID); err != nil {
 		t.Fatal(err.Error())
 	}
+	if err := provAcc.(*provider_local.ProviderAccount).WaitGCCleanup(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
 
 	for _, ref := range keptRefs {
 		exists, exErr := vol.GetBlockExists(ctx, ref)
@@ -597,6 +606,9 @@ func TestStorageLifecycleGC_LargerBlocks(t *testing.T) {
 	// Clean up.
 	soRef.Release()
 	if err := wsProv.DeleteSharedObject(ctx, spaceID); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := provAcc.(*provider_local.ProviderAccount).WaitGCCleanup(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
 }

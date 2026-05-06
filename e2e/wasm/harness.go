@@ -607,8 +607,8 @@ func (h *Harness) waitForReady(ctx context.Context) error {
 	}
 }
 
-// bldrModPath is the Go module path for bldr.
-const bldrModPath = "github.com/s4wave/spacewave/bldr"
+// bldrModPath is the Go module path that owns the bldr source tree.
+const bldrModPath = "github.com/s4wave/spacewave"
 
 // resolveBldrDependency determines the bldr module version/checksum and any
 // local replace path. The source path is passed into SyncDistSources so the
@@ -618,6 +618,11 @@ func resolveBldrDependency(repoRoot string) (version, sum, srcPath string, err e
 	buildInfo, ok := debug.ReadBuildInfo()
 	if !ok {
 		return resolveBldrDependencyFromGoMod(repoRoot)
+	}
+	if buildInfo.Main.Path == bldrModPath {
+		if p, ok := resolveLocalModulePath("", repoRoot); ok {
+			return "", "", p, nil
+		}
 	}
 	for _, dep := range buildInfo.Deps {
 		if dep.Path == bldrModPath {
@@ -658,6 +663,9 @@ func resolveBldrDependencyFromGoMod(repoRoot string) (version, sum, srcPath stri
 	mod, err := modfile.Parse(goModPath, goModData, nil)
 	if err != nil {
 		return "", "", "", errors.Wrap(err, "parse go.mod")
+	}
+	if mod.Module != nil && mod.Module.Mod.Path == bldrModPath {
+		return "", "", repoRoot, nil
 	}
 	for _, repl := range mod.Replace {
 		if repl.Old.Path != bldrModPath {
