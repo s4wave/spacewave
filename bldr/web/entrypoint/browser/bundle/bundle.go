@@ -135,12 +135,15 @@ function loadRelease(){
     const shellAssets=release.shellAssets||{};
     const entrypoint=absPath(shellAssets.entrypoint);
     const wasm=absPath(shellAssets.wasm);
+    const serviceWorker=absPath(shellAssets.serviceWorker);
     if(!entrypoint)throw new Error('browser release manifest missing shellAssets.entrypoint');
     if(!wasm)throw new Error('browser release manifest missing shellAssets.wasm');
+    if(!serviceWorker)throw new Error('browser release manifest missing shellAssets.serviceWorker');
     g.__swEntry=entrypoint;
+    g.__swServiceWorker=serviceWorker;
     g.__swGenerationId=release.generationId||'';
     setBootStatus('manifest-ready','Browser release found.');
-    return {entrypoint,wasm};
+    return {entrypoint,wasm,serviceWorker};
   });
   return releasePromise;
 }

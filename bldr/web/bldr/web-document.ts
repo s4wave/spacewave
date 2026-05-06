@@ -449,6 +449,35 @@ type WebDocumentEvents = {
   runtimeconnected: () => void
 }
 
+declare global {
+  var __swServiceWorker: string | undefined
+}
+
+// registerUpdatedServiceWorker registers the boot manifest's newer SW URL.
+export async function registerUpdatedServiceWorker(
+  currentSwUrl: string,
+  currentRegistration: ServiceWorkerRegistration | null | undefined,
+  register: (
+    scriptURL: string,
+    options?: RegistrationOptions,
+  ) => Promise<ServiceWorkerRegistration> = navigator.serviceWorker.register.bind(
+    navigator.serviceWorker,
+  ),
+  manifestSwPath = globalThis.__swServiceWorker,
+): Promise<ServiceWorkerRegistration | null> {
+  if (!manifestSwPath) {
+    return null
+  }
+  const nextSwUrl = new URL(manifestSwPath, location.href).toString()
+  const registeredSwUrl = new URL(currentSwUrl, location.href).toString()
+  if (nextSwUrl === registeredSwUrl) {
+    return null
+  }
+  return register(nextSwUrl, {
+    scope: currentRegistration?.scope,
+  })
+}
+
 // WebDocument tracks a tree of WebView associated with a WebRuntime.
 //
 // Attaches to or mounts the root WebRuntime and provides an RPC API.
@@ -589,7 +618,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       this.isSaucer = true
     }
     this.webRuntimeClientId =
-      this.isElectron ? `${this.webDocumentUuid}-${randomId()}` : this.webDocumentUuid
+      this.isElectron ?
+        `${this.webDocumentUuid}-${randomId()}`
+      : this.webDocumentUuid
     this.webViews = {}
     this.webWorkers = {}
     if (opts?.disableStoragePersist) {
@@ -1195,6 +1226,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     // wait for the service worker to finish startup
     // await wb.active()
     await wb.update()
+    await registerUpdatedServiceWorker(swUrl, wbReg)
 
     // workaround for ctrl + shift + r disabling service workers
     // https://web.dev/service-worker-lifecycle/#shift-reload
