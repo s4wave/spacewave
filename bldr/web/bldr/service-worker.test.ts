@@ -257,11 +257,13 @@ describe('service worker messages', () => {
     resetServiceWorkerTestState()
   })
 
-  it('runs sync for bldrSyncManifest messages', () => {
-    const ev = buildMessageEvent({ bldrSyncManifest: true })
+  it('runs one sync per in-flight window for bldrSyncManifest messages', async () => {
+    const firstSync = newDeferred<BrowserReleaseState>()
+    const secondSync = newDeferred<BrowserReleaseState>()
     const syncLatestBrowserRelease = vi
       .fn()
-      .mockResolvedValue(createEmptyBrowserReleaseState())
+      .mockReturnValueOnce(firstSync.promise)
+      .mockReturnValueOnce(secondSync.promise)
     const deps = {
       clients: {} as Clients,
       fetchTracker: {
@@ -274,13 +276,29 @@ describe('service worker messages', () => {
       handleCrossTabMessage: vi.fn(),
     }
 
-    handleServiceWorkerMessage(ev, deps)
+    const firstEv = buildMessageEvent({ bldrSyncManifest: true })
+    const duplicateEv = buildMessageEvent({ bldrSyncManifest: true })
+    handleServiceWorkerMessage(firstEv, deps)
+    handleServiceWorkerMessage(duplicateEv, deps)
 
-    expect(ev.waitUntil).toHaveBeenCalledWith(expect.any(Promise))
     expect(syncLatestBrowserRelease).toHaveBeenCalledTimes(1)
+    expect(firstEv.waitUntil).toHaveBeenCalledWith(expect.any(Promise))
+    expect(duplicateEv.waitUntil).not.toHaveBeenCalled()
     expect(deps.handleCrossTabMessage).not.toHaveBeenCalled()
     expect(
       deps.webDocumentTracker.handleWebDocumentMessage,
     ).not.toHaveBeenCalled()
+
+    firstSync.resolve(createEmptyBrowserReleaseState())
+    await vi.mocked(firstEv.waitUntil).mock.calls[0][0]
+
+    const rearmedEv = buildMessageEvent({ bldrSyncManifest: true })
+    handleServiceWorkerMessage(rearmedEv, deps)
+
+    expect(syncLatestBrowserRelease).toHaveBeenCalledTimes(2)
+    expect(rearmedEv.waitUntil).toHaveBeenCalledWith(expect.any(Promise))
+
+    secondSync.resolve(createEmptyBrowserReleaseState())
+    await vi.mocked(rearmedEv.waitUntil).mock.calls[0][0]
   })
 })
