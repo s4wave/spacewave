@@ -31,6 +31,7 @@ type Harness struct {
 
 	cancel context.CancelFunc
 
+	repoRoot  string
 	stateRoot string
 	cdpPort   int
 	bldrSrc   string
@@ -74,6 +75,7 @@ func Boot(ctx context.Context, le *logrus.Entry) (_ *Harness, retErr error) {
 	h := &Harness{
 		ctx:       ctx,
 		cancel:    cancel,
+		repoRoot:  repoRoot,
 		stateRoot: stateRoot,
 		cdpPort:   port,
 		bldrSrc:   bldrSrcPath,
@@ -143,6 +145,14 @@ func (h *Harness) CDPEndpoint() string {
 // StateRoot returns the isolated Bldr state root used by the harness.
 func (h *Harness) StateRoot() string { return h.stateRoot }
 
+// RepoRoot returns the project repository root used by the harness.
+func (h *Harness) RepoRoot() string { return h.repoRoot }
+
+// CLISocketPath returns the dev-mode Spacewave daemon socket path.
+func (h *Harness) CLISocketPath() string {
+	return filepath.Join(h.repoRoot, ".spacewave", "spacewave.sock")
+}
+
 // WaitForPage waits until a renderer page is visible through the CDP driver.
 func (h *Harness) WaitForPage(ctx context.Context) (playwright.Page, error) {
 	if h.browser == nil {
@@ -182,6 +192,24 @@ func (h *Harness) AppPages() []playwright.Page {
 		}
 	}
 	return pages
+}
+
+// WaitForNoAppPages waits until no app renderer pages are visible.
+func (h *Harness) WaitForNoAppPages(ctx context.Context) error {
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		if len(h.AppPages()) == 0 {
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-h.done:
+			return h.desktopRuntimeErr("desktop runtime exited before renderer pages closed")
+		case <-ticker.C:
+		}
+	}
 }
 
 // WaitForAppPages waits until at least count renderer pages are visible.

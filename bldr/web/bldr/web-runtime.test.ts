@@ -141,7 +141,7 @@ describe('WebRuntime', () => {
         combineUint8ArrayListTransform(),
         clientStream,
       )
-        .catch((err) => clientConn.close(err))
+        .catch((err: unknown) => clientConn.close(toError(err)))
         .then(() => clientConn.close()),
       pipe(
         serverStream,
@@ -149,7 +149,7 @@ describe('WebRuntime', () => {
         combineUint8ArrayListTransform(),
         serverStream,
       )
-        .catch((err) => serverConn.close(err))
+        .catch((err: unknown) => serverConn.close(toError(err)))
         .then(() => serverConn.close()),
     )
     const srpcClient = new SRPCClient(clientConn.buildOpenStreamFunc())
@@ -171,6 +171,28 @@ describe('WebRuntime', () => {
         },
       },
       done: false,
+    })
+
+    await service.SetDesktopState({
+      state: {
+        statusText: 'Projected',
+        health: DesktopRuntimeHealth.ACTIVE,
+        lifecycle: DesktopRuntimeLifecycle.RUNNING,
+      },
+    })
+    await expect(iter.next()).resolves.toMatchObject({
+      value: {
+        state: {
+          statusText: 'Projected',
+          health: DesktopRuntimeHealth.ACTIVE,
+          lifecycle: DesktopRuntimeLifecycle.RUNNING,
+        },
+      },
+      done: false,
+    })
+    expect(desktopResource.getState()).toMatchObject({
+      statusText: 'Projected',
+      health: DesktopRuntimeHealth.ACTIVE,
     })
 
     await iter.return?.()
@@ -300,3 +322,10 @@ describe('WebRuntime', () => {
     expect(second).not.toBe(first)
   })
 })
+
+function toError(err: unknown): Error {
+  if (err instanceof Error) {
+    return err
+  }
+  return new Error(String(err))
+}
