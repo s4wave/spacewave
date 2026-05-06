@@ -21,7 +21,7 @@ func TestHandleAccountSONotifyMetadataAppliesCaches(t *testing.T) {
 		Source: "cloud",
 	})
 
-	acc.handleAccountSONotify("so-1", &api.SONotifyEventPayload{
+	acc.handleAccountSONotify(context.Background(), "so-1", &api.SONotifyEventPayload{
 		ChangeType: "metadata",
 		Metadata: &api.SpaceMetadataResponse{
 			OwnerType:   sobject.OwnerTypeAccount,
@@ -66,7 +66,7 @@ func TestHandleAccountSONotifyDeleteRemovesCaches(t *testing.T) {
 		ObjectType:  "space",
 	})
 
-	acc.handleAccountSONotify("so-1", &api.SONotifyEventPayload{
+	acc.handleAccountSONotify(context.Background(), "so-1", &api.SONotifyEventPayload{
 		ChangeType: "delete",
 	})
 
@@ -97,7 +97,7 @@ func TestHandleAccountSONotifyStateEventKeepsKnownCaches(t *testing.T) {
 		ObjectType:  "space",
 	})
 
-	acc.handleAccountSONotify("so-1", &api.SONotifyEventPayload{
+	acc.handleAccountSONotify(context.Background(), "so-1", &api.SONotifyEventPayload{
 		ChangeType: "op",
 	})
 
@@ -126,7 +126,7 @@ func TestHandleAccountSONotifyUnknownInvalidatesList(t *testing.T) {
 		}
 	})
 
-	acc.handleAccountSONotify("so-unknown", &api.SONotifyEventPayload{
+	acc.handleAccountSONotify(context.Background(), "so-unknown", &api.SONotifyEventPayload{
 		ChangeType: "op",
 	})
 

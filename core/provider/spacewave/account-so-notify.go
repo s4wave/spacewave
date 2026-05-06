@@ -1,8 +1,13 @@
 package provider_spacewave
 
-import api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+import (
+	"context"
+
+	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+)
 
 func (a *ProviderAccount) handleAccountSONotify(
+	ctx context.Context,
 	soID string,
 	payload *api.SONotifyEventPayload,
 ) {
@@ -15,6 +20,8 @@ func (a *ProviderAccount) handleAccountSONotify(
 		if a.sobjects != nil {
 			a.sobjects.RemoveKey(soID)
 		}
+		a.removeSharedObjectGCRefs(ctx, soID, a.le.WithField("sobject-id", soID))
+		a.triggerGCCleanup()
 		return
 	}
 	if payload.GetChangeType() == "metadata" && payload.GetMetadata() != nil {

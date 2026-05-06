@@ -23,7 +23,6 @@ import (
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/object"
 	"github.com/s4wave/spacewave/db/volume"
-	kvtx_volume "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
@@ -91,6 +90,8 @@ type ProviderAccount struct {
 	selfRejoinSweep *routine.StateRoutineContainer[*selfRejoinSweepState]
 	// sessionPresentationReconcile prunes orphaned mirrored session metadata.
 	sessionPresentationReconcile *routine.StateRoutineContainer[*sessionPresentationReconcileState]
+	// gcCleanup runs block GC cleanup after foreground delete paths unroot data.
+	gcCleanup *routine.RoutineContainer
 	// accountFetcherRoutine owns account-state refetches for this account.
 	accountFetcherRoutine *routine.RoutineContainer
 	// orgProcessors watches org SO membership and runs org processors.
@@ -126,6 +127,12 @@ type ProviderAccount struct {
 	syncTelemetryBcast broadcast.Broadcast
 	// syncTelemetry stores sync activity snapshots keyed by block store id.
 	syncTelemetry map[string]*syncTelemetryState
+	// gcCleanupBcast guards gcCleanupGeneration.
+	gcCleanupBcast broadcast.Broadcast
+	// gcCleanupGeneration increments when provider-account GC cleanup is needed.
+	gcCleanupGeneration uint64
+	// gcCleanupCollect overrides cleanup collection in tests.
+	gcCleanupCollect func(context.Context) (*block_gc.Stats, error)
 
 	// orgBcast fires when org list changes.
 	// Guards orgList, orgListValid, and orgSnapshotRcs.
@@ -373,6 +380,11 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		routine.WithRetry(providerBackoff),
 	)
 	acc.sessionPresentationReconcile.SetStateRoutine(acc.runSessionPresentationReconcile)
+	acc.gcCleanup = routine.NewRoutineContainerWithLogger(
+		le.WithField("component", "gc-cleanup-runner"),
+		routine.WithRetry(providerBackoff),
+	)
+	acc.gcCleanup.SetRoutine(acc.runGCCleanup)
 	acc.accountFetcherRoutine = routine.NewRoutineContainerWithLogger(
 		le.WithField("component", "account-fetcher"),
 		routine.WithExitCb(func(err error) {
@@ -439,7 +451,7 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		}, true)
 	}
 	acc.wsTracker.onSONotify = func(soID string, payload *api.SONotifyEventPayload) {
-		acc.handleAccountSONotify(soID, payload)
+		acc.handleAccountSONotify(ctx, soID, payload)
 	}
 	acc.wsTracker.onSOListUpdate = func(list *sobject.SharedObjectList) {
 		acc.soListCtr.SetValue(list)
@@ -521,25 +533,8 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		acc.refreshSelfRejoinSweepState()
 	}
 	acc.wsTracker.onAccountWasDeleted = func() {
-		// Remove GC root edge for this provider, cascading all buckets and blocks.
-		if kvVol, ok := acc.vol.(kvtx_volume.KvtxVolume); ok {
-			if rg := kvVol.GetRefGraph(); rg != nil {
-				providerID := acc.p.info.GetProviderId()
-				gcOps := block_gc.NewGCStoreOps(acc.vol, rg)
-				if err := gcOps.RemoveGCRef(ctx,
-					block_gc.NodeGCRoot,
-					ProviderIRI(providerID),
-				); err != nil {
-					le.WithError(err).Warn("GC: failed to remove provider edge")
-				}
-				if stats, err := block_gc.NewCollector(rg, acc.vol, nil).
-					Collect(ctx); err != nil {
-					le.WithError(err).Warn("GC: collect on account delete failed")
-				} else if stats != nil && stats.NodesSwept > 0 {
-					le.Infof("GC swept %d nodes on account deletion", stats.NodesSwept)
-				}
-			}
-		}
+		acc.removeProviderAccountGCRef(ctx, le)
+		acc.triggerGCCleanup()
 
 		// Set account status to DELETED and broadcast so Watch loops see it.
 		acc.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
@@ -656,6 +651,9 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 
 	acc.sessionPresentationReconcile.SetContext(ctx, true)
 	defer acc.sessionPresentationReconcile.ClearContext()
+
+	acc.gcCleanup.SetContext(ctx, true)
+	defer acc.gcCleanup.ClearContext()
 
 	acc.accountFetcherRoutine.SetContext(ctx, false)
 	defer acc.accountFetcherRoutine.ClearContext()

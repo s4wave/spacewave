@@ -179,10 +179,10 @@ func TestRunSelfRejoinSweepCoalescesUnknownSONotifyDuringListFetch(t *testing.T)
 	}()
 	<-firstListStarted
 
-	acc.handleAccountSONotify("so-unknown-1", &api.SONotifyEventPayload{
+	acc.handleAccountSONotify(context.Background(), "so-unknown-1", &api.SONotifyEventPayload{
 		ChangeType: "op",
 	})
-	acc.handleAccountSONotify("so-unknown-2", &api.SONotifyEventPayload{
+	acc.handleAccountSONotify(context.Background(), "so-unknown-2", &api.SONotifyEventPayload{
 		ChangeType: "op",
 	})
 

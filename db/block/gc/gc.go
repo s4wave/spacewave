@@ -23,8 +23,28 @@ import (
 type Stats struct {
 	// NodesSwept is the number of nodes swept.
 	NodesSwept int
+	// UnreferencedNodeCount is the number of unreferenced node entries read.
+	UnreferencedNodeCount int
+	// RemoveNodeRefsCount is the number of nodes whose outgoing refs were removed.
+	RemoveNodeRefsCount int
+	// RemoveUnreferencedEdgeCount is the number of unreferenced marker edges removed.
+	RemoveUnreferencedEdgeCount int
+	// OnSweptCount is the number of onSwept callbacks run.
+	OnSweptCount int
+	// RemoveBlockCount is the number of physical block deletes attempted.
+	RemoveBlockCount int
 	// Duration is how long the GC cycle took.
 	Duration time.Duration
+	// UnreferencedScanDuration is time spent listing unreferenced nodes.
+	UnreferencedScanDuration time.Duration
+	// RemoveNodeRefsDuration is time spent removing outgoing node refs.
+	RemoveNodeRefsDuration time.Duration
+	// RemoveUnreferencedEdgeDuration is time spent removing unreferenced markers.
+	RemoveUnreferencedEdgeDuration time.Duration
+	// OnSweptDuration is time spent in onSwept callbacks.
+	OnSweptDuration time.Duration
+	// RemoveBlockDuration is time spent physically deleting block-backed nodes.
+	RemoveBlockDuration time.Duration
 }
 
 // Collector sweeps unreferenced nodes from the ref graph.
@@ -66,13 +86,16 @@ func (c *Collector) Collect(ctx context.Context) (*Stats, error) {
 			return stats, context.Canceled
 		}
 
+		phaseStart := time.Now()
 		nodes, err := c.refGraph.GetUnreferencedNodes(ctx)
+		stats.UnreferencedScanDuration += time.Since(phaseStart)
 		if err != nil {
 			if ctx.Err() != nil {
 				return stats, context.Canceled
 			}
 			return stats, errors.Wrap(err, "get unreferenced nodes")
 		}
+		stats.UnreferencedNodeCount += len(nodes)
 		if len(nodes) == 0 {
 			break
 		}
@@ -88,39 +111,55 @@ func (c *Collector) Collect(ctx context.Context) (*Stats, error) {
 			}
 
 			// Remove all outgoing gc/ref edges and mark orphaned targets.
+			phaseStart = time.Now()
 			if _, err := c.refGraph.RemoveNodeRefs(ctx, node, true); err != nil {
+				stats.RemoveNodeRefsDuration += time.Since(phaseStart)
 				if ctx.Err() != nil {
 					return stats, context.Canceled
 				}
 				return stats, errors.Wrap(err, "remove node refs")
 			}
+			stats.RemoveNodeRefsDuration += time.Since(phaseStart)
+			stats.RemoveNodeRefsCount++
 
 			// Remove the unreferenced -> node edge.
+			phaseStart = time.Now()
 			if err := c.refGraph.RemoveRef(ctx, NodeUnreferenced, node); err != nil {
+				stats.RemoveUnreferencedEdgeDuration += time.Since(phaseStart)
 				if ctx.Err() != nil {
 					return stats, context.Canceled
 				}
 				return stats, errors.Wrap(err, "remove unreferenced edge")
 			}
+			stats.RemoveUnreferencedEdgeDuration += time.Since(phaseStart)
+			stats.RemoveUnreferencedEdgeCount++
 
 			// Call onSwept callback.
 			if c.onSwept != nil {
+				phaseStart = time.Now()
 				if err := c.onSwept(ctx, node); err != nil {
+					stats.OnSweptDuration += time.Since(phaseStart)
 					if ctx.Err() != nil {
 						return stats, context.Canceled
 					}
 					return stats, errors.Wrap(err, "on swept callback")
 				}
+				stats.OnSweptDuration += time.Since(phaseStart)
+				stats.OnSweptCount++
 			}
 
 			// Physical delete for block-backed nodes.
 			if ref, ok := ParseBlockIRI(node); ok {
+				phaseStart = time.Now()
 				if err := c.store.RmBlock(ctx, ref); err != nil {
+					stats.RemoveBlockDuration += time.Since(phaseStart)
 					if ctx.Err() != nil {
 						return stats, context.Canceled
 					}
 					return stats, errors.Wrap(err, "remove block")
 				}
+				stats.RemoveBlockDuration += time.Since(phaseStart)
+				stats.RemoveBlockCount++
 			}
 
 			swept++

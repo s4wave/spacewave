@@ -529,3 +529,38 @@ func TestCollector_PermanentRootsNeverSwept(t *testing.T) {
 		t.Fatalf("expected 0 swept (permanent root), got %d", stats.NodesSwept)
 	}
 }
+
+func TestCollector_PhaseStats(t *testing.T) {
+	env := newTestEnv(t)
+
+	ref := env.putBlock(t, "phase-stats")
+	if err := env.gcStore.AddGCRef(env.ctx, NodeGCRoot, BlockIRI(ref)); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := env.gcStore.RemoveGCRef(env.ctx, NodeGCRoot, BlockIRI(ref)); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	stats, err := env.gc.Collect(env.ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if stats.NodesSwept != 1 {
+		t.Fatalf("expected 1 swept, got %d", stats.NodesSwept)
+	}
+	if stats.UnreferencedNodeCount == 0 {
+		t.Fatal("expected unreferenced node count")
+	}
+	if stats.RemoveNodeRefsCount != 1 {
+		t.Fatalf("expected 1 node-ref removal, got %d", stats.RemoveNodeRefsCount)
+	}
+	if stats.RemoveUnreferencedEdgeCount != 1 {
+		t.Fatalf("expected 1 unreferenced edge removal, got %d", stats.RemoveUnreferencedEdgeCount)
+	}
+	if stats.OnSweptCount != 1 {
+		t.Fatalf("expected 1 onSwept call, got %d", stats.OnSweptCount)
+	}
+	if stats.RemoveBlockCount != 1 {
+		t.Fatalf("expected 1 physical block delete, got %d", stats.RemoveBlockCount)
+	}
+}

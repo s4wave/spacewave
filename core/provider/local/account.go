@@ -16,6 +16,7 @@ import (
 	provider "github.com/s4wave/spacewave/core/provider"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
+	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/volume"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
@@ -69,6 +70,14 @@ type ProviderAccount struct {
 	envelopeRewrapWatcher *routine.RoutineContainer
 	// orgProcessors watches org SO membership and runs org processors.
 	orgProcessors *routine.RoutineContainer
+	// gcCleanup runs block GC cleanup after foreground delete paths unroot data.
+	gcCleanup *routine.RoutineContainer
+	// gcCleanupBcast guards gcCleanupGeneration.
+	gcCleanupBcast broadcast.Broadcast
+	// gcCleanupGeneration increments when account GC cleanup is needed.
+	gcCleanupGeneration uint64
+	// gcCleanupCollect overrides cleanup collection in tests.
+	gcCleanupCollect func(context.Context) (*block_gc.Stats, error)
 	// pairing tracks an active pairing flow, nil when not active.
 	pairing *pairingState
 	// pairingCtx is the ProviderAccount lifecycle context for pairing routines.
@@ -211,6 +220,11 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		routine.WithRetry(providerBackoff),
 	)
 	providerAcc.orgProcessors.SetRoutine(providerAcc.watchOrgProcessors)
+	providerAcc.gcCleanup = routine.NewRoutineContainerWithLogger(
+		le.WithField("routine", "gc-cleanup-runner"),
+		routine.WithRetry(providerBackoff),
+	)
+	providerAcc.gcCleanup.SetRoutine(providerAcc.runGCCleanup)
 
 	// initialize the shared object list
 	providerAcc.soListCtr = ccontainer.NewCContainer[*sobject.SharedObjectList](nil)
@@ -251,6 +265,8 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 	defer providerAcc.envelopeRewrapWatcher.ClearContext()
 	providerAcc.orgProcessors.SetContext(ctx, true)
 	defer providerAcc.orgProcessors.ClearContext()
+	providerAcc.gcCleanup.SetContext(ctx, true)
+	defer providerAcc.gcCleanup.ClearContext()
 
 	// Cleanup on exit.
 	providerAcc.setPairingContext(ctx)

@@ -729,40 +729,13 @@ func (a *ProviderAccount) DeleteSharedObject(ctx context.Context, id string) err
 		return errors.Wrap(err, "unmarshal delete shared object response")
 	}
 
-	// Remove GC edges: sw-provider -> bucket (marks orphans as unreferenced)
-	if kvVol, ok := a.vol.(kvtx_volume.KvtxVolume); ok {
-		if rg := kvVol.GetRefGraph(); rg != nil {
-			bstoreID := SobjectBlockStoreID(id)
-			bucketID := BlockStoreBucketID(a.accountID, bstoreID)
-			bucketIRI := block_gc.BucketIRI(bucketID)
-			providerID := a.p.info.GetProviderId()
-			gcOps := block_gc.NewGCStoreOps(a.vol, rg)
-			if err := gcOps.RemoveGCRef(ctx,
-				block_gc.NodeGCRoot,
-				bucketIRI,
-			); err != nil {
-				le.WithError(err).Warn("failed to remove GC root ref")
-			}
-			if err := gcOps.RemoveGCRef(ctx,
-				ProviderIRI(providerID),
-				bucketIRI,
-			); err != nil {
-				le.WithError(err).Warn("failed to remove GC ref")
-			}
-			if stats, err := block_gc.NewCollector(rg, a.vol, nil).
-				Collect(ctx); err != nil {
-				le.WithError(err).Warn("GC collect after delete failed")
-			} else if stats != nil && stats.NodesSwept > 0 {
-				le.Infof("GC swept %d nodes after space delete", stats.NodesSwept)
-			}
-		}
-	}
-
 	a.DeleteSharedObjectMetadata(id)
 	a.RemoveSharedObjectListEntry(id)
 	if a.sobjects != nil {
 		a.sobjects.RemoveKey(id)
 	}
+	a.removeSharedObjectGCRefs(ctx, id, le)
+	a.triggerGCCleanup()
 	return nil
 }
 
