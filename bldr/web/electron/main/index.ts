@@ -6,11 +6,14 @@ import {
   type ElectronInit as ElectronInitType,
 } from '../../plugin/electron/electron.pb.js'
 import { BldrElectronApp } from './app.js'
+import { ignoreClosedProcessStreamErrors } from './process-stream.js'
 
 // BLDR_DEBUG is set if this is a debug build.
 declare const BLDR_DEBUG: boolean | undefined
 
 const app = electron.app
+
+ignoreClosedProcessStreamErrors()
 
 // immediately configure the data directory to cwd
 const userDataPath =
