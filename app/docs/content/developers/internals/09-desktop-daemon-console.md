@@ -15,27 +15,27 @@ The tray is a daemon console, not a second app shell. It shows bounded runtime s
 
 Electron main owns the generic desktop runtime Resource SDK tree in `bldr/web/electron/main/desktop-runtime.ts`. The root service is `DesktopRuntimeResourceService`:
 
-| RPC | Purpose |
-|-----|---------|
-| `WatchDesktopState` | Streams the latest `DesktopRuntimeState` to native tray renderers and process-lifetime clients. |
-| `SetDesktopState` | Publishes projected status from the runtime side into Electron main. |
-| `OpenOrFocusMainWindow` | Opens or focuses the singleton app window, optionally at a route. |
-| `QuitDesktopRuntime` | Marks the runtime as quitting and requests an explicit shutdown. |
+| RPC                     | Purpose                                                                                         |
+| ----------------------- | ----------------------------------------------------------------------------------------------- |
+| `WatchDesktopState`     | Streams the latest `DesktopRuntimeState` to native tray renderers and process-lifetime clients. |
+| `SetDesktopState`       | Publishes projected status from the runtime side into Electron main.                            |
+| `OpenOrFocusMainWindow` | Opens or focuses the singleton app window, optionally at a route.                               |
+| `QuitDesktopRuntime`    | Marks the runtime as quitting and requests an explicit shutdown.                                |
 
 `DesktopRuntimeState` contains the tray-visible contract:
 
-| Field | Owner | Meaning |
-|-------|-------|---------|
-| `mainWindowOpen` | Electron main | Whether the singleton app window currently exists. |
-| `quitting` | Electron main | Whether explicit quit has started. |
-| `statusText`, `health`, `lifecycle` | Projector | Collapsed icon/menu status such as running, syncing, attention, disconnected, or quitting. |
-| `listener` | Projector | CLI listener reachability, socket path, and connected-client count. |
-| `sessions` | Projector | Bounded session rows with labels, provider/account hints, routes, and status text. |
-| `spaces` | Projector | Bounded recent/open Space rows with full-app handoff routes. |
-| `activity` | Projector | Bounded recent sync/runtime activity rows. |
-| `update` | Projector | Native update readiness when the desktop app must act. |
-| `attentionItems` | Projector | User-actionable attention rows using the desktop runtime attention taxonomy. |
-| `actions` | Projector | Explicit safe commands such as open route, copy text, reveal path, or quit. |
+| Field                               | Owner         | Meaning                                                                                    |
+| ----------------------------------- | ------------- | ------------------------------------------------------------------------------------------ |
+| `mainWindowOpen`                    | Electron main | Whether the singleton app window currently exists.                                         |
+| `quitting`                          | Electron main | Whether explicit quit has started.                                                         |
+| `statusText`, `health`, `lifecycle` | Projector     | Collapsed icon/menu status such as running, syncing, attention, disconnected, or quitting. |
+| `listener`                          | Projector     | CLI listener reachability, socket path, and connected-client count.                        |
+| `sessions`                          | Projector     | Bounded session rows with labels, provider/account hints, routes, and status text.         |
+| `spaces`                            | Projector     | Bounded recent/open Space rows with full-app handoff routes.                               |
+| `activity`                          | Projector     | Bounded recent sync/runtime activity rows.                                                 |
+| `update`                            | Projector     | Native update readiness when the desktop app must act.                                     |
+| `attentionItems`                    | Projector     | User-actionable attention rows using the desktop runtime attention taxonomy.               |
+| `actions`                           | Projector     | Explicit safe commands such as open route, copy text, reveal path, or quit.                |
 
 Electron main preserves `mainWindowOpen` and `quitting` when `SetDesktopState` publishes runtime projection. This prevents background status publishers from accidentally reopening or un-quitting the app.
 
@@ -59,6 +59,20 @@ Healthy mode contains:
 Attention mode collapses the top of the menu toward the highest-priority actionable item while keeping Open Spacewave and Quit available.
 
 Quick actions are intentionally conservative. Copy actions use the native clipboard. Reveal actions open the platform file manager. Restart and recovery actions stay disabled until they have explicit confirmation and clean shutdown semantics.
+
+## Popover Readiness
+
+The native menu state is the contract for any richer popover. A popover must consume the same `DesktopRuntimeState` stream that drives the native menu, preserve the native menu as fallback, and route commands through `DesktopRuntimeResource` instead of inventing a second status or command model.
+
+The current custom popover is a desktop-only development prototype. Enable it with:
+
+```bash
+BLDR_ELECTRON_DESKTOP_TRAY_POPOVER=1 bun run start:desktop
+```
+
+When enabled, the tray left-click attempts to show the custom popover from the latest `DesktopRuntimeState`. The native context menu is still rebuilt and installed. If the popover window cannot attach or render, the controller disables the prototype for that run and falls back to opening or focusing the singleton Spacewave window.
+
+Promotion requires screenshot and interaction checks on macOS, Windows, and Linux. Until that proof exists, the native menu remains the shipped tray surface.
 
 ## Platform Behavior
 

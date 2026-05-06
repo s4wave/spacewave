@@ -14,6 +14,7 @@ import {
   type DesktopRuntimeNavigationItem,
 } from '../desktop-runtime/desktop-runtime.pb.js'
 import type { DesktopRuntimeResource } from './desktop-runtime.js'
+import { DesktopTrayPopoverController } from './desktop-tray-popover.js'
 
 interface DesktopTrayControllerOpts {
   init: ElectronInit
@@ -30,6 +31,7 @@ interface DesktopTrayResource {
 // DesktopTrayController owns the native desktop status icon for the app lifetime.
 export class DesktopTrayController {
   private tray?: Electron.Tray
+  private popover?: DesktopTrayPopoverController
   private currentState?: DesktopRuntimeStateMessage
   private stateWatchStarted = false
 
@@ -40,10 +42,15 @@ export class DesktopTrayController {
       return
     }
     this.tray = new electron.Tray(this.buildIcon())
+    if (isDesktopTrayPopoverEnabled()) {
+      this.popover = new DesktopTrayPopoverController({
+        appName: this.opts.init.appName,
+      })
+    }
     this.rebuildMenu(this.opts.resource.getState())
     this.startStateWatch()
     this.tray.on('click', () => {
-      void this.openOrFocusMainWindow()
+      void this.handleTrayClick()
     })
   }
 
@@ -91,12 +98,29 @@ export class DesktopTrayController {
   }
 
   private rebuildMenu(state: DesktopRuntimeStateMessage): void {
-    if (this.currentState && DesktopRuntimeState.equals(this.currentState, state)) {
+    if (
+      this.currentState &&
+      DesktopRuntimeState.equals(this.currentState, state)
+    ) {
       return
     }
     this.currentState = cloneDesktopRuntimeState(state)
     this.updateIconState(state)
+    this.popover?.update(state)
     this.tray?.setContextMenu(this.buildMenu(state))
+  }
+
+  private async handleTrayClick(): Promise<void> {
+    if (this.popover) {
+      const handled = await this.popover.toggle(
+        this.tray,
+        this.currentState ?? this.opts.resource.getState(),
+      )
+      if (handled) {
+        return
+      }
+    }
+    await this.openOrFocusMainWindow()
   }
 
   private buildMenu(state: DesktopRuntimeStateMessage): Electron.Menu {
@@ -209,9 +233,7 @@ export class DesktopTrayController {
     return [
       { type: 'separator' },
       disabledItem(title),
-      ...nonEmpty(items).map((item) =>
-        this.buildNavigationItem(item),
-      ),
+      ...nonEmpty(items).map((item) => this.buildNavigationItem(item)),
       ...(items?.length ? [] : [disabledItem(emptyLabel)]),
     ]
   }
@@ -392,8 +414,14 @@ function selectPrimaryAttentionItem(
   })[0]
 }
 
-function severityPriority(severity: DesktopRuntimeSeverity | undefined): number {
+function severityPriority(
+  severity: DesktopRuntimeSeverity | undefined,
+): number {
   return severity ?? DesktopRuntimeSeverity.INFO
+}
+
+function isDesktopTrayPopoverEnabled(): boolean {
+  return process.env.BLDR_ELECTRON_DESKTOP_TRAY_POPOVER === '1'
 }
 
 function trayTitleForState(state: DesktopRuntimeStateMessage): string {
@@ -416,10 +444,7 @@ function trayTitleForState(state: DesktopRuntimeStateMessage): string {
 function buildDiagnosticText(state: DesktopRuntimeStateMessage): string {
   return [
     `Spacewave: ${state.statusText || 'Running'}`,
-    compactLabel([
-      state.listener?.label || 'Runtime',
-      state.listener?.detail,
-    ]),
+    compactLabel([state.listener?.label || 'Runtime', state.listener?.detail]),
     state.listener?.socketPath ? `Socket: ${state.listener.socketPath}` : '',
   ]
     .filter((line) => line !== '')

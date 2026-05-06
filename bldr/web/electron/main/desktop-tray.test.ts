@@ -16,11 +16,17 @@ import {
 const platformState = { value: 'linux' }
 const menuTemplates: Electron.MenuItemConstructorOptions[][] = []
 const trayInstances: MockTray[] = []
+const browserWindows: MockBrowserWindow[] = []
 const mockClipboard = {
   writeText: vi.fn(),
 }
 const mockShell = {
   showItemInFolder: vi.fn(),
+}
+const mockScreen = {
+  getDisplayMatching: vi.fn(() => ({
+    workArea: { x: 0, y: 0, width: 1440, height: 900 },
+  })),
 }
 const mockResource = {
   WatchDesktopState: vi.fn(),
@@ -29,6 +35,7 @@ const mockResource = {
   QuitDesktopRuntime: vi.fn(() => Promise.resolve({})),
 }
 let emitState: (state: DesktopRuntimeState) => void = () => {}
+let browserWindowShouldThrow = false
 
 class MockNativeImage {
   public readonly setTemplateImage = vi.fn()
@@ -38,10 +45,36 @@ class MockTray extends EventEmitter {
   public readonly setToolTip = vi.fn()
   public readonly setContextMenu = vi.fn()
   public readonly setTitle = vi.fn()
+  public readonly getBounds = vi.fn(() => ({
+    x: 100,
+    y: 24,
+    width: 24,
+    height: 24,
+  }))
 
   constructor(public readonly image: MockNativeImage) {
     super()
     trayInstances.push(this)
+  }
+}
+
+class MockBrowserWindow extends EventEmitter {
+  public readonly loadURL = vi.fn((_url: string) => Promise.resolve())
+  public readonly setBounds = vi.fn()
+  public readonly show = vi.fn()
+  public readonly close = vi.fn(() => {
+    this.destroyed = true
+    this.emit('closed')
+  })
+  public readonly isDestroyed = vi.fn(() => this.destroyed)
+  private destroyed = false
+
+  constructor(public readonly opts: Electron.BrowserWindowConstructorOptions) {
+    super()
+    if (browserWindowShouldThrow) {
+      throw new Error('popover unavailable')
+    }
+    browserWindows.push(this)
   }
 }
 
@@ -67,15 +100,19 @@ vi.mock('electron', () => {
   return {
     default: {
       Tray: MockTray,
+      BrowserWindow: MockBrowserWindow,
       Menu,
       clipboard: mockClipboard,
       nativeImage,
+      screen: mockScreen,
       shell: mockShell,
     },
     Tray: MockTray,
+    BrowserWindow: MockBrowserWindow,
     Menu,
     clipboard: mockClipboard,
     nativeImage,
+    screen: mockScreen,
     shell: mockShell,
   }
 })
@@ -85,6 +122,9 @@ describe('DesktopTrayController', () => {
     platformState.value = 'linux'
     menuTemplates.length = 0
     trayInstances.length = 0
+    browserWindows.length = 0
+    browserWindowShouldThrow = false
+    delete process.env.BLDR_ELECTRON_DESKTOP_TRAY_POPOVER
     vi.clearAllMocks()
     mockResource.getState.mockReturnValue(defaultRuntimeState())
     const stream = new TestStateStream()
@@ -453,6 +493,83 @@ describe('DesktopTrayController', () => {
     expect(mockResource.QuitDesktopRuntime).toHaveBeenCalledTimes(1)
   })
 
+  it('shows the dev popover from desktop runtime state while keeping native menu fallback', async () => {
+    process.env.BLDR_ELECTRON_DESKTOP_TRAY_POPOVER = '1'
+    const state = {
+      ...defaultRuntimeState(),
+      statusText: 'Syncing',
+      health: DesktopRuntimeHealth.ACTIVE,
+      listener: {
+        label: 'CLI reachable',
+        detail: '1 CLI client connected',
+        socketPath: '/tmp/spacewave.sock',
+      },
+      sessions: [
+        {
+          label: 'christian@aperture.us',
+          detail: 'Cloud',
+          statusText: 'Ready',
+        },
+      ] satisfies DesktopRuntimeNavigationItem[],
+    }
+    mockResource.getState.mockReturnValue(state)
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+    controller.init()
+
+    trayInstances[0]?.emit('click')
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(trayInstances[0]?.setContextMenu).toHaveBeenCalledTimes(1)
+    expect(browserWindows).toHaveLength(1)
+    expect(browserWindows[0]?.show).toHaveBeenCalledTimes(1)
+    expect(mockResource.OpenOrFocusMainWindow).not.toHaveBeenCalled()
+    expect(latestPopoverHtml()).toContain('Syncing')
+    expect(latestPopoverHtml()).toContain('CLI reachable')
+    expect(latestPopoverHtml()).toContain('christian@aperture.us')
+
+    emitState({
+      ...state,
+      statusText: 'Needs attention',
+      health: DesktopRuntimeHealth.NEEDS_ATTENTION,
+      attentionItems: [
+        {
+          label: 'Sign in required',
+          detail: 'christian@aperture.us',
+          severity: DesktopRuntimeSeverity.CRITICAL,
+        },
+      ],
+    })
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(trayInstances[0]?.setContextMenu).toHaveBeenCalledTimes(2)
+    expect(latestPopoverHtml()).toContain('Needs attention')
+    expect(latestPopoverHtml()).toContain('Sign in required')
+  })
+
+  it('falls back to the singleton window when the dev popover cannot attach', async () => {
+    process.env.BLDR_ELECTRON_DESKTOP_TRAY_POPOVER = '1'
+    browserWindowShouldThrow = true
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+    controller.init()
+
+    trayInstances[0]?.emit('click')
+    await Promise.resolve()
+
+    expect(browserWindows).toHaveLength(0)
+    expect(trayInstances[0]?.setContextMenu).toHaveBeenCalledTimes(1)
+    expect(mockResource.OpenOrFocusMainWindow).toHaveBeenCalledTimes(1)
+  })
+
   it('uses the macOS template icon when configured', async () => {
     platformState.value = 'darwin'
     const electron = await import('electron')
@@ -509,6 +626,16 @@ function templateLabels(
   })
 }
 
+function latestPopoverHtml(): string {
+  const url = browserWindows.at(-1)?.loadURL.mock.calls.at(-1)?.[0]
+  if (!url) {
+    return ''
+  }
+  return decodeURIComponent(
+    String(url).replace('data:text/html;charset=utf-8,', ''),
+  )
+}
+
 function defaultRuntimeState(): DesktopRuntimeState {
   return {
     mainWindowOpen: false,
@@ -519,7 +646,9 @@ function defaultRuntimeState(): DesktopRuntimeState {
 
 class TestStateStream implements AsyncIterable<WatchDesktopStateResponse> {
   private queue: WatchDesktopStateResponse[] = []
-  private resolveNext?: (value: IteratorResult<WatchDesktopStateResponse>) => void
+  private resolveNext?: (
+    value: IteratorResult<WatchDesktopStateResponse>,
+  ) => void
 
   public emit(response: WatchDesktopStateResponse): void {
     if (this.resolveNext) {
