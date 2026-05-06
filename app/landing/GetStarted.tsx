@@ -256,17 +256,17 @@ const GetStarted = ({ className, sessions }: GetStartedProps) => {
             ))}
           </CommandGroup>
         )}
-        <CommandGroup heading="Local data" className="mb-0 py-0">
-          <AddStateRootItem />
-        </CommandGroup>
         {itemsByCategory.map(({ category, items }) => (
           <CommandGroup
             key={category}
             heading={category.charAt(0).toUpperCase() + category.slice(1)}
             className="mb-0 py-0"
           >
-            {items.map((item) => (
-              <GetStartedItem key={item.id} item={item} />
+            {items.map((item, idx) => (
+              <React.Fragment key={item.id}>
+                <GetStartedItem item={item} />
+                {category === 'account' && idx === 1 && <AddStateRootItem />}
+              </React.Fragment>
             ))}
           </CommandGroup>
         ))}

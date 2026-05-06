@@ -2,7 +2,7 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { LoginForm } from './login-form.js'
+import { LoginForm, type LoginResult } from './login-form.js'
 
 const mockIsDesktop = vi.hoisted(() => ({ value: false }))
 
@@ -90,6 +90,42 @@ describe('LoginForm SSO provider visibility', () => {
     expect(screen.queryByText(/Continue sign-in in your browser/)).toBeNull()
   })
 
+  it('reports auth busy while SSO sign-in is pending', async () => {
+    mockIsDesktop.value = true
+    const onAuthBusyChange = vi.fn()
+    let resolveSSO: () => void = () => {}
+    const onSignInWithSSO = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveSSO = resolve
+        }),
+    )
+
+    render(
+      <LoginForm
+        cloudProviderConfig={{
+          googleSsoEnabled: true,
+          githubSsoEnabled: false,
+          turnstileSiteKey: '',
+        }}
+        onSignInWithSSO={onSignInWithSSO}
+        onAuthBusyChange={onAuthBusyChange}
+      />,
+    )
+
+    screen.getByText('Google').click()
+
+    await waitFor(() => {
+      expect(onAuthBusyChange).toHaveBeenLastCalledWith(true)
+    })
+
+    resolveSSO()
+
+    await waitFor(() => {
+      expect(onAuthBusyChange).toHaveBeenLastCalledWith(false)
+    })
+  })
+
   it('prefills the username field when provided', () => {
     render(
       <LoginForm
@@ -144,6 +180,43 @@ describe('LoginForm clickwrap consent', () => {
         '',
       )
     })
+  })
+
+  it('shows progress details while password sign-in is pending', async () => {
+    const user = userEvent.setup()
+    let resolveLogin: (result: {
+      type: 'session'
+      sessionIndex: number
+    }) => void = () => {}
+    const onLoginWithPassword = vi.fn(
+      () =>
+        new Promise<LoginResult>((resolve) => {
+          resolveLogin = resolve
+        }),
+    )
+
+    render(
+      <LoginForm
+        cloudProviderConfig={{ turnstileSiteKey: '' }}
+        onLoginWithPassword={onLoginWithPassword}
+      />,
+    )
+
+    await user.type(screen.getByPlaceholderText('alice'), 'alice')
+    await user.type(
+      screen.getByPlaceholderText('Enter password'),
+      'password123',
+    )
+    await user.click(
+      screen.getByRole('button', { name: 'Continue with password' }),
+    )
+
+    expect(await screen.findByText('Signing in securely')).toBeDefined()
+    expect(screen.getByText('Unlocking your account key')).toBeDefined()
+    expect(screen.queryByText('or sign in with')).toBeNull()
+    expect(screen.queryByText('Backup key (.pem)')).toBeNull()
+
+    resolveLogin({ type: 'session', sessionIndex: 1 })
   })
 
   it('shows and requires clickwrap consent during account creation', async () => {

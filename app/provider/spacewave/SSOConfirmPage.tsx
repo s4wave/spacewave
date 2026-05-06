@@ -17,6 +17,7 @@ import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { AuthScreenLayout } from '@s4wave/app/auth/AuthScreenLayout.js'
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
+import { AuthProgressCard } from '@s4wave/web/ui/credential/AuthProgressCard.js'
 import { getPendingSSOState, clearPendingSSOState } from './sso-state.js'
 import { generateAuthKeypairs, wrapPemWithPin } from './keypair-utils.js'
 import { OptionalPinLock } from './OptionalPinLock.js'
@@ -275,18 +276,30 @@ export function SSOConfirmPage() {
           </>
         }
       >
-        <LoadingCard
-          view={{
-            state: 'active',
-            title:
-              state.step === 'logging_in' ?
-                'Signing you in'
-              : `Creating ${username}`,
-            detail:
-              state.step === 'logging_in' ?
-                'Mounting your new session.'
-              : 'Registering your username with the provider.',
-          }}
+        <AuthProgressCard
+          title={
+            state.step === 'logging_in' ?
+              'Signing you in'
+            : `Creating ${username}`
+          }
+          detail={
+            state.step === 'logging_in' ?
+              'Opening your new encrypted session.'
+            : 'Creating secure account keys and registering your account.'
+          }
+          steps={
+            state.step === 'logging_in' ?
+              [
+                'Unlocking your account key',
+                'Preparing your account workspace',
+                'Opening Spacewave',
+              ]
+            : [
+                'Creating secure account keys',
+                'Protecting your account credentials',
+                'Registering your username',
+              ]
+          }
         />
       </AuthScreenLayout>
     )

@@ -167,4 +167,13 @@ describe('GetStarted', () => {
 
     expect(mockAddSpaceRootAlias).toHaveBeenCalledTimes(1)
   })
+
+  it('places the local state root action third in the account group', () => {
+    render(<GetStarted />)
+
+    const buttons = screen.getAllByRole('button')
+    expect(buttons[0].textContent).toContain('Sign in or create account')
+    expect(buttons[1].textContent).toContain('Enter a device pairing code')
+    expect(buttons[2].textContent).toContain('Open a local state root')
+  })
 })

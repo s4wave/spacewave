@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { LuFolderOpen, LuLink } from 'react-icons/lu'
 
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
@@ -12,6 +12,7 @@ import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import { usePromise } from '@s4wave/web/hooks/usePromise.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useSpacewaveAuth } from '@s4wave/app/provider/spacewave/useSpacewaveAuth.js'
+import { cn } from '@s4wave/web/style/utils.js'
 
 interface AppLoginProps {
   initialUsername?: string
@@ -24,6 +25,7 @@ export function AppLogin({
   launchUsername,
 }: AppLoginProps): React.ReactElement {
   const navigate = useNavigate()
+  const [authBusy, setAuthBusy] = useState(false)
   const rootResource = useRootResource()
   const root = useResourceValue(rootResource)
   const addRootAlias = useAddSpaceRootAlias()
@@ -144,23 +146,37 @@ export function AppLogin({
       tabIndex={-1}
       topLeft={<BackButton onClick={handleBack}>Back to home</BackButton>}
       topRight={
-        <button
-          onClick={() => navigate({ path: '/pair' })}
-          className="text-foreground-alt hover:text-brand flex items-center gap-1.5 text-xs transition-colors"
+        <div
+          className={cn(
+            'transition-opacity duration-150',
+            authBusy && 'pointer-events-none opacity-0',
+          )}
         >
-          <LuLink className="h-3 w-3" />
-          <span className="select-none">Link to existing device</span>
-        </button>
+          <button
+            onClick={() => navigate({ path: '/pair' })}
+            className="text-foreground-alt hover:text-brand flex items-center gap-1.5 text-xs transition-colors"
+          >
+            <LuLink className="h-3 w-3" />
+            <span className="select-none">Link to existing device</span>
+          </button>
+        </div>
       }
       bottomRight={
-        <button
-          onClick={() => void addRootAlias.add()}
-          disabled={!addRootAlias.canAdd}
-          className="text-foreground-alt hover:text-brand flex items-center gap-1.5 text-xs transition-colors disabled:pointer-events-none disabled:opacity-50"
+        <div
+          className={cn(
+            'transition-opacity duration-150',
+            authBusy && 'pointer-events-none opacity-0',
+          )}
         >
-          <LuFolderOpen className="h-3 w-3" />
-          <span className="select-none">Open local state root</span>
-        </button>
+          <button
+            onClick={() => void addRootAlias.add()}
+            disabled={!addRootAlias.canAdd}
+            className="text-foreground-alt hover:text-brand flex items-center gap-1.5 text-xs transition-colors disabled:pointer-events-none disabled:opacity-50"
+          >
+            <LuFolderOpen className="h-3 w-3" />
+            <span className="select-none">Open local state root</span>
+          </button>
+        </div>
       }
       intro={
         <>
@@ -179,6 +195,7 @@ export function AppLogin({
         onBrowserAuth={auth.handleContinueInBrowser}
         onContinueWithPasskey={auth.handleContinueWithPasskey}
         onSignInWithSSO={auth.handleSignInWithSSO}
+        onAuthBusyChange={setAuthBusy}
       />
     </AuthScreenLayout>
   )

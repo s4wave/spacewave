@@ -8,6 +8,7 @@ import type { CloudProviderConfig } from '@s4wave/sdk/provider/spacewave/spacewa
 import { SPACEWAVE_PUBLIC_BASE_URL } from '@s4wave/app/urls.js'
 
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
+import { AuthProgressCard } from '@s4wave/web/ui/credential/AuthProgressCard.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import {
   Tooltip,
@@ -88,6 +89,7 @@ interface LoginFormProps extends React.ComponentPropsWithoutRef<'div'> {
     provider: 'google' | 'github',
     abortSignal?: AbortSignal,
   ) => void | Promise<void>
+  onAuthBusyChange?: (busy: boolean) => void
 }
 
 const browserSignInPromptDelayMs = 3000
@@ -215,6 +217,7 @@ export function LoginForm({
   onContinueWithPasskey,
   onBrowserAuth,
   onSignInWithSSO,
+  onAuthBusyChange,
   ...props
 }: LoginFormProps) {
   const [loading, setLoading] = useState<string | null>(null)
@@ -247,6 +250,7 @@ export function LoginForm({
     !!onSignInWithSSO && !!cloudProviderConfig?.googleSsoEnabled
   const githubSsoEnabled =
     !!onSignInWithSSO && !!cloudProviderConfig?.githubSsoEnabled
+  const passwordBusy = loading === 'password'
 
   const usernameValid = dnsLabelRegex.test(username)
   const passwordValid = password.length >= 8
@@ -271,7 +275,12 @@ export function LoginForm({
   }, [clearBrowserSignInPrompt])
 
   useEffect(() => {
+    onAuthBusyChange?.(loading !== null)
+  }, [loading, onAuthBusyChange])
+
+  useEffect(() => {
     return () => {
+      onAuthBusyChange?.(false)
       browserSignInAbortRef.current?.abort()
       if (browserSignInTimerRef.current) {
         clearTimeout(browserSignInTimerRef.current)
@@ -280,7 +289,7 @@ export function LoginForm({
         clearTimeout(retryTimerRef.current)
       }
     }
-  }, [])
+  }, [onAuthBusyChange])
 
   const startRateLimitCountdown = useCallback((seconds: number) => {
     setRateLimitCountdown(seconds)
@@ -540,6 +549,22 @@ export function LoginForm({
     ],
   )
 
+  const handleSSOSignIn = useCallback(
+    async (provider: 'google' | 'github') => {
+      if (!onSignInWithSSO) return
+      setLoading(provider)
+      setError(null)
+      try {
+        await onSignInWithSSO(provider)
+      } catch (err) {
+        handleAuthError(err)
+      } finally {
+        setLoading(null)
+      }
+    },
+    [handleAuthError, onSignInWithSSO],
+  )
+
   return (
     <div
       className={cn('flex flex-col gap-4', className)}
@@ -697,11 +722,11 @@ export function LoginForm({
               'flex h-10 items-center justify-center gap-2',
             )}
           >
-            {loading === 'password' ?
+            {passwordBusy ?
               <Spinner className="text-foreground" />
             : <LuKeyRound className="text-foreground h-4 w-4" />}
             <span className="text-foreground text-sm">
-              {loading === 'password' ?
+              {passwordBusy ?
                 'Connecting...'
               : creatingAccount ?
                 'Confirm and create account'
@@ -709,7 +734,31 @@ export function LoginForm({
             </span>
           </button>
 
-          {creatingAccount && (
+          {passwordBusy && (
+            <AuthProgressCard
+              title={
+                creatingAccount ?
+                  'Creating your secure account'
+                : 'Signing in securely'
+              }
+              detail="Spacewave is securing your account on this device. This can take a moment."
+              steps={
+                creatingAccount ?
+                  [
+                    'Creating secure account keys',
+                    'Protecting your account credentials',
+                    'Opening your first session',
+                  ]
+                : [
+                    'Checking your credentials',
+                    'Unlocking your account key',
+                    'Opening your session',
+                  ]
+              }
+            />
+          )}
+
+          {!passwordBusy && creatingAccount && (
             <button
               type="button"
               onClick={() => {
@@ -723,7 +772,7 @@ export function LoginForm({
             </button>
           )}
 
-          {mode === 'login' && (
+          {!passwordBusy && mode === 'login' && (
             <>
               <Divider label="or sign in with" />
 
@@ -768,7 +817,7 @@ export function LoginForm({
                         enabled: true,
                         icon: <FcGoogle className="h-5 w-5" />,
                         label: 'Google',
-                        onClick: () => void onSignInWithSSO?.('google'),
+                        onClick: () => void handleSSOSignIn('google'),
                       }
                     : null,
                     githubSsoEnabled ?
@@ -779,7 +828,7 @@ export function LoginForm({
                           <LuGithub className="text-foreground-alt h-5 w-5" />
                         ),
                         label: 'GitHub',
-                        onClick: () => void onSignInWithSSO?.('github'),
+                        onClick: () => void handleSSOSignIn('github'),
                       }
                     : null,
                   ]
