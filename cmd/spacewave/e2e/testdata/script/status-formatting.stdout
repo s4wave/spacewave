@@ -1,0 +1,9 @@
+Status:           running
+Socket:           $WORK/state/spacewave.sock
+Session Index:    1
+Session:          01xxxxxx...
+Peer:             12D3KooXXXXXXXXXXXXX...
+Provider:         local
+Account:          01xxxxxxxxxxxxxxxxxxxxxxxx
+Lock:             unlocked (auto)
+Spaces:           1

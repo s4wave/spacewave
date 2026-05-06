@@ -5,9 +5,11 @@ package e2e_test
 import (
 	"bytes"
 	"context"
+	"flag"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -16,6 +18,8 @@ import (
 )
 
 const enableCLITestscriptEnv = "SPACEWAVE_CLI_TESTSCRIPT"
+
+var updateSnapshots = flag.Bool("update", false, "refresh CLI trajectory snapshots")
 
 type scriptState struct {
 	bin    string
@@ -53,9 +57,16 @@ func TestSpacewaveCLITrajectoryScripts(t *testing.T) {
 
 	for _, script := range scripts {
 		t.Run(strings.TrimSuffix(filepath.Base(script), filepath.Ext(script)), func(t *testing.T) {
+			work, err := os.MkdirTemp("", "swcli-")
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() {
+				_ = os.RemoveAll(work)
+			})
 			runScript(t, script, scriptState{
 				bin:  bin,
-				work: t.TempDir(),
+				work: work,
 				env:  os.Environ(),
 			})
 		})
@@ -91,6 +102,8 @@ func runScript(t *testing.T, path string, st scriptState) {
 			assertOutputContains(t, path, idx+1, "stdout", st.stdout, line)
 		case "stderr":
 			assertOutputContains(t, path, idx+1, "stderr", st.stderr, line)
+		case "stdout-snapshot":
+			assertOutputSnapshot(t, path, idx+1, "stdout", st.stdout, line, st)
 		default:
 			t.Fatalf("%s:%d: unknown directive %q", path, idx+1, fields[0])
 		}
@@ -153,6 +166,31 @@ func assertOutputContains(t *testing.T, path string, lineNo int, name, got, line
 	}
 }
 
+func assertOutputSnapshot(t *testing.T, path string, lineNo int, name, got, line string, st scriptState) {
+	t.Helper()
+
+	rel, err := quotedArg(line, name+"-snapshot")
+	if err != nil {
+		t.Fatalf("%s:%d: %v", path, lineNo, err)
+	}
+	snapshotPath := filepath.Join(filepath.Dir(path), rel)
+	got = normalizeSnapshotOutput(got, st)
+	if *updateSnapshots {
+		if err := os.WriteFile(snapshotPath, []byte(got), 0o644); err != nil {
+			t.Fatalf("%s:%d: update snapshot: %v", path, lineNo, err)
+		}
+		return
+	}
+
+	want, err := os.ReadFile(snapshotPath)
+	if err != nil {
+		t.Fatalf("%s:%d: read snapshot: %v", path, lineNo, err)
+	}
+	if got != string(want) {
+		t.Fatalf("%s:%d: %s snapshot mismatch\nwant:\n%s\ngot:\n%s", path, lineNo, name, want, got)
+	}
+}
+
 func quotedArg(line, directive string) (string, error) {
 	raw := strings.TrimSpace(strings.TrimPrefix(line, directive))
 	if raw == "" {
@@ -164,6 +202,23 @@ func quotedArg(line, directive string) (string, error) {
 func expand(value string, st scriptState) string {
 	value = strings.ReplaceAll(value, "$WORK", st.work)
 	return strings.ReplaceAll(value, "$SPACEWAVE", st.bin)
+}
+
+var snapshotReplacements = []struct {
+	re   *regexp.Regexp
+	with string
+}{
+	{regexp.MustCompile(`01[0-9a-z]{6}\.\.\.`), "01xxxxxx..."},
+	{regexp.MustCompile(`01[0-9a-z]{24}`), "01xxxxxxxxxxxxxxxxxxxxxxxx"},
+	{regexp.MustCompile(`12D3Koo[0-9A-Za-z]{13}\.\.\.`), "12D3KooXXXXXXXXXXXXX..."},
+}
+
+func normalizeSnapshotOutput(got string, st scriptState) string {
+	got = strings.ReplaceAll(got, st.work, "$WORK")
+	for _, repl := range snapshotReplacements {
+		got = repl.re.ReplaceAllString(got, repl.with)
+	}
+	return got
 }
 
 func repoRoot(t *testing.T) string {

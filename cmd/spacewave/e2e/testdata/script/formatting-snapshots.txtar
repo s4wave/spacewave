@@ -1,0 +1,17 @@
+# Formatting snapshots pin tabwriter spacing for the main status/list surfaces.
+env SPACEWAVE_CLI_AUTOSTART=true
+
+spacewave --state-path $WORK/state login local
+spacewave --state-path $WORK/state space create CLI
+
+spacewave --state-path $WORK/state status
+stdout-snapshot "status-formatting.stdout"
+
+spacewave --state-path $WORK/state session list
+stdout-snapshot "session-list-formatting.stdout"
+
+spacewave --state-path $WORK/state space list
+stdout-snapshot "space-list-formatting.stdout"
+
+spacewave --state-path $WORK/state stop
+stdout "Stopped Spacewave daemon."
