@@ -21,6 +21,7 @@ import (
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_task "github.com/s4wave/spacewave/forge/task"
 	task_controller "github.com/s4wave/spacewave/forge/task/controller"
+	forge_worker "github.com/s4wave/spacewave/forge/worker"
 	"github.com/sirupsen/logrus"
 )
 
@@ -146,6 +147,9 @@ func (t *objectTracker) buildCtrlConf(ctx context.Context, objType string) (conf
 			peerID,
 			&forge_target.InputWorld{EngineId: engineID},
 		), nil
+	case forge_worker.WorkerTypeID:
+		// The owning WorkerController already manages its worker object.
+		return nil, nil
 	default:
 		return nil, errors.Wrap(world_types.ErrUnknownObjectType, objType)
 	}

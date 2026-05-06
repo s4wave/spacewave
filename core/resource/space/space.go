@@ -27,15 +27,27 @@ import (
 
 // SpaceResource wraps a Space for resource access.
 type SpaceResource struct {
-	le    *logrus.Entry
-	b     bus.Bus
-	mux   srpc.Invoker
-	space space.SpaceSharedObjectBody
+	le            *logrus.Entry
+	b             bus.Bus
+	mux           srpc.Invoker
+	space         space.SpaceSharedObjectBody
+	sessionPeerID string
 }
 
 // NewSpaceResource creates a new SpaceResource.
 func NewSpaceResource(le *logrus.Entry, b bus.Bus, sp space.SpaceSharedObjectBody) *SpaceResource {
-	spaceResource := &SpaceResource{le: le, b: b, space: sp}
+	return NewSpaceResourceWithSessionPeerID(le, b, sp, "")
+}
+
+// NewSpaceResourceWithSessionPeerID creates a new SpaceResource with the
+// mounted local session peer ID.
+func NewSpaceResourceWithSessionPeerID(
+	le *logrus.Entry,
+	b bus.Bus,
+	sp space.SpaceSharedObjectBody,
+	sessionPeerID string,
+) *SpaceResource {
+	spaceResource := &SpaceResource{le: le, b: b, space: sp, sessionPeerID: sessionPeerID}
 	spaceResource.mux = resource_server.NewResourceMux(func(mux srpc.Mux) error {
 		if err := s4wave_space.SRPCRegisterSpaceResourceService(mux, spaceResource); err != nil {
 			return err
@@ -293,7 +305,7 @@ func (r *SpaceResource) MountSpaceContents(
 	conf := &plugin_space.Config{
 		SpaceId:       spaceID,
 		EngineId:      engineID,
-		SessionPeerId: r.space.GetSharedObject().GetPeerID().String(),
+		SessionPeerId: r.sessionPeerID,
 		WorldBucketId: worldBucketID,
 		HostPluginId:  hostPluginID,
 	}

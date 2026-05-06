@@ -19,12 +19,13 @@ import (
 
 // SharedObjectResource wraps a core shared object for resource access.
 type SharedObjectResource struct {
-	le           *logrus.Entry
-	b            bus.Bus
-	mux          srpc.Invoker
-	sharedObject sobject.SharedObject
-	meta         *sobject.SharedObjectMeta
-	ref          *sobject.SharedObjectRef
+	le            *logrus.Entry
+	b             bus.Bus
+	mux           srpc.Invoker
+	sharedObject  sobject.SharedObject
+	meta          *sobject.SharedObjectMeta
+	ref           *sobject.SharedObjectRef
+	sessionPeerID string
 }
 
 // NewSharedObjectResource creates a new SharedObjectResource.
@@ -34,8 +35,16 @@ func NewSharedObjectResource(
 	so sobject.SharedObject,
 	meta *sobject.SharedObjectMeta,
 	ref *sobject.SharedObjectRef,
+	sessionPeerID string,
 ) *SharedObjectResource {
-	soResource := &SharedObjectResource{le: le, b: b, sharedObject: so, meta: meta, ref: ref}
+	soResource := &SharedObjectResource{
+		le:            le,
+		b:             b,
+		sharedObject:  so,
+		meta:          meta,
+		ref:           ref,
+		sessionPeerID: sessionPeerID,
+	}
 	soResource.mux = resource_server.NewResourceMux(func(mux srpc.Mux) error {
 		return s4wave_sobject.SRPCRegisterSharedObjectResourceService(mux, soResource)
 	})
@@ -127,7 +136,12 @@ func (r *SharedObjectResource) MountSharedObjectBody(ctx context.Context, req *s
 			)
 		}
 
-		spaceResource := resource_space.NewSpaceResource(r.le, r.b, mountedSpace.GetSharedObjectBody())
+		spaceResource := resource_space.NewSpaceResourceWithSessionPeerID(
+			r.le,
+			r.b,
+			mountedSpace.GetSharedObjectBody(),
+			r.sessionPeerID,
+		)
 		resource, relResource = spaceResource.GetMux(), mountedSpaceRef.Release
 		resourceValue = spaceResource
 	case cdn_sharedobject.CdnBodyType:

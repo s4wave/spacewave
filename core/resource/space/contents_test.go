@@ -23,10 +23,7 @@ import (
 	identity_world "github.com/s4wave/spacewave/identity/world"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
-	s4wave_forge_world "github.com/s4wave/spacewave/sdk/forge/world"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
-	"github.com/s4wave/spacewave/sdk/world/objecttype"
-	objecttype_controller "github.com/s4wave/spacewave/sdk/world/objecttype/controller"
 	s4wave_wizard "github.com/s4wave/spacewave/sdk/world/wizard"
 	"github.com/s4wave/spacewave/testbed"
 	"github.com/sirupsen/logrus"
@@ -267,19 +264,6 @@ func TestSpaceContentsResource_ForgeWizardChainStartsApprovedWorker(t *testing.T
 	}
 	tb.StaticResolver.AddFactory(plugin_space.NewFactory(tb.Bus))
 
-	lookupFunc := func(ctx context.Context, typeID string) (objecttype.ObjectType, error) {
-		if typeID == forge_worker.WorkerTypeID {
-			return s4wave_forge_world.WorkerType, nil
-		}
-		return nil, nil
-	}
-	objectTypeCtrl := objecttype_controller.NewController(lookupFunc)
-	objectTypeRef, err := tb.Bus.AddController(ctx, objectTypeCtrl, nil)
-	if err != nil {
-		t.Fatalf("AddController(objecttype): %v", err)
-	}
-	defer objectTypeRef()
-
 	pid := generateSpaceContentsTestPeerID(t)
 	sender := pid.String()
 	ts := timestamppb.Now()
@@ -489,19 +473,6 @@ func TestSpaceContentsResource_SetProcessBindingStartsForgeWorker(t *testing.T) 
 		t.Fatal(err)
 	}
 	tb.StaticResolver.AddFactory(plugin_space.NewFactory(tb.Bus))
-
-	lookupFunc := func(ctx context.Context, typeID string) (objecttype.ObjectType, error) {
-		if typeID == forge_worker.WorkerTypeID {
-			return s4wave_forge_world.WorkerType, nil
-		}
-		return nil, nil
-	}
-	objectTypeCtrl := objecttype_controller.NewController(lookupFunc)
-	objectTypeRef, err := tb.Bus.AddController(ctx, objectTypeCtrl, nil)
-	if err != nil {
-		t.Fatalf("AddController(objecttype): %v", err)
-	}
-	defer objectTypeRef()
 
 	pid := generateSpaceContentsTestPeerID(t)
 	op := &forge_dashboard.InitForgeQuickstartOp{

@@ -20,6 +20,7 @@ import (
 	plugin_list "github.com/s4wave/spacewave/core/plugin/list"
 	process_binding "github.com/s4wave/spacewave/core/plugin/process"
 	space_world "github.com/s4wave/spacewave/core/space/world"
+	space_world_objecttypes "github.com/s4wave/spacewave/core/space/world/objecttypes"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/db/world"
@@ -27,6 +28,7 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 	s4wave_process "github.com/s4wave/spacewave/sdk/process"
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
+	objecttype_controller "github.com/s4wave/spacewave/sdk/world/objecttype/controller"
 )
 
 // ControllerID is the controller ID.
@@ -153,6 +155,12 @@ func (c *Controller) Execute(ctx context.Context) error {
 	if engineID == "" {
 		return nil
 	}
+	objectTypeCtrl := objecttype_controller.NewController(space_world_objecttypes.LookupObjectType)
+	objectTypeRef, err := c.GetBus().AddController(ctx, objectTypeCtrl, nil)
+	if err != nil {
+		return err
+	}
+	defer objectTypeRef()
 
 	if conf.GetWorldBucketId() != "" {
 		c.cloudForwarding.SetContext(ctx, true)

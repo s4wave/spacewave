@@ -442,7 +442,14 @@ func (r *SessionResource) MountSharedObject(
 		return nil, err
 	}
 
-	soResource := resource_sobject.NewSharedObjectResource(r.le, r.b, mountedSo, soListEntry.GetMeta(), soRef)
+	soResource := resource_sobject.NewSharedObjectResource(
+		r.le,
+		r.b,
+		mountedSo,
+		soListEntry.GetMeta(),
+		soRef,
+		r.session.GetPeerId().String(),
+	)
 	id, err := resourceCtx.AddResource(soResource.GetMux(), mountedSoRef.Release)
 	if err != nil {
 		mountedSoRef.Release()
@@ -478,7 +485,14 @@ func (r *SessionResource) mountCdnSharedObject(
 		return nil, err
 	}
 
-	soResource := resource_sobject.NewSharedObjectResource(r.le, r.b, cdnSO, meta, soRef)
+	soResource := resource_sobject.NewSharedObjectResource(
+		r.le,
+		r.b,
+		cdnSO,
+		meta,
+		soRef,
+		r.session.GetPeerId().String(),
+	)
 	id, err := resourceCtx.AddResource(soResource.GetMux(), func() {})
 	if err != nil {
 		return nil, err

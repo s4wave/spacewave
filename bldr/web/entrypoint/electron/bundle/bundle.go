@@ -6,11 +6,13 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 
 	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/aperturerobotics/util/fsutil"
+	"github.com/pkg/errors"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	"github.com/s4wave/spacewave/bldr/util/exec"
 	"github.com/s4wave/spacewave/bldr/util/npm"
@@ -309,20 +311,20 @@ func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, stateDir stri
 		npmPkgName = npmPkgName[:npmPkgVerIdx]
 	}
 
-	// Build the cross-download env. electron's postinstall reads
-	// npm_config_platform / npm_config_arch (via @electron/get) and
-	// overrides process.platform / process.arch for the redistributable
-	// download. npm_config_* is the canonical way to override; also set
-	// the non-prefixed vars because some older tooling reads those.
+	// Build the cross-download env. Electron 42+ reads ELECTRON_INSTALL_*
+	// in its install-electron binary; older postinstall paths read
+	// npm_config_* through @electron/get.
 	var extraEnv []string
 	if np, ok := plat.(*bldr_platform.NativePlatform); ok {
 		nodePlat := npm.GOOSToNodePlatform(np.GetGOOS())
 		nodeArch := npm.GOARCHToNodeArch(np.GetGOARCH())
 		if nodePlat != "" {
 			extraEnv = append(extraEnv, "npm_config_platform="+nodePlat)
+			extraEnv = append(extraEnv, "ELECTRON_INSTALL_PLATFORM="+nodePlat)
 		}
 		if nodeArch != "" {
 			extraEnv = append(extraEnv, "npm_config_arch="+nodeArch)
+			extraEnv = append(extraEnv, "ELECTRON_INSTALL_ARCH="+nodeArch)
 		}
 	}
 
@@ -339,6 +341,21 @@ func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, stateDir stri
 	// copy the redistributable out of node_modules
 	nodeModulesPath := filepath.Join(npmDir, "node_modules")
 	electronDistPath := filepath.Join(nodeModulesPath, npmPkgName, "dist")
+	if _, err := os.Stat(electronDistPath); err != nil {
+		if !os.IsNotExist(err) {
+			return errors.Wrap(err, "stat electron dist")
+		}
+		cmdPath := filepath.Join(nodeModulesPath, ".bin", "install-electron")
+		if runtime.GOOS == "windows" {
+			cmdPath += ".cmd"
+		}
+		cmd := exec.NewCmd(ctx, cmdPath)
+		cmd.Dir = npmDir
+		cmd.Env = append(cmd.Env, extraEnv...)
+		if err := exec.StartAndWait(ctx, le, cmd); err != nil {
+			return errors.Wrap(err, "install electron binary")
+		}
+	}
 	if err := fsutil.CopyRecursive(destDir, electronDistPath, nil); err != nil {
 		return err
 	}
