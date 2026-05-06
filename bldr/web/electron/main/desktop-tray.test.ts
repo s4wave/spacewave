@@ -2,6 +2,7 @@ import { EventEmitter } from 'events'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  DesktopRuntimeActionKind,
   DesktopRuntimeHealth,
   DesktopRuntimeSeverity,
   type DesktopRuntimeActionItem,
@@ -15,6 +16,12 @@ import {
 const platformState = { value: 'linux' }
 const menuTemplates: Electron.MenuItemConstructorOptions[][] = []
 const trayInstances: MockTray[] = []
+const mockClipboard = {
+  writeText: vi.fn(),
+}
+const mockShell = {
+  showItemInFolder: vi.fn(),
+}
 const mockResource = {
   WatchDesktopState: vi.fn(),
   getState: vi.fn(() => defaultRuntimeState()),
@@ -61,11 +68,15 @@ vi.mock('electron', () => {
     default: {
       Tray: MockTray,
       Menu,
+      clipboard: mockClipboard,
       nativeImage,
+      shell: mockShell,
     },
     Tray: MockTray,
     Menu,
+    clipboard: mockClipboard,
     nativeImage,
+    shell: mockShell,
   }
 })
 
@@ -136,6 +147,7 @@ describe('DesktopTrayController', () => {
       listener: {
         label: 'CLI reachable',
         detail: '1 CLI client connected',
+        socketPath: '/tmp/spacewave.sock',
       },
       sessions: [
         {
@@ -193,6 +205,8 @@ describe('DesktopTrayController', () => {
       'Uploading changes - 2 sync items',
       '---',
       'Quick Actions',
+      'Copy CLI Socket',
+      'Copy Diagnostics',
       'Copy diagnostics - CLI socket',
       '---',
       'Settings...',
@@ -200,6 +214,145 @@ describe('DesktopTrayController', () => {
       '---',
       'Quit',
     ])
+  })
+
+  it('routes menu rows through the singleton app window', async () => {
+    const state = {
+      ...defaultRuntimeState(),
+      sessions: [
+        {
+          label: 'christian@aperture.us',
+          route: '/u/2/',
+        },
+      ] satisfies DesktopRuntimeNavigationItem[],
+      spaces: [
+        {
+          label: 'Project Alpha',
+          route: '/u/2/so/project-alpha',
+        },
+      ] satisfies DesktopRuntimeNavigationItem[],
+      actions: [
+        {
+          kind: DesktopRuntimeActionKind.OPEN_ROUTE,
+          label: 'Open dashboard',
+          route: '/u/2/',
+          enabled: true,
+        },
+      ] satisfies DesktopRuntimeActionItem[],
+    }
+    mockResource.getState.mockReturnValue(state)
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+    controller.init()
+
+    await clickMenuItem('Open Spacewave')
+    await clickMenuItem('New Window')
+    await clickMenuItem('christian@aperture.us')
+    await clickMenuItem('Project Alpha')
+    await clickMenuItem('Open dashboard')
+    await clickMenuItem('Settings...')
+    await clickMenuItem('About Spacewave')
+
+    expect(mockResource.OpenOrFocusMainWindow).toHaveBeenNthCalledWith(1, {})
+    expect(mockResource.OpenOrFocusMainWindow).toHaveBeenNthCalledWith(2, {})
+    expect(mockResource.OpenOrFocusMainWindow).toHaveBeenNthCalledWith(3, {
+      route: '/u/2/',
+    })
+    expect(mockResource.OpenOrFocusMainWindow).toHaveBeenNthCalledWith(4, {
+      route: '/u/2/so/project-alpha',
+    })
+    expect(mockResource.OpenOrFocusMainWindow).toHaveBeenNthCalledWith(5, {
+      route: '/u/2/',
+    })
+    expect(mockResource.OpenOrFocusMainWindow).toHaveBeenNthCalledWith(6, {
+      route: '/settings',
+    })
+    expect(mockResource.OpenOrFocusMainWindow).toHaveBeenNthCalledWith(7, {
+      route: '/about',
+    })
+  })
+
+  it('dispatches copy and reveal quick actions through native shell APIs', async () => {
+    const state = {
+      ...defaultRuntimeState(),
+      listener: {
+        label: 'CLI reachable',
+        detail: '1 CLI client connected',
+        socketPath: '/tmp/spacewave.sock',
+      },
+      actions: [
+        {
+          kind: DesktopRuntimeActionKind.COPY_TEXT,
+          label: 'Copy custom diagnostics',
+          value: 'custom diagnostics',
+          enabled: true,
+        },
+        {
+          kind: DesktopRuntimeActionKind.REVEAL_PATH,
+          label: 'Reveal State Root',
+          value: '/Users/cjs/Library/Application Support/Spacewave',
+          enabled: true,
+        },
+      ] satisfies DesktopRuntimeActionItem[],
+    }
+    mockResource.getState.mockReturnValue(state)
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+    controller.init()
+
+    await clickMenuItem('Copy CLI Socket')
+    await clickMenuItem('Copy Diagnostics')
+    await clickMenuItem('Copy custom diagnostics')
+    await clickMenuItem('Reveal State Root')
+
+    expect(mockClipboard.writeText).toHaveBeenNthCalledWith(
+      1,
+      '/tmp/spacewave.sock',
+    )
+    expect(mockClipboard.writeText).toHaveBeenNthCalledWith(
+      2,
+      'Spacewave: Running\nCLI reachable - 1 CLI client connected\nSocket: /tmp/spacewave.sock',
+    )
+    expect(mockClipboard.writeText).toHaveBeenNthCalledWith(
+      3,
+      'custom diagnostics',
+    )
+    expect(mockShell.showItemInFolder).toHaveBeenCalledWith(
+      '/Users/cjs/Library/Application Support/Spacewave',
+    )
+  })
+
+  it('keeps unsupported recovery actions deferred', async () => {
+    const state = {
+      ...defaultRuntimeState(),
+      actions: [
+        {
+          kind: DesktopRuntimeActionKind.UNSPECIFIED,
+          label: 'Restart Runtime',
+          enabled: true,
+        },
+      ] satisfies DesktopRuntimeActionItem[],
+    }
+    mockResource.getState.mockReturnValue(state)
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+    controller.init()
+
+    const item = menuTemplates[0]?.find(
+      (entry) => entry.label === 'Restart Runtime',
+    )
+
+    expect(item).toMatchObject({ enabled: false })
+    expect(item?.click).toBeUndefined()
   })
 
   it('collapses attention mode to the highest-priority item', async () => {

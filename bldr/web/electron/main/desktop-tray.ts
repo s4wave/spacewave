@@ -4,6 +4,7 @@ import electron from 'electron'
 import type { ElectronInit } from '../../plugin/electron/electron.pb.js'
 import {
   DesktopRuntimeHealth,
+  DesktopRuntimeActionKind,
   DesktopRuntimeSeverity,
   DesktopRuntimeState,
   type DesktopRuntimeActionItem,
@@ -128,10 +129,20 @@ export class DesktopTrayController {
       ...this.buildNavigationSection('Sessions', state.sessions, 'No sessions'),
       ...this.buildNavigationSection('Spaces', state.spaces, 'No spaces'),
       ...this.buildActivitySection(state.activity),
-      ...this.buildActionSection(state.actions),
+      ...this.buildActionSection(state),
       { type: 'separator' },
-      disabledItem('Settings...'),
-      disabledItem('About Spacewave'),
+      {
+        label: 'Settings...',
+        click: () => {
+          void this.openRoute('/settings')
+        },
+      },
+      {
+        label: 'About Spacewave',
+        click: () => {
+          void this.openRoute('/about')
+        },
+      },
       { type: 'separator' },
       {
         label: 'Quit',
@@ -199,7 +210,7 @@ export class DesktopTrayController {
       { type: 'separator' },
       disabledItem(title),
       ...nonEmpty(items).map((item) =>
-        disabledItem(compactLabel([item.label, item.detail, item.statusText])),
+        this.buildNavigationItem(item),
       ),
       ...(items?.length ? [] : [disabledItem(emptyLabel)]),
     ]
@@ -219,16 +230,106 @@ export class DesktopTrayController {
   }
 
   private buildActionSection(
-    items: DesktopRuntimeActionItem[] | undefined,
+    state: DesktopRuntimeStateMessage,
   ): Electron.MenuItemConstructorOptions[] {
+    const items = [
+      ...this.buildSyntheticActions(state),
+      ...nonEmpty(state.actions),
+    ]
     return [
       { type: 'separator' },
       disabledItem('Quick Actions'),
-      ...nonEmpty(items).map((item) =>
-        disabledItem(compactLabel([item.label, item.detail])),
-      ),
-      ...(items?.length ? [] : [disabledItem('No quick actions')]),
+      ...items.map((item) => this.buildActionItem(item)),
+      ...(items.length ? [] : [disabledItem('No quick actions')]),
     ]
+  }
+
+  private buildNavigationItem(
+    item: DesktopRuntimeNavigationItem,
+  ): Electron.MenuItemConstructorOptions {
+    const label = compactLabel([item.label, item.detail, item.statusText])
+    if (!item.route) {
+      return disabledItem(label)
+    }
+    return {
+      label,
+      click: () => {
+        void this.openRoute(item.route)
+      },
+    }
+  }
+
+  private buildSyntheticActions(
+    state: DesktopRuntimeStateMessage,
+  ): DesktopRuntimeActionItem[] {
+    const socketPath = state.listener?.socketPath
+    if (!socketPath) {
+      return []
+    }
+    return [
+      {
+        id: 'copy-cli-socket',
+        kind: DesktopRuntimeActionKind.COPY_TEXT,
+        label: 'Copy CLI Socket',
+        value: socketPath,
+        enabled: true,
+      },
+      {
+        id: 'copy-diagnostics',
+        kind: DesktopRuntimeActionKind.COPY_TEXT,
+        label: 'Copy Diagnostics',
+        value: buildDiagnosticText(state),
+        enabled: true,
+      },
+    ]
+  }
+
+  private buildActionItem(
+    item: DesktopRuntimeActionItem,
+  ): Electron.MenuItemConstructorOptions {
+    const label = compactLabel([item.label, item.detail])
+    if (!item.enabled) {
+      return disabledItem(label)
+    }
+    switch (item.kind) {
+      case DesktopRuntimeActionKind.OPEN_ROUTE:
+      case DesktopRuntimeActionKind.NEW_WINDOW:
+        return {
+          label,
+          click: () => {
+            void this.openRoute(item.route)
+          },
+        }
+      case DesktopRuntimeActionKind.COPY_TEXT:
+        if (!item.value) {
+          return disabledItem(label)
+        }
+        return {
+          label,
+          click: () => {
+            this.copyText(item.value)
+          },
+        }
+      case DesktopRuntimeActionKind.REVEAL_PATH:
+        if (!item.value) {
+          return disabledItem(label)
+        }
+        return {
+          label,
+          click: () => {
+            this.revealPath(item.value)
+          },
+        }
+      case DesktopRuntimeActionKind.QUIT:
+        return {
+          label,
+          click: () => {
+            void this.quitDesktopRuntime()
+          },
+        }
+      default:
+        return disabledItem(label)
+    }
   }
 
   private updateIconState(state: DesktopRuntimeStateMessage): void {
@@ -242,6 +343,18 @@ export class DesktopTrayController {
 
   private async openOrFocusMainWindow(): Promise<void> {
     await this.opts.resource.OpenOrFocusMainWindow({})
+  }
+
+  private async openRoute(route?: string): Promise<void> {
+    await this.opts.resource.OpenOrFocusMainWindow({ route })
+  }
+
+  private copyText(text: string): void {
+    electron.clipboard.writeText(text)
+  }
+
+  private revealPath(path: string): void {
+    electron.shell.showItemInFolder(path)
   }
 
   private async quitDesktopRuntime(): Promise<void> {
@@ -292,6 +405,19 @@ function trayTitleForState(state: DesktopRuntimeStateMessage): string {
     default:
       return ''
   }
+}
+
+function buildDiagnosticText(state: DesktopRuntimeStateMessage): string {
+  return [
+    `Spacewave: ${state.statusText || 'Running'}`,
+    compactLabel([
+      state.listener?.label || 'Runtime',
+      state.listener?.detail,
+    ]),
+    state.listener?.socketPath ? `Socket: ${state.listener.socketPath}` : '',
+  ]
+    .filter((line) => line !== '')
+    .join('\n')
 }
 
 function cloneDesktopRuntimeState(
