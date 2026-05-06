@@ -137,6 +137,9 @@ func TestWriteStableBootAsset(t *testing.T) {
 	if !strings.Contains(script, "__swGenerationId") {
 		t.Fatalf("boot asset missing generation exposure: %s", script)
 	}
+	if !strings.Contains(script, "__swServiceWorker") {
+		t.Fatalf("boot asset missing service worker exposure: %s", script)
+	}
 	if !strings.Contains(script, "spacewave:boot-status") {
 		t.Fatalf("boot asset missing boot status event: %s", script)
 	}
