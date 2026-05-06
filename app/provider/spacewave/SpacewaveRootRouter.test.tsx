@@ -112,6 +112,111 @@ function buildContext(
 }
 
 describe('SpacewaveRootRouter', () => {
+  it.each([
+    {
+      name: 'plan',
+      context: buildContext(),
+      outcome: 'redirect',
+      text: 'plan',
+    },
+    {
+      name: 'upgrade',
+      context: buildContext({
+        onboarding: {
+          accountStatus: ProviderAccountStatus.ProviderAccountStatus_DORMANT,
+        },
+      }),
+      outcome: 'redirect',
+      text: 'plan/upgrade',
+    },
+    {
+      name: 'verify-email',
+      context: buildContext({
+        onboarding: {
+          subscriptionStatus: BillingStatus.BillingStatus_ACTIVE,
+        },
+        hasActiveBilling: true,
+        emailVerified: false,
+      }),
+      outcome: 'redirect',
+      text: 'verify-email',
+    },
+    {
+      name: 'self-enrollment',
+      context: buildContext({
+        onboarding: {
+          subscriptionStatus: BillingStatus.BillingStatus_ACTIVE,
+          selfEnrollmentGateState: SelfEnrollmentGateState.ACTION_REQUIRED,
+          sessionSelfEnrollmentGenerationKey: 'gen-1',
+          sessionSelfEnrollmentCount: 2,
+        },
+        hasActiveBilling: true,
+        emailVerified: true,
+      }),
+      outcome: 'self-enrollment',
+    },
+    {
+      name: 'dashboard',
+      context: buildContext({
+        onboarding: {
+          subscriptionStatus: BillingStatus.BillingStatus_ACTIVE,
+        },
+        hasActiveBilling: true,
+        emailVerified: true,
+      }),
+      outcome: 'dashboard',
+    },
+  ])(
+    'keeps the root route stable for the $name Onboarding Status state',
+    ({ context, outcome, text }) => {
+      mockUseContextSafe.mockReturnValue(context)
+
+      render(<SpacewaveRootRouter />)
+
+      if (outcome === 'redirect') {
+        expect(screen.getByTestId('redirect').textContent).toBe(text)
+        expect(screen.queryByTestId('dashboard')).toBeNull()
+        expect(screen.queryByTestId('self-enrollment-interstitial')).toBeNull()
+        return
+      }
+
+      if (outcome === 'self-enrollment') {
+        expect(screen.getByTestId('self-enrollment-interstitial')).toBeTruthy()
+        expect(screen.queryByTestId('redirect')).toBeNull()
+        expect(screen.queryByTestId('dashboard')).toBeNull()
+        return
+      }
+
+      expect(screen.getByTestId('dashboard')).toBeTruthy()
+      expect(screen.queryByTestId('redirect')).toBeNull()
+      expect(screen.queryByTestId('self-enrollment-interstitial')).toBeNull()
+    },
+  )
+
+  it('keeps the root route stable for the linked-local Onboarding Status state', async () => {
+    mockUseContextSafe.mockReturnValue(
+      buildContext({
+        onboarding: {
+          hasLinkedLocal: true,
+          linkedLocalSessionIndex: 2,
+        },
+        emailVerified: true,
+      }),
+    )
+
+    render(<SpacewaveRootRouter />)
+
+    expect(screen.getByTestId('session-loading')).toBeTruthy()
+    expect(screen.getByTestId('loading-card').textContent).toBe(
+      'Switching to your local session.',
+    )
+    expect(screen.queryByTestId('redirect')).toBeNull()
+    expect(screen.queryByTestId('dashboard')).toBeNull()
+    await waitFor(() =>
+      expect(mockNavigate).toHaveBeenCalledWith({ path: '/u/2' }),
+    )
+  })
+
   it('wraps the dashboard in billing state for active sessions', () => {
     mockUseContextSafe.mockReturnValue(
       buildContext({
