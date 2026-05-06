@@ -22,12 +22,10 @@ const popoverMargin = 8
 export class DesktopTrayPopoverController {
   private window?: Electron.BrowserWindow
   private disabled = false
-  private state?: DesktopRuntimeStateMessage
 
   constructor(private readonly opts: DesktopTrayPopoverControllerOpts) {}
 
   public update(state: DesktopRuntimeStateMessage): void {
-    this.state = state
     if (!this.window || this.window.isDestroyed()) {
       return
     }
@@ -43,7 +41,6 @@ export class DesktopTrayPopoverController {
     if (this.disabled || !tray) {
       return false
     }
-    this.state = state
     if (this.window && !this.window.isDestroyed()) {
       this.close()
       return true

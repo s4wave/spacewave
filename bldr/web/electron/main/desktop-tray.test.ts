@@ -34,8 +34,10 @@ const mockResource = {
   OpenOrFocusMainWindow: vi.fn(() => Promise.resolve({})),
   QuitDesktopRuntime: vi.fn(() => Promise.resolve({})),
 }
+const browserWindowState = {
+  shouldThrow: false,
+}
 let emitState: (state: DesktopRuntimeState) => void = () => {}
-let browserWindowShouldThrow = false
 
 class MockNativeImage {
   public readonly setTemplateImage = vi.fn()
@@ -71,7 +73,7 @@ class MockBrowserWindow extends EventEmitter {
 
   constructor(public readonly opts: Electron.BrowserWindowConstructorOptions) {
     super()
-    if (browserWindowShouldThrow) {
+    if (browserWindowState.shouldThrow) {
       throw new Error('popover unavailable')
     }
     browserWindows.push(this)
@@ -123,7 +125,7 @@ describe('DesktopTrayController', () => {
     menuTemplates.length = 0
     trayInstances.length = 0
     browserWindows.length = 0
-    browserWindowShouldThrow = false
+    browserWindowState.shouldThrow = false
     delete process.env.BLDR_ELECTRON_DESKTOP_TRAY_POPOVER
     vi.clearAllMocks()
     mockResource.getState.mockReturnValue(defaultRuntimeState())
@@ -554,7 +556,7 @@ describe('DesktopTrayController', () => {
 
   it('falls back to the singleton window when the dev popover cannot attach', async () => {
     process.env.BLDR_ELECTRON_DESKTOP_TRAY_POPOVER = '1'
-    browserWindowShouldThrow = true
+    browserWindowState.shouldThrow = true
     const { DesktopTrayController } = await import('./desktop-tray.js')
     const controller = new DesktopTrayController({
       init: { appName: 'Spacewave' },
