@@ -47,6 +47,9 @@ const CACHES: Record<string, Cache | undefined> = {
 const serviceWorkerFetchTracker = new ServiceWorkerFetchTracker()
 const proxyFetchHeaderTimeoutMs = 30_000
 const browserReleaseNetworkRaceTimeoutMs = 800
+const browserReleaseNetworkRaceTimedOut = Symbol(
+  'browserReleaseNetworkRaceTimedOut',
+)
 
 // ServiceWorkerMessageDeps collects message-handler collaborators.
 export interface ServiceWorkerMessageDeps {
@@ -413,17 +416,39 @@ export async function handleBrowserReleaseRequest(
   const request = ev.request
   const state = await loadBrowserReleaseState()
   if (state.promotedCurrent) {
-    const latestRelease = await Promise.race([
-      fetchLatestBrowserRelease(),
-      new Promise<null>((resolve) => {
-        setTimeout(() => resolve(null), browserReleaseNetworkRaceTimeoutMs)
+    const startTime = performance.now()
+    const latestReleasePromise = fetchLatestBrowserRelease()
+    const raceWinner = await Promise.race([
+      latestReleasePromise,
+      new Promise<typeof browserReleaseNetworkRaceTimedOut>((resolve) => {
+        setTimeout(
+          () => resolve(browserReleaseNetworkRaceTimedOut),
+          browserReleaseNetworkRaceTimeoutMs,
+        )
       }),
     ])
-    if (latestRelease) {
-      ev.waitUntil(syncLatestBrowserRelease(latestRelease))
-      return buildJsonResponse(request.method, latestRelease)
+    if (raceWinner !== browserReleaseNetworkRaceTimedOut) {
+      if (raceWinner) {
+        ev.waitUntil(syncLatestBrowserRelease(raceWinner))
+        return buildJsonResponse(request.method, raceWinner)
+      }
+      ev.waitUntil(syncLatestBrowserRelease())
+      return buildJsonResponse(request.method, state.promotedCurrent)
     }
-    ev.waitUntil(syncLatestBrowserRelease())
+    ev.waitUntil(
+      latestReleasePromise.then((lateRelease) => {
+        if (lateRelease) {
+          console.info(
+            'ServiceWorker: %s: browser release manifest fetch missed %dms budget: latency=%dms',
+            serviceWorkerId,
+            browserReleaseNetworkRaceTimeoutMs,
+            Math.round(performance.now() - startTime),
+          )
+          return syncLatestBrowserRelease(lateRelease)
+        }
+        return syncLatestBrowserRelease()
+      }),
+    )
     return buildJsonResponse(request.method, state.promotedCurrent)
   }
 
