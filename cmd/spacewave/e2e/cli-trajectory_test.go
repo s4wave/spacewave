@@ -15,6 +15,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	bdb "github.com/aperturerobotics/bbolt"
+	"github.com/pkg/errors"
 )
 
 const enableCLITestscriptEnv = "SPACEWAVE_CLI_TESTSCRIPT"
@@ -96,6 +99,13 @@ func runScript(t *testing.T, path string, st scriptState) {
 				t.Fatalf("%s:%d: usage: env KEY=VALUE", path, idx+1)
 			}
 			st.env = append(st.env, expand(fields[1], st))
+		case "git-fixture":
+			if len(fields) != 2 {
+				t.Fatalf("%s:%d: usage: git-fixture PATH", path, idx+1)
+			}
+			createGitFixture(t, path, idx+1, expand(fields[1], st))
+		case "volume-stats-min":
+			assertVolumeStatsMin(t, path, idx+1, fields, st)
 		case "spacewave", "!":
 			st = runCommandLine(t, path, idx+1, line, st)
 		case "stdout":
@@ -152,6 +162,104 @@ func runCommandLine(t *testing.T, path string, lineNo int, line string, st scrip
 		t.Fatalf("%s:%d: command failed: %s: %v\nstdout:\n%s\nstderr:\n%s", path, lineNo, line, err, st.stdout, st.stderr)
 	}
 	return st
+}
+
+func createGitFixture(t *testing.T, path string, lineNo int, repoPath string) {
+	t.Helper()
+
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Fatalf("%s:%d: git executable not found: %v", path, lineNo, err)
+	}
+	if err := os.MkdirAll(filepath.Join(repoPath, "src"), 0o755); err != nil {
+		t.Fatalf("%s:%d: create fixture repo: %v", path, lineNo, err)
+	}
+	writeFixtureFile(t, path, lineNo, filepath.Join(repoPath, "README.md"), "fixture repo\n")
+	writeFixtureFile(t, path, lineNo, filepath.Join(repoPath, "src", "fixture.go"), "package fixture\n\nconst Name = \"spacewave\"\n")
+
+	runGitFixtureCommand(t, path, lineNo, repoPath, "init")
+	runGitFixtureCommand(t, path, lineNo, repoPath, "checkout", "-b", "main")
+	runGitFixtureCommand(t, path, lineNo, repoPath, "config", "user.name", "Spacewave CLI Fixture")
+	runGitFixtureCommand(t, path, lineNo, repoPath, "config", "user.email", "cli-fixture@example.test")
+	runGitFixtureCommand(t, path, lineNo, repoPath, "add", ".")
+	runGitFixtureCommand(t, path, lineNo, repoPath, "commit", "-m", "initial fixture")
+}
+
+func writeFixtureFile(t *testing.T, path string, lineNo int, filePath string, data string) {
+	t.Helper()
+
+	if err := os.WriteFile(filePath, []byte(data), 0o644); err != nil {
+		t.Fatalf("%s:%d: write fixture file %s: %v", path, lineNo, filePath, err)
+	}
+}
+
+func runGitFixtureCommand(t *testing.T, path string, lineNo int, repoPath string, args ...string) {
+	t.Helper()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "git", append([]string{"-C", repoPath}, args...)...)
+	out, err := cmd.CombinedOutput()
+	if ctx.Err() != nil {
+		t.Fatalf("%s:%d: git %s timed out", path, lineNo, strings.Join(args, " "))
+	}
+	if err != nil {
+		t.Fatalf("%s:%d: git %s: %v\n%s", path, lineNo, strings.Join(args, " "), err, out)
+	}
+}
+
+func assertVolumeStatsMin(t *testing.T, path string, lineNo int, fields []string, st scriptState) {
+	t.Helper()
+
+	if len(fields) != 3 {
+		t.Fatalf("%s:%d: usage: volume-stats-min BLOCKS BYTES", path, lineNo)
+	}
+	wantBlocks, err := strconv.ParseUint(fields[1], 10, 64)
+	if err != nil {
+		t.Fatalf("%s:%d: parse block floor: %v", path, lineNo, err)
+	}
+	wantBytes, err := strconv.ParseUint(fields[2], 10, 64)
+	if err != nil {
+		t.Fatalf("%s:%d: parse byte floor: %v", path, lineNo, err)
+	}
+
+	blocks, bytes, err := volumeStats(st.work)
+	if err != nil {
+		t.Fatalf("%s:%d: read volume stats: %v", path, lineNo, err)
+	}
+	if blocks < wantBlocks || bytes < wantBytes {
+		t.Fatalf("%s:%d: volume stats below floor: got blocks=%d bytes=%d, want at least blocks=%d bytes=%d", path, lineNo, blocks, bytes, wantBlocks, wantBytes)
+	}
+}
+
+func volumeStats(work string) (uint64, uint64, error) {
+	matches, err := filepath.Glob(filepath.Join(work, "state", "p_local_*.s4wave"))
+	if err != nil {
+		return 0, 0, err
+	}
+	if len(matches) != 1 {
+		return 0, 0, errors.Errorf("expected one local provider volume, got %d", len(matches))
+	}
+
+	db, err := bdb.Open(matches[0], 0o444, &bdb.Options{ReadOnly: true})
+	if err != nil {
+		return 0, 0, err
+	}
+	defer db.Close()
+
+	var blocks, bytes uint64
+	err = db.View(func(tx *bdb.Tx) error {
+		bucket := tx.Bucket([]byte("hydra"))
+		if bucket == nil {
+			return errors.New("missing hydra bucket")
+		}
+		return bucket.ForEach(func(_, value []byte) error {
+			blocks++
+			bytes += uint64(len(value))
+			return nil
+		})
+	})
+	return blocks, bytes, err
 }
 
 func assertOutputContains(t *testing.T, path string, lineNo int, name, got, line string) {

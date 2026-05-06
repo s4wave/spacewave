@@ -1,0 +1,23 @@
+# Importing a local git repository stores a git/repo object with enough Hydra
+# volume data to prove the packfile path ran.
+env SPACEWAVE_CLI_AUTOSTART=true
+git-fixture $WORK/git-fixture
+
+spacewave --state-path $WORK/state login local
+spacewave --state-path $WORK/state space create CLI
+spacewave --state-path $WORK/state space import-git --object-key fixture $WORK/git-fixture
+stdout "cloning "
+stdout " as fixture..."
+stdout "cloned "
+stdout " as fixture"
+
+spacewave --state-path $WORK/state git show fixture
+stdout "Repo:      fixture"
+stdout "HEAD:      main ("
+stdout "Empty:     false"
+stdout "README:    README.md"
+stdout "Message:    initial fixture"
+
+spacewave --state-path $WORK/state stop
+stdout "Stopped Spacewave daemon."
+volume-stats-min 100 10000
