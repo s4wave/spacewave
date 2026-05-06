@@ -33,6 +33,7 @@ vi.mock('@aptre/bldr-react', () => ({
   DebugInfoProvider: ({ children }: { children?: ReactNode }) => (
     <>{children}</>
   ),
+  useDocumentVisibility: () => 'visible',
   useWatchStateRpc: mockUseWatchStateRpc,
 }))
 
@@ -81,6 +82,7 @@ vi.mock('@s4wave/web/ui/ErrorState.js', () => ({
 }))
 
 vi.mock('@s4wave/app/prerender/StaticContext.js', () => ({
+  useIsStaticMode: () => false,
   useStaticHref: () => '/dmca',
 }))
 

@@ -73,6 +73,10 @@ import {
 import { SessionFrame } from './SessionFrame.js'
 import { AccountDashboardStateProvider } from './dashboard/AccountDashboardStateContext.js'
 import { AuthConfirmDialog } from './dashboard/AuthConfirmDialog.js'
+import {
+  buildSharedObjectFallbackHealth,
+  getSharedObjectRouteHealth,
+} from './sharedObjectHealthFallback.js'
 
 interface SharedObjectMutationPermission {
   canMutate: boolean
@@ -96,85 +100,6 @@ function isSharedObjectRecoveryCredentialError(
       ?.toLowerCase()
       .includes('shared object recovery requires entity credentials') ?? false
   )
-}
-
-function buildHealthFromError(
-  err: Error,
-  layer: SharedObjectHealthLayer,
-): SharedObjectHealth {
-  const msg = err.message || 'unknown shared object error'
-  const lower = msg.toLowerCase()
-  const reason = getHealthReasonForError(lower)
-
-  if (lower.includes('shared object not found')) {
-    return {
-      status: SharedObjectHealthStatus.CLOSED,
-      layer,
-      commonReason: SharedObjectHealthCommonReason.NOT_FOUND,
-      remediationHint: SharedObjectHealthRemediationHint.CONTACT_OWNER,
-      error: msg,
-    }
-  }
-  if (lower.includes('not a participant') || lower.includes('access denied')) {
-    return {
-      status: SharedObjectHealthStatus.CLOSED,
-      layer,
-      commonReason: SharedObjectHealthCommonReason.ACCESS_REVOKED,
-      remediationHint: SharedObjectHealthRemediationHint.REQUEST_ACCESS,
-      error: msg,
-    }
-  }
-  return {
-    status: SharedObjectHealthStatus.CLOSED,
-    layer,
-    commonReason: reason.commonReason,
-    remediationHint: reason.remediationHint,
-    error: msg,
-  }
-}
-
-function getHealthReasonForError(lower: string): {
-  commonReason: SharedObjectHealthCommonReason
-  remediationHint: SharedObjectHealthRemediationHint
-} {
-  if (lower.includes('block not found')) {
-    return {
-      commonReason: SharedObjectHealthCommonReason.BLOCK_NOT_FOUND,
-      remediationHint: SharedObjectHealthRemediationHint.REPAIR_SOURCE_DATA,
-    }
-  }
-  if (lower.includes('transform config')) {
-    return {
-      commonReason:
-        SharedObjectHealthCommonReason.TRANSFORM_CONFIG_DECODE_FAILED,
-      remediationHint: SharedObjectHealthRemediationHint.REPAIR_SOURCE_DATA,
-    }
-  }
-  if (
-    lower.includes('empty shared object body type') ||
-    lower.includes('unsupported shared object type')
-  ) {
-    return {
-      commonReason: SharedObjectHealthCommonReason.BODY_CONFIG_DECODE_FAILED,
-      remediationHint: SharedObjectHealthRemediationHint.REPAIR_SOURCE_DATA,
-    }
-  }
-  return {
-    commonReason: SharedObjectHealthCommonReason.UNKNOWN,
-    remediationHint: SharedObjectHealthRemediationHint.NONE,
-  }
-}
-
-function buildLoadingHealth(
-  layer: SharedObjectHealthLayer,
-): SharedObjectHealth {
-  return {
-    status: SharedObjectHealthStatus.LOADING,
-    layer,
-    commonReason: SharedObjectHealthCommonReason.UNKNOWN,
-    remediationHint: SharedObjectHealthRemediationHint.NONE,
-    error: '',
-  }
 }
 
 function getHealthSummary(health: SharedObjectHealth): {
@@ -810,29 +735,17 @@ export function SessionSharedObjectContainer() {
   )
 
   const activeHealth = useMemo(() => {
-    if (sharedObjectBodyResource.error) {
-      return buildHealthFromError(
-        sharedObjectBodyResource.error,
-        SharedObjectHealthLayer.BODY,
-      )
-    }
-    if (sharedObjectResource.value && sharedObjectBodyResource.loading) {
-      return buildLoadingHealth(SharedObjectHealthLayer.BODY)
-    }
-    if (sharedObjectHealthResp?.health) {
-      return sharedObjectHealthResp.health
-    }
-    if (sharedObjectResource.error) {
-      return buildHealthFromError(
-        sharedObjectResource.error,
-        SharedObjectHealthLayer.SHARED_OBJECT,
-      )
-    }
-    return null
+    return getSharedObjectRouteHealth({
+      mounted: !!sharedObjectResource.value,
+      bodyLoading: sharedObjectBodyResource.loading,
+      watchedHealth: sharedObjectHealthResp?.health,
+      mountError: sharedObjectResource.error,
+      bodyError: sharedObjectBodyResource.error,
+    })
   }, [
     sharedObjectBodyResource.error,
     sharedObjectBodyResource.loading,
-    sharedObjectHealthResp,
+    sharedObjectHealthResp?.health,
     sharedObjectResource.error,
     sharedObjectResource.value,
   ])
@@ -952,7 +865,7 @@ export function SessionSharedObjectContainer() {
         <SharedObjectHealthCard
           health={
             activeHealth ??
-            buildHealthFromError(
+            buildSharedObjectFallbackHealth(
               resourceError,
               SharedObjectHealthLayer.SHARED_OBJECT,
             )
