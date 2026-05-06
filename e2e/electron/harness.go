@@ -159,6 +159,44 @@ func (h *Harness) WaitForPage(ctx context.Context) (playwright.Page, error) {
 	}
 }
 
+// AppPages returns the renderer pages visible through the CDP driver.
+func (h *Harness) AppPages() []playwright.Page {
+	if h.browser == nil {
+		return nil
+	}
+	var pages []playwright.Page
+	for _, browserCtx := range h.browser.Contexts() {
+		for _, page := range browserCtx.Pages() {
+			if strings.HasPrefix(page.URL(), "app://") {
+				pages = append(pages, page)
+			}
+		}
+	}
+	return pages
+}
+
+// WaitForAppPages waits until at least count renderer pages are visible.
+func (h *Harness) WaitForAppPages(
+	ctx context.Context,
+	count int,
+) ([]playwright.Page, error) {
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		pages := h.AppPages()
+		if len(pages) >= count {
+			return pages, nil
+		}
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-h.done:
+			return nil, h.desktopRuntimeErr("desktop runtime exited before renderer pages appeared")
+		case <-ticker.C:
+		}
+	}
+}
+
 // Release stops Playwright, cancels the Bldr desktop runtime, and restores env.
 func (h *Harness) Release() {
 	if h.browser != nil {
