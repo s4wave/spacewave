@@ -77,10 +77,7 @@ func projectRuntimeStatus(
 ) (rerr error) {
 	var prev *desktop_runtime.DesktopRuntimeState
 	defer func() {
-		_, err := publishDesktopRuntimeTeardownState(ctx, service, prev)
-		if err != nil && rerr == nil && ctx.Err() == nil {
-			rerr = errors.Wrap(err, "publish desktop runtime teardown status")
-		}
+		publishDesktopRuntimeTeardownOnExit(ctx, service, prev, &rerr)
 	}()
 	for {
 		snapshot, listenerWaitCh := broker.Snapshot()
@@ -119,6 +116,21 @@ func projectRuntimeStatus(
 		if ctxDone {
 			return nil
 		}
+	}
+}
+
+func publishDesktopRuntimeTeardownOnExit(
+	ctx context.Context,
+	service desktopRuntimePublisher,
+	prev *desktop_runtime.DesktopRuntimeState,
+	rerr *error,
+) {
+	if ctx.Err() != nil {
+		return
+	}
+	_, err := publishDesktopRuntimeTeardownState(ctx, service, prev)
+	if err != nil && rerr != nil && *rerr == nil && ctx.Err() == nil {
+		*rerr = errors.Wrap(err, "publish desktop runtime teardown status")
 	}
 }
 

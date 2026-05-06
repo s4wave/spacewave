@@ -146,6 +146,34 @@ func TestPublishDesktopRuntimeTeardownStatePublishesDisconnected(t *testing.T) {
 	}
 }
 
+func TestPublishDesktopRuntimeTeardownOnExitSkipsContextCancel(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	publisher := &fakeDesktopRuntimePublisher{}
+	prev := BuildDesktopRuntimeState(resource_listener.ListenerStatus{
+		SocketPath: "/run/spacewave.sock",
+		Listening:  true,
+	}, &SessionProjection{
+		Spaces: []*desktop_runtime.DesktopRuntimeNavigationItem{
+			{
+				Id:    "space-1",
+				Label: "My Drive",
+				Route: "/u/1/so/space-1",
+			},
+		},
+	})
+
+	var rerr error
+	publishDesktopRuntimeTeardownOnExit(ctx, publisher, prev, &rerr)
+	if rerr != nil {
+		t.Fatal(rerr)
+	}
+	if len(publisher.states) != 0 {
+		t.Fatalf("published states = %d, want no teardown publish", len(publisher.states))
+	}
+}
+
 func TestBuildSessionProjectionSortsAndFlagsAuth(t *testing.T) {
 	projection := buildSessionProjection([]*sessionProjectionRow{
 		{
