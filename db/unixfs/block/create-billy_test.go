@@ -30,7 +30,7 @@ func TestCreateBilly(t *testing.T) {
 		if err != nil {
 			t.Fatal(err.Error())
 		}
-		bfs := osfs.New("./fs", osfs.WithChrootOS())
+		bfs := osfs.New("./fs", osfs.WithBoundOS())
 		err = CopyBillyFSToFSTree(ctx, bfs, fsTree, nil, writeTs.CloneVT())
 		if err != nil {
 			t.Fatal(err.Error())

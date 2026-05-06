@@ -96,12 +96,12 @@ func (c *BuilderConfig) CommitManifestWithPaths(
 ) (*manifest.Manifest, *bucket.ObjectRef, error) {
 	var distFs billy.Filesystem
 	if distFsPath != "" {
-		distFs = osfs.New(distFsPath, osfs.WithChrootOS())
+		distFs = osfs.New(distFsPath, osfs.WithBoundOS())
 	}
 
 	var assetsFs billy.Filesystem
 	if assetsFsPath != "" {
-		assetsFs = osfs.New(assetsFsPath, osfs.WithChrootOS())
+		assetsFs = osfs.New(assetsFsPath, osfs.WithBoundOS())
 	}
 
 	return c.CommitManifest(ctx, le, ws, meta, entrypointFilename, distFs, assetsFs)

@@ -2,6 +2,7 @@ package hydra_git
 
 import (
 	"context"
+	_ "crypto/sha1"
 
 	"github.com/go-git/go-git/v6/storage"
 	"github.com/s4wave/spacewave/db/tx"

@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	fs := osfs.New("./", osfs.WithChrootOS())
+	fs := osfs.New("./", osfs.WithBoundOS())
 
 	// Create root directory
 	rootDir := "mydir"
