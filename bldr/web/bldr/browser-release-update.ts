@@ -3,6 +3,10 @@ export interface BrowserReleaseUpdateMessage {
   bldrPromotedGenerationId?: string
 }
 
+export interface BrowserReleaseSyncRequestMessage {
+  bldrSyncManifest: true
+}
+
 // shouldReloadForPromotedGeneration checks if the tab should reload.
 export function shouldReloadForPromotedGeneration(
   currentGenerationId: string | undefined,
@@ -15,6 +19,13 @@ export function shouldReloadForPromotedGeneration(
     return true
   }
   return currentGenerationId !== promotedGenerationId
+}
+
+// postBrowserReleaseSyncRequest asks the controlling ServiceWorker to sync.
+export function postBrowserReleaseSyncRequest(): void {
+  navigator.serviceWorker.controller?.postMessage({
+    bldrSyncManifest: true,
+  } satisfies BrowserReleaseSyncRequestMessage)
 }
 
 declare global {
@@ -40,5 +51,17 @@ export function initBrowserReleaseAutoReload(): void {
     ) {
       window.location.reload()
     }
+  })
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      postBrowserReleaseSyncRequest()
+    }
+  })
+  window.addEventListener('focus', () => {
+    postBrowserReleaseSyncRequest()
+  })
+  window.addEventListener('online', () => {
+    postBrowserReleaseSyncRequest()
   })
 }
