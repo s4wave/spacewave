@@ -83,33 +83,13 @@ func (r *SpacewaveSessionResource) WatchOnboardingStatus(
 	for {
 		var ch <-chan struct{}
 		var accountStatus provider.ProviderAccountStatus
-		var subStatus s4wave_provider_spacewave.BillingStatus
-		var cancelAt int64
-		var deleteAt int64
-		var lifecycleUpdatedAt int64
-		var deletedAt int64
-		var emailVerified bool
 		var stateLoaded bool
-		var lifecycleState s4wave_provider_spacewave.AccountLifecycleState
-		var selfEnrollmentSummary *provider_spacewave.SelfEnrollmentSummary
-		var selfEnrollmentAutoRejoinRunning bool
 		accountBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			ch = getWaitCh()
 			accountStatus = r.swAcc.GetAccountStatus()
-			selfEnrollmentSummary = r.swAcc.GetSelfEnrollmentSummary()
-			selfEnrollmentAutoRejoinRunning = r.swAcc.GetSelfRejoinSweepRunning()
 			state := r.swAcc.AccountStateSnapshot()
 			if state != nil {
 				stateLoaded = true
-				subStatus = state.GetSubscriptionStatus()
-				cancelAt = state.GetCancelAt()
-				deleteAt = state.GetDeleteAt()
-				lifecycleUpdatedAt = state.GetLifecycleUpdatedAt()
-				deletedAt = state.GetDeletedAt()
-				emailVerified = state.GetEmailVerified()
-				lifecycleState = s4wave_provider_spacewave.AccountLifecycleState(
-					state.GetLifecycleState(),
-				)
 			}
 		})
 
@@ -126,56 +106,10 @@ func (r *SpacewaveSessionResource) WatchOnboardingStatus(
 			continue
 		}
 
-		billingStatus := subStatus
-		hasSubscription := billingStatus == s4wave_provider_spacewave.BillingStatus_BillingStatus_ACTIVE ||
-			billingStatus == s4wave_provider_spacewave.BillingStatus_BillingStatus_TRIALING
-
-		managedSummary, err := r.swAcc.BuildManagedBillingSummary(ctx, accountStatus)
+		projCtx := r.buildOnboardingStatusProjectionContext(ctx, sessionID, sessRef)
+		resp, err := r.swAcc.BuildOnboardingStatusProjection(ctx, projCtx)
 		if err != nil {
 			r.le.WithError(err).Warn("failed to fetch managed billing account list")
-		}
-
-		resp := &s4wave_provider_spacewave.WatchOnboardingStatusResponse{
-			HasSubscription:              hasSubscription,
-			SubscriptionStatus:           billingStatus,
-			CheckoutInProgress:           r.swAcc.GetCheckoutWatcher().HasTicket(),
-			CancelAt:                     cancelAt,
-			DeleteAt:                     deleteAt,
-			LifecycleUpdatedAt:           lifecycleUpdatedAt,
-			DeletedAt:                    deletedAt,
-			EmailVerified:                emailVerified,
-			LifecycleState:               lifecycleState,
-			AccountStatus:                accountStatus,
-			ManagedBaCount:               managedSummary.ManagedBaCount,
-			ManagedActiveBaCount:         managedSummary.ManagedActiveBaCount,
-			ManagedNoSubscriptionBaCount: managedSummary.ManagedNoSubscriptionBaCount,
-			BillingSummaryLoaded:         managedSummary.BillingSummaryLoaded,
-		}
-		if selfEnrollmentSummary != nil {
-			resp.SessionSelfEnrollmentGenerationKey = selfEnrollmentSummary.GetGenerationKey()
-			resp.SessionSelfEnrollmentCount = selfEnrollmentSummary.GetCount()
-		}
-		resp.SelfEnrollmentGateState = selfEnrollmentGateState(
-			selfEnrollmentSummary,
-			selfEnrollmentAutoRejoinRunning,
-		)
-
-		found, localIdx, _ := r.swAcc.GetLinkedLocalSession(ctx, sessionID)
-		if found {
-			resp.HasLinkedLocal = true
-			resp.LinkedLocalSessionIndex = localIdx
-			resp.LinkedLocalHasContent = r.checkLocalHasContent(ctx, localIdx)
-		}
-
-		// Populate the cloud session index for local sessions that need
-		// to redirect to the migration wizard on the cloud session.
-		// Skip for cloud sessions: they would find themselves.
-		if sessRef.GetProviderResourceRef().GetProviderId() != "spacewave" {
-			cloudIdx := r.findCloudSessionIndex(ctx, r.swAcc.GetAccountID())
-			if cloudIdx != 0 {
-				resp.HasLinkedCloud = true
-				resp.LinkedCloudSessionIndex = cloudIdx
-			}
 		}
 
 		if prev == nil || !resp.EqualVT(prev) {
@@ -191,6 +125,32 @@ func (r *SpacewaveSessionResource) WatchOnboardingStatus(
 		case <-ch:
 		}
 	}
+}
+
+func (r *SpacewaveSessionResource) buildOnboardingStatusProjectionContext(
+	ctx context.Context,
+	sessionID string,
+	sessRef *session.SessionRef,
+) provider_spacewave.OnboardingStatusProjectionContext {
+	var projCtx provider_spacewave.OnboardingStatusProjectionContext
+	found, localIdx, _ := r.swAcc.GetLinkedLocalSession(ctx, sessionID)
+	if found {
+		projCtx.HasLinkedLocal = true
+		projCtx.LinkedLocalSessionIndex = localIdx
+		projCtx.LinkedLocalHasContent = r.checkLocalHasContent(ctx, localIdx)
+	}
+
+	// Populate the cloud session index for local sessions that need to redirect
+	// to the migration wizard on the cloud session. Skip for cloud sessions:
+	// they would find themselves.
+	if sessRef.GetProviderResourceRef().GetProviderId() != "spacewave" {
+		cloudIdx := r.findCloudSessionIndex(ctx, r.swAcc.GetAccountID())
+		if cloudIdx != 0 {
+			projCtx.HasLinkedCloud = true
+			projCtx.LinkedCloudSessionIndex = cloudIdx
+		}
+	}
+	return projCtx
 }
 
 // shouldEmitOnboardingStatus returns whether a WatchOnboardingStatus response
@@ -209,22 +169,6 @@ func shouldEmitOnboardingStatus(stateLoaded bool, accountStatus provider.Provide
 		return true
 	}
 	return false
-}
-
-func selfEnrollmentGateState(
-	summary *provider_spacewave.SelfEnrollmentSummary,
-	autoRejoinRunning bool,
-) s4wave_provider_spacewave.SelfEnrollmentGateState {
-	if autoRejoinRunning {
-		return s4wave_provider_spacewave.SelfEnrollmentGateState_SELF_ENROLLMENT_GATE_STATE_AUTO_CONNECTING
-	}
-	if summary == nil || !summary.GetLoaded() {
-		return s4wave_provider_spacewave.SelfEnrollmentGateState_SELF_ENROLLMENT_GATE_STATE_CHECKING
-	}
-	if summary.GetCount() != 0 {
-		return s4wave_provider_spacewave.SelfEnrollmentGateState_SELF_ENROLLMENT_GATE_STATE_ACTION_REQUIRED
-	}
-	return s4wave_provider_spacewave.SelfEnrollmentGateState_SELF_ENROLLMENT_GATE_STATE_READY
 }
 
 // checkLocalHasContent returns true if the local session at the given index has SharedObjects.
