@@ -58,6 +58,10 @@ The `useBackendStateAtom` hook in `web/state/useBackendStateAtom.tsx` handles th
 
 Backend atoms are synchronized across all connected clients. When one tab updates a value, all other tabs receive the update through the streaming RPC.
 
+## Configured Local Roots
+
+The root resource also owns a protobuf-backed Space Root Alias registry in the primary native state volume. The registry persists selected open-existing `.spacewave` directories as typed records, validates unsupported shapes before writing, and exposes list/watch/upsert/remove RPCs plus a selected-root runtime watcher. Browser File System Access handles and `.s4wave` files are reserved for future registry metadata but are intentionally rejected by the native-only implementation.
+
 ## useStateAtomResource
 
 For direct access to a backend `StateAtom` resource without the namespace system, use `useStateAtomResource`:

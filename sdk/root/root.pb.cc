@@ -124,6 +124,52 @@ struct WatchStateAtomsRequestDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WatchStateAtomsRequestDefaultTypeInternal _WatchStateAtomsRequest_default_instance_;
+
+inline constexpr WatchSpaceRootRuntimeRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        alias_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        autostart_{false} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR WatchSpaceRootRuntimeRequest::WatchSpaceRootRuntimeRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(WatchSpaceRootRuntimeRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct WatchSpaceRootRuntimeRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR WatchSpaceRootRuntimeRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~WatchSpaceRootRuntimeRequestDefaultTypeInternal() {}
+  union {
+    WatchSpaceRootRuntimeRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WatchSpaceRootRuntimeRequestDefaultTypeInternal _WatchSpaceRootRuntimeRequest_default_instance_;
+template <typename>
+PROTOBUF_CONSTEXPR WatchSpaceRootAliasesRequest::WatchSpaceRootAliasesRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(WatchSpaceRootAliasesRequest_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct WatchSpaceRootAliasesRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR WatchSpaceRootAliasesRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~WatchSpaceRootAliasesRequestDefaultTypeInternal() {}
+  union {
+    WatchSpaceRootAliasesRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WatchSpaceRootAliasesRequestDefaultTypeInternal _WatchSpaceRootAliasesRequest_default_instance_;
 template <typename>
 PROTOBUF_CONSTEXPR WatchSessionsRequest::WatchSessionsRequest(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -496,6 +542,58 @@ struct ResetSessionByIdxResponseDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ResetSessionByIdxResponseDefaultTypeInternal _ResetSessionByIdxResponse_default_instance_;
 
+inline constexpr RemoveSpaceRootAliasResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        not_found_{false} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR RemoveSpaceRootAliasResponse::RemoveSpaceRootAliasResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(RemoveSpaceRootAliasResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct RemoveSpaceRootAliasResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR RemoveSpaceRootAliasResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~RemoveSpaceRootAliasResponseDefaultTypeInternal() {}
+  union {
+    RemoveSpaceRootAliasResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RemoveSpaceRootAliasResponseDefaultTypeInternal _RemoveSpaceRootAliasResponse_default_instance_;
+
+inline constexpr RemoveSpaceRootAliasRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        alias_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR RemoveSpaceRootAliasRequest::RemoveSpaceRootAliasRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(RemoveSpaceRootAliasRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct RemoveSpaceRootAliasRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR RemoveSpaceRootAliasRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~RemoveSpaceRootAliasRequestDefaultTypeInternal() {}
+  union {
+    RemoveSpaceRootAliasRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RemoveSpaceRootAliasRequestDefaultTypeInternal _RemoveSpaceRootAliasRequest_default_instance_;
+
 inline constexpr ReclaimRuntimeResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -565,6 +663,33 @@ struct ParseHashRequestDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ParseHashRequestDefaultTypeInternal _ParseHashRequest_default_instance_;
+
+inline constexpr NativeSpaceRootMetadata::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        path_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR NativeSpaceRootMetadata::NativeSpaceRootMetadata(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(NativeSpaceRootMetadata_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct NativeSpaceRootMetadataDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR NativeSpaceRootMetadataDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~NativeSpaceRootMetadataDefaultTypeInternal() {}
+  union {
+    NativeSpaceRootMetadata _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 NativeSpaceRootMetadataDefaultTypeInternal _NativeSpaceRootMetadata_default_instance_;
 
 inline constexpr MountSessionResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -728,6 +853,24 @@ struct ListenerYieldPromptDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ListenerYieldPromptDefaultTypeInternal _ListenerYieldPrompt_default_instance_;
+template <typename>
+PROTOBUF_CONSTEXPR ListSpaceRootAliasesRequest::ListSpaceRootAliasesRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(ListSpaceRootAliasesRequest_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct ListSpaceRootAliasesRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ListSpaceRootAliasesRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ListSpaceRootAliasesRequestDefaultTypeInternal() {}
+  union {
+    ListSpaceRootAliasesRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ListSpaceRootAliasesRequestDefaultTypeInternal _ListSpaceRootAliasesRequest_default_instance_;
 template <typename>
 PROTOBUF_CONSTEXPR ListSessionsRequest::ListSessionsRequest(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -1004,6 +1147,24 @@ struct DeleteSessionRequestDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DeleteSessionRequestDefaultTypeInternal _DeleteSessionRequest_default_instance_;
+template <typename>
+PROTOBUF_CONSTEXPR BrowserSpaceRootMetadata::BrowserSpaceRootMetadata(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(BrowserSpaceRootMetadata_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct BrowserSpaceRootMetadataDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR BrowserSpaceRootMetadataDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~BrowserSpaceRootMetadataDefaultTypeInternal() {}
+  union {
+    BrowserSpaceRootMetadata _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 BrowserSpaceRootMetadataDefaultTypeInternal _BrowserSpaceRootMetadata_default_instance_;
 
 inline constexpr AccessWebListenerResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -1249,6 +1410,46 @@ struct WatchAllAccountStatusesResponseDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WatchAllAccountStatusesResponseDefaultTypeInternal _WatchAllAccountStatusesResponse_default_instance_;
 
+inline constexpr SpaceRootAliasRecord::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        alias_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        display_name_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        status_message_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        native_{nullptr},
+        browser_{nullptr},
+        kind_{static_cast< ::s4wave::root::SpaceRootKind >(0)},
+        open_mode_{static_cast< ::s4wave::root::SpaceRootOpenMode >(0)},
+        created_at_unix_ms_{::int64_t{0}},
+        updated_at_unix_ms_{::int64_t{0}},
+        status_{static_cast< ::s4wave::root::SpaceRootStatus >(0)} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR SpaceRootAliasRecord::SpaceRootAliasRecord(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(SpaceRootAliasRecord_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct SpaceRootAliasRecordDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SpaceRootAliasRecordDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SpaceRootAliasRecordDefaultTypeInternal() {}
+  union {
+    SpaceRootAliasRecord _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SpaceRootAliasRecordDefaultTypeInternal _SpaceRootAliasRecord_default_instance_;
+
 inline constexpr ResetSessionByIdxRequest::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -1426,6 +1627,81 @@ struct GetSessionMetadataResponseDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GetSessionMetadataResponseDefaultTypeInternal _GetSessionMetadataResponse_default_instance_;
 
+inline constexpr WatchSpaceRootAliasesResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        records_{} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR WatchSpaceRootAliasesResponse::WatchSpaceRootAliasesResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(WatchSpaceRootAliasesResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct WatchSpaceRootAliasesResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR WatchSpaceRootAliasesResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~WatchSpaceRootAliasesResponseDefaultTypeInternal() {}
+  union {
+    WatchSpaceRootAliasesResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WatchSpaceRootAliasesResponseDefaultTypeInternal _WatchSpaceRootAliasesResponse_default_instance_;
+
+inline constexpr UpsertSpaceRootAliasResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        record_{nullptr} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR UpsertSpaceRootAliasResponse::UpsertSpaceRootAliasResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(UpsertSpaceRootAliasResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct UpsertSpaceRootAliasResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR UpsertSpaceRootAliasResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~UpsertSpaceRootAliasResponseDefaultTypeInternal() {}
+  union {
+    UpsertSpaceRootAliasResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 UpsertSpaceRootAliasResponseDefaultTypeInternal _UpsertSpaceRootAliasResponse_default_instance_;
+
+inline constexpr UpsertSpaceRootAliasRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        record_{nullptr} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR UpsertSpaceRootAliasRequest::UpsertSpaceRootAliasRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(UpsertSpaceRootAliasRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct UpsertSpaceRootAliasRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR UpsertSpaceRootAliasRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~UpsertSpaceRootAliasRequestDefaultTypeInternal() {}
+  union {
+    UpsertSpaceRootAliasRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 UpsertSpaceRootAliasRequestDefaultTypeInternal _UpsertSpaceRootAliasRequest_default_instance_;
+
 inline constexpr MountSessionRequest::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -1477,6 +1753,69 @@ struct MountSessionByIdxResponseDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 MountSessionByIdxResponseDefaultTypeInternal _MountSessionByIdxResponse_default_instance_;
+
+inline constexpr ListSpaceRootAliasesResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        records_{} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR ListSpaceRootAliasesResponse::ListSpaceRootAliasesResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(ListSpaceRootAliasesResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct ListSpaceRootAliasesResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ListSpaceRootAliasesResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ListSpaceRootAliasesResponseDefaultTypeInternal() {}
+  union {
+    ListSpaceRootAliasesResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ListSpaceRootAliasesResponseDefaultTypeInternal _ListSpaceRootAliasesResponse_default_instance_;
+
+inline constexpr WatchSpaceRootRuntimeResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        sessions_{},
+        alias_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        state_path_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        socket_path_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        error_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        status_{static_cast< ::s4wave::root::SpaceRootRuntimeStatus >(0)} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR WatchSpaceRootRuntimeResponse::WatchSpaceRootRuntimeResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(WatchSpaceRootRuntimeResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct WatchSpaceRootRuntimeResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR WatchSpaceRootRuntimeResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~WatchSpaceRootRuntimeResponseDefaultTypeInternal() {}
+  union {
+    WatchSpaceRootRuntimeResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WatchSpaceRootRuntimeResponseDefaultTypeInternal _WatchSpaceRootRuntimeResponse_default_instance_;
 
 inline constexpr WatchSessionsResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -1554,8 +1893,8 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GetChangelogResponseDefaultTypeInternal _GetChangelogResponse_default_instance_;
 }  // namespace root
 }  // namespace s4wave
-static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto = nullptr;
+static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto[4];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
     file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto = nullptr;
 const ::uint32_t
@@ -1734,6 +2073,89 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::s4wave::root::WatchStateAtomsResponse, _impl_.store_count_),
         0,
         1,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::NativeSpaceRootMetadata, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::NativeSpaceRootMetadata, _impl_.path_),
+        0,
+        0x000, // bitmap
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::SpaceRootAliasRecord, _impl_._has_bits_),
+        13, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::SpaceRootAliasRecord, _impl_.alias_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::SpaceRootAliasRecord, _impl_.display_name_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::SpaceRootAliasRecord, _impl_.kind_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::SpaceRootAliasRecord, _impl_.open_mode_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::SpaceRootAliasRecord, _impl_.native_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::SpaceRootAliasRecord, _impl_.status_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::SpaceRootAliasRecord, _impl_.status_message_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::SpaceRootAliasRecord, _impl_.browser_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::SpaceRootAliasRecord, _impl_.created_at_unix_ms_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::SpaceRootAliasRecord, _impl_.updated_at_unix_ms_),
+        0,
+        1,
+        5,
+        6,
+        3,
+        9,
+        2,
+        4,
+        7,
+        8,
+        0x000, // bitmap
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::ListSpaceRootAliasesResponse, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::ListSpaceRootAliasesResponse, _impl_.records_),
+        0,
+        0x000, // bitmap
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::WatchSpaceRootAliasesResponse, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::WatchSpaceRootAliasesResponse, _impl_.records_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::UpsertSpaceRootAliasRequest, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::UpsertSpaceRootAliasRequest, _impl_.record_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::UpsertSpaceRootAliasResponse, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::UpsertSpaceRootAliasResponse, _impl_.record_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::RemoveSpaceRootAliasRequest, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::RemoveSpaceRootAliasRequest, _impl_.alias_id_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::RemoveSpaceRootAliasResponse, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::RemoveSpaceRootAliasResponse, _impl_.not_found_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::WatchSpaceRootRuntimeRequest, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::WatchSpaceRootRuntimeRequest, _impl_.alias_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::WatchSpaceRootRuntimeRequest, _impl_.autostart_),
+        0,
+        1,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::WatchSpaceRootRuntimeResponse, _impl_._has_bits_),
+        9, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::WatchSpaceRootRuntimeResponse, _impl_.status_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::WatchSpaceRootRuntimeResponse, _impl_.alias_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::WatchSpaceRootRuntimeResponse, _impl_.state_path_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::WatchSpaceRootRuntimeResponse, _impl_.socket_path_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::WatchSpaceRootRuntimeResponse, _impl_.sessions_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::WatchSpaceRootRuntimeResponse, _impl_.error_),
+        5,
+        1,
+        2,
+        3,
+        0,
+        4,
         0x000, // bitmap
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::root::GetChangelogResponse, _impl_._has_bits_),
@@ -1910,31 +2332,44 @@ static const ::_pbi::MigrationSchema
         {160, sizeof(::s4wave::root::AccessStateAtomResponse)},
         {165, sizeof(::s4wave::root::WatchStateAtomsRequest)},
         {166, sizeof(::s4wave::root::WatchStateAtomsResponse)},
-        {173, sizeof(::s4wave::root::GetChangelogRequest)},
-        {174, sizeof(::s4wave::root::GetChangelogResponse)},
-        {179, sizeof(::s4wave::root::GetDebugDbRequest)},
-        {180, sizeof(::s4wave::root::GetDebugDbResponse)},
-        {185, sizeof(::s4wave::root::GetCdnRequest)},
-        {190, sizeof(::s4wave::root::GetCdnResponse)},
-        {197, sizeof(::s4wave::root::AccessWebListenerRequest)},
-        {204, sizeof(::s4wave::root::AccessWebListenerResponse)},
-        {219, sizeof(::s4wave::root::WatchWebListenersRequest)},
-        {220, sizeof(::s4wave::root::WebListenerInfo)},
-        {231, sizeof(::s4wave::root::WatchWebListenersResponse)},
-        {236, sizeof(::s4wave::root::StopWebListenerRequest)},
-        {241, sizeof(::s4wave::root::StopWebListenerResponse)},
-        {246, sizeof(::s4wave::root::ListenerYieldPrompt)},
-        {257, sizeof(::s4wave::root::WatchListenerYieldPromptsRequest)},
-        {258, sizeof(::s4wave::root::WatchListenerYieldPromptsResponse)},
-        {263, sizeof(::s4wave::root::RespondToListenerYieldPromptRequest)},
-        {270, sizeof(::s4wave::root::RespondToListenerYieldPromptResponse)},
-        {275, sizeof(::s4wave::root::RuntimeHandoffState)},
-        {286, sizeof(::s4wave::root::WatchRuntimeHandoffRequest)},
-        {287, sizeof(::s4wave::root::WatchRuntimeHandoffResponse)},
-        {292, sizeof(::s4wave::root::ReclaimRuntimeRequest)},
-        {293, sizeof(::s4wave::root::ReclaimRuntimeResponse)},
-        {298, sizeof(::s4wave::root::WatchListenerStatusRequest)},
-        {299, sizeof(::s4wave::root::WatchListenerStatusResponse)},
+        {173, sizeof(::s4wave::root::NativeSpaceRootMetadata)},
+        {178, sizeof(::s4wave::root::BrowserSpaceRootMetadata)},
+        {179, sizeof(::s4wave::root::SpaceRootAliasRecord)},
+        {202, sizeof(::s4wave::root::ListSpaceRootAliasesRequest)},
+        {203, sizeof(::s4wave::root::ListSpaceRootAliasesResponse)},
+        {208, sizeof(::s4wave::root::WatchSpaceRootAliasesRequest)},
+        {209, sizeof(::s4wave::root::WatchSpaceRootAliasesResponse)},
+        {214, sizeof(::s4wave::root::UpsertSpaceRootAliasRequest)},
+        {219, sizeof(::s4wave::root::UpsertSpaceRootAliasResponse)},
+        {224, sizeof(::s4wave::root::RemoveSpaceRootAliasRequest)},
+        {229, sizeof(::s4wave::root::RemoveSpaceRootAliasResponse)},
+        {234, sizeof(::s4wave::root::WatchSpaceRootRuntimeRequest)},
+        {241, sizeof(::s4wave::root::WatchSpaceRootRuntimeResponse)},
+        {256, sizeof(::s4wave::root::GetChangelogRequest)},
+        {257, sizeof(::s4wave::root::GetChangelogResponse)},
+        {262, sizeof(::s4wave::root::GetDebugDbRequest)},
+        {263, sizeof(::s4wave::root::GetDebugDbResponse)},
+        {268, sizeof(::s4wave::root::GetCdnRequest)},
+        {273, sizeof(::s4wave::root::GetCdnResponse)},
+        {280, sizeof(::s4wave::root::AccessWebListenerRequest)},
+        {287, sizeof(::s4wave::root::AccessWebListenerResponse)},
+        {302, sizeof(::s4wave::root::WatchWebListenersRequest)},
+        {303, sizeof(::s4wave::root::WebListenerInfo)},
+        {314, sizeof(::s4wave::root::WatchWebListenersResponse)},
+        {319, sizeof(::s4wave::root::StopWebListenerRequest)},
+        {324, sizeof(::s4wave::root::StopWebListenerResponse)},
+        {329, sizeof(::s4wave::root::ListenerYieldPrompt)},
+        {340, sizeof(::s4wave::root::WatchListenerYieldPromptsRequest)},
+        {341, sizeof(::s4wave::root::WatchListenerYieldPromptsResponse)},
+        {346, sizeof(::s4wave::root::RespondToListenerYieldPromptRequest)},
+        {353, sizeof(::s4wave::root::RespondToListenerYieldPromptResponse)},
+        {358, sizeof(::s4wave::root::RuntimeHandoffState)},
+        {369, sizeof(::s4wave::root::WatchRuntimeHandoffRequest)},
+        {370, sizeof(::s4wave::root::WatchRuntimeHandoffResponse)},
+        {375, sizeof(::s4wave::root::ReclaimRuntimeRequest)},
+        {376, sizeof(::s4wave::root::ReclaimRuntimeResponse)},
+        {381, sizeof(::s4wave::root::WatchListenerStatusRequest)},
+        {382, sizeof(::s4wave::root::WatchListenerStatusResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::root::_LookupProviderRequest_default_instance_._instance,
@@ -1974,6 +2409,19 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::root::_AccessStateAtomResponse_default_instance_._instance,
     &::s4wave::root::_WatchStateAtomsRequest_default_instance_._instance,
     &::s4wave::root::_WatchStateAtomsResponse_default_instance_._instance,
+    &::s4wave::root::_NativeSpaceRootMetadata_default_instance_._instance,
+    &::s4wave::root::_BrowserSpaceRootMetadata_default_instance_._instance,
+    &::s4wave::root::_SpaceRootAliasRecord_default_instance_._instance,
+    &::s4wave::root::_ListSpaceRootAliasesRequest_default_instance_._instance,
+    &::s4wave::root::_ListSpaceRootAliasesResponse_default_instance_._instance,
+    &::s4wave::root::_WatchSpaceRootAliasesRequest_default_instance_._instance,
+    &::s4wave::root::_WatchSpaceRootAliasesResponse_default_instance_._instance,
+    &::s4wave::root::_UpsertSpaceRootAliasRequest_default_instance_._instance,
+    &::s4wave::root::_UpsertSpaceRootAliasResponse_default_instance_._instance,
+    &::s4wave::root::_RemoveSpaceRootAliasRequest_default_instance_._instance,
+    &::s4wave::root::_RemoveSpaceRootAliasResponse_default_instance_._instance,
+    &::s4wave::root::_WatchSpaceRootRuntimeRequest_default_instance_._instance,
+    &::s4wave::root::_WatchSpaceRootRuntimeResponse_default_instance_._instance,
     &::s4wave::root::_GetChangelogRequest_default_instance_._instance,
     &::s4wave::root::_GetChangelogResponse_default_instance_._instance,
     &::s4wave::root::_GetDebugDbRequest_default_instance_._instance,
@@ -2059,115 +2507,176 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fr
     "\t\".\n\027AccessStateAtomResponse\022\023\n\013resource"
     "_id\030\001 \001(\r\"\030\n\026WatchStateAtomsRequest\"A\n\027W"
     "atchStateAtomsResponse\022\021\n\tstore_ids\030\001 \003("
-    "\t\022\023\n\013store_count\030\002 \001(\r\"\025\n\023GetChangelogRe"
-    "quest\"\?\n\024GetChangelogResponse\022\'\n\tchangel"
-    "og\030\001 \001(\0132\024.changelog.Changelog\"\023\n\021GetDeb"
-    "ugDbRequest\")\n\022GetDebugDbResponse\022\023\n\013res"
-    "ource_id\030\001 \001(\r\"\037\n\rGetCdnRequest\022\016\n\006cdn_i"
-    "d\030\001 \001(\t\";\n\016GetCdnResponse\022\023\n\013resource_id"
-    "\030\001 \001(\r\022\024\n\014cdn_space_id\030\002 \001(\t\"H\n\030AccessWe"
-    "bListenerRequest\022\030\n\020listen_multiaddr\030\001 \001"
-    "(\t\022\022\n\nbackground\030\002 \001(\010\"\226\001\n\031AccessWebList"
-    "enerResponse\022\023\n\013resource_id\030\001 \001(\r\022\023\n\013lis"
-    "tener_id\030\002 \001(\t\022\030\n\020listen_multiaddr\030\003 \001(\t"
-    "\022\013\n\003url\030\004 \001(\t\022\030\n\020bootstrap_secret\030\005 \001(\t\022"
-    "\016\n\006reused\030\006 \001(\010\"\032\n\030WatchWebListenersRequ"
-    "est\"a\n\017WebListenerInfo\022\023\n\013listener_id\030\001 "
-    "\001(\t\022\030\n\020listen_multiaddr\030\002 \001(\t\022\013\n\003url\030\003 \001"
-    "(\t\022\022\n\nbackground\030\004 \001(\010\"L\n\031WatchWebListen"
-    "ersResponse\022/\n\tlisteners\030\001 \003(\0132\034.s4wave."
-    "root.WebListenerInfo\"-\n\026StopWebListenerR"
-    "equest\022\023\n\013listener_id\030\001 \001(\t\",\n\027StopWebLi"
-    "stenerResponse\022\021\n\tnot_found\030\001 \001(\010\"o\n\023Lis"
-    "tenerYieldPrompt\022\021\n\tprompt_id\030\001 \001(\t\022\026\n\016r"
-    "equester_name\030\002 \001(\t\022\023\n\013socket_path\030\003 \001(\t"
-    "\022\030\n\020deadline_unix_ms\030\004 \001(\003\"\"\n WatchListe"
-    "nerYieldPromptsRequest\"V\n!WatchListenerY"
-    "ieldPromptsResponse\0221\n\007prompts\030\001 \003(\0132 .s"
-    "4wave.root.ListenerYieldPrompt\"G\n#Respon"
-    "dToListenerYieldPromptRequest\022\021\n\tprompt_"
-    "id\030\001 \001(\t\022\r\n\005allow\030\002 \001(\010\"9\n$RespondToList"
-    "enerYieldPromptResponse\022\021\n\tnot_found\030\001 \001"
-    "(\010\"i\n\023RuntimeHandoffState\022\016\n\006active\030\001 \001("
-    "\010\022\026\n\016requester_name\030\002 \001(\t\022\023\n\013socket_path"
-    "\030\003 \001(\t\022\025\n\rsince_unix_ms\030\004 \001(\003\"\034\n\032WatchRu"
-    "ntimeHandoffRequest\"N\n\033WatchRuntimeHando"
-    "ffResponse\022/\n\005state\030\001 \001(\0132 .s4wave.root."
-    "RuntimeHandoffState\"\027\n\025ReclaimRuntimeReq"
-    "uest\"+\n\026ReclaimRuntimeResponse\022\021\n\treclai"
-    "med\030\001 \001(\010\"\034\n\032WatchListenerStatusRequest\""
-    "`\n\033WatchListenerStatusResponse\022\023\n\013socket"
-    "_path\030\001 \001(\t\022\021\n\tlistening\030\002 \001(\010\022\031\n\021connec"
-    "ted_clients\030\003 \001(\r2\324\025\n\023RootResourceServic"
-    "e\022V\n\rListProviders\022!.s4wave.root.ListPro"
-    "vidersRequest\032\".s4wave.root.ListProvider"
-    "sResponse\022Y\n\016LookupProvider\022\".s4wave.roo"
-    "t.LookupProviderRequest\032#.s4wave.root.Lo"
-    "okupProviderResponse\022S\n\014MountSession\022 .s"
-    "4wave.root.MountSessionRequest\032!.s4wave."
-    "root.MountSessionResponse\022b\n\021MountSessio"
-    "nByIdx\022%.s4wave.root.MountSessionByIdxRe"
-    "quest\032&.s4wave.root.MountSessionByIdxRes"
-    "ponse\022S\n\014ListSessions\022 .s4wave.root.List"
-    "SessionsRequest\032!.s4wave.root.ListSessio"
-    "nsResponse\022X\n\rWatchSessions\022!.s4wave.roo"
-    "t.WatchSessionsRequest\032\".s4wave.root.Wat"
-    "chSessionsResponse0\001\022v\n\027WatchAllAccountS"
-    "tatuses\022+.s4wave.root.WatchAllAccountSta"
-    "tusesRequest\032,.s4wave.root.WatchAllAccou"
-    "ntStatusesResponse0\001\022e\n\022GetSessionMetada"
-    "ta\022&.s4wave.root.GetSessionMetadataReque"
-    "st\032\'.s4wave.root.GetSessionMetadataRespo"
-    "nse\022m\n\024WatchSessionMetadata\022(.s4wave.roo"
-    "t.WatchSessionMetadataRequest\032).s4wave.r"
-    "oot.WatchSessionMetadataResponse0\001\022`\n\rUn"
-    "lockSession\022&.s4wave.root.UnlockSessionB"
-    "yIdxRequest\032\'.s4wave.root.UnlockSessionB"
-    "yIdxResponse\022V\n\rDeleteSession\022!.s4wave.r"
-    "oot.DeleteSessionRequest\032\".s4wave.root.D"
-    "eleteSessionResponse\022]\n\014ResetSession\022%.s"
-    "4wave.root.ResetSessionByIdxRequest\032&.s4"
-    "wave.root.ResetSessionByIdxResponse\022\\\n\017A"
-    "ccessStateAtom\022#.s4wave.root.AccessState"
-    "AtomRequest\032$.s4wave.root.AccessStateAto"
-    "mResponse\022^\n\017WatchStateAtoms\022#.s4wave.ro"
-    "ot.WatchStateAtomsRequest\032$.s4wave.root."
-    "WatchStateAtomsResponse0\001\022P\n\013MarshalHash"
-    "\022\037.s4wave.root.MarshalHashRequest\032 .s4wa"
-    "ve.root.MarshalHashResponse\022J\n\tParseHash"
-    "\022\035.s4wave.root.ParseHashRequest\032\036.s4wave"
-    ".root.ParseHashResponse\022D\n\007HashSum\022\033.s4w"
-    "ave.root.HashSumRequest\032\034.s4wave.root.Ha"
-    "shSumResponse\022S\n\014HashValidate\022 .s4wave.r"
-    "oot.HashValidateRequest\032!.s4wave.root.Ha"
-    "shValidateResponse\022S\n\014GetChangelog\022 .s4w"
-    "ave.root.GetChangelogRequest\032!.s4wave.ro"
-    "ot.GetChangelogResponse\022M\n\nGetDebugDb\022\036."
-    "s4wave.root.GetDebugDbRequest\032\037.s4wave.r"
-    "oot.GetDebugDbResponse\022A\n\006GetCdn\022\032.s4wav"
-    "e.root.GetCdnRequest\032\033.s4wave.root.GetCd"
-    "nResponse\022b\n\021AccessWebListener\022%.s4wave."
-    "root.AccessWebListenerRequest\032&.s4wave.r"
-    "oot.AccessWebListenerResponse\022d\n\021WatchWe"
-    "bListeners\022%.s4wave.root.WatchWebListene"
-    "rsRequest\032&.s4wave.root.WatchWebListener"
-    "sResponse0\001\022\\\n\017StopWebListener\022#.s4wave."
-    "root.StopWebListenerRequest\032$.s4wave.roo"
-    "t.StopWebListenerResponse\022|\n\031WatchListen"
-    "erYieldPrompts\022-.s4wave.root.WatchListen"
-    "erYieldPromptsRequest\032..s4wave.root.Watc"
-    "hListenerYieldPromptsResponse0\001\022\203\001\n\034Resp"
-    "ondToListenerYieldPrompt\0220.s4wave.root.R"
-    "espondToListenerYieldPromptRequest\0321.s4w"
-    "ave.root.RespondToListenerYieldPromptRes"
-    "ponse\022j\n\023WatchRuntimeHandoff\022\'.s4wave.ro"
-    "ot.WatchRuntimeHandoffRequest\032(.s4wave.r"
-    "oot.WatchRuntimeHandoffResponse0\001\022Y\n\016Rec"
-    "laimRuntime\022\".s4wave.root.ReclaimRuntime"
-    "Request\032#.s4wave.root.ReclaimRuntimeResp"
-    "onse\022j\n\023WatchListenerStatus\022\'.s4wave.roo"
-    "t.WatchListenerStatusRequest\032(.s4wave.ro"
-    "ot.WatchListenerStatusResponse0\001b\006proto3"
+    "\t\022\023\n\013store_count\030\002 \001(\r\"\'\n\027NativeSpaceRoo"
+    "tMetadata\022\014\n\004path\030\001 \001(\t\" \n\030BrowserSpaceR"
+    "ootMetadataJ\004\010\001\020\020\"\207\003\n\024SpaceRootAliasReco"
+    "rd\022\020\n\010alias_id\030\001 \001(\t\022\024\n\014display_name\030\002 \001"
+    "(\t\022(\n\004kind\030\003 \001(\0162\032.s4wave.root.SpaceRoot"
+    "Kind\0221\n\topen_mode\030\004 \001(\0162\036.s4wave.root.Sp"
+    "aceRootOpenMode\0224\n\006native\030\005 \001(\0132$.s4wave"
+    ".root.NativeSpaceRootMetadata\022,\n\006status\030"
+    "\006 \001(\0162\034.s4wave.root.SpaceRootStatus\022\026\n\016s"
+    "tatus_message\030\007 \001(\t\0226\n\007browser\030\010 \001(\0132%.s"
+    "4wave.root.BrowserSpaceRootMetadata\022\032\n\022c"
+    "reated_at_unix_ms\030\t \001(\003\022\032\n\022updated_at_un"
+    "ix_ms\030\n \001(\003\"\035\n\033ListSpaceRootAliasesReque"
+    "st\"R\n\034ListSpaceRootAliasesResponse\0222\n\007re"
+    "cords\030\001 \003(\0132!.s4wave.root.SpaceRootAlias"
+    "Record\"\036\n\034WatchSpaceRootAliasesRequest\"S"
+    "\n\035WatchSpaceRootAliasesResponse\0222\n\007recor"
+    "ds\030\001 \003(\0132!.s4wave.root.SpaceRootAliasRec"
+    "ord\"P\n\033UpsertSpaceRootAliasRequest\0221\n\006re"
+    "cord\030\001 \001(\0132!.s4wave.root.SpaceRootAliasR"
+    "ecord\"Q\n\034UpsertSpaceRootAliasResponse\0221\n"
+    "\006record\030\001 \001(\0132!.s4wave.root.SpaceRootAli"
+    "asRecord\"/\n\033RemoveSpaceRootAliasRequest\022"
+    "\020\n\010alias_id\030\001 \001(\t\"1\n\034RemoveSpaceRootAlia"
+    "sResponse\022\021\n\tnot_found\030\001 \001(\010\"C\n\034WatchSpa"
+    "ceRootRuntimeRequest\022\020\n\010alias_id\030\001 \001(\t\022\021"
+    "\n\tautostart\030\002 \001(\010\"\313\001\n\035WatchSpaceRootRunt"
+    "imeResponse\0223\n\006status\030\001 \001(\0162#.s4wave.roo"
+    "t.SpaceRootRuntimeStatus\022\020\n\010alias_id\030\002 \001"
+    "(\t\022\022\n\nstate_path\030\003 \001(\t\022\023\n\013socket_path\030\004 "
+    "\001(\t\022+\n\010sessions\030\005 \003(\0132\031.session.SessionL"
+    "istEntry\022\r\n\005error\030\006 \001(\t\"\025\n\023GetChangelogR"
+    "equest\"\?\n\024GetChangelogResponse\022\'\n\tchange"
+    "log\030\001 \001(\0132\024.changelog.Changelog\"\023\n\021GetDe"
+    "bugDbRequest\")\n\022GetDebugDbResponse\022\023\n\013re"
+    "source_id\030\001 \001(\r\"\037\n\rGetCdnRequest\022\016\n\006cdn_"
+    "id\030\001 \001(\t\";\n\016GetCdnResponse\022\023\n\013resource_i"
+    "d\030\001 \001(\r\022\024\n\014cdn_space_id\030\002 \001(\t\"H\n\030AccessW"
+    "ebListenerRequest\022\030\n\020listen_multiaddr\030\001 "
+    "\001(\t\022\022\n\nbackground\030\002 \001(\010\"\226\001\n\031AccessWebLis"
+    "tenerResponse\022\023\n\013resource_id\030\001 \001(\r\022\023\n\013li"
+    "stener_id\030\002 \001(\t\022\030\n\020listen_multiaddr\030\003 \001("
+    "\t\022\013\n\003url\030\004 \001(\t\022\030\n\020bootstrap_secret\030\005 \001(\t"
+    "\022\016\n\006reused\030\006 \001(\010\"\032\n\030WatchWebListenersReq"
+    "uest\"a\n\017WebListenerInfo\022\023\n\013listener_id\030\001"
+    " \001(\t\022\030\n\020listen_multiaddr\030\002 \001(\t\022\013\n\003url\030\003 "
+    "\001(\t\022\022\n\nbackground\030\004 \001(\010\"L\n\031WatchWebListe"
+    "nersResponse\022/\n\tlisteners\030\001 \003(\0132\034.s4wave"
+    ".root.WebListenerInfo\"-\n\026StopWebListener"
+    "Request\022\023\n\013listener_id\030\001 \001(\t\",\n\027StopWebL"
+    "istenerResponse\022\021\n\tnot_found\030\001 \001(\010\"o\n\023Li"
+    "stenerYieldPrompt\022\021\n\tprompt_id\030\001 \001(\t\022\026\n\016"
+    "requester_name\030\002 \001(\t\022\023\n\013socket_path\030\003 \001("
+    "\t\022\030\n\020deadline_unix_ms\030\004 \001(\003\"\"\n WatchList"
+    "enerYieldPromptsRequest\"V\n!WatchListener"
+    "YieldPromptsResponse\0221\n\007prompts\030\001 \003(\0132 ."
+    "s4wave.root.ListenerYieldPrompt\"G\n#Respo"
+    "ndToListenerYieldPromptRequest\022\021\n\tprompt"
+    "_id\030\001 \001(\t\022\r\n\005allow\030\002 \001(\010\"9\n$RespondToLis"
+    "tenerYieldPromptResponse\022\021\n\tnot_found\030\001 "
+    "\001(\010\"i\n\023RuntimeHandoffState\022\016\n\006active\030\001 \001"
+    "(\010\022\026\n\016requester_name\030\002 \001(\t\022\023\n\013socket_pat"
+    "h\030\003 \001(\t\022\025\n\rsince_unix_ms\030\004 \001(\003\"\034\n\032WatchR"
+    "untimeHandoffRequest\"N\n\033WatchRuntimeHand"
+    "offResponse\022/\n\005state\030\001 \001(\0132 .s4wave.root"
+    ".RuntimeHandoffState\"\027\n\025ReclaimRuntimeRe"
+    "quest\"+\n\026ReclaimRuntimeResponse\022\021\n\trecla"
+    "imed\030\001 \001(\010\"\034\n\032WatchListenerStatusRequest"
+    "\"`\n\033WatchListenerStatusResponse\022\023\n\013socke"
+    "t_path\030\001 \001(\t\022\021\n\tlistening\030\002 \001(\010\022\031\n\021conne"
+    "cted_clients\030\003 \001(\r*q\n\rSpaceRootKind\022\035\n\031S"
+    "paceRootKind_UNSPECIFIED\020\000\022\"\n\036SpaceRootK"
+    "ind_NATIVE_DIRECTORY\020\001\022\035\n\031SpaceRootKind_"
+    "S4WAVE_FILE\020\002*y\n\021SpaceRootOpenMode\022!\n\035Sp"
+    "aceRootOpenMode_UNSPECIFIED\020\000\022#\n\037SpaceRo"
+    "otOpenMode_OPEN_EXISTING\020\001\022\034\n\030SpaceRootO"
+    "penMode_CREATE\020\002*\244\001\n\017SpaceRootStatus\022\033\n\027"
+    "SpaceRootStatus_UNKNOWN\020\000\022\031\n\025SpaceRootSt"
+    "atus_READY\020\001\022\033\n\027SpaceRootStatus_MISSING\020"
+    "\002\022\037\n\033SpaceRootStatus_UNSUPPORTED\020\003\022\033\n\027Sp"
+    "aceRootStatus_INVALID\020\004*\311\001\n\026SpaceRootRun"
+    "timeStatus\022\037\n\033SpaceRootRuntimeStatus_IDL"
+    "E\020\000\022%\n!SpaceRootRuntimeStatus_CONNECTING"
+    "\020\001\022#\n\037SpaceRootRuntimeStatus_STARTING\020\002\022"
+    " \n\034SpaceRootRuntimeStatus_READY\020\003\022 \n\034Spa"
+    "ceRootRuntimeStatus_ERROR\020\0042\377\031\n\023RootReso"
+    "urceService\022V\n\rListProviders\022!.s4wave.ro"
+    "ot.ListProvidersRequest\032\".s4wave.root.Li"
+    "stProvidersResponse\022Y\n\016LookupProvider\022\"."
+    "s4wave.root.LookupProviderRequest\032#.s4wa"
+    "ve.root.LookupProviderResponse\022S\n\014MountS"
+    "ession\022 .s4wave.root.MountSessionRequest"
+    "\032!.s4wave.root.MountSessionResponse\022b\n\021M"
+    "ountSessionByIdx\022%.s4wave.root.MountSess"
+    "ionByIdxRequest\032&.s4wave.root.MountSessi"
+    "onByIdxResponse\022S\n\014ListSessions\022 .s4wave"
+    ".root.ListSessionsRequest\032!.s4wave.root."
+    "ListSessionsResponse\022X\n\rWatchSessions\022!."
+    "s4wave.root.WatchSessionsRequest\032\".s4wav"
+    "e.root.WatchSessionsResponse0\001\022v\n\027WatchA"
+    "llAccountStatuses\022+.s4wave.root.WatchAll"
+    "AccountStatusesRequest\032,.s4wave.root.Wat"
+    "chAllAccountStatusesResponse0\001\022e\n\022GetSes"
+    "sionMetadata\022&.s4wave.root.GetSessionMet"
+    "adataRequest\032\'.s4wave.root.GetSessionMet"
+    "adataResponse\022m\n\024WatchSessionMetadata\022(."
+    "s4wave.root.WatchSessionMetadataRequest\032"
+    ").s4wave.root.WatchSessionMetadataRespon"
+    "se0\001\022`\n\rUnlockSession\022&.s4wave.root.Unlo"
+    "ckSessionByIdxRequest\032\'.s4wave.root.Unlo"
+    "ckSessionByIdxResponse\022V\n\rDeleteSession\022"
+    "!.s4wave.root.DeleteSessionRequest\032\".s4w"
+    "ave.root.DeleteSessionResponse\022]\n\014ResetS"
+    "ession\022%.s4wave.root.ResetSessionByIdxRe"
+    "quest\032&.s4wave.root.ResetSessionByIdxRes"
+    "ponse\022\\\n\017AccessStateAtom\022#.s4wave.root.A"
+    "ccessStateAtomRequest\032$.s4wave.root.Acce"
+    "ssStateAtomResponse\022^\n\017WatchStateAtoms\022#"
+    ".s4wave.root.WatchStateAtomsRequest\032$.s4"
+    "wave.root.WatchStateAtomsResponse0\001\022k\n\024L"
+    "istSpaceRootAliases\022(.s4wave.root.ListSp"
+    "aceRootAliasesRequest\032).s4wave.root.List"
+    "SpaceRootAliasesResponse\022p\n\025WatchSpaceRo"
+    "otAliases\022).s4wave.root.WatchSpaceRootAl"
+    "iasesRequest\032*.s4wave.root.WatchSpaceRoo"
+    "tAliasesResponse0\001\022k\n\024UpsertSpaceRootAli"
+    "as\022(.s4wave.root.UpsertSpaceRootAliasReq"
+    "uest\032).s4wave.root.UpsertSpaceRootAliasR"
+    "esponse\022k\n\024RemoveSpaceRootAlias\022(.s4wave"
+    ".root.RemoveSpaceRootAliasRequest\032).s4wa"
+    "ve.root.RemoveSpaceRootAliasResponse\022p\n\025"
+    "WatchSpaceRootRuntime\022).s4wave.root.Watc"
+    "hSpaceRootRuntimeRequest\032*.s4wave.root.W"
+    "atchSpaceRootRuntimeResponse0\001\022P\n\013Marsha"
+    "lHash\022\037.s4wave.root.MarshalHashRequest\032 "
+    ".s4wave.root.MarshalHashResponse\022J\n\tPars"
+    "eHash\022\035.s4wave.root.ParseHashRequest\032\036.s"
+    "4wave.root.ParseHashResponse\022D\n\007HashSum\022"
+    "\033.s4wave.root.HashSumRequest\032\034.s4wave.ro"
+    "ot.HashSumResponse\022S\n\014HashValidate\022 .s4w"
+    "ave.root.HashValidateRequest\032!.s4wave.ro"
+    "ot.HashValidateResponse\022S\n\014GetChangelog\022"
+    " .s4wave.root.GetChangelogRequest\032!.s4wa"
+    "ve.root.GetChangelogResponse\022M\n\nGetDebug"
+    "Db\022\036.s4wave.root.GetDebugDbRequest\032\037.s4w"
+    "ave.root.GetDebugDbResponse\022A\n\006GetCdn\022\032."
+    "s4wave.root.GetCdnRequest\032\033.s4wave.root."
+    "GetCdnResponse\022b\n\021AccessWebListener\022%.s4"
+    "wave.root.AccessWebListenerRequest\032&.s4w"
+    "ave.root.AccessWebListenerResponse\022d\n\021Wa"
+    "tchWebListeners\022%.s4wave.root.WatchWebLi"
+    "stenersRequest\032&.s4wave.root.WatchWebLis"
+    "tenersResponse0\001\022\\\n\017StopWebListener\022#.s4"
+    "wave.root.StopWebListenerRequest\032$.s4wav"
+    "e.root.StopWebListenerResponse\022|\n\031WatchL"
+    "istenerYieldPrompts\022-.s4wave.root.WatchL"
+    "istenerYieldPromptsRequest\032..s4wave.root"
+    ".WatchListenerYieldPromptsResponse0\001\022\203\001\n"
+    "\034RespondToListenerYieldPrompt\0220.s4wave.r"
+    "oot.RespondToListenerYieldPromptRequest\032"
+    "1.s4wave.root.RespondToListenerYieldProm"
+    "ptResponse\022j\n\023WatchRuntimeHandoff\022\'.s4wa"
+    "ve.root.WatchRuntimeHandoffRequest\032(.s4w"
+    "ave.root.WatchRuntimeHandoffResponse0\001\022Y"
+    "\n\016ReclaimRuntime\022\".s4wave.root.ReclaimRu"
+    "ntimeRequest\032#.s4wave.root.ReclaimRuntim"
+    "eResponse\022j\n\023WatchListenerStatus\022\'.s4wav"
+    "e.root.WatchListenerStatusRequest\032(.s4wa"
+    "ve.root.WatchListenerStatusResponse0\001b\006p"
+    "roto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto_deps[4] = {
@@ -2180,13 +2689,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto = {
     false,
     false,
-    6640,
+    9045,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto,
     "github.com/s4wave/spacewave/sdk/root/root.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto_deps,
     4,
-    62,
+    75,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto::offsets,
@@ -2195,6 +2704,30 @@ PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2
 };
 namespace s4wave {
 namespace root {
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SpaceRootKind_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto[0];
+}
+PROTOBUF_CONSTINIT const uint32_t SpaceRootKind_internal_data_[] = {
+    196608u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SpaceRootOpenMode_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto[1];
+}
+PROTOBUF_CONSTINIT const uint32_t SpaceRootOpenMode_internal_data_[] = {
+    196608u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SpaceRootStatus_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto[2];
+}
+PROTOBUF_CONSTINIT const uint32_t SpaceRootStatus_internal_data_[] = {
+    327680u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SpaceRootRuntimeStatus_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto[3];
+}
+PROTOBUF_CONSTINIT const uint32_t SpaceRootRuntimeStatus_internal_data_[] = {
+    327680u, 0u, };
 // ===================================================================
 
 class LookupProviderRequest::_Internal {
@@ -11277,6 +11810,3646 @@ void WatchStateAtomsResponse::InternalSwap(WatchStateAtomsResponse* PROTOBUF_RES
 }
 
 ::google::protobuf::Metadata WatchStateAtomsResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class NativeSpaceRootMetadata::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<NativeSpaceRootMetadata>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(NativeSpaceRootMetadata, _impl_._has_bits_);
+};
+
+NativeSpaceRootMetadata::NativeSpaceRootMetadata(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, NativeSpaceRootMetadata_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.root.NativeSpaceRootMetadata)
+}
+PROTOBUF_NDEBUG_INLINE NativeSpaceRootMetadata::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::root::NativeSpaceRootMetadata& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        path_(arena, from.path_) {}
+
+NativeSpaceRootMetadata::NativeSpaceRootMetadata(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const NativeSpaceRootMetadata& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, NativeSpaceRootMetadata_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  NativeSpaceRootMetadata* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.root.NativeSpaceRootMetadata)
+}
+PROTOBUF_NDEBUG_INLINE NativeSpaceRootMetadata::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        path_(arena) {}
+
+inline void NativeSpaceRootMetadata::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+NativeSpaceRootMetadata::~NativeSpaceRootMetadata() {
+  // @@protoc_insertion_point(destructor:s4wave.root.NativeSpaceRootMetadata)
+  SharedDtor(*this);
+}
+inline void NativeSpaceRootMetadata::SharedDtor(MessageLite& self) {
+  NativeSpaceRootMetadata& this_ = static_cast<NativeSpaceRootMetadata&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.path_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL NativeSpaceRootMetadata::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) NativeSpaceRootMetadata(arena);
+}
+constexpr auto NativeSpaceRootMetadata::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(NativeSpaceRootMetadata),
+                                            alignof(NativeSpaceRootMetadata));
+}
+constexpr auto NativeSpaceRootMetadata::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_NativeSpaceRootMetadata_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &NativeSpaceRootMetadata::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<NativeSpaceRootMetadata>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &NativeSpaceRootMetadata::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<NativeSpaceRootMetadata>(), &NativeSpaceRootMetadata::ByteSizeLong,
+              &NativeSpaceRootMetadata::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(NativeSpaceRootMetadata, _impl_._cached_size_),
+          false,
+      },
+      &NativeSpaceRootMetadata::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull NativeSpaceRootMetadata_class_data_ =
+        NativeSpaceRootMetadata::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+NativeSpaceRootMetadata::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&NativeSpaceRootMetadata_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(NativeSpaceRootMetadata_class_data_.tc_table);
+  return NativeSpaceRootMetadata_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 0, 48, 2>
+NativeSpaceRootMetadata::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(NativeSpaceRootMetadata, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    NativeSpaceRootMetadata_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::root::NativeSpaceRootMetadata>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string path = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(NativeSpaceRootMetadata, _impl_.path_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string path = 1;
+    {PROTOBUF_FIELD_OFFSET(NativeSpaceRootMetadata, _impl_.path_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\43\4\0\0\0\0\0\0"
+    "s4wave.root.NativeSpaceRootMetadata"
+    "path"
+  }},
+};
+PROTOBUF_NOINLINE void NativeSpaceRootMetadata::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.root.NativeSpaceRootMetadata)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    _impl_.path_.ClearNonDefaultToEmpty();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL NativeSpaceRootMetadata::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const NativeSpaceRootMetadata& this_ = static_cast<const NativeSpaceRootMetadata&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL NativeSpaceRootMetadata::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const NativeSpaceRootMetadata& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.root.NativeSpaceRootMetadata)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string path = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_path().empty()) {
+      const ::std::string& _s = this_._internal_path();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.root.NativeSpaceRootMetadata.path");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.root.NativeSpaceRootMetadata)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t NativeSpaceRootMetadata::ByteSizeLong(const MessageLite& base) {
+  const NativeSpaceRootMetadata& this_ = static_cast<const NativeSpaceRootMetadata&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t NativeSpaceRootMetadata::ByteSizeLong() const {
+  const NativeSpaceRootMetadata& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.root.NativeSpaceRootMetadata)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // string path = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_path().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_path());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void NativeSpaceRootMetadata::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<NativeSpaceRootMetadata*>(&to_msg);
+  auto& from = static_cast<const NativeSpaceRootMetadata&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.root.NativeSpaceRootMetadata)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!from._internal_path().empty()) {
+      _this->_internal_set_path(from._internal_path());
+    } else {
+      if (_this->_impl_.path_.IsDefault()) {
+        _this->_internal_set_path("");
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void NativeSpaceRootMetadata::CopyFrom(const NativeSpaceRootMetadata& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.root.NativeSpaceRootMetadata)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void NativeSpaceRootMetadata::InternalSwap(NativeSpaceRootMetadata* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.path_, &other->_impl_.path_, arena);
+}
+
+::google::protobuf::Metadata NativeSpaceRootMetadata::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class BrowserSpaceRootMetadata::_Internal {
+ public:
+};
+
+BrowserSpaceRootMetadata::BrowserSpaceRootMetadata(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, BrowserSpaceRootMetadata_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(arena_constructor:s4wave.root.BrowserSpaceRootMetadata)
+}
+BrowserSpaceRootMetadata::BrowserSpaceRootMetadata(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const BrowserSpaceRootMetadata& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, BrowserSpaceRootMetadata_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  BrowserSpaceRootMetadata* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.root.BrowserSpaceRootMetadata)
+}
+
+inline void* PROTOBUF_NONNULL BrowserSpaceRootMetadata::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) BrowserSpaceRootMetadata(arena);
+}
+constexpr auto BrowserSpaceRootMetadata::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(BrowserSpaceRootMetadata),
+                                            alignof(BrowserSpaceRootMetadata));
+}
+constexpr auto BrowserSpaceRootMetadata::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_BrowserSpaceRootMetadata_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &BrowserSpaceRootMetadata::MergeImpl,
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<BrowserSpaceRootMetadata>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &BrowserSpaceRootMetadata::SharedDtor,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<BrowserSpaceRootMetadata>(), &BrowserSpaceRootMetadata::ByteSizeLong,
+              &BrowserSpaceRootMetadata::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(BrowserSpaceRootMetadata, _impl_._cached_size_),
+          false,
+      },
+      &BrowserSpaceRootMetadata::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull BrowserSpaceRootMetadata_class_data_ =
+        BrowserSpaceRootMetadata::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+BrowserSpaceRootMetadata::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&BrowserSpaceRootMetadata_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(BrowserSpaceRootMetadata_class_data_.tc_table);
+  return BrowserSpaceRootMetadata_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+BrowserSpaceRootMetadata::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    0, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    BrowserSpaceRootMetadata_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::root::BrowserSpaceRootMetadata>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, // no field_entries, or aux_entries
+  {{
+  }},
+};
+
+
+
+
+
+
+
+::google::protobuf::Metadata BrowserSpaceRootMetadata::GetMetadata() const {
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class SpaceRootAliasRecord::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<SpaceRootAliasRecord>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(SpaceRootAliasRecord, _impl_._has_bits_);
+};
+
+SpaceRootAliasRecord::SpaceRootAliasRecord(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SpaceRootAliasRecord_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.root.SpaceRootAliasRecord)
+}
+PROTOBUF_NDEBUG_INLINE SpaceRootAliasRecord::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::root::SpaceRootAliasRecord& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        alias_id_(arena, from.alias_id_),
+        display_name_(arena, from.display_name_),
+        status_message_(arena, from.status_message_) {}
+
+SpaceRootAliasRecord::SpaceRootAliasRecord(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const SpaceRootAliasRecord& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SpaceRootAliasRecord_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SpaceRootAliasRecord* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.native_ = (CheckHasBit(cached_has_bits, 0x00000008U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.native_)
+                : nullptr;
+  _impl_.browser_ = (CheckHasBit(cached_has_bits, 0x00000010U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.browser_)
+                : nullptr;
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, kind_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, kind_),
+           offsetof(Impl_, status_) -
+               offsetof(Impl_, kind_) +
+               sizeof(Impl_::status_));
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.root.SpaceRootAliasRecord)
+}
+PROTOBUF_NDEBUG_INLINE SpaceRootAliasRecord::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        alias_id_(arena),
+        display_name_(arena),
+        status_message_(arena) {}
+
+inline void SpaceRootAliasRecord::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, native_),
+           0,
+           offsetof(Impl_, status_) -
+               offsetof(Impl_, native_) +
+               sizeof(Impl_::status_));
+}
+SpaceRootAliasRecord::~SpaceRootAliasRecord() {
+  // @@protoc_insertion_point(destructor:s4wave.root.SpaceRootAliasRecord)
+  SharedDtor(*this);
+}
+inline void SpaceRootAliasRecord::SharedDtor(MessageLite& self) {
+  SpaceRootAliasRecord& this_ = static_cast<SpaceRootAliasRecord&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.alias_id_.Destroy();
+  this_._impl_.display_name_.Destroy();
+  this_._impl_.status_message_.Destroy();
+  delete this_._impl_.native_;
+  delete this_._impl_.browser_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL SpaceRootAliasRecord::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) SpaceRootAliasRecord(arena);
+}
+constexpr auto SpaceRootAliasRecord::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(SpaceRootAliasRecord),
+                                            alignof(SpaceRootAliasRecord));
+}
+constexpr auto SpaceRootAliasRecord::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_SpaceRootAliasRecord_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &SpaceRootAliasRecord::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<SpaceRootAliasRecord>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &SpaceRootAliasRecord::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<SpaceRootAliasRecord>(), &SpaceRootAliasRecord::ByteSizeLong,
+              &SpaceRootAliasRecord::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(SpaceRootAliasRecord, _impl_._cached_size_),
+          false,
+      },
+      &SpaceRootAliasRecord::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull SpaceRootAliasRecord_class_data_ =
+        SpaceRootAliasRecord::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+SpaceRootAliasRecord::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&SpaceRootAliasRecord_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(SpaceRootAliasRecord_class_data_.tc_table);
+  return SpaceRootAliasRecord_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<4, 10, 2, 83, 2>
+SpaceRootAliasRecord::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(SpaceRootAliasRecord, _impl_._has_bits_),
+    0, // no _extensions_
+    10, 120,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294966272,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    10,  // num_field_entries
+    2,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    SpaceRootAliasRecord_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::root::SpaceRootAliasRecord>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // string alias_id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceRootAliasRecord, _impl_.alias_id_)}},
+    // string display_name = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceRootAliasRecord, _impl_.display_name_)}},
+    // .s4wave.root.SpaceRootKind kind = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(SpaceRootAliasRecord, _impl_.kind_), 5>(),
+     {24, 5, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceRootAliasRecord, _impl_.kind_)}},
+    // .s4wave.root.SpaceRootOpenMode open_mode = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(SpaceRootAliasRecord, _impl_.open_mode_), 6>(),
+     {32, 6, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceRootAliasRecord, _impl_.open_mode_)}},
+    // .s4wave.root.NativeSpaceRootMetadata native = 5;
+    {::_pbi::TcParser::FastMtS1,
+     {42, 3, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceRootAliasRecord, _impl_.native_)}},
+    // .s4wave.root.SpaceRootStatus status = 6;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(SpaceRootAliasRecord, _impl_.status_), 9>(),
+     {48, 9, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceRootAliasRecord, _impl_.status_)}},
+    // string status_message = 7;
+    {::_pbi::TcParser::FastUS1,
+     {58, 2, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceRootAliasRecord, _impl_.status_message_)}},
+    // .s4wave.root.BrowserSpaceRootMetadata browser = 8;
+    {::_pbi::TcParser::FastMtS1,
+     {66, 4, 1,
+      PROTOBUF_FIELD_OFFSET(SpaceRootAliasRecord, _impl_.browser_)}},
+    // int64 created_at_unix_ms = 9;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(SpaceRootAliasRecord, _impl_.created_at_unix_ms_), 7>(),
+     {72, 7, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceRootAliasRecord, _impl_.created_at_unix_ms_)}},
+    // int64 updated_at_unix_ms = 10;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(SpaceRootAliasRecord, _impl_.updated_at_unix_ms_), 8>(),
+     {80, 8, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceRootAliasRecord, _impl_.updated_at_unix_ms_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string alias_id = 1;
+    {PROTOBUF_FIELD_OFFSET(SpaceRootAliasRecord, _impl_.alias_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string display_name = 2;
+    {PROTOBUF_FIELD_OFFSET(SpaceRootAliasRecord, _impl_.display_name_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .s4wave.root.SpaceRootKind kind = 3;
+    {PROTOBUF_FIELD_OFFSET(SpaceRootAliasRecord, _impl_.kind_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // .s4wave.root.SpaceRootOpenMode open_mode = 4;
+    {PROTOBUF_FIELD_OFFSET(SpaceRootAliasRecord, _impl_.open_mode_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // .s4wave.root.NativeSpaceRootMetadata native = 5;
+    {PROTOBUF_FIELD_OFFSET(SpaceRootAliasRecord, _impl_.native_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .s4wave.root.SpaceRootStatus status = 6;
+    {PROTOBUF_FIELD_OFFSET(SpaceRootAliasRecord, _impl_.status_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // string status_message = 7;
+    {PROTOBUF_FIELD_OFFSET(SpaceRootAliasRecord, _impl_.status_message_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .s4wave.root.BrowserSpaceRootMetadata browser = 8;
+    {PROTOBUF_FIELD_OFFSET(SpaceRootAliasRecord, _impl_.browser_), _Internal::kHasBitsOffset + 4, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // int64 created_at_unix_ms = 9;
+    {PROTOBUF_FIELD_OFFSET(SpaceRootAliasRecord, _impl_.created_at_unix_ms_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt64)},
+    // int64 updated_at_unix_ms = 10;
+    {PROTOBUF_FIELD_OFFSET(SpaceRootAliasRecord, _impl_.updated_at_unix_ms_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt64)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::root::NativeSpaceRootMetadata>()},
+      {::_pbi::TcParser::GetTable<::s4wave::root::BrowserSpaceRootMetadata>()},
+  }},
+  {{
+    "\40\10\14\0\0\0\0\16\0\0\0\0\0\0\0\0"
+    "s4wave.root.SpaceRootAliasRecord"
+    "alias_id"
+    "display_name"
+    "status_message"
+  }},
+};
+PROTOBUF_NOINLINE void SpaceRootAliasRecord::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.root.SpaceRootAliasRecord)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.alias_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.display_name_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.status_message_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(_impl_.native_ != nullptr);
+      _impl_.native_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      ABSL_DCHECK(_impl_.browser_ != nullptr);
+      _impl_.browser_->Clear();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x000000e0U)) {
+    ::memset(&_impl_.kind_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.created_at_unix_ms_) -
+        reinterpret_cast<char*>(&_impl_.kind_)) + sizeof(_impl_.created_at_unix_ms_));
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+    ::memset(&_impl_.updated_at_unix_ms_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.status_) -
+        reinterpret_cast<char*>(&_impl_.updated_at_unix_ms_)) + sizeof(_impl_.status_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL SpaceRootAliasRecord::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const SpaceRootAliasRecord& this_ = static_cast<const SpaceRootAliasRecord&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL SpaceRootAliasRecord::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const SpaceRootAliasRecord& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.root.SpaceRootAliasRecord)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string alias_id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_alias_id().empty()) {
+      const ::std::string& _s = this_._internal_alias_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.root.SpaceRootAliasRecord.alias_id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string display_name = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_display_name().empty()) {
+      const ::std::string& _s = this_._internal_display_name();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.root.SpaceRootAliasRecord.display_name");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // .s4wave.root.SpaceRootKind kind = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (this_._internal_kind() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          3, this_._internal_kind(), target);
+    }
+  }
+
+  // .s4wave.root.SpaceRootOpenMode open_mode = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (this_._internal_open_mode() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          4, this_._internal_open_mode(), target);
+    }
+  }
+
+  // .s4wave.root.NativeSpaceRootMetadata native = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        5, *this_._impl_.native_, this_._impl_.native_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .s4wave.root.SpaceRootStatus status = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+    if (this_._internal_status() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          6, this_._internal_status(), target);
+    }
+  }
+
+  // string status_message = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_status_message().empty()) {
+      const ::std::string& _s = this_._internal_status_message();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.root.SpaceRootAliasRecord.status_message");
+      target = stream->WriteStringMaybeAliased(7, _s, target);
+    }
+  }
+
+  // .s4wave.root.BrowserSpaceRootMetadata browser = 8;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        8, *this_._impl_.browser_, this_._impl_.browser_->GetCachedSize(), target,
+        stream);
+  }
+
+  // int64 created_at_unix_ms = 9;
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (this_._internal_created_at_unix_ms() != 0) {
+      target =
+          ::google::protobuf::internal::WireFormatLite::WriteInt64ToArrayWithField<9>(
+              stream, this_._internal_created_at_unix_ms(), target);
+    }
+  }
+
+  // int64 updated_at_unix_ms = 10;
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (this_._internal_updated_at_unix_ms() != 0) {
+      target =
+          ::google::protobuf::internal::WireFormatLite::WriteInt64ToArrayWithField<10>(
+              stream, this_._internal_updated_at_unix_ms(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.root.SpaceRootAliasRecord)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t SpaceRootAliasRecord::ByteSizeLong(const MessageLite& base) {
+  const SpaceRootAliasRecord& this_ = static_cast<const SpaceRootAliasRecord&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t SpaceRootAliasRecord::ByteSizeLong() const {
+  const SpaceRootAliasRecord& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.root.SpaceRootAliasRecord)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    // string alias_id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_alias_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_alias_id());
+      }
+    }
+    // string display_name = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_display_name().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_display_name());
+      }
+    }
+    // string status_message = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_status_message().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_status_message());
+      }
+    }
+    // .s4wave.root.NativeSpaceRootMetadata native = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.native_);
+    }
+    // .s4wave.root.BrowserSpaceRootMetadata browser = 8;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.browser_);
+    }
+    // .s4wave.root.SpaceRootKind kind = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (this_._internal_kind() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_kind());
+      }
+    }
+    // .s4wave.root.SpaceRootOpenMode open_mode = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (this_._internal_open_mode() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_open_mode());
+      }
+    }
+    // int64 created_at_unix_ms = 9;
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (this_._internal_created_at_unix_ms() != 0) {
+        total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(
+            this_._internal_created_at_unix_ms());
+      }
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+    // int64 updated_at_unix_ms = 10;
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      if (this_._internal_updated_at_unix_ms() != 0) {
+        total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(
+            this_._internal_updated_at_unix_ms());
+      }
+    }
+    // .s4wave.root.SpaceRootStatus status = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (this_._internal_status() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_status());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void SpaceRootAliasRecord::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<SpaceRootAliasRecord*>(&to_msg);
+  auto& from = static_cast<const SpaceRootAliasRecord&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.root.SpaceRootAliasRecord)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_alias_id().empty()) {
+        _this->_internal_set_alias_id(from._internal_alias_id());
+      } else {
+        if (_this->_impl_.alias_id_.IsDefault()) {
+          _this->_internal_set_alias_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_display_name().empty()) {
+        _this->_internal_set_display_name(from._internal_display_name());
+      } else {
+        if (_this->_impl_.display_name_.IsDefault()) {
+          _this->_internal_set_display_name("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_status_message().empty()) {
+        _this->_internal_set_status_message(from._internal_status_message());
+      } else {
+        if (_this->_impl_.status_message_.IsDefault()) {
+          _this->_internal_set_status_message("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(from._impl_.native_ != nullptr);
+      if (_this->_impl_.native_ == nullptr) {
+        _this->_impl_.native_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.native_);
+      } else {
+        _this->_impl_.native_->MergeFrom(*from._impl_.native_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      ABSL_DCHECK(from._impl_.browser_ != nullptr);
+      if (_this->_impl_.browser_ == nullptr) {
+        _this->_impl_.browser_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.browser_);
+      } else {
+        _this->_impl_.browser_->MergeFrom(*from._impl_.browser_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (from._internal_kind() != 0) {
+        _this->_impl_.kind_ = from._impl_.kind_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (from._internal_open_mode() != 0) {
+        _this->_impl_.open_mode_ = from._impl_.open_mode_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (from._internal_created_at_unix_ms() != 0) {
+        _this->_impl_.created_at_unix_ms_ = from._impl_.created_at_unix_ms_;
+      }
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      if (from._internal_updated_at_unix_ms() != 0) {
+        _this->_impl_.updated_at_unix_ms_ = from._impl_.updated_at_unix_ms_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (from._internal_status() != 0) {
+        _this->_impl_.status_ = from._impl_.status_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void SpaceRootAliasRecord::CopyFrom(const SpaceRootAliasRecord& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.root.SpaceRootAliasRecord)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void SpaceRootAliasRecord::InternalSwap(SpaceRootAliasRecord* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.alias_id_, &other->_impl_.alias_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.display_name_, &other->_impl_.display_name_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.status_message_, &other->_impl_.status_message_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(SpaceRootAliasRecord, _impl_.status_)
+      + sizeof(SpaceRootAliasRecord::_impl_.status_)
+      - PROTOBUF_FIELD_OFFSET(SpaceRootAliasRecord, _impl_.native_)>(
+          reinterpret_cast<char*>(&_impl_.native_),
+          reinterpret_cast<char*>(&other->_impl_.native_));
+}
+
+::google::protobuf::Metadata SpaceRootAliasRecord::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class ListSpaceRootAliasesRequest::_Internal {
+ public:
+};
+
+ListSpaceRootAliasesRequest::ListSpaceRootAliasesRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, ListSpaceRootAliasesRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(arena_constructor:s4wave.root.ListSpaceRootAliasesRequest)
+}
+ListSpaceRootAliasesRequest::ListSpaceRootAliasesRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const ListSpaceRootAliasesRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, ListSpaceRootAliasesRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  ListSpaceRootAliasesRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.root.ListSpaceRootAliasesRequest)
+}
+
+inline void* PROTOBUF_NONNULL ListSpaceRootAliasesRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) ListSpaceRootAliasesRequest(arena);
+}
+constexpr auto ListSpaceRootAliasesRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(ListSpaceRootAliasesRequest),
+                                            alignof(ListSpaceRootAliasesRequest));
+}
+constexpr auto ListSpaceRootAliasesRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_ListSpaceRootAliasesRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &ListSpaceRootAliasesRequest::MergeImpl,
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<ListSpaceRootAliasesRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &ListSpaceRootAliasesRequest::SharedDtor,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<ListSpaceRootAliasesRequest>(), &ListSpaceRootAliasesRequest::ByteSizeLong,
+              &ListSpaceRootAliasesRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(ListSpaceRootAliasesRequest, _impl_._cached_size_),
+          false,
+      },
+      &ListSpaceRootAliasesRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull ListSpaceRootAliasesRequest_class_data_ =
+        ListSpaceRootAliasesRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+ListSpaceRootAliasesRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&ListSpaceRootAliasesRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(ListSpaceRootAliasesRequest_class_data_.tc_table);
+  return ListSpaceRootAliasesRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+ListSpaceRootAliasesRequest::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    0, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    ListSpaceRootAliasesRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::root::ListSpaceRootAliasesRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, // no field_entries, or aux_entries
+  {{
+  }},
+};
+
+
+
+
+
+
+
+::google::protobuf::Metadata ListSpaceRootAliasesRequest::GetMetadata() const {
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class ListSpaceRootAliasesResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<ListSpaceRootAliasesResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(ListSpaceRootAliasesResponse, _impl_._has_bits_);
+};
+
+ListSpaceRootAliasesResponse::ListSpaceRootAliasesResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ListSpaceRootAliasesResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.root.ListSpaceRootAliasesResponse)
+}
+PROTOBUF_NDEBUG_INLINE ListSpaceRootAliasesResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::root::ListSpaceRootAliasesResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        records_{visibility, arena, from.records_} {}
+
+ListSpaceRootAliasesResponse::ListSpaceRootAliasesResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const ListSpaceRootAliasesResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ListSpaceRootAliasesResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  ListSpaceRootAliasesResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.root.ListSpaceRootAliasesResponse)
+}
+PROTOBUF_NDEBUG_INLINE ListSpaceRootAliasesResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        records_{visibility, arena} {}
+
+inline void ListSpaceRootAliasesResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+ListSpaceRootAliasesResponse::~ListSpaceRootAliasesResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.root.ListSpaceRootAliasesResponse)
+  SharedDtor(*this);
+}
+inline void ListSpaceRootAliasesResponse::SharedDtor(MessageLite& self) {
+  ListSpaceRootAliasesResponse& this_ = static_cast<ListSpaceRootAliasesResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL ListSpaceRootAliasesResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) ListSpaceRootAliasesResponse(arena);
+}
+constexpr auto ListSpaceRootAliasesResponse::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(ListSpaceRootAliasesResponse, _impl_.records_) +
+          decltype(ListSpaceRootAliasesResponse::_impl_.records_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::ZeroInit(
+        sizeof(ListSpaceRootAliasesResponse), alignof(ListSpaceRootAliasesResponse), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&ListSpaceRootAliasesResponse::PlacementNew_,
+                                 sizeof(ListSpaceRootAliasesResponse),
+                                 alignof(ListSpaceRootAliasesResponse));
+  }
+}
+constexpr auto ListSpaceRootAliasesResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_ListSpaceRootAliasesResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &ListSpaceRootAliasesResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<ListSpaceRootAliasesResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &ListSpaceRootAliasesResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<ListSpaceRootAliasesResponse>(), &ListSpaceRootAliasesResponse::ByteSizeLong,
+              &ListSpaceRootAliasesResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(ListSpaceRootAliasesResponse, _impl_._cached_size_),
+          false,
+      },
+      &ListSpaceRootAliasesResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull ListSpaceRootAliasesResponse_class_data_ =
+        ListSpaceRootAliasesResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+ListSpaceRootAliasesResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&ListSpaceRootAliasesResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(ListSpaceRootAliasesResponse_class_data_.tc_table);
+  return ListSpaceRootAliasesResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 1, 0, 2>
+ListSpaceRootAliasesResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(ListSpaceRootAliasesResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    ListSpaceRootAliasesResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::root::ListSpaceRootAliasesResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // repeated .s4wave.root.SpaceRootAliasRecord records = 1;
+    {::_pbi::TcParser::FastMtR1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(ListSpaceRootAliasesResponse, _impl_.records_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // repeated .s4wave.root.SpaceRootAliasRecord records = 1;
+    {PROTOBUF_FIELD_OFFSET(ListSpaceRootAliasesResponse, _impl_.records_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::root::SpaceRootAliasRecord>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void ListSpaceRootAliasesResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.root.ListSpaceRootAliasesResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    _impl_.records_.Clear();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL ListSpaceRootAliasesResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const ListSpaceRootAliasesResponse& this_ = static_cast<const ListSpaceRootAliasesResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL ListSpaceRootAliasesResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const ListSpaceRootAliasesResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.root.ListSpaceRootAliasesResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // repeated .s4wave.root.SpaceRootAliasRecord records = 1;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_records_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_records().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              1, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.root.ListSpaceRootAliasesResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t ListSpaceRootAliasesResponse::ByteSizeLong(const MessageLite& base) {
+  const ListSpaceRootAliasesResponse& this_ = static_cast<const ListSpaceRootAliasesResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t ListSpaceRootAliasesResponse::ByteSizeLong() const {
+  const ListSpaceRootAliasesResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.root.ListSpaceRootAliasesResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+   {
+    // repeated .s4wave.root.SpaceRootAliasRecord records = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size += 1UL * this_._internal_records_size();
+      for (const auto& msg : this_._internal_records()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void ListSpaceRootAliasesResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<ListSpaceRootAliasesResponse*>(&to_msg);
+  auto& from = static_cast<const ListSpaceRootAliasesResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.root.ListSpaceRootAliasesResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    _this->_internal_mutable_records()->InternalMergeFromWithArena(
+        ::google::protobuf::MessageLite::internal_visibility(), arena,
+        from._internal_records());
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void ListSpaceRootAliasesResponse::CopyFrom(const ListSpaceRootAliasesResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.root.ListSpaceRootAliasesResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void ListSpaceRootAliasesResponse::InternalSwap(ListSpaceRootAliasesResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.records_.InternalSwap(&other->_impl_.records_);
+}
+
+::google::protobuf::Metadata ListSpaceRootAliasesResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class WatchSpaceRootAliasesRequest::_Internal {
+ public:
+};
+
+WatchSpaceRootAliasesRequest::WatchSpaceRootAliasesRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, WatchSpaceRootAliasesRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(arena_constructor:s4wave.root.WatchSpaceRootAliasesRequest)
+}
+WatchSpaceRootAliasesRequest::WatchSpaceRootAliasesRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const WatchSpaceRootAliasesRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, WatchSpaceRootAliasesRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  WatchSpaceRootAliasesRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.root.WatchSpaceRootAliasesRequest)
+}
+
+inline void* PROTOBUF_NONNULL WatchSpaceRootAliasesRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) WatchSpaceRootAliasesRequest(arena);
+}
+constexpr auto WatchSpaceRootAliasesRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(WatchSpaceRootAliasesRequest),
+                                            alignof(WatchSpaceRootAliasesRequest));
+}
+constexpr auto WatchSpaceRootAliasesRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_WatchSpaceRootAliasesRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &WatchSpaceRootAliasesRequest::MergeImpl,
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<WatchSpaceRootAliasesRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &WatchSpaceRootAliasesRequest::SharedDtor,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<WatchSpaceRootAliasesRequest>(), &WatchSpaceRootAliasesRequest::ByteSizeLong,
+              &WatchSpaceRootAliasesRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(WatchSpaceRootAliasesRequest, _impl_._cached_size_),
+          false,
+      },
+      &WatchSpaceRootAliasesRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull WatchSpaceRootAliasesRequest_class_data_ =
+        WatchSpaceRootAliasesRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+WatchSpaceRootAliasesRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&WatchSpaceRootAliasesRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(WatchSpaceRootAliasesRequest_class_data_.tc_table);
+  return WatchSpaceRootAliasesRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+WatchSpaceRootAliasesRequest::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    0, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    WatchSpaceRootAliasesRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::root::WatchSpaceRootAliasesRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, // no field_entries, or aux_entries
+  {{
+  }},
+};
+
+
+
+
+
+
+
+::google::protobuf::Metadata WatchSpaceRootAliasesRequest::GetMetadata() const {
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class WatchSpaceRootAliasesResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<WatchSpaceRootAliasesResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(WatchSpaceRootAliasesResponse, _impl_._has_bits_);
+};
+
+WatchSpaceRootAliasesResponse::WatchSpaceRootAliasesResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, WatchSpaceRootAliasesResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.root.WatchSpaceRootAliasesResponse)
+}
+PROTOBUF_NDEBUG_INLINE WatchSpaceRootAliasesResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::root::WatchSpaceRootAliasesResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        records_{visibility, arena, from.records_} {}
+
+WatchSpaceRootAliasesResponse::WatchSpaceRootAliasesResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const WatchSpaceRootAliasesResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, WatchSpaceRootAliasesResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  WatchSpaceRootAliasesResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.root.WatchSpaceRootAliasesResponse)
+}
+PROTOBUF_NDEBUG_INLINE WatchSpaceRootAliasesResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        records_{visibility, arena} {}
+
+inline void WatchSpaceRootAliasesResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+WatchSpaceRootAliasesResponse::~WatchSpaceRootAliasesResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.root.WatchSpaceRootAliasesResponse)
+  SharedDtor(*this);
+}
+inline void WatchSpaceRootAliasesResponse::SharedDtor(MessageLite& self) {
+  WatchSpaceRootAliasesResponse& this_ = static_cast<WatchSpaceRootAliasesResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL WatchSpaceRootAliasesResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) WatchSpaceRootAliasesResponse(arena);
+}
+constexpr auto WatchSpaceRootAliasesResponse::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(WatchSpaceRootAliasesResponse, _impl_.records_) +
+          decltype(WatchSpaceRootAliasesResponse::_impl_.records_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::ZeroInit(
+        sizeof(WatchSpaceRootAliasesResponse), alignof(WatchSpaceRootAliasesResponse), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&WatchSpaceRootAliasesResponse::PlacementNew_,
+                                 sizeof(WatchSpaceRootAliasesResponse),
+                                 alignof(WatchSpaceRootAliasesResponse));
+  }
+}
+constexpr auto WatchSpaceRootAliasesResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_WatchSpaceRootAliasesResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &WatchSpaceRootAliasesResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<WatchSpaceRootAliasesResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &WatchSpaceRootAliasesResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<WatchSpaceRootAliasesResponse>(), &WatchSpaceRootAliasesResponse::ByteSizeLong,
+              &WatchSpaceRootAliasesResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(WatchSpaceRootAliasesResponse, _impl_._cached_size_),
+          false,
+      },
+      &WatchSpaceRootAliasesResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull WatchSpaceRootAliasesResponse_class_data_ =
+        WatchSpaceRootAliasesResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+WatchSpaceRootAliasesResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&WatchSpaceRootAliasesResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(WatchSpaceRootAliasesResponse_class_data_.tc_table);
+  return WatchSpaceRootAliasesResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 1, 0, 2>
+WatchSpaceRootAliasesResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(WatchSpaceRootAliasesResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    WatchSpaceRootAliasesResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::root::WatchSpaceRootAliasesResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // repeated .s4wave.root.SpaceRootAliasRecord records = 1;
+    {::_pbi::TcParser::FastMtR1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(WatchSpaceRootAliasesResponse, _impl_.records_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // repeated .s4wave.root.SpaceRootAliasRecord records = 1;
+    {PROTOBUF_FIELD_OFFSET(WatchSpaceRootAliasesResponse, _impl_.records_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::root::SpaceRootAliasRecord>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void WatchSpaceRootAliasesResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.root.WatchSpaceRootAliasesResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    _impl_.records_.Clear();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL WatchSpaceRootAliasesResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const WatchSpaceRootAliasesResponse& this_ = static_cast<const WatchSpaceRootAliasesResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL WatchSpaceRootAliasesResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const WatchSpaceRootAliasesResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.root.WatchSpaceRootAliasesResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // repeated .s4wave.root.SpaceRootAliasRecord records = 1;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_records_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_records().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              1, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.root.WatchSpaceRootAliasesResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t WatchSpaceRootAliasesResponse::ByteSizeLong(const MessageLite& base) {
+  const WatchSpaceRootAliasesResponse& this_ = static_cast<const WatchSpaceRootAliasesResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t WatchSpaceRootAliasesResponse::ByteSizeLong() const {
+  const WatchSpaceRootAliasesResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.root.WatchSpaceRootAliasesResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+   {
+    // repeated .s4wave.root.SpaceRootAliasRecord records = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size += 1UL * this_._internal_records_size();
+      for (const auto& msg : this_._internal_records()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void WatchSpaceRootAliasesResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<WatchSpaceRootAliasesResponse*>(&to_msg);
+  auto& from = static_cast<const WatchSpaceRootAliasesResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.root.WatchSpaceRootAliasesResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    _this->_internal_mutable_records()->InternalMergeFromWithArena(
+        ::google::protobuf::MessageLite::internal_visibility(), arena,
+        from._internal_records());
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void WatchSpaceRootAliasesResponse::CopyFrom(const WatchSpaceRootAliasesResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.root.WatchSpaceRootAliasesResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void WatchSpaceRootAliasesResponse::InternalSwap(WatchSpaceRootAliasesResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.records_.InternalSwap(&other->_impl_.records_);
+}
+
+::google::protobuf::Metadata WatchSpaceRootAliasesResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class UpsertSpaceRootAliasRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<UpsertSpaceRootAliasRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(UpsertSpaceRootAliasRequest, _impl_._has_bits_);
+};
+
+UpsertSpaceRootAliasRequest::UpsertSpaceRootAliasRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, UpsertSpaceRootAliasRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.root.UpsertSpaceRootAliasRequest)
+}
+PROTOBUF_NDEBUG_INLINE UpsertSpaceRootAliasRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::root::UpsertSpaceRootAliasRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0} {}
+
+UpsertSpaceRootAliasRequest::UpsertSpaceRootAliasRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const UpsertSpaceRootAliasRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, UpsertSpaceRootAliasRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  UpsertSpaceRootAliasRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.record_ = (CheckHasBit(cached_has_bits, 0x00000001U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.record_)
+                : nullptr;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.root.UpsertSpaceRootAliasRequest)
+}
+PROTOBUF_NDEBUG_INLINE UpsertSpaceRootAliasRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void UpsertSpaceRootAliasRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.record_ = {};
+}
+UpsertSpaceRootAliasRequest::~UpsertSpaceRootAliasRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.root.UpsertSpaceRootAliasRequest)
+  SharedDtor(*this);
+}
+inline void UpsertSpaceRootAliasRequest::SharedDtor(MessageLite& self) {
+  UpsertSpaceRootAliasRequest& this_ = static_cast<UpsertSpaceRootAliasRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  delete this_._impl_.record_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL UpsertSpaceRootAliasRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) UpsertSpaceRootAliasRequest(arena);
+}
+constexpr auto UpsertSpaceRootAliasRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(UpsertSpaceRootAliasRequest),
+                                            alignof(UpsertSpaceRootAliasRequest));
+}
+constexpr auto UpsertSpaceRootAliasRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_UpsertSpaceRootAliasRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &UpsertSpaceRootAliasRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<UpsertSpaceRootAliasRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &UpsertSpaceRootAliasRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<UpsertSpaceRootAliasRequest>(), &UpsertSpaceRootAliasRequest::ByteSizeLong,
+              &UpsertSpaceRootAliasRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(UpsertSpaceRootAliasRequest, _impl_._cached_size_),
+          false,
+      },
+      &UpsertSpaceRootAliasRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull UpsertSpaceRootAliasRequest_class_data_ =
+        UpsertSpaceRootAliasRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+UpsertSpaceRootAliasRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&UpsertSpaceRootAliasRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(UpsertSpaceRootAliasRequest_class_data_.tc_table);
+  return UpsertSpaceRootAliasRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 1, 0, 2>
+UpsertSpaceRootAliasRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(UpsertSpaceRootAliasRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    UpsertSpaceRootAliasRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::root::UpsertSpaceRootAliasRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .s4wave.root.SpaceRootAliasRecord record = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(UpsertSpaceRootAliasRequest, _impl_.record_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .s4wave.root.SpaceRootAliasRecord record = 1;
+    {PROTOBUF_FIELD_OFFSET(UpsertSpaceRootAliasRequest, _impl_.record_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::root::SpaceRootAliasRecord>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void UpsertSpaceRootAliasRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.root.UpsertSpaceRootAliasRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    ABSL_DCHECK(_impl_.record_ != nullptr);
+    _impl_.record_->Clear();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL UpsertSpaceRootAliasRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const UpsertSpaceRootAliasRequest& this_ = static_cast<const UpsertSpaceRootAliasRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL UpsertSpaceRootAliasRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const UpsertSpaceRootAliasRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.root.UpsertSpaceRootAliasRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .s4wave.root.SpaceRootAliasRecord record = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        1, *this_._impl_.record_, this_._impl_.record_->GetCachedSize(), target,
+        stream);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.root.UpsertSpaceRootAliasRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t UpsertSpaceRootAliasRequest::ByteSizeLong(const MessageLite& base) {
+  const UpsertSpaceRootAliasRequest& this_ = static_cast<const UpsertSpaceRootAliasRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t UpsertSpaceRootAliasRequest::ByteSizeLong() const {
+  const UpsertSpaceRootAliasRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.root.UpsertSpaceRootAliasRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // .s4wave.root.SpaceRootAliasRecord record = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.record_);
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void UpsertSpaceRootAliasRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<UpsertSpaceRootAliasRequest*>(&to_msg);
+  auto& from = static_cast<const UpsertSpaceRootAliasRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.root.UpsertSpaceRootAliasRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    ABSL_DCHECK(from._impl_.record_ != nullptr);
+    if (_this->_impl_.record_ == nullptr) {
+      _this->_impl_.record_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.record_);
+    } else {
+      _this->_impl_.record_->MergeFrom(*from._impl_.record_);
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void UpsertSpaceRootAliasRequest::CopyFrom(const UpsertSpaceRootAliasRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.root.UpsertSpaceRootAliasRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void UpsertSpaceRootAliasRequest::InternalSwap(UpsertSpaceRootAliasRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.record_, other->_impl_.record_);
+}
+
+::google::protobuf::Metadata UpsertSpaceRootAliasRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class UpsertSpaceRootAliasResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<UpsertSpaceRootAliasResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(UpsertSpaceRootAliasResponse, _impl_._has_bits_);
+};
+
+UpsertSpaceRootAliasResponse::UpsertSpaceRootAliasResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, UpsertSpaceRootAliasResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.root.UpsertSpaceRootAliasResponse)
+}
+PROTOBUF_NDEBUG_INLINE UpsertSpaceRootAliasResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::root::UpsertSpaceRootAliasResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0} {}
+
+UpsertSpaceRootAliasResponse::UpsertSpaceRootAliasResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const UpsertSpaceRootAliasResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, UpsertSpaceRootAliasResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  UpsertSpaceRootAliasResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.record_ = (CheckHasBit(cached_has_bits, 0x00000001U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.record_)
+                : nullptr;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.root.UpsertSpaceRootAliasResponse)
+}
+PROTOBUF_NDEBUG_INLINE UpsertSpaceRootAliasResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void UpsertSpaceRootAliasResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.record_ = {};
+}
+UpsertSpaceRootAliasResponse::~UpsertSpaceRootAliasResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.root.UpsertSpaceRootAliasResponse)
+  SharedDtor(*this);
+}
+inline void UpsertSpaceRootAliasResponse::SharedDtor(MessageLite& self) {
+  UpsertSpaceRootAliasResponse& this_ = static_cast<UpsertSpaceRootAliasResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  delete this_._impl_.record_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL UpsertSpaceRootAliasResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) UpsertSpaceRootAliasResponse(arena);
+}
+constexpr auto UpsertSpaceRootAliasResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(UpsertSpaceRootAliasResponse),
+                                            alignof(UpsertSpaceRootAliasResponse));
+}
+constexpr auto UpsertSpaceRootAliasResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_UpsertSpaceRootAliasResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &UpsertSpaceRootAliasResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<UpsertSpaceRootAliasResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &UpsertSpaceRootAliasResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<UpsertSpaceRootAliasResponse>(), &UpsertSpaceRootAliasResponse::ByteSizeLong,
+              &UpsertSpaceRootAliasResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(UpsertSpaceRootAliasResponse, _impl_._cached_size_),
+          false,
+      },
+      &UpsertSpaceRootAliasResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull UpsertSpaceRootAliasResponse_class_data_ =
+        UpsertSpaceRootAliasResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+UpsertSpaceRootAliasResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&UpsertSpaceRootAliasResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(UpsertSpaceRootAliasResponse_class_data_.tc_table);
+  return UpsertSpaceRootAliasResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 1, 0, 2>
+UpsertSpaceRootAliasResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(UpsertSpaceRootAliasResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    UpsertSpaceRootAliasResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::root::UpsertSpaceRootAliasResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .s4wave.root.SpaceRootAliasRecord record = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(UpsertSpaceRootAliasResponse, _impl_.record_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .s4wave.root.SpaceRootAliasRecord record = 1;
+    {PROTOBUF_FIELD_OFFSET(UpsertSpaceRootAliasResponse, _impl_.record_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::root::SpaceRootAliasRecord>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void UpsertSpaceRootAliasResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.root.UpsertSpaceRootAliasResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    ABSL_DCHECK(_impl_.record_ != nullptr);
+    _impl_.record_->Clear();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL UpsertSpaceRootAliasResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const UpsertSpaceRootAliasResponse& this_ = static_cast<const UpsertSpaceRootAliasResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL UpsertSpaceRootAliasResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const UpsertSpaceRootAliasResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.root.UpsertSpaceRootAliasResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .s4wave.root.SpaceRootAliasRecord record = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        1, *this_._impl_.record_, this_._impl_.record_->GetCachedSize(), target,
+        stream);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.root.UpsertSpaceRootAliasResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t UpsertSpaceRootAliasResponse::ByteSizeLong(const MessageLite& base) {
+  const UpsertSpaceRootAliasResponse& this_ = static_cast<const UpsertSpaceRootAliasResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t UpsertSpaceRootAliasResponse::ByteSizeLong() const {
+  const UpsertSpaceRootAliasResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.root.UpsertSpaceRootAliasResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // .s4wave.root.SpaceRootAliasRecord record = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.record_);
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void UpsertSpaceRootAliasResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<UpsertSpaceRootAliasResponse*>(&to_msg);
+  auto& from = static_cast<const UpsertSpaceRootAliasResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.root.UpsertSpaceRootAliasResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    ABSL_DCHECK(from._impl_.record_ != nullptr);
+    if (_this->_impl_.record_ == nullptr) {
+      _this->_impl_.record_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.record_);
+    } else {
+      _this->_impl_.record_->MergeFrom(*from._impl_.record_);
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void UpsertSpaceRootAliasResponse::CopyFrom(const UpsertSpaceRootAliasResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.root.UpsertSpaceRootAliasResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void UpsertSpaceRootAliasResponse::InternalSwap(UpsertSpaceRootAliasResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.record_, other->_impl_.record_);
+}
+
+::google::protobuf::Metadata UpsertSpaceRootAliasResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class RemoveSpaceRootAliasRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<RemoveSpaceRootAliasRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(RemoveSpaceRootAliasRequest, _impl_._has_bits_);
+};
+
+RemoveSpaceRootAliasRequest::RemoveSpaceRootAliasRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, RemoveSpaceRootAliasRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.root.RemoveSpaceRootAliasRequest)
+}
+PROTOBUF_NDEBUG_INLINE RemoveSpaceRootAliasRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::root::RemoveSpaceRootAliasRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        alias_id_(arena, from.alias_id_) {}
+
+RemoveSpaceRootAliasRequest::RemoveSpaceRootAliasRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const RemoveSpaceRootAliasRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, RemoveSpaceRootAliasRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  RemoveSpaceRootAliasRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.root.RemoveSpaceRootAliasRequest)
+}
+PROTOBUF_NDEBUG_INLINE RemoveSpaceRootAliasRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        alias_id_(arena) {}
+
+inline void RemoveSpaceRootAliasRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+RemoveSpaceRootAliasRequest::~RemoveSpaceRootAliasRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.root.RemoveSpaceRootAliasRequest)
+  SharedDtor(*this);
+}
+inline void RemoveSpaceRootAliasRequest::SharedDtor(MessageLite& self) {
+  RemoveSpaceRootAliasRequest& this_ = static_cast<RemoveSpaceRootAliasRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.alias_id_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL RemoveSpaceRootAliasRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) RemoveSpaceRootAliasRequest(arena);
+}
+constexpr auto RemoveSpaceRootAliasRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(RemoveSpaceRootAliasRequest),
+                                            alignof(RemoveSpaceRootAliasRequest));
+}
+constexpr auto RemoveSpaceRootAliasRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_RemoveSpaceRootAliasRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &RemoveSpaceRootAliasRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<RemoveSpaceRootAliasRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &RemoveSpaceRootAliasRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<RemoveSpaceRootAliasRequest>(), &RemoveSpaceRootAliasRequest::ByteSizeLong,
+              &RemoveSpaceRootAliasRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(RemoveSpaceRootAliasRequest, _impl_._cached_size_),
+          false,
+      },
+      &RemoveSpaceRootAliasRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull RemoveSpaceRootAliasRequest_class_data_ =
+        RemoveSpaceRootAliasRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+RemoveSpaceRootAliasRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&RemoveSpaceRootAliasRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(RemoveSpaceRootAliasRequest_class_data_.tc_table);
+  return RemoveSpaceRootAliasRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 0, 56, 2>
+RemoveSpaceRootAliasRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(RemoveSpaceRootAliasRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    RemoveSpaceRootAliasRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::root::RemoveSpaceRootAliasRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string alias_id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(RemoveSpaceRootAliasRequest, _impl_.alias_id_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string alias_id = 1;
+    {PROTOBUF_FIELD_OFFSET(RemoveSpaceRootAliasRequest, _impl_.alias_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\47\10\0\0\0\0\0\0"
+    "s4wave.root.RemoveSpaceRootAliasRequest"
+    "alias_id"
+  }},
+};
+PROTOBUF_NOINLINE void RemoveSpaceRootAliasRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.root.RemoveSpaceRootAliasRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    _impl_.alias_id_.ClearNonDefaultToEmpty();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL RemoveSpaceRootAliasRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const RemoveSpaceRootAliasRequest& this_ = static_cast<const RemoveSpaceRootAliasRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL RemoveSpaceRootAliasRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const RemoveSpaceRootAliasRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.root.RemoveSpaceRootAliasRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string alias_id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_alias_id().empty()) {
+      const ::std::string& _s = this_._internal_alias_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.root.RemoveSpaceRootAliasRequest.alias_id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.root.RemoveSpaceRootAliasRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t RemoveSpaceRootAliasRequest::ByteSizeLong(const MessageLite& base) {
+  const RemoveSpaceRootAliasRequest& this_ = static_cast<const RemoveSpaceRootAliasRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t RemoveSpaceRootAliasRequest::ByteSizeLong() const {
+  const RemoveSpaceRootAliasRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.root.RemoveSpaceRootAliasRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // string alias_id = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_alias_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_alias_id());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void RemoveSpaceRootAliasRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<RemoveSpaceRootAliasRequest*>(&to_msg);
+  auto& from = static_cast<const RemoveSpaceRootAliasRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.root.RemoveSpaceRootAliasRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!from._internal_alias_id().empty()) {
+      _this->_internal_set_alias_id(from._internal_alias_id());
+    } else {
+      if (_this->_impl_.alias_id_.IsDefault()) {
+        _this->_internal_set_alias_id("");
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void RemoveSpaceRootAliasRequest::CopyFrom(const RemoveSpaceRootAliasRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.root.RemoveSpaceRootAliasRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void RemoveSpaceRootAliasRequest::InternalSwap(RemoveSpaceRootAliasRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.alias_id_, &other->_impl_.alias_id_, arena);
+}
+
+::google::protobuf::Metadata RemoveSpaceRootAliasRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class RemoveSpaceRootAliasResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<RemoveSpaceRootAliasResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(RemoveSpaceRootAliasResponse, _impl_._has_bits_);
+};
+
+RemoveSpaceRootAliasResponse::RemoveSpaceRootAliasResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, RemoveSpaceRootAliasResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.root.RemoveSpaceRootAliasResponse)
+}
+RemoveSpaceRootAliasResponse::RemoveSpaceRootAliasResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const RemoveSpaceRootAliasResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, RemoveSpaceRootAliasResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(from._impl_) {
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+PROTOBUF_NDEBUG_INLINE RemoveSpaceRootAliasResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void RemoveSpaceRootAliasResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.not_found_ = {};
+}
+RemoveSpaceRootAliasResponse::~RemoveSpaceRootAliasResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.root.RemoveSpaceRootAliasResponse)
+  SharedDtor(*this);
+}
+inline void RemoveSpaceRootAliasResponse::SharedDtor(MessageLite& self) {
+  RemoveSpaceRootAliasResponse& this_ = static_cast<RemoveSpaceRootAliasResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL RemoveSpaceRootAliasResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) RemoveSpaceRootAliasResponse(arena);
+}
+constexpr auto RemoveSpaceRootAliasResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(RemoveSpaceRootAliasResponse),
+                                            alignof(RemoveSpaceRootAliasResponse));
+}
+constexpr auto RemoveSpaceRootAliasResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_RemoveSpaceRootAliasResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &RemoveSpaceRootAliasResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<RemoveSpaceRootAliasResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &RemoveSpaceRootAliasResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<RemoveSpaceRootAliasResponse>(), &RemoveSpaceRootAliasResponse::ByteSizeLong,
+              &RemoveSpaceRootAliasResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(RemoveSpaceRootAliasResponse, _impl_._cached_size_),
+          false,
+      },
+      &RemoveSpaceRootAliasResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull RemoveSpaceRootAliasResponse_class_data_ =
+        RemoveSpaceRootAliasResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+RemoveSpaceRootAliasResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&RemoveSpaceRootAliasResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(RemoveSpaceRootAliasResponse_class_data_.tc_table);
+  return RemoveSpaceRootAliasResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 0, 0, 2>
+RemoveSpaceRootAliasResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(RemoveSpaceRootAliasResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    RemoveSpaceRootAliasResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::root::RemoveSpaceRootAliasResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // bool not_found = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(RemoveSpaceRootAliasResponse, _impl_.not_found_), 0>(),
+     {8, 0, 0,
+      PROTOBUF_FIELD_OFFSET(RemoveSpaceRootAliasResponse, _impl_.not_found_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // bool not_found = 1;
+    {PROTOBUF_FIELD_OFFSET(RemoveSpaceRootAliasResponse, _impl_.not_found_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+  }},
+  // no aux_entries
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void RemoveSpaceRootAliasResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.root.RemoveSpaceRootAliasResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.not_found_ = false;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL RemoveSpaceRootAliasResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const RemoveSpaceRootAliasResponse& this_ = static_cast<const RemoveSpaceRootAliasResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL RemoveSpaceRootAliasResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const RemoveSpaceRootAliasResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.root.RemoveSpaceRootAliasResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // bool not_found = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (this_._internal_not_found() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          1, this_._internal_not_found(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.root.RemoveSpaceRootAliasResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t RemoveSpaceRootAliasResponse::ByteSizeLong(const MessageLite& base) {
+  const RemoveSpaceRootAliasResponse& this_ = static_cast<const RemoveSpaceRootAliasResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t RemoveSpaceRootAliasResponse::ByteSizeLong() const {
+  const RemoveSpaceRootAliasResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.root.RemoveSpaceRootAliasResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // bool not_found = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (this_._internal_not_found() != 0) {
+        total_size += 2;
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void RemoveSpaceRootAliasResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<RemoveSpaceRootAliasResponse*>(&to_msg);
+  auto& from = static_cast<const RemoveSpaceRootAliasResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.root.RemoveSpaceRootAliasResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (from._internal_not_found() != 0) {
+      _this->_impl_.not_found_ = from._impl_.not_found_;
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void RemoveSpaceRootAliasResponse::CopyFrom(const RemoveSpaceRootAliasResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.root.RemoveSpaceRootAliasResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void RemoveSpaceRootAliasResponse::InternalSwap(RemoveSpaceRootAliasResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.not_found_, other->_impl_.not_found_);
+}
+
+::google::protobuf::Metadata RemoveSpaceRootAliasResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class WatchSpaceRootRuntimeRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<WatchSpaceRootRuntimeRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeRequest, _impl_._has_bits_);
+};
+
+WatchSpaceRootRuntimeRequest::WatchSpaceRootRuntimeRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, WatchSpaceRootRuntimeRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.root.WatchSpaceRootRuntimeRequest)
+}
+PROTOBUF_NDEBUG_INLINE WatchSpaceRootRuntimeRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::root::WatchSpaceRootRuntimeRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        alias_id_(arena, from.alias_id_) {}
+
+WatchSpaceRootRuntimeRequest::WatchSpaceRootRuntimeRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const WatchSpaceRootRuntimeRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, WatchSpaceRootRuntimeRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  WatchSpaceRootRuntimeRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.autostart_ = from._impl_.autostart_;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.root.WatchSpaceRootRuntimeRequest)
+}
+PROTOBUF_NDEBUG_INLINE WatchSpaceRootRuntimeRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        alias_id_(arena) {}
+
+inline void WatchSpaceRootRuntimeRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.autostart_ = {};
+}
+WatchSpaceRootRuntimeRequest::~WatchSpaceRootRuntimeRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.root.WatchSpaceRootRuntimeRequest)
+  SharedDtor(*this);
+}
+inline void WatchSpaceRootRuntimeRequest::SharedDtor(MessageLite& self) {
+  WatchSpaceRootRuntimeRequest& this_ = static_cast<WatchSpaceRootRuntimeRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.alias_id_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL WatchSpaceRootRuntimeRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) WatchSpaceRootRuntimeRequest(arena);
+}
+constexpr auto WatchSpaceRootRuntimeRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(WatchSpaceRootRuntimeRequest),
+                                            alignof(WatchSpaceRootRuntimeRequest));
+}
+constexpr auto WatchSpaceRootRuntimeRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_WatchSpaceRootRuntimeRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &WatchSpaceRootRuntimeRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<WatchSpaceRootRuntimeRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &WatchSpaceRootRuntimeRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<WatchSpaceRootRuntimeRequest>(), &WatchSpaceRootRuntimeRequest::ByteSizeLong,
+              &WatchSpaceRootRuntimeRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeRequest, _impl_._cached_size_),
+          false,
+      },
+      &WatchSpaceRootRuntimeRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull WatchSpaceRootRuntimeRequest_class_data_ =
+        WatchSpaceRootRuntimeRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+WatchSpaceRootRuntimeRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&WatchSpaceRootRuntimeRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(WatchSpaceRootRuntimeRequest_class_data_.tc_table);
+  return WatchSpaceRootRuntimeRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 0, 57, 2>
+WatchSpaceRootRuntimeRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    WatchSpaceRootRuntimeRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::root::WatchSpaceRootRuntimeRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // bool autostart = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(WatchSpaceRootRuntimeRequest, _impl_.autostart_), 1>(),
+     {16, 1, 0,
+      PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeRequest, _impl_.autostart_)}},
+    // string alias_id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeRequest, _impl_.alias_id_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string alias_id = 1;
+    {PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeRequest, _impl_.alias_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // bool autostart = 2;
+    {PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeRequest, _impl_.autostart_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+  }},
+  // no aux_entries
+  {{
+    "\50\10\0\0\0\0\0\0"
+    "s4wave.root.WatchSpaceRootRuntimeRequest"
+    "alias_id"
+  }},
+};
+PROTOBUF_NOINLINE void WatchSpaceRootRuntimeRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.root.WatchSpaceRootRuntimeRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    _impl_.alias_id_.ClearNonDefaultToEmpty();
+  }
+  _impl_.autostart_ = false;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL WatchSpaceRootRuntimeRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const WatchSpaceRootRuntimeRequest& this_ = static_cast<const WatchSpaceRootRuntimeRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL WatchSpaceRootRuntimeRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const WatchSpaceRootRuntimeRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.root.WatchSpaceRootRuntimeRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string alias_id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_alias_id().empty()) {
+      const ::std::string& _s = this_._internal_alias_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.root.WatchSpaceRootRuntimeRequest.alias_id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // bool autostart = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (this_._internal_autostart() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          2, this_._internal_autostart(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.root.WatchSpaceRootRuntimeRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t WatchSpaceRootRuntimeRequest::ByteSizeLong(const MessageLite& base) {
+  const WatchSpaceRootRuntimeRequest& this_ = static_cast<const WatchSpaceRootRuntimeRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t WatchSpaceRootRuntimeRequest::ByteSizeLong() const {
+  const WatchSpaceRootRuntimeRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.root.WatchSpaceRootRuntimeRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    // string alias_id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_alias_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_alias_id());
+      }
+    }
+    // bool autostart = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (this_._internal_autostart() != 0) {
+        total_size += 2;
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void WatchSpaceRootRuntimeRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<WatchSpaceRootRuntimeRequest*>(&to_msg);
+  auto& from = static_cast<const WatchSpaceRootRuntimeRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.root.WatchSpaceRootRuntimeRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_alias_id().empty()) {
+        _this->_internal_set_alias_id(from._internal_alias_id());
+      } else {
+        if (_this->_impl_.alias_id_.IsDefault()) {
+          _this->_internal_set_alias_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (from._internal_autostart() != 0) {
+        _this->_impl_.autostart_ = from._impl_.autostart_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void WatchSpaceRootRuntimeRequest::CopyFrom(const WatchSpaceRootRuntimeRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.root.WatchSpaceRootRuntimeRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void WatchSpaceRootRuntimeRequest::InternalSwap(WatchSpaceRootRuntimeRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.alias_id_, &other->_impl_.alias_id_, arena);
+  swap(_impl_.autostart_, other->_impl_.autostart_);
+}
+
+::google::protobuf::Metadata WatchSpaceRootRuntimeRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class WatchSpaceRootRuntimeResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<WatchSpaceRootRuntimeResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_._has_bits_);
+};
+
+void WatchSpaceRootRuntimeResponse::clear_sessions() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.sessions_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+WatchSpaceRootRuntimeResponse::WatchSpaceRootRuntimeResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, WatchSpaceRootRuntimeResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.root.WatchSpaceRootRuntimeResponse)
+}
+PROTOBUF_NDEBUG_INLINE WatchSpaceRootRuntimeResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::root::WatchSpaceRootRuntimeResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        sessions_{visibility, arena, from.sessions_},
+        alias_id_(arena, from.alias_id_),
+        state_path_(arena, from.state_path_),
+        socket_path_(arena, from.socket_path_),
+        error_(arena, from.error_) {}
+
+WatchSpaceRootRuntimeResponse::WatchSpaceRootRuntimeResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const WatchSpaceRootRuntimeResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, WatchSpaceRootRuntimeResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  WatchSpaceRootRuntimeResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.status_ = from._impl_.status_;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.root.WatchSpaceRootRuntimeResponse)
+}
+PROTOBUF_NDEBUG_INLINE WatchSpaceRootRuntimeResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        sessions_{visibility, arena},
+        alias_id_(arena),
+        state_path_(arena),
+        socket_path_(arena),
+        error_(arena) {}
+
+inline void WatchSpaceRootRuntimeResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.status_ = {};
+}
+WatchSpaceRootRuntimeResponse::~WatchSpaceRootRuntimeResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.root.WatchSpaceRootRuntimeResponse)
+  SharedDtor(*this);
+}
+inline void WatchSpaceRootRuntimeResponse::SharedDtor(MessageLite& self) {
+  WatchSpaceRootRuntimeResponse& this_ = static_cast<WatchSpaceRootRuntimeResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.alias_id_.Destroy();
+  this_._impl_.state_path_.Destroy();
+  this_._impl_.socket_path_.Destroy();
+  this_._impl_.error_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL WatchSpaceRootRuntimeResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) WatchSpaceRootRuntimeResponse(arena);
+}
+constexpr auto WatchSpaceRootRuntimeResponse::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_.sessions_) +
+          decltype(WatchSpaceRootRuntimeResponse::_impl_.sessions_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
+        sizeof(WatchSpaceRootRuntimeResponse), alignof(WatchSpaceRootRuntimeResponse), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&WatchSpaceRootRuntimeResponse::PlacementNew_,
+                                 sizeof(WatchSpaceRootRuntimeResponse),
+                                 alignof(WatchSpaceRootRuntimeResponse));
+  }
+}
+constexpr auto WatchSpaceRootRuntimeResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_WatchSpaceRootRuntimeResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &WatchSpaceRootRuntimeResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<WatchSpaceRootRuntimeResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &WatchSpaceRootRuntimeResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<WatchSpaceRootRuntimeResponse>(), &WatchSpaceRootRuntimeResponse::ByteSizeLong,
+              &WatchSpaceRootRuntimeResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_._cached_size_),
+          false,
+      },
+      &WatchSpaceRootRuntimeResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull WatchSpaceRootRuntimeResponse_class_data_ =
+        WatchSpaceRootRuntimeResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+WatchSpaceRootRuntimeResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&WatchSpaceRootRuntimeResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(WatchSpaceRootRuntimeResponse_class_data_.tc_table);
+  return WatchSpaceRootRuntimeResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 6, 1, 84, 2>
+WatchSpaceRootRuntimeResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    6, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967232,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    6,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    WatchSpaceRootRuntimeResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::root::WatchSpaceRootRuntimeResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // .s4wave.root.SpaceRootRuntimeStatus status = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(WatchSpaceRootRuntimeResponse, _impl_.status_), 5>(),
+     {8, 5, 0,
+      PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_.status_)}},
+    // string alias_id = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_.alias_id_)}},
+    // string state_path = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 2, 0,
+      PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_.state_path_)}},
+    // string socket_path = 4;
+    {::_pbi::TcParser::FastUS1,
+     {34, 3, 0,
+      PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_.socket_path_)}},
+    // repeated .session.SessionListEntry sessions = 5;
+    {::_pbi::TcParser::FastMtR1,
+     {42, 0, 0,
+      PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_.sessions_)}},
+    // string error = 6;
+    {::_pbi::TcParser::FastUS1,
+     {50, 4, 0,
+      PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_.error_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .s4wave.root.SpaceRootRuntimeStatus status = 1;
+    {PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_.status_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // string alias_id = 2;
+    {PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_.alias_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string state_path = 3;
+    {PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_.state_path_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string socket_path = 4;
+    {PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_.socket_path_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // repeated .session.SessionListEntry sessions = 5;
+    {PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_.sessions_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    // string error = 6;
+    {PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_.error_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::session::SessionListEntry>()},
+  }},
+  {{
+    "\51\0\10\12\13\0\5\0"
+    "s4wave.root.WatchSpaceRootRuntimeResponse"
+    "alias_id"
+    "state_path"
+    "socket_path"
+    "error"
+  }},
+};
+PROTOBUF_NOINLINE void WatchSpaceRootRuntimeResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.root.WatchSpaceRootRuntimeResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.sessions_.Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.alias_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.state_path_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.socket_path_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      _impl_.error_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_.status_ = 0;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL WatchSpaceRootRuntimeResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const WatchSpaceRootRuntimeResponse& this_ = static_cast<const WatchSpaceRootRuntimeResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL WatchSpaceRootRuntimeResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const WatchSpaceRootRuntimeResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.root.WatchSpaceRootRuntimeResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .s4wave.root.SpaceRootRuntimeStatus status = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (this_._internal_status() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          1, this_._internal_status(), target);
+    }
+  }
+
+  // string alias_id = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_alias_id().empty()) {
+      const ::std::string& _s = this_._internal_alias_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.root.WatchSpaceRootRuntimeResponse.alias_id");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // string state_path = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_state_path().empty()) {
+      const ::std::string& _s = this_._internal_state_path();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.root.WatchSpaceRootRuntimeResponse.state_path");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // string socket_path = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_socket_path().empty()) {
+      const ::std::string& _s = this_._internal_socket_path();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.root.WatchSpaceRootRuntimeResponse.socket_path");
+      target = stream->WriteStringMaybeAliased(4, _s, target);
+    }
+  }
+
+  // repeated .session.SessionListEntry sessions = 5;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_sessions_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_sessions().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              5, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  // string error = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (!this_._internal_error().empty()) {
+      const ::std::string& _s = this_._internal_error();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.root.WatchSpaceRootRuntimeResponse.error");
+      target = stream->WriteStringMaybeAliased(6, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.root.WatchSpaceRootRuntimeResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t WatchSpaceRootRuntimeResponse::ByteSizeLong(const MessageLite& base) {
+  const WatchSpaceRootRuntimeResponse& this_ = static_cast<const WatchSpaceRootRuntimeResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t WatchSpaceRootRuntimeResponse::ByteSizeLong() const {
+  const WatchSpaceRootRuntimeResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.root.WatchSpaceRootRuntimeResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+    // repeated .session.SessionListEntry sessions = 5;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size += 1UL * this_._internal_sessions_size();
+      for (const auto& msg : this_._internal_sessions()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+    // string alias_id = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_alias_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_alias_id());
+      }
+    }
+    // string state_path = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_state_path().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_state_path());
+      }
+    }
+    // string socket_path = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_socket_path().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_socket_path());
+      }
+    }
+    // string error = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!this_._internal_error().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_error());
+      }
+    }
+    // .s4wave.root.SpaceRootRuntimeStatus status = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (this_._internal_status() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_status());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void WatchSpaceRootRuntimeResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<WatchSpaceRootRuntimeResponse*>(&to_msg);
+  auto& from = static_cast<const WatchSpaceRootRuntimeResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.root.WatchSpaceRootRuntimeResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_sessions()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_sessions());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_alias_id().empty()) {
+        _this->_internal_set_alias_id(from._internal_alias_id());
+      } else {
+        if (_this->_impl_.alias_id_.IsDefault()) {
+          _this->_internal_set_alias_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_state_path().empty()) {
+        _this->_internal_set_state_path(from._internal_state_path());
+      } else {
+        if (_this->_impl_.state_path_.IsDefault()) {
+          _this->_internal_set_state_path("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_socket_path().empty()) {
+        _this->_internal_set_socket_path(from._internal_socket_path());
+      } else {
+        if (_this->_impl_.socket_path_.IsDefault()) {
+          _this->_internal_set_socket_path("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!from._internal_error().empty()) {
+        _this->_internal_set_error(from._internal_error());
+      } else {
+        if (_this->_impl_.error_.IsDefault()) {
+          _this->_internal_set_error("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (from._internal_status() != 0) {
+        _this->_impl_.status_ = from._impl_.status_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void WatchSpaceRootRuntimeResponse::CopyFrom(const WatchSpaceRootRuntimeResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.root.WatchSpaceRootRuntimeResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void WatchSpaceRootRuntimeResponse::InternalSwap(WatchSpaceRootRuntimeResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.sessions_.InternalSwap(&other->_impl_.sessions_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.alias_id_, &other->_impl_.alias_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.state_path_, &other->_impl_.state_path_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.socket_path_, &other->_impl_.socket_path_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.error_, &other->_impl_.error_, arena);
+  swap(_impl_.status_, other->_impl_.status_);
+}
+
+::google::protobuf::Metadata WatchSpaceRootRuntimeResponse::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================

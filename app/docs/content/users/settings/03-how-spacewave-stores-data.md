@@ -15,6 +15,8 @@ When you create a space, add files, or write notes, that data is saved to your d
 
 In the browser, data is stored in a private filesystem (OPFS) tied to the Spacewave domain. It survives reloads but can be cleared if you clear site data. In the desktop app, data lives as regular files you can back up with normal tools.
 
+The desktop app can also register another existing `.spacewave` state directory from the session picker. Registered roots are stored in the primary desktop state and can be opened as separate local runtime sources. Single `.s4wave` volume files and browser directory grants are not supported in this flow yet.
+
 All data is encrypted on your device. If you enable cloud sync, only encrypted blocks are uploaded. The server cannot read your content.
 
 Linked devices exchange data peer-to-peer. Each device keeps its own complete copy and continues working offline, syncing changes when reconnected.

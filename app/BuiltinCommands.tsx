@@ -8,6 +8,7 @@ import { AboutDialog } from '@s4wave/app/AboutDialog.js'
 import { EmailSupportDialog } from '@s4wave/app/EmailSupportDialog.js'
 import { DISCORD_INVITE_URL, GITHUB_ISSUES_URL } from '@s4wave/app/github.js'
 import { SPACEWAVE_PUBLIC_BASE_URL } from '@s4wave/app/urls.js'
+import { useAddSpaceRootAlias } from '@s4wave/app/hooks/useAddSpaceRootAlias.js'
 import {
   addTab as addShellTab,
   useShellTabs,
@@ -20,6 +21,10 @@ export function BuiltinCommands() {
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const [aboutOpen, setAboutOpen] = useState(false)
   const [emailSupportOpen, setEmailSupportOpen] = useState(false)
+  const {
+    add: addRootAlias,
+    canAdd: canAddRootAlias,
+  } = useAddSpaceRootAlias()
 
   const openPathInNewTab = useCallback(
     (path: string) => {
@@ -34,6 +39,19 @@ export function BuiltinCommands() {
     },
     [tabs, activeTabId, setTabs, setActiveTabId],
   )
+
+  useCommand({
+    commandId: 'spacewave.root.add',
+    label: 'Add State Root',
+    description: 'Register an existing .spacewave state directory',
+    menuPath: 'File/Add State Root',
+    menuGroup: 2,
+    menuOrder: 1,
+    enabled: canAddRootAlias,
+    handler: useCallback(() => {
+      void addRootAlias()
+    }, [addRootAlias]),
+  })
 
   useCommand({
     commandId: 'spacewave.view.fullscreen',

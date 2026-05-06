@@ -10,13 +10,22 @@ import {
 import {
   AccessStateAtomRequest,
   GetSessionMetadataResponse,
+  ListSpaceRootAliasesResponse,
   ListProvidersResponse,
   ListSessionsResponse,
   MountSessionRequest,
   MountSessionByIdxRequest,
   MountSessionByIdxResponse,
+  RemoveSpaceRootAliasRequest,
+  RemoveSpaceRootAliasResponse,
+  UpsertSpaceRootAliasRequest,
+  UpsertSpaceRootAliasResponse,
   WatchListenerStatusRequest,
   WatchListenerStatusResponse,
+  WatchSpaceRootAliasesRequest,
+  WatchSpaceRootAliasesResponse,
+  WatchSpaceRootRuntimeRequest,
+  WatchSpaceRootRuntimeResponse,
   WatchStateAtomsRequest,
   WatchStateAtomsResponse,
   WatchAllAccountStatusesRequest,
@@ -152,6 +161,46 @@ export class Root extends Resource {
     abortSignal?: AbortSignal,
   ): AsyncIterable<WatchStateAtomsResponse> {
     return this.service.WatchStateAtoms(request ?? {}, abortSignal)
+  }
+
+  // listSpaceRootAliases lists configured local state-root records.
+  public async listSpaceRootAliases(
+    abortSignal?: AbortSignal,
+  ): Promise<ListSpaceRootAliasesResponse> {
+    return await this.service.ListSpaceRootAliases({}, abortSignal)
+  }
+
+  // watchSpaceRootAliases streams configured local state-root records.
+  public watchSpaceRootAliases(
+    request?: WatchSpaceRootAliasesRequest,
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<WatchSpaceRootAliasesResponse> {
+    return this.service.WatchSpaceRootAliases(request ?? {}, abortSignal)
+  }
+
+  // watchSpaceRootRuntime streams sessions from a selected configured root daemon.
+  public watchSpaceRootRuntime(
+    request: WatchSpaceRootRuntimeRequest,
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<WatchSpaceRootRuntimeResponse> {
+    return this.service.WatchSpaceRootRuntime(request, abortSignal)
+  }
+
+  // upsertSpaceRootAlias validates and persists a configured local state root.
+  public async upsertSpaceRootAlias(
+    request: UpsertSpaceRootAliasRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<UpsertSpaceRootAliasResponse> {
+    return await this.service.UpsertSpaceRootAlias(request, abortSignal)
+  }
+
+  // removeSpaceRootAlias removes a configured local state root.
+  public async removeSpaceRootAlias(
+    request: RemoveSpaceRootAliasRequest | string,
+    abortSignal?: AbortSignal,
+  ): Promise<RemoveSpaceRootAliasResponse> {
+    const req = typeof request === 'string' ? { aliasId: request } : request
+    return await this.service.RemoveSpaceRootAlias(req, abortSignal)
   }
 
   // listProviders lists the available providers.

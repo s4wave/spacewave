@@ -26,6 +26,8 @@ export interface BldrElectron {
     // port is the client port bridge.
     port: MessagePortBridge<WebRuntimeToClient, ClientToWebRuntime>,
   ): Promise<void>
+  // openDirectory opens a native directory picker and returns the selected path.
+  openDirectory(): Promise<string | null>
 }
 
 // BLDR_ELECTRON is declared if this is Electron.
@@ -77,6 +79,15 @@ export async function openElectronPort(
     init,
     messagePortToMessagePortBridge(port),
   )
+}
+
+// openElectronDirectory opens the native directory picker.
+export async function openElectronDirectory(): Promise<string | null> {
+  if (!BLDR_ELECTRON) {
+    throw new Error('not running in electron')
+  }
+
+  return BLDR_ELECTRON.openDirectory()
 }
 
 // handleElectronWorkerPort handles the other end of the WebDocument.webRuntimePort.

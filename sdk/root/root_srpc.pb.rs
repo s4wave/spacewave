@@ -52,6 +52,28 @@ pub trait RootResourceServiceWatchStateAtomsStream: Send + Sync {
     async fn close(&self) -> starpc::Result<()>;
 }
 
+/// Stream trait for RootResourceService.WatchSpaceRootAliases.
+#[starpc::async_trait]
+pub trait RootResourceServiceWatchSpaceRootAliasesStream: Send + Sync {
+    /// Returns the context for this stream.
+    fn context(&self) -> &starpc::Context;
+    /// Receives a message from the stream.
+    async fn recv(&self) -> starpc::Result<WatchSpaceRootAliasesResponse>;
+    /// Closes the stream.
+    async fn close(&self) -> starpc::Result<()>;
+}
+
+/// Stream trait for RootResourceService.WatchSpaceRootRuntime.
+#[starpc::async_trait]
+pub trait RootResourceServiceWatchSpaceRootRuntimeStream: Send + Sync {
+    /// Returns the context for this stream.
+    fn context(&self) -> &starpc::Context;
+    /// Receives a message from the stream.
+    async fn recv(&self) -> starpc::Result<WatchSpaceRootRuntimeResponse>;
+    /// Closes the stream.
+    async fn close(&self) -> starpc::Result<()>;
+}
+
 /// Stream trait for RootResourceService.WatchWebListeners.
 #[starpc::async_trait]
 pub trait RootResourceServiceWatchWebListenersStream: Send + Sync {
@@ -127,6 +149,16 @@ pub trait RootResourceServiceClient: Send + Sync {
     async fn access_state_atom(&self, request: &AccessStateAtomRequest) -> starpc::Result<AccessStateAtomResponse>;
     /// WatchStateAtoms.
     async fn watch_state_atoms(&self, request: &WatchStateAtomsRequest) -> starpc::Result<Box<dyn RootResourceServiceWatchStateAtomsStream>>;
+    /// ListSpaceRootAliases.
+    async fn list_space_root_aliases(&self, request: &ListSpaceRootAliasesRequest) -> starpc::Result<ListSpaceRootAliasesResponse>;
+    /// WatchSpaceRootAliases.
+    async fn watch_space_root_aliases(&self, request: &WatchSpaceRootAliasesRequest) -> starpc::Result<Box<dyn RootResourceServiceWatchSpaceRootAliasesStream>>;
+    /// UpsertSpaceRootAlias.
+    async fn upsert_space_root_alias(&self, request: &UpsertSpaceRootAliasRequest) -> starpc::Result<UpsertSpaceRootAliasResponse>;
+    /// RemoveSpaceRootAlias.
+    async fn remove_space_root_alias(&self, request: &RemoveSpaceRootAliasRequest) -> starpc::Result<RemoveSpaceRootAliasResponse>;
+    /// WatchSpaceRootRuntime.
+    async fn watch_space_root_runtime(&self, request: &WatchSpaceRootRuntimeRequest) -> starpc::Result<Box<dyn RootResourceServiceWatchSpaceRootRuntimeStream>>;
     /// MarshalHash.
     async fn marshal_hash(&self, request: &MarshalHashRequest) -> starpc::Result<MarshalHashResponse>;
     /// ParseHash.
@@ -230,6 +262,29 @@ impl<C: starpc::Client + 'static> RootResourceServiceClient for RootResourceServ
         let stream = self.client.new_stream("s4wave.root.RootResourceService", "WatchStateAtoms", Some(&data)).await?;
         stream.close_send().await?;
         Ok(Box::new(RootResourceServiceWatchStateAtomsStreamImpl { stream }))
+    }
+    async fn list_space_root_aliases(&self, request: &ListSpaceRootAliasesRequest) -> starpc::Result<ListSpaceRootAliasesResponse> {
+        self.client.exec_call("s4wave.root.RootResourceService", "ListSpaceRootAliases", request).await
+    }
+    async fn watch_space_root_aliases(&self, request: &WatchSpaceRootAliasesRequest) -> starpc::Result<Box<dyn RootResourceServiceWatchSpaceRootAliasesStream>> {
+        use starpc::ProstMessage;
+        let data = request.encode_to_vec();
+        let stream = self.client.new_stream("s4wave.root.RootResourceService", "WatchSpaceRootAliases", Some(&data)).await?;
+        stream.close_send().await?;
+        Ok(Box::new(RootResourceServiceWatchSpaceRootAliasesStreamImpl { stream }))
+    }
+    async fn upsert_space_root_alias(&self, request: &UpsertSpaceRootAliasRequest) -> starpc::Result<UpsertSpaceRootAliasResponse> {
+        self.client.exec_call("s4wave.root.RootResourceService", "UpsertSpaceRootAlias", request).await
+    }
+    async fn remove_space_root_alias(&self, request: &RemoveSpaceRootAliasRequest) -> starpc::Result<RemoveSpaceRootAliasResponse> {
+        self.client.exec_call("s4wave.root.RootResourceService", "RemoveSpaceRootAlias", request).await
+    }
+    async fn watch_space_root_runtime(&self, request: &WatchSpaceRootRuntimeRequest) -> starpc::Result<Box<dyn RootResourceServiceWatchSpaceRootRuntimeStream>> {
+        use starpc::ProstMessage;
+        let data = request.encode_to_vec();
+        let stream = self.client.new_stream("s4wave.root.RootResourceService", "WatchSpaceRootRuntime", Some(&data)).await?;
+        stream.close_send().await?;
+        Ok(Box::new(RootResourceServiceWatchSpaceRootRuntimeStreamImpl { stream }))
     }
     async fn marshal_hash(&self, request: &MarshalHashRequest) -> starpc::Result<MarshalHashResponse> {
         self.client.exec_call("s4wave.root.RootResourceService", "MarshalHash", request).await
@@ -362,6 +417,40 @@ impl RootResourceServiceWatchStateAtomsStream for RootResourceServiceWatchStateA
     }
 }
 
+struct RootResourceServiceWatchSpaceRootAliasesStreamImpl {
+    stream: Box<dyn starpc::Stream>,
+}
+
+#[starpc::async_trait]
+impl RootResourceServiceWatchSpaceRootAliasesStream for RootResourceServiceWatchSpaceRootAliasesStreamImpl {
+    fn context(&self) -> &starpc::Context {
+        self.stream.context()
+    }
+    async fn recv(&self) -> starpc::Result<WatchSpaceRootAliasesResponse> {
+        self.stream.msg_recv().await
+    }
+    async fn close(&self) -> starpc::Result<()> {
+        self.stream.close().await
+    }
+}
+
+struct RootResourceServiceWatchSpaceRootRuntimeStreamImpl {
+    stream: Box<dyn starpc::Stream>,
+}
+
+#[starpc::async_trait]
+impl RootResourceServiceWatchSpaceRootRuntimeStream for RootResourceServiceWatchSpaceRootRuntimeStreamImpl {
+    fn context(&self) -> &starpc::Context {
+        self.stream.context()
+    }
+    async fn recv(&self) -> starpc::Result<WatchSpaceRootRuntimeResponse> {
+        self.stream.msg_recv().await
+    }
+    async fn close(&self) -> starpc::Result<()> {
+        self.stream.close().await
+    }
+}
+
 struct RootResourceServiceWatchWebListenersStreamImpl {
     stream: Box<dyn starpc::Stream>,
 }
@@ -461,6 +550,16 @@ pub trait RootResourceServiceServer: Send + Sync {
     async fn access_state_atom(&self, request: AccessStateAtomRequest) -> starpc::Result<AccessStateAtomResponse>;
     /// WatchStateAtoms.
     async fn watch_state_atoms(&self, request: WatchStateAtomsRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
+    /// ListSpaceRootAliases.
+    async fn list_space_root_aliases(&self, request: ListSpaceRootAliasesRequest) -> starpc::Result<ListSpaceRootAliasesResponse>;
+    /// WatchSpaceRootAliases.
+    async fn watch_space_root_aliases(&self, request: WatchSpaceRootAliasesRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
+    /// UpsertSpaceRootAlias.
+    async fn upsert_space_root_alias(&self, request: UpsertSpaceRootAliasRequest) -> starpc::Result<UpsertSpaceRootAliasResponse>;
+    /// RemoveSpaceRootAlias.
+    async fn remove_space_root_alias(&self, request: RemoveSpaceRootAliasRequest) -> starpc::Result<RemoveSpaceRootAliasResponse>;
+    /// WatchSpaceRootRuntime.
+    async fn watch_space_root_runtime(&self, request: WatchSpaceRootRuntimeRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
     /// MarshalHash.
     async fn marshal_hash(&self, request: MarshalHashRequest) -> starpc::Result<MarshalHashResponse>;
     /// ParseHash.
@@ -508,6 +607,11 @@ const ROOT_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
     "ResetSession",
     "AccessStateAtom",
     "WatchStateAtoms",
+    "ListSpaceRootAliases",
+    "WatchSpaceRootAliases",
+    "UpsertSpaceRootAlias",
+    "RemoveSpaceRootAlias",
+    "WatchSpaceRootRuntime",
     "MarshalHash",
     "ParseHash",
     "HashSum",
@@ -728,6 +832,65 @@ impl<S: RootResourceServiceServer + 'static> starpc::Invoker for RootResourceSer
                     Err(e) => return (true, Err(e)),
                 };
                 (true, self.server.watch_state_atoms(request, stream).await)
+            }
+            "ListSpaceRootAliases" => {
+                let request: ListSpaceRootAliasesRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.list_space_root_aliases(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "WatchSpaceRootAliases" => {
+                let request: WatchSpaceRootAliasesRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                (true, self.server.watch_space_root_aliases(request, stream).await)
+            }
+            "UpsertSpaceRootAlias" => {
+                let request: UpsertSpaceRootAliasRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.upsert_space_root_alias(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "RemoveSpaceRootAlias" => {
+                let request: RemoveSpaceRootAliasRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.remove_space_root_alias(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "WatchSpaceRootRuntime" => {
+                let request: WatchSpaceRootRuntimeRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                (true, self.server.watch_space_root_runtime(request, stream).await)
             }
             "MarshalHash" => {
                 let request: MarshalHashRequest = match stream.msg_recv().await {

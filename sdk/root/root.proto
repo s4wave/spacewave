@@ -24,6 +24,11 @@ service RootResourceService {
 
   rpc AccessStateAtom(AccessStateAtomRequest) returns (AccessStateAtomResponse);
   rpc WatchStateAtoms(WatchStateAtomsRequest) returns (stream WatchStateAtomsResponse);
+  rpc ListSpaceRootAliases(ListSpaceRootAliasesRequest) returns (ListSpaceRootAliasesResponse);
+  rpc WatchSpaceRootAliases(WatchSpaceRootAliasesRequest) returns (stream WatchSpaceRootAliasesResponse);
+  rpc UpsertSpaceRootAlias(UpsertSpaceRootAliasRequest) returns (UpsertSpaceRootAliasResponse);
+  rpc RemoveSpaceRootAlias(RemoveSpaceRootAliasRequest) returns (RemoveSpaceRootAliasResponse);
+  rpc WatchSpaceRootRuntime(WatchSpaceRootRuntimeRequest) returns (stream WatchSpaceRootRuntimeResponse);
 
   rpc MarshalHash(MarshalHashRequest) returns (MarshalHashResponse);
   rpc ParseHash(ParseHashRequest) returns (ParseHashResponse);
@@ -265,6 +270,156 @@ message WatchStateAtomsResponse {
   repeated string store_ids = 1;
   // StoreCount is the total number of known root state atom stores.
   uint32 store_count = 2;
+}
+
+// SpaceRootKind is the storage shape selected for a configured root.
+enum SpaceRootKind {
+  // SpaceRootKind_UNSPECIFIED is invalid for persisted records.
+  SpaceRootKind_UNSPECIFIED = 0;
+  // SpaceRootKind_NATIVE_DIRECTORY is a native filesystem state-root directory.
+  SpaceRootKind_NATIVE_DIRECTORY = 1;
+  // SpaceRootKind_S4WAVE_FILE is a deferred single-volume file shape.
+  SpaceRootKind_S4WAVE_FILE = 2;
+}
+
+// SpaceRootOpenMode is the user action used to create the registry entry.
+enum SpaceRootOpenMode {
+  // SpaceRootOpenMode_UNSPECIFIED is invalid for persisted records.
+  SpaceRootOpenMode_UNSPECIFIED = 0;
+  // SpaceRootOpenMode_OPEN_EXISTING opens an existing state root.
+  SpaceRootOpenMode_OPEN_EXISTING = 1;
+  // SpaceRootOpenMode_CREATE is deferred for this registry version.
+  SpaceRootOpenMode_CREATE = 2;
+}
+
+// SpaceRootStatus is the latest local validation status for a configured root.
+enum SpaceRootStatus {
+  // SpaceRootStatus_UNKNOWN means no validation has run in this process.
+  SpaceRootStatus_UNKNOWN = 0;
+  // SpaceRootStatus_READY means the root is supported and currently accessible.
+  SpaceRootStatus_READY = 1;
+  // SpaceRootStatus_MISSING means the native path no longer exists.
+  SpaceRootStatus_MISSING = 2;
+  // SpaceRootStatus_UNSUPPORTED means the record shape is known but unsupported.
+  SpaceRootStatus_UNSUPPORTED = 3;
+  // SpaceRootStatus_INVALID means the record is malformed or not a state root.
+  SpaceRootStatus_INVALID = 4;
+}
+
+// NativeSpaceRootMetadata stores native filesystem fields for a root record.
+message NativeSpaceRootMetadata {
+  // Path is the absolute native filesystem path.
+  string path = 1;
+}
+
+// BrowserSpaceRootMetadata reserves browser-grant fields for future support.
+message BrowserSpaceRootMetadata {
+  // Reserved is an intentionally empty extension point for browser handles.
+  reserved 1 to 15;
+}
+
+// SpaceRootAliasRecord is a durable configured local state-root registry entry.
+message SpaceRootAliasRecord {
+  // AliasId is the stable registry identity.
+  string alias_id = 1;
+  // DisplayName is the user-facing name for the configured root.
+  string display_name = 2;
+  // Kind is the storage shape for this record.
+  SpaceRootKind kind = 3;
+  // OpenMode is the explicit user action that created this record.
+  SpaceRootOpenMode open_mode = 4;
+  // Native stores native filesystem metadata.
+  NativeSpaceRootMetadata native = 5;
+  // Status is the latest validation status.
+  SpaceRootStatus status = 6;
+  // StatusMessage is a user-actionable validation message when not ready.
+  string status_message = 7;
+  // Browser reserves future browser-grant metadata.
+  BrowserSpaceRootMetadata browser = 8;
+  // CreatedAtUnixMs is when the alias was first persisted.
+  int64 created_at_unix_ms = 9;
+  // UpdatedAtUnixMs is when the alias was last updated.
+  int64 updated_at_unix_ms = 10;
+}
+
+// ListSpaceRootAliasesRequest is the request for ListSpaceRootAliases.
+message ListSpaceRootAliasesRequest {}
+
+// ListSpaceRootAliasesResponse is the configured root registry snapshot.
+message ListSpaceRootAliasesResponse {
+  // Records is the sorted configured root alias snapshot.
+  repeated SpaceRootAliasRecord records = 1;
+}
+
+// WatchSpaceRootAliasesRequest is the request for WatchSpaceRootAliases.
+message WatchSpaceRootAliasesRequest {}
+
+// WatchSpaceRootAliasesResponse is the current configured root registry snapshot.
+message WatchSpaceRootAliasesResponse {
+  // Records is the sorted configured root alias snapshot.
+  repeated SpaceRootAliasRecord records = 1;
+}
+
+// UpsertSpaceRootAliasRequest writes or updates a configured root alias.
+message UpsertSpaceRootAliasRequest {
+  // Record is the configured root alias record to validate and persist.
+  SpaceRootAliasRecord record = 1;
+}
+
+// UpsertSpaceRootAliasResponse returns the persisted record.
+message UpsertSpaceRootAliasResponse {
+  // Record is the validated persisted record.
+  SpaceRootAliasRecord record = 1;
+}
+
+// RemoveSpaceRootAliasRequest removes a configured root alias.
+message RemoveSpaceRootAliasRequest {
+  // AliasId is the stable registry identity to remove.
+  string alias_id = 1;
+}
+
+// RemoveSpaceRootAliasResponse is returned after a remove attempt.
+message RemoveSpaceRootAliasResponse {
+  // NotFound is true when AliasId was not present.
+  bool not_found = 1;
+}
+
+// SpaceRootRuntimeStatus is the connection status for a configured root daemon.
+enum SpaceRootRuntimeStatus {
+  // SpaceRootRuntimeStatus_IDLE means no runtime source is selected.
+  SpaceRootRuntimeStatus_IDLE = 0;
+  // SpaceRootRuntimeStatus_CONNECTING means the app is dialing the daemon.
+  SpaceRootRuntimeStatus_CONNECTING = 1;
+  // SpaceRootRuntimeStatus_STARTING means the app is starting the daemon.
+  SpaceRootRuntimeStatus_STARTING = 2;
+  // SpaceRootRuntimeStatus_READY means sessions are served from the root daemon.
+  SpaceRootRuntimeStatus_READY = 3;
+  // SpaceRootRuntimeStatus_ERROR means the runtime source is unavailable.
+  SpaceRootRuntimeStatus_ERROR = 4;
+}
+
+// WatchSpaceRootRuntimeRequest selects a configured root runtime source.
+message WatchSpaceRootRuntimeRequest {
+  // AliasId is the configured root alias to use.
+  string alias_id = 1;
+  // Autostart starts a daemon when no daemon is reachable.
+  bool autostart = 2;
+}
+
+// WatchSpaceRootRuntimeResponse streams the selected root daemon state.
+message WatchSpaceRootRuntimeResponse {
+  // Status is the current selected-root daemon status.
+  SpaceRootRuntimeStatus status = 1;
+  // AliasId is the configured root alias being used.
+  string alias_id = 2;
+  // StatePath is the absolute configured root path.
+  string state_path = 3;
+  // SocketPath is the selected daemon socket path.
+  string socket_path = 4;
+  // Sessions is the session snapshot from the selected root daemon.
+  repeated .session.SessionListEntry sessions = 5;
+  // Error is a user-actionable status message when status is ERROR.
+  string error = 6;
 }
 
 // GetChangelogRequest is the request type for GetChangelog.

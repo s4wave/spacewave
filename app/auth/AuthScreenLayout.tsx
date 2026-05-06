@@ -8,6 +8,7 @@ export interface AuthScreenLayoutProps extends React.ComponentPropsWithoutRef<'d
   intro: React.ReactNode
   topLeft?: React.ReactNode
   topRight?: React.ReactNode
+  bottomRight?: React.ReactNode
   alwaysShowIntro?: boolean
   introClassName?: string
   contentClassName?: string
@@ -24,6 +25,7 @@ export const AuthScreenLayout = forwardRef<
     intro,
     topLeft,
     topRight,
+    bottomRight,
     alwaysShowIntro,
     introClassName,
     contentClassName,
@@ -47,6 +49,9 @@ export const AuthScreenLayout = forwardRef<
       {topLeft && <div className="absolute top-4 left-4 z-20">{topLeft}</div>}
       {topRight && (
         <div className="absolute top-4 right-4 z-20">{topRight}</div>
+      )}
+      {bottomRight && (
+        <div className="absolute right-4 bottom-4 z-20">{bottomRight}</div>
       )}
 
       <div

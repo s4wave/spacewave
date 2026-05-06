@@ -20,7 +20,13 @@ async function openClientPort(
   ipcRenderer.postMessage('BLDR_ELECTRON_CLIENT_OPEN', init, [clientPort])
 }
 
+// openDirectory opens a native directory picker.
+async function openDirectory(): Promise<string | null> {
+  return await ipcRenderer.invoke('BLDR_ELECTRON_OPEN_DIRECTORY')
+}
+
 const exposeContext: BldrElectron = {
   openClientPort,
+  openDirectory,
 }
 contextBridge.exposeInMainWorld('BLDR_ELECTRON', exposeContext)

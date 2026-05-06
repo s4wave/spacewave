@@ -224,6 +224,10 @@ func CollectManifests(
 	for _, objKey := range manifestObjKeys {
 		manifest, manifestRef, err := LookupManifest(ctx, ws, objKey)
 		if err != nil {
+			cause := errors.Cause(err)
+			if cause == context.Canceled || cause == context.DeadlineExceeded {
+				return nil, manifestErrors, cause
+			}
 			manifestErrors = append(manifestErrors, errors.Wrapf(err, "manifests[%s]", objKey))
 			continue
 		}

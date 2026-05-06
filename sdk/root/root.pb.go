@@ -20,6 +20,182 @@ import (
 	hash "github.com/s4wave/spacewave/net/hash"
 )
 
+// SpaceRootKind is the storage shape selected for a configured root.
+type SpaceRootKind int32
+
+const (
+	// SpaceRootKind_UNSPECIFIED is invalid for persisted records.
+	SpaceRootKind_SpaceRootKind_UNSPECIFIED SpaceRootKind = 0
+	// SpaceRootKind_NATIVE_DIRECTORY is a native filesystem state-root directory.
+	SpaceRootKind_SpaceRootKind_NATIVE_DIRECTORY SpaceRootKind = 1
+	// SpaceRootKind_S4WAVE_FILE is a deferred single-volume file shape.
+	SpaceRootKind_SpaceRootKind_S4WAVE_FILE SpaceRootKind = 2
+)
+
+// Enum value maps for SpaceRootKind.
+var (
+	SpaceRootKind_name = map[int32]string{
+		0: "SpaceRootKind_UNSPECIFIED",
+		1: "SpaceRootKind_NATIVE_DIRECTORY",
+		2: "SpaceRootKind_S4WAVE_FILE",
+	}
+	SpaceRootKind_value = map[string]int32{
+		"SpaceRootKind_UNSPECIFIED":      0,
+		"SpaceRootKind_NATIVE_DIRECTORY": 1,
+		"SpaceRootKind_S4WAVE_FILE":      2,
+	}
+)
+
+func (x SpaceRootKind) Enum() *SpaceRootKind {
+	p := new(SpaceRootKind)
+	*p = x
+	return p
+}
+
+func (x SpaceRootKind) String() string {
+	name, valid := SpaceRootKind_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// SpaceRootOpenMode is the user action used to create the registry entry.
+type SpaceRootOpenMode int32
+
+const (
+	// SpaceRootOpenMode_UNSPECIFIED is invalid for persisted records.
+	SpaceRootOpenMode_SpaceRootOpenMode_UNSPECIFIED SpaceRootOpenMode = 0
+	// SpaceRootOpenMode_OPEN_EXISTING opens an existing state root.
+	SpaceRootOpenMode_SpaceRootOpenMode_OPEN_EXISTING SpaceRootOpenMode = 1
+	// SpaceRootOpenMode_CREATE is deferred for this registry version.
+	SpaceRootOpenMode_SpaceRootOpenMode_CREATE SpaceRootOpenMode = 2
+)
+
+// Enum value maps for SpaceRootOpenMode.
+var (
+	SpaceRootOpenMode_name = map[int32]string{
+		0: "SpaceRootOpenMode_UNSPECIFIED",
+		1: "SpaceRootOpenMode_OPEN_EXISTING",
+		2: "SpaceRootOpenMode_CREATE",
+	}
+	SpaceRootOpenMode_value = map[string]int32{
+		"SpaceRootOpenMode_UNSPECIFIED":   0,
+		"SpaceRootOpenMode_OPEN_EXISTING": 1,
+		"SpaceRootOpenMode_CREATE":        2,
+	}
+)
+
+func (x SpaceRootOpenMode) Enum() *SpaceRootOpenMode {
+	p := new(SpaceRootOpenMode)
+	*p = x
+	return p
+}
+
+func (x SpaceRootOpenMode) String() string {
+	name, valid := SpaceRootOpenMode_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// SpaceRootStatus is the latest local validation status for a configured root.
+type SpaceRootStatus int32
+
+const (
+	// SpaceRootStatus_UNKNOWN means no validation has run in this process.
+	SpaceRootStatus_SpaceRootStatus_UNKNOWN SpaceRootStatus = 0
+	// SpaceRootStatus_READY means the root is supported and currently accessible.
+	SpaceRootStatus_SpaceRootStatus_READY SpaceRootStatus = 1
+	// SpaceRootStatus_MISSING means the native path no longer exists.
+	SpaceRootStatus_SpaceRootStatus_MISSING SpaceRootStatus = 2
+	// SpaceRootStatus_UNSUPPORTED means the record shape is known but unsupported.
+	SpaceRootStatus_SpaceRootStatus_UNSUPPORTED SpaceRootStatus = 3
+	// SpaceRootStatus_INVALID means the record is malformed or not a state root.
+	SpaceRootStatus_SpaceRootStatus_INVALID SpaceRootStatus = 4
+)
+
+// Enum value maps for SpaceRootStatus.
+var (
+	SpaceRootStatus_name = map[int32]string{
+		0: "SpaceRootStatus_UNKNOWN",
+		1: "SpaceRootStatus_READY",
+		2: "SpaceRootStatus_MISSING",
+		3: "SpaceRootStatus_UNSUPPORTED",
+		4: "SpaceRootStatus_INVALID",
+	}
+	SpaceRootStatus_value = map[string]int32{
+		"SpaceRootStatus_UNKNOWN":     0,
+		"SpaceRootStatus_READY":       1,
+		"SpaceRootStatus_MISSING":     2,
+		"SpaceRootStatus_UNSUPPORTED": 3,
+		"SpaceRootStatus_INVALID":     4,
+	}
+)
+
+func (x SpaceRootStatus) Enum() *SpaceRootStatus {
+	p := new(SpaceRootStatus)
+	*p = x
+	return p
+}
+
+func (x SpaceRootStatus) String() string {
+	name, valid := SpaceRootStatus_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// SpaceRootRuntimeStatus is the connection status for a configured root daemon.
+type SpaceRootRuntimeStatus int32
+
+const (
+	// SpaceRootRuntimeStatus_IDLE means no runtime source is selected.
+	SpaceRootRuntimeStatus_SpaceRootRuntimeStatus_IDLE SpaceRootRuntimeStatus = 0
+	// SpaceRootRuntimeStatus_CONNECTING means the app is dialing the daemon.
+	SpaceRootRuntimeStatus_SpaceRootRuntimeStatus_CONNECTING SpaceRootRuntimeStatus = 1
+	// SpaceRootRuntimeStatus_STARTING means the app is starting the daemon.
+	SpaceRootRuntimeStatus_SpaceRootRuntimeStatus_STARTING SpaceRootRuntimeStatus = 2
+	// SpaceRootRuntimeStatus_READY means sessions are served from the root daemon.
+	SpaceRootRuntimeStatus_SpaceRootRuntimeStatus_READY SpaceRootRuntimeStatus = 3
+	// SpaceRootRuntimeStatus_ERROR means the runtime source is unavailable.
+	SpaceRootRuntimeStatus_SpaceRootRuntimeStatus_ERROR SpaceRootRuntimeStatus = 4
+)
+
+// Enum value maps for SpaceRootRuntimeStatus.
+var (
+	SpaceRootRuntimeStatus_name = map[int32]string{
+		0: "SpaceRootRuntimeStatus_IDLE",
+		1: "SpaceRootRuntimeStatus_CONNECTING",
+		2: "SpaceRootRuntimeStatus_STARTING",
+		3: "SpaceRootRuntimeStatus_READY",
+		4: "SpaceRootRuntimeStatus_ERROR",
+	}
+	SpaceRootRuntimeStatus_value = map[string]int32{
+		"SpaceRootRuntimeStatus_IDLE":       0,
+		"SpaceRootRuntimeStatus_CONNECTING": 1,
+		"SpaceRootRuntimeStatus_STARTING":   2,
+		"SpaceRootRuntimeStatus_READY":      3,
+		"SpaceRootRuntimeStatus_ERROR":      4,
+	}
+)
+
+func (x SpaceRootRuntimeStatus) Enum() *SpaceRootRuntimeStatus {
+	p := new(SpaceRootRuntimeStatus)
+	*p = x
+	return p
+}
+
+func (x SpaceRootRuntimeStatus) String() string {
+	name, valid := SpaceRootRuntimeStatus_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // LookupProviderRequest is the request type for LookupProvider.
 type LookupProviderRequest struct {
 	unknownFields []byte
@@ -779,6 +955,374 @@ func (x *WatchStateAtomsResponse) GetStoreCount() uint32 {
 	return 0
 }
 
+// NativeSpaceRootMetadata stores native filesystem fields for a root record.
+type NativeSpaceRootMetadata struct {
+	unknownFields []byte
+	// Path is the absolute native filesystem path.
+	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+}
+
+func (x *NativeSpaceRootMetadata) Reset() {
+	*x = NativeSpaceRootMetadata{}
+}
+
+func (*NativeSpaceRootMetadata) ProtoMessage() {}
+
+func (x *NativeSpaceRootMetadata) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+// BrowserSpaceRootMetadata reserves browser-grant fields for future support.
+type BrowserSpaceRootMetadata struct {
+	unknownFields []byte
+}
+
+func (x *BrowserSpaceRootMetadata) Reset() {
+	*x = BrowserSpaceRootMetadata{}
+}
+
+func (*BrowserSpaceRootMetadata) ProtoMessage() {}
+
+// SpaceRootAliasRecord is a durable configured local state-root registry entry.
+type SpaceRootAliasRecord struct {
+	unknownFields []byte
+	// AliasId is the stable registry identity.
+	AliasId string `protobuf:"bytes,1,opt,name=alias_id,json=aliasId,proto3" json:"aliasId,omitempty"`
+	// DisplayName is the user-facing name for the configured root.
+	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"displayName,omitempty"`
+	// Kind is the storage shape for this record.
+	Kind SpaceRootKind `protobuf:"varint,3,opt,name=kind,proto3" json:"kind,omitempty"`
+	// OpenMode is the explicit user action that created this record.
+	OpenMode SpaceRootOpenMode `protobuf:"varint,4,opt,name=open_mode,json=openMode,proto3" json:"openMode,omitempty"`
+	// Native stores native filesystem metadata.
+	Native *NativeSpaceRootMetadata `protobuf:"bytes,5,opt,name=native,proto3" json:"native,omitempty"`
+	// Status is the latest validation status.
+	Status SpaceRootStatus `protobuf:"varint,6,opt,name=status,proto3" json:"status,omitempty"`
+	// StatusMessage is a user-actionable validation message when not ready.
+	StatusMessage string `protobuf:"bytes,7,opt,name=status_message,json=statusMessage,proto3" json:"statusMessage,omitempty"`
+	// Browser reserves future browser-grant metadata.
+	Browser *BrowserSpaceRootMetadata `protobuf:"bytes,8,opt,name=browser,proto3" json:"browser,omitempty"`
+	// CreatedAtUnixMs is when the alias was first persisted.
+	CreatedAtUnixMs int64 `protobuf:"varint,9,opt,name=created_at_unix_ms,json=createdAtUnixMs,proto3" json:"createdAtUnixMs,omitempty"`
+	// UpdatedAtUnixMs is when the alias was last updated.
+	UpdatedAtUnixMs int64 `protobuf:"varint,10,opt,name=updated_at_unix_ms,json=updatedAtUnixMs,proto3" json:"updatedAtUnixMs,omitempty"`
+}
+
+func (x *SpaceRootAliasRecord) Reset() {
+	*x = SpaceRootAliasRecord{}
+}
+
+func (*SpaceRootAliasRecord) ProtoMessage() {}
+
+func (x *SpaceRootAliasRecord) GetAliasId() string {
+	if x != nil {
+		return x.AliasId
+	}
+	return ""
+}
+
+func (x *SpaceRootAliasRecord) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+func (x *SpaceRootAliasRecord) GetKind() SpaceRootKind {
+	if x != nil {
+		return x.Kind
+	}
+	return SpaceRootKind_SpaceRootKind_UNSPECIFIED
+}
+
+func (x *SpaceRootAliasRecord) GetOpenMode() SpaceRootOpenMode {
+	if x != nil {
+		return x.OpenMode
+	}
+	return SpaceRootOpenMode_SpaceRootOpenMode_UNSPECIFIED
+}
+
+func (x *SpaceRootAliasRecord) GetNative() *NativeSpaceRootMetadata {
+	if x != nil {
+		return x.Native
+	}
+	return nil
+}
+
+func (x *SpaceRootAliasRecord) GetStatus() SpaceRootStatus {
+	if x != nil {
+		return x.Status
+	}
+	return SpaceRootStatus_SpaceRootStatus_UNKNOWN
+}
+
+func (x *SpaceRootAliasRecord) GetStatusMessage() string {
+	if x != nil {
+		return x.StatusMessage
+	}
+	return ""
+}
+
+func (x *SpaceRootAliasRecord) GetBrowser() *BrowserSpaceRootMetadata {
+	if x != nil {
+		return x.Browser
+	}
+	return nil
+}
+
+func (x *SpaceRootAliasRecord) GetCreatedAtUnixMs() int64 {
+	if x != nil {
+		return x.CreatedAtUnixMs
+	}
+	return 0
+}
+
+func (x *SpaceRootAliasRecord) GetUpdatedAtUnixMs() int64 {
+	if x != nil {
+		return x.UpdatedAtUnixMs
+	}
+	return 0
+}
+
+// ListSpaceRootAliasesRequest is the request for ListSpaceRootAliases.
+type ListSpaceRootAliasesRequest struct {
+	unknownFields []byte
+}
+
+func (x *ListSpaceRootAliasesRequest) Reset() {
+	*x = ListSpaceRootAliasesRequest{}
+}
+
+func (*ListSpaceRootAliasesRequest) ProtoMessage() {}
+
+// ListSpaceRootAliasesResponse is the configured root registry snapshot.
+type ListSpaceRootAliasesResponse struct {
+	unknownFields []byte
+	// Records is the sorted configured root alias snapshot.
+	Records []*SpaceRootAliasRecord `protobuf:"bytes,1,rep,name=records,proto3" json:"records,omitempty"`
+}
+
+func (x *ListSpaceRootAliasesResponse) Reset() {
+	*x = ListSpaceRootAliasesResponse{}
+}
+
+func (*ListSpaceRootAliasesResponse) ProtoMessage() {}
+
+func (x *ListSpaceRootAliasesResponse) GetRecords() []*SpaceRootAliasRecord {
+	if x != nil {
+		return x.Records
+	}
+	return nil
+}
+
+// WatchSpaceRootAliasesRequest is the request for WatchSpaceRootAliases.
+type WatchSpaceRootAliasesRequest struct {
+	unknownFields []byte
+}
+
+func (x *WatchSpaceRootAliasesRequest) Reset() {
+	*x = WatchSpaceRootAliasesRequest{}
+}
+
+func (*WatchSpaceRootAliasesRequest) ProtoMessage() {}
+
+// WatchSpaceRootAliasesResponse is the current configured root registry snapshot.
+type WatchSpaceRootAliasesResponse struct {
+	unknownFields []byte
+	// Records is the sorted configured root alias snapshot.
+	Records []*SpaceRootAliasRecord `protobuf:"bytes,1,rep,name=records,proto3" json:"records,omitempty"`
+}
+
+func (x *WatchSpaceRootAliasesResponse) Reset() {
+	*x = WatchSpaceRootAliasesResponse{}
+}
+
+func (*WatchSpaceRootAliasesResponse) ProtoMessage() {}
+
+func (x *WatchSpaceRootAliasesResponse) GetRecords() []*SpaceRootAliasRecord {
+	if x != nil {
+		return x.Records
+	}
+	return nil
+}
+
+// UpsertSpaceRootAliasRequest writes or updates a configured root alias.
+type UpsertSpaceRootAliasRequest struct {
+	unknownFields []byte
+	// Record is the configured root alias record to validate and persist.
+	Record *SpaceRootAliasRecord `protobuf:"bytes,1,opt,name=record,proto3" json:"record,omitempty"`
+}
+
+func (x *UpsertSpaceRootAliasRequest) Reset() {
+	*x = UpsertSpaceRootAliasRequest{}
+}
+
+func (*UpsertSpaceRootAliasRequest) ProtoMessage() {}
+
+func (x *UpsertSpaceRootAliasRequest) GetRecord() *SpaceRootAliasRecord {
+	if x != nil {
+		return x.Record
+	}
+	return nil
+}
+
+// UpsertSpaceRootAliasResponse returns the persisted record.
+type UpsertSpaceRootAliasResponse struct {
+	unknownFields []byte
+	// Record is the validated persisted record.
+	Record *SpaceRootAliasRecord `protobuf:"bytes,1,opt,name=record,proto3" json:"record,omitempty"`
+}
+
+func (x *UpsertSpaceRootAliasResponse) Reset() {
+	*x = UpsertSpaceRootAliasResponse{}
+}
+
+func (*UpsertSpaceRootAliasResponse) ProtoMessage() {}
+
+func (x *UpsertSpaceRootAliasResponse) GetRecord() *SpaceRootAliasRecord {
+	if x != nil {
+		return x.Record
+	}
+	return nil
+}
+
+// RemoveSpaceRootAliasRequest removes a configured root alias.
+type RemoveSpaceRootAliasRequest struct {
+	unknownFields []byte
+	// AliasId is the stable registry identity to remove.
+	AliasId string `protobuf:"bytes,1,opt,name=alias_id,json=aliasId,proto3" json:"aliasId,omitempty"`
+}
+
+func (x *RemoveSpaceRootAliasRequest) Reset() {
+	*x = RemoveSpaceRootAliasRequest{}
+}
+
+func (*RemoveSpaceRootAliasRequest) ProtoMessage() {}
+
+func (x *RemoveSpaceRootAliasRequest) GetAliasId() string {
+	if x != nil {
+		return x.AliasId
+	}
+	return ""
+}
+
+// RemoveSpaceRootAliasResponse is returned after a remove attempt.
+type RemoveSpaceRootAliasResponse struct {
+	unknownFields []byte
+	// NotFound is true when AliasId was not present.
+	NotFound bool `protobuf:"varint,1,opt,name=not_found,json=notFound,proto3" json:"notFound,omitempty"`
+}
+
+func (x *RemoveSpaceRootAliasResponse) Reset() {
+	*x = RemoveSpaceRootAliasResponse{}
+}
+
+func (*RemoveSpaceRootAliasResponse) ProtoMessage() {}
+
+func (x *RemoveSpaceRootAliasResponse) GetNotFound() bool {
+	if x != nil {
+		return x.NotFound
+	}
+	return false
+}
+
+// WatchSpaceRootRuntimeRequest selects a configured root runtime source.
+type WatchSpaceRootRuntimeRequest struct {
+	unknownFields []byte
+	// AliasId is the configured root alias to use.
+	AliasId string `protobuf:"bytes,1,opt,name=alias_id,json=aliasId,proto3" json:"aliasId,omitempty"`
+	// Autostart starts a daemon when no daemon is reachable.
+	Autostart bool `protobuf:"varint,2,opt,name=autostart,proto3" json:"autostart,omitempty"`
+}
+
+func (x *WatchSpaceRootRuntimeRequest) Reset() {
+	*x = WatchSpaceRootRuntimeRequest{}
+}
+
+func (*WatchSpaceRootRuntimeRequest) ProtoMessage() {}
+
+func (x *WatchSpaceRootRuntimeRequest) GetAliasId() string {
+	if x != nil {
+		return x.AliasId
+	}
+	return ""
+}
+
+func (x *WatchSpaceRootRuntimeRequest) GetAutostart() bool {
+	if x != nil {
+		return x.Autostart
+	}
+	return false
+}
+
+// WatchSpaceRootRuntimeResponse streams the selected root daemon state.
+type WatchSpaceRootRuntimeResponse struct {
+	unknownFields []byte
+	// Status is the current selected-root daemon status.
+	Status SpaceRootRuntimeStatus `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
+	// AliasId is the configured root alias being used.
+	AliasId string `protobuf:"bytes,2,opt,name=alias_id,json=aliasId,proto3" json:"aliasId,omitempty"`
+	// StatePath is the absolute configured root path.
+	StatePath string `protobuf:"bytes,3,opt,name=state_path,json=statePath,proto3" json:"statePath,omitempty"`
+	// SocketPath is the selected daemon socket path.
+	SocketPath string `protobuf:"bytes,4,opt,name=socket_path,json=socketPath,proto3" json:"socketPath,omitempty"`
+	// Sessions is the session snapshot from the selected root daemon.
+	Sessions []*session.SessionListEntry `protobuf:"bytes,5,rep,name=sessions,proto3" json:"sessions,omitempty"`
+	// Error is a user-actionable status message when status is ERROR.
+	Error string `protobuf:"bytes,6,opt,name=error,proto3" json:"error,omitempty"`
+}
+
+func (x *WatchSpaceRootRuntimeResponse) Reset() {
+	*x = WatchSpaceRootRuntimeResponse{}
+}
+
+func (*WatchSpaceRootRuntimeResponse) ProtoMessage() {}
+
+func (x *WatchSpaceRootRuntimeResponse) GetStatus() SpaceRootRuntimeStatus {
+	if x != nil {
+		return x.Status
+	}
+	return SpaceRootRuntimeStatus_SpaceRootRuntimeStatus_IDLE
+}
+
+func (x *WatchSpaceRootRuntimeResponse) GetAliasId() string {
+	if x != nil {
+		return x.AliasId
+	}
+	return ""
+}
+
+func (x *WatchSpaceRootRuntimeResponse) GetStatePath() string {
+	if x != nil {
+		return x.StatePath
+	}
+	return ""
+}
+
+func (x *WatchSpaceRootRuntimeResponse) GetSocketPath() string {
+	if x != nil {
+		return x.SocketPath
+	}
+	return ""
+}
+
+func (x *WatchSpaceRootRuntimeResponse) GetSessions() []*session.SessionListEntry {
+	if x != nil {
+		return x.Sessions
+	}
+	return nil
+}
+
+func (x *WatchSpaceRootRuntimeResponse) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
 // GetChangelogRequest is the request type for GetChangelog.
 type GetChangelogRequest struct {
 	unknownFields []byte
@@ -1451,7 +1995,9 @@ func (m *MountSessionRequest) CloneVT() *MountSessionRequest {
 		return (*MountSessionRequest)(nil)
 	}
 	r := new(MountSessionRequest)
-	r.SessionRef = m.SessionRef.CloneVT()
+	if rhs := m.SessionRef; rhs != nil {
+		r.SessionRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1500,8 +2046,10 @@ func (m *MountSessionByIdxResponse) CloneVT() *MountSessionByIdxResponse {
 	}
 	r := new(MountSessionByIdxResponse)
 	r.ResourceId = m.ResourceId
-	r.SessionRef = m.SessionRef.CloneVT()
 	r.NotFound = m.NotFound
+	if rhs := m.SessionRef; rhs != nil {
+		r.SessionRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1694,8 +2242,10 @@ func (m *GetSessionMetadataResponse) CloneVT() *GetSessionMetadataResponse {
 		return (*GetSessionMetadataResponse)(nil)
 	}
 	r := new(GetSessionMetadataResponse)
-	r.Metadata = m.Metadata.CloneVT()
 	r.NotFound = m.NotFound
+	if rhs := m.Metadata; rhs != nil {
+		r.Metadata = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1727,8 +2277,10 @@ func (m *WatchSessionMetadataResponse) CloneVT() *WatchSessionMetadataResponse {
 		return (*WatchSessionMetadataResponse)(nil)
 	}
 	r := new(WatchSessionMetadataResponse)
-	r.Metadata = m.Metadata.CloneVT()
 	r.NotFound = m.NotFound
+	if rhs := m.Metadata; rhs != nil {
+		r.Metadata = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1810,7 +2362,9 @@ func (m *ResetSessionByIdxRequest) CloneVT() *ResetSessionByIdxRequest {
 	}
 	r := new(ResetSessionByIdxRequest)
 	r.SessionIdx = m.SessionIdx
-	r.Credential = m.Credential.CloneVT()
+	if rhs := m.Credential; rhs != nil {
+		r.Credential = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1841,7 +2395,9 @@ func (m *MarshalHashRequest) CloneVT() *MarshalHashRequest {
 		return (*MarshalHashRequest)(nil)
 	}
 	r := new(MarshalHashRequest)
-	r.Hash = m.Hash.CloneVT()
+	if rhs := m.Hash; rhs != nil {
+		r.Hash = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1889,7 +2445,9 @@ func (m *ParseHashResponse) CloneVT() *ParseHashResponse {
 		return (*ParseHashResponse)(nil)
 	}
 	r := new(ParseHashResponse)
-	r.Hash = m.Hash.CloneVT()
+	if rhs := m.Hash; rhs != nil {
+		r.Hash = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1924,7 +2482,9 @@ func (m *HashSumResponse) CloneVT() *HashSumResponse {
 		return (*HashSumResponse)(nil)
 	}
 	r := new(HashSumResponse)
-	r.Hash = m.Hash.CloneVT()
+	if rhs := m.Hash; rhs != nil {
+		r.Hash = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1940,7 +2500,9 @@ func (m *HashValidateRequest) CloneVT() *HashValidateRequest {
 		return (*HashValidateRequest)(nil)
 	}
 	r := new(HashValidateRequest)
-	r.Hash = m.Hash.CloneVT()
+	if rhs := m.Hash; rhs != nil {
+		r.Hash = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2034,6 +2596,241 @@ func (m *WatchStateAtomsResponse) CloneMessageVT() protobuf_go_lite.CloneMessage
 	return m.CloneVT()
 }
 
+func (m *NativeSpaceRootMetadata) CloneVT() *NativeSpaceRootMetadata {
+	if m == nil {
+		return (*NativeSpaceRootMetadata)(nil)
+	}
+	r := new(NativeSpaceRootMetadata)
+	r.Path = m.Path
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *NativeSpaceRootMetadata) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *BrowserSpaceRootMetadata) CloneVT() *BrowserSpaceRootMetadata {
+	if m == nil {
+		return (*BrowserSpaceRootMetadata)(nil)
+	}
+	r := new(BrowserSpaceRootMetadata)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *BrowserSpaceRootMetadata) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SpaceRootAliasRecord) CloneVT() *SpaceRootAliasRecord {
+	if m == nil {
+		return (*SpaceRootAliasRecord)(nil)
+	}
+	r := new(SpaceRootAliasRecord)
+	r.AliasId = m.AliasId
+	r.DisplayName = m.DisplayName
+	r.Kind = m.Kind
+	r.OpenMode = m.OpenMode
+	r.Native = m.Native.CloneVT()
+	r.Status = m.Status
+	r.StatusMessage = m.StatusMessage
+	r.Browser = m.Browser.CloneVT()
+	r.CreatedAtUnixMs = m.CreatedAtUnixMs
+	r.UpdatedAtUnixMs = m.UpdatedAtUnixMs
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SpaceRootAliasRecord) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ListSpaceRootAliasesRequest) CloneVT() *ListSpaceRootAliasesRequest {
+	if m == nil {
+		return (*ListSpaceRootAliasesRequest)(nil)
+	}
+	r := new(ListSpaceRootAliasesRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ListSpaceRootAliasesRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ListSpaceRootAliasesResponse) CloneVT() *ListSpaceRootAliasesResponse {
+	if m == nil {
+		return (*ListSpaceRootAliasesResponse)(nil)
+	}
+	r := new(ListSpaceRootAliasesResponse)
+	if rhs := m.Records; rhs != nil {
+		r.Records = make([]*SpaceRootAliasRecord, len(rhs))
+		for k, v := range rhs {
+			r.Records[k] = v.CloneVT()
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ListSpaceRootAliasesResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WatchSpaceRootAliasesRequest) CloneVT() *WatchSpaceRootAliasesRequest {
+	if m == nil {
+		return (*WatchSpaceRootAliasesRequest)(nil)
+	}
+	r := new(WatchSpaceRootAliasesRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchSpaceRootAliasesRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WatchSpaceRootAliasesResponse) CloneVT() *WatchSpaceRootAliasesResponse {
+	if m == nil {
+		return (*WatchSpaceRootAliasesResponse)(nil)
+	}
+	r := new(WatchSpaceRootAliasesResponse)
+	if rhs := m.Records; rhs != nil {
+		r.Records = make([]*SpaceRootAliasRecord, len(rhs))
+		for k, v := range rhs {
+			r.Records[k] = v.CloneVT()
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchSpaceRootAliasesResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *UpsertSpaceRootAliasRequest) CloneVT() *UpsertSpaceRootAliasRequest {
+	if m == nil {
+		return (*UpsertSpaceRootAliasRequest)(nil)
+	}
+	r := new(UpsertSpaceRootAliasRequest)
+	r.Record = m.Record.CloneVT()
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *UpsertSpaceRootAliasRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *UpsertSpaceRootAliasResponse) CloneVT() *UpsertSpaceRootAliasResponse {
+	if m == nil {
+		return (*UpsertSpaceRootAliasResponse)(nil)
+	}
+	r := new(UpsertSpaceRootAliasResponse)
+	r.Record = m.Record.CloneVT()
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *UpsertSpaceRootAliasResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RemoveSpaceRootAliasRequest) CloneVT() *RemoveSpaceRootAliasRequest {
+	if m == nil {
+		return (*RemoveSpaceRootAliasRequest)(nil)
+	}
+	r := new(RemoveSpaceRootAliasRequest)
+	r.AliasId = m.AliasId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RemoveSpaceRootAliasRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RemoveSpaceRootAliasResponse) CloneVT() *RemoveSpaceRootAliasResponse {
+	if m == nil {
+		return (*RemoveSpaceRootAliasResponse)(nil)
+	}
+	r := new(RemoveSpaceRootAliasResponse)
+	r.NotFound = m.NotFound
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RemoveSpaceRootAliasResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WatchSpaceRootRuntimeRequest) CloneVT() *WatchSpaceRootRuntimeRequest {
+	if m == nil {
+		return (*WatchSpaceRootRuntimeRequest)(nil)
+	}
+	r := new(WatchSpaceRootRuntimeRequest)
+	r.AliasId = m.AliasId
+	r.Autostart = m.Autostart
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchSpaceRootRuntimeRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WatchSpaceRootRuntimeResponse) CloneVT() *WatchSpaceRootRuntimeResponse {
+	if m == nil {
+		return (*WatchSpaceRootRuntimeResponse)(nil)
+	}
+	r := new(WatchSpaceRootRuntimeResponse)
+	r.Status = m.Status
+	r.AliasId = m.AliasId
+	r.StatePath = m.StatePath
+	r.SocketPath = m.SocketPath
+	r.Error = m.Error
+	if rhs := m.Sessions; rhs != nil {
+		r.Sessions = make([]*session.SessionListEntry, len(rhs))
+		for k, v := range rhs {
+			r.Sessions[k] = v.CloneVT()
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchSpaceRootRuntimeResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *GetChangelogRequest) CloneVT() *GetChangelogRequest {
 	if m == nil {
 		return (*GetChangelogRequest)(nil)
@@ -2054,7 +2851,9 @@ func (m *GetChangelogResponse) CloneVT() *GetChangelogResponse {
 		return (*GetChangelogResponse)(nil)
 	}
 	r := new(GetChangelogResponse)
-	r.Changelog = m.Changelog.CloneVT()
+	if rhs := m.Changelog; rhs != nil {
+		r.Changelog = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3264,6 +4063,344 @@ func (this *WatchStateAtomsResponse) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *NativeSpaceRootMetadata) EqualVT(that *NativeSpaceRootMetadata) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Path != that.Path {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *NativeSpaceRootMetadata) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*NativeSpaceRootMetadata)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *BrowserSpaceRootMetadata) EqualVT(that *BrowserSpaceRootMetadata) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *BrowserSpaceRootMetadata) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*BrowserSpaceRootMetadata)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SpaceRootAliasRecord) EqualVT(that *SpaceRootAliasRecord) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.AliasId != that.AliasId {
+		return false
+	}
+	if this.DisplayName != that.DisplayName {
+		return false
+	}
+	if this.Kind != that.Kind {
+		return false
+	}
+	if this.OpenMode != that.OpenMode {
+		return false
+	}
+	if !this.Native.EqualVT(that.Native) {
+		return false
+	}
+	if this.Status != that.Status {
+		return false
+	}
+	if this.StatusMessage != that.StatusMessage {
+		return false
+	}
+	if !this.Browser.EqualVT(that.Browser) {
+		return false
+	}
+	if this.CreatedAtUnixMs != that.CreatedAtUnixMs {
+		return false
+	}
+	if this.UpdatedAtUnixMs != that.UpdatedAtUnixMs {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SpaceRootAliasRecord) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SpaceRootAliasRecord)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ListSpaceRootAliasesRequest) EqualVT(that *ListSpaceRootAliasesRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ListSpaceRootAliasesRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ListSpaceRootAliasesRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ListSpaceRootAliasesResponse) EqualVT(that *ListSpaceRootAliasesResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if len(this.Records) != len(that.Records) {
+		return false
+	}
+	for i, vx := range this.Records {
+		vy := that.Records[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &SpaceRootAliasRecord{}
+			}
+			if q == nil {
+				q = &SpaceRootAliasRecord{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ListSpaceRootAliasesResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ListSpaceRootAliasesResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WatchSpaceRootAliasesRequest) EqualVT(that *WatchSpaceRootAliasesRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchSpaceRootAliasesRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchSpaceRootAliasesRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WatchSpaceRootAliasesResponse) EqualVT(that *WatchSpaceRootAliasesResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if len(this.Records) != len(that.Records) {
+		return false
+	}
+	for i, vx := range this.Records {
+		vy := that.Records[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &SpaceRootAliasRecord{}
+			}
+			if q == nil {
+				q = &SpaceRootAliasRecord{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchSpaceRootAliasesResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchSpaceRootAliasesResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *UpsertSpaceRootAliasRequest) EqualVT(that *UpsertSpaceRootAliasRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.Record.EqualVT(that.Record) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *UpsertSpaceRootAliasRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*UpsertSpaceRootAliasRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *UpsertSpaceRootAliasResponse) EqualVT(that *UpsertSpaceRootAliasResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.Record.EqualVT(that.Record) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *UpsertSpaceRootAliasResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*UpsertSpaceRootAliasResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RemoveSpaceRootAliasRequest) EqualVT(that *RemoveSpaceRootAliasRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.AliasId != that.AliasId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RemoveSpaceRootAliasRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RemoveSpaceRootAliasRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RemoveSpaceRootAliasResponse) EqualVT(that *RemoveSpaceRootAliasResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.NotFound != that.NotFound {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RemoveSpaceRootAliasResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RemoveSpaceRootAliasResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WatchSpaceRootRuntimeRequest) EqualVT(that *WatchSpaceRootRuntimeRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.AliasId != that.AliasId {
+		return false
+	}
+	if this.Autostart != that.Autostart {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchSpaceRootRuntimeRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchSpaceRootRuntimeRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WatchSpaceRootRuntimeResponse) EqualVT(that *WatchSpaceRootRuntimeResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Status != that.Status {
+		return false
+	}
+	if this.AliasId != that.AliasId {
+		return false
+	}
+	if this.StatePath != that.StatePath {
+		return false
+	}
+	if this.SocketPath != that.SocketPath {
+		return false
+	}
+	if len(this.Sessions) != len(that.Sessions) {
+		return false
+	}
+	for i, vx := range this.Sessions {
+		vy := that.Sessions[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &session.SessionListEntry{}
+			}
+			if q == nil {
+				q = &session.SessionListEntry{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	if this.Error != that.Error {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchSpaceRootRuntimeResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchSpaceRootRuntimeResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 func (this *GetChangelogRequest) EqualVT(that *GetChangelogRequest) bool {
 	if this == that {
 		return true
@@ -3826,6 +4963,166 @@ func (this *WatchListenerStatusResponse) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+// MarshalProtoJSON marshals the SpaceRootKind to JSON.
+func (x SpaceRootKind) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), SpaceRootKind_name)
+}
+
+// MarshalText marshals the SpaceRootKind to text.
+func (x SpaceRootKind) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), SpaceRootKind_name)), nil
+}
+
+// MarshalJSON marshals the SpaceRootKind to JSON.
+func (x SpaceRootKind) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SpaceRootKind from JSON.
+func (x *SpaceRootKind) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(SpaceRootKind_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read SpaceRootKind enum: %v", err)
+		return
+	}
+	*x = SpaceRootKind(v)
+}
+
+// UnmarshalText unmarshals the SpaceRootKind from text.
+func (x *SpaceRootKind) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), SpaceRootKind_value)
+	if err != nil {
+		return err
+	}
+	*x = SpaceRootKind(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the SpaceRootKind from JSON.
+func (x *SpaceRootKind) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SpaceRootOpenMode to JSON.
+func (x SpaceRootOpenMode) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), SpaceRootOpenMode_name)
+}
+
+// MarshalText marshals the SpaceRootOpenMode to text.
+func (x SpaceRootOpenMode) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), SpaceRootOpenMode_name)), nil
+}
+
+// MarshalJSON marshals the SpaceRootOpenMode to JSON.
+func (x SpaceRootOpenMode) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SpaceRootOpenMode from JSON.
+func (x *SpaceRootOpenMode) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(SpaceRootOpenMode_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read SpaceRootOpenMode enum: %v", err)
+		return
+	}
+	*x = SpaceRootOpenMode(v)
+}
+
+// UnmarshalText unmarshals the SpaceRootOpenMode from text.
+func (x *SpaceRootOpenMode) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), SpaceRootOpenMode_value)
+	if err != nil {
+		return err
+	}
+	*x = SpaceRootOpenMode(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the SpaceRootOpenMode from JSON.
+func (x *SpaceRootOpenMode) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SpaceRootStatus to JSON.
+func (x SpaceRootStatus) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), SpaceRootStatus_name)
+}
+
+// MarshalText marshals the SpaceRootStatus to text.
+func (x SpaceRootStatus) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), SpaceRootStatus_name)), nil
+}
+
+// MarshalJSON marshals the SpaceRootStatus to JSON.
+func (x SpaceRootStatus) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SpaceRootStatus from JSON.
+func (x *SpaceRootStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(SpaceRootStatus_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read SpaceRootStatus enum: %v", err)
+		return
+	}
+	*x = SpaceRootStatus(v)
+}
+
+// UnmarshalText unmarshals the SpaceRootStatus from text.
+func (x *SpaceRootStatus) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), SpaceRootStatus_value)
+	if err != nil {
+		return err
+	}
+	*x = SpaceRootStatus(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the SpaceRootStatus from JSON.
+func (x *SpaceRootStatus) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SpaceRootRuntimeStatus to JSON.
+func (x SpaceRootRuntimeStatus) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), SpaceRootRuntimeStatus_name)
+}
+
+// MarshalText marshals the SpaceRootRuntimeStatus to text.
+func (x SpaceRootRuntimeStatus) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), SpaceRootRuntimeStatus_name)), nil
+}
+
+// MarshalJSON marshals the SpaceRootRuntimeStatus to JSON.
+func (x SpaceRootRuntimeStatus) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SpaceRootRuntimeStatus from JSON.
+func (x *SpaceRootRuntimeStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(SpaceRootRuntimeStatus_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read SpaceRootRuntimeStatus enum: %v", err)
+		return
+	}
+	*x = SpaceRootRuntimeStatus(v)
+}
+
+// UnmarshalText unmarshals the SpaceRootRuntimeStatus from text.
+func (x *SpaceRootRuntimeStatus) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), SpaceRootRuntimeStatus_value)
+	if err != nil {
+		return err
+	}
+	*x = SpaceRootRuntimeStatus(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the SpaceRootRuntimeStatus from JSON.
+func (x *SpaceRootRuntimeStatus) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the LookupProviderRequest message to JSON.
@@ -5487,6 +6784,715 @@ func (x *WatchStateAtomsResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the WatchStateAtomsResponse from JSON.
 func (x *WatchStateAtomsResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the NativeSpaceRootMetadata message to JSON.
+func (x *NativeSpaceRootMetadata) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Path != "" || s.HasField("path") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("path")
+		s.WriteString(x.Path)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the NativeSpaceRootMetadata to JSON.
+func (x *NativeSpaceRootMetadata) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the NativeSpaceRootMetadata message from JSON.
+func (x *NativeSpaceRootMetadata) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "path":
+			s.AddField("path")
+			x.Path = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the NativeSpaceRootMetadata from JSON.
+func (x *NativeSpaceRootMetadata) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the BrowserSpaceRootMetadata message to JSON.
+func (x *BrowserSpaceRootMetadata) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the BrowserSpaceRootMetadata to JSON.
+func (x *BrowserSpaceRootMetadata) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the BrowserSpaceRootMetadata message from JSON.
+func (x *BrowserSpaceRootMetadata) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the BrowserSpaceRootMetadata from JSON.
+func (x *BrowserSpaceRootMetadata) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SpaceRootAliasRecord message to JSON.
+func (x *SpaceRootAliasRecord) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.AliasId != "" || s.HasField("aliasId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("aliasId")
+		s.WriteString(x.AliasId)
+	}
+	if x.DisplayName != "" || s.HasField("displayName") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("displayName")
+		s.WriteString(x.DisplayName)
+	}
+	if x.Kind != 0 || s.HasField("kind") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("kind")
+		x.Kind.MarshalProtoJSON(s)
+	}
+	if x.OpenMode != 0 || s.HasField("openMode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("openMode")
+		x.OpenMode.MarshalProtoJSON(s)
+	}
+	if x.Native != nil || s.HasField("native") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("native")
+		x.Native.MarshalProtoJSON(s.WithField("native"))
+	}
+	if x.Status != 0 || s.HasField("status") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("status")
+		x.Status.MarshalProtoJSON(s)
+	}
+	if x.StatusMessage != "" || s.HasField("statusMessage") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("statusMessage")
+		s.WriteString(x.StatusMessage)
+	}
+	if x.Browser != nil || s.HasField("browser") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("browser")
+		x.Browser.MarshalProtoJSON(s.WithField("browser"))
+	}
+	if x.CreatedAtUnixMs != 0 || s.HasField("createdAtUnixMs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("createdAtUnixMs")
+		s.WriteInt64(x.CreatedAtUnixMs)
+	}
+	if x.UpdatedAtUnixMs != 0 || s.HasField("updatedAtUnixMs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("updatedAtUnixMs")
+		s.WriteInt64(x.UpdatedAtUnixMs)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SpaceRootAliasRecord to JSON.
+func (x *SpaceRootAliasRecord) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SpaceRootAliasRecord message from JSON.
+func (x *SpaceRootAliasRecord) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "alias_id", "aliasId":
+			s.AddField("alias_id")
+			x.AliasId = s.ReadString()
+		case "display_name", "displayName":
+			s.AddField("display_name")
+			x.DisplayName = s.ReadString()
+		case "kind":
+			s.AddField("kind")
+			x.Kind.UnmarshalProtoJSON(s)
+		case "open_mode", "openMode":
+			s.AddField("open_mode")
+			x.OpenMode.UnmarshalProtoJSON(s)
+		case "native":
+			if s.ReadNil() {
+				x.Native = nil
+				return
+			}
+			x.Native = &NativeSpaceRootMetadata{}
+			x.Native.UnmarshalProtoJSON(s.WithField("native", true))
+		case "status":
+			s.AddField("status")
+			x.Status.UnmarshalProtoJSON(s)
+		case "status_message", "statusMessage":
+			s.AddField("status_message")
+			x.StatusMessage = s.ReadString()
+		case "browser":
+			if s.ReadNil() {
+				x.Browser = nil
+				return
+			}
+			x.Browser = &BrowserSpaceRootMetadata{}
+			x.Browser.UnmarshalProtoJSON(s.WithField("browser", true))
+		case "created_at_unix_ms", "createdAtUnixMs":
+			s.AddField("created_at_unix_ms")
+			x.CreatedAtUnixMs = s.ReadInt64()
+		case "updated_at_unix_ms", "updatedAtUnixMs":
+			s.AddField("updated_at_unix_ms")
+			x.UpdatedAtUnixMs = s.ReadInt64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SpaceRootAliasRecord from JSON.
+func (x *SpaceRootAliasRecord) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ListSpaceRootAliasesRequest message to JSON.
+func (x *ListSpaceRootAliasesRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ListSpaceRootAliasesRequest to JSON.
+func (x *ListSpaceRootAliasesRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ListSpaceRootAliasesRequest message from JSON.
+func (x *ListSpaceRootAliasesRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the ListSpaceRootAliasesRequest from JSON.
+func (x *ListSpaceRootAliasesRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ListSpaceRootAliasesResponse message to JSON.
+func (x *ListSpaceRootAliasesResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Records) > 0 || s.HasField("records") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("records")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Records {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("records"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ListSpaceRootAliasesResponse to JSON.
+func (x *ListSpaceRootAliasesResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ListSpaceRootAliasesResponse message from JSON.
+func (x *ListSpaceRootAliasesResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "records":
+			s.AddField("records")
+			if s.ReadNil() {
+				x.Records = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Records = append(x.Records, nil)
+					return
+				}
+				v := &SpaceRootAliasRecord{}
+				v.UnmarshalProtoJSON(s.WithField("records", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Records = append(x.Records, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ListSpaceRootAliasesResponse from JSON.
+func (x *ListSpaceRootAliasesResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WatchSpaceRootAliasesRequest message to JSON.
+func (x *WatchSpaceRootAliasesRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchSpaceRootAliasesRequest to JSON.
+func (x *WatchSpaceRootAliasesRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchSpaceRootAliasesRequest message from JSON.
+func (x *WatchSpaceRootAliasesRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchSpaceRootAliasesRequest from JSON.
+func (x *WatchSpaceRootAliasesRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WatchSpaceRootAliasesResponse message to JSON.
+func (x *WatchSpaceRootAliasesResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Records) > 0 || s.HasField("records") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("records")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Records {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("records"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchSpaceRootAliasesResponse to JSON.
+func (x *WatchSpaceRootAliasesResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchSpaceRootAliasesResponse message from JSON.
+func (x *WatchSpaceRootAliasesResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "records":
+			s.AddField("records")
+			if s.ReadNil() {
+				x.Records = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Records = append(x.Records, nil)
+					return
+				}
+				v := &SpaceRootAliasRecord{}
+				v.UnmarshalProtoJSON(s.WithField("records", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Records = append(x.Records, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchSpaceRootAliasesResponse from JSON.
+func (x *WatchSpaceRootAliasesResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the UpsertSpaceRootAliasRequest message to JSON.
+func (x *UpsertSpaceRootAliasRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Record != nil || s.HasField("record") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("record")
+		x.Record.MarshalProtoJSON(s.WithField("record"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the UpsertSpaceRootAliasRequest to JSON.
+func (x *UpsertSpaceRootAliasRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the UpsertSpaceRootAliasRequest message from JSON.
+func (x *UpsertSpaceRootAliasRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "record":
+			if s.ReadNil() {
+				x.Record = nil
+				return
+			}
+			x.Record = &SpaceRootAliasRecord{}
+			x.Record.UnmarshalProtoJSON(s.WithField("record", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the UpsertSpaceRootAliasRequest from JSON.
+func (x *UpsertSpaceRootAliasRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the UpsertSpaceRootAliasResponse message to JSON.
+func (x *UpsertSpaceRootAliasResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Record != nil || s.HasField("record") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("record")
+		x.Record.MarshalProtoJSON(s.WithField("record"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the UpsertSpaceRootAliasResponse to JSON.
+func (x *UpsertSpaceRootAliasResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the UpsertSpaceRootAliasResponse message from JSON.
+func (x *UpsertSpaceRootAliasResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "record":
+			if s.ReadNil() {
+				x.Record = nil
+				return
+			}
+			x.Record = &SpaceRootAliasRecord{}
+			x.Record.UnmarshalProtoJSON(s.WithField("record", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the UpsertSpaceRootAliasResponse from JSON.
+func (x *UpsertSpaceRootAliasResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RemoveSpaceRootAliasRequest message to JSON.
+func (x *RemoveSpaceRootAliasRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.AliasId != "" || s.HasField("aliasId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("aliasId")
+		s.WriteString(x.AliasId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RemoveSpaceRootAliasRequest to JSON.
+func (x *RemoveSpaceRootAliasRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RemoveSpaceRootAliasRequest message from JSON.
+func (x *RemoveSpaceRootAliasRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "alias_id", "aliasId":
+			s.AddField("alias_id")
+			x.AliasId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RemoveSpaceRootAliasRequest from JSON.
+func (x *RemoveSpaceRootAliasRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RemoveSpaceRootAliasResponse message to JSON.
+func (x *RemoveSpaceRootAliasResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.NotFound || s.HasField("notFound") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("notFound")
+		s.WriteBool(x.NotFound)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RemoveSpaceRootAliasResponse to JSON.
+func (x *RemoveSpaceRootAliasResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RemoveSpaceRootAliasResponse message from JSON.
+func (x *RemoveSpaceRootAliasResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "not_found", "notFound":
+			s.AddField("not_found")
+			x.NotFound = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RemoveSpaceRootAliasResponse from JSON.
+func (x *RemoveSpaceRootAliasResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WatchSpaceRootRuntimeRequest message to JSON.
+func (x *WatchSpaceRootRuntimeRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.AliasId != "" || s.HasField("aliasId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("aliasId")
+		s.WriteString(x.AliasId)
+	}
+	if x.Autostart || s.HasField("autostart") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("autostart")
+		s.WriteBool(x.Autostart)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchSpaceRootRuntimeRequest to JSON.
+func (x *WatchSpaceRootRuntimeRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchSpaceRootRuntimeRequest message from JSON.
+func (x *WatchSpaceRootRuntimeRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "alias_id", "aliasId":
+			s.AddField("alias_id")
+			x.AliasId = s.ReadString()
+		case "autostart":
+			s.AddField("autostart")
+			x.Autostart = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchSpaceRootRuntimeRequest from JSON.
+func (x *WatchSpaceRootRuntimeRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WatchSpaceRootRuntimeResponse message to JSON.
+func (x *WatchSpaceRootRuntimeResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Status != 0 || s.HasField("status") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("status")
+		x.Status.MarshalProtoJSON(s)
+	}
+	if x.AliasId != "" || s.HasField("aliasId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("aliasId")
+		s.WriteString(x.AliasId)
+	}
+	if x.StatePath != "" || s.HasField("statePath") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("statePath")
+		s.WriteString(x.StatePath)
+	}
+	if x.SocketPath != "" || s.HasField("socketPath") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("socketPath")
+		s.WriteString(x.SocketPath)
+	}
+	if len(x.Sessions) > 0 || s.HasField("sessions") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sessions")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Sessions {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("sessions"))
+		}
+		s.WriteArrayEnd()
+	}
+	if x.Error != "" || s.HasField("error") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("error")
+		s.WriteString(x.Error)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchSpaceRootRuntimeResponse to JSON.
+func (x *WatchSpaceRootRuntimeResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchSpaceRootRuntimeResponse message from JSON.
+func (x *WatchSpaceRootRuntimeResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "status":
+			s.AddField("status")
+			x.Status.UnmarshalProtoJSON(s)
+		case "alias_id", "aliasId":
+			s.AddField("alias_id")
+			x.AliasId = s.ReadString()
+		case "state_path", "statePath":
+			s.AddField("state_path")
+			x.StatePath = s.ReadString()
+		case "socket_path", "socketPath":
+			s.AddField("socket_path")
+			x.SocketPath = s.ReadString()
+		case "sessions":
+			s.AddField("sessions")
+			if s.ReadNil() {
+				x.Sessions = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Sessions = append(x.Sessions, nil)
+					return
+				}
+				v := &session.SessionListEntry{}
+				v.UnmarshalProtoJSON(s.WithField("sessions", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Sessions = append(x.Sessions, v)
+			})
+		case "error":
+			s.AddField("error")
+			x.Error = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchSpaceRootRuntimeResponse from JSON.
+func (x *WatchSpaceRootRuntimeResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -8185,6 +10191,631 @@ func (m *WatchStateAtomsResponse) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 	return len(dAtA) - i, nil
 }
 
+func (m *NativeSpaceRootMetadata) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *NativeSpaceRootMetadata) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *NativeSpaceRootMetadata) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Path) > 0 {
+		i -= len(m.Path)
+		copy(dAtA[i:], m.Path)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Path)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *BrowserSpaceRootMetadata) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *BrowserSpaceRootMetadata) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *BrowserSpaceRootMetadata) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SpaceRootAliasRecord) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SpaceRootAliasRecord) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SpaceRootAliasRecord) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.UpdatedAtUnixMs != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.UpdatedAtUnixMs))
+		i--
+		dAtA[i] = 0x50
+	}
+	if m.CreatedAtUnixMs != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CreatedAtUnixMs))
+		i--
+		dAtA[i] = 0x48
+	}
+	if m.Browser != nil {
+		size, err := m.Browser.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x42
+	}
+	if len(m.StatusMessage) > 0 {
+		i -= len(m.StatusMessage)
+		copy(dAtA[i:], m.StatusMessage)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.StatusMessage)))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if m.Status != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Status))
+		i--
+		dAtA[i] = 0x30
+	}
+	if m.Native != nil {
+		size, err := m.Native.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if m.OpenMode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.OpenMode))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.Kind != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Kind))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.DisplayName) > 0 {
+		i -= len(m.DisplayName)
+		copy(dAtA[i:], m.DisplayName)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.DisplayName)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.AliasId) > 0 {
+		i -= len(m.AliasId)
+		copy(dAtA[i:], m.AliasId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.AliasId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ListSpaceRootAliasesRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ListSpaceRootAliasesRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ListSpaceRootAliasesRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ListSpaceRootAliasesResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ListSpaceRootAliasesResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ListSpaceRootAliasesResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Records) > 0 {
+		for iNdEx := len(m.Records) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Records[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WatchSpaceRootAliasesRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchSpaceRootAliasesRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchSpaceRootAliasesRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WatchSpaceRootAliasesResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchSpaceRootAliasesResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchSpaceRootAliasesResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Records) > 0 {
+		for iNdEx := len(m.Records) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Records[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *UpsertSpaceRootAliasRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *UpsertSpaceRootAliasRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *UpsertSpaceRootAliasRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Record != nil {
+		size, err := m.Record.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *UpsertSpaceRootAliasResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *UpsertSpaceRootAliasResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *UpsertSpaceRootAliasResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Record != nil {
+		size, err := m.Record.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RemoveSpaceRootAliasRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RemoveSpaceRootAliasRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RemoveSpaceRootAliasRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.AliasId) > 0 {
+		i -= len(m.AliasId)
+		copy(dAtA[i:], m.AliasId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.AliasId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RemoveSpaceRootAliasResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RemoveSpaceRootAliasResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RemoveSpaceRootAliasResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.NotFound {
+		i--
+		if m.NotFound {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WatchSpaceRootRuntimeRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchSpaceRootRuntimeRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchSpaceRootRuntimeRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Autostart {
+		i--
+		if m.Autostart {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.AliasId) > 0 {
+		i -= len(m.AliasId)
+		copy(dAtA[i:], m.AliasId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.AliasId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WatchSpaceRootRuntimeResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchSpaceRootRuntimeResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchSpaceRootRuntimeResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Error) > 0 {
+		i -= len(m.Error)
+		copy(dAtA[i:], m.Error)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Error)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if len(m.Sessions) > 0 {
+		for iNdEx := len(m.Sessions) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Sessions[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x2a
+		}
+	}
+	if len(m.SocketPath) > 0 {
+		i -= len(m.SocketPath)
+		copy(dAtA[i:], m.SocketPath)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SocketPath)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.StatePath) > 0 {
+		i -= len(m.StatePath)
+		copy(dAtA[i:], m.StatePath)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.StatePath)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.AliasId) > 0 {
+		i -= len(m.AliasId)
+		copy(dAtA[i:], m.AliasId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.AliasId)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Status != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Status))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *GetChangelogRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -9818,6 +12449,234 @@ func (m *WatchStateAtomsResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *NativeSpaceRootMetadata) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Path)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *BrowserSpaceRootMetadata) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SpaceRootAliasRecord) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.AliasId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.DisplayName)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Kind != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Kind))
+	}
+	if m.OpenMode != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.OpenMode))
+	}
+	if m.Native != nil {
+		l = m.Native.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Status != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Status))
+	}
+	l = len(m.StatusMessage)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Browser != nil {
+		l = m.Browser.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.CreatedAtUnixMs != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.CreatedAtUnixMs))
+	}
+	if m.UpdatedAtUnixMs != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.UpdatedAtUnixMs))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ListSpaceRootAliasesRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ListSpaceRootAliasesResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Records) > 0 {
+		for _, e := range m.Records {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WatchSpaceRootAliasesRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WatchSpaceRootAliasesResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Records) > 0 {
+		for _, e := range m.Records {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *UpsertSpaceRootAliasRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Record != nil {
+		l = m.Record.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *UpsertSpaceRootAliasResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Record != nil {
+		l = m.Record.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RemoveSpaceRootAliasRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.AliasId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RemoveSpaceRootAliasResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.NotFound {
+		n += 2
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WatchSpaceRootRuntimeRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.AliasId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Autostart {
+		n += 2
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WatchSpaceRootRuntimeResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Status != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Status))
+	}
+	l = len(m.AliasId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.StatePath)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.SocketPath)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if len(m.Sessions) > 0 {
+		for _, e := range m.Sessions {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	l = len(m.Error)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *GetChangelogRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -10203,6 +13062,22 @@ func (m *WatchListenerStatusResponse) SizeVT() (n int) {
 	}
 	n += len(m.unknownFields)
 	return n
+}
+
+func (x SpaceRootKind) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x SpaceRootOpenMode) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x SpaceRootStatus) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x SpaceRootRuntimeStatus) MarshalProtoText() string {
+	return x.String()
 }
 
 func (x *LookupProviderRequest) MarshalProtoText() string {
@@ -10920,6 +13795,350 @@ func (x *WatchStateAtomsResponse) MarshalProtoText() string {
 }
 
 func (x *WatchStateAtomsResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *NativeSpaceRootMetadata) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("NativeSpaceRootMetadata {")
+	if x.Path != "" {
+		if sb.Len() > 25 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("path: ")
+		sb.WriteString(strconv.Quote(x.Path))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *NativeSpaceRootMetadata) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *BrowserSpaceRootMetadata) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("BrowserSpaceRootMetadata {")
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *BrowserSpaceRootMetadata) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SpaceRootAliasRecord) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("SpaceRootAliasRecord {")
+	if x.AliasId != "" {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("alias_id: ")
+		sb.WriteString(strconv.Quote(x.AliasId))
+	}
+	if x.DisplayName != "" {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("display_name: ")
+		sb.WriteString(strconv.Quote(x.DisplayName))
+	}
+	if x.Kind != 0 {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("kind: ")
+		sb.WriteString("\"")
+		sb.WriteString(SpaceRootKind(x.Kind).String())
+		sb.WriteString("\"")
+	}
+	if x.OpenMode != 0 {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("open_mode: ")
+		sb.WriteString("\"")
+		sb.WriteString(SpaceRootOpenMode(x.OpenMode).String())
+		sb.WriteString("\"")
+	}
+	if x.Native != nil {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("native: ")
+		sb.WriteString(x.Native.MarshalProtoText())
+	}
+	if x.Status != 0 {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("status: ")
+		sb.WriteString("\"")
+		sb.WriteString(SpaceRootStatus(x.Status).String())
+		sb.WriteString("\"")
+	}
+	if x.StatusMessage != "" {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("status_message: ")
+		sb.WriteString(strconv.Quote(x.StatusMessage))
+	}
+	if x.Browser != nil {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("browser: ")
+		sb.WriteString(x.Browser.MarshalProtoText())
+	}
+	if x.CreatedAtUnixMs != 0 {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("created_at_unix_ms: ")
+		sb.WriteString(strconv.FormatInt(int64(x.CreatedAtUnixMs), 10))
+	}
+	if x.UpdatedAtUnixMs != 0 {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("updated_at_unix_ms: ")
+		sb.WriteString(strconv.FormatInt(int64(x.UpdatedAtUnixMs), 10))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *SpaceRootAliasRecord) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ListSpaceRootAliasesRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("ListSpaceRootAliasesRequest {")
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *ListSpaceRootAliasesRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ListSpaceRootAliasesResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("ListSpaceRootAliasesResponse {")
+	if len(x.Records) > 0 {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("records: [")
+		for i, v := range x.Records {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *ListSpaceRootAliasesResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WatchSpaceRootAliasesRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("WatchSpaceRootAliasesRequest {")
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *WatchSpaceRootAliasesRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WatchSpaceRootAliasesResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("WatchSpaceRootAliasesResponse {")
+	if len(x.Records) > 0 {
+		if sb.Len() > 31 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("records: [")
+		for i, v := range x.Records {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *WatchSpaceRootAliasesResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *UpsertSpaceRootAliasRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("UpsertSpaceRootAliasRequest {")
+	if x.Record != nil {
+		if sb.Len() > 29 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("record: ")
+		sb.WriteString(x.Record.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *UpsertSpaceRootAliasRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *UpsertSpaceRootAliasResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("UpsertSpaceRootAliasResponse {")
+	if x.Record != nil {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("record: ")
+		sb.WriteString(x.Record.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *UpsertSpaceRootAliasResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RemoveSpaceRootAliasRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("RemoveSpaceRootAliasRequest {")
+	if x.AliasId != "" {
+		if sb.Len() > 29 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("alias_id: ")
+		sb.WriteString(strconv.Quote(x.AliasId))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *RemoveSpaceRootAliasRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RemoveSpaceRootAliasResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("RemoveSpaceRootAliasResponse {")
+	if x.NotFound != false {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("not_found: ")
+		sb.WriteString(strconv.FormatBool(x.NotFound))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *RemoveSpaceRootAliasResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WatchSpaceRootRuntimeRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("WatchSpaceRootRuntimeRequest {")
+	if x.AliasId != "" {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("alias_id: ")
+		sb.WriteString(strconv.Quote(x.AliasId))
+	}
+	if x.Autostart != false {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("autostart: ")
+		sb.WriteString(strconv.FormatBool(x.Autostart))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *WatchSpaceRootRuntimeRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WatchSpaceRootRuntimeResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("WatchSpaceRootRuntimeResponse {")
+	if x.Status != 0 {
+		if sb.Len() > 31 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("status: ")
+		sb.WriteString("\"")
+		sb.WriteString(SpaceRootRuntimeStatus(x.Status).String())
+		sb.WriteString("\"")
+	}
+	if x.AliasId != "" {
+		if sb.Len() > 31 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("alias_id: ")
+		sb.WriteString(strconv.Quote(x.AliasId))
+	}
+	if x.StatePath != "" {
+		if sb.Len() > 31 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("state_path: ")
+		sb.WriteString(strconv.Quote(x.StatePath))
+	}
+	if x.SocketPath != "" {
+		if sb.Len() > 31 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("socket_path: ")
+		sb.WriteString(strconv.Quote(x.SocketPath))
+	}
+	if len(x.Sessions) > 0 {
+		if sb.Len() > 31 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("sessions: [")
+		for i, v := range x.Sessions {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
+	if x.Error != "" {
+		if sb.Len() > 31 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("error: ")
+		sb.WriteString(strconv.Quote(x.Error))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *WatchSpaceRootRuntimeResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -13755,6 +16974,1061 @@ func (m *WatchStateAtomsResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *NativeSpaceRootMetadata) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: NativeSpaceRootMetadata: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: NativeSpaceRootMetadata: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Path", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Path = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *BrowserSpaceRootMetadata) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: BrowserSpaceRootMetadata: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: BrowserSpaceRootMetadata: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SpaceRootAliasRecord) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SpaceRootAliasRecord: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SpaceRootAliasRecord: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AliasId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.AliasId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DisplayName", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DisplayName = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Kind", wireType)
+			}
+			m.Kind = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Kind = SpaceRootKind(_v)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OpenMode", wireType)
+			}
+			m.OpenMode = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.OpenMode = SpaceRootOpenMode(_v)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Native", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Native == nil {
+				m.Native = &NativeSpaceRootMetadata{}
+			}
+			if err := m.Native.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+			}
+			m.Status = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Status = SpaceRootStatus(_v)
+			if err != nil {
+				return err
+			}
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StatusMessage", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.StatusMessage = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Browser", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Browser == nil {
+				m.Browser = &BrowserSpaceRootMetadata{}
+			}
+			if err := m.Browser.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CreatedAtUnixMs", wireType)
+			}
+			m.CreatedAtUnixMs = 0
+			m.CreatedAtUnixMs, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UpdatedAtUnixMs", wireType)
+			}
+			m.UpdatedAtUnixMs = 0
+			m.UpdatedAtUnixMs, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ListSpaceRootAliasesRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ListSpaceRootAliasesRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ListSpaceRootAliasesRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ListSpaceRootAliasesResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ListSpaceRootAliasesResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ListSpaceRootAliasesResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Records", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Records = append(m.Records, &SpaceRootAliasRecord{})
+			if err := m.Records[len(m.Records)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchSpaceRootAliasesRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchSpaceRootAliasesRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchSpaceRootAliasesRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchSpaceRootAliasesResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchSpaceRootAliasesResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchSpaceRootAliasesResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Records", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Records = append(m.Records, &SpaceRootAliasRecord{})
+			if err := m.Records[len(m.Records)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *UpsertSpaceRootAliasRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: UpsertSpaceRootAliasRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: UpsertSpaceRootAliasRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Record", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Record == nil {
+				m.Record = &SpaceRootAliasRecord{}
+			}
+			if err := m.Record.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *UpsertSpaceRootAliasResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: UpsertSpaceRootAliasResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: UpsertSpaceRootAliasResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Record", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Record == nil {
+				m.Record = &SpaceRootAliasRecord{}
+			}
+			if err := m.Record.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RemoveSpaceRootAliasRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RemoveSpaceRootAliasRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RemoveSpaceRootAliasRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AliasId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.AliasId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RemoveSpaceRootAliasResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RemoveSpaceRootAliasResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RemoveSpaceRootAliasResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NotFound", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.NotFound = bool(v != 0)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchSpaceRootRuntimeRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchSpaceRootRuntimeRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchSpaceRootRuntimeRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AliasId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.AliasId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Autostart", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.Autostart = bool(v != 0)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchSpaceRootRuntimeResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchSpaceRootRuntimeResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchSpaceRootRuntimeResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+			}
+			m.Status = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Status = SpaceRootRuntimeStatus(_v)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AliasId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.AliasId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StatePath", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.StatePath = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SocketPath", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SocketPath = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Sessions", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Sessions = append(m.Sessions, &session.SessionListEntry{})
+			if err := m.Sessions[len(m.Sessions)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Error", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Error = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

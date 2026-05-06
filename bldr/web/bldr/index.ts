@@ -21,7 +21,15 @@ export type {
 export { randomId } from './random-id.js'
 export { ItState } from './it-state.js'
 export type { ItStateOpts } from './it-state.js'
-export { isElectron, isSaucer, isDesktop, isMac, isLinux, isWindows } from '../electron/electron.js'
+export {
+  isElectron,
+  isSaucer,
+  isDesktop,
+  isMac,
+  isLinux,
+  isWindows,
+  openElectronDirectory,
+} from '../electron/electron.js'
 export {
   pathSeparator,
   splitPath,

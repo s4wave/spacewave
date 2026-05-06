@@ -42,6 +42,16 @@ type SRPCRootResourceServiceClient interface {
 
 	WatchStateAtoms(ctx context.Context, in *WatchStateAtomsRequest) (SRPCRootResourceService_WatchStateAtomsClient, error)
 
+	ListSpaceRootAliases(ctx context.Context, in *ListSpaceRootAliasesRequest) (*ListSpaceRootAliasesResponse, error)
+
+	WatchSpaceRootAliases(ctx context.Context, in *WatchSpaceRootAliasesRequest) (SRPCRootResourceService_WatchSpaceRootAliasesClient, error)
+
+	UpsertSpaceRootAlias(ctx context.Context, in *UpsertSpaceRootAliasRequest) (*UpsertSpaceRootAliasResponse, error)
+
+	RemoveSpaceRootAlias(ctx context.Context, in *RemoveSpaceRootAliasRequest) (*RemoveSpaceRootAliasResponse, error)
+
+	WatchSpaceRootRuntime(ctx context.Context, in *WatchSpaceRootRuntimeRequest) (SRPCRootResourceService_WatchSpaceRootRuntimeClient, error)
+
 	MarshalHash(ctx context.Context, in *MarshalHashRequest) (*MarshalHashResponse, error)
 
 	ParseHash(ctx context.Context, in *ParseHashRequest) (*ParseHashResponse, error)
@@ -317,6 +327,101 @@ func (x *srpcRootResourceService_WatchStateAtomsClient) RecvTo(m *WatchStateAtom
 	return x.MsgRecv(m)
 }
 
+func (c *srpcRootResourceServiceClient) ListSpaceRootAliases(ctx context.Context, in *ListSpaceRootAliasesRequest) (*ListSpaceRootAliasesResponse, error) {
+	out := new(ListSpaceRootAliasesResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "ListSpaceRootAliases", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcRootResourceServiceClient) WatchSpaceRootAliases(ctx context.Context, in *WatchSpaceRootAliasesRequest) (SRPCRootResourceService_WatchSpaceRootAliasesClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "WatchSpaceRootAliases", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcRootResourceService_WatchSpaceRootAliasesClient{stream}
+	if err := strm.CloseSend(); err != nil {
+		return nil, err
+	}
+	return strm, nil
+}
+
+type SRPCRootResourceService_WatchSpaceRootAliasesClient interface {
+	srpc.Stream
+	Recv() (*WatchSpaceRootAliasesResponse, error)
+	RecvTo(*WatchSpaceRootAliasesResponse) error
+}
+
+type srpcRootResourceService_WatchSpaceRootAliasesClient struct {
+	srpc.Stream
+}
+
+func (x *srpcRootResourceService_WatchSpaceRootAliasesClient) Recv() (*WatchSpaceRootAliasesResponse, error) {
+	m := new(WatchSpaceRootAliasesResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcRootResourceService_WatchSpaceRootAliasesClient) RecvTo(m *WatchSpaceRootAliasesResponse) error {
+	return x.MsgRecv(m)
+}
+
+func (c *srpcRootResourceServiceClient) UpsertSpaceRootAlias(ctx context.Context, in *UpsertSpaceRootAliasRequest) (*UpsertSpaceRootAliasResponse, error) {
+	out := new(UpsertSpaceRootAliasResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "UpsertSpaceRootAlias", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcRootResourceServiceClient) RemoveSpaceRootAlias(ctx context.Context, in *RemoveSpaceRootAliasRequest) (*RemoveSpaceRootAliasResponse, error) {
+	out := new(RemoveSpaceRootAliasResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "RemoveSpaceRootAlias", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcRootResourceServiceClient) WatchSpaceRootRuntime(ctx context.Context, in *WatchSpaceRootRuntimeRequest) (SRPCRootResourceService_WatchSpaceRootRuntimeClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "WatchSpaceRootRuntime", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcRootResourceService_WatchSpaceRootRuntimeClient{stream}
+	if err := strm.CloseSend(); err != nil {
+		return nil, err
+	}
+	return strm, nil
+}
+
+type SRPCRootResourceService_WatchSpaceRootRuntimeClient interface {
+	srpc.Stream
+	Recv() (*WatchSpaceRootRuntimeResponse, error)
+	RecvTo(*WatchSpaceRootRuntimeResponse) error
+}
+
+type srpcRootResourceService_WatchSpaceRootRuntimeClient struct {
+	srpc.Stream
+}
+
+func (x *srpcRootResourceService_WatchSpaceRootRuntimeClient) Recv() (*WatchSpaceRootRuntimeResponse, error) {
+	m := new(WatchSpaceRootRuntimeResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcRootResourceService_WatchSpaceRootRuntimeClient) RecvTo(m *WatchSpaceRootRuntimeResponse) error {
+	return x.MsgRecv(m)
+}
+
 func (c *srpcRootResourceServiceClient) MarshalHash(ctx context.Context, in *MarshalHashRequest) (*MarshalHashResponse, error) {
 	out := new(MarshalHashResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "MarshalHash", in, out)
@@ -581,6 +686,16 @@ type SRPCRootResourceServiceServer interface {
 
 	WatchStateAtoms(*WatchStateAtomsRequest, SRPCRootResourceService_WatchStateAtomsStream) error
 
+	ListSpaceRootAliases(context.Context, *ListSpaceRootAliasesRequest) (*ListSpaceRootAliasesResponse, error)
+
+	WatchSpaceRootAliases(*WatchSpaceRootAliasesRequest, SRPCRootResourceService_WatchSpaceRootAliasesStream) error
+
+	UpsertSpaceRootAlias(context.Context, *UpsertSpaceRootAliasRequest) (*UpsertSpaceRootAliasResponse, error)
+
+	RemoveSpaceRootAlias(context.Context, *RemoveSpaceRootAliasRequest) (*RemoveSpaceRootAliasResponse, error)
+
+	WatchSpaceRootRuntime(*WatchSpaceRootRuntimeRequest, SRPCRootResourceService_WatchSpaceRootRuntimeStream) error
+
 	MarshalHash(context.Context, *MarshalHashRequest) (*MarshalHashResponse, error)
 
 	ParseHash(context.Context, *ParseHashRequest) (*ParseHashResponse, error)
@@ -652,6 +767,11 @@ func (SRPCRootResourceServiceHandler) GetMethodIDs() []string {
 		"ResetSession",
 		"AccessStateAtom",
 		"WatchStateAtoms",
+		"ListSpaceRootAliases",
+		"WatchSpaceRootAliases",
+		"UpsertSpaceRootAlias",
+		"RemoveSpaceRootAlias",
+		"WatchSpaceRootRuntime",
 		"MarshalHash",
 		"ParseHash",
 		"HashSum",
@@ -707,6 +827,16 @@ func (d *SRPCRootResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_AccessStateAtom(d.impl, strm)
 	case "WatchStateAtoms":
 		return true, d.InvokeMethod_WatchStateAtoms(d.impl, strm)
+	case "ListSpaceRootAliases":
+		return true, d.InvokeMethod_ListSpaceRootAliases(d.impl, strm)
+	case "WatchSpaceRootAliases":
+		return true, d.InvokeMethod_WatchSpaceRootAliases(d.impl, strm)
+	case "UpsertSpaceRootAlias":
+		return true, d.InvokeMethod_UpsertSpaceRootAlias(d.impl, strm)
+	case "RemoveSpaceRootAlias":
+		return true, d.InvokeMethod_RemoveSpaceRootAlias(d.impl, strm)
+	case "WatchSpaceRootRuntime":
+		return true, d.InvokeMethod_WatchSpaceRootRuntime(d.impl, strm)
 	case "MarshalHash":
 		return true, d.InvokeMethod_MarshalHash(d.impl, strm)
 	case "ParseHash":
@@ -896,6 +1026,60 @@ func (SRPCRootResourceServiceHandler) InvokeMethod_WatchStateAtoms(impl SRPCRoot
 	}
 	serverStrm := &srpcRootResourceService_WatchStateAtomsStream{strm}
 	return impl.WatchStateAtoms(req, serverStrm)
+}
+
+func (SRPCRootResourceServiceHandler) InvokeMethod_ListSpaceRootAliases(impl SRPCRootResourceServiceServer, strm srpc.Stream) error {
+	req := new(ListSpaceRootAliasesRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.ListSpaceRootAliases(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCRootResourceServiceHandler) InvokeMethod_WatchSpaceRootAliases(impl SRPCRootResourceServiceServer, strm srpc.Stream) error {
+	req := new(WatchSpaceRootAliasesRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcRootResourceService_WatchSpaceRootAliasesStream{strm}
+	return impl.WatchSpaceRootAliases(req, serverStrm)
+}
+
+func (SRPCRootResourceServiceHandler) InvokeMethod_UpsertSpaceRootAlias(impl SRPCRootResourceServiceServer, strm srpc.Stream) error {
+	req := new(UpsertSpaceRootAliasRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.UpsertSpaceRootAlias(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCRootResourceServiceHandler) InvokeMethod_RemoveSpaceRootAlias(impl SRPCRootResourceServiceServer, strm srpc.Stream) error {
+	req := new(RemoveSpaceRootAliasRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.RemoveSpaceRootAlias(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCRootResourceServiceHandler) InvokeMethod_WatchSpaceRootRuntime(impl SRPCRootResourceServiceServer, strm srpc.Stream) error {
+	req := new(WatchSpaceRootRuntimeRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcRootResourceService_WatchSpaceRootRuntimeStream{strm}
+	return impl.WatchSpaceRootRuntime(req, serverStrm)
 }
 
 func (SRPCRootResourceServiceHandler) InvokeMethod_MarshalHash(impl SRPCRootResourceServiceServer, strm srpc.Stream) error {
@@ -1230,6 +1414,76 @@ func (x *srpcRootResourceService_WatchStateAtomsStream) Send(m *WatchStateAtomsR
 }
 
 func (x *srpcRootResourceService_WatchStateAtomsStream) SendAndClose(m *WatchStateAtomsResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
+}
+
+type SRPCRootResourceService_ListSpaceRootAliasesStream interface {
+	srpc.Stream
+}
+
+type srpcRootResourceService_ListSpaceRootAliasesStream struct {
+	srpc.Stream
+}
+
+type SRPCRootResourceService_WatchSpaceRootAliasesStream interface {
+	srpc.Stream
+	Send(*WatchSpaceRootAliasesResponse) error
+	SendAndClose(*WatchSpaceRootAliasesResponse) error
+}
+
+type srpcRootResourceService_WatchSpaceRootAliasesStream struct {
+	srpc.Stream
+}
+
+func (x *srpcRootResourceService_WatchSpaceRootAliasesStream) Send(m *WatchSpaceRootAliasesResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcRootResourceService_WatchSpaceRootAliasesStream) SendAndClose(m *WatchSpaceRootAliasesResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
+}
+
+type SRPCRootResourceService_UpsertSpaceRootAliasStream interface {
+	srpc.Stream
+}
+
+type srpcRootResourceService_UpsertSpaceRootAliasStream struct {
+	srpc.Stream
+}
+
+type SRPCRootResourceService_RemoveSpaceRootAliasStream interface {
+	srpc.Stream
+}
+
+type srpcRootResourceService_RemoveSpaceRootAliasStream struct {
+	srpc.Stream
+}
+
+type SRPCRootResourceService_WatchSpaceRootRuntimeStream interface {
+	srpc.Stream
+	Send(*WatchSpaceRootRuntimeResponse) error
+	SendAndClose(*WatchSpaceRootRuntimeResponse) error
+}
+
+type srpcRootResourceService_WatchSpaceRootRuntimeStream struct {
+	srpc.Stream
+}
+
+func (x *srpcRootResourceService_WatchSpaceRootRuntimeStream) Send(m *WatchSpaceRootRuntimeResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcRootResourceService_WatchSpaceRootRuntimeStream) SendAndClose(m *WatchSpaceRootRuntimeResponse) error {
 	if m != nil {
 		if err := x.MsgSend(m); err != nil {
 			return err

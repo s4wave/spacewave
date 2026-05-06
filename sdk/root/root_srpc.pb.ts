@@ -25,6 +25,8 @@ import {
   ListProvidersResponse,
   ListSessionsRequest,
   ListSessionsResponse,
+  ListSpaceRootAliasesRequest,
+  ListSpaceRootAliasesResponse,
   LookupProviderRequest,
   LookupProviderResponse,
   MarshalHashRequest,
@@ -37,6 +39,8 @@ import {
   ParseHashResponse,
   ReclaimRuntimeRequest,
   ReclaimRuntimeResponse,
+  RemoveSpaceRootAliasRequest,
+  RemoveSpaceRootAliasResponse,
   ResetSessionByIdxRequest,
   ResetSessionByIdxResponse,
   RespondToListenerYieldPromptRequest,
@@ -45,6 +49,8 @@ import {
   StopWebListenerResponse,
   UnlockSessionByIdxRequest,
   UnlockSessionByIdxResponse,
+  UpsertSpaceRootAliasRequest,
+  UpsertSpaceRootAliasResponse,
   WatchAllAccountStatusesRequest,
   WatchAllAccountStatusesResponse,
   WatchListenerStatusRequest,
@@ -57,6 +63,10 @@ import {
   WatchSessionMetadataResponse,
   WatchSessionsRequest,
   WatchSessionsResponse,
+  WatchSpaceRootAliasesRequest,
+  WatchSpaceRootAliasesResponse,
+  WatchSpaceRootRuntimeRequest,
+  WatchSpaceRootRuntimeResponse,
   WatchStateAtomsRequest,
   WatchStateAtomsResponse,
   WatchWebListenersRequest,
@@ -195,6 +205,51 @@ export const RootResourceServiceDefinition = {
       name: 'WatchStateAtoms',
       I: WatchStateAtomsRequest,
       O: WatchStateAtomsResponse,
+      kind: MethodKind.ServerStreaming,
+    },
+    /**
+     * @generated from rpc s4wave.root.RootResourceService.ListSpaceRootAliases
+     */
+    ListSpaceRootAliases: {
+      name: 'ListSpaceRootAliases',
+      I: ListSpaceRootAliasesRequest,
+      O: ListSpaceRootAliasesResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.root.RootResourceService.WatchSpaceRootAliases
+     */
+    WatchSpaceRootAliases: {
+      name: 'WatchSpaceRootAliases',
+      I: WatchSpaceRootAliasesRequest,
+      O: WatchSpaceRootAliasesResponse,
+      kind: MethodKind.ServerStreaming,
+    },
+    /**
+     * @generated from rpc s4wave.root.RootResourceService.UpsertSpaceRootAlias
+     */
+    UpsertSpaceRootAlias: {
+      name: 'UpsertSpaceRootAlias',
+      I: UpsertSpaceRootAliasRequest,
+      O: UpsertSpaceRootAliasResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.root.RootResourceService.RemoveSpaceRootAlias
+     */
+    RemoveSpaceRootAlias: {
+      name: 'RemoveSpaceRootAlias',
+      I: RemoveSpaceRootAliasRequest,
+      O: RemoveSpaceRootAliasResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.root.RootResourceService.WatchSpaceRootRuntime
+     */
+    WatchSpaceRootRuntime: {
+      name: 'WatchSpaceRootRuntime',
+      I: WatchSpaceRootRuntimeRequest,
+      O: WatchSpaceRootRuntimeResponse,
       kind: MethodKind.ServerStreaming,
     },
     /**
@@ -452,6 +507,46 @@ export interface RootResourceService {
   ): MessageStream<WatchStateAtomsResponse>
 
   /**
+   * @generated from rpc s4wave.root.RootResourceService.ListSpaceRootAliases
+   */
+  ListSpaceRootAliases(
+    request: ListSpaceRootAliasesRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ListSpaceRootAliasesResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.WatchSpaceRootAliases
+   */
+  WatchSpaceRootAliases(
+    request: WatchSpaceRootAliasesRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchSpaceRootAliasesResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.UpsertSpaceRootAlias
+   */
+  UpsertSpaceRootAlias(
+    request: UpsertSpaceRootAliasRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<UpsertSpaceRootAliasResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.RemoveSpaceRootAlias
+   */
+  RemoveSpaceRootAlias(
+    request: RemoveSpaceRootAliasRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<RemoveSpaceRootAliasResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.WatchSpaceRootRuntime
+   */
+  WatchSpaceRootRuntime(
+    request: WatchSpaceRootRuntimeRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchSpaceRootRuntimeResponse>
+
+  /**
    * @generated from rpc s4wave.root.RootResourceService.MarshalHash
    */
   MarshalHash(
@@ -595,6 +690,11 @@ export class RootResourceServiceClient implements RootResourceService {
     this.ResetSession = this.ResetSession.bind(this)
     this.AccessStateAtom = this.AccessStateAtom.bind(this)
     this.WatchStateAtoms = this.WatchStateAtoms.bind(this)
+    this.ListSpaceRootAliases = this.ListSpaceRootAliases.bind(this)
+    this.WatchSpaceRootAliases = this.WatchSpaceRootAliases.bind(this)
+    this.UpsertSpaceRootAlias = this.UpsertSpaceRootAlias.bind(this)
+    this.RemoveSpaceRootAlias = this.RemoveSpaceRootAlias.bind(this)
+    this.WatchSpaceRootRuntime = this.WatchSpaceRootRuntime.bind(this)
     this.MarshalHash = this.MarshalHash.bind(this)
     this.ParseHash = this.ParseHash.bind(this)
     this.HashSum = this.HashSum.bind(this)
@@ -848,6 +948,91 @@ export class RootResourceServiceClient implements RootResourceService {
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(WatchStateAtomsResponse)(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.ListSpaceRootAliases
+   */
+  async ListSpaceRootAliases(
+    request: ListSpaceRootAliasesRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ListSpaceRootAliasesResponse> {
+    const requestMsg = ListSpaceRootAliasesRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      RootResourceServiceDefinition.methods.ListSpaceRootAliases.name,
+      ListSpaceRootAliasesRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return ListSpaceRootAliasesResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.WatchSpaceRootAliases
+   */
+  WatchSpaceRootAliases(
+    request: WatchSpaceRootAliasesRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchSpaceRootAliasesResponse> {
+    const requestMsg = WatchSpaceRootAliasesRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      RootResourceServiceDefinition.methods.WatchSpaceRootAliases.name,
+      WatchSpaceRootAliasesRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(WatchSpaceRootAliasesResponse)(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.UpsertSpaceRootAlias
+   */
+  async UpsertSpaceRootAlias(
+    request: UpsertSpaceRootAliasRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<UpsertSpaceRootAliasResponse> {
+    const requestMsg = UpsertSpaceRootAliasRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      RootResourceServiceDefinition.methods.UpsertSpaceRootAlias.name,
+      UpsertSpaceRootAliasRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return UpsertSpaceRootAliasResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.RemoveSpaceRootAlias
+   */
+  async RemoveSpaceRootAlias(
+    request: RemoveSpaceRootAliasRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<RemoveSpaceRootAliasResponse> {
+    const requestMsg = RemoveSpaceRootAliasRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      RootResourceServiceDefinition.methods.RemoveSpaceRootAlias.name,
+      RemoveSpaceRootAliasRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return RemoveSpaceRootAliasResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.WatchSpaceRootRuntime
+   */
+  WatchSpaceRootRuntime(
+    request: WatchSpaceRootRuntimeRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchSpaceRootRuntimeResponse> {
+    const requestMsg = WatchSpaceRootRuntimeRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      RootResourceServiceDefinition.methods.WatchSpaceRootRuntime.name,
+      WatchSpaceRootRuntimeRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(WatchSpaceRootRuntimeResponse)(result)
   }
 
   /**

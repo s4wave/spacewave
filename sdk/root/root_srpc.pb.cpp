@@ -96,6 +96,42 @@ std::pair<std::unique_ptr<SRPCRootResourceService_WatchStateAtomsClient>, starpc
   return {std::make_unique<SRPCRootResourceService_WatchStateAtomsClient>(std::move(strm)), starpc::Error::OK};
 }
 
+starpc::Error SRPCRootResourceServiceClientImpl::ListSpaceRootAliases(const s4wave::root::ListSpaceRootAliasesRequest& in, s4wave::root::ListSpaceRootAliasesResponse* out) {
+  return cc_->ExecCall(service_id_, "ListSpaceRootAliases", in, out);
+}
+
+std::pair<std::unique_ptr<SRPCRootResourceService_WatchSpaceRootAliasesClient>, starpc::Error> SRPCRootResourceServiceClientImpl::WatchSpaceRootAliases(const s4wave::root::WatchSpaceRootAliasesRequest& in) {
+  auto [strm, err] = cc_->NewStream(service_id_, "WatchSpaceRootAliases", &in);
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  err = strm->CloseSend();
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  return {std::make_unique<SRPCRootResourceService_WatchSpaceRootAliasesClient>(std::move(strm)), starpc::Error::OK};
+}
+
+starpc::Error SRPCRootResourceServiceClientImpl::UpsertSpaceRootAlias(const s4wave::root::UpsertSpaceRootAliasRequest& in, s4wave::root::UpsertSpaceRootAliasResponse* out) {
+  return cc_->ExecCall(service_id_, "UpsertSpaceRootAlias", in, out);
+}
+
+starpc::Error SRPCRootResourceServiceClientImpl::RemoveSpaceRootAlias(const s4wave::root::RemoveSpaceRootAliasRequest& in, s4wave::root::RemoveSpaceRootAliasResponse* out) {
+  return cc_->ExecCall(service_id_, "RemoveSpaceRootAlias", in, out);
+}
+
+std::pair<std::unique_ptr<SRPCRootResourceService_WatchSpaceRootRuntimeClient>, starpc::Error> SRPCRootResourceServiceClientImpl::WatchSpaceRootRuntime(const s4wave::root::WatchSpaceRootRuntimeRequest& in) {
+  auto [strm, err] = cc_->NewStream(service_id_, "WatchSpaceRootRuntime", &in);
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  err = strm->CloseSend();
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  return {std::make_unique<SRPCRootResourceService_WatchSpaceRootRuntimeClient>(std::move(strm)), starpc::Error::OK};
+}
+
 starpc::Error SRPCRootResourceServiceClientImpl::MarshalHash(const s4wave::root::MarshalHashRequest& in, s4wave::root::MarshalHashResponse* out) {
   return cc_->ExecCall(service_id_, "MarshalHash", in, out);
 }
@@ -204,6 +240,11 @@ std::vector<std::string> SRPCRootResourceServiceHandler::GetMethodIDs() const {
     "ResetSession",
     "AccessStateAtom",
     "WatchStateAtoms",
+    "ListSpaceRootAliases",
+    "WatchSpaceRootAliases",
+    "UpsertSpaceRootAlias",
+    "RemoveSpaceRootAlias",
+    "WatchSpaceRootRuntime",
     "MarshalHash",
     "ParseHash",
     "HashSum",
@@ -334,6 +375,42 @@ std::pair<bool, starpc::Error> SRPCRootResourceServiceHandler::InvokeMethod(
     if (err != starpc::Error::OK) return {true, err};
     SRPCRootResourceService_WatchStateAtomsStream serverStrm(strm);
     return {true, impl_->WatchStateAtoms(req, &serverStrm)};
+  } else if (method_id == "ListSpaceRootAliases") {
+    s4wave::root::ListSpaceRootAliasesRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::root::ListSpaceRootAliasesResponse resp;
+    err = impl_->ListSpaceRootAliases(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "WatchSpaceRootAliases") {
+    s4wave::root::WatchSpaceRootAliasesRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    SRPCRootResourceService_WatchSpaceRootAliasesStream serverStrm(strm);
+    return {true, impl_->WatchSpaceRootAliases(req, &serverStrm)};
+  } else if (method_id == "UpsertSpaceRootAlias") {
+    s4wave::root::UpsertSpaceRootAliasRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::root::UpsertSpaceRootAliasResponse resp;
+    err = impl_->UpsertSpaceRootAlias(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "RemoveSpaceRootAlias") {
+    s4wave::root::RemoveSpaceRootAliasRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::root::RemoveSpaceRootAliasResponse resp;
+    err = impl_->RemoveSpaceRootAlias(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "WatchSpaceRootRuntime") {
+    s4wave::root::WatchSpaceRootRuntimeRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    SRPCRootResourceService_WatchSpaceRootRuntimeStream serverStrm(strm);
+    return {true, impl_->WatchSpaceRootRuntime(req, &serverStrm)};
   } else if (method_id == "MarshalHash") {
     s4wave::root::MarshalHashRequest req;
     starpc::Error err = strm->MsgRecv(&req);

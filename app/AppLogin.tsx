@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo } from 'react'
-import { LuLink } from 'react-icons/lu'
+import { LuFolderOpen, LuLink } from 'react-icons/lu'
 
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
+import { useAddSpaceRootAlias } from '@s4wave/app/hooks/useAddSpaceRootAlias.js'
 import { findExistingSessionIndexByUsername } from '@s4wave/app/auth/find-existing-session.js'
 import { AuthScreenLayout } from '@s4wave/app/auth/AuthScreenLayout.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
@@ -25,6 +26,7 @@ export function AppLogin({
   const navigate = useNavigate()
   const rootResource = useRootResource()
   const root = useResourceValue(rootResource)
+  const addRootAlias = useAddSpaceRootAlias()
   const normalizedLaunchUsername = useMemo(
     () => launchUsername?.trim().toLowerCase() ?? '',
     [launchUsername],
@@ -148,6 +150,16 @@ export function AppLogin({
         >
           <LuLink className="h-3 w-3" />
           <span className="select-none">Link to existing device</span>
+        </button>
+      }
+      bottomRight={
+        <button
+          onClick={() => void addRootAlias.add()}
+          disabled={!addRootAlias.canAdd}
+          className="text-foreground-alt hover:text-brand flex items-center gap-1.5 text-xs transition-colors disabled:pointer-events-none disabled:opacity-50"
+        >
+          <LuFolderOpen className="h-3 w-3" />
+          <span className="select-none">Open local state root</span>
         </button>
       }
       intro={

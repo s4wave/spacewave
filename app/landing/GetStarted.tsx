@@ -1,8 +1,9 @@
 import React from 'react'
 import { useMemo, useRef, useCallback, useEffect } from 'react'
-import { LuUser } from 'react-icons/lu'
+import { LuFolderOpen, LuUser } from 'react-icons/lu'
 
 import type { SessionListEntry } from '@s4wave/core/session/session.pb.js'
+import { useAddSpaceRootAlias } from '@s4wave/app/hooks/useAddSpaceRootAlias.js'
 import { useSessionMetadata } from '@s4wave/app/hooks/useSessionMetadata.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
@@ -49,6 +50,34 @@ const GetStartedItem = ({ item }: { item: (typeof COMMAND_ITEMS)[number] }) => {
       <div>
         <div className="text-sm font-medium">{item.name}</div>
         <div className="text-xs opacity-70">{item.description}</div>
+      </div>
+    </CommandItem>
+  )
+}
+
+function AddStateRootItem() {
+  const {
+    add: addRootAlias,
+    canAdd: canAddRootAlias,
+  } = useAddSpaceRootAlias()
+  const handleClick = useCallback(() => {
+    void addRootAlias()
+  }, [addRootAlias])
+
+  return (
+    <CommandItem
+      className="text-foreground-alt flex cursor-pointer items-center gap-3 px-4 py-1.5"
+      disabled={!canAddRootAlias}
+      onSelect={handleClick}
+    >
+      <div className="bg-foreground/5 flex h-9 w-9 items-center justify-center rounded-md transition-colors">
+        <LuFolderOpen className="h-5 w-5 stroke-[1.5]" />
+      </div>
+      <div>
+        <div className="text-sm font-medium">Open a local state root</div>
+        <div className="text-xs opacity-70">
+          Add an existing .spacewave directory
+        </div>
       </div>
     </CommandItem>
   )
@@ -227,6 +256,9 @@ const GetStarted = ({ className, sessions }: GetStartedProps) => {
             ))}
           </CommandGroup>
         )}
+        <CommandGroup heading="Local data" className="mb-0 py-0">
+          <AddStateRootItem />
+        </CommandGroup>
         {itemsByCategory.map(({ category, items }) => (
           <CommandGroup
             key={category}

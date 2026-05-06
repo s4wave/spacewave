@@ -79,6 +79,50 @@ func (r *Root) AccessStateAtom(ctx context.Context, storeID string) (uint32, err
 	return resp.GetResourceId(), nil
 }
 
+// ListSpaceRootAliases lists configured local state-root records.
+func (r *Root) ListSpaceRootAliases(ctx context.Context) ([]*SpaceRootAliasRecord, error) {
+	resp, err := r.service.ListSpaceRootAliases(ctx, &ListSpaceRootAliasesRequest{})
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetRecords(), nil
+}
+
+// WatchSpaceRootAliases watches configured local state-root records.
+func (r *Root) WatchSpaceRootAliases(ctx context.Context) (SRPCRootResourceService_WatchSpaceRootAliasesClient, error) {
+	return r.service.WatchSpaceRootAliases(ctx, &WatchSpaceRootAliasesRequest{})
+}
+
+// WatchSpaceRootRuntime watches sessions from a selected configured root daemon.
+func (r *Root) WatchSpaceRootRuntime(
+	ctx context.Context,
+	aliasID string,
+	autostart bool,
+) (SRPCRootResourceService_WatchSpaceRootRuntimeClient, error) {
+	return r.service.WatchSpaceRootRuntime(ctx, &WatchSpaceRootRuntimeRequest{
+		AliasId:   aliasID,
+		Autostart: autostart,
+	})
+}
+
+// UpsertSpaceRootAlias validates and persists a configured local state root.
+func (r *Root) UpsertSpaceRootAlias(ctx context.Context, record *SpaceRootAliasRecord) (*SpaceRootAliasRecord, error) {
+	resp, err := r.service.UpsertSpaceRootAlias(ctx, &UpsertSpaceRootAliasRequest{Record: record})
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetRecord(), nil
+}
+
+// RemoveSpaceRootAlias removes a configured local state root.
+func (r *Root) RemoveSpaceRootAlias(ctx context.Context, aliasID string) (bool, error) {
+	resp, err := r.service.RemoveSpaceRootAlias(ctx, &RemoveSpaceRootAliasRequest{AliasId: aliasID})
+	if err != nil {
+		return false, err
+	}
+	return !resp.GetNotFound(), nil
+}
+
 // AccessWebListener creates or reuses a localhost web listener.
 func (r *Root) AccessWebListener(
 	ctx context.Context,
@@ -167,6 +211,11 @@ func (r *Root) ListSessions(ctx context.Context) ([]*session.SessionListEntry, e
 		return nil, err
 	}
 	return resp.GetSessions(), nil
+}
+
+// WatchSessions watches the configured sessions.
+func (r *Root) WatchSessions(ctx context.Context) (SRPCRootResourceService_WatchSessionsClient, error) {
+	return r.service.WatchSessions(ctx, &WatchSessionsRequest{})
 }
 
 // DeleteSession removes a session from the local session list by index.

@@ -31,6 +31,7 @@
 #include "google/protobuf/message_lite.h"
 #include "google/protobuf/repeated_field.h"  // IWYU pragma: export
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
+#include "google/protobuf/generated_enum_reflection.h"
 #include "google/protobuf/unknown_field_set.h"
 #include "../../core/changelog/changelog.pb.h"
 #include "../../core/provider/provider.pb.h"
@@ -61,6 +62,14 @@ extern const ::google::protobuf::internal::DescriptorTable descriptor_table_gith
 }  // extern "C"
 namespace s4wave {
 namespace root {
+enum SpaceRootKind : int;
+extern const uint32_t SpaceRootKind_internal_data_[];
+enum SpaceRootOpenMode : int;
+extern const uint32_t SpaceRootOpenMode_internal_data_[];
+enum SpaceRootRuntimeStatus : int;
+extern const uint32_t SpaceRootRuntimeStatus_internal_data_[];
+enum SpaceRootStatus : int;
+extern const uint32_t SpaceRootStatus_internal_data_[];
 class AccessStateAtomRequest;
 struct AccessStateAtomRequestDefaultTypeInternal;
 extern AccessStateAtomRequestDefaultTypeInternal _AccessStateAtomRequest_default_instance_;
@@ -77,6 +86,10 @@ class AccessWebListenerResponse;
 struct AccessWebListenerResponseDefaultTypeInternal;
 extern AccessWebListenerResponseDefaultTypeInternal _AccessWebListenerResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull AccessWebListenerResponse_class_data_;
+class BrowserSpaceRootMetadata;
+struct BrowserSpaceRootMetadataDefaultTypeInternal;
+extern BrowserSpaceRootMetadataDefaultTypeInternal _BrowserSpaceRootMetadata_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull BrowserSpaceRootMetadata_class_data_;
 class DeleteSessionRequest;
 struct DeleteSessionRequestDefaultTypeInternal;
 extern DeleteSessionRequestDefaultTypeInternal _DeleteSessionRequest_default_instance_;
@@ -149,6 +162,14 @@ class ListSessionsResponse;
 struct ListSessionsResponseDefaultTypeInternal;
 extern ListSessionsResponseDefaultTypeInternal _ListSessionsResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull ListSessionsResponse_class_data_;
+class ListSpaceRootAliasesRequest;
+struct ListSpaceRootAliasesRequestDefaultTypeInternal;
+extern ListSpaceRootAliasesRequestDefaultTypeInternal _ListSpaceRootAliasesRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull ListSpaceRootAliasesRequest_class_data_;
+class ListSpaceRootAliasesResponse;
+struct ListSpaceRootAliasesResponseDefaultTypeInternal;
+extern ListSpaceRootAliasesResponseDefaultTypeInternal _ListSpaceRootAliasesResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull ListSpaceRootAliasesResponse_class_data_;
 class ListenerYieldPrompt;
 struct ListenerYieldPromptDefaultTypeInternal;
 extern ListenerYieldPromptDefaultTypeInternal _ListenerYieldPrompt_default_instance_;
@@ -185,6 +206,10 @@ class MountSessionResponse;
 struct MountSessionResponseDefaultTypeInternal;
 extern MountSessionResponseDefaultTypeInternal _MountSessionResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull MountSessionResponse_class_data_;
+class NativeSpaceRootMetadata;
+struct NativeSpaceRootMetadataDefaultTypeInternal;
+extern NativeSpaceRootMetadataDefaultTypeInternal _NativeSpaceRootMetadata_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull NativeSpaceRootMetadata_class_data_;
 class ParseHashRequest;
 struct ParseHashRequestDefaultTypeInternal;
 extern ParseHashRequestDefaultTypeInternal _ParseHashRequest_default_instance_;
@@ -201,6 +226,14 @@ class ReclaimRuntimeResponse;
 struct ReclaimRuntimeResponseDefaultTypeInternal;
 extern ReclaimRuntimeResponseDefaultTypeInternal _ReclaimRuntimeResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull ReclaimRuntimeResponse_class_data_;
+class RemoveSpaceRootAliasRequest;
+struct RemoveSpaceRootAliasRequestDefaultTypeInternal;
+extern RemoveSpaceRootAliasRequestDefaultTypeInternal _RemoveSpaceRootAliasRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull RemoveSpaceRootAliasRequest_class_data_;
+class RemoveSpaceRootAliasResponse;
+struct RemoveSpaceRootAliasResponseDefaultTypeInternal;
+extern RemoveSpaceRootAliasResponseDefaultTypeInternal _RemoveSpaceRootAliasResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull RemoveSpaceRootAliasResponse_class_data_;
 class ResetSessionByIdxRequest;
 struct ResetSessionByIdxRequestDefaultTypeInternal;
 extern ResetSessionByIdxRequestDefaultTypeInternal _ResetSessionByIdxRequest_default_instance_;
@@ -225,6 +258,10 @@ class SessionAccountStatus;
 struct SessionAccountStatusDefaultTypeInternal;
 extern SessionAccountStatusDefaultTypeInternal _SessionAccountStatus_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull SessionAccountStatus_class_data_;
+class SpaceRootAliasRecord;
+struct SpaceRootAliasRecordDefaultTypeInternal;
+extern SpaceRootAliasRecordDefaultTypeInternal _SpaceRootAliasRecord_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SpaceRootAliasRecord_class_data_;
 class StopWebListenerRequest;
 struct StopWebListenerRequestDefaultTypeInternal;
 extern StopWebListenerRequestDefaultTypeInternal _StopWebListenerRequest_default_instance_;
@@ -241,6 +278,14 @@ class UnlockSessionByIdxResponse;
 struct UnlockSessionByIdxResponseDefaultTypeInternal;
 extern UnlockSessionByIdxResponseDefaultTypeInternal _UnlockSessionByIdxResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull UnlockSessionByIdxResponse_class_data_;
+class UpsertSpaceRootAliasRequest;
+struct UpsertSpaceRootAliasRequestDefaultTypeInternal;
+extern UpsertSpaceRootAliasRequestDefaultTypeInternal _UpsertSpaceRootAliasRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull UpsertSpaceRootAliasRequest_class_data_;
+class UpsertSpaceRootAliasResponse;
+struct UpsertSpaceRootAliasResponseDefaultTypeInternal;
+extern UpsertSpaceRootAliasResponseDefaultTypeInternal _UpsertSpaceRootAliasResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull UpsertSpaceRootAliasResponse_class_data_;
 class WatchAllAccountStatusesRequest;
 struct WatchAllAccountStatusesRequestDefaultTypeInternal;
 extern WatchAllAccountStatusesRequestDefaultTypeInternal _WatchAllAccountStatusesRequest_default_instance_;
@@ -289,6 +334,22 @@ class WatchSessionsResponse;
 struct WatchSessionsResponseDefaultTypeInternal;
 extern WatchSessionsResponseDefaultTypeInternal _WatchSessionsResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull WatchSessionsResponse_class_data_;
+class WatchSpaceRootAliasesRequest;
+struct WatchSpaceRootAliasesRequestDefaultTypeInternal;
+extern WatchSpaceRootAliasesRequestDefaultTypeInternal _WatchSpaceRootAliasesRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull WatchSpaceRootAliasesRequest_class_data_;
+class WatchSpaceRootAliasesResponse;
+struct WatchSpaceRootAliasesResponseDefaultTypeInternal;
+extern WatchSpaceRootAliasesResponseDefaultTypeInternal _WatchSpaceRootAliasesResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull WatchSpaceRootAliasesResponse_class_data_;
+class WatchSpaceRootRuntimeRequest;
+struct WatchSpaceRootRuntimeRequestDefaultTypeInternal;
+extern WatchSpaceRootRuntimeRequestDefaultTypeInternal _WatchSpaceRootRuntimeRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull WatchSpaceRootRuntimeRequest_class_data_;
+class WatchSpaceRootRuntimeResponse;
+struct WatchSpaceRootRuntimeResponseDefaultTypeInternal;
+extern WatchSpaceRootRuntimeResponseDefaultTypeInternal _WatchSpaceRootRuntimeResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull WatchSpaceRootRuntimeResponse_class_data_;
 class WatchStateAtomsRequest;
 struct WatchStateAtomsRequestDefaultTypeInternal;
 extern WatchStateAtomsRequestDefaultTypeInternal _WatchStateAtomsRequest_default_instance_;
@@ -313,11 +374,175 @@ extern const ::google::protobuf::internal::ClassDataFull WebListenerInfo_class_d
 }  // namespace s4wave
 namespace google {
 namespace protobuf {
+template <>
+internal::EnumTraitsT<::s4wave::root::SpaceRootKind_internal_data_>
+    internal::EnumTraitsImpl::value<::s4wave::root::SpaceRootKind>;
+template <>
+internal::EnumTraitsT<::s4wave::root::SpaceRootOpenMode_internal_data_>
+    internal::EnumTraitsImpl::value<::s4wave::root::SpaceRootOpenMode>;
+template <>
+internal::EnumTraitsT<::s4wave::root::SpaceRootRuntimeStatus_internal_data_>
+    internal::EnumTraitsImpl::value<::s4wave::root::SpaceRootRuntimeStatus>;
+template <>
+internal::EnumTraitsT<::s4wave::root::SpaceRootStatus_internal_data_>
+    internal::EnumTraitsImpl::value<::s4wave::root::SpaceRootStatus>;
 }  // namespace protobuf
 }  // namespace google
 
 namespace s4wave {
 namespace root {
+enum SpaceRootKind : int {
+  SpaceRootKind_UNSPECIFIED = 0,
+  SpaceRootKind_NATIVE_DIRECTORY = 1,
+  SpaceRootKind_S4WAVE_FILE = 2,
+  SpaceRootKind_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  SpaceRootKind_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t SpaceRootKind_internal_data_[];
+inline constexpr SpaceRootKind SpaceRootKind_MIN =
+    static_cast<SpaceRootKind>(0);
+inline constexpr SpaceRootKind SpaceRootKind_MAX =
+    static_cast<SpaceRootKind>(2);
+inline bool SpaceRootKind_IsValid(int value) {
+  return 0 <= value && value <= 2;
+}
+inline constexpr int SpaceRootKind_ARRAYSIZE = 2 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SpaceRootKind_descriptor();
+template <typename T>
+const ::std::string& SpaceRootKind_Name(T value) {
+  static_assert(::std::is_same<T, SpaceRootKind>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to SpaceRootKind_Name().");
+  return SpaceRootKind_Name(static_cast<SpaceRootKind>(value));
+}
+template <>
+inline const ::std::string& SpaceRootKind_Name(SpaceRootKind value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<SpaceRootKind_descriptor, 0, 2>(
+      static_cast<int>(value));
+}
+inline bool SpaceRootKind_Parse(
+    ::absl::string_view name, SpaceRootKind* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<SpaceRootKind>(SpaceRootKind_descriptor(), name,
+                                           value);
+}
+enum SpaceRootOpenMode : int {
+  SpaceRootOpenMode_UNSPECIFIED = 0,
+  SpaceRootOpenMode_OPEN_EXISTING = 1,
+  SpaceRootOpenMode_CREATE = 2,
+  SpaceRootOpenMode_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  SpaceRootOpenMode_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t SpaceRootOpenMode_internal_data_[];
+inline constexpr SpaceRootOpenMode SpaceRootOpenMode_MIN =
+    static_cast<SpaceRootOpenMode>(0);
+inline constexpr SpaceRootOpenMode SpaceRootOpenMode_MAX =
+    static_cast<SpaceRootOpenMode>(2);
+inline bool SpaceRootOpenMode_IsValid(int value) {
+  return 0 <= value && value <= 2;
+}
+inline constexpr int SpaceRootOpenMode_ARRAYSIZE = 2 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SpaceRootOpenMode_descriptor();
+template <typename T>
+const ::std::string& SpaceRootOpenMode_Name(T value) {
+  static_assert(::std::is_same<T, SpaceRootOpenMode>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to SpaceRootOpenMode_Name().");
+  return SpaceRootOpenMode_Name(static_cast<SpaceRootOpenMode>(value));
+}
+template <>
+inline const ::std::string& SpaceRootOpenMode_Name(SpaceRootOpenMode value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<SpaceRootOpenMode_descriptor, 0, 2>(
+      static_cast<int>(value));
+}
+inline bool SpaceRootOpenMode_Parse(
+    ::absl::string_view name, SpaceRootOpenMode* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<SpaceRootOpenMode>(SpaceRootOpenMode_descriptor(), name,
+                                           value);
+}
+enum SpaceRootStatus : int {
+  SpaceRootStatus_UNKNOWN = 0,
+  SpaceRootStatus_READY = 1,
+  SpaceRootStatus_MISSING = 2,
+  SpaceRootStatus_UNSUPPORTED = 3,
+  SpaceRootStatus_INVALID = 4,
+  SpaceRootStatus_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  SpaceRootStatus_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t SpaceRootStatus_internal_data_[];
+inline constexpr SpaceRootStatus SpaceRootStatus_MIN =
+    static_cast<SpaceRootStatus>(0);
+inline constexpr SpaceRootStatus SpaceRootStatus_MAX =
+    static_cast<SpaceRootStatus>(4);
+inline bool SpaceRootStatus_IsValid(int value) {
+  return 0 <= value && value <= 4;
+}
+inline constexpr int SpaceRootStatus_ARRAYSIZE = 4 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SpaceRootStatus_descriptor();
+template <typename T>
+const ::std::string& SpaceRootStatus_Name(T value) {
+  static_assert(::std::is_same<T, SpaceRootStatus>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to SpaceRootStatus_Name().");
+  return SpaceRootStatus_Name(static_cast<SpaceRootStatus>(value));
+}
+template <>
+inline const ::std::string& SpaceRootStatus_Name(SpaceRootStatus value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<SpaceRootStatus_descriptor, 0, 4>(
+      static_cast<int>(value));
+}
+inline bool SpaceRootStatus_Parse(
+    ::absl::string_view name, SpaceRootStatus* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<SpaceRootStatus>(SpaceRootStatus_descriptor(), name,
+                                           value);
+}
+enum SpaceRootRuntimeStatus : int {
+  SpaceRootRuntimeStatus_IDLE = 0,
+  SpaceRootRuntimeStatus_CONNECTING = 1,
+  SpaceRootRuntimeStatus_STARTING = 2,
+  SpaceRootRuntimeStatus_READY = 3,
+  SpaceRootRuntimeStatus_ERROR = 4,
+  SpaceRootRuntimeStatus_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  SpaceRootRuntimeStatus_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t SpaceRootRuntimeStatus_internal_data_[];
+inline constexpr SpaceRootRuntimeStatus SpaceRootRuntimeStatus_MIN =
+    static_cast<SpaceRootRuntimeStatus>(0);
+inline constexpr SpaceRootRuntimeStatus SpaceRootRuntimeStatus_MAX =
+    static_cast<SpaceRootRuntimeStatus>(4);
+inline bool SpaceRootRuntimeStatus_IsValid(int value) {
+  return 0 <= value && value <= 4;
+}
+inline constexpr int SpaceRootRuntimeStatus_ARRAYSIZE = 4 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SpaceRootRuntimeStatus_descriptor();
+template <typename T>
+const ::std::string& SpaceRootRuntimeStatus_Name(T value) {
+  static_assert(::std::is_same<T, SpaceRootRuntimeStatus>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to SpaceRootRuntimeStatus_Name().");
+  return SpaceRootRuntimeStatus_Name(static_cast<SpaceRootRuntimeStatus>(value));
+}
+template <>
+inline const ::std::string& SpaceRootRuntimeStatus_Name(SpaceRootRuntimeStatus value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<SpaceRootRuntimeStatus_descriptor, 0, 4>(
+      static_cast<int>(value));
+}
+inline bool SpaceRootRuntimeStatus_Parse(
+    ::absl::string_view name, SpaceRootRuntimeStatus* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<SpaceRootRuntimeStatus>(SpaceRootRuntimeStatus_descriptor(), name,
+                                           value);
+}
 
 // ===================================================================
 
@@ -379,7 +604,7 @@ class WebListenerInfo final : public ::google::protobuf::Message
     return *reinterpret_cast<const WebListenerInfo*>(
         &_WebListenerInfo_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 46;
+  static constexpr int kIndexInFileMessages = 59;
   friend void swap(WebListenerInfo& a, WebListenerInfo& b) { a.Swap(&b); }
   inline void Swap(WebListenerInfo* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -619,7 +844,7 @@ class WatchWebListenersRequest final : public ::google::protobuf::internal::Zero
     return *reinterpret_cast<const WatchWebListenersRequest*>(
         &_WatchWebListenersRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 45;
+  static constexpr int kIndexInFileMessages = 58;
   friend void swap(WatchWebListenersRequest& a, WatchWebListenersRequest& b) { a.Swap(&b); }
   inline void Swap(WatchWebListenersRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1047,6 +1272,347 @@ class WatchStateAtomsRequest final : public ::google::protobuf::internal::ZeroFi
 extern const ::google::protobuf::internal::ClassDataFull WatchStateAtomsRequest_class_data_;
 // -------------------------------------------------------------------
 
+class WatchSpaceRootRuntimeRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.root.WatchSpaceRootRuntimeRequest) */ {
+ public:
+  inline WatchSpaceRootRuntimeRequest() : WatchSpaceRootRuntimeRequest(nullptr) {}
+  ~WatchSpaceRootRuntimeRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(WatchSpaceRootRuntimeRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(WatchSpaceRootRuntimeRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR WatchSpaceRootRuntimeRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline WatchSpaceRootRuntimeRequest(const WatchSpaceRootRuntimeRequest& from) : WatchSpaceRootRuntimeRequest(nullptr, from) {}
+  inline WatchSpaceRootRuntimeRequest(WatchSpaceRootRuntimeRequest&& from) noexcept
+      : WatchSpaceRootRuntimeRequest(nullptr, ::std::move(from)) {}
+  inline WatchSpaceRootRuntimeRequest& operator=(const WatchSpaceRootRuntimeRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline WatchSpaceRootRuntimeRequest& operator=(WatchSpaceRootRuntimeRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const WatchSpaceRootRuntimeRequest& default_instance() {
+    return *reinterpret_cast<const WatchSpaceRootRuntimeRequest*>(
+        &_WatchSpaceRootRuntimeRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 48;
+  friend void swap(WatchSpaceRootRuntimeRequest& a, WatchSpaceRootRuntimeRequest& b) { a.Swap(&b); }
+  inline void Swap(WatchSpaceRootRuntimeRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(WatchSpaceRootRuntimeRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  WatchSpaceRootRuntimeRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<WatchSpaceRootRuntimeRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const WatchSpaceRootRuntimeRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const WatchSpaceRootRuntimeRequest& from) { WatchSpaceRootRuntimeRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(WatchSpaceRootRuntimeRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.root.WatchSpaceRootRuntimeRequest"; }
+
+  explicit WatchSpaceRootRuntimeRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  WatchSpaceRootRuntimeRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const WatchSpaceRootRuntimeRequest& from);
+  WatchSpaceRootRuntimeRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, WatchSpaceRootRuntimeRequest&& from) noexcept
+      : WatchSpaceRootRuntimeRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kAliasIdFieldNumber = 1,
+    kAutostartFieldNumber = 2,
+  };
+  // string alias_id = 1;
+  void clear_alias_id() ;
+  const ::std::string& alias_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_alias_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_alias_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_alias_id();
+  void set_allocated_alias_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_alias_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_alias_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_alias_id();
+
+  public:
+  // bool autostart = 2;
+  void clear_autostart() ;
+  bool autostart() const;
+  void set_autostart(bool value);
+
+  private:
+  bool _internal_autostart() const;
+  void _internal_set_autostart(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.root.WatchSpaceRootRuntimeRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   0, 57,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const WatchSpaceRootRuntimeRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr alias_id_;
+    bool autostart_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull WatchSpaceRootRuntimeRequest_class_data_;
+// -------------------------------------------------------------------
+
+class WatchSpaceRootAliasesRequest final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:s4wave.root.WatchSpaceRootAliasesRequest) */ {
+ public:
+  inline WatchSpaceRootAliasesRequest() : WatchSpaceRootAliasesRequest(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(WatchSpaceRootAliasesRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(WatchSpaceRootAliasesRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR WatchSpaceRootAliasesRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline WatchSpaceRootAliasesRequest(const WatchSpaceRootAliasesRequest& from) : WatchSpaceRootAliasesRequest(nullptr, from) {}
+  inline WatchSpaceRootAliasesRequest(WatchSpaceRootAliasesRequest&& from) noexcept
+      : WatchSpaceRootAliasesRequest(nullptr, ::std::move(from)) {}
+  inline WatchSpaceRootAliasesRequest& operator=(const WatchSpaceRootAliasesRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline WatchSpaceRootAliasesRequest& operator=(WatchSpaceRootAliasesRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const WatchSpaceRootAliasesRequest& default_instance() {
+    return *reinterpret_cast<const WatchSpaceRootAliasesRequest*>(
+        &_WatchSpaceRootAliasesRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 42;
+  friend void swap(WatchSpaceRootAliasesRequest& a, WatchSpaceRootAliasesRequest& b) { a.Swap(&b); }
+  inline void Swap(WatchSpaceRootAliasesRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(WatchSpaceRootAliasesRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  WatchSpaceRootAliasesRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<WatchSpaceRootAliasesRequest>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const WatchSpaceRootAliasesRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const WatchSpaceRootAliasesRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.root.WatchSpaceRootAliasesRequest"; }
+
+  explicit WatchSpaceRootAliasesRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  WatchSpaceRootAliasesRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const WatchSpaceRootAliasesRequest& from);
+  WatchSpaceRootAliasesRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, WatchSpaceRootAliasesRequest&& from) noexcept
+      : WatchSpaceRootAliasesRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:s4wave.root.WatchSpaceRootAliasesRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull WatchSpaceRootAliasesRequest_class_data_;
+// -------------------------------------------------------------------
+
 class WatchSessionsRequest final : public ::google::protobuf::internal::ZeroFieldsBase
 /* @@protoc_insertion_point(class_definition:s4wave.root.WatchSessionsRequest) */ {
  public:
@@ -1425,7 +1991,7 @@ class WatchRuntimeHandoffRequest final : public ::google::protobuf::internal::Ze
     return *reinterpret_cast<const WatchRuntimeHandoffRequest*>(
         &_WatchRuntimeHandoffRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 56;
+  static constexpr int kIndexInFileMessages = 69;
   friend void swap(WatchRuntimeHandoffRequest& a, WatchRuntimeHandoffRequest& b) { a.Swap(&b); }
   inline void Swap(WatchRuntimeHandoffRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1559,7 +2125,7 @@ class WatchListenerYieldPromptsRequest final : public ::google::protobuf::intern
     return *reinterpret_cast<const WatchListenerYieldPromptsRequest*>(
         &_WatchListenerYieldPromptsRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 51;
+  static constexpr int kIndexInFileMessages = 64;
   friend void swap(WatchListenerYieldPromptsRequest& a, WatchListenerYieldPromptsRequest& b) { a.Swap(&b); }
   inline void Swap(WatchListenerYieldPromptsRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1694,7 +2260,7 @@ class WatchListenerStatusResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchListenerStatusResponse*>(
         &_WatchListenerStatusResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 61;
+  static constexpr int kIndexInFileMessages = 74;
   friend void swap(WatchListenerStatusResponse& a, WatchListenerStatusResponse& b) { a.Swap(&b); }
   inline void Swap(WatchListenerStatusResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1912,7 +2478,7 @@ class WatchListenerStatusRequest final : public ::google::protobuf::internal::Ze
     return *reinterpret_cast<const WatchListenerStatusRequest*>(
         &_WatchListenerStatusRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 60;
+  static constexpr int kIndexInFileMessages = 73;
   friend void swap(WatchListenerStatusRequest& a, WatchListenerStatusRequest& b) { a.Swap(&b); }
   inline void Swap(WatchListenerStatusRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2522,7 +3088,7 @@ class StopWebListenerResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const StopWebListenerResponse*>(
         &_StopWebListenerResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 49;
+  static constexpr int kIndexInFileMessages = 62;
   friend void swap(StopWebListenerResponse& a, StopWebListenerResponse& b) { a.Swap(&b); }
   inline void Swap(StopWebListenerResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2712,7 +3278,7 @@ class StopWebListenerRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const StopWebListenerRequest*>(
         &_StopWebListenerRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 48;
+  static constexpr int kIndexInFileMessages = 61;
   friend void swap(StopWebListenerRequest& a, StopWebListenerRequest& b) { a.Swap(&b); }
   inline void Swap(StopWebListenerRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3109,7 +3675,7 @@ class RuntimeHandoffState final : public ::google::protobuf::Message
     return *reinterpret_cast<const RuntimeHandoffState*>(
         &_RuntimeHandoffState_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 55;
+  static constexpr int kIndexInFileMessages = 68;
   friend void swap(RuntimeHandoffState& a, RuntimeHandoffState& b) { a.Swap(&b); }
   inline void Swap(RuntimeHandoffState* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3345,7 +3911,7 @@ class RespondToListenerYieldPromptResponse final : public ::google::protobuf::Me
     return *reinterpret_cast<const RespondToListenerYieldPromptResponse*>(
         &_RespondToListenerYieldPromptResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 54;
+  static constexpr int kIndexInFileMessages = 67;
   friend void swap(RespondToListenerYieldPromptResponse& a, RespondToListenerYieldPromptResponse& b) { a.Swap(&b); }
   inline void Swap(RespondToListenerYieldPromptResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3535,7 +4101,7 @@ class RespondToListenerYieldPromptRequest final : public ::google::protobuf::Mes
     return *reinterpret_cast<const RespondToListenerYieldPromptRequest*>(
         &_RespondToListenerYieldPromptRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 53;
+  static constexpr int kIndexInFileMessages = 66;
   friend void swap(RespondToListenerYieldPromptRequest& a, RespondToListenerYieldPromptRequest& b) { a.Swap(&b); }
   inline void Swap(RespondToListenerYieldPromptRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3821,6 +4387,391 @@ class ResetSessionByIdxResponse final : public ::google::protobuf::internal::Zer
 extern const ::google::protobuf::internal::ClassDataFull ResetSessionByIdxResponse_class_data_;
 // -------------------------------------------------------------------
 
+class RemoveSpaceRootAliasResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.root.RemoveSpaceRootAliasResponse) */ {
+ public:
+  inline RemoveSpaceRootAliasResponse() : RemoveSpaceRootAliasResponse(nullptr) {}
+  ~RemoveSpaceRootAliasResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(RemoveSpaceRootAliasResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(RemoveSpaceRootAliasResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR RemoveSpaceRootAliasResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline RemoveSpaceRootAliasResponse(const RemoveSpaceRootAliasResponse& from) : RemoveSpaceRootAliasResponse(nullptr, from) {}
+  inline RemoveSpaceRootAliasResponse(RemoveSpaceRootAliasResponse&& from) noexcept
+      : RemoveSpaceRootAliasResponse(nullptr, ::std::move(from)) {}
+  inline RemoveSpaceRootAliasResponse& operator=(const RemoveSpaceRootAliasResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline RemoveSpaceRootAliasResponse& operator=(RemoveSpaceRootAliasResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const RemoveSpaceRootAliasResponse& default_instance() {
+    return *reinterpret_cast<const RemoveSpaceRootAliasResponse*>(
+        &_RemoveSpaceRootAliasResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 47;
+  friend void swap(RemoveSpaceRootAliasResponse& a, RemoveSpaceRootAliasResponse& b) { a.Swap(&b); }
+  inline void Swap(RemoveSpaceRootAliasResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(RemoveSpaceRootAliasResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  RemoveSpaceRootAliasResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<RemoveSpaceRootAliasResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const RemoveSpaceRootAliasResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const RemoveSpaceRootAliasResponse& from) { RemoveSpaceRootAliasResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(RemoveSpaceRootAliasResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.root.RemoveSpaceRootAliasResponse"; }
+
+  explicit RemoveSpaceRootAliasResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  RemoveSpaceRootAliasResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const RemoveSpaceRootAliasResponse& from);
+  RemoveSpaceRootAliasResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, RemoveSpaceRootAliasResponse&& from) noexcept
+      : RemoveSpaceRootAliasResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kNotFoundFieldNumber = 1,
+  };
+  // bool not_found = 1;
+  void clear_not_found() ;
+  bool not_found() const;
+  void set_not_found(bool value);
+
+  private:
+  bool _internal_not_found() const;
+  void _internal_set_not_found(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.root.RemoveSpaceRootAliasResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const RemoveSpaceRootAliasResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    bool not_found_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull RemoveSpaceRootAliasResponse_class_data_;
+// -------------------------------------------------------------------
+
+class RemoveSpaceRootAliasRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.root.RemoveSpaceRootAliasRequest) */ {
+ public:
+  inline RemoveSpaceRootAliasRequest() : RemoveSpaceRootAliasRequest(nullptr) {}
+  ~RemoveSpaceRootAliasRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(RemoveSpaceRootAliasRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(RemoveSpaceRootAliasRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR RemoveSpaceRootAliasRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline RemoveSpaceRootAliasRequest(const RemoveSpaceRootAliasRequest& from) : RemoveSpaceRootAliasRequest(nullptr, from) {}
+  inline RemoveSpaceRootAliasRequest(RemoveSpaceRootAliasRequest&& from) noexcept
+      : RemoveSpaceRootAliasRequest(nullptr, ::std::move(from)) {}
+  inline RemoveSpaceRootAliasRequest& operator=(const RemoveSpaceRootAliasRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline RemoveSpaceRootAliasRequest& operator=(RemoveSpaceRootAliasRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const RemoveSpaceRootAliasRequest& default_instance() {
+    return *reinterpret_cast<const RemoveSpaceRootAliasRequest*>(
+        &_RemoveSpaceRootAliasRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 46;
+  friend void swap(RemoveSpaceRootAliasRequest& a, RemoveSpaceRootAliasRequest& b) { a.Swap(&b); }
+  inline void Swap(RemoveSpaceRootAliasRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(RemoveSpaceRootAliasRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  RemoveSpaceRootAliasRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<RemoveSpaceRootAliasRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const RemoveSpaceRootAliasRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const RemoveSpaceRootAliasRequest& from) { RemoveSpaceRootAliasRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(RemoveSpaceRootAliasRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.root.RemoveSpaceRootAliasRequest"; }
+
+  explicit RemoveSpaceRootAliasRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  RemoveSpaceRootAliasRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const RemoveSpaceRootAliasRequest& from);
+  RemoveSpaceRootAliasRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, RemoveSpaceRootAliasRequest&& from) noexcept
+      : RemoveSpaceRootAliasRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kAliasIdFieldNumber = 1,
+  };
+  // string alias_id = 1;
+  void clear_alias_id() ;
+  const ::std::string& alias_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_alias_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_alias_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_alias_id();
+  void set_allocated_alias_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_alias_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_alias_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_alias_id();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.root.RemoveSpaceRootAliasRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   0, 56,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const RemoveSpaceRootAliasRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr alias_id_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull RemoveSpaceRootAliasRequest_class_data_;
+// -------------------------------------------------------------------
+
 class ReclaimRuntimeResponse final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.root.ReclaimRuntimeResponse) */ {
  public:
@@ -3876,7 +4827,7 @@ class ReclaimRuntimeResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ReclaimRuntimeResponse*>(
         &_ReclaimRuntimeResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 59;
+  static constexpr int kIndexInFileMessages = 72;
   friend void swap(ReclaimRuntimeResponse& a, ReclaimRuntimeResponse& b) { a.Swap(&b); }
   inline void Swap(ReclaimRuntimeResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4065,7 +5016,7 @@ class ReclaimRuntimeRequest final : public ::google::protobuf::internal::ZeroFie
     return *reinterpret_cast<const ReclaimRuntimeRequest*>(
         &_ReclaimRuntimeRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 58;
+  static constexpr int kIndexInFileMessages = 71;
   friend void swap(ReclaimRuntimeRequest& a, ReclaimRuntimeRequest& b) { a.Swap(&b); }
   inline void Swap(ReclaimRuntimeRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4338,6 +5289,201 @@ class ParseHashRequest final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ParseHashRequest_class_data_;
+// -------------------------------------------------------------------
+
+class NativeSpaceRootMetadata final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.root.NativeSpaceRootMetadata) */ {
+ public:
+  inline NativeSpaceRootMetadata() : NativeSpaceRootMetadata(nullptr) {}
+  ~NativeSpaceRootMetadata() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(NativeSpaceRootMetadata* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(NativeSpaceRootMetadata));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR NativeSpaceRootMetadata(::google::protobuf::internal::ConstantInitialized);
+
+  inline NativeSpaceRootMetadata(const NativeSpaceRootMetadata& from) : NativeSpaceRootMetadata(nullptr, from) {}
+  inline NativeSpaceRootMetadata(NativeSpaceRootMetadata&& from) noexcept
+      : NativeSpaceRootMetadata(nullptr, ::std::move(from)) {}
+  inline NativeSpaceRootMetadata& operator=(const NativeSpaceRootMetadata& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline NativeSpaceRootMetadata& operator=(NativeSpaceRootMetadata&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const NativeSpaceRootMetadata& default_instance() {
+    return *reinterpret_cast<const NativeSpaceRootMetadata*>(
+        &_NativeSpaceRootMetadata_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 37;
+  friend void swap(NativeSpaceRootMetadata& a, NativeSpaceRootMetadata& b) { a.Swap(&b); }
+  inline void Swap(NativeSpaceRootMetadata* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(NativeSpaceRootMetadata* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  NativeSpaceRootMetadata* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<NativeSpaceRootMetadata>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const NativeSpaceRootMetadata& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const NativeSpaceRootMetadata& from) { NativeSpaceRootMetadata::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(NativeSpaceRootMetadata* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.root.NativeSpaceRootMetadata"; }
+
+  explicit NativeSpaceRootMetadata(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  NativeSpaceRootMetadata(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const NativeSpaceRootMetadata& from);
+  NativeSpaceRootMetadata(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, NativeSpaceRootMetadata&& from) noexcept
+      : NativeSpaceRootMetadata(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kPathFieldNumber = 1,
+  };
+  // string path = 1;
+  void clear_path() ;
+  const ::std::string& path() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_path(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_path();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_path();
+  void set_allocated_path(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_path() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_path(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_path();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.root.NativeSpaceRootMetadata)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   0, 48,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const NativeSpaceRootMetadata& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr path_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull NativeSpaceRootMetadata_class_data_;
 // -------------------------------------------------------------------
 
 class MountSessionResponse final : public ::google::protobuf::Message
@@ -5355,7 +6501,7 @@ class ListenerYieldPrompt final : public ::google::protobuf::Message
     return *reinterpret_cast<const ListenerYieldPrompt*>(
         &_ListenerYieldPrompt_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 50;
+  static constexpr int kIndexInFileMessages = 63;
   friend void swap(ListenerYieldPrompt& a, ListenerYieldPrompt& b) { a.Swap(&b); }
   inline void Swap(ListenerYieldPrompt* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5539,6 +6685,140 @@ class ListenerYieldPrompt final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ListenerYieldPrompt_class_data_;
+// -------------------------------------------------------------------
+
+class ListSpaceRootAliasesRequest final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:s4wave.root.ListSpaceRootAliasesRequest) */ {
+ public:
+  inline ListSpaceRootAliasesRequest() : ListSpaceRootAliasesRequest(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ListSpaceRootAliasesRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ListSpaceRootAliasesRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ListSpaceRootAliasesRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline ListSpaceRootAliasesRequest(const ListSpaceRootAliasesRequest& from) : ListSpaceRootAliasesRequest(nullptr, from) {}
+  inline ListSpaceRootAliasesRequest(ListSpaceRootAliasesRequest&& from) noexcept
+      : ListSpaceRootAliasesRequest(nullptr, ::std::move(from)) {}
+  inline ListSpaceRootAliasesRequest& operator=(const ListSpaceRootAliasesRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ListSpaceRootAliasesRequest& operator=(ListSpaceRootAliasesRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ListSpaceRootAliasesRequest& default_instance() {
+    return *reinterpret_cast<const ListSpaceRootAliasesRequest*>(
+        &_ListSpaceRootAliasesRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 40;
+  friend void swap(ListSpaceRootAliasesRequest& a, ListSpaceRootAliasesRequest& b) { a.Swap(&b); }
+  inline void Swap(ListSpaceRootAliasesRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ListSpaceRootAliasesRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ListSpaceRootAliasesRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<ListSpaceRootAliasesRequest>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const ListSpaceRootAliasesRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const ListSpaceRootAliasesRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.root.ListSpaceRootAliasesRequest"; }
+
+  explicit ListSpaceRootAliasesRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  ListSpaceRootAliasesRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ListSpaceRootAliasesRequest& from);
+  ListSpaceRootAliasesRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ListSpaceRootAliasesRequest&& from) noexcept
+      : ListSpaceRootAliasesRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:s4wave.root.ListSpaceRootAliasesRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull ListSpaceRootAliasesRequest_class_data_;
 // -------------------------------------------------------------------
 
 class ListSessionsRequest final : public ::google::protobuf::internal::ZeroFieldsBase
@@ -6468,7 +7748,7 @@ class GetDebugDbResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetDebugDbResponse*>(
         &_GetDebugDbResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 40;
+  static constexpr int kIndexInFileMessages = 53;
   friend void swap(GetDebugDbResponse& a, GetDebugDbResponse& b) { a.Swap(&b); }
   inline void Swap(GetDebugDbResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6657,7 +7937,7 @@ class GetDebugDbRequest final : public ::google::protobuf::internal::ZeroFieldsB
     return *reinterpret_cast<const GetDebugDbRequest*>(
         &_GetDebugDbRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 39;
+  static constexpr int kIndexInFileMessages = 52;
   friend void swap(GetDebugDbRequest& a, GetDebugDbRequest& b) { a.Swap(&b); }
   inline void Swap(GetDebugDbRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6791,7 +8071,7 @@ class GetChangelogRequest final : public ::google::protobuf::internal::ZeroField
     return *reinterpret_cast<const GetChangelogRequest*>(
         &_GetChangelogRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 37;
+  static constexpr int kIndexInFileMessages = 50;
   friend void swap(GetChangelogRequest& a, GetChangelogRequest& b) { a.Swap(&b); }
   inline void Swap(GetChangelogRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6926,7 +8206,7 @@ class GetCdnResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetCdnResponse*>(
         &_GetCdnResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 42;
+  static constexpr int kIndexInFileMessages = 55;
   friend void swap(GetCdnResponse& a, GetCdnResponse& b) { a.Swap(&b); }
   inline void Swap(GetCdnResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7133,7 +8413,7 @@ class GetCdnRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetCdnRequest*>(
         &_GetCdnRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 41;
+  static constexpr int kIndexInFileMessages = 54;
   friend void swap(GetCdnRequest& a, GetCdnRequest& b) { a.Swap(&b); }
   inline void Swap(GetCdnRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7597,6 +8877,140 @@ class DeleteSessionRequest final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull DeleteSessionRequest_class_data_;
 // -------------------------------------------------------------------
 
+class BrowserSpaceRootMetadata final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:s4wave.root.BrowserSpaceRootMetadata) */ {
+ public:
+  inline BrowserSpaceRootMetadata() : BrowserSpaceRootMetadata(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(BrowserSpaceRootMetadata* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(BrowserSpaceRootMetadata));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR BrowserSpaceRootMetadata(::google::protobuf::internal::ConstantInitialized);
+
+  inline BrowserSpaceRootMetadata(const BrowserSpaceRootMetadata& from) : BrowserSpaceRootMetadata(nullptr, from) {}
+  inline BrowserSpaceRootMetadata(BrowserSpaceRootMetadata&& from) noexcept
+      : BrowserSpaceRootMetadata(nullptr, ::std::move(from)) {}
+  inline BrowserSpaceRootMetadata& operator=(const BrowserSpaceRootMetadata& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline BrowserSpaceRootMetadata& operator=(BrowserSpaceRootMetadata&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const BrowserSpaceRootMetadata& default_instance() {
+    return *reinterpret_cast<const BrowserSpaceRootMetadata*>(
+        &_BrowserSpaceRootMetadata_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 38;
+  friend void swap(BrowserSpaceRootMetadata& a, BrowserSpaceRootMetadata& b) { a.Swap(&b); }
+  inline void Swap(BrowserSpaceRootMetadata* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(BrowserSpaceRootMetadata* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  BrowserSpaceRootMetadata* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<BrowserSpaceRootMetadata>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const BrowserSpaceRootMetadata& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const BrowserSpaceRootMetadata& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.root.BrowserSpaceRootMetadata"; }
+
+  explicit BrowserSpaceRootMetadata(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  BrowserSpaceRootMetadata(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const BrowserSpaceRootMetadata& from);
+  BrowserSpaceRootMetadata(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, BrowserSpaceRootMetadata&& from) noexcept
+      : BrowserSpaceRootMetadata(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:s4wave.root.BrowserSpaceRootMetadata)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull BrowserSpaceRootMetadata_class_data_;
+// -------------------------------------------------------------------
+
 class AccessWebListenerResponse final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.root.AccessWebListenerResponse) */ {
  public:
@@ -7652,7 +9066,7 @@ class AccessWebListenerResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccessWebListenerResponse*>(
         &_AccessWebListenerResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 44;
+  static constexpr int kIndexInFileMessages = 57;
   friend void swap(AccessWebListenerResponse& a, AccessWebListenerResponse& b) { a.Swap(&b); }
   inline void Swap(AccessWebListenerResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7922,7 +9336,7 @@ class AccessWebListenerRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccessWebListenerRequest*>(
         &_AccessWebListenerRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 43;
+  static constexpr int kIndexInFileMessages = 56;
   friend void swap(AccessWebListenerRequest& a, AccessWebListenerRequest& b) { a.Swap(&b); }
   inline void Swap(AccessWebListenerRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -8514,7 +9928,7 @@ class WatchWebListenersResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchWebListenersResponse*>(
         &_WatchWebListenersResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 47;
+  static constexpr int kIndexInFileMessages = 60;
   friend void swap(WatchWebListenersResponse& a, WatchWebListenersResponse& b) { a.Swap(&b); }
   inline void Swap(WatchWebListenersResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -8918,7 +10332,7 @@ class WatchRuntimeHandoffResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchRuntimeHandoffResponse*>(
         &_WatchRuntimeHandoffResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 57;
+  static constexpr int kIndexInFileMessages = 70;
   friend void swap(WatchRuntimeHandoffResponse& a, WatchRuntimeHandoffResponse& b) { a.Swap(&b); }
   inline void Swap(WatchRuntimeHandoffResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9113,7 +10527,7 @@ class WatchListenerYieldPromptsResponse final : public ::google::protobuf::Messa
     return *reinterpret_cast<const WatchListenerYieldPromptsResponse*>(
         &_WatchListenerYieldPromptsResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 52;
+  static constexpr int kIndexInFileMessages = 65;
   friend void swap(WatchListenerYieldPromptsResponse& a, WatchListenerYieldPromptsResponse& b) { a.Swap(&b); }
   inline void Swap(WatchListenerYieldPromptsResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9450,6 +10864,329 @@ class WatchAllAccountStatusesResponse final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull WatchAllAccountStatusesResponse_class_data_;
+// -------------------------------------------------------------------
+
+class SpaceRootAliasRecord final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.root.SpaceRootAliasRecord) */ {
+ public:
+  inline SpaceRootAliasRecord() : SpaceRootAliasRecord(nullptr) {}
+  ~SpaceRootAliasRecord() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SpaceRootAliasRecord* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SpaceRootAliasRecord));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SpaceRootAliasRecord(::google::protobuf::internal::ConstantInitialized);
+
+  inline SpaceRootAliasRecord(const SpaceRootAliasRecord& from) : SpaceRootAliasRecord(nullptr, from) {}
+  inline SpaceRootAliasRecord(SpaceRootAliasRecord&& from) noexcept
+      : SpaceRootAliasRecord(nullptr, ::std::move(from)) {}
+  inline SpaceRootAliasRecord& operator=(const SpaceRootAliasRecord& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SpaceRootAliasRecord& operator=(SpaceRootAliasRecord&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SpaceRootAliasRecord& default_instance() {
+    return *reinterpret_cast<const SpaceRootAliasRecord*>(
+        &_SpaceRootAliasRecord_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 39;
+  friend void swap(SpaceRootAliasRecord& a, SpaceRootAliasRecord& b) { a.Swap(&b); }
+  inline void Swap(SpaceRootAliasRecord* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SpaceRootAliasRecord* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SpaceRootAliasRecord* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<SpaceRootAliasRecord>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const SpaceRootAliasRecord& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const SpaceRootAliasRecord& from) { SpaceRootAliasRecord::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(SpaceRootAliasRecord* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.root.SpaceRootAliasRecord"; }
+
+  explicit SpaceRootAliasRecord(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SpaceRootAliasRecord(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SpaceRootAliasRecord& from);
+  SpaceRootAliasRecord(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SpaceRootAliasRecord&& from) noexcept
+      : SpaceRootAliasRecord(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kAliasIdFieldNumber = 1,
+    kDisplayNameFieldNumber = 2,
+    kStatusMessageFieldNumber = 7,
+    kNativeFieldNumber = 5,
+    kBrowserFieldNumber = 8,
+    kKindFieldNumber = 3,
+    kOpenModeFieldNumber = 4,
+    kCreatedAtUnixMsFieldNumber = 9,
+    kUpdatedAtUnixMsFieldNumber = 10,
+    kStatusFieldNumber = 6,
+  };
+  // string alias_id = 1;
+  void clear_alias_id() ;
+  const ::std::string& alias_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_alias_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_alias_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_alias_id();
+  void set_allocated_alias_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_alias_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_alias_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_alias_id();
+
+  public:
+  // string display_name = 2;
+  void clear_display_name() ;
+  const ::std::string& display_name() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_display_name(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_display_name();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_display_name();
+  void set_allocated_display_name(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_display_name() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_display_name(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_display_name();
+
+  public:
+  // string status_message = 7;
+  void clear_status_message() ;
+  const ::std::string& status_message() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_status_message(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_status_message();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_status_message();
+  void set_allocated_status_message(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_status_message() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_status_message(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_status_message();
+
+  public:
+  // .s4wave.root.NativeSpaceRootMetadata native = 5;
+  bool has_native() const;
+  void clear_native() ;
+  const ::s4wave::root::NativeSpaceRootMetadata& native() const;
+  [[nodiscard]] ::s4wave::root::NativeSpaceRootMetadata* PROTOBUF_NULLABLE release_native();
+  ::s4wave::root::NativeSpaceRootMetadata* PROTOBUF_NONNULL mutable_native();
+  void set_allocated_native(::s4wave::root::NativeSpaceRootMetadata* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_native(::s4wave::root::NativeSpaceRootMetadata* PROTOBUF_NULLABLE value);
+  ::s4wave::root::NativeSpaceRootMetadata* PROTOBUF_NULLABLE unsafe_arena_release_native();
+
+  private:
+  const ::s4wave::root::NativeSpaceRootMetadata& _internal_native() const;
+  ::s4wave::root::NativeSpaceRootMetadata* PROTOBUF_NONNULL _internal_mutable_native();
+
+  public:
+  // .s4wave.root.BrowserSpaceRootMetadata browser = 8;
+  bool has_browser() const;
+  void clear_browser() ;
+  const ::s4wave::root::BrowserSpaceRootMetadata& browser() const;
+  [[nodiscard]] ::s4wave::root::BrowserSpaceRootMetadata* PROTOBUF_NULLABLE release_browser();
+  ::s4wave::root::BrowserSpaceRootMetadata* PROTOBUF_NONNULL mutable_browser();
+  void set_allocated_browser(::s4wave::root::BrowserSpaceRootMetadata* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_browser(::s4wave::root::BrowserSpaceRootMetadata* PROTOBUF_NULLABLE value);
+  ::s4wave::root::BrowserSpaceRootMetadata* PROTOBUF_NULLABLE unsafe_arena_release_browser();
+
+  private:
+  const ::s4wave::root::BrowserSpaceRootMetadata& _internal_browser() const;
+  ::s4wave::root::BrowserSpaceRootMetadata* PROTOBUF_NONNULL _internal_mutable_browser();
+
+  public:
+  // .s4wave.root.SpaceRootKind kind = 3;
+  void clear_kind() ;
+  ::s4wave::root::SpaceRootKind kind() const;
+  void set_kind(::s4wave::root::SpaceRootKind value);
+
+  private:
+  ::s4wave::root::SpaceRootKind _internal_kind() const;
+  void _internal_set_kind(::s4wave::root::SpaceRootKind value);
+
+  public:
+  // .s4wave.root.SpaceRootOpenMode open_mode = 4;
+  void clear_open_mode() ;
+  ::s4wave::root::SpaceRootOpenMode open_mode() const;
+  void set_open_mode(::s4wave::root::SpaceRootOpenMode value);
+
+  private:
+  ::s4wave::root::SpaceRootOpenMode _internal_open_mode() const;
+  void _internal_set_open_mode(::s4wave::root::SpaceRootOpenMode value);
+
+  public:
+  // int64 created_at_unix_ms = 9;
+  void clear_created_at_unix_ms() ;
+  ::int64_t created_at_unix_ms() const;
+  void set_created_at_unix_ms(::int64_t value);
+
+  private:
+  ::int64_t _internal_created_at_unix_ms() const;
+  void _internal_set_created_at_unix_ms(::int64_t value);
+
+  public:
+  // int64 updated_at_unix_ms = 10;
+  void clear_updated_at_unix_ms() ;
+  ::int64_t updated_at_unix_ms() const;
+  void set_updated_at_unix_ms(::int64_t value);
+
+  private:
+  ::int64_t _internal_updated_at_unix_ms() const;
+  void _internal_set_updated_at_unix_ms(::int64_t value);
+
+  public:
+  // .s4wave.root.SpaceRootStatus status = 6;
+  void clear_status() ;
+  ::s4wave::root::SpaceRootStatus status() const;
+  void set_status(::s4wave::root::SpaceRootStatus value);
+
+  private:
+  ::s4wave::root::SpaceRootStatus _internal_status() const;
+  void _internal_set_status(::s4wave::root::SpaceRootStatus value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.root.SpaceRootAliasRecord)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<4, 10,
+                                   2, 83,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const SpaceRootAliasRecord& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr alias_id_;
+    ::google::protobuf::internal::ArenaStringPtr display_name_;
+    ::google::protobuf::internal::ArenaStringPtr status_message_;
+    ::s4wave::root::NativeSpaceRootMetadata* PROTOBUF_NULLABLE native_;
+    ::s4wave::root::BrowserSpaceRootMetadata* PROTOBUF_NULLABLE browser_;
+    int kind_;
+    int open_mode_;
+    ::int64_t created_at_unix_ms_;
+    ::int64_t updated_at_unix_ms_;
+    int status_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SpaceRootAliasRecord_class_data_;
 // -------------------------------------------------------------------
 
 class ResetSessionByIdxRequest final : public ::google::protobuf::Message
@@ -10843,6 +12580,593 @@ class GetSessionMetadataResponse final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull GetSessionMetadataResponse_class_data_;
 // -------------------------------------------------------------------
 
+class WatchSpaceRootAliasesResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.root.WatchSpaceRootAliasesResponse) */ {
+ public:
+  inline WatchSpaceRootAliasesResponse() : WatchSpaceRootAliasesResponse(nullptr) {}
+  ~WatchSpaceRootAliasesResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(WatchSpaceRootAliasesResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(WatchSpaceRootAliasesResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR WatchSpaceRootAliasesResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline WatchSpaceRootAliasesResponse(const WatchSpaceRootAliasesResponse& from) : WatchSpaceRootAliasesResponse(nullptr, from) {}
+  inline WatchSpaceRootAliasesResponse(WatchSpaceRootAliasesResponse&& from) noexcept
+      : WatchSpaceRootAliasesResponse(nullptr, ::std::move(from)) {}
+  inline WatchSpaceRootAliasesResponse& operator=(const WatchSpaceRootAliasesResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline WatchSpaceRootAliasesResponse& operator=(WatchSpaceRootAliasesResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const WatchSpaceRootAliasesResponse& default_instance() {
+    return *reinterpret_cast<const WatchSpaceRootAliasesResponse*>(
+        &_WatchSpaceRootAliasesResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 43;
+  friend void swap(WatchSpaceRootAliasesResponse& a, WatchSpaceRootAliasesResponse& b) { a.Swap(&b); }
+  inline void Swap(WatchSpaceRootAliasesResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(WatchSpaceRootAliasesResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  WatchSpaceRootAliasesResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<WatchSpaceRootAliasesResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const WatchSpaceRootAliasesResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const WatchSpaceRootAliasesResponse& from) { WatchSpaceRootAliasesResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(WatchSpaceRootAliasesResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.root.WatchSpaceRootAliasesResponse"; }
+
+  explicit WatchSpaceRootAliasesResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  WatchSpaceRootAliasesResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const WatchSpaceRootAliasesResponse& from);
+  WatchSpaceRootAliasesResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, WatchSpaceRootAliasesResponse&& from) noexcept
+      : WatchSpaceRootAliasesResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kRecordsFieldNumber = 1,
+  };
+  // repeated .s4wave.root.SpaceRootAliasRecord records = 1;
+  int records_size() const;
+  private:
+  int _internal_records_size() const;
+
+  public:
+  void clear_records() ;
+  ::s4wave::root::SpaceRootAliasRecord* PROTOBUF_NONNULL mutable_records(int index);
+  ::google::protobuf::RepeatedPtrField<::s4wave::root::SpaceRootAliasRecord>* PROTOBUF_NONNULL mutable_records();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::s4wave::root::SpaceRootAliasRecord>& _internal_records() const;
+  ::google::protobuf::RepeatedPtrField<::s4wave::root::SpaceRootAliasRecord>* PROTOBUF_NONNULL _internal_mutable_records();
+  public:
+  const ::s4wave::root::SpaceRootAliasRecord& records(int index) const;
+  ::s4wave::root::SpaceRootAliasRecord* PROTOBUF_NONNULL add_records();
+  const ::google::protobuf::RepeatedPtrField<::s4wave::root::SpaceRootAliasRecord>& records() const;
+  // @@protoc_insertion_point(class_scope:s4wave.root.WatchSpaceRootAliasesResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const WatchSpaceRootAliasesResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField< ::s4wave::root::SpaceRootAliasRecord > records_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull WatchSpaceRootAliasesResponse_class_data_;
+// -------------------------------------------------------------------
+
+class UpsertSpaceRootAliasResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.root.UpsertSpaceRootAliasResponse) */ {
+ public:
+  inline UpsertSpaceRootAliasResponse() : UpsertSpaceRootAliasResponse(nullptr) {}
+  ~UpsertSpaceRootAliasResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(UpsertSpaceRootAliasResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(UpsertSpaceRootAliasResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR UpsertSpaceRootAliasResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline UpsertSpaceRootAliasResponse(const UpsertSpaceRootAliasResponse& from) : UpsertSpaceRootAliasResponse(nullptr, from) {}
+  inline UpsertSpaceRootAliasResponse(UpsertSpaceRootAliasResponse&& from) noexcept
+      : UpsertSpaceRootAliasResponse(nullptr, ::std::move(from)) {}
+  inline UpsertSpaceRootAliasResponse& operator=(const UpsertSpaceRootAliasResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline UpsertSpaceRootAliasResponse& operator=(UpsertSpaceRootAliasResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const UpsertSpaceRootAliasResponse& default_instance() {
+    return *reinterpret_cast<const UpsertSpaceRootAliasResponse*>(
+        &_UpsertSpaceRootAliasResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 45;
+  friend void swap(UpsertSpaceRootAliasResponse& a, UpsertSpaceRootAliasResponse& b) { a.Swap(&b); }
+  inline void Swap(UpsertSpaceRootAliasResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(UpsertSpaceRootAliasResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  UpsertSpaceRootAliasResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<UpsertSpaceRootAliasResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const UpsertSpaceRootAliasResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const UpsertSpaceRootAliasResponse& from) { UpsertSpaceRootAliasResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(UpsertSpaceRootAliasResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.root.UpsertSpaceRootAliasResponse"; }
+
+  explicit UpsertSpaceRootAliasResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  UpsertSpaceRootAliasResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const UpsertSpaceRootAliasResponse& from);
+  UpsertSpaceRootAliasResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, UpsertSpaceRootAliasResponse&& from) noexcept
+      : UpsertSpaceRootAliasResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kRecordFieldNumber = 1,
+  };
+  // .s4wave.root.SpaceRootAliasRecord record = 1;
+  bool has_record() const;
+  void clear_record() ;
+  const ::s4wave::root::SpaceRootAliasRecord& record() const;
+  [[nodiscard]] ::s4wave::root::SpaceRootAliasRecord* PROTOBUF_NULLABLE release_record();
+  ::s4wave::root::SpaceRootAliasRecord* PROTOBUF_NONNULL mutable_record();
+  void set_allocated_record(::s4wave::root::SpaceRootAliasRecord* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_record(::s4wave::root::SpaceRootAliasRecord* PROTOBUF_NULLABLE value);
+  ::s4wave::root::SpaceRootAliasRecord* PROTOBUF_NULLABLE unsafe_arena_release_record();
+
+  private:
+  const ::s4wave::root::SpaceRootAliasRecord& _internal_record() const;
+  ::s4wave::root::SpaceRootAliasRecord* PROTOBUF_NONNULL _internal_mutable_record();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.root.UpsertSpaceRootAliasResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const UpsertSpaceRootAliasResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::s4wave::root::SpaceRootAliasRecord* PROTOBUF_NULLABLE record_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull UpsertSpaceRootAliasResponse_class_data_;
+// -------------------------------------------------------------------
+
+class UpsertSpaceRootAliasRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.root.UpsertSpaceRootAliasRequest) */ {
+ public:
+  inline UpsertSpaceRootAliasRequest() : UpsertSpaceRootAliasRequest(nullptr) {}
+  ~UpsertSpaceRootAliasRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(UpsertSpaceRootAliasRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(UpsertSpaceRootAliasRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR UpsertSpaceRootAliasRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline UpsertSpaceRootAliasRequest(const UpsertSpaceRootAliasRequest& from) : UpsertSpaceRootAliasRequest(nullptr, from) {}
+  inline UpsertSpaceRootAliasRequest(UpsertSpaceRootAliasRequest&& from) noexcept
+      : UpsertSpaceRootAliasRequest(nullptr, ::std::move(from)) {}
+  inline UpsertSpaceRootAliasRequest& operator=(const UpsertSpaceRootAliasRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline UpsertSpaceRootAliasRequest& operator=(UpsertSpaceRootAliasRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const UpsertSpaceRootAliasRequest& default_instance() {
+    return *reinterpret_cast<const UpsertSpaceRootAliasRequest*>(
+        &_UpsertSpaceRootAliasRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 44;
+  friend void swap(UpsertSpaceRootAliasRequest& a, UpsertSpaceRootAliasRequest& b) { a.Swap(&b); }
+  inline void Swap(UpsertSpaceRootAliasRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(UpsertSpaceRootAliasRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  UpsertSpaceRootAliasRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<UpsertSpaceRootAliasRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const UpsertSpaceRootAliasRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const UpsertSpaceRootAliasRequest& from) { UpsertSpaceRootAliasRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(UpsertSpaceRootAliasRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.root.UpsertSpaceRootAliasRequest"; }
+
+  explicit UpsertSpaceRootAliasRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  UpsertSpaceRootAliasRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const UpsertSpaceRootAliasRequest& from);
+  UpsertSpaceRootAliasRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, UpsertSpaceRootAliasRequest&& from) noexcept
+      : UpsertSpaceRootAliasRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kRecordFieldNumber = 1,
+  };
+  // .s4wave.root.SpaceRootAliasRecord record = 1;
+  bool has_record() const;
+  void clear_record() ;
+  const ::s4wave::root::SpaceRootAliasRecord& record() const;
+  [[nodiscard]] ::s4wave::root::SpaceRootAliasRecord* PROTOBUF_NULLABLE release_record();
+  ::s4wave::root::SpaceRootAliasRecord* PROTOBUF_NONNULL mutable_record();
+  void set_allocated_record(::s4wave::root::SpaceRootAliasRecord* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_record(::s4wave::root::SpaceRootAliasRecord* PROTOBUF_NULLABLE value);
+  ::s4wave::root::SpaceRootAliasRecord* PROTOBUF_NULLABLE unsafe_arena_release_record();
+
+  private:
+  const ::s4wave::root::SpaceRootAliasRecord& _internal_record() const;
+  ::s4wave::root::SpaceRootAliasRecord* PROTOBUF_NONNULL _internal_mutable_record();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.root.UpsertSpaceRootAliasRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const UpsertSpaceRootAliasRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::s4wave::root::SpaceRootAliasRecord* PROTOBUF_NULLABLE record_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull UpsertSpaceRootAliasRequest_class_data_;
+// -------------------------------------------------------------------
+
 class MountSessionRequest final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.root.MountSessionRequest) */ {
  public:
@@ -11255,6 +13579,480 @@ class MountSessionByIdxResponse final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull MountSessionByIdxResponse_class_data_;
+// -------------------------------------------------------------------
+
+class ListSpaceRootAliasesResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.root.ListSpaceRootAliasesResponse) */ {
+ public:
+  inline ListSpaceRootAliasesResponse() : ListSpaceRootAliasesResponse(nullptr) {}
+  ~ListSpaceRootAliasesResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ListSpaceRootAliasesResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ListSpaceRootAliasesResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ListSpaceRootAliasesResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline ListSpaceRootAliasesResponse(const ListSpaceRootAliasesResponse& from) : ListSpaceRootAliasesResponse(nullptr, from) {}
+  inline ListSpaceRootAliasesResponse(ListSpaceRootAliasesResponse&& from) noexcept
+      : ListSpaceRootAliasesResponse(nullptr, ::std::move(from)) {}
+  inline ListSpaceRootAliasesResponse& operator=(const ListSpaceRootAliasesResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ListSpaceRootAliasesResponse& operator=(ListSpaceRootAliasesResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ListSpaceRootAliasesResponse& default_instance() {
+    return *reinterpret_cast<const ListSpaceRootAliasesResponse*>(
+        &_ListSpaceRootAliasesResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 41;
+  friend void swap(ListSpaceRootAliasesResponse& a, ListSpaceRootAliasesResponse& b) { a.Swap(&b); }
+  inline void Swap(ListSpaceRootAliasesResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ListSpaceRootAliasesResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ListSpaceRootAliasesResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<ListSpaceRootAliasesResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ListSpaceRootAliasesResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const ListSpaceRootAliasesResponse& from) { ListSpaceRootAliasesResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(ListSpaceRootAliasesResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.root.ListSpaceRootAliasesResponse"; }
+
+  explicit ListSpaceRootAliasesResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  ListSpaceRootAliasesResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ListSpaceRootAliasesResponse& from);
+  ListSpaceRootAliasesResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ListSpaceRootAliasesResponse&& from) noexcept
+      : ListSpaceRootAliasesResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kRecordsFieldNumber = 1,
+  };
+  // repeated .s4wave.root.SpaceRootAliasRecord records = 1;
+  int records_size() const;
+  private:
+  int _internal_records_size() const;
+
+  public:
+  void clear_records() ;
+  ::s4wave::root::SpaceRootAliasRecord* PROTOBUF_NONNULL mutable_records(int index);
+  ::google::protobuf::RepeatedPtrField<::s4wave::root::SpaceRootAliasRecord>* PROTOBUF_NONNULL mutable_records();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::s4wave::root::SpaceRootAliasRecord>& _internal_records() const;
+  ::google::protobuf::RepeatedPtrField<::s4wave::root::SpaceRootAliasRecord>* PROTOBUF_NONNULL _internal_mutable_records();
+  public:
+  const ::s4wave::root::SpaceRootAliasRecord& records(int index) const;
+  ::s4wave::root::SpaceRootAliasRecord* PROTOBUF_NONNULL add_records();
+  const ::google::protobuf::RepeatedPtrField<::s4wave::root::SpaceRootAliasRecord>& records() const;
+  // @@protoc_insertion_point(class_scope:s4wave.root.ListSpaceRootAliasesResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const ListSpaceRootAliasesResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField< ::s4wave::root::SpaceRootAliasRecord > records_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull ListSpaceRootAliasesResponse_class_data_;
+// -------------------------------------------------------------------
+
+class WatchSpaceRootRuntimeResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.root.WatchSpaceRootRuntimeResponse) */ {
+ public:
+  inline WatchSpaceRootRuntimeResponse() : WatchSpaceRootRuntimeResponse(nullptr) {}
+  ~WatchSpaceRootRuntimeResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(WatchSpaceRootRuntimeResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(WatchSpaceRootRuntimeResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR WatchSpaceRootRuntimeResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline WatchSpaceRootRuntimeResponse(const WatchSpaceRootRuntimeResponse& from) : WatchSpaceRootRuntimeResponse(nullptr, from) {}
+  inline WatchSpaceRootRuntimeResponse(WatchSpaceRootRuntimeResponse&& from) noexcept
+      : WatchSpaceRootRuntimeResponse(nullptr, ::std::move(from)) {}
+  inline WatchSpaceRootRuntimeResponse& operator=(const WatchSpaceRootRuntimeResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline WatchSpaceRootRuntimeResponse& operator=(WatchSpaceRootRuntimeResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const WatchSpaceRootRuntimeResponse& default_instance() {
+    return *reinterpret_cast<const WatchSpaceRootRuntimeResponse*>(
+        &_WatchSpaceRootRuntimeResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 49;
+  friend void swap(WatchSpaceRootRuntimeResponse& a, WatchSpaceRootRuntimeResponse& b) { a.Swap(&b); }
+  inline void Swap(WatchSpaceRootRuntimeResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(WatchSpaceRootRuntimeResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  WatchSpaceRootRuntimeResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<WatchSpaceRootRuntimeResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const WatchSpaceRootRuntimeResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const WatchSpaceRootRuntimeResponse& from) { WatchSpaceRootRuntimeResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(WatchSpaceRootRuntimeResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.root.WatchSpaceRootRuntimeResponse"; }
+
+  explicit WatchSpaceRootRuntimeResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  WatchSpaceRootRuntimeResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const WatchSpaceRootRuntimeResponse& from);
+  WatchSpaceRootRuntimeResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, WatchSpaceRootRuntimeResponse&& from) noexcept
+      : WatchSpaceRootRuntimeResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kSessionsFieldNumber = 5,
+    kAliasIdFieldNumber = 2,
+    kStatePathFieldNumber = 3,
+    kSocketPathFieldNumber = 4,
+    kErrorFieldNumber = 6,
+    kStatusFieldNumber = 1,
+  };
+  // repeated .session.SessionListEntry sessions = 5;
+  int sessions_size() const;
+  private:
+  int _internal_sessions_size() const;
+
+  public:
+  void clear_sessions() ;
+  ::session::SessionListEntry* PROTOBUF_NONNULL mutable_sessions(int index);
+  ::google::protobuf::RepeatedPtrField<::session::SessionListEntry>* PROTOBUF_NONNULL mutable_sessions();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::session::SessionListEntry>& _internal_sessions() const;
+  ::google::protobuf::RepeatedPtrField<::session::SessionListEntry>* PROTOBUF_NONNULL _internal_mutable_sessions();
+  public:
+  const ::session::SessionListEntry& sessions(int index) const;
+  ::session::SessionListEntry* PROTOBUF_NONNULL add_sessions();
+  const ::google::protobuf::RepeatedPtrField<::session::SessionListEntry>& sessions() const;
+  // string alias_id = 2;
+  void clear_alias_id() ;
+  const ::std::string& alias_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_alias_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_alias_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_alias_id();
+  void set_allocated_alias_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_alias_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_alias_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_alias_id();
+
+  public:
+  // string state_path = 3;
+  void clear_state_path() ;
+  const ::std::string& state_path() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_state_path(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_state_path();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_state_path();
+  void set_allocated_state_path(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_state_path() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_state_path(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_state_path();
+
+  public:
+  // string socket_path = 4;
+  void clear_socket_path() ;
+  const ::std::string& socket_path() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_socket_path(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_socket_path();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_socket_path();
+  void set_allocated_socket_path(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_socket_path() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_socket_path(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_socket_path();
+
+  public:
+  // string error = 6;
+  void clear_error() ;
+  const ::std::string& error() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_error(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_error();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_error();
+  void set_allocated_error(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_error() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_error(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_error();
+
+  public:
+  // .s4wave.root.SpaceRootRuntimeStatus status = 1;
+  void clear_status() ;
+  ::s4wave::root::SpaceRootRuntimeStatus status() const;
+  void set_status(::s4wave::root::SpaceRootRuntimeStatus value);
+
+  private:
+  ::s4wave::root::SpaceRootRuntimeStatus _internal_status() const;
+  void _internal_set_status(::s4wave::root::SpaceRootRuntimeStatus value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.root.WatchSpaceRootRuntimeResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 6,
+                                   1, 84,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const WatchSpaceRootRuntimeResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField< ::session::SessionListEntry > sessions_;
+    ::google::protobuf::internal::ArenaStringPtr alias_id_;
+    ::google::protobuf::internal::ArenaStringPtr state_path_;
+    ::google::protobuf::internal::ArenaStringPtr socket_path_;
+    ::google::protobuf::internal::ArenaStringPtr error_;
+    int status_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull WatchSpaceRootRuntimeResponse_class_data_;
 // -------------------------------------------------------------------
 
 class WatchSessionsResponse final : public ::google::protobuf::Message
@@ -11706,7 +14504,7 @@ class GetChangelogResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetChangelogResponse*>(
         &_GetChangelogResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 38;
+  static constexpr int kIndexInFileMessages = 51;
   friend void swap(GetChangelogResponse& a, GetChangelogResponse& b) { a.Swap(&b); }
   inline void Swap(GetChangelogResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -14027,6 +16825,1466 @@ inline void WatchStateAtomsResponse::_internal_set_store_count(::uint32_t value)
 
 // -------------------------------------------------------------------
 
+// NativeSpaceRootMetadata
+
+// string path = 1;
+inline void NativeSpaceRootMetadata::clear_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.path_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& NativeSpaceRootMetadata::path() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.root.NativeSpaceRootMetadata.path)
+  return _internal_path();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void NativeSpaceRootMetadata::set_path(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.path_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.root.NativeSpaceRootMetadata.path)
+}
+inline ::std::string* PROTOBUF_NONNULL NativeSpaceRootMetadata::mutable_path()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_path();
+  // @@protoc_insertion_point(field_mutable:s4wave.root.NativeSpaceRootMetadata.path)
+  return _s;
+}
+inline const ::std::string& NativeSpaceRootMetadata::_internal_path() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.path_.Get();
+}
+inline void NativeSpaceRootMetadata::_internal_set_path(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.path_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL NativeSpaceRootMetadata::_internal_mutable_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.path_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE NativeSpaceRootMetadata::release_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.root.NativeSpaceRootMetadata.path)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.path_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.path_.Set("", GetArena());
+  }
+  return released;
+}
+inline void NativeSpaceRootMetadata::set_allocated_path(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.path_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.path_.IsDefault()) {
+    _impl_.path_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.root.NativeSpaceRootMetadata.path)
+}
+
+// -------------------------------------------------------------------
+
+// BrowserSpaceRootMetadata
+
+// -------------------------------------------------------------------
+
+// SpaceRootAliasRecord
+
+// string alias_id = 1;
+inline void SpaceRootAliasRecord::clear_alias_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.alias_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& SpaceRootAliasRecord::alias_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.root.SpaceRootAliasRecord.alias_id)
+  return _internal_alias_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SpaceRootAliasRecord::set_alias_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.alias_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.root.SpaceRootAliasRecord.alias_id)
+}
+inline ::std::string* PROTOBUF_NONNULL SpaceRootAliasRecord::mutable_alias_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_alias_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.root.SpaceRootAliasRecord.alias_id)
+  return _s;
+}
+inline const ::std::string& SpaceRootAliasRecord::_internal_alias_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.alias_id_.Get();
+}
+inline void SpaceRootAliasRecord::_internal_set_alias_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.alias_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SpaceRootAliasRecord::_internal_mutable_alias_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.alias_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SpaceRootAliasRecord::release_alias_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.root.SpaceRootAliasRecord.alias_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.alias_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.alias_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SpaceRootAliasRecord::set_allocated_alias_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.alias_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.alias_id_.IsDefault()) {
+    _impl_.alias_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.root.SpaceRootAliasRecord.alias_id)
+}
+
+// string display_name = 2;
+inline void SpaceRootAliasRecord::clear_display_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.display_name_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& SpaceRootAliasRecord::display_name() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.root.SpaceRootAliasRecord.display_name)
+  return _internal_display_name();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SpaceRootAliasRecord::set_display_name(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.display_name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.root.SpaceRootAliasRecord.display_name)
+}
+inline ::std::string* PROTOBUF_NONNULL SpaceRootAliasRecord::mutable_display_name()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_display_name();
+  // @@protoc_insertion_point(field_mutable:s4wave.root.SpaceRootAliasRecord.display_name)
+  return _s;
+}
+inline const ::std::string& SpaceRootAliasRecord::_internal_display_name() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.display_name_.Get();
+}
+inline void SpaceRootAliasRecord::_internal_set_display_name(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.display_name_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SpaceRootAliasRecord::_internal_mutable_display_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.display_name_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SpaceRootAliasRecord::release_display_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.root.SpaceRootAliasRecord.display_name)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.display_name_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.display_name_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SpaceRootAliasRecord::set_allocated_display_name(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.display_name_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.display_name_.IsDefault()) {
+    _impl_.display_name_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.root.SpaceRootAliasRecord.display_name)
+}
+
+// .s4wave.root.SpaceRootKind kind = 3;
+inline void SpaceRootAliasRecord::clear_kind() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.kind_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline ::s4wave::root::SpaceRootKind SpaceRootAliasRecord::kind() const {
+  // @@protoc_insertion_point(field_get:s4wave.root.SpaceRootAliasRecord.kind)
+  return _internal_kind();
+}
+inline void SpaceRootAliasRecord::set_kind(::s4wave::root::SpaceRootKind value) {
+  _internal_set_kind(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  // @@protoc_insertion_point(field_set:s4wave.root.SpaceRootAliasRecord.kind)
+}
+inline ::s4wave::root::SpaceRootKind SpaceRootAliasRecord::_internal_kind() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::s4wave::root::SpaceRootKind>(_impl_.kind_);
+}
+inline void SpaceRootAliasRecord::_internal_set_kind(::s4wave::root::SpaceRootKind value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.kind_ = value;
+}
+
+// .s4wave.root.SpaceRootOpenMode open_mode = 4;
+inline void SpaceRootAliasRecord::clear_open_mode() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.open_mode_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline ::s4wave::root::SpaceRootOpenMode SpaceRootAliasRecord::open_mode() const {
+  // @@protoc_insertion_point(field_get:s4wave.root.SpaceRootAliasRecord.open_mode)
+  return _internal_open_mode();
+}
+inline void SpaceRootAliasRecord::set_open_mode(::s4wave::root::SpaceRootOpenMode value) {
+  _internal_set_open_mode(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  // @@protoc_insertion_point(field_set:s4wave.root.SpaceRootAliasRecord.open_mode)
+}
+inline ::s4wave::root::SpaceRootOpenMode SpaceRootAliasRecord::_internal_open_mode() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::s4wave::root::SpaceRootOpenMode>(_impl_.open_mode_);
+}
+inline void SpaceRootAliasRecord::_internal_set_open_mode(::s4wave::root::SpaceRootOpenMode value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.open_mode_ = value;
+}
+
+// .s4wave.root.NativeSpaceRootMetadata native = 5;
+inline bool SpaceRootAliasRecord::has_native() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000008U);
+  PROTOBUF_ASSUME(!value || _impl_.native_ != nullptr);
+  return value;
+}
+inline void SpaceRootAliasRecord::clear_native() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.native_ != nullptr) _impl_.native_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::s4wave::root::NativeSpaceRootMetadata& SpaceRootAliasRecord::_internal_native() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::root::NativeSpaceRootMetadata* p = _impl_.native_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::root::NativeSpaceRootMetadata&>(::s4wave::root::_NativeSpaceRootMetadata_default_instance_);
+}
+inline const ::s4wave::root::NativeSpaceRootMetadata& SpaceRootAliasRecord::native() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.root.SpaceRootAliasRecord.native)
+  return _internal_native();
+}
+inline void SpaceRootAliasRecord::unsafe_arena_set_allocated_native(
+    ::s4wave::root::NativeSpaceRootMetadata* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.native_);
+  }
+  _impl_.native_ = reinterpret_cast<::s4wave::root::NativeSpaceRootMetadata*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.root.SpaceRootAliasRecord.native)
+}
+inline ::s4wave::root::NativeSpaceRootMetadata* PROTOBUF_NULLABLE SpaceRootAliasRecord::release_native() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::s4wave::root::NativeSpaceRootMetadata* released = _impl_.native_;
+  _impl_.native_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::root::NativeSpaceRootMetadata* PROTOBUF_NULLABLE SpaceRootAliasRecord::unsafe_arena_release_native() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.root.SpaceRootAliasRecord.native)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::s4wave::root::NativeSpaceRootMetadata* temp = _impl_.native_;
+  _impl_.native_ = nullptr;
+  return temp;
+}
+inline ::s4wave::root::NativeSpaceRootMetadata* PROTOBUF_NONNULL SpaceRootAliasRecord::_internal_mutable_native() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.native_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::root::NativeSpaceRootMetadata>(GetArena());
+    _impl_.native_ = reinterpret_cast<::s4wave::root::NativeSpaceRootMetadata*>(p);
+  }
+  return _impl_.native_;
+}
+inline ::s4wave::root::NativeSpaceRootMetadata* PROTOBUF_NONNULL SpaceRootAliasRecord::mutable_native()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::s4wave::root::NativeSpaceRootMetadata* _msg = _internal_mutable_native();
+  // @@protoc_insertion_point(field_mutable:s4wave.root.SpaceRootAliasRecord.native)
+  return _msg;
+}
+inline void SpaceRootAliasRecord::set_allocated_native(::s4wave::root::NativeSpaceRootMetadata* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.native_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+
+  _impl_.native_ = reinterpret_cast<::s4wave::root::NativeSpaceRootMetadata*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.root.SpaceRootAliasRecord.native)
+}
+
+// .s4wave.root.SpaceRootStatus status = 6;
+inline void SpaceRootAliasRecord::clear_status() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000200U);
+}
+inline ::s4wave::root::SpaceRootStatus SpaceRootAliasRecord::status() const {
+  // @@protoc_insertion_point(field_get:s4wave.root.SpaceRootAliasRecord.status)
+  return _internal_status();
+}
+inline void SpaceRootAliasRecord::set_status(::s4wave::root::SpaceRootStatus value) {
+  _internal_set_status(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  // @@protoc_insertion_point(field_set:s4wave.root.SpaceRootAliasRecord.status)
+}
+inline ::s4wave::root::SpaceRootStatus SpaceRootAliasRecord::_internal_status() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::s4wave::root::SpaceRootStatus>(_impl_.status_);
+}
+inline void SpaceRootAliasRecord::_internal_set_status(::s4wave::root::SpaceRootStatus value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_ = value;
+}
+
+// string status_message = 7;
+inline void SpaceRootAliasRecord::clear_status_message() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_message_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& SpaceRootAliasRecord::status_message() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.root.SpaceRootAliasRecord.status_message)
+  return _internal_status_message();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SpaceRootAliasRecord::set_status_message(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.status_message_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.root.SpaceRootAliasRecord.status_message)
+}
+inline ::std::string* PROTOBUF_NONNULL SpaceRootAliasRecord::mutable_status_message()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_status_message();
+  // @@protoc_insertion_point(field_mutable:s4wave.root.SpaceRootAliasRecord.status_message)
+  return _s;
+}
+inline const ::std::string& SpaceRootAliasRecord::_internal_status_message() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.status_message_.Get();
+}
+inline void SpaceRootAliasRecord::_internal_set_status_message(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_message_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SpaceRootAliasRecord::_internal_mutable_status_message() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.status_message_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SpaceRootAliasRecord::release_status_message() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.root.SpaceRootAliasRecord.status_message)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.status_message_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.status_message_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SpaceRootAliasRecord::set_allocated_status_message(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.status_message_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.status_message_.IsDefault()) {
+    _impl_.status_message_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.root.SpaceRootAliasRecord.status_message)
+}
+
+// .s4wave.root.BrowserSpaceRootMetadata browser = 8;
+inline bool SpaceRootAliasRecord::has_browser() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000010U);
+  PROTOBUF_ASSUME(!value || _impl_.browser_ != nullptr);
+  return value;
+}
+inline void SpaceRootAliasRecord::clear_browser() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.browser_ != nullptr) _impl_.browser_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::s4wave::root::BrowserSpaceRootMetadata& SpaceRootAliasRecord::_internal_browser() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::root::BrowserSpaceRootMetadata* p = _impl_.browser_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::root::BrowserSpaceRootMetadata&>(::s4wave::root::_BrowserSpaceRootMetadata_default_instance_);
+}
+inline const ::s4wave::root::BrowserSpaceRootMetadata& SpaceRootAliasRecord::browser() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.root.SpaceRootAliasRecord.browser)
+  return _internal_browser();
+}
+inline void SpaceRootAliasRecord::unsafe_arena_set_allocated_browser(
+    ::s4wave::root::BrowserSpaceRootMetadata* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.browser_);
+  }
+  _impl_.browser_ = reinterpret_cast<::s4wave::root::BrowserSpaceRootMetadata*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.root.SpaceRootAliasRecord.browser)
+}
+inline ::s4wave::root::BrowserSpaceRootMetadata* PROTOBUF_NULLABLE SpaceRootAliasRecord::release_browser() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::s4wave::root::BrowserSpaceRootMetadata* released = _impl_.browser_;
+  _impl_.browser_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::root::BrowserSpaceRootMetadata* PROTOBUF_NULLABLE SpaceRootAliasRecord::unsafe_arena_release_browser() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.root.SpaceRootAliasRecord.browser)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::s4wave::root::BrowserSpaceRootMetadata* temp = _impl_.browser_;
+  _impl_.browser_ = nullptr;
+  return temp;
+}
+inline ::s4wave::root::BrowserSpaceRootMetadata* PROTOBUF_NONNULL SpaceRootAliasRecord::_internal_mutable_browser() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.browser_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::root::BrowserSpaceRootMetadata>(GetArena());
+    _impl_.browser_ = reinterpret_cast<::s4wave::root::BrowserSpaceRootMetadata*>(p);
+  }
+  return _impl_.browser_;
+}
+inline ::s4wave::root::BrowserSpaceRootMetadata* PROTOBUF_NONNULL SpaceRootAliasRecord::mutable_browser()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::s4wave::root::BrowserSpaceRootMetadata* _msg = _internal_mutable_browser();
+  // @@protoc_insertion_point(field_mutable:s4wave.root.SpaceRootAliasRecord.browser)
+  return _msg;
+}
+inline void SpaceRootAliasRecord::set_allocated_browser(::s4wave::root::BrowserSpaceRootMetadata* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.browser_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+
+  _impl_.browser_ = reinterpret_cast<::s4wave::root::BrowserSpaceRootMetadata*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.root.SpaceRootAliasRecord.browser)
+}
+
+// int64 created_at_unix_ms = 9;
+inline void SpaceRootAliasRecord::clear_created_at_unix_ms() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.created_at_unix_ms_ = ::int64_t{0};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000080U);
+}
+inline ::int64_t SpaceRootAliasRecord::created_at_unix_ms() const {
+  // @@protoc_insertion_point(field_get:s4wave.root.SpaceRootAliasRecord.created_at_unix_ms)
+  return _internal_created_at_unix_ms();
+}
+inline void SpaceRootAliasRecord::set_created_at_unix_ms(::int64_t value) {
+  _internal_set_created_at_unix_ms(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  // @@protoc_insertion_point(field_set:s4wave.root.SpaceRootAliasRecord.created_at_unix_ms)
+}
+inline ::int64_t SpaceRootAliasRecord::_internal_created_at_unix_ms() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.created_at_unix_ms_;
+}
+inline void SpaceRootAliasRecord::_internal_set_created_at_unix_ms(::int64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.created_at_unix_ms_ = value;
+}
+
+// int64 updated_at_unix_ms = 10;
+inline void SpaceRootAliasRecord::clear_updated_at_unix_ms() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.updated_at_unix_ms_ = ::int64_t{0};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000100U);
+}
+inline ::int64_t SpaceRootAliasRecord::updated_at_unix_ms() const {
+  // @@protoc_insertion_point(field_get:s4wave.root.SpaceRootAliasRecord.updated_at_unix_ms)
+  return _internal_updated_at_unix_ms();
+}
+inline void SpaceRootAliasRecord::set_updated_at_unix_ms(::int64_t value) {
+  _internal_set_updated_at_unix_ms(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  // @@protoc_insertion_point(field_set:s4wave.root.SpaceRootAliasRecord.updated_at_unix_ms)
+}
+inline ::int64_t SpaceRootAliasRecord::_internal_updated_at_unix_ms() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.updated_at_unix_ms_;
+}
+inline void SpaceRootAliasRecord::_internal_set_updated_at_unix_ms(::int64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.updated_at_unix_ms_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// ListSpaceRootAliasesRequest
+
+// -------------------------------------------------------------------
+
+// ListSpaceRootAliasesResponse
+
+// repeated .s4wave.root.SpaceRootAliasRecord records = 1;
+inline int ListSpaceRootAliasesResponse::_internal_records_size() const {
+  return _internal_records().size();
+}
+inline int ListSpaceRootAliasesResponse::records_size() const {
+  return _internal_records_size();
+}
+inline void ListSpaceRootAliasesResponse::clear_records() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.records_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::s4wave::root::SpaceRootAliasRecord* PROTOBUF_NONNULL ListSpaceRootAliasesResponse::mutable_records(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.root.ListSpaceRootAliasesResponse.records)
+  return _internal_mutable_records()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::s4wave::root::SpaceRootAliasRecord>* PROTOBUF_NONNULL ListSpaceRootAliasesResponse::mutable_records()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.root.ListSpaceRootAliasesResponse.records)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_records();
+}
+inline const ::s4wave::root::SpaceRootAliasRecord& ListSpaceRootAliasesResponse::records(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.root.ListSpaceRootAliasesResponse.records)
+  return _internal_records().Get(index);
+}
+inline ::s4wave::root::SpaceRootAliasRecord* PROTOBUF_NONNULL ListSpaceRootAliasesResponse::add_records()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::s4wave::root::SpaceRootAliasRecord* _add =
+      _internal_mutable_records()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:s4wave.root.ListSpaceRootAliasesResponse.records)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::s4wave::root::SpaceRootAliasRecord>& ListSpaceRootAliasesResponse::records() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.root.ListSpaceRootAliasesResponse.records)
+  return _internal_records();
+}
+inline const ::google::protobuf::RepeatedPtrField<::s4wave::root::SpaceRootAliasRecord>&
+ListSpaceRootAliasesResponse::_internal_records() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.records_;
+}
+inline ::google::protobuf::RepeatedPtrField<::s4wave::root::SpaceRootAliasRecord>* PROTOBUF_NONNULL
+ListSpaceRootAliasesResponse::_internal_mutable_records() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.records_;
+}
+
+// -------------------------------------------------------------------
+
+// WatchSpaceRootAliasesRequest
+
+// -------------------------------------------------------------------
+
+// WatchSpaceRootAliasesResponse
+
+// repeated .s4wave.root.SpaceRootAliasRecord records = 1;
+inline int WatchSpaceRootAliasesResponse::_internal_records_size() const {
+  return _internal_records().size();
+}
+inline int WatchSpaceRootAliasesResponse::records_size() const {
+  return _internal_records_size();
+}
+inline void WatchSpaceRootAliasesResponse::clear_records() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.records_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::s4wave::root::SpaceRootAliasRecord* PROTOBUF_NONNULL WatchSpaceRootAliasesResponse::mutable_records(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.root.WatchSpaceRootAliasesResponse.records)
+  return _internal_mutable_records()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::s4wave::root::SpaceRootAliasRecord>* PROTOBUF_NONNULL WatchSpaceRootAliasesResponse::mutable_records()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.root.WatchSpaceRootAliasesResponse.records)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_records();
+}
+inline const ::s4wave::root::SpaceRootAliasRecord& WatchSpaceRootAliasesResponse::records(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.root.WatchSpaceRootAliasesResponse.records)
+  return _internal_records().Get(index);
+}
+inline ::s4wave::root::SpaceRootAliasRecord* PROTOBUF_NONNULL WatchSpaceRootAliasesResponse::add_records()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::s4wave::root::SpaceRootAliasRecord* _add =
+      _internal_mutable_records()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:s4wave.root.WatchSpaceRootAliasesResponse.records)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::s4wave::root::SpaceRootAliasRecord>& WatchSpaceRootAliasesResponse::records() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.root.WatchSpaceRootAliasesResponse.records)
+  return _internal_records();
+}
+inline const ::google::protobuf::RepeatedPtrField<::s4wave::root::SpaceRootAliasRecord>&
+WatchSpaceRootAliasesResponse::_internal_records() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.records_;
+}
+inline ::google::protobuf::RepeatedPtrField<::s4wave::root::SpaceRootAliasRecord>* PROTOBUF_NONNULL
+WatchSpaceRootAliasesResponse::_internal_mutable_records() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.records_;
+}
+
+// -------------------------------------------------------------------
+
+// UpsertSpaceRootAliasRequest
+
+// .s4wave.root.SpaceRootAliasRecord record = 1;
+inline bool UpsertSpaceRootAliasRequest::has_record() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  PROTOBUF_ASSUME(!value || _impl_.record_ != nullptr);
+  return value;
+}
+inline void UpsertSpaceRootAliasRequest::clear_record() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.record_ != nullptr) _impl_.record_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::s4wave::root::SpaceRootAliasRecord& UpsertSpaceRootAliasRequest::_internal_record() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::root::SpaceRootAliasRecord* p = _impl_.record_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::root::SpaceRootAliasRecord&>(::s4wave::root::_SpaceRootAliasRecord_default_instance_);
+}
+inline const ::s4wave::root::SpaceRootAliasRecord& UpsertSpaceRootAliasRequest::record() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.root.UpsertSpaceRootAliasRequest.record)
+  return _internal_record();
+}
+inline void UpsertSpaceRootAliasRequest::unsafe_arena_set_allocated_record(
+    ::s4wave::root::SpaceRootAliasRecord* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.record_);
+  }
+  _impl_.record_ = reinterpret_cast<::s4wave::root::SpaceRootAliasRecord*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.root.UpsertSpaceRootAliasRequest.record)
+}
+inline ::s4wave::root::SpaceRootAliasRecord* PROTOBUF_NULLABLE UpsertSpaceRootAliasRequest::release_record() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::root::SpaceRootAliasRecord* released = _impl_.record_;
+  _impl_.record_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::root::SpaceRootAliasRecord* PROTOBUF_NULLABLE UpsertSpaceRootAliasRequest::unsafe_arena_release_record() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.root.UpsertSpaceRootAliasRequest.record)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::root::SpaceRootAliasRecord* temp = _impl_.record_;
+  _impl_.record_ = nullptr;
+  return temp;
+}
+inline ::s4wave::root::SpaceRootAliasRecord* PROTOBUF_NONNULL UpsertSpaceRootAliasRequest::_internal_mutable_record() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.record_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::root::SpaceRootAliasRecord>(GetArena());
+    _impl_.record_ = reinterpret_cast<::s4wave::root::SpaceRootAliasRecord*>(p);
+  }
+  return _impl_.record_;
+}
+inline ::s4wave::root::SpaceRootAliasRecord* PROTOBUF_NONNULL UpsertSpaceRootAliasRequest::mutable_record()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::root::SpaceRootAliasRecord* _msg = _internal_mutable_record();
+  // @@protoc_insertion_point(field_mutable:s4wave.root.UpsertSpaceRootAliasRequest.record)
+  return _msg;
+}
+inline void UpsertSpaceRootAliasRequest::set_allocated_record(::s4wave::root::SpaceRootAliasRecord* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.record_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+
+  _impl_.record_ = reinterpret_cast<::s4wave::root::SpaceRootAliasRecord*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.root.UpsertSpaceRootAliasRequest.record)
+}
+
+// -------------------------------------------------------------------
+
+// UpsertSpaceRootAliasResponse
+
+// .s4wave.root.SpaceRootAliasRecord record = 1;
+inline bool UpsertSpaceRootAliasResponse::has_record() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  PROTOBUF_ASSUME(!value || _impl_.record_ != nullptr);
+  return value;
+}
+inline void UpsertSpaceRootAliasResponse::clear_record() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.record_ != nullptr) _impl_.record_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::s4wave::root::SpaceRootAliasRecord& UpsertSpaceRootAliasResponse::_internal_record() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::root::SpaceRootAliasRecord* p = _impl_.record_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::root::SpaceRootAliasRecord&>(::s4wave::root::_SpaceRootAliasRecord_default_instance_);
+}
+inline const ::s4wave::root::SpaceRootAliasRecord& UpsertSpaceRootAliasResponse::record() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.root.UpsertSpaceRootAliasResponse.record)
+  return _internal_record();
+}
+inline void UpsertSpaceRootAliasResponse::unsafe_arena_set_allocated_record(
+    ::s4wave::root::SpaceRootAliasRecord* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.record_);
+  }
+  _impl_.record_ = reinterpret_cast<::s4wave::root::SpaceRootAliasRecord*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.root.UpsertSpaceRootAliasResponse.record)
+}
+inline ::s4wave::root::SpaceRootAliasRecord* PROTOBUF_NULLABLE UpsertSpaceRootAliasResponse::release_record() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::root::SpaceRootAliasRecord* released = _impl_.record_;
+  _impl_.record_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::root::SpaceRootAliasRecord* PROTOBUF_NULLABLE UpsertSpaceRootAliasResponse::unsafe_arena_release_record() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.root.UpsertSpaceRootAliasResponse.record)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::root::SpaceRootAliasRecord* temp = _impl_.record_;
+  _impl_.record_ = nullptr;
+  return temp;
+}
+inline ::s4wave::root::SpaceRootAliasRecord* PROTOBUF_NONNULL UpsertSpaceRootAliasResponse::_internal_mutable_record() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.record_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::root::SpaceRootAliasRecord>(GetArena());
+    _impl_.record_ = reinterpret_cast<::s4wave::root::SpaceRootAliasRecord*>(p);
+  }
+  return _impl_.record_;
+}
+inline ::s4wave::root::SpaceRootAliasRecord* PROTOBUF_NONNULL UpsertSpaceRootAliasResponse::mutable_record()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::root::SpaceRootAliasRecord* _msg = _internal_mutable_record();
+  // @@protoc_insertion_point(field_mutable:s4wave.root.UpsertSpaceRootAliasResponse.record)
+  return _msg;
+}
+inline void UpsertSpaceRootAliasResponse::set_allocated_record(::s4wave::root::SpaceRootAliasRecord* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.record_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+
+  _impl_.record_ = reinterpret_cast<::s4wave::root::SpaceRootAliasRecord*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.root.UpsertSpaceRootAliasResponse.record)
+}
+
+// -------------------------------------------------------------------
+
+// RemoveSpaceRootAliasRequest
+
+// string alias_id = 1;
+inline void RemoveSpaceRootAliasRequest::clear_alias_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.alias_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& RemoveSpaceRootAliasRequest::alias_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.root.RemoveSpaceRootAliasRequest.alias_id)
+  return _internal_alias_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void RemoveSpaceRootAliasRequest::set_alias_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.alias_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.root.RemoveSpaceRootAliasRequest.alias_id)
+}
+inline ::std::string* PROTOBUF_NONNULL RemoveSpaceRootAliasRequest::mutable_alias_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_alias_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.root.RemoveSpaceRootAliasRequest.alias_id)
+  return _s;
+}
+inline const ::std::string& RemoveSpaceRootAliasRequest::_internal_alias_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.alias_id_.Get();
+}
+inline void RemoveSpaceRootAliasRequest::_internal_set_alias_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.alias_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL RemoveSpaceRootAliasRequest::_internal_mutable_alias_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.alias_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE RemoveSpaceRootAliasRequest::release_alias_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.root.RemoveSpaceRootAliasRequest.alias_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.alias_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.alias_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void RemoveSpaceRootAliasRequest::set_allocated_alias_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.alias_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.alias_id_.IsDefault()) {
+    _impl_.alias_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.root.RemoveSpaceRootAliasRequest.alias_id)
+}
+
+// -------------------------------------------------------------------
+
+// RemoveSpaceRootAliasResponse
+
+// bool not_found = 1;
+inline void RemoveSpaceRootAliasResponse::clear_not_found() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.not_found_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline bool RemoveSpaceRootAliasResponse::not_found() const {
+  // @@protoc_insertion_point(field_get:s4wave.root.RemoveSpaceRootAliasResponse.not_found)
+  return _internal_not_found();
+}
+inline void RemoveSpaceRootAliasResponse::set_not_found(bool value) {
+  _internal_set_not_found(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_set:s4wave.root.RemoveSpaceRootAliasResponse.not_found)
+}
+inline bool RemoveSpaceRootAliasResponse::_internal_not_found() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.not_found_;
+}
+inline void RemoveSpaceRootAliasResponse::_internal_set_not_found(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.not_found_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// WatchSpaceRootRuntimeRequest
+
+// string alias_id = 1;
+inline void WatchSpaceRootRuntimeRequest::clear_alias_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.alias_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& WatchSpaceRootRuntimeRequest::alias_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.root.WatchSpaceRootRuntimeRequest.alias_id)
+  return _internal_alias_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void WatchSpaceRootRuntimeRequest::set_alias_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.alias_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.root.WatchSpaceRootRuntimeRequest.alias_id)
+}
+inline ::std::string* PROTOBUF_NONNULL WatchSpaceRootRuntimeRequest::mutable_alias_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_alias_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.root.WatchSpaceRootRuntimeRequest.alias_id)
+  return _s;
+}
+inline const ::std::string& WatchSpaceRootRuntimeRequest::_internal_alias_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.alias_id_.Get();
+}
+inline void WatchSpaceRootRuntimeRequest::_internal_set_alias_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.alias_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL WatchSpaceRootRuntimeRequest::_internal_mutable_alias_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.alias_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE WatchSpaceRootRuntimeRequest::release_alias_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.root.WatchSpaceRootRuntimeRequest.alias_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.alias_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.alias_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void WatchSpaceRootRuntimeRequest::set_allocated_alias_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.alias_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.alias_id_.IsDefault()) {
+    _impl_.alias_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.root.WatchSpaceRootRuntimeRequest.alias_id)
+}
+
+// bool autostart = 2;
+inline void WatchSpaceRootRuntimeRequest::clear_autostart() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.autostart_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline bool WatchSpaceRootRuntimeRequest::autostart() const {
+  // @@protoc_insertion_point(field_get:s4wave.root.WatchSpaceRootRuntimeRequest.autostart)
+  return _internal_autostart();
+}
+inline void WatchSpaceRootRuntimeRequest::set_autostart(bool value) {
+  _internal_set_autostart(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_set:s4wave.root.WatchSpaceRootRuntimeRequest.autostart)
+}
+inline bool WatchSpaceRootRuntimeRequest::_internal_autostart() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.autostart_;
+}
+inline void WatchSpaceRootRuntimeRequest::_internal_set_autostart(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.autostart_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// WatchSpaceRootRuntimeResponse
+
+// .s4wave.root.SpaceRootRuntimeStatus status = 1;
+inline void WatchSpaceRootRuntimeResponse::clear_status() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline ::s4wave::root::SpaceRootRuntimeStatus WatchSpaceRootRuntimeResponse::status() const {
+  // @@protoc_insertion_point(field_get:s4wave.root.WatchSpaceRootRuntimeResponse.status)
+  return _internal_status();
+}
+inline void WatchSpaceRootRuntimeResponse::set_status(::s4wave::root::SpaceRootRuntimeStatus value) {
+  _internal_set_status(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  // @@protoc_insertion_point(field_set:s4wave.root.WatchSpaceRootRuntimeResponse.status)
+}
+inline ::s4wave::root::SpaceRootRuntimeStatus WatchSpaceRootRuntimeResponse::_internal_status() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::s4wave::root::SpaceRootRuntimeStatus>(_impl_.status_);
+}
+inline void WatchSpaceRootRuntimeResponse::_internal_set_status(::s4wave::root::SpaceRootRuntimeStatus value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_ = value;
+}
+
+// string alias_id = 2;
+inline void WatchSpaceRootRuntimeResponse::clear_alias_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.alias_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& WatchSpaceRootRuntimeResponse::alias_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.root.WatchSpaceRootRuntimeResponse.alias_id)
+  return _internal_alias_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void WatchSpaceRootRuntimeResponse::set_alias_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.alias_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.root.WatchSpaceRootRuntimeResponse.alias_id)
+}
+inline ::std::string* PROTOBUF_NONNULL WatchSpaceRootRuntimeResponse::mutable_alias_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_alias_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.root.WatchSpaceRootRuntimeResponse.alias_id)
+  return _s;
+}
+inline const ::std::string& WatchSpaceRootRuntimeResponse::_internal_alias_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.alias_id_.Get();
+}
+inline void WatchSpaceRootRuntimeResponse::_internal_set_alias_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.alias_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL WatchSpaceRootRuntimeResponse::_internal_mutable_alias_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.alias_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE WatchSpaceRootRuntimeResponse::release_alias_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.root.WatchSpaceRootRuntimeResponse.alias_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.alias_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.alias_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void WatchSpaceRootRuntimeResponse::set_allocated_alias_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.alias_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.alias_id_.IsDefault()) {
+    _impl_.alias_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.root.WatchSpaceRootRuntimeResponse.alias_id)
+}
+
+// string state_path = 3;
+inline void WatchSpaceRootRuntimeResponse::clear_state_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.state_path_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& WatchSpaceRootRuntimeResponse::state_path() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.root.WatchSpaceRootRuntimeResponse.state_path)
+  return _internal_state_path();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void WatchSpaceRootRuntimeResponse::set_state_path(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.state_path_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.root.WatchSpaceRootRuntimeResponse.state_path)
+}
+inline ::std::string* PROTOBUF_NONNULL WatchSpaceRootRuntimeResponse::mutable_state_path()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_state_path();
+  // @@protoc_insertion_point(field_mutable:s4wave.root.WatchSpaceRootRuntimeResponse.state_path)
+  return _s;
+}
+inline const ::std::string& WatchSpaceRootRuntimeResponse::_internal_state_path() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.state_path_.Get();
+}
+inline void WatchSpaceRootRuntimeResponse::_internal_set_state_path(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.state_path_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL WatchSpaceRootRuntimeResponse::_internal_mutable_state_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.state_path_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE WatchSpaceRootRuntimeResponse::release_state_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.root.WatchSpaceRootRuntimeResponse.state_path)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.state_path_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.state_path_.Set("", GetArena());
+  }
+  return released;
+}
+inline void WatchSpaceRootRuntimeResponse::set_allocated_state_path(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.state_path_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.state_path_.IsDefault()) {
+    _impl_.state_path_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.root.WatchSpaceRootRuntimeResponse.state_path)
+}
+
+// string socket_path = 4;
+inline void WatchSpaceRootRuntimeResponse::clear_socket_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.socket_path_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& WatchSpaceRootRuntimeResponse::socket_path() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.root.WatchSpaceRootRuntimeResponse.socket_path)
+  return _internal_socket_path();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void WatchSpaceRootRuntimeResponse::set_socket_path(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.socket_path_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.root.WatchSpaceRootRuntimeResponse.socket_path)
+}
+inline ::std::string* PROTOBUF_NONNULL WatchSpaceRootRuntimeResponse::mutable_socket_path()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_socket_path();
+  // @@protoc_insertion_point(field_mutable:s4wave.root.WatchSpaceRootRuntimeResponse.socket_path)
+  return _s;
+}
+inline const ::std::string& WatchSpaceRootRuntimeResponse::_internal_socket_path() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.socket_path_.Get();
+}
+inline void WatchSpaceRootRuntimeResponse::_internal_set_socket_path(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.socket_path_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL WatchSpaceRootRuntimeResponse::_internal_mutable_socket_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.socket_path_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE WatchSpaceRootRuntimeResponse::release_socket_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.root.WatchSpaceRootRuntimeResponse.socket_path)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.socket_path_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.socket_path_.Set("", GetArena());
+  }
+  return released;
+}
+inline void WatchSpaceRootRuntimeResponse::set_allocated_socket_path(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.socket_path_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.socket_path_.IsDefault()) {
+    _impl_.socket_path_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.root.WatchSpaceRootRuntimeResponse.socket_path)
+}
+
+// repeated .session.SessionListEntry sessions = 5;
+inline int WatchSpaceRootRuntimeResponse::_internal_sessions_size() const {
+  return _internal_sessions().size();
+}
+inline int WatchSpaceRootRuntimeResponse::sessions_size() const {
+  return _internal_sessions_size();
+}
+inline ::session::SessionListEntry* PROTOBUF_NONNULL WatchSpaceRootRuntimeResponse::mutable_sessions(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.root.WatchSpaceRootRuntimeResponse.sessions)
+  return _internal_mutable_sessions()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::session::SessionListEntry>* PROTOBUF_NONNULL WatchSpaceRootRuntimeResponse::mutable_sessions()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.root.WatchSpaceRootRuntimeResponse.sessions)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_sessions();
+}
+inline const ::session::SessionListEntry& WatchSpaceRootRuntimeResponse::sessions(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.root.WatchSpaceRootRuntimeResponse.sessions)
+  return _internal_sessions().Get(index);
+}
+inline ::session::SessionListEntry* PROTOBUF_NONNULL WatchSpaceRootRuntimeResponse::add_sessions()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::session::SessionListEntry* _add =
+      _internal_mutable_sessions()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:s4wave.root.WatchSpaceRootRuntimeResponse.sessions)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::session::SessionListEntry>& WatchSpaceRootRuntimeResponse::sessions() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.root.WatchSpaceRootRuntimeResponse.sessions)
+  return _internal_sessions();
+}
+inline const ::google::protobuf::RepeatedPtrField<::session::SessionListEntry>&
+WatchSpaceRootRuntimeResponse::_internal_sessions() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.sessions_;
+}
+inline ::google::protobuf::RepeatedPtrField<::session::SessionListEntry>* PROTOBUF_NONNULL
+WatchSpaceRootRuntimeResponse::_internal_mutable_sessions() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.sessions_;
+}
+
+// string error = 6;
+inline void WatchSpaceRootRuntimeResponse::clear_error() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.error_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::std::string& WatchSpaceRootRuntimeResponse::error() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.root.WatchSpaceRootRuntimeResponse.error)
+  return _internal_error();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void WatchSpaceRootRuntimeResponse::set_error(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  _impl_.error_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.root.WatchSpaceRootRuntimeResponse.error)
+}
+inline ::std::string* PROTOBUF_NONNULL WatchSpaceRootRuntimeResponse::mutable_error()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::std::string* _s = _internal_mutable_error();
+  // @@protoc_insertion_point(field_mutable:s4wave.root.WatchSpaceRootRuntimeResponse.error)
+  return _s;
+}
+inline const ::std::string& WatchSpaceRootRuntimeResponse::_internal_error() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.error_.Get();
+}
+inline void WatchSpaceRootRuntimeResponse::_internal_set_error(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.error_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL WatchSpaceRootRuntimeResponse::_internal_mutable_error() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.error_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE WatchSpaceRootRuntimeResponse::release_error() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.root.WatchSpaceRootRuntimeResponse.error)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  auto* released = _impl_.error_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.error_.Set("", GetArena());
+  }
+  return released;
+}
+inline void WatchSpaceRootRuntimeResponse::set_allocated_error(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  _impl_.error_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.error_.IsDefault()) {
+    _impl_.error_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.root.WatchSpaceRootRuntimeResponse.error)
+}
+
+// -------------------------------------------------------------------
+
 // GetChangelogRequest
 
 // -------------------------------------------------------------------
@@ -15982,6 +20240,37 @@ inline void WatchListenerStatusResponse::_internal_set_connected_clients(::uint3
 }  // namespace root
 }  // namespace s4wave
 
+
+namespace google {
+namespace protobuf {
+
+template <>
+struct is_proto_enum<::s4wave::root::SpaceRootKind> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::s4wave::root::SpaceRootKind>() {
+  return ::s4wave::root::SpaceRootKind_descriptor();
+}
+template <>
+struct is_proto_enum<::s4wave::root::SpaceRootOpenMode> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::s4wave::root::SpaceRootOpenMode>() {
+  return ::s4wave::root::SpaceRootOpenMode_descriptor();
+}
+template <>
+struct is_proto_enum<::s4wave::root::SpaceRootStatus> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::s4wave::root::SpaceRootStatus>() {
+  return ::s4wave::root::SpaceRootStatus_descriptor();
+}
+template <>
+struct is_proto_enum<::s4wave::root::SpaceRootRuntimeStatus> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::s4wave::root::SpaceRootRuntimeStatus>() {
+  return ::s4wave::root::SpaceRootRuntimeStatus_descriptor();
+}
+
+}  // namespace protobuf
+}  // namespace google
 
 // @@protoc_insertion_point(global_scope)
 

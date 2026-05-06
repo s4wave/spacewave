@@ -266,6 +266,133 @@ pub struct WatchStateAtomsResponse {
     #[prost(uint32, tag="2")]
     pub store_count: u32,
 }
+/// NativeSpaceRootMetadata stores native filesystem fields for a root record.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct NativeSpaceRootMetadata {
+    /// Path is the absolute native filesystem path.
+    #[prost(string, tag="1")]
+    pub path: ::prost::alloc::string::String,
+}
+/// BrowserSpaceRootMetadata reserves browser-grant fields for future support.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct BrowserSpaceRootMetadata {
+}
+/// SpaceRootAliasRecord is a durable configured local state-root registry entry.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SpaceRootAliasRecord {
+    /// AliasId is the stable registry identity.
+    #[prost(string, tag="1")]
+    pub alias_id: ::prost::alloc::string::String,
+    /// DisplayName is the user-facing name for the configured root.
+    #[prost(string, tag="2")]
+    pub display_name: ::prost::alloc::string::String,
+    /// Kind is the storage shape for this record.
+    #[prost(enumeration="SpaceRootKind", tag="3")]
+    pub kind: i32,
+    /// OpenMode is the explicit user action that created this record.
+    #[prost(enumeration="SpaceRootOpenMode", tag="4")]
+    pub open_mode: i32,
+    /// Native stores native filesystem metadata.
+    #[prost(message, optional, tag="5")]
+    pub native: ::core::option::Option<NativeSpaceRootMetadata>,
+    /// Status is the latest validation status.
+    #[prost(enumeration="SpaceRootStatus", tag="6")]
+    pub status: i32,
+    /// StatusMessage is a user-actionable validation message when not ready.
+    #[prost(string, tag="7")]
+    pub status_message: ::prost::alloc::string::String,
+    /// Browser reserves future browser-grant metadata.
+    #[prost(message, optional, tag="8")]
+    pub browser: ::core::option::Option<BrowserSpaceRootMetadata>,
+    /// CreatedAtUnixMs is when the alias was first persisted.
+    #[prost(int64, tag="9")]
+    pub created_at_unix_ms: i64,
+    /// UpdatedAtUnixMs is when the alias was last updated.
+    #[prost(int64, tag="10")]
+    pub updated_at_unix_ms: i64,
+}
+/// ListSpaceRootAliasesRequest is the request for ListSpaceRootAliases.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListSpaceRootAliasesRequest {
+}
+/// ListSpaceRootAliasesResponse is the configured root registry snapshot.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListSpaceRootAliasesResponse {
+    /// Records is the sorted configured root alias snapshot.
+    #[prost(message, repeated, tag="1")]
+    pub records: ::prost::alloc::vec::Vec<SpaceRootAliasRecord>,
+}
+/// WatchSpaceRootAliasesRequest is the request for WatchSpaceRootAliases.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WatchSpaceRootAliasesRequest {
+}
+/// WatchSpaceRootAliasesResponse is the current configured root registry snapshot.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct WatchSpaceRootAliasesResponse {
+    /// Records is the sorted configured root alias snapshot.
+    #[prost(message, repeated, tag="1")]
+    pub records: ::prost::alloc::vec::Vec<SpaceRootAliasRecord>,
+}
+/// UpsertSpaceRootAliasRequest writes or updates a configured root alias.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct UpsertSpaceRootAliasRequest {
+    /// Record is the configured root alias record to validate and persist.
+    #[prost(message, optional, tag="1")]
+    pub record: ::core::option::Option<SpaceRootAliasRecord>,
+}
+/// UpsertSpaceRootAliasResponse returns the persisted record.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct UpsertSpaceRootAliasResponse {
+    /// Record is the validated persisted record.
+    #[prost(message, optional, tag="1")]
+    pub record: ::core::option::Option<SpaceRootAliasRecord>,
+}
+/// RemoveSpaceRootAliasRequest removes a configured root alias.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RemoveSpaceRootAliasRequest {
+    /// AliasId is the stable registry identity to remove.
+    #[prost(string, tag="1")]
+    pub alias_id: ::prost::alloc::string::String,
+}
+/// RemoveSpaceRootAliasResponse is returned after a remove attempt.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RemoveSpaceRootAliasResponse {
+    /// NotFound is true when AliasId was not present.
+    #[prost(bool, tag="1")]
+    pub not_found: bool,
+}
+/// WatchSpaceRootRuntimeRequest selects a configured root runtime source.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WatchSpaceRootRuntimeRequest {
+    /// AliasId is the configured root alias to use.
+    #[prost(string, tag="1")]
+    pub alias_id: ::prost::alloc::string::String,
+    /// Autostart starts a daemon when no daemon is reachable.
+    #[prost(bool, tag="2")]
+    pub autostart: bool,
+}
+/// WatchSpaceRootRuntimeResponse streams the selected root daemon state.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct WatchSpaceRootRuntimeResponse {
+    /// Status is the current selected-root daemon status.
+    #[prost(enumeration="SpaceRootRuntimeStatus", tag="1")]
+    pub status: i32,
+    /// AliasId is the configured root alias being used.
+    #[prost(string, tag="2")]
+    pub alias_id: ::prost::alloc::string::String,
+    /// StatePath is the absolute configured root path.
+    #[prost(string, tag="3")]
+    pub state_path: ::prost::alloc::string::String,
+    /// SocketPath is the selected daemon socket path.
+    #[prost(string, tag="4")]
+    pub socket_path: ::prost::alloc::string::String,
+    /// Sessions is the session snapshot from the selected root daemon.
+    #[prost(message, repeated, tag="5")]
+    pub sessions: ::prost::alloc::vec::Vec<super::super::session::SessionListEntry>,
+    /// Error is a user-actionable status message when status is ERROR.
+    #[prost(string, tag="6")]
+    pub error: ::prost::alloc::string::String,
+}
 /// GetChangelogRequest is the request type for GetChangelog.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetChangelogRequest {
@@ -503,5 +630,153 @@ pub struct WatchListenerStatusResponse {
     /// the listener socket. Updates on accept and on client disconnect.
     #[prost(uint32, tag="3")]
     pub connected_clients: u32,
+}
+/// SpaceRootKind is the storage shape selected for a configured root.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum SpaceRootKind {
+    /// SpaceRootKind_UNSPECIFIED is invalid for persisted records.
+    Unspecified = 0,
+    /// SpaceRootKind_NATIVE_DIRECTORY is a native filesystem state-root directory.
+    NativeDirectory = 1,
+    /// SpaceRootKind_S4WAVE_FILE is a deferred single-volume file shape.
+    S4waveFile = 2,
+}
+impl SpaceRootKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "SpaceRootKind_UNSPECIFIED",
+            Self::NativeDirectory => "SpaceRootKind_NATIVE_DIRECTORY",
+            Self::S4waveFile => "SpaceRootKind_S4WAVE_FILE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SpaceRootKind_UNSPECIFIED" => Some(Self::Unspecified),
+            "SpaceRootKind_NATIVE_DIRECTORY" => Some(Self::NativeDirectory),
+            "SpaceRootKind_S4WAVE_FILE" => Some(Self::S4waveFile),
+            _ => None,
+        }
+    }
+}
+/// SpaceRootOpenMode is the user action used to create the registry entry.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum SpaceRootOpenMode {
+    /// SpaceRootOpenMode_UNSPECIFIED is invalid for persisted records.
+    Unspecified = 0,
+    /// SpaceRootOpenMode_OPEN_EXISTING opens an existing state root.
+    OpenExisting = 1,
+    /// SpaceRootOpenMode_CREATE is deferred for this registry version.
+    Create = 2,
+}
+impl SpaceRootOpenMode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "SpaceRootOpenMode_UNSPECIFIED",
+            Self::OpenExisting => "SpaceRootOpenMode_OPEN_EXISTING",
+            Self::Create => "SpaceRootOpenMode_CREATE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SpaceRootOpenMode_UNSPECIFIED" => Some(Self::Unspecified),
+            "SpaceRootOpenMode_OPEN_EXISTING" => Some(Self::OpenExisting),
+            "SpaceRootOpenMode_CREATE" => Some(Self::Create),
+            _ => None,
+        }
+    }
+}
+/// SpaceRootStatus is the latest local validation status for a configured root.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum SpaceRootStatus {
+    /// SpaceRootStatus_UNKNOWN means no validation has run in this process.
+    Unknown = 0,
+    /// SpaceRootStatus_READY means the root is supported and currently accessible.
+    Ready = 1,
+    /// SpaceRootStatus_MISSING means the native path no longer exists.
+    Missing = 2,
+    /// SpaceRootStatus_UNSUPPORTED means the record shape is known but unsupported.
+    Unsupported = 3,
+    /// SpaceRootStatus_INVALID means the record is malformed or not a state root.
+    Invalid = 4,
+}
+impl SpaceRootStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unknown => "SpaceRootStatus_UNKNOWN",
+            Self::Ready => "SpaceRootStatus_READY",
+            Self::Missing => "SpaceRootStatus_MISSING",
+            Self::Unsupported => "SpaceRootStatus_UNSUPPORTED",
+            Self::Invalid => "SpaceRootStatus_INVALID",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SpaceRootStatus_UNKNOWN" => Some(Self::Unknown),
+            "SpaceRootStatus_READY" => Some(Self::Ready),
+            "SpaceRootStatus_MISSING" => Some(Self::Missing),
+            "SpaceRootStatus_UNSUPPORTED" => Some(Self::Unsupported),
+            "SpaceRootStatus_INVALID" => Some(Self::Invalid),
+            _ => None,
+        }
+    }
+}
+/// SpaceRootRuntimeStatus is the connection status for a configured root daemon.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum SpaceRootRuntimeStatus {
+    /// SpaceRootRuntimeStatus_IDLE means no runtime source is selected.
+    Idle = 0,
+    /// SpaceRootRuntimeStatus_CONNECTING means the app is dialing the daemon.
+    Connecting = 1,
+    /// SpaceRootRuntimeStatus_STARTING means the app is starting the daemon.
+    Starting = 2,
+    /// SpaceRootRuntimeStatus_READY means sessions are served from the root daemon.
+    Ready = 3,
+    /// SpaceRootRuntimeStatus_ERROR means the runtime source is unavailable.
+    Error = 4,
+}
+impl SpaceRootRuntimeStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Idle => "SpaceRootRuntimeStatus_IDLE",
+            Self::Connecting => "SpaceRootRuntimeStatus_CONNECTING",
+            Self::Starting => "SpaceRootRuntimeStatus_STARTING",
+            Self::Ready => "SpaceRootRuntimeStatus_READY",
+            Self::Error => "SpaceRootRuntimeStatus_ERROR",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SpaceRootRuntimeStatus_IDLE" => Some(Self::Idle),
+            "SpaceRootRuntimeStatus_CONNECTING" => Some(Self::Connecting),
+            "SpaceRootRuntimeStatus_STARTING" => Some(Self::Starting),
+            "SpaceRootRuntimeStatus_READY" => Some(Self::Ready),
+            "SpaceRootRuntimeStatus_ERROR" => Some(Self::Error),
+            _ => None,
+        }
+    }
 }
 // @@protoc_insertion_point(module)

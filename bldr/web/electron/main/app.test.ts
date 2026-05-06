@@ -72,6 +72,10 @@ vi.mock('electron', () => {
   }
   const ipcMain = {
     on: vi.fn(),
+    handle: vi.fn(),
+  }
+  const dialog = {
+    showOpenDialog: vi.fn(),
   }
   const nativeTheme = {
     themeSource: 'system',
@@ -90,6 +94,7 @@ vi.mock('electron', () => {
       protocol,
       shell,
       ipcMain,
+      dialog,
       nativeTheme,
     },
     app: mockElectronApp,
@@ -98,6 +103,7 @@ vi.mock('electron', () => {
     protocol,
     shell,
     ipcMain,
+    dialog,
     nativeTheme,
   }
 })
@@ -272,6 +278,25 @@ describe('BldrElectronApp', () => {
     handler()
 
     expect(mockElectronApp.quit).toHaveBeenCalledTimes(1)
+  })
+
+  it('registers a native directory picker ipc handler', async () => {
+    const electron = await import('electron')
+    const { BldrElectronApp } = await import('./app.js')
+    const app = Reflect.construct(BldrElectronApp, [
+      mockElectronApp,
+      'runtime-1',
+      {},
+    ])
+    Reflect.apply(Reflect.get(app, 'init'), app, [])
+
+    const ready = getAppHandler('ready')
+    ready()
+
+    expect(electron.ipcMain.handle).toHaveBeenCalledWith(
+      'BLDR_ELECTRON_OPEN_DIRECTORY',
+      expect.any(Function),
+    )
   })
 })
 

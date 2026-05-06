@@ -28,6 +28,10 @@ class SRPCRootResourceService_WatchSessionMetadataClient;
 class SRPCRootResourceService_WatchSessionMetadataStream;
 class SRPCRootResourceService_WatchStateAtomsClient;
 class SRPCRootResourceService_WatchStateAtomsStream;
+class SRPCRootResourceService_WatchSpaceRootAliasesClient;
+class SRPCRootResourceService_WatchSpaceRootAliasesStream;
+class SRPCRootResourceService_WatchSpaceRootRuntimeClient;
+class SRPCRootResourceService_WatchSpaceRootRuntimeStream;
 class SRPCRootResourceService_WatchWebListenersClient;
 class SRPCRootResourceService_WatchWebListenersStream;
 class SRPCRootResourceService_WatchListenerYieldPromptsClient;
@@ -73,6 +77,16 @@ class SRPCRootResourceServiceClient {
   virtual starpc::Error AccessStateAtom(const s4wave::root::AccessStateAtomRequest& in, s4wave::root::AccessStateAtomResponse* out) = 0;
   // WatchStateAtoms
   virtual std::pair<std::unique_ptr<SRPCRootResourceService_WatchStateAtomsClient>, starpc::Error> WatchStateAtoms(const s4wave::root::WatchStateAtomsRequest& in) = 0;
+  // ListSpaceRootAliases
+  virtual starpc::Error ListSpaceRootAliases(const s4wave::root::ListSpaceRootAliasesRequest& in, s4wave::root::ListSpaceRootAliasesResponse* out) = 0;
+  // WatchSpaceRootAliases
+  virtual std::pair<std::unique_ptr<SRPCRootResourceService_WatchSpaceRootAliasesClient>, starpc::Error> WatchSpaceRootAliases(const s4wave::root::WatchSpaceRootAliasesRequest& in) = 0;
+  // UpsertSpaceRootAlias
+  virtual starpc::Error UpsertSpaceRootAlias(const s4wave::root::UpsertSpaceRootAliasRequest& in, s4wave::root::UpsertSpaceRootAliasResponse* out) = 0;
+  // RemoveSpaceRootAlias
+  virtual starpc::Error RemoveSpaceRootAlias(const s4wave::root::RemoveSpaceRootAliasRequest& in, s4wave::root::RemoveSpaceRootAliasResponse* out) = 0;
+  // WatchSpaceRootRuntime
+  virtual std::pair<std::unique_ptr<SRPCRootResourceService_WatchSpaceRootRuntimeClient>, starpc::Error> WatchSpaceRootRuntime(const s4wave::root::WatchSpaceRootRuntimeRequest& in) = 0;
   // MarshalHash
   virtual starpc::Error MarshalHash(const s4wave::root::MarshalHashRequest& in, s4wave::root::MarshalHashResponse* out) = 0;
   // ParseHash
@@ -141,6 +155,16 @@ class SRPCRootResourceServiceClientImpl : public SRPCRootResourceServiceClient {
   virtual starpc::Error AccessStateAtom(const s4wave::root::AccessStateAtomRequest& in, s4wave::root::AccessStateAtomResponse* out) override;
   // WatchStateAtoms
   virtual std::pair<std::unique_ptr<SRPCRootResourceService_WatchStateAtomsClient>, starpc::Error> WatchStateAtoms(const s4wave::root::WatchStateAtomsRequest& in) override;
+  // ListSpaceRootAliases
+  virtual starpc::Error ListSpaceRootAliases(const s4wave::root::ListSpaceRootAliasesRequest& in, s4wave::root::ListSpaceRootAliasesResponse* out) override;
+  // WatchSpaceRootAliases
+  virtual std::pair<std::unique_ptr<SRPCRootResourceService_WatchSpaceRootAliasesClient>, starpc::Error> WatchSpaceRootAliases(const s4wave::root::WatchSpaceRootAliasesRequest& in) override;
+  // UpsertSpaceRootAlias
+  virtual starpc::Error UpsertSpaceRootAlias(const s4wave::root::UpsertSpaceRootAliasRequest& in, s4wave::root::UpsertSpaceRootAliasResponse* out) override;
+  // RemoveSpaceRootAlias
+  virtual starpc::Error RemoveSpaceRootAlias(const s4wave::root::RemoveSpaceRootAliasRequest& in, s4wave::root::RemoveSpaceRootAliasResponse* out) override;
+  // WatchSpaceRootRuntime
+  virtual std::pair<std::unique_ptr<SRPCRootResourceService_WatchSpaceRootRuntimeClient>, starpc::Error> WatchSpaceRootRuntime(const s4wave::root::WatchSpaceRootRuntimeRequest& in) override;
   // MarshalHash
   virtual starpc::Error MarshalHash(const s4wave::root::MarshalHashRequest& in, s4wave::root::MarshalHashResponse* out) override;
   // ParseHash
@@ -215,6 +239,16 @@ class SRPCRootResourceServiceServer {
   virtual starpc::Error AccessStateAtom(const s4wave::root::AccessStateAtomRequest& req, s4wave::root::AccessStateAtomResponse* resp) = 0;
   // WatchStateAtoms
   virtual starpc::Error WatchStateAtoms(const s4wave::root::WatchStateAtomsRequest& req, SRPCRootResourceService_WatchStateAtomsStream* strm) = 0;
+  // ListSpaceRootAliases
+  virtual starpc::Error ListSpaceRootAliases(const s4wave::root::ListSpaceRootAliasesRequest& req, s4wave::root::ListSpaceRootAliasesResponse* resp) = 0;
+  // WatchSpaceRootAliases
+  virtual starpc::Error WatchSpaceRootAliases(const s4wave::root::WatchSpaceRootAliasesRequest& req, SRPCRootResourceService_WatchSpaceRootAliasesStream* strm) = 0;
+  // UpsertSpaceRootAlias
+  virtual starpc::Error UpsertSpaceRootAlias(const s4wave::root::UpsertSpaceRootAliasRequest& req, s4wave::root::UpsertSpaceRootAliasResponse* resp) = 0;
+  // RemoveSpaceRootAlias
+  virtual starpc::Error RemoveSpaceRootAlias(const s4wave::root::RemoveSpaceRootAliasRequest& req, s4wave::root::RemoveSpaceRootAliasResponse* resp) = 0;
+  // WatchSpaceRootRuntime
+  virtual starpc::Error WatchSpaceRootRuntime(const s4wave::root::WatchSpaceRootRuntimeRequest& req, SRPCRootResourceService_WatchSpaceRootRuntimeStream* strm) = 0;
   // MarshalHash
   virtual starpc::Error MarshalHash(const s4wave::root::MarshalHashRequest& req, s4wave::root::MarshalHashResponse* resp) = 0;
   // ParseHash
@@ -412,6 +446,76 @@ class SRPCRootResourceService_WatchStateAtomsStream {
   }
 
   starpc::Error SendAndClose(const s4wave::root::WatchStateAtomsResponse& msg) {
+    starpc::Error err = strm_->MsgSend(msg);
+    if (err != starpc::Error::OK) return err;
+    return strm_->CloseSend();
+  }
+
+ private:
+  starpc::Stream* strm_;
+};
+
+// SRPCRootResourceService_WatchSpaceRootAliasesClient is the client stream for WatchSpaceRootAliases.
+class SRPCRootResourceService_WatchSpaceRootAliasesClient {
+ public:
+  explicit SRPCRootResourceService_WatchSpaceRootAliasesClient(std::unique_ptr<starpc::Stream> strm) : strm_(std::move(strm)) {}
+
+  starpc::Error Recv(s4wave::root::WatchSpaceRootAliasesResponse* msg) {
+    return strm_->MsgRecv(msg);
+  }
+
+  starpc::Error CloseSend() { return strm_->CloseSend(); }
+  starpc::Error Close() { return strm_->Close(); }
+
+ private:
+  std::unique_ptr<starpc::Stream> strm_;
+};
+
+// SRPCRootResourceService_WatchSpaceRootAliasesStream is the server stream for WatchSpaceRootAliases.
+class SRPCRootResourceService_WatchSpaceRootAliasesStream {
+ public:
+  explicit SRPCRootResourceService_WatchSpaceRootAliasesStream(starpc::Stream* strm) : strm_(strm) {}
+
+  starpc::Error Send(const s4wave::root::WatchSpaceRootAliasesResponse& msg) {
+    return strm_->MsgSend(msg);
+  }
+
+  starpc::Error SendAndClose(const s4wave::root::WatchSpaceRootAliasesResponse& msg) {
+    starpc::Error err = strm_->MsgSend(msg);
+    if (err != starpc::Error::OK) return err;
+    return strm_->CloseSend();
+  }
+
+ private:
+  starpc::Stream* strm_;
+};
+
+// SRPCRootResourceService_WatchSpaceRootRuntimeClient is the client stream for WatchSpaceRootRuntime.
+class SRPCRootResourceService_WatchSpaceRootRuntimeClient {
+ public:
+  explicit SRPCRootResourceService_WatchSpaceRootRuntimeClient(std::unique_ptr<starpc::Stream> strm) : strm_(std::move(strm)) {}
+
+  starpc::Error Recv(s4wave::root::WatchSpaceRootRuntimeResponse* msg) {
+    return strm_->MsgRecv(msg);
+  }
+
+  starpc::Error CloseSend() { return strm_->CloseSend(); }
+  starpc::Error Close() { return strm_->Close(); }
+
+ private:
+  std::unique_ptr<starpc::Stream> strm_;
+};
+
+// SRPCRootResourceService_WatchSpaceRootRuntimeStream is the server stream for WatchSpaceRootRuntime.
+class SRPCRootResourceService_WatchSpaceRootRuntimeStream {
+ public:
+  explicit SRPCRootResourceService_WatchSpaceRootRuntimeStream(starpc::Stream* strm) : strm_(strm) {}
+
+  starpc::Error Send(const s4wave::root::WatchSpaceRootRuntimeResponse& msg) {
+    return strm_->MsgSend(msg);
+  }
+
+  starpc::Error SendAndClose(const s4wave::root::WatchSpaceRootRuntimeResponse& msg) {
     starpc::Error err = strm_->MsgSend(msg);
     if (err != starpc::Error::OK) return err;
     return strm_->CloseSend();

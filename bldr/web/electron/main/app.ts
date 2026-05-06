@@ -1,6 +1,6 @@
 import os from 'os'
 import path from 'path'
-import electron, { ipcMain, nativeTheme, shell } from 'electron'
+import electron, { dialog, ipcMain, nativeTheme, shell } from 'electron'
 import { Client as SRPCClient, OpenStreamCtr, StreamConn } from 'starpc'
 import type { Message } from '@aptre/protobuf-es-lite'
 
@@ -178,9 +178,23 @@ export class BldrElectronApp {
     this.setupWebRuntimeHostSocket()
     // setup the web runtime client port
     this.setupWebRuntimeClientPort()
+    // setup native filesystem picker ipc
+    this.setupNativeDirectoryPicker()
 
     // create the first window
     this.createWebDocument({ id: 'electron-init' })
+  }
+
+  private setupNativeDirectoryPicker() {
+    ipcMain.handle('BLDR_ELECTRON_OPEN_DIRECTORY', async () => {
+      const result = await dialog.showOpenDialog({
+        properties: ['openDirectory'],
+      })
+      if (result.canceled || result.filePaths.length === 0) {
+        return null
+      }
+      return result.filePaths[0] ?? null
+    })
   }
 
   private setupWebRuntimeClientPort() {

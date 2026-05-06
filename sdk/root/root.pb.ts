@@ -3,7 +3,11 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import {
+  createEnumType,
+  createMessageType,
+  ScalarType,
+} from '@aptre/protobuf-es-lite'
 import {
   EntityCredential,
   SessionListEntry,
@@ -20,6 +24,187 @@ import { Hash, HashType_Enum } from '../../net/hash/hash.pb.js'
 import { Changelog } from '../../core/changelog/changelog.pb.js'
 
 export const protobufPackage = 's4wave.root'
+
+/**
+ * SpaceRootKind is the storage shape selected for a configured root.
+ *
+ * @generated from enum s4wave.root.SpaceRootKind
+ */
+export enum SpaceRootKind {
+  /**
+   * SpaceRootKind_UNSPECIFIED is invalid for persisted records.
+   *
+   * @generated from enum value: SpaceRootKind_UNSPECIFIED = 0;
+   */
+  SpaceRootKind_UNSPECIFIED = 0,
+
+  /**
+   * SpaceRootKind_NATIVE_DIRECTORY is a native filesystem state-root directory.
+   *
+   * @generated from enum value: SpaceRootKind_NATIVE_DIRECTORY = 1;
+   */
+  SpaceRootKind_NATIVE_DIRECTORY = 1,
+
+  /**
+   * SpaceRootKind_S4WAVE_FILE is a deferred single-volume file shape.
+   *
+   * @generated from enum value: SpaceRootKind_S4WAVE_FILE = 2;
+   */
+  SpaceRootKind_S4WAVE_FILE = 2,
+}
+
+// SpaceRootKind_Enum is the enum type for SpaceRootKind.
+export const SpaceRootKind_Enum = createEnumType('s4wave.root.SpaceRootKind', [
+  { no: 0, name: 'SpaceRootKind_UNSPECIFIED' },
+  { no: 1, name: 'SpaceRootKind_NATIVE_DIRECTORY' },
+  { no: 2, name: 'SpaceRootKind_S4WAVE_FILE' },
+])
+
+/**
+ * SpaceRootOpenMode is the user action used to create the registry entry.
+ *
+ * @generated from enum s4wave.root.SpaceRootOpenMode
+ */
+export enum SpaceRootOpenMode {
+  /**
+   * SpaceRootOpenMode_UNSPECIFIED is invalid for persisted records.
+   *
+   * @generated from enum value: SpaceRootOpenMode_UNSPECIFIED = 0;
+   */
+  SpaceRootOpenMode_UNSPECIFIED = 0,
+
+  /**
+   * SpaceRootOpenMode_OPEN_EXISTING opens an existing state root.
+   *
+   * @generated from enum value: SpaceRootOpenMode_OPEN_EXISTING = 1;
+   */
+  SpaceRootOpenMode_OPEN_EXISTING = 1,
+
+  /**
+   * SpaceRootOpenMode_CREATE is deferred for this registry version.
+   *
+   * @generated from enum value: SpaceRootOpenMode_CREATE = 2;
+   */
+  SpaceRootOpenMode_CREATE = 2,
+}
+
+// SpaceRootOpenMode_Enum is the enum type for SpaceRootOpenMode.
+export const SpaceRootOpenMode_Enum = createEnumType(
+  's4wave.root.SpaceRootOpenMode',
+  [
+    { no: 0, name: 'SpaceRootOpenMode_UNSPECIFIED' },
+    { no: 1, name: 'SpaceRootOpenMode_OPEN_EXISTING' },
+    { no: 2, name: 'SpaceRootOpenMode_CREATE' },
+  ],
+)
+
+/**
+ * SpaceRootStatus is the latest local validation status for a configured root.
+ *
+ * @generated from enum s4wave.root.SpaceRootStatus
+ */
+export enum SpaceRootStatus {
+  /**
+   * SpaceRootStatus_UNKNOWN means no validation has run in this process.
+   *
+   * @generated from enum value: SpaceRootStatus_UNKNOWN = 0;
+   */
+  SpaceRootStatus_UNKNOWN = 0,
+
+  /**
+   * SpaceRootStatus_READY means the root is supported and currently accessible.
+   *
+   * @generated from enum value: SpaceRootStatus_READY = 1;
+   */
+  SpaceRootStatus_READY = 1,
+
+  /**
+   * SpaceRootStatus_MISSING means the native path no longer exists.
+   *
+   * @generated from enum value: SpaceRootStatus_MISSING = 2;
+   */
+  SpaceRootStatus_MISSING = 2,
+
+  /**
+   * SpaceRootStatus_UNSUPPORTED means the record shape is known but unsupported.
+   *
+   * @generated from enum value: SpaceRootStatus_UNSUPPORTED = 3;
+   */
+  SpaceRootStatus_UNSUPPORTED = 3,
+
+  /**
+   * SpaceRootStatus_INVALID means the record is malformed or not a state root.
+   *
+   * @generated from enum value: SpaceRootStatus_INVALID = 4;
+   */
+  SpaceRootStatus_INVALID = 4,
+}
+
+// SpaceRootStatus_Enum is the enum type for SpaceRootStatus.
+export const SpaceRootStatus_Enum = createEnumType(
+  's4wave.root.SpaceRootStatus',
+  [
+    { no: 0, name: 'SpaceRootStatus_UNKNOWN' },
+    { no: 1, name: 'SpaceRootStatus_READY' },
+    { no: 2, name: 'SpaceRootStatus_MISSING' },
+    { no: 3, name: 'SpaceRootStatus_UNSUPPORTED' },
+    { no: 4, name: 'SpaceRootStatus_INVALID' },
+  ],
+)
+
+/**
+ * SpaceRootRuntimeStatus is the connection status for a configured root daemon.
+ *
+ * @generated from enum s4wave.root.SpaceRootRuntimeStatus
+ */
+export enum SpaceRootRuntimeStatus {
+  /**
+   * SpaceRootRuntimeStatus_IDLE means no runtime source is selected.
+   *
+   * @generated from enum value: SpaceRootRuntimeStatus_IDLE = 0;
+   */
+  SpaceRootRuntimeStatus_IDLE = 0,
+
+  /**
+   * SpaceRootRuntimeStatus_CONNECTING means the app is dialing the daemon.
+   *
+   * @generated from enum value: SpaceRootRuntimeStatus_CONNECTING = 1;
+   */
+  SpaceRootRuntimeStatus_CONNECTING = 1,
+
+  /**
+   * SpaceRootRuntimeStatus_STARTING means the app is starting the daemon.
+   *
+   * @generated from enum value: SpaceRootRuntimeStatus_STARTING = 2;
+   */
+  SpaceRootRuntimeStatus_STARTING = 2,
+
+  /**
+   * SpaceRootRuntimeStatus_READY means sessions are served from the root daemon.
+   *
+   * @generated from enum value: SpaceRootRuntimeStatus_READY = 3;
+   */
+  SpaceRootRuntimeStatus_READY = 3,
+
+  /**
+   * SpaceRootRuntimeStatus_ERROR means the runtime source is unavailable.
+   *
+   * @generated from enum value: SpaceRootRuntimeStatus_ERROR = 4;
+   */
+  SpaceRootRuntimeStatus_ERROR = 4,
+}
+
+// SpaceRootRuntimeStatus_Enum is the enum type for SpaceRootRuntimeStatus.
+export const SpaceRootRuntimeStatus_Enum = createEnumType(
+  's4wave.root.SpaceRootRuntimeStatus',
+  [
+    { no: 0, name: 'SpaceRootRuntimeStatus_IDLE' },
+    { no: 1, name: 'SpaceRootRuntimeStatus_CONNECTING' },
+    { no: 2, name: 'SpaceRootRuntimeStatus_STARTING' },
+    { no: 3, name: 'SpaceRootRuntimeStatus_READY' },
+    { no: 4, name: 'SpaceRootRuntimeStatus_ERROR' },
+  ],
+)
 
 /**
  * LookupProviderRequest is the request type for LookupProvider.
@@ -937,6 +1122,434 @@ export const WatchStateAtomsResponse: MessageType<WatchStateAtomsResponse> =
         repeated: true,
       },
       { no: 2, name: 'store_count', kind: 'scalar', T: ScalarType.UINT32 },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * NativeSpaceRootMetadata stores native filesystem fields for a root record.
+ *
+ * @generated from message s4wave.root.NativeSpaceRootMetadata
+ */
+export interface NativeSpaceRootMetadata {
+  /**
+   * Path is the absolute native filesystem path.
+   *
+   * @generated from field: string path = 1;
+   */
+  path?: string
+}
+
+// NativeSpaceRootMetadata contains the message type declaration for NativeSpaceRootMetadata.
+export const NativeSpaceRootMetadata: MessageType<NativeSpaceRootMetadata> =
+  createMessageType({
+    typeName: 's4wave.root.NativeSpaceRootMetadata',
+    fields: [
+      { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * BrowserSpaceRootMetadata reserves browser-grant fields for future support.
+ *
+ * @generated from message s4wave.root.BrowserSpaceRootMetadata
+ */
+export interface BrowserSpaceRootMetadata {}
+
+// BrowserSpaceRootMetadata contains the message type declaration for BrowserSpaceRootMetadata.
+export const BrowserSpaceRootMetadata: MessageType<BrowserSpaceRootMetadata> =
+  createMessageType({
+    typeName: 's4wave.root.BrowserSpaceRootMetadata',
+    fields: [] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * SpaceRootAliasRecord is a durable configured local state-root registry entry.
+ *
+ * @generated from message s4wave.root.SpaceRootAliasRecord
+ */
+export interface SpaceRootAliasRecord {
+  /**
+   * AliasId is the stable registry identity.
+   *
+   * @generated from field: string alias_id = 1;
+   */
+  aliasId?: string
+  /**
+   * DisplayName is the user-facing name for the configured root.
+   *
+   * @generated from field: string display_name = 2;
+   */
+  displayName?: string
+  /**
+   * Kind is the storage shape for this record.
+   *
+   * @generated from field: s4wave.root.SpaceRootKind kind = 3;
+   */
+  kind?: SpaceRootKind
+  /**
+   * OpenMode is the explicit user action that created this record.
+   *
+   * @generated from field: s4wave.root.SpaceRootOpenMode open_mode = 4;
+   */
+  openMode?: SpaceRootOpenMode
+  /**
+   * Native stores native filesystem metadata.
+   *
+   * @generated from field: s4wave.root.NativeSpaceRootMetadata native = 5;
+   */
+  native?: NativeSpaceRootMetadata
+  /**
+   * Status is the latest validation status.
+   *
+   * @generated from field: s4wave.root.SpaceRootStatus status = 6;
+   */
+  status?: SpaceRootStatus
+  /**
+   * StatusMessage is a user-actionable validation message when not ready.
+   *
+   * @generated from field: string status_message = 7;
+   */
+  statusMessage?: string
+  /**
+   * Browser reserves future browser-grant metadata.
+   *
+   * @generated from field: s4wave.root.BrowserSpaceRootMetadata browser = 8;
+   */
+  browser?: BrowserSpaceRootMetadata
+  /**
+   * CreatedAtUnixMs is when the alias was first persisted.
+   *
+   * @generated from field: int64 created_at_unix_ms = 9;
+   */
+  createdAtUnixMs?: bigint
+  /**
+   * UpdatedAtUnixMs is when the alias was last updated.
+   *
+   * @generated from field: int64 updated_at_unix_ms = 10;
+   */
+  updatedAtUnixMs?: bigint
+}
+
+// SpaceRootAliasRecord contains the message type declaration for SpaceRootAliasRecord.
+export const SpaceRootAliasRecord: MessageType<SpaceRootAliasRecord> =
+  createMessageType({
+    typeName: 's4wave.root.SpaceRootAliasRecord',
+    fields: [
+      { no: 1, name: 'alias_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'kind', kind: 'enum', T: SpaceRootKind_Enum },
+      { no: 4, name: 'open_mode', kind: 'enum', T: SpaceRootOpenMode_Enum },
+      {
+        no: 5,
+        name: 'native',
+        kind: 'message',
+        T: () => NativeSpaceRootMetadata,
+      },
+      { no: 6, name: 'status', kind: 'enum', T: SpaceRootStatus_Enum },
+      { no: 7, name: 'status_message', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 8,
+        name: 'browser',
+        kind: 'message',
+        T: () => BrowserSpaceRootMetadata,
+      },
+      {
+        no: 9,
+        name: 'created_at_unix_ms',
+        kind: 'scalar',
+        T: ScalarType.INT64,
+      },
+      {
+        no: 10,
+        name: 'updated_at_unix_ms',
+        kind: 'scalar',
+        T: ScalarType.INT64,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ListSpaceRootAliasesRequest is the request for ListSpaceRootAliases.
+ *
+ * @generated from message s4wave.root.ListSpaceRootAliasesRequest
+ */
+export interface ListSpaceRootAliasesRequest {}
+
+// ListSpaceRootAliasesRequest contains the message type declaration for ListSpaceRootAliasesRequest.
+export const ListSpaceRootAliasesRequest: MessageType<ListSpaceRootAliasesRequest> =
+  createMessageType({
+    typeName: 's4wave.root.ListSpaceRootAliasesRequest',
+    fields: [] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ListSpaceRootAliasesResponse is the configured root registry snapshot.
+ *
+ * @generated from message s4wave.root.ListSpaceRootAliasesResponse
+ */
+export interface ListSpaceRootAliasesResponse {
+  /**
+   * Records is the sorted configured root alias snapshot.
+   *
+   * @generated from field: repeated s4wave.root.SpaceRootAliasRecord records = 1;
+   */
+  records?: SpaceRootAliasRecord[]
+}
+
+// ListSpaceRootAliasesResponse contains the message type declaration for ListSpaceRootAliasesResponse.
+export const ListSpaceRootAliasesResponse: MessageType<ListSpaceRootAliasesResponse> =
+  createMessageType({
+    typeName: 's4wave.root.ListSpaceRootAliasesResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'records',
+        kind: 'message',
+        T: () => SpaceRootAliasRecord,
+        repeated: true,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * WatchSpaceRootAliasesRequest is the request for WatchSpaceRootAliases.
+ *
+ * @generated from message s4wave.root.WatchSpaceRootAliasesRequest
+ */
+export interface WatchSpaceRootAliasesRequest {}
+
+// WatchSpaceRootAliasesRequest contains the message type declaration for WatchSpaceRootAliasesRequest.
+export const WatchSpaceRootAliasesRequest: MessageType<WatchSpaceRootAliasesRequest> =
+  createMessageType({
+    typeName: 's4wave.root.WatchSpaceRootAliasesRequest',
+    fields: [] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * WatchSpaceRootAliasesResponse is the current configured root registry snapshot.
+ *
+ * @generated from message s4wave.root.WatchSpaceRootAliasesResponse
+ */
+export interface WatchSpaceRootAliasesResponse {
+  /**
+   * Records is the sorted configured root alias snapshot.
+   *
+   * @generated from field: repeated s4wave.root.SpaceRootAliasRecord records = 1;
+   */
+  records?: SpaceRootAliasRecord[]
+}
+
+// WatchSpaceRootAliasesResponse contains the message type declaration for WatchSpaceRootAliasesResponse.
+export const WatchSpaceRootAliasesResponse: MessageType<WatchSpaceRootAliasesResponse> =
+  createMessageType({
+    typeName: 's4wave.root.WatchSpaceRootAliasesResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'records',
+        kind: 'message',
+        T: () => SpaceRootAliasRecord,
+        repeated: true,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * UpsertSpaceRootAliasRequest writes or updates a configured root alias.
+ *
+ * @generated from message s4wave.root.UpsertSpaceRootAliasRequest
+ */
+export interface UpsertSpaceRootAliasRequest {
+  /**
+   * Record is the configured root alias record to validate and persist.
+   *
+   * @generated from field: s4wave.root.SpaceRootAliasRecord record = 1;
+   */
+  record?: SpaceRootAliasRecord
+}
+
+// UpsertSpaceRootAliasRequest contains the message type declaration for UpsertSpaceRootAliasRequest.
+export const UpsertSpaceRootAliasRequest: MessageType<UpsertSpaceRootAliasRequest> =
+  createMessageType({
+    typeName: 's4wave.root.UpsertSpaceRootAliasRequest',
+    fields: [
+      { no: 1, name: 'record', kind: 'message', T: () => SpaceRootAliasRecord },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * UpsertSpaceRootAliasResponse returns the persisted record.
+ *
+ * @generated from message s4wave.root.UpsertSpaceRootAliasResponse
+ */
+export interface UpsertSpaceRootAliasResponse {
+  /**
+   * Record is the validated persisted record.
+   *
+   * @generated from field: s4wave.root.SpaceRootAliasRecord record = 1;
+   */
+  record?: SpaceRootAliasRecord
+}
+
+// UpsertSpaceRootAliasResponse contains the message type declaration for UpsertSpaceRootAliasResponse.
+export const UpsertSpaceRootAliasResponse: MessageType<UpsertSpaceRootAliasResponse> =
+  createMessageType({
+    typeName: 's4wave.root.UpsertSpaceRootAliasResponse',
+    fields: [
+      { no: 1, name: 'record', kind: 'message', T: () => SpaceRootAliasRecord },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * RemoveSpaceRootAliasRequest removes a configured root alias.
+ *
+ * @generated from message s4wave.root.RemoveSpaceRootAliasRequest
+ */
+export interface RemoveSpaceRootAliasRequest {
+  /**
+   * AliasId is the stable registry identity to remove.
+   *
+   * @generated from field: string alias_id = 1;
+   */
+  aliasId?: string
+}
+
+// RemoveSpaceRootAliasRequest contains the message type declaration for RemoveSpaceRootAliasRequest.
+export const RemoveSpaceRootAliasRequest: MessageType<RemoveSpaceRootAliasRequest> =
+  createMessageType({
+    typeName: 's4wave.root.RemoveSpaceRootAliasRequest',
+    fields: [
+      { no: 1, name: 'alias_id', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * RemoveSpaceRootAliasResponse is returned after a remove attempt.
+ *
+ * @generated from message s4wave.root.RemoveSpaceRootAliasResponse
+ */
+export interface RemoveSpaceRootAliasResponse {
+  /**
+   * NotFound is true when AliasId was not present.
+   *
+   * @generated from field: bool not_found = 1;
+   */
+  notFound?: boolean
+}
+
+// RemoveSpaceRootAliasResponse contains the message type declaration for RemoveSpaceRootAliasResponse.
+export const RemoveSpaceRootAliasResponse: MessageType<RemoveSpaceRootAliasResponse> =
+  createMessageType({
+    typeName: 's4wave.root.RemoveSpaceRootAliasResponse',
+    fields: [
+      { no: 1, name: 'not_found', kind: 'scalar', T: ScalarType.BOOL },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * WatchSpaceRootRuntimeRequest selects a configured root runtime source.
+ *
+ * @generated from message s4wave.root.WatchSpaceRootRuntimeRequest
+ */
+export interface WatchSpaceRootRuntimeRequest {
+  /**
+   * AliasId is the configured root alias to use.
+   *
+   * @generated from field: string alias_id = 1;
+   */
+  aliasId?: string
+  /**
+   * Autostart starts a daemon when no daemon is reachable.
+   *
+   * @generated from field: bool autostart = 2;
+   */
+  autostart?: boolean
+}
+
+// WatchSpaceRootRuntimeRequest contains the message type declaration for WatchSpaceRootRuntimeRequest.
+export const WatchSpaceRootRuntimeRequest: MessageType<WatchSpaceRootRuntimeRequest> =
+  createMessageType({
+    typeName: 's4wave.root.WatchSpaceRootRuntimeRequest',
+    fields: [
+      { no: 1, name: 'alias_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'autostart', kind: 'scalar', T: ScalarType.BOOL },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * WatchSpaceRootRuntimeResponse streams the selected root daemon state.
+ *
+ * @generated from message s4wave.root.WatchSpaceRootRuntimeResponse
+ */
+export interface WatchSpaceRootRuntimeResponse {
+  /**
+   * Status is the current selected-root daemon status.
+   *
+   * @generated from field: s4wave.root.SpaceRootRuntimeStatus status = 1;
+   */
+  status?: SpaceRootRuntimeStatus
+  /**
+   * AliasId is the configured root alias being used.
+   *
+   * @generated from field: string alias_id = 2;
+   */
+  aliasId?: string
+  /**
+   * StatePath is the absolute configured root path.
+   *
+   * @generated from field: string state_path = 3;
+   */
+  statePath?: string
+  /**
+   * SocketPath is the selected daemon socket path.
+   *
+   * @generated from field: string socket_path = 4;
+   */
+  socketPath?: string
+  /**
+   * Sessions is the session snapshot from the selected root daemon.
+   *
+   * @generated from field: repeated session.SessionListEntry sessions = 5;
+   */
+  sessions?: SessionListEntry[]
+  /**
+   * Error is a user-actionable status message when status is ERROR.
+   *
+   * @generated from field: string error = 6;
+   */
+  error?: string
+}
+
+// WatchSpaceRootRuntimeResponse contains the message type declaration for WatchSpaceRootRuntimeResponse.
+export const WatchSpaceRootRuntimeResponse: MessageType<WatchSpaceRootRuntimeResponse> =
+  createMessageType({
+    typeName: 's4wave.root.WatchSpaceRootRuntimeResponse',
+    fields: [
+      { no: 1, name: 'status', kind: 'enum', T: SpaceRootRuntimeStatus_Enum },
+      { no: 2, name: 'alias_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'state_path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'socket_path', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 5,
+        name: 'sessions',
+        kind: 'message',
+        T: () => SessionListEntry,
+        repeated: true,
+      },
+      { no: 6, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

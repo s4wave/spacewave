@@ -5,8 +5,17 @@ import { cleanup, render, screen } from '@testing-library/react'
 import GetStarted from './GetStarted.js'
 
 const mockUseSessionMetadata = vi.hoisted(() => vi.fn())
+const mockAddSpaceRootAlias = vi.hoisted(() => vi.fn())
 const mockNavigate = vi.hoisted(() => vi.fn())
 const mockUseIsStaticMode = vi.hoisted(() => vi.fn(() => false))
+
+vi.mock('@s4wave/app/hooks/useAddSpaceRootAlias.js', () => ({
+  useAddSpaceRootAlias: () => ({
+    add: mockAddSpaceRootAlias,
+    adding: false,
+    canAdd: true,
+  }),
+}))
 
 vi.mock('@s4wave/app/hooks/useSessionMetadata.js', () => ({
   useSessionMetadata: mockUseSessionMetadata,
@@ -61,11 +70,17 @@ vi.mock('@s4wave/web/ui/command.js', () => ({
   }),
   CommandItem: ({
     children,
+    disabled,
     onSelect,
   }: {
     children: React.ReactNode
+    disabled?: boolean
     onSelect?: () => void
-  }) => <button onClick={() => onSelect?.()}>{children}</button>,
+  }) => (
+    <button disabled={disabled} onClick={() => onSelect?.()}>
+      {children}
+    </button>
+  ),
   CommandList: ({ children }: { children: React.ReactNode }) => (
     <div>{children}</div>
   ),
@@ -143,5 +158,13 @@ describe('GetStarted', () => {
         .getByRole('link', { name: /create a drive/i })
         .getAttribute('href'),
     ).toBe('/quickstart/drive')
+  })
+
+  it('adds a local state root action to the interactive quickstart list', () => {
+    render(<GetStarted />)
+
+    screen.getByRole('button', { name: /open a local state root/i }).click()
+
+    expect(mockAddSpaceRootAlias).toHaveBeenCalledTimes(1)
   })
 })

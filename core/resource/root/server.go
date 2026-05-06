@@ -6,6 +6,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/broadcast"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_state "github.com/s4wave/spacewave/bldr/resource/state"
 	resource_cdn "github.com/s4wave/spacewave/core/resource/cdn"
@@ -23,6 +24,8 @@ type CoreRootServer struct {
 	b bus.Bus
 	// stateAtomMgr manages state atom stores
 	stateAtomMgr *resource_state.StateAtomManager
+	// spaceRootAliasBcast broadcasts configured root registry changes.
+	spaceRootAliasBcast broadcast.Broadcast
 	// stateAtomStoreIndexMtx guards stateAtomStoreIndex setup.
 	stateAtomStoreIndexMtx sync.Mutex
 	// stateAtomStoreIndex tracks known root state atom store ids.
