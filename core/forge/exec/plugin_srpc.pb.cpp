@@ -12,9 +12,22 @@ starpc::Error SRPCPluginExecServiceClientImpl::Execute(const space::exec::Plugin
   return cc_->ExecCall(service_id_, "Execute", in, out);
 }
 
+std::pair<std::unique_ptr<SRPCPluginExecService_ExecuteStreamClient>, starpc::Error> SRPCPluginExecServiceClientImpl::ExecuteStream(const space::exec::PluginExecRequest& in) {
+  auto [strm, err] = cc_->NewStream(service_id_, "ExecuteStream", &in);
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  err = strm->CloseSend();
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  return {std::make_unique<SRPCPluginExecService_ExecuteStreamClient>(std::move(strm)), starpc::Error::OK};
+}
+
 std::vector<std::string> SRPCPluginExecServiceHandler::GetMethodIDs() const {
   return {
     "Execute",
+    "ExecuteStream",
   };
 }
 
@@ -34,6 +47,12 @@ std::pair<bool, starpc::Error> SRPCPluginExecServiceHandler::InvokeMethod(
     err = impl_->Execute(req, &resp);
     if (err != starpc::Error::OK) return {true, err};
     return {true, strm->MsgSend(resp)};
+  } else if (method_id == "ExecuteStream") {
+    space::exec::PluginExecRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    SRPCPluginExecService_ExecuteStreamStream serverStrm(strm);
+    return {true, impl_->ExecuteStream(req, &serverStrm)};
   }
 
   return {false, starpc::Error::OK};

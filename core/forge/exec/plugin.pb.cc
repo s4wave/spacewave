@@ -267,11 +267,13 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2f
     "nse\022\'\n\004logs\030\001 \003(\0132\031.space.exec.PluginExe"
     "cLog\022#\n\007outputs\030\002 \003(\0132\022.forge.value.Valu"
     "e\022\r\n\005error\030\003 \001(\t\0226\n\014output_files\030\004 \003(\0132 "
-    ".space.exec.PluginExecOutputFile2]\n\021Plug"
-    "inExecService\022H\n\007Execute\022\035.space.exec.Pl"
-    "uginExecRequest\032\036.space.exec.PluginExecR"
-    "esponseB8Z6github.com/s4wave/spacewave/c"
-    "ore/forge/exec;space_execb\006proto3"
+    ".space.exec.PluginExecOutputFile2\257\001\n\021Plu"
+    "ginExecService\022H\n\007Execute\022\035.space.exec.P"
+    "luginExecRequest\032\036.space.exec.PluginExec"
+    "Response\022P\n\rExecuteStream\022\035.space.exec.P"
+    "luginExecRequest\032\036.space.exec.PluginExec"
+    "Response0\001B8Z6github.com/s4wave/spacewav"
+    "e/core/forge/exec;space_execb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fforge_2fexec_2fplugin_2eproto_deps[1] = {
@@ -281,7 +283,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fco
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fforge_2fexec_2fplugin_2eproto = {
     false,
     false,
-    753,
+    836,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2fforge_2fexec_2fplugin_2eproto,
     "github.com/s4wave/spacewave/core/forge/exec/plugin.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fforge_2fexec_2fplugin_2eproto_once,

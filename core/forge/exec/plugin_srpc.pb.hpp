@@ -20,6 +20,8 @@ namespace space::exec {
 // Service ID for PluginExecService
 constexpr const char* kSRPCPluginExecServiceServiceID = "space.exec.PluginExecService";
 
+class SRPCPluginExecService_ExecuteStreamClient;
+class SRPCPluginExecService_ExecuteStreamStream;
 
 // SRPCPluginExecServiceClient is the client API for PluginExecService service.
 class SRPCPluginExecServiceClient {
@@ -31,6 +33,8 @@ class SRPCPluginExecServiceClient {
 
   // Execute
   virtual starpc::Error Execute(const space::exec::PluginExecRequest& in, space::exec::PluginExecResponse* out) = 0;
+  // ExecuteStream
+  virtual std::pair<std::unique_ptr<SRPCPluginExecService_ExecuteStreamClient>, starpc::Error> ExecuteStream(const space::exec::PluginExecRequest& in) = 0;
 };
 
 // SRPCPluginExecServiceClientImpl implements SRPCPluginExecServiceClient.
@@ -43,6 +47,8 @@ class SRPCPluginExecServiceClientImpl : public SRPCPluginExecServiceClient {
 
   // Execute
   virtual starpc::Error Execute(const space::exec::PluginExecRequest& in, space::exec::PluginExecResponse* out) override;
+  // ExecuteStream
+  virtual std::pair<std::unique_ptr<SRPCPluginExecService_ExecuteStreamClient>, starpc::Error> ExecuteStream(const space::exec::PluginExecRequest& in) override;
 
  private:
   starpc::Client* cc_;
@@ -61,6 +67,8 @@ class SRPCPluginExecServiceServer {
 
   // Execute
   virtual starpc::Error Execute(const space::exec::PluginExecRequest& req, space::exec::PluginExecResponse* resp) = 0;
+  // ExecuteStream
+  virtual starpc::Error ExecuteStream(const space::exec::PluginExecRequest& req, SRPCPluginExecService_ExecuteStreamStream* strm) = 0;
 };
 
 // SRPCPluginExecServiceHandler implements starpc::Handler for PluginExecService.
@@ -96,5 +104,40 @@ inline std::pair<std::unique_ptr<SRPCPluginExecServiceHandler>, starpc::Error> S
   }
   return {std::move(handler), starpc::Error::OK};
 }
+
+// SRPCPluginExecService_ExecuteStreamClient is the client stream for ExecuteStream.
+class SRPCPluginExecService_ExecuteStreamClient {
+ public:
+  explicit SRPCPluginExecService_ExecuteStreamClient(std::unique_ptr<starpc::Stream> strm) : strm_(std::move(strm)) {}
+
+  starpc::Error Recv(space::exec::PluginExecResponse* msg) {
+    return strm_->MsgRecv(msg);
+  }
+
+  starpc::Error CloseSend() { return strm_->CloseSend(); }
+  starpc::Error Close() { return strm_->Close(); }
+
+ private:
+  std::unique_ptr<starpc::Stream> strm_;
+};
+
+// SRPCPluginExecService_ExecuteStreamStream is the server stream for ExecuteStream.
+class SRPCPluginExecService_ExecuteStreamStream {
+ public:
+  explicit SRPCPluginExecService_ExecuteStreamStream(starpc::Stream* strm) : strm_(strm) {}
+
+  starpc::Error Send(const space::exec::PluginExecResponse& msg) {
+    return strm_->MsgSend(msg);
+  }
+
+  starpc::Error SendAndClose(const space::exec::PluginExecResponse& msg) {
+    starpc::Error err = strm_->MsgSend(msg);
+    if (err != starpc::Error::OK) return err;
+    return strm_->CloseSend();
+  }
+
+ private:
+  starpc::Stream* strm_;
+};
 
 }  // namespace space::exec

@@ -8,11 +8,24 @@ use starpc::StreamExt;
 /// Service ID for PluginExecService.
 pub const PLUGIN_EXEC_SERVICE_SERVICE_ID: &str = "space.exec.PluginExecService";
 
+/// Stream trait for PluginExecService.ExecuteStream.
+#[starpc::async_trait]
+pub trait PluginExecServiceExecuteStreamStream: Send + Sync {
+    /// Returns the context for this stream.
+    fn context(&self) -> &starpc::Context;
+    /// Receives a message from the stream.
+    async fn recv(&self) -> starpc::Result<PluginExecResponse>;
+    /// Closes the stream.
+    async fn close(&self) -> starpc::Result<()>;
+}
+
 /// Client trait for PluginExecService.
 #[starpc::async_trait]
 pub trait PluginExecServiceClient: Send + Sync {
     /// Execute.
     async fn execute(&self, request: &PluginExecRequest) -> starpc::Result<PluginExecResponse>;
+    /// ExecuteStream.
+    async fn execute_stream(&self, request: &PluginExecRequest) -> starpc::Result<Box<dyn PluginExecServiceExecuteStreamStream>>;
 }
 
 /// Client implementation for PluginExecService.
@@ -32,6 +45,30 @@ impl<C: starpc::Client + 'static> PluginExecServiceClient for PluginExecServiceC
     async fn execute(&self, request: &PluginExecRequest) -> starpc::Result<PluginExecResponse> {
         self.client.exec_call("space.exec.PluginExecService", "Execute", request).await
     }
+    async fn execute_stream(&self, request: &PluginExecRequest) -> starpc::Result<Box<dyn PluginExecServiceExecuteStreamStream>> {
+        use starpc::ProstMessage;
+        let data = request.encode_to_vec();
+        let stream = self.client.new_stream("space.exec.PluginExecService", "ExecuteStream", Some(&data)).await?;
+        stream.close_send().await?;
+        Ok(Box::new(PluginExecServiceExecuteStreamStreamImpl { stream }))
+    }
+}
+
+struct PluginExecServiceExecuteStreamStreamImpl {
+    stream: Box<dyn starpc::Stream>,
+}
+
+#[starpc::async_trait]
+impl PluginExecServiceExecuteStreamStream for PluginExecServiceExecuteStreamStreamImpl {
+    fn context(&self) -> &starpc::Context {
+        self.stream.context()
+    }
+    async fn recv(&self) -> starpc::Result<PluginExecResponse> {
+        self.stream.msg_recv().await
+    }
+    async fn close(&self) -> starpc::Result<()> {
+        self.stream.close().await
+    }
 }
 
 /// Server trait for PluginExecService.
@@ -39,10 +76,13 @@ impl<C: starpc::Client + 'static> PluginExecServiceClient for PluginExecServiceC
 pub trait PluginExecServiceServer: Send + Sync {
     /// Execute.
     async fn execute(&self, request: PluginExecRequest) -> starpc::Result<PluginExecResponse>;
+    /// ExecuteStream.
+    async fn execute_stream(&self, request: PluginExecRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
 }
 
 const PLUGIN_EXEC_SERVICE_METHOD_IDS: &[&str] = &[
     "Execute",
+    "ExecuteStream",
 ];
 
 /// Handler for PluginExecService.
@@ -85,6 +125,13 @@ impl<S: PluginExecServiceServer + 'static> starpc::Invoker for PluginExecService
                     }
                     Err(e) => (true, Err(e)),
                 }
+            }
+            "ExecuteStream" => {
+                let request: PluginExecRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                (true, self.server.execute_stream(request, stream).await)
             }
             _ => (false, Err(starpc::Error::Unimplemented)),
         }

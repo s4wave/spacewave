@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "protocFlagsHash": "dd97acfa784afdb97e9b56d13aa4a2154eb3b83f4c36e04c0e3ea89c0befa3e1",
+  "protocFlagsHash": "8d1620b7df991f3c8306ba80d0b9ebae8aa5e35ab33e3b9db83aae0372bc0744",
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.13.0,starpc=v0.49.7,protobuf-es-lite=1.0.2",
   "packages": {
     "github.com/s4wave/spacewave/auth/derive": {
@@ -1269,7 +1269,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/forge/exec": {
-      "hash": "cf08c3cb38cae3692e75172dcbd8ee31af9a9936ce03421a78e56da843f3627a",
+      "hash": "3228ae0dc700bd344c19e61283ba9e844822ead6914e4e788798fd6089035c87",
       "generatedFiles": [
         "core/forge/exec/plugin.pb.cc",
         "core/forge/exec/plugin.pb.go",

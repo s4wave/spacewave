@@ -4,7 +4,7 @@
 
 import { PluginExecRequest, PluginExecResponse } from './plugin.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { ProtoRpc } from 'starpc'
+import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
 
 /**
  * PluginExecService executes plugin-owned Forge execution controllers.
@@ -25,6 +25,17 @@ export const PluginExecServiceDefinition = {
       O: PluginExecResponse,
       kind: MethodKind.Unary,
     },
+    /**
+     * ExecuteStream runs a plugin-owned execution controller and streams logs.
+     *
+     * @generated from rpc space.exec.PluginExecService.ExecuteStream
+     */
+    ExecuteStream: {
+      name: 'ExecuteStream',
+      I: PluginExecRequest,
+      O: PluginExecResponse,
+      kind: MethodKind.ServerStreaming,
+    },
   },
 } as const
 
@@ -43,6 +54,16 @@ export interface PluginExecService {
     request: PluginExecRequest,
     abortSignal?: AbortSignal,
   ): Promise<PluginExecResponse>
+
+  /**
+   * ExecuteStream runs a plugin-owned execution controller and streams logs.
+   *
+   * @generated from rpc space.exec.PluginExecService.ExecuteStream
+   */
+  ExecuteStream(
+    request: PluginExecRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<PluginExecResponse>
 }
 
 export const PluginExecServiceServiceName = PluginExecServiceDefinition.typeName
@@ -54,6 +75,7 @@ export class PluginExecServiceClient implements PluginExecService {
     this.service = opts?.service || PluginExecServiceServiceName
     this.rpc = rpc
     this.Execute = this.Execute.bind(this)
+    this.ExecuteStream = this.ExecuteStream.bind(this)
   }
   /**
    * Execute runs a plugin-owned execution controller.
@@ -72,5 +94,24 @@ export class PluginExecServiceClient implements PluginExecService {
       abortSignal || undefined,
     )
     return PluginExecResponse.fromBinary(result)
+  }
+
+  /**
+   * ExecuteStream runs a plugin-owned execution controller and streams logs.
+   *
+   * @generated from rpc space.exec.PluginExecService.ExecuteStream
+   */
+  ExecuteStream(
+    request: PluginExecRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<PluginExecResponse> {
+    const requestMsg = PluginExecRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      PluginExecServiceDefinition.methods.ExecuteStream.name,
+      PluginExecRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(PluginExecResponse)(result)
   }
 }

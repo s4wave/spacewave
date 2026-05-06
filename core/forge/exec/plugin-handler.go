@@ -3,6 +3,7 @@ package space_exec
 import (
 	"bytes"
 	"context"
+	"io"
 	"path"
 	"strings"
 	"time"
@@ -57,6 +58,12 @@ func (h *pluginExecHandler) Execute(ctx context.Context) error {
 		ControllerConfig: h.conf.GetControllerConfig(),
 		Inputs:           h.inputs.BuildValueSet().GetInputs(),
 	}
+	strm, err := client.ExecuteStream(ctx, req)
+	if err == nil {
+		defer strm.Close()
+		return h.applyStream(ctx, strm)
+	}
+
 	resp, err := client.Execute(ctx, req)
 	if err != nil {
 		return errors.Wrap(err, "execute plugin controller")
@@ -65,6 +72,27 @@ func (h *pluginExecHandler) Execute(ctx context.Context) error {
 		return errors.New("plugin exec service returned nil response")
 	}
 	return h.applyResponse(ctx, resp)
+}
+
+func (h *pluginExecHandler) applyStream(
+	ctx context.Context,
+	strm SRPCPluginExecService_ExecuteStreamClient,
+) error {
+	for {
+		resp, err := strm.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return errors.Wrap(err, "receive plugin execution stream")
+		}
+		if resp == nil {
+			return errors.New("plugin exec service returned nil stream response")
+		}
+		if err := h.applyResponse(ctx, resp); err != nil {
+			return err
+		}
+	}
 }
 
 func (h *pluginExecHandler) applyResponse(ctx context.Context, resp *PluginExecResponse) error {

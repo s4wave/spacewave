@@ -57,4 +57,6 @@ message PluginExecResponse {
 service PluginExecService {
   // Execute runs a plugin-owned execution controller.
   rpc Execute(PluginExecRequest) returns (PluginExecResponse);
+  // ExecuteStream runs a plugin-owned execution controller and streams logs.
+  rpc ExecuteStream(PluginExecRequest) returns (stream PluginExecResponse);
 }

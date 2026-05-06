@@ -16,6 +16,8 @@ type SRPCPluginExecServiceClient interface {
 
 	// Execute runs a plugin-owned execution controller.
 	Execute(ctx context.Context, in *PluginExecRequest) (*PluginExecResponse, error)
+	// ExecuteStream runs a plugin-owned execution controller and streams logs.
+	ExecuteStream(ctx context.Context, in *PluginExecRequest) (SRPCPluginExecService_ExecuteStreamClient, error)
 }
 
 type srpcPluginExecServiceClient struct {
@@ -45,9 +47,45 @@ func (c *srpcPluginExecServiceClient) Execute(ctx context.Context, in *PluginExe
 	return out, nil
 }
 
+func (c *srpcPluginExecServiceClient) ExecuteStream(ctx context.Context, in *PluginExecRequest) (SRPCPluginExecService_ExecuteStreamClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "ExecuteStream", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcPluginExecService_ExecuteStreamClient{stream}
+	if err := strm.CloseSend(); err != nil {
+		return nil, err
+	}
+	return strm, nil
+}
+
+type SRPCPluginExecService_ExecuteStreamClient interface {
+	srpc.Stream
+	Recv() (*PluginExecResponse, error)
+	RecvTo(*PluginExecResponse) error
+}
+
+type srpcPluginExecService_ExecuteStreamClient struct {
+	srpc.Stream
+}
+
+func (x *srpcPluginExecService_ExecuteStreamClient) Recv() (*PluginExecResponse, error) {
+	m := new(PluginExecResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcPluginExecService_ExecuteStreamClient) RecvTo(m *PluginExecResponse) error {
+	return x.MsgRecv(m)
+}
+
 type SRPCPluginExecServiceServer interface {
 	// Execute runs a plugin-owned execution controller.
 	Execute(context.Context, *PluginExecRequest) (*PluginExecResponse, error)
+	// ExecuteStream runs a plugin-owned execution controller and streams logs.
+	ExecuteStream(*PluginExecRequest, SRPCPluginExecService_ExecuteStreamStream) error
 }
 
 const SRPCPluginExecServiceServiceID = "space.exec.PluginExecService"
@@ -77,6 +115,7 @@ func (d *SRPCPluginExecServiceHandler) GetServiceID() string { return d.serviceI
 func (SRPCPluginExecServiceHandler) GetMethodIDs() []string {
 	return []string{
 		"Execute",
+		"ExecuteStream",
 	}
 }
 
@@ -91,6 +130,8 @@ func (d *SRPCPluginExecServiceHandler) InvokeMethod(
 	switch methodID {
 	case "Execute":
 		return true, d.InvokeMethod_Execute(d.impl, strm)
+	case "ExecuteStream":
+		return true, d.InvokeMethod_ExecuteStream(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -108,10 +149,42 @@ func (SRPCPluginExecServiceHandler) InvokeMethod_Execute(impl SRPCPluginExecServ
 	return strm.MsgSend(out)
 }
 
+func (SRPCPluginExecServiceHandler) InvokeMethod_ExecuteStream(impl SRPCPluginExecServiceServer, strm srpc.Stream) error {
+	req := new(PluginExecRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcPluginExecService_ExecuteStreamStream{strm}
+	return impl.ExecuteStream(req, serverStrm)
+}
+
 type SRPCPluginExecService_ExecuteStream interface {
 	srpc.Stream
 }
 
 type srpcPluginExecService_ExecuteStream struct {
 	srpc.Stream
+}
+
+type SRPCPluginExecService_ExecuteStreamStream interface {
+	srpc.Stream
+	Send(*PluginExecResponse) error
+	SendAndClose(*PluginExecResponse) error
+}
+
+type srpcPluginExecService_ExecuteStreamStream struct {
+	srpc.Stream
+}
+
+func (x *srpcPluginExecService_ExecuteStreamStream) Send(m *PluginExecResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcPluginExecService_ExecuteStreamStream) SendAndClose(m *PluginExecResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
 }

@@ -3,6 +3,7 @@ package space_exec
 import (
 	"bytes"
 	"context"
+	"io"
 	"testing"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/starpc/srpc"
 	billy_util "github.com/go-git/go-billy/v6/util"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/testbed"
@@ -25,9 +27,12 @@ import (
 )
 
 type pluginExecClientStub struct {
-	req  *PluginExecRequest
-	resp *PluginExecResponse
-	err  error
+	req          *PluginExecRequest
+	resp         *PluginExecResponse
+	err          error
+	stream       *pluginExecStreamStub
+	streamErr    error
+	streamCalled bool
 }
 
 func (s *pluginExecClientStub) SRPCClient() srpc.Client {
@@ -40,6 +45,69 @@ func (s *pluginExecClientStub) Execute(
 ) (*PluginExecResponse, error) {
 	s.req = req
 	return s.resp, s.err
+}
+
+func (s *pluginExecClientStub) ExecuteStream(
+	ctx context.Context,
+	req *PluginExecRequest,
+) (SRPCPluginExecService_ExecuteStreamClient, error) {
+	s.req = req
+	s.streamCalled = true
+	if s.streamErr != nil {
+		return nil, s.streamErr
+	}
+	return s.stream, nil
+}
+
+type pluginExecStreamStub struct {
+	resps []*PluginExecResponse
+	ch    chan *PluginExecResponse
+	idx   int
+}
+
+func (s *pluginExecStreamStub) Context() context.Context {
+	return context.Background()
+}
+
+func (s *pluginExecStreamStub) MsgSend(srpc.Message) error {
+	return nil
+}
+
+func (s *pluginExecStreamStub) MsgRecv(srpc.Message) error {
+	return nil
+}
+
+func (s *pluginExecStreamStub) CloseSend() error {
+	return nil
+}
+
+func (s *pluginExecStreamStub) Close() error {
+	return nil
+}
+
+func (s *pluginExecStreamStub) Recv() (*PluginExecResponse, error) {
+	if s.ch != nil {
+		resp, ok := <-s.ch
+		if !ok {
+			return nil, io.EOF
+		}
+		return resp, nil
+	}
+	if s.idx >= len(s.resps) {
+		return nil, io.EOF
+	}
+	resp := s.resps[s.idx]
+	s.idx++
+	return resp, nil
+}
+
+func (s *pluginExecStreamStub) RecvTo(resp *PluginExecResponse) error {
+	next, err := s.Recv()
+	if err != nil {
+		return err
+	}
+	*resp = *next
+	return nil
 }
 
 type pluginExecHandleStub struct {
@@ -164,13 +232,15 @@ func TestPluginExecConfigRoundTrip(t *testing.T) {
 func TestPluginExecHandlerCallsPluginService(t *testing.T) {
 	ctx := context.Background()
 	client := &pluginExecClientStub{
-		resp: &PluginExecResponse{
-			Logs: []*PluginExecLog{
-				{Level: "info", Message: "ran plugin controller"},
-			},
-			Outputs: []*forge_value.Value{
-				forge_value.NewValue("result"),
-			},
+		stream: &pluginExecStreamStub{
+			resps: []*PluginExecResponse{{
+				Logs: []*PluginExecLog{
+					{Level: "info", Message: "ran plugin controller"},
+				},
+				Outputs: []*forge_value.Value{
+					forge_value.NewValue("result"),
+				},
+			}},
 		},
 	}
 	load := func(ctx context.Context, b bus.Bus, pluginID string) (SRPCPluginExecServiceClient, directive.Reference, error) {
@@ -212,6 +282,9 @@ func TestPluginExecHandlerCallsPluginService(t *testing.T) {
 	if err := handler.Execute(ctx); err != nil {
 		t.Fatal(err)
 	}
+	if !client.streamCalled {
+		t.Fatal("streaming plugin exec was not used")
+	}
 	if client.req.GetControllerId() != conf.GetControllerId() {
 		t.Fatalf("controller id: %s", client.req.GetControllerId())
 	}
@@ -226,5 +299,102 @@ func TestPluginExecHandlerCallsPluginService(t *testing.T) {
 	}
 	if len(handle.outputs) != 1 || handle.outputs[0].GetName() != "result" {
 		t.Fatalf("outputs: %#v", handle.outputs)
+	}
+}
+
+func TestPluginExecHandlerStreamsLogsBeforeCompletion(t *testing.T) {
+	ctx := context.Background()
+	ch := make(chan *PluginExecResponse)
+	client := &pluginExecClientStub{stream: &pluginExecStreamStub{ch: ch}}
+	conf := &PluginExecConfig{
+		PluginId:         "glados-core",
+		ControllerId:     "glados/workfront/runner/claude",
+		ControllerConfig: []byte{1, 2, 3},
+	}
+	configData, err := conf.MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	handle := &pluginExecHandleStub{}
+	handler := &pluginExecHandler{
+		handle: handle,
+		conf:   conf,
+		inputs: forge_target.InputMap{},
+		load: func(ctx context.Context, b bus.Bus, pluginID string) (SRPCPluginExecServiceClient, directive.Reference, error) {
+			return client, nil, nil
+		},
+	}
+	handler.conf = &PluginExecConfig{}
+	if err := handler.conf.UnmarshalVT(configData); err != nil {
+		t.Fatal(err)
+	}
+	errs := make(chan error)
+	go func() {
+		errs <- handler.Execute(ctx)
+	}()
+	ch <- &PluginExecResponse{
+		Logs: []*PluginExecLog{{
+			Level:   "info",
+			Message: "transcript: /tmp/glados.log",
+		}},
+	}
+	if len(handle.logs) != 1 || handle.logs[0].GetMessage() != "transcript: /tmp/glados.log" {
+		t.Fatalf("streamed logs before completion: %#v", handle.logs)
+	}
+	select {
+	case err := <-errs:
+		t.Fatalf("handler returned before stream closed: %v", err)
+	default:
+	}
+	ch <- &PluginExecResponse{
+		Logs: []*PluginExecLog{{
+			Level:   "info",
+			Message: "complete",
+		}},
+		Outputs: []*forge_value.Value{
+			forge_value.NewValue("result"),
+		},
+	}
+	close(ch)
+	if err := <-errs; err != nil {
+		t.Fatal(err)
+	}
+	if len(handle.logs) != 2 || handle.logs[1].GetMessage() != "complete" {
+		t.Fatalf("final logs: %#v", handle.logs)
+	}
+	if len(handle.outputs) != 1 || handle.outputs[0].GetName() != "result" {
+		t.Fatalf("outputs: %#v", handle.outputs)
+	}
+}
+
+func TestPluginExecHandlerFallsBackToUnaryExecute(t *testing.T) {
+	ctx := context.Background()
+	client := &pluginExecClientStub{
+		streamErr: errors.New("stream unavailable"),
+		resp: &PluginExecResponse{
+			Logs: []*PluginExecLog{{
+				Level:   "info",
+				Message: "unary fallback",
+			}},
+		},
+	}
+	handler := &pluginExecHandler{
+		handle: &pluginExecHandleStub{},
+		conf: &PluginExecConfig{
+			PluginId:         "glados-core",
+			ControllerId:     "glados/workfront/runner/claude",
+			ControllerConfig: []byte{1, 2, 3},
+		},
+		inputs: forge_target.InputMap{},
+		load: func(ctx context.Context, b bus.Bus, pluginID string) (SRPCPluginExecServiceClient, directive.Reference, error) {
+			return client, nil, nil
+		},
+	}
+	if err := handler.Execute(ctx); err != nil {
+		t.Fatal(err)
+	}
+	handle := handler.handle.(*pluginExecHandleStub)
+	if len(handle.logs) != 1 || handle.logs[0].GetMessage() != "unary fallback" {
+		t.Fatalf("fallback logs: %#v", handle.logs)
 	}
 }
