@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/core/sobject"
 )
 
 func TestProcessPendingMailboxEntriesReadOnlySkipsFetch(t *testing.T) {
@@ -74,5 +75,18 @@ func TestProcessMailboxEntryUsesCachedResponse(t *testing.T) {
 	}
 	if postCount != 1 {
 		t.Fatalf("expected 1 process POST, got %d", postCount)
+	}
+}
+
+func TestValidateTargetedMailboxProofRequiresEnvelopeForTargetedInvite(t *testing.T) {
+	err := validateTargetedMailboxProof(
+		&api.MailboxEntry{AccountId: "acct-target"},
+		&sobject.SOInvite{InviteId: "inv-1", TargetAccountId: "acct-target"},
+		nil,
+		"space-1",
+		"acct-owner",
+	)
+	if err == nil {
+		t.Fatalf("expected missing targeted proof to fail")
 	}
 }

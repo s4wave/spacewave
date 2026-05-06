@@ -1371,6 +1371,9 @@ type SOInvite struct {
 	ExpiresAt *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=expires_at,json=expiresAt,proto3" json:"expiresAt,omitempty"`
 	// Revoked indicates the invite has been revoked by the owner.
 	Revoked bool `protobuf:"varint,8,opt,name=revoked,proto3" json:"revoked,omitempty"`
+	// TargetAccountId is the optional provider account id required to submit a
+	// targeted invitation proof for this invite. Empty means bearer invite.
+	TargetAccountId string `protobuf:"bytes,9,opt,name=target_account_id,json=targetAccountId,proto3" json:"targetAccountId,omitempty"`
 }
 
 func (x *SOInvite) Reset() {
@@ -1433,6 +1436,13 @@ func (x *SOInvite) GetRevoked() bool {
 		return x.Revoked
 	}
 	return false
+}
+
+func (x *SOInvite) GetTargetAccountId() string {
+	if x != nil {
+		return x.TargetAccountId
+	}
+	return ""
 }
 
 // SOState contains the state of the shared object.
@@ -1872,8 +1882,10 @@ func (m *SharedObjectRef) CloneVT() *SharedObjectRef {
 		return (*SharedObjectRef)(nil)
 	}
 	r := new(SharedObjectRef)
-	r.ProviderResourceRef = m.ProviderResourceRef.CloneVT()
 	r.BlockStoreId = m.BlockStoreId
+	if rhs := m.ProviderResourceRef; rhs != nil {
+		r.ProviderResourceRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2019,11 +2031,13 @@ func (m *SOConfigChange) CloneVT() *SOConfigChange {
 	r := new(SOConfigChange)
 	r.ConfigSeqno = m.ConfigSeqno
 	r.Config = m.Config.CloneVT()
-	r.Signature = m.Signature.CloneVT()
 	r.ChangeType = m.ChangeType
 	r.RevocationInfo = m.RevocationInfo.CloneVT()
 	if rhs := m.SignedBy; rhs != nil {
 		r.SignedBy = slices.Clone(rhs)
+	}
+	if rhs := m.Signature; rhs != nil {
+		r.Signature = rhs.CloneVT()
 	}
 	if rhs := m.PreviousHash; rhs != nil {
 		r.PreviousHash = slices.Clone(rhs)
@@ -2128,9 +2142,11 @@ func (m *SOOperation) CloneVT() *SOOperation {
 		return (*SOOperation)(nil)
 	}
 	r := new(SOOperation)
-	r.Signature = m.Signature.CloneVT()
 	if rhs := m.Inner; rhs != nil {
 		r.Inner = slices.Clone(rhs)
+	}
+	if rhs := m.Signature; rhs != nil {
+		r.Signature = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -2232,9 +2248,11 @@ func (m *SOOperationRejection) CloneVT() *SOOperationRejection {
 		return (*SOOperationRejection)(nil)
 	}
 	r := new(SOOperationRejection)
-	r.Signature = m.Signature.CloneVT()
 	if rhs := m.Inner; rhs != nil {
 		r.Inner = slices.Clone(rhs)
+	}
+	if rhs := m.Signature; rhs != nil {
+		r.Signature = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -2289,9 +2307,11 @@ func (m *SOGrant) CloneVT() *SOGrant {
 	}
 	r := new(SOGrant)
 	r.PeerId = m.PeerId
-	r.Signature = m.Signature.CloneVT()
 	if rhs := m.InnerData; rhs != nil {
 		r.InnerData = slices.Clone(rhs)
+	}
+	if rhs := m.Signature; rhs != nil {
+		r.Signature = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -2308,7 +2328,9 @@ func (m *SOGrantInner) CloneVT() *SOGrantInner {
 		return (*SOGrantInner)(nil)
 	}
 	r := new(SOGrantInner)
-	r.TransformConf = m.TransformConf.CloneVT()
+	if rhs := m.TransformConf; rhs != nil {
+		r.TransformConf = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2372,6 +2394,7 @@ func (m *SOInvite) CloneVT() *SOInvite {
 	r.MaxUses = m.MaxUses
 	r.Uses = m.Uses
 	r.Revoked = m.Revoked
+	r.TargetAccountId = m.TargetAccountId
 	if rhs := m.TokenHash; rhs != nil {
 		r.TokenHash = slices.Clone(rhs)
 	}
@@ -2462,9 +2485,11 @@ func (m *SOClearOperationResult) CloneVT() *SOClearOperationResult {
 		return (*SOClearOperationResult)(nil)
 	}
 	r := new(SOClearOperationResult)
-	r.Signature = m.Signature.CloneVT()
 	if rhs := m.Inner; rhs != nil {
 		r.Inner = slices.Clone(rhs)
+	}
+	if rhs := m.Signature; rhs != nil {
+		r.Signature = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -2575,12 +2600,14 @@ func (m *SOInviteMessage) CloneVT() *SOInviteMessage {
 	r.Role = m.Role
 	r.TargetPeerId = m.TargetPeerId
 	r.MaxUses = m.MaxUses
-	r.Signature = m.Signature.CloneVT()
 	if rhs := m.Token; rhs != nil {
 		r.Token = slices.Clone(rhs)
 	}
 	if rhs := m.ExpiresAt; rhs != nil {
 		r.ExpiresAt = rhs.CloneVT()
+	}
+	if rhs := m.Signature; rhs != nil {
+		r.Signature = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -2599,9 +2626,11 @@ func (m *SOJoinResponse) CloneVT() *SOJoinResponse {
 	r := new(SOJoinResponse)
 	r.InviteId = m.InviteId
 	r.ResponderPeerId = m.ResponderPeerId
-	r.Signature = m.Signature.CloneVT()
 	if rhs := m.ResponderPubkey; rhs != nil {
 		r.ResponderPubkey = slices.Clone(rhs)
+	}
+	if rhs := m.Signature; rhs != nil {
+		r.Signature = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -3346,6 +3375,9 @@ func (this *SOInvite) EqualVT(that *SOInvite) bool {
 		return false
 	}
 	if this.Revoked != that.Revoked {
+		return false
+	}
+	if this.TargetAccountId != that.TargetAccountId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -5599,6 +5631,11 @@ func (x *SOInvite) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("revoked")
 		s.WriteBool(x.Revoked)
 	}
+	if x.TargetAccountId != "" || s.HasField("targetAccountId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("targetAccountId")
+		s.WriteString(x.TargetAccountId)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -5644,6 +5681,9 @@ func (x *SOInvite) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "revoked":
 			s.AddField("revoked")
 			x.Revoked = s.ReadBool()
+		case "target_account_id", "targetAccountId":
+			s.AddField("target_account_id")
+			x.TargetAccountId = s.ReadString()
 		}
 	})
 }
@@ -7790,6 +7830,13 @@ func (m *SOInvite) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.TargetAccountId) > 0 {
+		i -= len(m.TargetAccountId)
+		copy(dAtA[i:], m.TargetAccountId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.TargetAccountId)))
+		i--
+		dAtA[i] = 0x4a
+	}
 	if m.Revoked {
 		i--
 		if m.Revoked {
@@ -8995,6 +9042,10 @@ func (m *SOInvite) SizeVT() (n int) {
 	if m.Revoked {
 		n += 2
 	}
+	l = len(m.TargetAccountId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -10153,6 +10204,13 @@ func (x *SOInvite) MarshalProtoText() string {
 		}
 		sb.WriteString("revoked: ")
 		sb.WriteString(strconv.FormatBool(x.Revoked))
+	}
+	if x.TargetAccountId != "" {
+		if sb.Len() > 10 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("target_account_id: ")
+		sb.WriteString(strconv.Quote(x.TargetAccountId))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -13158,6 +13216,28 @@ func (m *SOInvite) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Revoked = bool(v != 0)
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TargetAccountId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.TargetAccountId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

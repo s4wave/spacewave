@@ -1235,16 +1235,25 @@ func (r *SpacewaveSessionResource) CreateSpaceTargetedInvitationByUsername(
 	if err != nil {
 		return nil, errors.Wrap(err, "get account info")
 	}
-	spaceInvite, err := r.parent.CreateSpaceInvite(ctx, &s4wave_session.CreateSpaceInviteRequest{
-		SpaceId:   spaceID,
-		Role:      role,
-		MaxUses:   1,
-		ExpiresAt: targetedInvitationExpiresAt(req.GetExpiresAt()),
-	})
+	ih, rel, err := r.parent.mountInviteHost(ctx, spaceID)
 	if err != nil {
-		return nil, errors.Wrap(err, "create space invite")
+		return nil, err
 	}
-	payload, err := spaceInvite.GetInviteMessage().MarshalVT()
+	defer rel()
+
+	inviteMsg, err := ih.GetSOHost().CreateTargetedAccountSOInviteOp(
+		ctx,
+		ih.GetPrivKey(),
+		role,
+		ih.GetProviderID(),
+		resolve.GetAccountId(),
+		1,
+		targetedInvitationExpiresAt(req.GetExpiresAt()),
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "create targeted space invite")
+	}
+	payload, err := inviteMsg.MarshalVT()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal space invite payload")
 	}

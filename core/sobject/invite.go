@@ -30,6 +30,54 @@ func BuildSOInviteMessage(
 	maxUses uint32,
 	expiresAt *timestamppb.Timestamp,
 ) (*SOInviteMessage, *SOInvite, error) {
+	return buildSOInviteMessage(
+		sharedObjectID,
+		ownerPrivKey,
+		role,
+		providerID,
+		targetPeerID,
+		"",
+		maxUses,
+		expiresAt,
+	)
+}
+
+// BuildTargetedAccountSOInviteMessage builds an invite that requires a targeted
+// provider-account proof before a cloud owner may accept the mailbox entry.
+func BuildTargetedAccountSOInviteMessage(
+	sharedObjectID string,
+	ownerPrivKey crypto.PrivKey,
+	role SOParticipantRole,
+	providerID string,
+	targetAccountID string,
+	maxUses uint32,
+	expiresAt *timestamppb.Timestamp,
+) (*SOInviteMessage, *SOInvite, error) {
+	if targetAccountID == "" {
+		return nil, nil, errors.New("target_account_id is required")
+	}
+	return buildSOInviteMessage(
+		sharedObjectID,
+		ownerPrivKey,
+		role,
+		providerID,
+		"",
+		targetAccountID,
+		maxUses,
+		expiresAt,
+	)
+}
+
+func buildSOInviteMessage(
+	sharedObjectID string,
+	ownerPrivKey crypto.PrivKey,
+	role SOParticipantRole,
+	providerID string,
+	targetPeerID string,
+	targetAccountID string,
+	maxUses uint32,
+	expiresAt *timestamppb.Timestamp,
+) (*SOInviteMessage, *SOInvite, error) {
 	ownerPeerID, err := peer.IDFromPrivateKey(ownerPrivKey)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "derive owner peer ID")
@@ -74,12 +122,13 @@ func BuildSOInviteMessage(
 	msg.Signature = sig
 
 	return msg, &SOInvite{
-		InviteId:     inviteID,
-		TokenHash:    tokenHash,
-		Role:         role,
-		TargetPeerId: targetPeerID,
-		MaxUses:      maxUses,
-		ExpiresAt:    expiresAt,
+		InviteId:        inviteID,
+		TokenHash:       tokenHash,
+		Role:            role,
+		TargetPeerId:    targetPeerID,
+		TargetAccountId: targetAccountID,
+		MaxUses:         maxUses,
+		ExpiresAt:       expiresAt,
 	}, nil
 }
 
@@ -104,6 +153,37 @@ func (s *SOHost) CreateSOInviteOp(
 		role,
 		providerID,
 		targetPeerID,
+		maxUses,
+		expiresAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.CreateInvite(ctx, ownerPrivKey, invite); err != nil {
+		return nil, errors.Wrap(err, "store invite on-chain")
+	}
+
+	return msg, nil
+}
+
+// CreateTargetedAccountSOInviteOp creates an invite that requires a targeted
+// provider-account proof before a cloud owner may accept the mailbox entry.
+func (s *SOHost) CreateTargetedAccountSOInviteOp(
+	ctx context.Context,
+	ownerPrivKey crypto.PrivKey,
+	role SOParticipantRole,
+	providerID string,
+	targetAccountID string,
+	maxUses uint32,
+	expiresAt *timestamppb.Timestamp,
+) (*SOInviteMessage, error) {
+	msg, invite, err := BuildTargetedAccountSOInviteMessage(
+		s.sharedObjectID,
+		ownerPrivKey,
+		role,
+		providerID,
+		targetAccountID,
 		maxUses,
 		expiresAt,
 	)

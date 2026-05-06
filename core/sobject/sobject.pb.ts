@@ -1508,6 +1508,13 @@ export interface SOInvite {
    * @generated from field: bool revoked = 8;
    */
   revoked?: boolean
+  /**
+   * TargetAccountId is the optional provider account id required to submit a
+   * targeted invitation proof for this invite. Empty means bearer invite.
+   *
+   * @generated from field: string target_account_id = 9;
+   */
+  targetAccountId?: string
 }
 
 // SOInvite contains the message type declaration for SOInvite.
@@ -1522,6 +1529,7 @@ export const SOInvite: MessageType<SOInvite> = createMessageType({
     { no: 6, name: 'uses', kind: 'scalar', T: ScalarType.UINT32 },
     { no: 7, name: 'expires_at', kind: 'message', T: () => Timestamp },
     { no: 8, name: 'revoked', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 9, name: 'target_account_id', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

@@ -688,6 +688,9 @@ inline constexpr SOInvite::Impl_::Impl_(
         target_peer_id_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
+        target_account_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
         expires_at_{nullptr},
         role_{static_cast< ::sobject::SOParticipantRole >(0)},
         max_uses_{0u},
@@ -1249,7 +1252,7 @@ const ::uint32_t
         1,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::sobject::SOInvite, _impl_._has_bits_),
-        11, // hasbit index offset
+        12, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::sobject::SOInvite, _impl_.invite_id_),
         PROTOBUF_FIELD_OFFSET(::sobject::SOInvite, _impl_.token_hash_),
         PROTOBUF_FIELD_OFFSET(::sobject::SOInvite, _impl_.role_),
@@ -1258,14 +1261,16 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::sobject::SOInvite, _impl_.uses_),
         PROTOBUF_FIELD_OFFSET(::sobject::SOInvite, _impl_.expires_at_),
         PROTOBUF_FIELD_OFFSET(::sobject::SOInvite, _impl_.revoked_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOInvite, _impl_.target_account_id_),
         0,
         1,
-        4,
-        2,
         5,
+        2,
         6,
-        3,
         7,
+        4,
+        8,
+        3,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::sobject::SOState, _impl_._has_bits_),
         10, // hasbit index offset
@@ -1391,15 +1396,15 @@ static const ::_pbi::MigrationSchema
         {189, sizeof(::sobject::SOEntityRecoveryEnvelope)},
         {202, sizeof(::sobject::SOEntityRecoveryMaterial)},
         {211, sizeof(::sobject::SOInvite)},
-        {230, sizeof(::sobject::SOState)},
-        {247, sizeof(::sobject::SOPeerOpRejections)},
-        {254, sizeof(::sobject::SOClearOperationResult)},
-        {261, sizeof(::sobject::SOClearOperationResultInner)},
-        {268, sizeof(::sobject::SOKeyEpoch)},
-        {279, sizeof(::sobject::SOConfigChainResponse)},
-        {286, sizeof(::sobject::QueuedSOOperation)},
-        {293, sizeof(::sobject::SOInviteMessage)},
-        {316, sizeof(::sobject::SOJoinResponse)},
+        {232, sizeof(::sobject::SOState)},
+        {249, sizeof(::sobject::SOPeerOpRejections)},
+        {256, sizeof(::sobject::SOClearOperationResult)},
+        {263, sizeof(::sobject::SOClearOperationResultInner)},
+        {270, sizeof(::sobject::SOKeyEpoch)},
+        {281, sizeof(::sobject::SOConfigChainResponse)},
+        {288, sizeof(::sobject::QueuedSOOperation)},
+        {295, sizeof(::sobject::SOInviteMessage)},
+        {318, sizeof(::sobject::SOJoinResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::sobject::_SharedObjectRef_default_instance_._instance,
@@ -1510,93 +1515,94 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2f
     "\n\030SOEntityRecoveryMaterial\022\021\n\tentity_id\030"
     "\001 \001(\t\022(\n\004role\030\002 \001(\0162\032.sobject.SOParticip"
     "antRole\022*\n\013grant_inner\030\003 \001(\0132\025.sobject.S"
-    "OGrantInner\"\324\001\n\010SOInvite\022\021\n\tinvite_id\030\001 "
+    "OGrantInner\"\357\001\n\010SOInvite\022\021\n\tinvite_id\030\001 "
     "\001(\t\022\022\n\ntoken_hash\030\002 \001(\014\022(\n\004role\030\003 \001(\0162\032."
     "sobject.SOParticipantRole\022\026\n\016target_peer"
     "_id\030\004 \001(\t\022\020\n\010max_uses\030\005 \001(\r\022\014\n\004uses\030\006 \001("
     "\r\022.\n\nexpires_at\030\007 \001(\0132\032.google.protobuf."
-    "Timestamp\022\017\n\007revoked\030\010 \001(\010\"\257\002\n\007SOState\022+"
-    "\n\006config\030\001 \001(\0132\033.sobject.SharedObjectCon"
-    "fig\022\035\n\004root\030\002 \001(\0132\017.sobject.SORoot\022%\n\013ro"
-    "ot_grants\030\003 \003(\0132\020.sobject.SOGrant\022!\n\003ops"
-    "\030\004 \003(\0132\024.sobject.SOOperation\0222\n\rop_rejec"
-    "tions\030\005 \003(\0132\033.sobject.SOPeerOpRejections"
-    "\0226\n\025queued_account_nonces\030\006 \003(\0132\027.sobjec"
-    "t.SOAccountNonce\022\"\n\007invites\030\007 \003(\0132\021.sobj"
-    "ect.SOInvite\"X\n\022SOPeerOpRejections\022\017\n\007pe"
-    "er_id\030\001 \001(\t\0221\n\nrejections\030\002 \003(\0132\035.sobjec"
-    "t.SOOperationRejection\"K\n\026SOClearOperati"
-    "onResult\022\r\n\005inner\030\001 \001(\014\022\"\n\tsignature\030\002 \001"
-    "(\0132\017.peer.Signature\"@\n\033SOClearOperationR"
-    "esultInner\022\017\n\007peer_id\030\001 \001(\t\022\020\n\010local_id\030"
-    "\002 \001(\t\"e\n\nSOKeyEpoch\022\r\n\005epoch\030\001 \001(\004\022\023\n\013se"
-    "qno_start\030\002 \001(\004\022\021\n\tseqno_end\030\003 \001(\004\022 \n\006gr"
-    "ants\030\004 \003(\0132\020.sobject.SOGrant\"q\n\025SOConfig"
-    "ChainResponse\022/\n\016config_changes\030\001 \003(\0132\027."
-    "sobject.SOConfigChange\022\'\n\nkey_epochs\030\002 \003"
-    "(\0132\023.sobject.SOKeyEpoch\"6\n\021QueuedSOOpera"
-    "tion\022\020\n\010local_id\030\001 \001(\t\022\017\n\007op_data\030\002 \001(\014\""
-    "\241\002\n\017SOInviteMessage\022\021\n\tinvite_id\030\001 \001(\t\022\030"
-    "\n\020shared_object_id\030\002 \001(\t\022\025\n\rowner_peer_i"
-    "d\030\003 \001(\t\022\023\n\013provider_id\030\004 \001(\t\022\r\n\005token\030\005 "
-    "\001(\014\022(\n\004role\030\006 \001(\0162\032.sobject.SOParticipan"
-    "tRole\022\026\n\016target_peer_id\030\007 \001(\t\022.\n\nexpires"
-    "_at\030\010 \001(\0132\032.google.protobuf.Timestamp\022\020\n"
-    "\010max_uses\030\t \001(\r\022\"\n\tsignature\030\n \001(\0132\017.pee"
-    "r.Signature\"|\n\016SOJoinResponse\022\021\n\tinvite_"
-    "id\030\001 \001(\t\022\031\n\021responder_peer_id\030\002 \001(\t\022\030\n\020r"
-    "esponder_pubkey\030\003 \001(\014\022\"\n\tsignature\030\004 \001(\013"
-    "2\017.peer.Signature*\345\001\n\030SharedObjectHealth"
-    "Status\022\'\n#SHARED_OBJECT_HEALTH_STATUS_UN"
-    "KNOWN\020\000\022\'\n#SHARED_OBJECT_HEALTH_STATUS_L"
-    "OADING\020\001\022%\n!SHARED_OBJECT_HEALTH_STATUS_"
-    "READY\020\002\022(\n$SHARED_OBJECT_HEALTH_STATUS_D"
-    "EGRADED\020\003\022&\n\"SHARED_OBJECT_HEALTH_STATUS"
-    "_CLOSED\020\004*\224\001\n\027SharedObjectHealthLayer\022&\n"
-    "\"SHARED_OBJECT_HEALTH_LAYER_UNKNOWN\020\000\022,\n"
-    "(SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJEC"
-    "T\020\001\022#\n\037SHARED_OBJECT_HEALTH_LAYER_BODY\020\002"
-    "*\271\003\n\036SharedObjectHealthCommonReason\022.\n*S"
-    "HARED_OBJECT_HEALTH_COMMON_REASON_UNKNOW"
-    "N\020\000\0220\n,SHARED_OBJECT_HEALTH_COMMON_REASO"
-    "N_NOT_FOUND\020\001\0225\n1SHARED_OBJECT_HEALTH_CO"
-    "MMON_REASON_ACCESS_REVOKED\020\002\022=\n9SHARED_O"
-    "BJECT_HEALTH_COMMON_REASON_INITIAL_STATE"
-    "_REJECTED\020\003\0226\n2SHARED_OBJECT_HEALTH_COMM"
-    "ON_REASON_BLOCK_NOT_FOUND\020\004\022E\nASHARED_OB"
-    "JECT_HEALTH_COMMON_REASON_TRANSFORM_CONF"
-    "IG_DECODE_FAILED\020\005\022@\n<SHARED_OBJECT_HEAL"
-    "TH_COMMON_REASON_BODY_CONFIG_DECODE_FAIL"
-    "ED\020\006*\350\002\n!SharedObjectHealthRemediationHi"
-    "nt\0221\n-SHARED_OBJECT_HEALTH_REMEDIATION_H"
-    "INT_UNKNOWN\020\000\022.\n*SHARED_OBJECT_HEALTH_RE"
-    "MEDIATION_HINT_NONE\020\001\022/\n+SHARED_OBJECT_H"
-    "EALTH_REMEDIATION_HINT_RETRY\020\002\0228\n4SHARED"
-    "_OBJECT_HEALTH_REMEDIATION_HINT_REQUEST_"
-    "ACCESS\020\003\0227\n3SHARED_OBJECT_HEALTH_REMEDIA"
-    "TION_HINT_CONTACT_OWNER\020\004\022<\n8SHARED_OBJE"
-    "CT_HEALTH_REMEDIATION_HINT_REPAIR_SOURCE"
-    "_DATA\020\005*\254\001\n\021SOParticipantRole\022\035\n\031SOParti"
-    "cipantRole_UNKNOWN\020\000\022\034\n\030SOParticipantRol"
-    "e_READER\020\001\022\034\n\030SOParticipantRole_WRITER\020\002"
-    "\022\037\n\033SOParticipantRole_VALIDATOR\020\003\022\033\n\027SOP"
-    "articipantRole_OWNER\020\004*9\n\017SOConsensusMod"
-    "e\022&\n\"SO_CONSENSUS_MODE_SINGLE_VALIDATOR\020"
-    "\000*\337\002\n\022SOConfigChangeType\022!\n\035SO_CONFIG_CH"
-    "ANGE_TYPE_UNKNOWN\020\000\022!\n\035SO_CONFIG_CHANGE_"
-    "TYPE_GENESIS\020\001\022)\n%SO_CONFIG_CHANGE_TYPE_"
-    "ADD_PARTICIPANT\020\002\022,\n(SO_CONFIG_CHANGE_TY"
-    "PE_REMOVE_PARTICIPANT\020\003\022$\n SO_CONFIG_CHA"
-    "NGE_TYPE_ADD_INVITE\020\004\022\'\n#SO_CONFIG_CHANG"
-    "E_TYPE_REVOKE_INVITE\020\005\022/\n+SO_CONFIG_CHAN"
-    "GE_TYPE_INCREMENT_INVITE_USES\020\006\022*\n&SO_CO"
-    "NFIG_CHANGE_TYPE_SELF_ENROLL_PEER\020\007*\327\001\n\022"
-    "SORevocationReason\022 \n\034SO_REVOCATION_REAS"
-    "ON_UNKNOWN\020\000\022(\n$SO_REVOCATION_REASON_SES"
-    "SION_REVOKED\020\001\022$\n SO_REVOCATION_REASON_O"
-    "RG_REMOVED\020\002\022&\n\"SO_REVOCATION_REASON_OWN"
-    "ER_REMOVED\020\003\022\'\n#SO_REVOCATION_REASON_INV"
-    "ITE_REVOKED\020\004b\006proto3"
+    "Timestamp\022\017\n\007revoked\030\010 \001(\010\022\031\n\021target_acc"
+    "ount_id\030\t \001(\t\"\257\002\n\007SOState\022+\n\006config\030\001 \001("
+    "\0132\033.sobject.SharedObjectConfig\022\035\n\004root\030\002"
+    " \001(\0132\017.sobject.SORoot\022%\n\013root_grants\030\003 \003"
+    "(\0132\020.sobject.SOGrant\022!\n\003ops\030\004 \003(\0132\024.sobj"
+    "ect.SOOperation\0222\n\rop_rejections\030\005 \003(\0132\033"
+    ".sobject.SOPeerOpRejections\0226\n\025queued_ac"
+    "count_nonces\030\006 \003(\0132\027.sobject.SOAccountNo"
+    "nce\022\"\n\007invites\030\007 \003(\0132\021.sobject.SOInvite\""
+    "X\n\022SOPeerOpRejections\022\017\n\007peer_id\030\001 \001(\t\0221"
+    "\n\nrejections\030\002 \003(\0132\035.sobject.SOOperation"
+    "Rejection\"K\n\026SOClearOperationResult\022\r\n\005i"
+    "nner\030\001 \001(\014\022\"\n\tsignature\030\002 \001(\0132\017.peer.Sig"
+    "nature\"@\n\033SOClearOperationResultInner\022\017\n"
+    "\007peer_id\030\001 \001(\t\022\020\n\010local_id\030\002 \001(\t\"e\n\nSOKe"
+    "yEpoch\022\r\n\005epoch\030\001 \001(\004\022\023\n\013seqno_start\030\002 \001"
+    "(\004\022\021\n\tseqno_end\030\003 \001(\004\022 \n\006grants\030\004 \003(\0132\020."
+    "sobject.SOGrant\"q\n\025SOConfigChainResponse"
+    "\022/\n\016config_changes\030\001 \003(\0132\027.sobject.SOCon"
+    "figChange\022\'\n\nkey_epochs\030\002 \003(\0132\023.sobject."
+    "SOKeyEpoch\"6\n\021QueuedSOOperation\022\020\n\010local"
+    "_id\030\001 \001(\t\022\017\n\007op_data\030\002 \001(\014\"\241\002\n\017SOInviteM"
+    "essage\022\021\n\tinvite_id\030\001 \001(\t\022\030\n\020shared_obje"
+    "ct_id\030\002 \001(\t\022\025\n\rowner_peer_id\030\003 \001(\t\022\023\n\013pr"
+    "ovider_id\030\004 \001(\t\022\r\n\005token\030\005 \001(\014\022(\n\004role\030\006"
+    " \001(\0162\032.sobject.SOParticipantRole\022\026\n\016targ"
+    "et_peer_id\030\007 \001(\t\022.\n\nexpires_at\030\010 \001(\0132\032.g"
+    "oogle.protobuf.Timestamp\022\020\n\010max_uses\030\t \001"
+    "(\r\022\"\n\tsignature\030\n \001(\0132\017.peer.Signature\"|"
+    "\n\016SOJoinResponse\022\021\n\tinvite_id\030\001 \001(\t\022\031\n\021r"
+    "esponder_peer_id\030\002 \001(\t\022\030\n\020responder_pubk"
+    "ey\030\003 \001(\014\022\"\n\tsignature\030\004 \001(\0132\017.peer.Signa"
+    "ture*\345\001\n\030SharedObjectHealthStatus\022\'\n#SHA"
+    "RED_OBJECT_HEALTH_STATUS_UNKNOWN\020\000\022\'\n#SH"
+    "ARED_OBJECT_HEALTH_STATUS_LOADING\020\001\022%\n!S"
+    "HARED_OBJECT_HEALTH_STATUS_READY\020\002\022(\n$SH"
+    "ARED_OBJECT_HEALTH_STATUS_DEGRADED\020\003\022&\n\""
+    "SHARED_OBJECT_HEALTH_STATUS_CLOSED\020\004*\224\001\n"
+    "\027SharedObjectHealthLayer\022&\n\"SHARED_OBJEC"
+    "T_HEALTH_LAYER_UNKNOWN\020\000\022,\n(SHARED_OBJEC"
+    "T_HEALTH_LAYER_SHARED_OBJECT\020\001\022#\n\037SHARED"
+    "_OBJECT_HEALTH_LAYER_BODY\020\002*\271\003\n\036SharedOb"
+    "jectHealthCommonReason\022.\n*SHARED_OBJECT_"
+    "HEALTH_COMMON_REASON_UNKNOWN\020\000\0220\n,SHARED"
+    "_OBJECT_HEALTH_COMMON_REASON_NOT_FOUND\020\001"
+    "\0225\n1SHARED_OBJECT_HEALTH_COMMON_REASON_A"
+    "CCESS_REVOKED\020\002\022=\n9SHARED_OBJECT_HEALTH_"
+    "COMMON_REASON_INITIAL_STATE_REJECTED\020\003\0226"
+    "\n2SHARED_OBJECT_HEALTH_COMMON_REASON_BLO"
+    "CK_NOT_FOUND\020\004\022E\nASHARED_OBJECT_HEALTH_C"
+    "OMMON_REASON_TRANSFORM_CONFIG_DECODE_FAI"
+    "LED\020\005\022@\n<SHARED_OBJECT_HEALTH_COMMON_REA"
+    "SON_BODY_CONFIG_DECODE_FAILED\020\006*\350\002\n!Shar"
+    "edObjectHealthRemediationHint\0221\n-SHARED_"
+    "OBJECT_HEALTH_REMEDIATION_HINT_UNKNOWN\020\000"
+    "\022.\n*SHARED_OBJECT_HEALTH_REMEDIATION_HIN"
+    "T_NONE\020\001\022/\n+SHARED_OBJECT_HEALTH_REMEDIA"
+    "TION_HINT_RETRY\020\002\0228\n4SHARED_OBJECT_HEALT"
+    "H_REMEDIATION_HINT_REQUEST_ACCESS\020\003\0227\n3S"
+    "HARED_OBJECT_HEALTH_REMEDIATION_HINT_CON"
+    "TACT_OWNER\020\004\022<\n8SHARED_OBJECT_HEALTH_REM"
+    "EDIATION_HINT_REPAIR_SOURCE_DATA\020\005*\254\001\n\021S"
+    "OParticipantRole\022\035\n\031SOParticipantRole_UN"
+    "KNOWN\020\000\022\034\n\030SOParticipantRole_READER\020\001\022\034\n"
+    "\030SOParticipantRole_WRITER\020\002\022\037\n\033SOPartici"
+    "pantRole_VALIDATOR\020\003\022\033\n\027SOParticipantRol"
+    "e_OWNER\020\004*9\n\017SOConsensusMode\022&\n\"SO_CONSE"
+    "NSUS_MODE_SINGLE_VALIDATOR\020\000*\337\002\n\022SOConfi"
+    "gChangeType\022!\n\035SO_CONFIG_CHANGE_TYPE_UNK"
+    "NOWN\020\000\022!\n\035SO_CONFIG_CHANGE_TYPE_GENESIS\020"
+    "\001\022)\n%SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPA"
+    "NT\020\002\022,\n(SO_CONFIG_CHANGE_TYPE_REMOVE_PAR"
+    "TICIPANT\020\003\022$\n SO_CONFIG_CHANGE_TYPE_ADD_"
+    "INVITE\020\004\022\'\n#SO_CONFIG_CHANGE_TYPE_REVOKE"
+    "_INVITE\020\005\022/\n+SO_CONFIG_CHANGE_TYPE_INCRE"
+    "MENT_INVITE_USES\020\006\022*\n&SO_CONFIG_CHANGE_T"
+    "YPE_SELF_ENROLL_PEER\020\007*\327\001\n\022SORevocationR"
+    "eason\022 \n\034SO_REVOCATION_REASON_UNKNOWN\020\000\022"
+    "(\n$SO_REVOCATION_REASON_SESSION_REVOKED\020"
+    "\001\022$\n SO_REVOCATION_REASON_ORG_REMOVED\020\002\022"
+    "&\n\"SO_REVOCATION_REASON_OWNER_REMOVED\020\003\022"
+    "\'\n#SO_REVOCATION_REASON_INVITE_REVOKED\020\004"
+    "b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto_deps[4] = {
@@ -1609,7 +1615,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fco
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto = {
     false,
     false,
-    6341,
+    6368,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto,
     "github.com/s4wave/spacewave/core/sobject/sobject.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto_once,
@@ -9928,7 +9934,7 @@ void SOInvite::clear_expires_at() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.expires_at_ != nullptr) _impl_.expires_at_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000008U);
+                  0x00000010U);
 }
 SOInvite::SOInvite(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -9947,7 +9953,8 @@ PROTOBUF_NDEBUG_INLINE SOInvite::Impl_::Impl_(
         _cached_size_{0},
         invite_id_(arena, from.invite_id_),
         token_hash_(arena, from.token_hash_),
-        target_peer_id_(arena, from.target_peer_id_) {}
+        target_peer_id_(arena, from.target_peer_id_),
+        target_account_id_(arena, from.target_account_id_) {}
 
 SOInvite::SOInvite(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -9963,7 +9970,7 @@ SOInvite::SOInvite(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
   ::uint32_t cached_has_bits = _impl_._has_bits_[0];
-  _impl_.expires_at_ = (CheckHasBit(cached_has_bits, 0x00000008U))
+  _impl_.expires_at_ = (CheckHasBit(cached_has_bits, 0x00000010U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.expires_at_)
                 : nullptr;
   ::memcpy(reinterpret_cast<char*>(&_impl_) +
@@ -9982,7 +9989,8 @@ PROTOBUF_NDEBUG_INLINE SOInvite::Impl_::Impl_(
       : _cached_size_{0},
         invite_id_(arena),
         token_hash_(arena),
-        target_peer_id_(arena) {}
+        target_peer_id_(arena),
+        target_account_id_(arena) {}
 
 inline void SOInvite::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -10007,6 +10015,7 @@ inline void SOInvite::SharedDtor(MessageLite& self) {
   this_._impl_.invite_id_.Destroy();
   this_._impl_.token_hash_.Destroy();
   this_._impl_.target_peer_id_.Destroy();
+  this_._impl_.target_account_id_.Destroy();
   delete this_._impl_.expires_at_;
   this_._impl_.~Impl_();
 }
@@ -10054,16 +10063,16 @@ SOInvite::GetClassData() const {
   return SOInvite_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 8, 1, 56, 2>
+const ::_pbi::TcParseTable<4, 9, 1, 73, 2>
 SOInvite::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(SOInvite, _impl_._has_bits_),
     0, // no _extensions_
-    8, 56,  // max_field_number, fast_idx_mask
+    9, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967040,  // skipmap
+    4294966784,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    8,  // num_field_entries
+    9,  // num_field_entries
     1,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     SOInvite_class_data_.base(),
@@ -10073,10 +10082,7 @@ SOInvite::_table_ = {
     ::_pbi::TcParser::GetTable<::sobject::SOInvite>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // bool revoked = 8;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(SOInvite, _impl_.revoked_), 7>(),
-     {64, 7, 0,
-      PROTOBUF_FIELD_OFFSET(SOInvite, _impl_.revoked_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // string invite_id = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
@@ -10086,25 +10092,39 @@ SOInvite::_table_ = {
      {18, 1, 0,
       PROTOBUF_FIELD_OFFSET(SOInvite, _impl_.token_hash_)}},
     // .sobject.SOParticipantRole role = 3;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(SOInvite, _impl_.role_), 4>(),
-     {24, 4, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(SOInvite, _impl_.role_), 5>(),
+     {24, 5, 0,
       PROTOBUF_FIELD_OFFSET(SOInvite, _impl_.role_)}},
     // string target_peer_id = 4;
     {::_pbi::TcParser::FastUS1,
      {34, 2, 0,
       PROTOBUF_FIELD_OFFSET(SOInvite, _impl_.target_peer_id_)}},
     // uint32 max_uses = 5;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(SOInvite, _impl_.max_uses_), 5>(),
-     {40, 5, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(SOInvite, _impl_.max_uses_), 6>(),
+     {40, 6, 0,
       PROTOBUF_FIELD_OFFSET(SOInvite, _impl_.max_uses_)}},
     // uint32 uses = 6;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(SOInvite, _impl_.uses_), 6>(),
-     {48, 6, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(SOInvite, _impl_.uses_), 7>(),
+     {48, 7, 0,
       PROTOBUF_FIELD_OFFSET(SOInvite, _impl_.uses_)}},
     // .google.protobuf.Timestamp expires_at = 7;
     {::_pbi::TcParser::FastMtS1,
-     {58, 3, 0,
+     {58, 4, 0,
       PROTOBUF_FIELD_OFFSET(SOInvite, _impl_.expires_at_)}},
+    // bool revoked = 8;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(SOInvite, _impl_.revoked_), 8>(),
+     {64, 8, 0,
+      PROTOBUF_FIELD_OFFSET(SOInvite, _impl_.revoked_)}},
+    // string target_account_id = 9;
+    {::_pbi::TcParser::FastUS1,
+     {74, 3, 0,
+      PROTOBUF_FIELD_OFFSET(SOInvite, _impl_.target_account_id_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
   }}, {{
@@ -10113,26 +10133,29 @@ SOInvite::_table_ = {
     // bytes token_hash = 2;
     {PROTOBUF_FIELD_OFFSET(SOInvite, _impl_.token_hash_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
     // .sobject.SOParticipantRole role = 3;
-    {PROTOBUF_FIELD_OFFSET(SOInvite, _impl_.role_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    {PROTOBUF_FIELD_OFFSET(SOInvite, _impl_.role_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
     // string target_peer_id = 4;
     {PROTOBUF_FIELD_OFFSET(SOInvite, _impl_.target_peer_id_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // uint32 max_uses = 5;
-    {PROTOBUF_FIELD_OFFSET(SOInvite, _impl_.max_uses_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    {PROTOBUF_FIELD_OFFSET(SOInvite, _impl_.max_uses_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
     // uint32 uses = 6;
-    {PROTOBUF_FIELD_OFFSET(SOInvite, _impl_.uses_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    {PROTOBUF_FIELD_OFFSET(SOInvite, _impl_.uses_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
     // .google.protobuf.Timestamp expires_at = 7;
-    {PROTOBUF_FIELD_OFFSET(SOInvite, _impl_.expires_at_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(SOInvite, _impl_.expires_at_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // bool revoked = 8;
-    {PROTOBUF_FIELD_OFFSET(SOInvite, _impl_.revoked_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(SOInvite, _impl_.revoked_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // string target_account_id = 9;
+    {PROTOBUF_FIELD_OFFSET(SOInvite, _impl_.target_account_id_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::google::protobuf::Timestamp>()},
   }},
   {{
-    "\20\11\0\0\16\0\0\0\0\0\0\0\0\0\0\0"
+    "\20\11\0\0\16\0\0\0\0\21\0\0\0\0\0\0"
     "sobject.SOInvite"
     "invite_id"
     "target_peer_id"
+    "target_account_id"
   }},
 };
 PROTOBUF_NOINLINE void SOInvite::Clear() {
@@ -10143,7 +10166,7 @@ PROTOBUF_NOINLINE void SOInvite::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       _impl_.invite_id_.ClearNonDefaultToEmpty();
     }
@@ -10154,15 +10177,19 @@ PROTOBUF_NOINLINE void SOInvite::Clear() {
       _impl_.target_peer_id_.ClearNonDefaultToEmpty();
     }
     if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.target_account_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       ABSL_DCHECK(_impl_.expires_at_ != nullptr);
       _impl_.expires_at_->Clear();
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x000000f0U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x000000e0U)) {
     ::memset(&_impl_.role_, 0, static_cast<::size_t>(
-        reinterpret_cast<char*>(&_impl_.revoked_) -
-        reinterpret_cast<char*>(&_impl_.role_)) + sizeof(_impl_.revoked_));
+        reinterpret_cast<char*>(&_impl_.uses_) -
+        reinterpret_cast<char*>(&_impl_.role_)) + sizeof(_impl_.uses_));
   }
+  _impl_.revoked_ = false;
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -10205,7 +10232,7 @@ PROTOBUF_NOINLINE void SOInvite::Clear() {
   }
 
   // .sobject.SOParticipantRole role = 3;
-  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
     if (this_._internal_role() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteEnumToArray(
@@ -10224,7 +10251,7 @@ PROTOBUF_NOINLINE void SOInvite::Clear() {
   }
 
   // uint32 max_uses = 5;
-  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
     if (this_._internal_max_uses() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
@@ -10233,7 +10260,7 @@ PROTOBUF_NOINLINE void SOInvite::Clear() {
   }
 
   // uint32 uses = 6;
-  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
     if (this_._internal_uses() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
@@ -10242,18 +10269,28 @@ PROTOBUF_NOINLINE void SOInvite::Clear() {
   }
 
   // .google.protobuf.Timestamp expires_at = 7;
-  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         7, *this_._impl_.expires_at_, this_._impl_.expires_at_->GetCachedSize(), target,
         stream);
   }
 
   // bool revoked = 8;
-  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
     if (this_._internal_revoked() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
           8, this_._internal_revoked(), target);
+    }
+  }
+
+  // string target_account_id = 9;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_target_account_id().empty()) {
+      const ::std::string& _s = this_._internal_target_account_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "sobject.SOInvite.target_account_id");
+      target = stream->WriteStringMaybeAliased(9, _s, target);
     }
   }
 
@@ -10304,34 +10341,43 @@ PROTOBUF_NOINLINE void SOInvite::Clear() {
                                         this_._internal_target_peer_id());
       }
     }
-    // .google.protobuf.Timestamp expires_at = 7;
+    // string target_account_id = 9;
     if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_target_account_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_target_account_id());
+      }
+    }
+    // .google.protobuf.Timestamp expires_at = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.expires_at_);
     }
     // .sobject.SOParticipantRole role = 3;
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       if (this_._internal_role() != 0) {
         total_size += 1 +
                       ::_pbi::WireFormatLite::EnumSize(this_._internal_role());
       }
     }
     // uint32 max_uses = 5;
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       if (this_._internal_max_uses() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
             this_._internal_max_uses());
       }
     }
     // uint32 uses = 6;
-    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
       if (this_._internal_uses() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
             this_._internal_uses());
       }
     }
+  }
+   {
     // bool revoked = 8;
-    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (this_._internal_revoked() != 0) {
         total_size += 2;
       }
@@ -10385,6 +10431,15 @@ void SOInvite::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_target_account_id().empty()) {
+        _this->_internal_set_target_account_id(from._internal_target_account_id());
+      } else {
+        if (_this->_impl_.target_account_id_.IsDefault()) {
+          _this->_internal_set_target_account_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       ABSL_DCHECK(from._impl_.expires_at_ != nullptr);
       if (_this->_impl_.expires_at_ == nullptr) {
         _this->_impl_.expires_at_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.expires_at_);
@@ -10392,25 +10447,25 @@ void SOInvite::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.expires_at_->MergeFrom(*from._impl_.expires_at_);
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       if (from._internal_role() != 0) {
         _this->_impl_.role_ = from._impl_.role_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       if (from._internal_max_uses() != 0) {
         _this->_impl_.max_uses_ = from._impl_.max_uses_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
       if (from._internal_uses() != 0) {
         _this->_impl_.uses_ = from._impl_.uses_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
-      if (from._internal_revoked() != 0) {
-        _this->_impl_.revoked_ = from._impl_.revoked_;
-      }
+  }
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (from._internal_revoked() != 0) {
+      _this->_impl_.revoked_ = from._impl_.revoked_;
     }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
@@ -10435,6 +10490,7 @@ void SOInvite::InternalSwap(SOInvite* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) 
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.invite_id_, &other->_impl_.invite_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.token_hash_, &other->_impl_.token_hash_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.target_peer_id_, &other->_impl_.target_peer_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.target_account_id_, &other->_impl_.target_account_id_, arena);
   ::google::protobuf::internal::memswap<
       PROTOBUF_FIELD_OFFSET(SOInvite, _impl_.revoked_)
       + sizeof(SOInvite::_impl_.revoked_)

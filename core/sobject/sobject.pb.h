@@ -5552,6 +5552,7 @@ class SOInvite final : public ::google::protobuf::Message
     kInviteIdFieldNumber = 1,
     kTokenHashFieldNumber = 2,
     kTargetPeerIdFieldNumber = 4,
+    kTargetAccountIdFieldNumber = 9,
     kExpiresAtFieldNumber = 7,
     kRoleFieldNumber = 3,
     kMaxUsesFieldNumber = 5,
@@ -5601,6 +5602,21 @@ class SOInvite final : public ::google::protobuf::Message
   const ::std::string& _internal_target_peer_id() const;
   PROTOBUF_ALWAYS_INLINE void _internal_set_target_peer_id(const ::std::string& value);
   ::std::string* PROTOBUF_NONNULL _internal_mutable_target_peer_id();
+
+  public:
+  // string target_account_id = 9;
+  void clear_target_account_id() ;
+  const ::std::string& target_account_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_target_account_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_target_account_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_target_account_id();
+  void set_allocated_target_account_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_target_account_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_target_account_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_target_account_id();
 
   public:
   // .google.protobuf.Timestamp expires_at = 7;
@@ -5662,8 +5678,8 @@ class SOInvite final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 8,
-                                   1, 56,
+  static const ::google::protobuf::internal::TcParseTable<4, 9,
+                                   1, 73,
                                    2>
       _table_;
 
@@ -5687,6 +5703,7 @@ class SOInvite final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr invite_id_;
     ::google::protobuf::internal::ArenaStringPtr token_hash_;
     ::google::protobuf::internal::ArenaStringPtr target_peer_id_;
+    ::google::protobuf::internal::ArenaStringPtr target_account_id_;
     ::google::protobuf::Timestamp* PROTOBUF_NULLABLE expires_at_;
     int role_;
     ::uint32_t max_uses_;
@@ -12548,7 +12565,7 @@ inline void SOInvite::clear_role() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.role_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000010U);
+                  0x00000020U);
 }
 inline ::sobject::SOParticipantRole SOInvite::role() const {
   // @@protoc_insertion_point(field_get:sobject.SOInvite.role)
@@ -12556,7 +12573,7 @@ inline ::sobject::SOParticipantRole SOInvite::role() const {
 }
 inline void SOInvite::set_role(::sobject::SOParticipantRole value) {
   _internal_set_role(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   // @@protoc_insertion_point(field_set:sobject.SOInvite.role)
 }
 inline ::sobject::SOParticipantRole SOInvite::_internal_role() const {
@@ -12638,7 +12655,7 @@ inline void SOInvite::clear_max_uses() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.max_uses_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000020U);
+                  0x00000040U);
 }
 inline ::uint32_t SOInvite::max_uses() const {
   // @@protoc_insertion_point(field_get:sobject.SOInvite.max_uses)
@@ -12646,7 +12663,7 @@ inline ::uint32_t SOInvite::max_uses() const {
 }
 inline void SOInvite::set_max_uses(::uint32_t value) {
   _internal_set_max_uses(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   // @@protoc_insertion_point(field_set:sobject.SOInvite.max_uses)
 }
 inline ::uint32_t SOInvite::_internal_max_uses() const {
@@ -12663,7 +12680,7 @@ inline void SOInvite::clear_uses() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.uses_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000040U);
+                  0x00000080U);
 }
 inline ::uint32_t SOInvite::uses() const {
   // @@protoc_insertion_point(field_get:sobject.SOInvite.uses)
@@ -12671,7 +12688,7 @@ inline ::uint32_t SOInvite::uses() const {
 }
 inline void SOInvite::set_uses(::uint32_t value) {
   _internal_set_uses(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
   // @@protoc_insertion_point(field_set:sobject.SOInvite.uses)
 }
 inline ::uint32_t SOInvite::_internal_uses() const {
@@ -12685,7 +12702,7 @@ inline void SOInvite::_internal_set_uses(::uint32_t value) {
 
 // .google.protobuf.Timestamp expires_at = 7;
 inline bool SOInvite::has_expires_at() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000008U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000010U);
   PROTOBUF_ASSUME(!value || _impl_.expires_at_ != nullptr);
   return value;
 }
@@ -12706,16 +12723,16 @@ inline void SOInvite::unsafe_arena_set_allocated_expires_at(
   }
   _impl_.expires_at_ = reinterpret_cast<::google::protobuf::Timestamp*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOInvite.expires_at)
 }
 inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE SOInvite::release_expires_at() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   ::google::protobuf::Timestamp* released = _impl_.expires_at_;
   _impl_.expires_at_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -12735,7 +12752,7 @@ inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE SOInvite::unsafe_arena_r
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:sobject.SOInvite.expires_at)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   ::google::protobuf::Timestamp* temp = _impl_.expires_at_;
   _impl_.expires_at_ = nullptr;
   return temp;
@@ -12750,7 +12767,7 @@ inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL SOInvite::_internal_mutab
 }
 inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL SOInvite::mutable_expires_at()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   ::google::protobuf::Timestamp* _msg = _internal_mutable_expires_at();
   // @@protoc_insertion_point(field_mutable:sobject.SOInvite.expires_at)
   return _msg;
@@ -12767,9 +12784,9 @@ inline void SOInvite::set_allocated_expires_at(::google::protobuf::Timestamp* PR
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   }
 
   _impl_.expires_at_ = reinterpret_cast<::google::protobuf::Timestamp*>(value);
@@ -12781,7 +12798,7 @@ inline void SOInvite::clear_revoked() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.revoked_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000080U);
+                  0x00000100U);
 }
 inline bool SOInvite::revoked() const {
   // @@protoc_insertion_point(field_get:sobject.SOInvite.revoked)
@@ -12789,7 +12806,7 @@ inline bool SOInvite::revoked() const {
 }
 inline void SOInvite::set_revoked(bool value) {
   _internal_set_revoked(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
   // @@protoc_insertion_point(field_set:sobject.SOInvite.revoked)
 }
 inline bool SOInvite::_internal_revoked() const {
@@ -12799,6 +12816,71 @@ inline bool SOInvite::_internal_revoked() const {
 inline void SOInvite::_internal_set_revoked(bool value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.revoked_ = value;
+}
+
+// string target_account_id = 9;
+inline void SOInvite::clear_target_account_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.target_account_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& SOInvite::target_account_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOInvite.target_account_id)
+  return _internal_target_account_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SOInvite::set_target_account_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.target_account_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.SOInvite.target_account_id)
+}
+inline ::std::string* PROTOBUF_NONNULL SOInvite::mutable_target_account_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_target_account_id();
+  // @@protoc_insertion_point(field_mutable:sobject.SOInvite.target_account_id)
+  return _s;
+}
+inline const ::std::string& SOInvite::_internal_target_account_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.target_account_id_.Get();
+}
+inline void SOInvite::_internal_set_target_account_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.target_account_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SOInvite::_internal_mutable_target_account_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.target_account_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SOInvite::release_target_account_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOInvite.target_account_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.target_account_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.target_account_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SOInvite::set_allocated_target_account_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.target_account_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.target_account_id_.IsDefault()) {
+    _impl_.target_account_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOInvite.target_account_id)
 }
 
 // -------------------------------------------------------------------

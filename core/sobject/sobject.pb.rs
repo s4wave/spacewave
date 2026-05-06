@@ -374,6 +374,10 @@ pub struct SoInvite {
     /// Revoked indicates the invite has been revoked by the owner.
     #[prost(bool, tag="8")]
     pub revoked: bool,
+    /// TargetAccountId is the optional provider account id required to submit a
+    /// targeted invitation proof for this invite. Empty means bearer invite.
+    #[prost(string, tag="9")]
+    pub target_account_id: ::prost::alloc::string::String,
 }
 /// SOState contains the state of the shared object.
 /// Some implementations may drop or obscure some fields for some peers.

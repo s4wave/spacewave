@@ -338,6 +338,9 @@ func validateTargetedMailboxProof(
 ) error {
 	envelope := entry.GetTargetedEnvelope()
 	if envelope == nil {
+		if invite.GetTargetAccountId() != "" {
+			return errors.New("targeted invitation proof is required")
+		}
 		return nil
 	}
 	if ownerAccountID == "" {
@@ -360,6 +363,10 @@ func validateTargetedMailboxProof(
 	}
 	if envelope.GetTargetAccountId() != entry.GetAccountId() {
 		return errors.New("targeted invitation target account mismatch")
+	}
+	if invite.GetTargetAccountId() != "" &&
+		envelope.GetTargetAccountId() != invite.GetTargetAccountId() {
+		return errors.New("targeted invitation invite account mismatch")
 	}
 	if envelope.GetExpiresAt() > 0 && envelope.GetExpiresAt() <= time.Now().UnixMilli() {
 		return errors.New("targeted invitation is expired")
