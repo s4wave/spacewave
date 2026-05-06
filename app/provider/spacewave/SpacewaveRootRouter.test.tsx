@@ -290,6 +290,31 @@ describe('SpacewaveRootRouter', () => {
     )
   })
 
+  it('keeps linked-local fallback ahead of post-sign-in self-enrollment', async () => {
+    mockUseContextSafe.mockReturnValue(
+      buildContext({
+        onboarding: {
+          hasLinkedLocal: true,
+          linkedLocalSessionIndex: 2,
+          selfEnrollmentGateState: SelfEnrollmentGateState.ACTION_REQUIRED,
+          sessionSelfEnrollmentGenerationKey: 'gen-1',
+          sessionSelfEnrollmentCount: 2,
+        },
+        emailVerified: true,
+      }),
+    )
+
+    render(<SpacewaveRootRouter />)
+
+    expect(screen.queryByTestId('self-enrollment-interstitial')).toBeNull()
+    expect(screen.getByTestId('loading-card').textContent).toBe(
+      'Switching to your local session.',
+    )
+    await waitFor(() =>
+      expect(mockNavigate).toHaveBeenCalledWith({ path: '/u/2' }),
+    )
+  })
+
   it('renders the dashboard in read-only mode for lapsed sessions', () => {
     mockUseContextSafe.mockReturnValue(
       buildContext({
@@ -378,6 +403,26 @@ describe('SpacewaveRootRouter', () => {
     expect(screen.getByTestId('self-enrollment-interstitial')).toBeTruthy()
     expect(screen.queryByTestId('dashboard')).toBeNull()
     expect(screen.queryByTestId('redirect')).toBeNull()
+  })
+
+  it('uses the dashboard when the self-enrollment snapshot has no generation key', () => {
+    mockUseContextSafe.mockReturnValue(
+      buildContext({
+        onboarding: {
+          subscriptionStatus: BillingStatus.BillingStatus_ACTIVE,
+          selfEnrollmentGateState: SelfEnrollmentGateState.ACTION_REQUIRED,
+          sessionSelfEnrollmentGenerationKey: '',
+          sessionSelfEnrollmentCount: 2,
+        },
+        hasActiveBilling: true,
+        emailVerified: true,
+      }),
+    )
+
+    render(<SpacewaveRootRouter />)
+
+    expect(screen.queryByTestId('self-enrollment-interstitial')).toBeNull()
+    expect(screen.getByTestId('dashboard')).toBeTruthy()
   })
 
   it('renders the dashboard while backend auto-rejoin is running', () => {
