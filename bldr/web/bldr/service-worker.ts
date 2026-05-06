@@ -64,6 +64,7 @@ export interface ServiceWorkerMessageDeps {
   ): Promise<void>
 }
 
+// BrowserReleaseSyncMessage asks the SW to refresh the release manifest.
 export interface BrowserReleaseSyncMessage {
   bldrSyncManifest?: boolean
 }

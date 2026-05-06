@@ -618,9 +618,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       this.isSaucer = true
     }
     this.webRuntimeClientId =
-      this.isElectron ?
-        `${this.webDocumentUuid}-${randomId()}`
-      : this.webDocumentUuid
+      this.isElectron ? `${this.webDocumentUuid}-${randomId()}` : this.webDocumentUuid
     this.webViews = {}
     this.webWorkers = {}
     if (opts?.disableStoragePersist) {

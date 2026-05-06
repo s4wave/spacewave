@@ -28,11 +28,12 @@ class FakeCacheStorage {
   private readonly caches = new Map<string, FakeCache>()
 
   public async open(name: string): Promise<FakeCache> {
-    let cache = this.caches.get(name)
-    if (!cache) {
-      cache = new FakeCache()
-      this.caches.set(name, cache)
+    const existing = this.caches.get(name)
+    if (existing) {
+      return existing
     }
+    const cache = new FakeCache()
+    this.caches.set(name, cache)
     return cache
   }
 

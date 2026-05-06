@@ -3,6 +3,7 @@ export interface BrowserReleaseUpdateMessage {
   bldrPromotedGenerationId?: string
 }
 
+// BrowserReleaseSyncRequestMessage asks the SW to refresh the release manifest.
 export interface BrowserReleaseSyncRequestMessage {
   bldrSyncManifest: true
 }
