@@ -837,7 +837,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     console.log('WebDocument: registering service worker', swUrl)
     const wb = new Workbox(swUrl) // Not supported in Firefox: {type: 'module'}
     this.serviceWorker = wb
-    this.initServiceWorker(wb)
+    this.initServiceWorker(wb, swUrl)
 
     // Acquire a Web Lock to enable reliable disconnect detection.
     // The WebRuntime (SharedWorker) will try to acquire the same lock.
@@ -1192,7 +1192,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
 
   // initServiceWorker asynchronously initializes the service worker.
   // called in the constructor
-  private async initServiceWorker(wb: Workbox) {
+  private async initServiceWorker(wb: Workbox, swUrl: string) {
     if (this.closed) return
 
     const swMessageCallback = (ev: MessageEvent) => {

@@ -98,7 +98,9 @@ async function writeBrowserReleaseState(
 ): Promise<void> {
   const cache = await caches.open('bldr-control')
   await cache.put(
-    new Request(new URL('/__bldr/browser-release-state.json', self.location)),
+    new Request(
+      new URL('/__bldr/browser-release-state.json', self.location.href),
+    ),
     new Response(JSON.stringify(state)),
   )
 }
@@ -110,7 +112,7 @@ async function writeGenerationCacheResponse(
   response: Response,
 ): Promise<void> {
   const cache = await caches.open(`bldr-generation-${generationId}`)
-  await cache.put(new Request(new URL(path, self.location)), response)
+  await cache.put(new Request(new URL(path, self.location.href)), response)
 }
 
 function buildMessageEvent(data: unknown): ExtendableMessageEvent {
@@ -122,7 +124,7 @@ function buildMessageEvent(data: unknown): ExtendableMessageEvent {
 
 function buildFetchOnlyEvent(path: string): FetchEvent {
   return {
-    request: new Request(new URL(path, self.location)),
+    request: new Request(new URL(path, self.location.href)),
   } as FetchEvent
 }
 
@@ -299,7 +301,6 @@ describe('service worker fetch release cache routing', () => {
 
     const response = await swFetch(
       buildFetchOnlyEvent(release.shellAssets.wasm),
-      [],
     )
 
     expect(await response.text()).toBe('cached wasm')
@@ -317,7 +318,7 @@ describe('service worker fetch release cache routing', () => {
     )
     vi.mocked(fetch).mockResolvedValue(new Response('network', { status: 200 }))
 
-    const response = await swFetch(buildFetchOnlyEvent('/other.wasm'), [])
+    const response = await swFetch(buildFetchOnlyEvent('/other.wasm'))
 
     expect(await response.text()).toBe('network')
     expect(fetch).toHaveBeenCalledTimes(1)
@@ -336,7 +337,6 @@ describe('service worker fetch release cache routing', () => {
 
     const response = await swFetch(
       buildFetchOnlyEvent(release.shellAssets.wasm),
-      [],
     )
 
     expect(await response.text()).toBe('network')

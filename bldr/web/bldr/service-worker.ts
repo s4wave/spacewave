@@ -54,8 +54,8 @@ const browserReleaseNetworkRaceTimedOut = Symbol(
 // ServiceWorkerMessageDeps collects message-handler collaborators.
 export interface ServiceWorkerMessageDeps {
   clients: Clients
-  fetchTracker: ServiceWorkerFetchTracker
-  webDocumentTracker: WebDocumentTracker
+  fetchTracker: Pick<ServiceWorkerFetchTracker, 'abortClient'>
+  webDocumentTracker: Pick<WebDocumentTracker, 'handleWebDocumentMessage'>
   syncLatestBrowserRelease(): Promise<BrowserReleaseState>
   handleCrossTabMessage(
     clients: Clients,
