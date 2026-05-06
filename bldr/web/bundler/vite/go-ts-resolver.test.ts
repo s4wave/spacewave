@@ -95,4 +95,12 @@ describe('goTsResolver', () => {
       join(tmpDir, 'vendor', 'github.com/example/pkg/types.ts'),
     )
   })
+
+  it('resolves project-root-relative vendor .js imports to .ts files', async () => {
+    const resolveId = createPlugin()
+    const result = await resolveId('vendor/github.com/example/pkg/types.js')
+    expect(result).toBe(
+      join(tmpDir, 'vendor', 'github.com/example/pkg/types.ts'),
+    )
+  })
 })

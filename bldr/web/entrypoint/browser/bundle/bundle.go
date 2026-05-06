@@ -295,6 +295,7 @@ func BrowserEntrypointBuildOpts(bldrDistRoot string, minify bool) esbuild.BuildO
 // ServiceWorkerBuildOpts creates the BuildOpts for the service worker
 func ServiceWorkerBuildOpts(bldrDistRoot string, minify, hash bool) esbuild.BuildOptions {
 	baseConfig := BrowserBuildOpts(bldrDistRoot, minify)
+	baseConfig.Format = esbuild.FormatIIFE
 	if hash {
 		baseConfig.EntryNames = "sw-[hash]"
 	} else {

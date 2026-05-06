@@ -27,6 +27,10 @@ export function checkSharedWorker(
   )
 }
 
+export function parsePluginWorkerName(name: string): string {
+  return name.split('?')[0] ?? ''
+}
+
 // PluginStartOpts contains start info and optional bus configuration.
 export interface PluginStartOpts {
   startInfo: PluginStartInfo
@@ -50,7 +54,7 @@ export class PluginWorker {
 
   // workerId is the id to use for the worker.
   get workerId() {
-    return this.global.name
+    return parsePluginWorkerName(this.global.name)
   }
 
   // webRuntimeClient is the connection to the WebRuntime.

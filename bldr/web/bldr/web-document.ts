@@ -93,22 +93,25 @@ const baseURL = import.meta?.url || window.location.origin
 const dedicatedWorkerShutdownGraceMs = 1000
 
 // buildWorkerURL builds the shw.mjs wrapper URL with the user script path,
-// worker type, and plugin marker encoded into the hash fragment. Hash params
-// are used instead of query params to avoid conflicting with parameters the
-// wrapper script itself might consume. Encoded forward slashes (%2F) are
-// restored to literal slashes since RFC 3986 permits them in fragments.
-function buildWorkerURL(
-  sharedWorkerPath: string,
+// worker type, and plugin marker encoded into the query string.
+function buildWorkerParams(
   scriptPath: string,
   workerType: WebWorkerType,
   hasInitData: boolean,
-): URL {
-  const url = new URL(sharedWorkerPath, baseURL)
+): string {
   const encodedPath = encodeURIComponent(scriptPath).replace(/%2F/g, '/')
   const workerTypeParam =
     workerType === WebWorkerType.QUICKJS ? '&t=quickjs' : ''
   const pluginParam = hasInitData ? '&p=1' : ''
-  url.hash = `s=${encodedPath}${workerTypeParam}${pluginParam}`
+  return `s=${encodedPath}${workerTypeParam}${pluginParam}`
+}
+
+function buildWorkerURL(
+  sharedWorkerPath: string,
+  params: string,
+): URL {
+  const url = new URL(sharedWorkerPath, baseURL)
+  url.search = params
   return url
 }
 
@@ -175,22 +178,19 @@ class WebDocumentWebWorker {
         throw new Error('shared worker path must be set')
       }
 
-      const workerURL = buildWorkerURL(
-        sharedWorkerPath,
-        path,
-        workerType,
-        !!initData,
-      )
+      const workerParams = buildWorkerParams(path, workerType, !!initData)
+      const workerURL = buildWorkerURL(sharedWorkerPath, workerParams)
+      const workerName = `${id}?${workerParams}`
 
       if (typeof SharedWorker !== 'undefined') {
         this.sharedWorker = new SharedWorker(workerURL.toString(), {
-          name: id,
+          name: workerName,
           type: 'module',
         })
         this.sharedWorker.port.postMessage(init, [workerPort])
       } else {
         this.worker = new Worker(workerURL.toString(), {
-          name: id,
+          name: workerName,
           type: 'module',
         })
         this.worker.postMessage(init, [workerPort])
@@ -204,14 +204,10 @@ class WebDocumentWebWorker {
       if (!sharedWorkerPath) {
         throw new Error('shared worker path must be set for dedicated mode')
       }
-      const workerURL = buildWorkerURL(
-        sharedWorkerPath,
-        path,
-        workerType,
-        !!initData,
-      )
+      const workerParams = buildWorkerParams(path, workerType, !!initData)
+      const workerURL = buildWorkerURL(sharedWorkerPath, workerParams)
       this.worker = new Worker(workerURL.toString(), {
-        name: id,
+        name: `${id}?${workerParams}`,
         type: 'module',
       })
       this.worker.postMessage(init, [workerPort])

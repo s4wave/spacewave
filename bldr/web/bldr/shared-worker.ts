@@ -23,28 +23,31 @@ import { createTransportFactory } from './plugin-transport.js'
 import { detectWorkerCommsConfig } from './worker-comms-detect.js'
 import { SabBusEndpoint } from './sab-bus.js'
 
-declare let self: SharedWorkerGlobalScope | DedicatedWorkerGlobalScope
+declare let self: (SharedWorkerGlobalScope | DedicatedWorkerGlobalScope) & {
+  name?: string
+}
 
-// parseUrlParams parses the URL hash parameters.
-// Format: #s=<scriptPath>&t=<workerType>&p=<plugin>
+// parseUrlParams parses the URL parameters.
+// Format: ?s=<scriptPath>&t=<workerType>&p=<plugin>
 function parseUrlParams(): {
   scriptPath: string
   workerType: string
   isPlugin: boolean
 } {
   const url = new URL(self.location.href)
-  const hash = url.hash
+  const nameParams =
+    typeof self.name === 'string' ? self.name.split('?')[1] : ''
+  const raw = url.search || url.hash || (nameParams ? `?${nameParams}` : '')
 
-  if (!hash || !hash.startsWith('#')) {
-    throw new Error('shared-worker: Missing hash parameters in URL.')
+  if (!raw || (raw[0] !== '?' && raw[0] !== '#')) {
+    throw new Error('shared-worker: Missing parameters in URL.')
   }
 
-  // Parse hash as query string (remove leading #)
-  const params = new URLSearchParams(hash.substring(1))
+  const params = new URLSearchParams(raw.substring(1))
 
   const scriptPath = params.get('s')
   if (!scriptPath) {
-    throw new Error('shared-worker: Missing script path (s) in URL hash.')
+    throw new Error('shared-worker: Missing script path (s) in URL parameters.')
   }
 
   const workerType = params.get('t') ?? 'native'

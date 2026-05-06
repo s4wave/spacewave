@@ -71,6 +71,13 @@ func TestBrowserBuildOptsResolvesGoVendorImportsFromNestedDir(t *testing.T) {
 	}
 }
 
+func TestServiceWorkerBuildOptsBuildsClassicScript(t *testing.T) {
+	opts := ServiceWorkerBuildOpts(t.TempDir(), false, true)
+	if opts.Format != esbuild.FormatIIFE {
+		t.Fatalf("service worker format=%v want %v", opts.Format, esbuild.FormatIIFE)
+	}
+}
+
 func TestWriteBuildManifestIncludesServiceWorker(t *testing.T) {
 	dir := t.TempDir()
 	manifest := &BuildManifest{

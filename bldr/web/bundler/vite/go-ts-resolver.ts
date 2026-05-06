@@ -39,6 +39,9 @@ function resolveSourcePath(source: string, importer?: string): string | null {
   if (source.startsWith('@go/')) {
     return null
   }
+  if (source.startsWith('vendor/')) {
+    return source
+  }
   if (isAbsolute(source)) {
     return source
   }
@@ -95,7 +98,7 @@ export function goTsResolver(projectRoot: string): Plugin {
         return null
       }
 
-      const tsPath = sourcePath.replace(/\.js$/, '.ts')
+      const tsPath = resolve(projectRoot, sourcePath).replace(/\.js$/, '.ts')
 
       try {
         await access(tsPath)
