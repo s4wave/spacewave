@@ -13,6 +13,7 @@ import {
   RemoveWebDocumentResponse,
   WebRuntimeClientInit,
 } from '../../runtime/runtime.pb.js'
+import type { OpenOrFocusMainWindowRequest } from '../desktop-runtime/desktop-runtime.pb.js'
 import { APP_SCHEME, appRequestHandler } from './protocol.js'
 import { ServiceWorkerHostClient } from '../../runtime/sw/sw_srpc.pb.js'
 import { proxyFetch } from '../../fetch/fetch.js'
@@ -99,6 +100,9 @@ export class BldrElectronApp {
       openOrFocusMainWindow: this.openOrFocusMainWindow.bind(this),
       quitDesktopRuntime: this.quitDesktopRuntime.bind(this),
     })
+    this.webRuntime.registerServerExtension(
+      this.desktopRuntimeResource.resourceServer,
+    )
   }
 
   // init initializes the app
@@ -326,16 +330,7 @@ export class BldrElectronApp {
     })
 
     // Build URL with optional hash
-    let url =
-      webDocumentId ?
-        `${APP_SCHEME}://index.html?webDocumentId=${encodeURIComponent(webDocumentId)}`
-      : `${APP_SCHEME}://index.html`
-
-    if (hash) {
-      url += `#${hash}`
-    }
-
-    nwindow.loadURL(url)
+    nwindow.loadURL(this.buildWindowUrl(webDocumentId, hash))
     if (webDocumentId) {
       this.attachWebDocumentWindowLifecycle(webDocumentId, nwindow)
     }
@@ -365,11 +360,7 @@ export class BldrElectronApp {
         const parsed = new URL(targetUrl)
         if (parsed.pathname !== '/index.html') {
           event.preventDefault()
-          const correctUrl =
-            webDocumentId ?
-              `${APP_SCHEME}://index.html?webDocumentId=${encodeURIComponent(webDocumentId)}`
-            : `${APP_SCHEME}://index.html`
-          nwindow.loadURL(correctUrl)
+          nwindow.loadURL(this.buildWindowUrl(webDocumentId))
         }
       } catch {
         // Invalid URL, block navigation
@@ -455,12 +446,15 @@ export class BldrElectronApp {
     )
   }
 
-  private async openOrFocusMainWindow() {
+  private async openOrFocusMainWindow(request?: OpenOrFocusMainWindowRequest) {
+    const routeHash = this.normalizeRouteHash(request?.route)
     const nwindow = this.browserWindows['electron-init']
     if (!nwindow || nwindow.isDestroyed()) {
-      await this.createWebDocument({ id: 'electron-init' })
+      await this.createWebDocument({ id: 'electron-init' }, routeHash)
       return
     }
+
+    this.loadWindowRoute(nwindow, 'electron-init', routeHash)
 
     if (nwindow.isMinimized()) {
       nwindow.restore()
@@ -480,6 +474,43 @@ export class BldrElectronApp {
     )
   }
 
+  private loadWindowRoute(
+    nwindow: electron.BrowserWindow,
+    webDocumentId: string,
+    routeHash: string,
+  ): void {
+    if (!routeHash) {
+      return
+    }
+    const url = this.buildWindowUrl(webDocumentId, routeHash)
+    if (nwindow.webContents.getURL() === url) {
+      return
+    }
+    nwindow.loadURL(url)
+  }
+
+  private buildWindowUrl(webDocumentId?: string, hash?: string): string {
+    let url =
+      webDocumentId ?
+        `${APP_SCHEME}://index.html?webDocumentId=${encodeURIComponent(webDocumentId)}`
+      : `${APP_SCHEME}://index.html`
+
+    if (hash) {
+      url += `#${hash}`
+    }
+    return url
+  }
+
+  private normalizeRouteHash(route?: string): string {
+    if (!route) {
+      return ''
+    }
+    if (route.startsWith('#')) {
+      return route.slice(1)
+    }
+    return route
+  }
+
   // isInternalUrl checks if a URL is internal to the app.
   private isInternalUrl(url: string): boolean {
     try {
@@ -493,12 +524,13 @@ export class BldrElectronApp {
   // runtimeCreateWebDocument is called by the WebRuntimeHost to create a new WebDocument.
   private async createWebDocument(
     req: Message<CreateWebDocumentRequest>,
+    hash?: string,
   ): Promise<CreateWebDocumentResponse> {
     const id = req.id
     if (!id) {
       return { created: false }
     }
-    const nwindow = this.createWindow(id)
+    const nwindow = this.createWindow(id, hash)
     this.browserWindows[id] = nwindow
     if (id === 'electron-init') {
       this.desktopRuntimeResource.setMainWindowOpen(true)

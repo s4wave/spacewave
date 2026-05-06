@@ -384,6 +384,68 @@ export const DesktopRuntimeSeverity_Enum = createEnumType(
 )
 
 /**
+ * DesktopRuntimeActionKind describes explicit command categories.
+ *
+ * @generated from enum electron.desktop_runtime.DesktopRuntimeActionKind
+ */
+export enum DesktopRuntimeActionKind {
+  /**
+   * DESKTOP_RUNTIME_ACTION_KIND_UNSPECIFIED leaves action kind unset.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_ACTION_KIND_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * DESKTOP_RUNTIME_ACTION_KIND_OPEN_ROUTE opens or focuses an app route.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_ACTION_KIND_OPEN_ROUTE = 1;
+   */
+  OPEN_ROUTE = 1,
+
+  /**
+   * DESKTOP_RUNTIME_ACTION_KIND_NEW_WINDOW opens an app route in a new window.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_ACTION_KIND_NEW_WINDOW = 2;
+   */
+  NEW_WINDOW = 2,
+
+  /**
+   * DESKTOP_RUNTIME_ACTION_KIND_COPY_TEXT copies text to the native clipboard.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_ACTION_KIND_COPY_TEXT = 3;
+   */
+  COPY_TEXT = 3,
+
+  /**
+   * DESKTOP_RUNTIME_ACTION_KIND_REVEAL_PATH reveals a local path.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_ACTION_KIND_REVEAL_PATH = 4;
+   */
+  REVEAL_PATH = 4,
+
+  /**
+   * DESKTOP_RUNTIME_ACTION_KIND_QUIT requests explicit runtime quit.
+   *
+   * @generated from enum value: DESKTOP_RUNTIME_ACTION_KIND_QUIT = 5;
+   */
+  QUIT = 5,
+}
+
+// DesktopRuntimeActionKind_Enum is the enum type for DesktopRuntimeActionKind.
+export const DesktopRuntimeActionKind_Enum = createEnumType(
+  'electron.desktop_runtime.DesktopRuntimeActionKind',
+  [
+    { no: 0, name: 'DESKTOP_RUNTIME_ACTION_KIND_UNSPECIFIED' },
+    { no: 1, name: 'DESKTOP_RUNTIME_ACTION_KIND_OPEN_ROUTE' },
+    { no: 2, name: 'DESKTOP_RUNTIME_ACTION_KIND_NEW_WINDOW' },
+    { no: 3, name: 'DESKTOP_RUNTIME_ACTION_KIND_COPY_TEXT' },
+    { no: 4, name: 'DESKTOP_RUNTIME_ACTION_KIND_REVEAL_PATH' },
+    { no: 5, name: 'DESKTOP_RUNTIME_ACTION_KIND_QUIT' },
+  ],
+)
+
+/**
  * DesktopRuntimeListenerStatus describes background listener and CLI state.
  *
  * @generated from message electron.desktop_runtime.DesktopRuntimeListenerStatus
@@ -669,6 +731,72 @@ export const DesktopRuntimeAttentionItem: MessageType<DesktopRuntimeAttentionIte
   })
 
 /**
+ * DesktopRuntimeActionItem describes an explicit command row.
+ *
+ * @generated from message electron.desktop_runtime.DesktopRuntimeActionItem
+ */
+export interface DesktopRuntimeActionItem {
+  /**
+   * Id identifies the action row.
+   *
+   * @generated from field: string id = 1;
+   */
+  id?: string
+  /**
+   * Kind describes the command category.
+   *
+   * @generated from field: electron.desktop_runtime.DesktopRuntimeActionKind kind = 2;
+   */
+  kind?: DesktopRuntimeActionKind
+  /**
+   * Label is primary display text.
+   *
+   * @generated from field: string label = 3;
+   */
+  label?: string
+  /**
+   * Detail is secondary display text.
+   *
+   * @generated from field: string detail = 4;
+   */
+  detail?: string
+  /**
+   * Route is the app route used by route-opening actions.
+   *
+   * @generated from field: string route = 5;
+   */
+  route?: string
+  /**
+   * Value is action-specific text such as a copy value or filesystem path.
+   *
+   * @generated from field: string value = 6;
+   */
+  value?: string
+  /**
+   * Enabled indicates whether the command can run.
+   *
+   * @generated from field: bool enabled = 7;
+   */
+  enabled?: boolean
+}
+
+// DesktopRuntimeActionItem contains the message type declaration for DesktopRuntimeActionItem.
+export const DesktopRuntimeActionItem: MessageType<DesktopRuntimeActionItem> =
+  createMessageType({
+    typeName: 'electron.desktop_runtime.DesktopRuntimeActionItem',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'kind', kind: 'enum', T: DesktopRuntimeActionKind_Enum },
+      { no: 3, name: 'label', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'detail', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'route', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'value', kind: 'scalar', T: ScalarType.STRING },
+      { no: 7, name: 'enabled', kind: 'scalar', T: ScalarType.BOOL },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * DesktopRuntimeState describes Electron main desktop-shell state.
  *
  * @generated from message electron.desktop_runtime.DesktopRuntimeState
@@ -740,6 +868,12 @@ export interface DesktopRuntimeState {
    * @generated from field: repeated electron.desktop_runtime.DesktopRuntimeAttentionItem attention_items = 11;
    */
   attentionItems?: DesktopRuntimeAttentionItem[]
+  /**
+   * Actions contains bounded explicit command rows.
+   *
+   * @generated from field: repeated electron.desktop_runtime.DesktopRuntimeActionItem actions = 12;
+   */
+  actions?: DesktopRuntimeActionItem[]
 }
 
 // DesktopRuntimeState contains the message type declaration for DesktopRuntimeState.
@@ -797,6 +931,13 @@ export const DesktopRuntimeState: MessageType<DesktopRuntimeState> =
         T: () => DesktopRuntimeAttentionItem,
         repeated: true,
       },
+      {
+        no: 12,
+        name: 'actions',
+        kind: 'message',
+        T: () => DesktopRuntimeActionItem,
+        repeated: true,
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -845,13 +986,22 @@ export const WatchDesktopStateResponse: MessageType<WatchDesktopStateResponse> =
  *
  * @generated from message electron.desktop_runtime.OpenOrFocusMainWindowRequest
  */
-export interface OpenOrFocusMainWindowRequest {}
+export interface OpenOrFocusMainWindowRequest {
+  /**
+   * Route is the app route to open after focusing the singleton window.
+   *
+   * @generated from field: string route = 1;
+   */
+  route?: string
+}
 
 // OpenOrFocusMainWindowRequest contains the message type declaration for OpenOrFocusMainWindowRequest.
 export const OpenOrFocusMainWindowRequest: MessageType<OpenOrFocusMainWindowRequest> =
   createMessageType({
     typeName: 'electron.desktop_runtime.OpenOrFocusMainWindowRequest',
-    fields: [] as readonly PartialFieldInfo[],
+    fields: [
+      { no: 1, name: 'route', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 

@@ -707,7 +707,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/web/electron/desktop-runtime": {
-      "hash": "09a6561fc5427b0a1044bcdb78c5e1057e2d96580615fb3389e8ed176bb50bf8",
+      "hash": "91ab18c9f0999d31ddc129b478906c8b9f2824087660a7565ee9d638b91154d2",
       "generatedFiles": [
         "bldr/web/electron/desktop-runtime/desktop-runtime.pb.cc",
         "bldr/web/electron/desktop-runtime/desktop-runtime.pb.go",

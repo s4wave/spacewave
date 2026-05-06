@@ -14,6 +14,7 @@ import {
   castToError,
   ChannelStreamOpts,
   MessageStream,
+  type StaticMux,
 } from 'starpc'
 import { pipe } from 'it-pipe'
 import { Duplex, Source } from 'it-stream-types'
@@ -424,12 +425,18 @@ export type RemoveWebDocumentFunc = (
   req: RemoveWebDocumentRequest,
 ) => Promise<RemoveWebDocumentResponse>
 
+interface WebRuntimeServerExtension {
+  register(mux: StaticMux): void
+}
+
 // WebRuntime implements the WebDocumentHost with a SharedWorker.
 export class WebRuntime {
   // webRuntimeId is the identifier of the WebRuntime.
   public readonly webRuntimeId: string
   // webRuntime manages the incoming RPC calls to the WebRuntime.
   private webRuntime: WebRuntimeImpl
+  // webRuntimeMux routes incoming process-lifetime WebRuntime RPC services.
+  private webRuntimeMux: StaticMux
   // webRuntimeServer is the server for incoming RPC connections to WebRuntime.
   private webRuntimeServer: Server
 
@@ -473,11 +480,11 @@ export class WebRuntime {
 
     // Setup the WebRuntime service implementation.
     this.webRuntime = new WebRuntimeImpl(this)
-    const runtimeWorkerHostMux = createMux()
-    runtimeWorkerHostMux.register(
+    this.webRuntimeMux = createMux()
+    this.webRuntimeMux.register(
       createHandler(WebRuntimeDefinition, this.webRuntime),
     )
-    this.webRuntimeServer = new Server(runtimeWorkerHostMux.lookupMethod)
+    this.webRuntimeServer = new Server(this.webRuntimeMux.lookupMethod)
 
     // Setup the status stream.
     this.statusStream = new ItState<WebRuntimeStatus>(
@@ -487,6 +494,11 @@ export class WebRuntime {
     // Setup the runtime client.
     this.runtimeClient = new RPCClient(openStreamFn)
     this.runtimeHost = new WebRuntimeHostClient(this.runtimeClient)
+  }
+
+  // registerServerExtension wires an additional service into this runtime server.
+  public registerServerExtension(extension: WebRuntimeServerExtension): void {
+    extension.register(this.webRuntimeMux)
   }
 
   // getWebRuntimeServer returns the srpc Server for the web runtime service.

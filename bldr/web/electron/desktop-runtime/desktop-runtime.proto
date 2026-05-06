@@ -39,6 +39,8 @@ message DesktopRuntimeState {
   DesktopRuntimeUpdateStatus update = 10;
   // AttentionItems contains user-actionable attention rows.
   repeated DesktopRuntimeAttentionItem attention_items = 11;
+  // Actions contains bounded explicit command rows.
+  repeated DesktopRuntimeActionItem actions = 12;
 }
 
 // DesktopRuntimeHealth describes the collapsed tray icon status.
@@ -137,6 +139,22 @@ enum DesktopRuntimeSeverity {
   DESKTOP_RUNTIME_SEVERITY_CRITICAL = 3;
 }
 
+// DesktopRuntimeActionKind describes explicit command categories.
+enum DesktopRuntimeActionKind {
+  // DESKTOP_RUNTIME_ACTION_KIND_UNSPECIFIED leaves action kind unset.
+  DESKTOP_RUNTIME_ACTION_KIND_UNSPECIFIED = 0;
+  // DESKTOP_RUNTIME_ACTION_KIND_OPEN_ROUTE opens or focuses an app route.
+  DESKTOP_RUNTIME_ACTION_KIND_OPEN_ROUTE = 1;
+  // DESKTOP_RUNTIME_ACTION_KIND_NEW_WINDOW opens an app route in a new window.
+  DESKTOP_RUNTIME_ACTION_KIND_NEW_WINDOW = 2;
+  // DESKTOP_RUNTIME_ACTION_KIND_COPY_TEXT copies text to the native clipboard.
+  DESKTOP_RUNTIME_ACTION_KIND_COPY_TEXT = 3;
+  // DESKTOP_RUNTIME_ACTION_KIND_REVEAL_PATH reveals a local path.
+  DESKTOP_RUNTIME_ACTION_KIND_REVEAL_PATH = 4;
+  // DESKTOP_RUNTIME_ACTION_KIND_QUIT requests explicit runtime quit.
+  DESKTOP_RUNTIME_ACTION_KIND_QUIT = 5;
+}
+
 // DesktopRuntimeListenerStatus describes background listener and CLI state.
 message DesktopRuntimeListenerStatus {
   // Reachability describes whether the endpoint can be used.
@@ -207,6 +225,24 @@ message DesktopRuntimeAttentionItem {
   string route = 5;
 }
 
+// DesktopRuntimeActionItem describes an explicit command row.
+message DesktopRuntimeActionItem {
+  // Id identifies the action row.
+  string id = 1;
+  // Kind describes the command category.
+  DesktopRuntimeActionKind kind = 2;
+  // Label is primary display text.
+  string label = 3;
+  // Detail is secondary display text.
+  string detail = 4;
+  // Route is the app route used by route-opening actions.
+  string route = 5;
+  // Value is action-specific text such as a copy value or filesystem path.
+  string value = 6;
+  // Enabled indicates whether the command can run.
+  bool enabled = 7;
+}
+
 // WatchDesktopStateRequest is the request for WatchDesktopState.
 message WatchDesktopStateRequest {}
 
@@ -217,7 +253,10 @@ message WatchDesktopStateResponse {
 }
 
 // OpenOrFocusMainWindowRequest is the request for OpenOrFocusMainWindow.
-message OpenOrFocusMainWindowRequest {}
+message OpenOrFocusMainWindowRequest {
+  // Route is the app route to open after focusing the singleton window.
+  string route = 1;
+}
 
 // OpenOrFocusMainWindowResponse is the response for OpenOrFocusMainWindow.
 message OpenOrFocusMainWindowResponse {}

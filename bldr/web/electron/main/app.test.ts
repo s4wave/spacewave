@@ -56,6 +56,7 @@ class MockWebRuntime {
   public readonly openServiceWorkerHostStream = vi.fn()
   public readonly getWebRuntimeServer = vi.fn()
   public readonly handleClient = vi.fn()
+  public readonly registerServerExtension = vi.fn()
 
   constructor(public readonly webRuntimeId: string) {
     webRuntimeInstances.push(this)
@@ -333,6 +334,21 @@ describe('BldrElectronApp', () => {
     expect(resource.OpenOrFocusMainWindow).toHaveBeenCalledTimes(2)
   })
 
+  it('registers the desktop runtime resource on the process-lifetime runtime server', async () => {
+    const { BldrElectronApp } = await import('./app.js')
+    const app = Reflect.construct(BldrElectronApp, [
+      mockElectronApp,
+      'runtime-1',
+      {},
+    ])
+
+    const runtime = webRuntimeInstances[0]
+    const resource = Reflect.get(app, 'desktopRuntimeResource')
+    expect(runtime?.registerServerExtension).toHaveBeenCalledWith(
+      resource.resourceServer,
+    )
+  })
+
   it('marks the desktop runtime as quitting for native quit paths', async () => {
     const { BldrElectronApp } = await import('./app.js')
     const app = Reflect.construct(BldrElectronApp, [
@@ -357,12 +373,22 @@ describe('BldrElectronApp', () => {
     ])
     const openOrFocusMainWindow = Reflect.get(app, 'openOrFocusMainWindow')
 
-    await Reflect.apply(openOrFocusMainWindow, app, [])
-    await Reflect.apply(openOrFocusMainWindow, app, [])
+    await Reflect.apply(openOrFocusMainWindow, app, [{ route: '/settings' }])
+    await Reflect.apply(openOrFocusMainWindow, app, [{ route: '/spaces/space-1' }])
+    await Reflect.apply(openOrFocusMainWindow, app, [{ route: '#/spaces/space-1' }])
 
     expect(browserWindows).toHaveLength(1)
-    expect(browserWindows[0]?.show).toHaveBeenCalledTimes(1)
-    expect(browserWindows[0]?.focus).toHaveBeenCalledTimes(1)
+    expect(browserWindows[0]?.loadURL).toHaveBeenNthCalledWith(
+      1,
+      'app://index.html?webDocumentId=electron-init#/settings',
+    )
+    expect(browserWindows[0]?.loadURL).toHaveBeenNthCalledWith(
+      2,
+      'app://index.html?webDocumentId=electron-init#/spaces/space-1',
+    )
+    expect(browserWindows[0]?.loadURL).toHaveBeenCalledTimes(2)
+    expect(browserWindows[0]?.show).toHaveBeenCalledTimes(2)
+    expect(browserWindows[0]?.focus).toHaveBeenCalledTimes(2)
   })
 
   it('quits duplicate instances after failing the singleton lock', async () => {

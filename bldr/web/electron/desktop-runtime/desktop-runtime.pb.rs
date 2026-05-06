@@ -36,6 +36,9 @@ pub struct DesktopRuntimeState {
     /// AttentionItems contains user-actionable attention rows.
     #[prost(message, repeated, tag="11")]
     pub attention_items: ::prost::alloc::vec::Vec<DesktopRuntimeAttentionItem>,
+    /// Actions contains bounded explicit command rows.
+    #[prost(message, repeated, tag="12")]
+    pub actions: ::prost::alloc::vec::Vec<DesktopRuntimeActionItem>,
 }
 /// DesktopRuntimeListenerStatus describes background listener and CLI state.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -132,6 +135,31 @@ pub struct DesktopRuntimeAttentionItem {
     #[prost(string, tag="5")]
     pub route: ::prost::alloc::string::String,
 }
+/// DesktopRuntimeActionItem describes an explicit command row.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DesktopRuntimeActionItem {
+    /// Id identifies the action row.
+    #[prost(string, tag="1")]
+    pub id: ::prost::alloc::string::String,
+    /// Kind describes the command category.
+    #[prost(enumeration="DesktopRuntimeActionKind", tag="2")]
+    pub kind: i32,
+    /// Label is primary display text.
+    #[prost(string, tag="3")]
+    pub label: ::prost::alloc::string::String,
+    /// Detail is secondary display text.
+    #[prost(string, tag="4")]
+    pub detail: ::prost::alloc::string::String,
+    /// Route is the app route used by route-opening actions.
+    #[prost(string, tag="5")]
+    pub route: ::prost::alloc::string::String,
+    /// Value is action-specific text such as a copy value or filesystem path.
+    #[prost(string, tag="6")]
+    pub value: ::prost::alloc::string::String,
+    /// Enabled indicates whether the command can run.
+    #[prost(bool, tag="7")]
+    pub enabled: bool,
+}
 /// WatchDesktopStateRequest is the request for WatchDesktopState.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct WatchDesktopStateRequest {
@@ -144,8 +172,11 @@ pub struct WatchDesktopStateResponse {
     pub state: ::core::option::Option<DesktopRuntimeState>,
 }
 /// OpenOrFocusMainWindowRequest is the request for OpenOrFocusMainWindow.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct OpenOrFocusMainWindowRequest {
+    /// Route is the app route to open after focusing the singleton window.
+    #[prost(string, tag="1")]
+    pub route: ::prost::alloc::string::String,
 }
 /// OpenOrFocusMainWindowResponse is the response for OpenOrFocusMainWindow.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
@@ -425,6 +456,51 @@ impl DesktopRuntimeSeverity {
             "DESKTOP_RUNTIME_SEVERITY_INFO" => Some(Self::Info),
             "DESKTOP_RUNTIME_SEVERITY_WARNING" => Some(Self::Warning),
             "DESKTOP_RUNTIME_SEVERITY_CRITICAL" => Some(Self::Critical),
+            _ => None,
+        }
+    }
+}
+/// DesktopRuntimeActionKind describes explicit command categories.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum DesktopRuntimeActionKind {
+    /// DESKTOP_RUNTIME_ACTION_KIND_UNSPECIFIED leaves action kind unset.
+    Unspecified = 0,
+    /// DESKTOP_RUNTIME_ACTION_KIND_OPEN_ROUTE opens or focuses an app route.
+    OpenRoute = 1,
+    /// DESKTOP_RUNTIME_ACTION_KIND_NEW_WINDOW opens an app route in a new window.
+    NewWindow = 2,
+    /// DESKTOP_RUNTIME_ACTION_KIND_COPY_TEXT copies text to the native clipboard.
+    CopyText = 3,
+    /// DESKTOP_RUNTIME_ACTION_KIND_REVEAL_PATH reveals a local path.
+    RevealPath = 4,
+    /// DESKTOP_RUNTIME_ACTION_KIND_QUIT requests explicit runtime quit.
+    Quit = 5,
+}
+impl DesktopRuntimeActionKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "DESKTOP_RUNTIME_ACTION_KIND_UNSPECIFIED",
+            Self::OpenRoute => "DESKTOP_RUNTIME_ACTION_KIND_OPEN_ROUTE",
+            Self::NewWindow => "DESKTOP_RUNTIME_ACTION_KIND_NEW_WINDOW",
+            Self::CopyText => "DESKTOP_RUNTIME_ACTION_KIND_COPY_TEXT",
+            Self::RevealPath => "DESKTOP_RUNTIME_ACTION_KIND_REVEAL_PATH",
+            Self::Quit => "DESKTOP_RUNTIME_ACTION_KIND_QUIT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "DESKTOP_RUNTIME_ACTION_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "DESKTOP_RUNTIME_ACTION_KIND_OPEN_ROUTE" => Some(Self::OpenRoute),
+            "DESKTOP_RUNTIME_ACTION_KIND_NEW_WINDOW" => Some(Self::NewWindow),
+            "DESKTOP_RUNTIME_ACTION_KIND_COPY_TEXT" => Some(Self::CopyText),
+            "DESKTOP_RUNTIME_ACTION_KIND_REVEAL_PATH" => Some(Self::RevealPath),
+            "DESKTOP_RUNTIME_ACTION_KIND_QUIT" => Some(Self::Quit),
             _ => None,
         }
     }

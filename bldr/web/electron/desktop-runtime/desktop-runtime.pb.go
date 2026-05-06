@@ -327,6 +327,58 @@ func (x DesktopRuntimeSeverity) String() string {
 	return strconv.Itoa(int(x))
 }
 
+// DesktopRuntimeActionKind describes explicit command categories.
+type DesktopRuntimeActionKind int32
+
+const (
+	// DESKTOP_RUNTIME_ACTION_KIND_UNSPECIFIED leaves action kind unset.
+	DesktopRuntimeActionKind_DESKTOP_RUNTIME_ACTION_KIND_UNSPECIFIED DesktopRuntimeActionKind = 0
+	// DESKTOP_RUNTIME_ACTION_KIND_OPEN_ROUTE opens or focuses an app route.
+	DesktopRuntimeActionKind_DESKTOP_RUNTIME_ACTION_KIND_OPEN_ROUTE DesktopRuntimeActionKind = 1
+	// DESKTOP_RUNTIME_ACTION_KIND_NEW_WINDOW opens an app route in a new window.
+	DesktopRuntimeActionKind_DESKTOP_RUNTIME_ACTION_KIND_NEW_WINDOW DesktopRuntimeActionKind = 2
+	// DESKTOP_RUNTIME_ACTION_KIND_COPY_TEXT copies text to the native clipboard.
+	DesktopRuntimeActionKind_DESKTOP_RUNTIME_ACTION_KIND_COPY_TEXT DesktopRuntimeActionKind = 3
+	// DESKTOP_RUNTIME_ACTION_KIND_REVEAL_PATH reveals a local path.
+	DesktopRuntimeActionKind_DESKTOP_RUNTIME_ACTION_KIND_REVEAL_PATH DesktopRuntimeActionKind = 4
+	// DESKTOP_RUNTIME_ACTION_KIND_QUIT requests explicit runtime quit.
+	DesktopRuntimeActionKind_DESKTOP_RUNTIME_ACTION_KIND_QUIT DesktopRuntimeActionKind = 5
+)
+
+// Enum value maps for DesktopRuntimeActionKind.
+var (
+	DesktopRuntimeActionKind_name = map[int32]string{
+		0: "DESKTOP_RUNTIME_ACTION_KIND_UNSPECIFIED",
+		1: "DESKTOP_RUNTIME_ACTION_KIND_OPEN_ROUTE",
+		2: "DESKTOP_RUNTIME_ACTION_KIND_NEW_WINDOW",
+		3: "DESKTOP_RUNTIME_ACTION_KIND_COPY_TEXT",
+		4: "DESKTOP_RUNTIME_ACTION_KIND_REVEAL_PATH",
+		5: "DESKTOP_RUNTIME_ACTION_KIND_QUIT",
+	}
+	DesktopRuntimeActionKind_value = map[string]int32{
+		"DESKTOP_RUNTIME_ACTION_KIND_UNSPECIFIED": 0,
+		"DESKTOP_RUNTIME_ACTION_KIND_OPEN_ROUTE":  1,
+		"DESKTOP_RUNTIME_ACTION_KIND_NEW_WINDOW":  2,
+		"DESKTOP_RUNTIME_ACTION_KIND_COPY_TEXT":   3,
+		"DESKTOP_RUNTIME_ACTION_KIND_REVEAL_PATH": 4,
+		"DESKTOP_RUNTIME_ACTION_KIND_QUIT":        5,
+	}
+)
+
+func (x DesktopRuntimeActionKind) Enum() *DesktopRuntimeActionKind {
+	p := new(DesktopRuntimeActionKind)
+	*p = x
+	return p
+}
+
+func (x DesktopRuntimeActionKind) String() string {
+	name, valid := DesktopRuntimeActionKind_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // DesktopRuntimeState describes Electron main desktop-shell state.
 type DesktopRuntimeState struct {
 	unknownFields []byte
@@ -352,6 +404,8 @@ type DesktopRuntimeState struct {
 	Update *DesktopRuntimeUpdateStatus `protobuf:"bytes,10,opt,name=update,proto3" json:"update,omitempty"`
 	// AttentionItems contains user-actionable attention rows.
 	AttentionItems []*DesktopRuntimeAttentionItem `protobuf:"bytes,11,rep,name=attention_items,json=attentionItems,proto3" json:"attentionItems,omitempty"`
+	// Actions contains bounded explicit command rows.
+	Actions []*DesktopRuntimeActionItem `protobuf:"bytes,12,rep,name=actions,proto3" json:"actions,omitempty"`
 }
 
 func (x *DesktopRuntimeState) Reset() {
@@ -433,6 +487,13 @@ func (x *DesktopRuntimeState) GetUpdate() *DesktopRuntimeUpdateStatus {
 func (x *DesktopRuntimeState) GetAttentionItems() []*DesktopRuntimeAttentionItem {
 	if x != nil {
 		return x.AttentionItems
+	}
+	return nil
+}
+
+func (x *DesktopRuntimeState) GetActions() []*DesktopRuntimeActionItem {
+	if x != nil {
+		return x.Actions
 	}
 	return nil
 }
@@ -717,6 +778,80 @@ func (x *DesktopRuntimeAttentionItem) GetRoute() string {
 	return ""
 }
 
+// DesktopRuntimeActionItem describes an explicit command row.
+type DesktopRuntimeActionItem struct {
+	unknownFields []byte
+	// Id identifies the action row.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Kind describes the command category.
+	Kind DesktopRuntimeActionKind `protobuf:"varint,2,opt,name=kind,proto3" json:"kind,omitempty"`
+	// Label is primary display text.
+	Label string `protobuf:"bytes,3,opt,name=label,proto3" json:"label,omitempty"`
+	// Detail is secondary display text.
+	Detail string `protobuf:"bytes,4,opt,name=detail,proto3" json:"detail,omitempty"`
+	// Route is the app route used by route-opening actions.
+	Route string `protobuf:"bytes,5,opt,name=route,proto3" json:"route,omitempty"`
+	// Value is action-specific text such as a copy value or filesystem path.
+	Value string `protobuf:"bytes,6,opt,name=value,proto3" json:"value,omitempty"`
+	// Enabled indicates whether the command can run.
+	Enabled bool `protobuf:"varint,7,opt,name=enabled,proto3" json:"enabled,omitempty"`
+}
+
+func (x *DesktopRuntimeActionItem) Reset() {
+	*x = DesktopRuntimeActionItem{}
+}
+
+func (*DesktopRuntimeActionItem) ProtoMessage() {}
+
+func (x *DesktopRuntimeActionItem) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *DesktopRuntimeActionItem) GetKind() DesktopRuntimeActionKind {
+	if x != nil {
+		return x.Kind
+	}
+	return DesktopRuntimeActionKind_DESKTOP_RUNTIME_ACTION_KIND_UNSPECIFIED
+}
+
+func (x *DesktopRuntimeActionItem) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *DesktopRuntimeActionItem) GetDetail() string {
+	if x != nil {
+		return x.Detail
+	}
+	return ""
+}
+
+func (x *DesktopRuntimeActionItem) GetRoute() string {
+	if x != nil {
+		return x.Route
+	}
+	return ""
+}
+
+func (x *DesktopRuntimeActionItem) GetValue() string {
+	if x != nil {
+		return x.Value
+	}
+	return ""
+}
+
+func (x *DesktopRuntimeActionItem) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
 // WatchDesktopStateRequest is the request for WatchDesktopState.
 type WatchDesktopStateRequest struct {
 	unknownFields []byte
@@ -751,6 +886,8 @@ func (x *WatchDesktopStateResponse) GetState() *DesktopRuntimeState {
 // OpenOrFocusMainWindowRequest is the request for OpenOrFocusMainWindow.
 type OpenOrFocusMainWindowRequest struct {
 	unknownFields []byte
+	// Route is the app route to open after focusing the singleton window.
+	Route string `protobuf:"bytes,1,opt,name=route,proto3" json:"route,omitempty"`
 }
 
 func (x *OpenOrFocusMainWindowRequest) Reset() {
@@ -758,6 +895,13 @@ func (x *OpenOrFocusMainWindowRequest) Reset() {
 }
 
 func (*OpenOrFocusMainWindowRequest) ProtoMessage() {}
+
+func (x *OpenOrFocusMainWindowRequest) GetRoute() string {
+	if x != nil {
+		return x.Route
+	}
+	return ""
+}
 
 // OpenOrFocusMainWindowResponse is the response for OpenOrFocusMainWindow.
 type OpenOrFocusMainWindowResponse struct {
@@ -826,6 +970,12 @@ func (m *DesktopRuntimeState) CloneVT() *DesktopRuntimeState {
 		r.AttentionItems = make([]*DesktopRuntimeAttentionItem, len(rhs))
 		for k, v := range rhs {
 			r.AttentionItems[k] = v.CloneVT()
+		}
+	}
+	if rhs := m.Actions; rhs != nil {
+		r.Actions = make([]*DesktopRuntimeActionItem, len(rhs))
+		for k, v := range rhs {
+			r.Actions[k] = v.CloneVT()
 		}
 	}
 	if len(m.unknownFields) > 0 {
@@ -938,6 +1088,28 @@ func (m *DesktopRuntimeAttentionItem) CloneMessageVT() protobuf_go_lite.CloneMes
 	return m.CloneVT()
 }
 
+func (m *DesktopRuntimeActionItem) CloneVT() *DesktopRuntimeActionItem {
+	if m == nil {
+		return (*DesktopRuntimeActionItem)(nil)
+	}
+	r := new(DesktopRuntimeActionItem)
+	r.Id = m.Id
+	r.Kind = m.Kind
+	r.Label = m.Label
+	r.Detail = m.Detail
+	r.Route = m.Route
+	r.Value = m.Value
+	r.Enabled = m.Enabled
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *DesktopRuntimeActionItem) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *WatchDesktopStateRequest) CloneVT() *WatchDesktopStateRequest {
 	if m == nil {
 		return (*WatchDesktopStateRequest)(nil)
@@ -974,6 +1146,7 @@ func (m *OpenOrFocusMainWindowRequest) CloneVT() *OpenOrFocusMainWindowRequest {
 		return (*OpenOrFocusMainWindowRequest)(nil)
 	}
 	r := new(OpenOrFocusMainWindowRequest)
+	r.Route = m.Route
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1118,6 +1291,23 @@ func (this *DesktopRuntimeState) EqualVT(that *DesktopRuntimeState) bool {
 			}
 			if q == nil {
 				q = &DesktopRuntimeAttentionItem{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	if len(this.Actions) != len(that.Actions) {
+		return false
+	}
+	for i, vx := range this.Actions {
+		vy := that.Actions[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &DesktopRuntimeActionItem{}
+			}
+			if q == nil {
+				q = &DesktopRuntimeActionItem{}
 			}
 			if !p.EqualVT(q) {
 				return false
@@ -1295,6 +1485,44 @@ func (this *DesktopRuntimeAttentionItem) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *DesktopRuntimeActionItem) EqualVT(that *DesktopRuntimeActionItem) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Id != that.Id {
+		return false
+	}
+	if this.Kind != that.Kind {
+		return false
+	}
+	if this.Label != that.Label {
+		return false
+	}
+	if this.Detail != that.Detail {
+		return false
+	}
+	if this.Route != that.Route {
+		return false
+	}
+	if this.Value != that.Value {
+		return false
+	}
+	if this.Enabled != that.Enabled {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *DesktopRuntimeActionItem) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*DesktopRuntimeActionItem)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 func (this *WatchDesktopStateRequest) EqualVT(that *WatchDesktopStateRequest) bool {
 	if this == that {
 		return true
@@ -1336,6 +1564,9 @@ func (this *OpenOrFocusMainWindowRequest) EqualVT(that *OpenOrFocusMainWindowReq
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Route != that.Route {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1640,6 +1871,46 @@ func (x *DesktopRuntimeSeverity) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the DesktopRuntimeActionKind to JSON.
+func (x DesktopRuntimeActionKind) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), DesktopRuntimeActionKind_name)
+}
+
+// MarshalText marshals the DesktopRuntimeActionKind to text.
+func (x DesktopRuntimeActionKind) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), DesktopRuntimeActionKind_name)), nil
+}
+
+// MarshalJSON marshals the DesktopRuntimeActionKind to JSON.
+func (x DesktopRuntimeActionKind) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DesktopRuntimeActionKind from JSON.
+func (x *DesktopRuntimeActionKind) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(DesktopRuntimeActionKind_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read DesktopRuntimeActionKind enum: %v", err)
+		return
+	}
+	*x = DesktopRuntimeActionKind(v)
+}
+
+// UnmarshalText unmarshals the DesktopRuntimeActionKind from text.
+func (x *DesktopRuntimeActionKind) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), DesktopRuntimeActionKind_value)
+	if err != nil {
+		return err
+	}
+	*x = DesktopRuntimeActionKind(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the DesktopRuntimeActionKind from JSON.
+func (x *DesktopRuntimeActionKind) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the DesktopRuntimeState message to JSON.
 func (x *DesktopRuntimeState) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -1724,6 +1995,17 @@ func (x *DesktopRuntimeState) MarshalProtoJSON(s *json.MarshalState) {
 		for _, element := range x.AttentionItems {
 			s.WriteMoreIf(&wroteElement)
 			element.MarshalProtoJSON(s.WithField("attentionItems"))
+		}
+		s.WriteArrayEnd()
+	}
+	if len(x.Actions) > 0 || s.HasField("actions") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("actions")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Actions {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("actions"))
 		}
 		s.WriteArrayEnd()
 	}
@@ -1844,6 +2126,24 @@ func (x *DesktopRuntimeState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 					return
 				}
 				x.AttentionItems = append(x.AttentionItems, v)
+			})
+		case "actions":
+			s.AddField("actions")
+			if s.ReadNil() {
+				x.Actions = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Actions = append(x.Actions, nil)
+					return
+				}
+				v := &DesktopRuntimeActionItem{}
+				v.UnmarshalProtoJSON(s.WithField("actions", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Actions = append(x.Actions, v)
 			})
 		}
 	})
@@ -2224,6 +2524,96 @@ func (x *DesktopRuntimeAttentionItem) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the DesktopRuntimeActionItem message to JSON.
+func (x *DesktopRuntimeActionItem) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Id != "" || s.HasField("id") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("id")
+		s.WriteString(x.Id)
+	}
+	if x.Kind != 0 || s.HasField("kind") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("kind")
+		x.Kind.MarshalProtoJSON(s)
+	}
+	if x.Label != "" || s.HasField("label") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("label")
+		s.WriteString(x.Label)
+	}
+	if x.Detail != "" || s.HasField("detail") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("detail")
+		s.WriteString(x.Detail)
+	}
+	if x.Route != "" || s.HasField("route") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("route")
+		s.WriteString(x.Route)
+	}
+	if x.Value != "" || s.HasField("value") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("value")
+		s.WriteString(x.Value)
+	}
+	if x.Enabled || s.HasField("enabled") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("enabled")
+		s.WriteBool(x.Enabled)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the DesktopRuntimeActionItem to JSON.
+func (x *DesktopRuntimeActionItem) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DesktopRuntimeActionItem message from JSON.
+func (x *DesktopRuntimeActionItem) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "id":
+			s.AddField("id")
+			x.Id = s.ReadString()
+		case "kind":
+			s.AddField("kind")
+			x.Kind.UnmarshalProtoJSON(s)
+		case "label":
+			s.AddField("label")
+			x.Label = s.ReadString()
+		case "detail":
+			s.AddField("detail")
+			x.Detail = s.ReadString()
+		case "route":
+			s.AddField("route")
+			x.Route = s.ReadString()
+		case "value":
+			s.AddField("value")
+			x.Value = s.ReadString()
+		case "enabled":
+			s.AddField("enabled")
+			x.Enabled = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the DesktopRuntimeActionItem from JSON.
+func (x *DesktopRuntimeActionItem) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the WatchDesktopStateRequest message to JSON.
 func (x *WatchDesktopStateRequest) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -2307,6 +2697,12 @@ func (x *OpenOrFocusMainWindowRequest) MarshalProtoJSON(s *json.MarshalState) {
 		return
 	}
 	s.WriteObjectStart()
+	var wroteField bool
+	if x.Route != "" || s.HasField("route") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("route")
+		s.WriteString(x.Route)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2321,7 +2717,13 @@ func (x *OpenOrFocusMainWindowRequest) UnmarshalProtoJSON(s *json.UnmarshalState
 		return
 	}
 	s.ReadObject(func(key string) {
-		// no fields
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "route":
+			s.AddField("route")
+			x.Route = s.ReadString()
+		}
 	})
 }
 
@@ -2449,6 +2851,18 @@ func (m *DesktopRuntimeState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Actions) > 0 {
+		for iNdEx := len(m.Actions) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Actions[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x62
+		}
 	}
 	if len(m.AttentionItems) > 0 {
 		for iNdEx := len(m.AttentionItems) - 1; iNdEx >= 0; iNdEx-- {
@@ -2892,6 +3306,89 @@ func (m *DesktopRuntimeAttentionItem) MarshalToSizedBufferVT(dAtA []byte) (int, 
 	return len(dAtA) - i, nil
 }
 
+func (m *DesktopRuntimeActionItem) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DesktopRuntimeActionItem) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *DesktopRuntimeActionItem) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Enabled {
+		i--
+		if m.Enabled {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x38
+	}
+	if len(m.Value) > 0 {
+		i -= len(m.Value)
+		copy(dAtA[i:], m.Value)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Value)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if len(m.Route) > 0 {
+		i -= len(m.Route)
+		copy(dAtA[i:], m.Route)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Route)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.Detail) > 0 {
+		i -= len(m.Detail)
+		copy(dAtA[i:], m.Detail)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Detail)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.Label) > 0 {
+		i -= len(m.Label)
+		copy(dAtA[i:], m.Label)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Label)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Kind != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Kind))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Id) > 0 {
+		i -= len(m.Id)
+		copy(dAtA[i:], m.Id)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Id)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *WatchDesktopStateRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -2997,6 +3494,13 @@ func (m *OpenOrFocusMainWindowRequest) MarshalToSizedBufferVT(dAtA []byte) (int,
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Route) > 0 {
+		i -= len(m.Route)
+		copy(dAtA[i:], m.Route)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Route)))
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -3154,6 +3658,12 @@ func (m *DesktopRuntimeState) SizeVT() (n int) {
 			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
 	}
+	if len(m.Actions) > 0 {
+		for _, e := range m.Actions {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -3300,6 +3810,42 @@ func (m *DesktopRuntimeAttentionItem) SizeVT() (n int) {
 	return n
 }
 
+func (m *DesktopRuntimeActionItem) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Id)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Kind != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Kind))
+	}
+	l = len(m.Label)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Detail)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Route)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Value)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Enabled {
+		n += 2
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *WatchDesktopStateRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -3330,6 +3876,10 @@ func (m *OpenOrFocusMainWindowRequest) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
+	l = len(m.Route)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -3385,6 +3935,10 @@ func (x DesktopRuntimeAttentionKind) MarshalProtoText() string {
 }
 
 func (x DesktopRuntimeSeverity) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x DesktopRuntimeActionKind) MarshalProtoText() string {
 	return x.String()
 }
 
@@ -3489,6 +4043,19 @@ func (x *DesktopRuntimeState) MarshalProtoText() string {
 		}
 		sb.WriteString("attention_items: [")
 		for i, v := range x.AttentionItems {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
+	if len(x.Actions) > 0 {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("actions: [")
+		for i, v := range x.Actions {
 			if i > 0 {
 				sb.WriteString(", ")
 			}
@@ -3742,6 +4309,68 @@ func (x *DesktopRuntimeAttentionItem) String() string {
 	return x.MarshalProtoText()
 }
 
+func (x *DesktopRuntimeActionItem) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("DesktopRuntimeActionItem {")
+	if x.Id != "" {
+		if sb.Len() > 26 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("id: ")
+		sb.WriteString(strconv.Quote(x.Id))
+	}
+	if x.Kind != 0 {
+		if sb.Len() > 26 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("kind: ")
+		sb.WriteString("\"")
+		sb.WriteString(DesktopRuntimeActionKind(x.Kind).String())
+		sb.WriteString("\"")
+	}
+	if x.Label != "" {
+		if sb.Len() > 26 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("label: ")
+		sb.WriteString(strconv.Quote(x.Label))
+	}
+	if x.Detail != "" {
+		if sb.Len() > 26 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("detail: ")
+		sb.WriteString(strconv.Quote(x.Detail))
+	}
+	if x.Route != "" {
+		if sb.Len() > 26 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("route: ")
+		sb.WriteString(strconv.Quote(x.Route))
+	}
+	if x.Value != "" {
+		if sb.Len() > 26 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("value: ")
+		sb.WriteString(strconv.Quote(x.Value))
+	}
+	if x.Enabled != false {
+		if sb.Len() > 26 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("enabled: ")
+		sb.WriteString(strconv.FormatBool(x.Enabled))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *DesktopRuntimeActionItem) String() string {
+	return x.MarshalProtoText()
+}
+
 func (x *WatchDesktopStateRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("WatchDesktopStateRequest {")
@@ -3774,6 +4403,13 @@ func (x *WatchDesktopStateResponse) String() string {
 func (x *OpenOrFocusMainWindowRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpenOrFocusMainWindowRequest {")
+	if x.Route != "" {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("route: ")
+		sb.WriteString(strconv.Quote(x.Route))
+	}
 	sb.WriteString("}")
 	return sb.String()
 }
@@ -4060,6 +4696,32 @@ func (m *DesktopRuntimeState) UnmarshalVT(dAtA []byte) error {
 			}
 			m.AttentionItems = append(m.AttentionItems, &DesktopRuntimeAttentionItem{})
 			if err := m.AttentionItems[len(m.AttentionItems)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Actions", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Actions = append(m.Actions, &DesktopRuntimeActionItem{})
+			if err := m.Actions[len(m.Actions)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -4761,6 +5423,182 @@ func (m *DesktopRuntimeAttentionItem) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
+func (m *DesktopRuntimeActionItem) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DesktopRuntimeActionItem: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DesktopRuntimeActionItem: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Id = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Kind", wireType)
+			}
+			m.Kind = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Kind = DesktopRuntimeActionKind(_v)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Label", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Label = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Detail", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Detail = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Route", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Route = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Value", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Value = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Enabled", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.Enabled = bool(v != 0)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
 func (m *WatchDesktopStateRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -4895,6 +5733,28 @@ func (m *OpenOrFocusMainWindowRequest) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: OpenOrFocusMainWindowRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Route", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Route = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

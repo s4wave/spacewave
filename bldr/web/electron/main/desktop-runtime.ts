@@ -14,11 +14,12 @@ import {
   DesktopRuntimeHealth,
   DesktopRuntimeLifecycle,
   DesktopRuntimeReachability,
+  DesktopRuntimeState,
+  type DesktopRuntimeActionItem,
   type DesktopRuntimeActivityItem,
   type DesktopRuntimeAttentionItem,
   type DesktopRuntimeListenerStatus,
   type DesktopRuntimeNavigationItem,
-  type DesktopRuntimeState,
   type DesktopRuntimeUpdateStatus,
   type OpenOrFocusMainWindowRequest,
   type OpenOrFocusMainWindowResponse,
@@ -29,7 +30,9 @@ import {
 } from '../desktop-runtime/desktop-runtime.pb.js'
 
 interface DesktopRuntimeResourceOpts {
-  openOrFocusMainWindow: () => Promise<void> | void
+  openOrFocusMainWindow: (
+    request: OpenOrFocusMainWindowRequest,
+  ) => Promise<void> | void
   quitDesktopRuntime: () => Promise<void> | void
 }
 
@@ -57,10 +60,10 @@ export class DesktopRuntimeResource implements DesktopRuntimeResourceService {
   }
 
   public async OpenOrFocusMainWindow(
-    _request: OpenOrFocusMainWindowRequest,
+    request: OpenOrFocusMainWindowRequest,
     _abortSignal?: AbortSignal,
   ): Promise<OpenOrFocusMainWindowResponse> {
-    await this.opts.openOrFocusMainWindow()
+    await this.opts.openOrFocusMainWindow(request)
     return {}
   }
 
@@ -80,7 +83,9 @@ export class DesktopRuntimeResource implements DesktopRuntimeResourceService {
   }
 
   public setDesktopState(state: DesktopRuntimeState): void {
-    this.state = cloneDesktopRuntimeState(state)
+    const next = cloneDesktopRuntimeState(state)
+    if (DesktopRuntimeState.equals(this.state, next)) return
+    this.state = next
     this.pushState()
   }
 
@@ -130,6 +135,7 @@ function buildInitialDesktopRuntimeState(): DesktopRuntimeState {
     activity: [],
     update: {},
     attentionItems: [],
+    actions: [],
   }
 }
 
@@ -142,6 +148,7 @@ function cloneDesktopRuntimeState(state: DesktopRuntimeState): DesktopRuntimeSta
     activity: cloneActivityItems(state.activity),
     update: cloneUpdate(state.update),
     attentionItems: cloneAttentionItems(state.attentionItems),
+    actions: cloneActionItems(state.actions),
   }
 }
 
@@ -174,6 +181,12 @@ function cloneUpdate(
 function cloneAttentionItems(
   items: DesktopRuntimeAttentionItem[] | undefined,
 ): DesktopRuntimeAttentionItem[] | undefined {
+  return items?.map((item) => ({ ...item }))
+}
+
+function cloneActionItems(
+  items: DesktopRuntimeActionItem[] | undefined,
+): DesktopRuntimeActionItem[] | undefined {
   return items?.map((item) => ({ ...item }))
 }
 

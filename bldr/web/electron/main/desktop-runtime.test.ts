@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import {
   DesktopRuntimeActivityState,
+  DesktopRuntimeActionKind,
   DesktopRuntimeAttentionKind,
   DesktopRuntimeHealth,
   DesktopRuntimeLifecycle,
@@ -34,6 +35,7 @@ describe('DesktopRuntimeResource', () => {
           activity: [],
           update: {},
           attentionItems: [],
+          actions: [],
         },
       },
       done: false,
@@ -117,6 +119,15 @@ describe('DesktopRuntimeResource', () => {
           route: '/sessions/session-1',
         },
       ],
+      actions: [
+        {
+          id: 'open-settings',
+          kind: DesktopRuntimeActionKind.OPEN_ROUTE,
+          label: 'Settings',
+          route: '/settings',
+          enabled: true,
+        },
+      ],
     })
 
     await expect(iter.next()).resolves.toMatchObject({
@@ -145,6 +156,13 @@ describe('DesktopRuntimeResource', () => {
               severity: DesktopRuntimeSeverity.WARNING,
             },
           ],
+          actions: [
+            {
+              id: 'open-settings',
+              kind: DesktopRuntimeActionKind.OPEN_ROUTE,
+              route: '/settings',
+            },
+          ],
         },
       },
       done: false,
@@ -152,7 +170,32 @@ describe('DesktopRuntimeResource', () => {
 
     const state = resource.getState()
     state.sessions?.push({ id: 'mutated' })
+    state.actions?.push({ id: 'mutated' })
     expect(resource.getState().sessions).toHaveLength(1)
+    expect(resource.getState().actions).toHaveLength(1)
+    await iter.return?.()
+  })
+
+  it('suppresses redundant desktop state updates', async () => {
+    const resource = new DesktopRuntimeResource({
+      openOrFocusMainWindow: vi.fn(),
+      quitDesktopRuntime: vi.fn(),
+    })
+    const iter = resource.WatchDesktopState({})[Symbol.asyncIterator]()
+    await iter.next()
+
+    const next = iter.next()
+    resource.setDesktopState(resource.getState())
+    resource.setMainWindowOpen(true)
+
+    await expect(next).resolves.toMatchObject({
+      value: {
+        state: {
+          mainWindowOpen: true,
+        },
+      },
+      done: false,
+    })
     await iter.return?.()
   })
 
@@ -164,8 +207,9 @@ describe('DesktopRuntimeResource', () => {
       quitDesktopRuntime,
     })
 
-    await resource.OpenOrFocusMainWindow({})
+    await resource.OpenOrFocusMainWindow({ route: '/settings' })
     expect(openOrFocusMainWindow).toHaveBeenCalledTimes(1)
+    expect(openOrFocusMainWindow).toHaveBeenCalledWith({ route: '/settings' })
 
     await resource.QuitDesktopRuntime({})
     expect(quitDesktopRuntime).toHaveBeenCalledTimes(1)

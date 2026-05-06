@@ -10,6 +10,8 @@ import (
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
+	bldr_resource "github.com/s4wave/spacewave/bldr/resource"
+	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	"github.com/s4wave/spacewave/bldr/util/cstate"
 	web_document "github.com/s4wave/spacewave/bldr/web/document"
 	sw "github.com/s4wave/spacewave/bldr/web/runtime/sw"
@@ -123,6 +125,12 @@ func (r *Remote) GetRpcServer() *srpc.Server {
 // GetWebRuntimeStatusCtr contains a full snapshot of the web runtime status.
 func (r *Remote) GetWebRuntimeStatusCtr() *ccontainer.CContainer[*WebRuntimeStatus] {
 	return r.snapshotCtr
+}
+
+// ConnectDesktopRuntimeResourceClient connects to the Electron-main desktop resource tree.
+func (r *Remote) ConnectDesktopRuntimeResourceClient(ctx context.Context) (*resource_client.Client, error) {
+	resourceSvc := bldr_resource.NewSRPCResourceServiceClient(r.rpcClient)
+	return resource_client.NewClient(ctx, resourceSvc)
 }
 
 // GetWebDocuments returns the current snapshot of active WebDocuments.
