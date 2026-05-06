@@ -304,21 +304,27 @@ export class DesktopTrayController {
         if (!item.value) {
           return disabledItem(label)
         }
-        return {
-          label,
-          click: () => {
-            this.copyText(item.value)
-          },
+        {
+          const value = item.value
+          return {
+            label,
+            click: () => {
+              this.copyText(value)
+            },
+          }
         }
       case DesktopRuntimeActionKind.REVEAL_PATH:
         if (!item.value) {
           return disabledItem(label)
         }
-        return {
-          label,
-          click: () => {
-            this.revealPath(item.value)
-          },
+        {
+          const path = item.value
+          return {
+            label,
+            click: () => {
+              this.revealPath(path)
+            },
+          }
         }
       case DesktopRuntimeActionKind.QUIT:
         return {
@@ -382,7 +388,7 @@ function selectPrimaryAttentionItem(
     if (severity !== 0) {
       return severity
     }
-    return a.label.localeCompare(b.label)
+    return (a.label ?? '').localeCompare(b.label ?? '')
   })[0]
 }
 
