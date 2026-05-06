@@ -45,7 +45,7 @@ jobs:
 
       - name: Install Playwright browsers
         if: ${{ matrix.suite.needs_playwright }}
-        run: bunx playwright install --with-deps ${{ matrix.suite.playwright_browsers }}
+        run: go run github.com/playwright-community/playwright-go/cmd/playwright install --with-deps ${{ matrix.suite.playwright_browsers }}
 
       - name: Cache aptre tools
         uses: actions/cache@v5
