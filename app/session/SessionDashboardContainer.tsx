@@ -32,6 +32,8 @@ import {
 } from '@s4wave/web/contexts/contexts.js'
 import { LuTriangleAlert } from 'react-icons/lu'
 
+import { LogoutConfirmDialog } from './LogoutConfirmDialog.js'
+
 // CDN_SPACE_DISPLAY_NAME is the label shown for the process-scoped CDN Space
 // on the session dashboard. The CDN SharedObject has no user-facing name;
 // dashboards render a fixed label.
@@ -247,6 +249,7 @@ function PendingDeleteNotice(props: {
 }) {
   const [undoing, setUndoing] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
+  const [logoutOpen, setLogoutOpen] = useState(false)
 
   const handleUndoClick = useCallback(async () => {
     setUndoing(true)
@@ -297,7 +300,7 @@ function PendingDeleteNotice(props: {
             {undoing ? 'Canceling deletion...' : 'Undo Deletion'}
           </button>
           <button
-            onClick={() => void handleLogoutClick()}
+            onClick={() => setLogoutOpen(true)}
             disabled={loggingOut}
             className="border-warning/20 bg-warning/10 hover:bg-warning/20 rounded-md border px-3 py-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -305,6 +308,12 @@ function PendingDeleteNotice(props: {
           </button>
         </div>
       </div>
+      <LogoutConfirmDialog
+        open={logoutOpen}
+        onOpenChange={setLogoutOpen}
+        loggingOut={loggingOut}
+        onConfirm={() => void handleLogoutClick()}
+      />
     </div>
   )
 }

@@ -8,16 +8,10 @@ import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { useSessionIndex } from '@s4wave/web/contexts/contexts.js'
 import { CredentialProofInput } from '@s4wave/web/ui/credential/CredentialProofInput.js'
 import { useCredentialProof } from '@s4wave/web/ui/credential/useCredentialProof.js'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@s4wave/web/ui/dialog.js'
 import type { SessionMetadata } from '@s4wave/core/session/session.pb.js'
 import type { ReauthenticateSessionRequest } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
+
+import { LogoutConfirmDialog } from './LogoutConfirmDialog.js'
 
 export interface ReAuthOverlayProps {
   metadata: SessionMetadata
@@ -175,37 +169,12 @@ export function ReAuthOverlay({
         </div>
       </div>
 
-      <Dialog open={logoutOpen} onOpenChange={setLogoutOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Log out of session?</DialogTitle>
-            <DialogDescription>
-              This will remove the session from your device. You will need your
-              password or backup key to sign in again.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <button
-              onClick={() => setLogoutOpen(false)}
-              disabled={loggingOut}
-              className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={() => void handleLogout()}
-              disabled={loggingOut}
-              className={cn(
-                'rounded-md border px-4 py-2 text-sm transition-all',
-                'border-destructive/30 bg-destructive/10 hover:bg-destructive/20',
-                'disabled:cursor-not-allowed disabled:opacity-50',
-              )}
-            >
-              {loggingOut ? 'Logging out...' : 'Log out'}
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <LogoutConfirmDialog
+        open={logoutOpen}
+        onOpenChange={setLogoutOpen}
+        loggingOut={loggingOut}
+        onConfirm={() => void handleLogout()}
+      />
     </div>
   )
 }

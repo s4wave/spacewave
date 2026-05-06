@@ -433,6 +433,29 @@ describe('SessionDetails', () => {
       }
     })
 
+    it('confirms before logging out from the header action', () => {
+      renderWithContext(<SessionDetails />)
+
+      const headerLogout = screen
+        .getAllByText('Logout')
+        .find((el) => el.className && el.className.includes('hidden'))
+        ?.closest('button')
+      expect(headerLogout).toBeTruthy()
+      fireEvent.click(headerLogout!)
+
+      expect(screen.getByText('Log out of session?')).toBeDefined()
+      expect(mockNavigate).not.toHaveBeenCalledWith({ path: '/sessions' })
+    })
+
+    it('confirms before logging out from the actions list', () => {
+      renderWithContext(<SessionDetails />)
+
+      fireEvent.click(screen.getByText('Log Out'))
+
+      expect(screen.getByText('Log out of session?')).toBeDefined()
+      expect(mockNavigate).not.toHaveBeenCalledWith({ path: '/sessions' })
+    })
+
     it('opens the delete-space escape hatch dialog from Actions', () => {
       renderWithContext(<SessionDetails />)
 

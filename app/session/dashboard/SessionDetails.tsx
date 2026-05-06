@@ -53,6 +53,7 @@ import {
   WatchLocalDisplayNameResponse,
 } from '@s4wave/sdk/session/local-session.pb.js'
 
+import { LogoutConfirmDialog } from '../LogoutConfirmDialog.js'
 import { LinkDeviceWizard } from '../setup/LinkDeviceWizard.js'
 import { AccountDashboardStateProvider } from './AccountDashboardStateContext.js'
 import { AuthMethodsSection } from './AuthMethodsSection.js'
@@ -94,6 +95,7 @@ export function SessionDetails({
   const navigateSession = useSessionNavigate()
   const [locking, setLocking] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
+  const [logoutOpen, setLogoutOpen] = useState(false)
   const [deleteAcctOpen, setDeleteAcctOpen] = useState(false)
   const [deleteSpaceOpen, setDeleteSpaceOpen] = useState(false)
   const [displayName, setDisplayName] = useState('')
@@ -189,6 +191,10 @@ export function SessionDetails({
     }
     navigate({ path: '/sessions' })
   }, [account, navigate, peerId, root, sessionIdx])
+
+  const handleLogoutClick = useCallback(() => {
+    setLogoutOpen(true)
+  }, [])
 
   const handleLockClick = useCallback(async () => {
     if (!isPinMode) {
@@ -385,7 +391,7 @@ export function SessionDetails({
                       <DashboardButton
                         icon={<LuLogOut className="h-4 w-4" />}
                         className="text-destructive hover:bg-destructive/10"
-                        onClick={() => void handleLogout()}
+                        onClick={handleLogoutClick}
                         disabled={loggingOut}
                       >
                         <span className="hidden md:inline">
@@ -644,7 +650,7 @@ export function SessionDetails({
 
                     {showLogout && (
                       <button
-                        onClick={() => void handleLogout()}
+                        onClick={handleLogoutClick}
                         disabled={loggingOut}
                         className={cn(
                           'border-warning/30 bg-warning/5 hover:border-warning hover:bg-warning/10 group flex w-full cursor-pointer items-center gap-3 rounded-md border p-2.5 text-left transition-colors',
@@ -727,6 +733,12 @@ export function SessionDetails({
                     open={deleteSpaceOpen}
                     onOpenChange={setDeleteSpaceOpen}
                     session={session ?? null}
+                  />
+                  <LogoutConfirmDialog
+                    open={logoutOpen}
+                    onOpenChange={setLogoutOpen}
+                    loggingOut={loggingOut}
+                    onConfirm={() => void handleLogout()}
                   />
                 </section>
               </div>

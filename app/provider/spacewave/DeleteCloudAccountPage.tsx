@@ -14,6 +14,7 @@ import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
+import { LogoutConfirmDialog } from '@s4wave/app/session/LogoutConfirmDialog.js'
 import { SessionFrame } from '@s4wave/app/session/SessionFrame.js'
 import {
   SessionContext,
@@ -113,6 +114,7 @@ export function DeleteCloudAccountPage() {
   const [verifying, setVerifying] = useState(false)
   const [undoing, setUndoing] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
+  const [logoutOpen, setLogoutOpen] = useState(false)
   const [email, setEmail] = useState('')
   const [retryAfter, setRetryAfter] = useState(0)
   const [code, setCode] = useState('')
@@ -238,15 +240,23 @@ export function DeleteCloudAccountPage() {
           </div>
 
           {isPendingDelete ?
-            <PendingDeleteView
-              countdown={countdown}
-              deleteAtLabel={deleteAtLabel}
-              undoing={undoing}
-              loggingOut={loggingOut}
-              onUndo={() => void handleUndo()}
-              onDashboard={handleBack}
-              onLogout={() => void handleLogout()}
-            />
+            <>
+              <PendingDeleteView
+                countdown={countdown}
+                deleteAtLabel={deleteAtLabel}
+                undoing={undoing}
+                loggingOut={loggingOut}
+                onUndo={() => void handleUndo()}
+                onDashboard={handleBack}
+                onLogout={() => setLogoutOpen(true)}
+              />
+              <LogoutConfirmDialog
+                open={logoutOpen}
+                onOpenChange={setLogoutOpen}
+                loggingOut={loggingOut}
+                onConfirm={() => void handleLogout()}
+              />
+            </>
           : <InitiateDeleteView
               sending={sending}
               verifying={verifying}
