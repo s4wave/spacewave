@@ -200,7 +200,11 @@ vi.mock('@s4wave/app/provider/spacewave/SpacewaveSessionRoutes.js', () => ({
 }))
 
 vi.mock('./DeletedAccountOverlay.js', () => ({
-  DeletedAccountOverlay: () => null,
+  DeletedAccountOverlay: (props: { metadata: { displayName?: string } }) => (
+    <div data-testid="deleted-account-overlay">
+      {props.metadata.displayName ?? ''}
+    </div>
+  ),
 }))
 
 vi.mock('./DormantOverlay.js', () => ({
@@ -208,7 +212,9 @@ vi.mock('./DormantOverlay.js', () => ({
 }))
 
 vi.mock('./ReAuthOverlay.js', () => ({
-  ReAuthOverlay: () => null,
+  ReAuthOverlay: (props: { metadata: { displayName?: string } }) => (
+    <div data-testid="reauth-overlay">{props.metadata.displayName ?? ''}</div>
+  ),
 }))
 
 describe('SessionContainer', () => {
@@ -356,6 +362,83 @@ describe('SessionContainer', () => {
     })
   })
 
+  it('renders the deleted account overlay instead of the routed session chrome', () => {
+    cleanup()
+    mockNavigate.mockReset()
+    mockUseStreamingResource.mockReset()
+    mockUseSessionIndex.mockReturnValue(1)
+    mockUsePath.mockReturnValue('/u/1/so/space-id')
+    mockUseSessionInfo.mockReturnValue({
+      peerId: 'peer-id',
+    })
+    mockUseBottomBarSetOpenMenu.mockReturnValue(undefined)
+    mockUseRootResource.mockReturnValue({ value: null })
+    mockStreams(null, {
+      accountStatus: ProviderAccountStatus.ProviderAccountStatus_DELETED,
+    })
+    mockConsumePendingJoin.mockReturnValue(null)
+
+    render(
+      <SessionContainer
+        sessionResource={{
+          value: {} as never,
+          loading: false,
+          error: null,
+          retry: vi.fn(),
+        }}
+        metadata={{
+          providerId: 'spacewave',
+          displayName: 'Deleted Cloud Session',
+        }}
+      />,
+    )
+
+    expect(screen.getByTestId('deleted-account-overlay').textContent).toBe(
+      'Deleted Cloud Session',
+    )
+    expect(screen.queryByTestId('content')).toBeNull()
+    expect(screen.queryByTestId('pin-unlock-overlay')).toBeNull()
+  })
+
+  it('renders the reauthentication overlay for unauthenticated cloud sessions', () => {
+    cleanup()
+    mockNavigate.mockReset()
+    mockUseStreamingResource.mockReset()
+    mockUseSessionIndex.mockReturnValue(1)
+    mockUsePath.mockReturnValue('/u/1')
+    mockUseSessionInfo.mockReturnValue({
+      peerId: 'peer-id',
+    })
+    mockUseBottomBarSetOpenMenu.mockReturnValue(undefined)
+    mockUseRootResource.mockReturnValue({ value: null })
+    mockStreams(null, {
+      accountStatus:
+        ProviderAccountStatus.ProviderAccountStatus_UNAUTHENTICATED,
+    })
+    mockConsumePendingJoin.mockReturnValue(null)
+
+    render(
+      <SessionContainer
+        sessionResource={{
+          value: {} as never,
+          loading: false,
+          error: null,
+          retry: vi.fn(),
+        }}
+        metadata={{
+          providerId: 'spacewave',
+          displayName: 'Signed-out Cloud Session',
+        }}
+      />,
+    )
+
+    expect(screen.getByTestId('reauth-overlay').textContent).toBe(
+      'Signed-out Cloud Session',
+    )
+    expect(screen.queryByTestId('content')).toBeNull()
+    expect(screen.queryByTestId('pin-unlock-overlay')).toBeNull()
+  })
+
   it('renders the dormant overlay for dormant cloud sessions outside /plan routes', () => {
     cleanup()
     mockNavigate.mockReset()
@@ -438,7 +521,12 @@ describe('SessionContainer', () => {
     })
     mockUseBottomBarSetOpenMenu.mockReturnValue(undefined)
     mockUseRootResource.mockReturnValue({ value: null })
-    mockStreams({ mode: SessionLockMode.PIN_ENCRYPTED, locked: true }, {})
+    mockStreams(
+      { mode: SessionLockMode.PIN_ENCRYPTED, locked: true },
+      {
+        accountStatus: ProviderAccountStatus.ProviderAccountStatus_READY,
+      },
+    )
     mockConsumePendingJoin.mockReturnValue(null)
 
     render(

@@ -80,6 +80,28 @@ describe('account status route predicates', () => {
 
   it.each([
     {
+      name: 'dormant',
+      status: ProviderAccountStatus.ProviderAccountStatus_DORMANT,
+    },
+    {
+      name: 'unauthenticated',
+      status: ProviderAccountStatus.ProviderAccountStatus_UNAUTHENTICATED,
+    },
+    {
+      name: 'deleted',
+      status: ProviderAccountStatus.ProviderAccountStatus_DELETED,
+    },
+  ])('treats $name account overlay status as route-ready', ({ status }) => {
+    expect(
+      isOnboardingReady({
+        accountStatus: status,
+        billingSummaryLoaded: true,
+      } as WatchOnboardingStatusResponse),
+    ).toBe(true)
+  })
+
+  it.each([
+    {
       name: 'active',
       onboarding: {
         accountStatus: ProviderAccountStatus.ProviderAccountStatus_READY,
