@@ -79,7 +79,7 @@ manifest("web",
             "iconPath": "web/images/spacewave-icon.png",
             "desktopPresencePolicy": "DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND",
             "trayIconPath": "web/images/spacewave-icon.png",
-            "macosTemplateTrayIconPath": "web/images/spacewave-tray-template.png",
+            "macosTemplateTrayIconPath": "web/images/spacewave-menubar.svg",
         },
     },
 )
