@@ -6,6 +6,7 @@ package electron
 
 import (
 	"context"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -26,10 +27,14 @@ const cdpReadyTimeout = 10 * time.Minute
 // Harness owns a Bldr desktop runtime plus a Playwright CDP attachment to the
 // Electron renderer.
 type Harness struct {
+	ctx context.Context
+
 	cancel context.CancelFunc
 
 	stateRoot string
 	cdpPort   int
+	bldrSrc   string
+	le        *logrus.Entry
 
 	done    chan struct{}
 	doneErr error
@@ -67,9 +72,12 @@ func Boot(ctx context.Context, le *logrus.Entry) (_ *Harness, retErr error) {
 
 	hctx, cancel := context.WithCancel(ctx)
 	h := &Harness{
+		ctx:       ctx,
 		cancel:    cancel,
 		stateRoot: stateRoot,
 		cdpPort:   port,
+		bldrSrc:   bldrSrcPath,
+		le:        le,
 		done:      make(chan struct{}),
 	}
 	defer func() {
@@ -83,24 +91,7 @@ func Boot(ctx context.Context, le *logrus.Entry) (_ *Harness, retErr error) {
 		setEnv("BLDR_PLUGIN_STATE_PATH", filepath.Join(stateRoot, "electron-user-data")),
 	)
 
-	args := devtool.NewDevtoolArgs()
-	args.Logger = le
-	args.LogLevel = "debug"
-	args.StatePath = stateRoot
-	args.Watch = false
-	args.WebRenderer = "electron"
-	args.BldrSrcPath = bldrSrcPath
-	args.MinifyEntrypoint = false
-
-	go func() {
-		h.doneErr = args.ExecuteNativeProject(hctx)
-		args.CloseLogFiles()
-		close(h.done)
-	}()
-
-	waitCtx, waitCancel := context.WithTimeout(ctx, cdpReadyTimeout)
-	defer waitCancel()
-	if err := h.waitForCDP(waitCtx); err != nil {
+	if err := h.startDesktopRuntime(ctx, hctx, cancel); err != nil {
 		return nil, err
 	}
 
@@ -123,6 +114,24 @@ func (h *Harness) ConnectDriver() error {
 		return errors.Wrap(err, "connect playwright over CDP")
 	}
 	h.browser = browser
+	return nil
+}
+
+// Relaunch terminates the current Electron runtime, starts it again with the
+// same state root, and reconnects the Playwright CDP driver.
+func (h *Harness) Relaunch(ctx context.Context) error {
+	h.disconnectDriver()
+	if err := h.stopDesktopRuntime(); err != nil {
+		return err
+	}
+
+	hctx, cancel := context.WithCancel(h.ctx)
+	if err := h.startDesktopRuntime(ctx, hctx, cancel); err != nil {
+		return err
+	}
+	if err := h.ConnectDriver(); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -199,6 +208,74 @@ func (h *Harness) WaitForAppPages(
 
 // Release stops Playwright, cancels the Bldr desktop runtime, and restores env.
 func (h *Harness) Release() {
+	h.disconnectDriver()
+	_ = h.stopDesktopRuntime()
+	for i := len(h.restoreEnv) - 1; i >= 0; i-- {
+		h.restoreEnv[i]()
+	}
+	h.restoreEnv = nil
+}
+
+func (h *Harness) startDesktopRuntime(
+	ctx context.Context,
+	hctx context.Context,
+	cancel context.CancelFunc,
+) error {
+	h.cancel = cancel
+	h.done = make(chan struct{})
+	h.doneErr = nil
+
+	args := devtool.NewDevtoolArgs()
+	args.Logger = h.le
+	args.LogLevel = "debug"
+	args.StatePath = h.stateRoot
+	args.Watch = false
+	args.WebRenderer = "electron"
+	args.BldrSrcPath = h.bldrSrc
+	args.MinifyEntrypoint = false
+
+	go func() {
+		h.doneErr = args.ExecuteNativeProject(hctx)
+		args.CloseLogFiles()
+		close(h.done)
+	}()
+
+	waitCtx, waitCancel := context.WithTimeout(ctx, cdpReadyTimeout)
+	defer waitCancel()
+	if err := h.waitForCDP(waitCtx); err != nil {
+		_ = h.stopDesktopRuntime()
+		return err
+	}
+	return nil
+}
+
+func (h *Harness) stopDesktopRuntime() error {
+	if h.done == nil {
+		return nil
+	}
+
+	select {
+	case <-h.done:
+		err := h.doneErr
+		h.done = nil
+		h.cancel = nil
+		if err != nil {
+			return errors.Wrap(err, "desktop runtime exited before it was stopped")
+		}
+		return nil
+	default:
+	}
+
+	if h.cancel != nil {
+		h.cancel()
+		h.cancel = nil
+	}
+	<-h.done
+	h.done = nil
+	return nil
+}
+
+func (h *Harness) disconnectDriver() {
 	if h.browser != nil {
 		_ = h.browser.Close()
 		h.browser = nil
@@ -207,17 +284,6 @@ func (h *Harness) Release() {
 		_ = h.pw.Stop()
 		h.pw = nil
 	}
-	if h.cancel != nil {
-		h.cancel()
-	}
-	if h.done != nil {
-		<-h.done
-		h.done = nil
-	}
-	for i := len(h.restoreEnv) - 1; i >= 0; i-- {
-		h.restoreEnv[i]()
-	}
-	h.restoreEnv = nil
 }
 
 func (h *Harness) waitForCDP(ctx context.Context) error {
@@ -232,6 +298,7 @@ func (h *Harness) waitForCDP(ctx context.Context) error {
 		}
 		resp, err := client.Do(req)
 		if err == nil {
+			_, _ = io.Copy(io.Discard, resp.Body)
 			_ = resp.Body.Close()
 			if resp.StatusCode == http.StatusOK {
 				return nil

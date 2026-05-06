@@ -86,6 +86,72 @@ func TestShellTabSelectionIsWindowLocal(t *testing.T) {
 	}
 }
 
+// TIER: nightly
+func TestShellTabsSurviveElectronRelaunch(t *testing.T) {
+	h := testHarness
+	if h == nil {
+		t.Fatal("expected electron harness")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
+	defer cancel()
+	page, err := waitForShellPage(ctx, h)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := seedShellTabs(page); err != nil {
+		t.Fatal(err)
+	}
+	if err := waitForShellTab(page, "Changelog"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := h.Relaunch(ctx); err != nil {
+		t.Fatal(err)
+	}
+	page, err = waitForShellPage(ctx, h)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := waitForShellTab(page, "Docs"); err != nil {
+		t.Fatal(err)
+	}
+	if err := waitForShellTab(page, "Changelog"); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func waitForShellPage(ctx context.Context, h *Harness) (playwright.Page, error) {
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		for _, page := range h.AppPages() {
+			hasShell, err := pageHasShellTabs(page)
+			if err == nil && hasShell {
+				return page, nil
+			}
+		}
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-h.done:
+			return nil, h.desktopRuntimeErr("desktop runtime exited before shell page appeared")
+		case <-ticker.C:
+		}
+	}
+}
+
+func pageHasShellTabs(page playwright.Page) (bool, error) {
+	raw, err := page.Evaluate(
+		`() => document.querySelectorAll('.shell-flexlayout .flexlayout__tab_button').length > 0`,
+	)
+	if err != nil {
+		return false, err
+	}
+	hasShell, _ := raw.(bool)
+	return hasShell, nil
+}
+
 func seedShellTabs(page playwright.Page) error {
 	if _, err := page.Evaluate(`() => {
 		const tabs = [
@@ -129,6 +195,21 @@ func clickShellTab(page playwright.Page, name string) error {
 		}
 		button.click()
 	}`, name)
+	return err
+}
+
+func waitForShellTab(page playwright.Page, name string) error {
+	_, err := page.WaitForFunction(`(name) => {
+		const buttons = Array.from(
+			document.querySelectorAll('.shell-flexlayout .flexlayout__tab_button'),
+		)
+		return buttons.some((candidate) => {
+			const content = candidate.querySelector('.flexlayout__tab_button_content')
+			return content?.textContent?.trim() === name
+		})
+	}`, name, playwright.PageWaitForFunctionOptions{
+		Timeout: playwright.Float(shellUIWaitTimeout),
+	})
 	return err
 }
 
