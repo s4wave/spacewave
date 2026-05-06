@@ -23,6 +23,7 @@ type testServerState struct {
 	close func()
 }
 
+// TIER: pr
 // TestMain builds the fixture bundles, starts playwright, and starts the
 // HTTP test server. All tests share the same server and playwright instance.
 func TestMain(m *testing.M) {

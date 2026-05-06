@@ -30,6 +30,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// TIER: pr
 func TestSpacewaveCoreE2E(t *testing.T) {
 	if os.Getenv("RUN_CORE_E2E") == "" {
 		t.Skip("set RUN_CORE_E2E=1 to run the core E2E test")

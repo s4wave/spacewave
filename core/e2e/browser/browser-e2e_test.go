@@ -37,6 +37,7 @@ import (
 	"golang.org/x/term"
 )
 
+// TIER: pr
 // TestBrowserE2EWithBldr runs the browser E2E tests with a full bldr backend.
 // This test starts the complete bldr infrastructure and runs vitest browser tests.
 func TestBrowserE2EWithBldr(t *testing.T) {

@@ -27,6 +27,7 @@ import (
 // process. Individual tests create isolated sessions via h.NewSession(t).
 var testHarness *Harness
 
+// TIER: pr
 func TestMain(m *testing.M) {
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)

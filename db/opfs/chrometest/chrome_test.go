@@ -38,6 +38,7 @@ type chromeSession struct {
 	page playwright.Page
 }
 
+// TIER: pr
 func TestMain(m *testing.M) {
 	if os.Getenv(runEnv) != "1" && !strings.EqualFold(os.Getenv(runEnv), "true") {
 		os.Exit(m.Run())

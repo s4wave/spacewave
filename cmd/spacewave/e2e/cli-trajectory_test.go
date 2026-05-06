@@ -34,6 +34,7 @@ type scriptState struct {
 	stderr   string
 }
 
+// TIER: pr
 func TestSpacewaveCLITrajectoryScripts(t *testing.T) {
 	if os.Getenv(enableCLITestscriptEnv) != "true" {
 		t.Skipf("set %s=true to run CLI trajectory scripts", enableCLITestscriptEnv)

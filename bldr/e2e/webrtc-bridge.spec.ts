@@ -29,7 +29,9 @@ async function waitForConsole(
     const handler = (msg: ConsoleMessage) => {
       const text = msg.text()
       const matches =
-        typeof pattern === 'string' ? text.includes(pattern) : pattern.test(text)
+        typeof pattern === 'string' ?
+          text.includes(pattern)
+        : pattern.test(text)
       if (matches) {
         clearTimeout(timer)
         page.removeListener('console', handler)
@@ -40,6 +42,7 @@ async function waitForConsole(
   })
 }
 
+// TIER: pr
 test.describe('WebRTC bridge bootstrap', () => {
   test('WebDocument opens bridge for worker', async ({ page }) => {
     const bridgePromise = waitForConsole(
@@ -86,9 +89,7 @@ test.describe('WebRTC bridge bootstrap', () => {
     await page.waitForTimeout(5_000)
 
     expect(
-      pageErrors.filter(
-        (e) => e.includes('WebRTC') || e.includes('bridge'),
-      ),
+      pageErrors.filter((e) => e.includes('WebRTC') || e.includes('bridge')),
     ).toEqual([])
     expect(consoleErrors).toEqual([])
   })

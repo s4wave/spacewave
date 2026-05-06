@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 
+// TIER: pr
 test.describe('bldr demo startup', () => {
   test('page loads with bldr-root', async ({ page }) => {
     await page.goto('/')

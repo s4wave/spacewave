@@ -20,7 +20,9 @@ async function waitForConsole(
     const handler = (msg: import('@playwright/test').ConsoleMessage) => {
       const text = msg.text()
       const matches =
-        typeof pattern === 'string' ? text.includes(pattern) : pattern.test(text)
+        typeof pattern === 'string' ?
+          text.includes(pattern)
+        : pattern.test(text)
       if (matches) {
         clearTimeout(timer)
         page.removeListener('console', handler)
@@ -33,6 +35,7 @@ async function waitForConsole(
 
 test.describe.configure({ mode: 'serial' })
 
+// TIER: pr
 test.describe('worker communication lifecycle', () => {
   test('detects worker comms config', async ({ page }) => {
     const configPromise = waitForConsole(page, 'worker-comms: detected config')

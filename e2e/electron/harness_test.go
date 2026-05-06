@@ -14,6 +14,7 @@ import (
 
 var testHarness *Harness
 
+// TIER: nightly
 func TestMain(m *testing.M) {
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)

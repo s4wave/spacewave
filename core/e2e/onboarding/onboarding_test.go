@@ -154,6 +154,7 @@ func parseMockSESEmail(dat []byte) (mockEmail, bool) {
 	return email, true
 }
 
+// TIER: nightly
 func TestMain(m *testing.M) {
 	cloudDir := os.Getenv("SPACEWAVE_CLOUD_DIR")
 	if cloudDir == "" {

@@ -18,6 +18,7 @@ var testHarness *harness
 
 const browserWaitMS = 60000
 
+// TIER: nightly
 func TestMain(m *testing.M) {
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
