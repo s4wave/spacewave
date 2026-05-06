@@ -220,7 +220,7 @@ export class BldrElectronApp {
   private setupNativeDirectoryPicker() {
     ipcMain.handle('BLDR_ELECTRON_OPEN_DIRECTORY', async () => {
       const result = await dialog.showOpenDialog({
-        properties: ['openDirectory'],
+        properties: ['openDirectory', 'showHiddenFiles'],
       })
       if (result.canceled || result.filePaths.length === 0) {
         return null

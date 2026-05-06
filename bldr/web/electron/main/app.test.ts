@@ -400,6 +400,20 @@ describe('BldrElectronApp', () => {
       'BLDR_ELECTRON_OPEN_DIRECTORY',
       expect.any(Function),
     )
+    const handler = vi.mocked(electron.ipcMain.handle).mock.calls.find(
+      ([channel]) => channel === 'BLDR_ELECTRON_OPEN_DIRECTORY',
+    )?.[1]
+    if (!handler) throw new Error('directory picker handler not registered')
+    vi.mocked(electron.dialog.showOpenDialog).mockResolvedValueOnce({
+      canceled: true,
+      filePaths: [],
+    })
+
+    await handler({} as Electron.IpcMainInvokeEvent)
+
+    expect(electron.dialog.showOpenDialog).toHaveBeenCalledWith({
+      properties: ['openDirectory', 'showHiddenFiles'],
+    })
   })
 })
 
