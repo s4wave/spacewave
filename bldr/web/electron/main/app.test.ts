@@ -5,6 +5,7 @@ Reflect.set(globalThis, 'BLDR_DEBUG', false)
 
 const browserWindows: MockBrowserWindow[] = []
 const webRuntimeInstances: MockWebRuntime[] = []
+const webRuntimeHostClientInstances: MockWebRuntimeHostClient[] = []
 const mockElectronApp = {
   getAppPath() {
     return '/app'
@@ -60,6 +61,14 @@ class MockWebRuntime {
 
   constructor(public readonly webRuntimeId: string) {
     webRuntimeInstances.push(this)
+  }
+}
+
+class MockWebRuntimeHostClient {
+  public readonly RequestRuntimeQuit = vi.fn(async () => ({}))
+
+  constructor() {
+    webRuntimeHostClientInstances.push(this)
   }
 }
 
@@ -133,6 +142,10 @@ vi.mock('../../runtime/sw/sw_srpc.pb.js', () => ({
   ServiceWorkerHostClient: class {},
 }))
 
+vi.mock('../../runtime/runtime_srpc.pb.js', () => ({
+  WebRuntimeHostClient: MockWebRuntimeHostClient,
+}))
+
 vi.mock('../../fetch/fetch.js', () => ({
   proxyFetch: vi.fn(),
 }))
@@ -168,6 +181,7 @@ describe('BldrElectronApp', () => {
     Reflect.set(globalThis, 'BLDR_DEBUG', false)
     browserWindows.length = 0
     webRuntimeInstances.length = 0
+    webRuntimeHostClientInstances.length = 0
     vi.clearAllMocks()
     mockElectronApp.requestSingleInstanceLock.mockReturnValue(true)
     vi.resetModules()
@@ -364,6 +378,23 @@ describe('BldrElectronApp', () => {
     expect(resource.setQuitting).toHaveBeenCalledWith(true)
   })
 
+  it('requests host runtime interrupt for explicit desktop quit', async () => {
+    const { BldrElectronApp } = await import('./app.js')
+    const app = Reflect.construct(BldrElectronApp, [
+      mockElectronApp,
+      'runtime-1',
+      {},
+    ])
+    const quitDesktopRuntime = Reflect.get(app, 'quitDesktopRuntime')
+
+    await Reflect.apply(quitDesktopRuntime, app, [])
+
+    expect(
+      webRuntimeHostClientInstances[0]?.RequestRuntimeQuit,
+    ).toHaveBeenCalledWith({})
+    expect(mockElectronApp.quit).not.toHaveBeenCalled()
+  })
+
   it('opens or focuses the singleton main window', async () => {
     const { BldrElectronApp } = await import('./app.js')
     const app = Reflect.construct(BldrElectronApp, [
@@ -374,8 +405,12 @@ describe('BldrElectronApp', () => {
     const openOrFocusMainWindow = Reflect.get(app, 'openOrFocusMainWindow')
 
     await Reflect.apply(openOrFocusMainWindow, app, [{ route: '/settings' }])
-    await Reflect.apply(openOrFocusMainWindow, app, [{ route: '/spaces/space-1' }])
-    await Reflect.apply(openOrFocusMainWindow, app, [{ route: '#/spaces/space-1' }])
+    await Reflect.apply(openOrFocusMainWindow, app, [
+      { route: '/spaces/space-1' },
+    ])
+    await Reflect.apply(openOrFocusMainWindow, app, [
+      { route: '#/spaces/space-1' },
+    ])
 
     expect(browserWindows).toHaveLength(1)
     expect(browserWindows[0]?.loadURL).toHaveBeenNthCalledWith(
@@ -426,9 +461,11 @@ describe('BldrElectronApp', () => {
       'BLDR_ELECTRON_OPEN_DIRECTORY',
       expect.any(Function),
     )
-    const handler = vi.mocked(electron.ipcMain.handle).mock.calls.find(
-      ([channel]) => channel === 'BLDR_ELECTRON_OPEN_DIRECTORY',
-    )?.[1]
+    const handler = vi
+      .mocked(electron.ipcMain.handle)
+      .mock.calls.find(
+        ([channel]) => channel === 'BLDR_ELECTRON_OPEN_DIRECTORY',
+      )?.[1]
     if (!handler) throw new Error('directory picker handler not registered')
     vi.mocked(electron.dialog.showOpenDialog).mockResolvedValueOnce({
       canceled: true,

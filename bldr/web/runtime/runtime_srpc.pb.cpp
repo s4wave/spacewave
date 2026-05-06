@@ -8,6 +8,10 @@
 
 namespace web::runtime {
 
+starpc::Error SRPCWebRuntimeHostClientImpl::RequestRuntimeQuit(const web::runtime::RequestRuntimeQuitRequest& in, web::runtime::RequestRuntimeQuitResponse* out) {
+  return cc_->ExecCall(service_id_, "RequestRuntimeQuit", in, out);
+}
+
 std::pair<std::unique_ptr<SRPCWebRuntimeHost_WebDocumentRpcClient>, starpc::Error> SRPCWebRuntimeHostClientImpl::WebDocumentRpc() {
   auto [strm, err] = cc_->NewStream(service_id_, "WebDocumentRpc", nullptr);
   if (err != starpc::Error::OK) {
@@ -34,6 +38,7 @@ std::pair<std::unique_ptr<SRPCWebRuntimeHost_WebWorkerRpcClient>, starpc::Error>
 
 std::vector<std::string> SRPCWebRuntimeHostHandler::GetMethodIDs() const {
   return {
+    "RequestRuntimeQuit",
     "WebDocumentRpc",
     "ServiceWorkerRpc",
     "WebWorkerRpc",
@@ -48,7 +53,15 @@ std::pair<bool, starpc::Error> SRPCWebRuntimeHostHandler::InvokeMethod(
     return {false, starpc::Error::OK};
   }
 
-  if (method_id == "WebDocumentRpc") {
+  if (method_id == "RequestRuntimeQuit") {
+    web::runtime::RequestRuntimeQuitRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    web::runtime::RequestRuntimeQuitResponse resp;
+    err = impl_->RequestRuntimeQuit(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "WebDocumentRpc") {
     SRPCWebRuntimeHost_WebDocumentRpcStream bidiStrm(strm);
     return {true, impl_->WebDocumentRpc(&bidiStrm)};
   } else if (method_id == "ServiceWorkerRpc") {

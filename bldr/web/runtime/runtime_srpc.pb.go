@@ -15,6 +15,8 @@ type SRPCWebRuntimeHostClient interface {
 	// SRPCClient returns the underlying SRPC client.
 	SRPCClient() srpc.Client
 
+	// RequestRuntimeQuit asks the host runtime to perform a user-initiated quit.
+	RequestRuntimeQuit(ctx context.Context, in *RequestRuntimeQuitRequest) (*RequestRuntimeQuitResponse, error)
 	// WebDocumentRpc opens a stream for a RPC call to a WebDocument.
 	// Exposes the WebDocumentHost service.
 	// Id is the webDocumentId.
@@ -46,6 +48,15 @@ func NewSRPCWebRuntimeHostClientWithServiceID(cc srpc.Client, serviceID string) 
 }
 
 func (c *srpcWebRuntimeHostClient) SRPCClient() srpc.Client { return c.cc }
+
+func (c *srpcWebRuntimeHostClient) RequestRuntimeQuit(ctx context.Context, in *RequestRuntimeQuitRequest) (*RequestRuntimeQuitResponse, error) {
+	out := new(RequestRuntimeQuitResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "RequestRuntimeQuit", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
 
 func (c *srpcWebRuntimeHostClient) WebDocumentRpc(ctx context.Context) (SRPCWebRuntimeHost_WebDocumentRpcClient, error) {
 	stream, err := c.cc.NewStream(ctx, c.serviceID, "WebDocumentRpc", nil)
@@ -165,6 +176,8 @@ func (x *srpcWebRuntimeHost_WebWorkerRpcClient) RecvTo(m *rpcstream.RpcStreamPac
 }
 
 type SRPCWebRuntimeHostServer interface {
+	// RequestRuntimeQuit asks the host runtime to perform a user-initiated quit.
+	RequestRuntimeQuit(context.Context, *RequestRuntimeQuitRequest) (*RequestRuntimeQuitResponse, error)
 	// WebDocumentRpc opens a stream for a RPC call to a WebDocument.
 	// Exposes the WebDocumentHost service.
 	// Id is the webDocumentId.
@@ -205,6 +218,7 @@ func (d *SRPCWebRuntimeHostHandler) GetServiceID() string { return d.serviceID }
 
 func (SRPCWebRuntimeHostHandler) GetMethodIDs() []string {
 	return []string{
+		"RequestRuntimeQuit",
 		"WebDocumentRpc",
 		"ServiceWorkerRpc",
 		"WebWorkerRpc",
@@ -220,6 +234,8 @@ func (d *SRPCWebRuntimeHostHandler) InvokeMethod(
 	}
 
 	switch methodID {
+	case "RequestRuntimeQuit":
+		return true, d.InvokeMethod_RequestRuntimeQuit(d.impl, strm)
 	case "WebDocumentRpc":
 		return true, d.InvokeMethod_WebDocumentRpc(d.impl, strm)
 	case "ServiceWorkerRpc":
@@ -229,6 +245,18 @@ func (d *SRPCWebRuntimeHostHandler) InvokeMethod(
 	default:
 		return false, nil
 	}
+}
+
+func (SRPCWebRuntimeHostHandler) InvokeMethod_RequestRuntimeQuit(impl SRPCWebRuntimeHostServer, strm srpc.Stream) error {
+	req := new(RequestRuntimeQuitRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.RequestRuntimeQuit(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
 }
 
 func (SRPCWebRuntimeHostHandler) InvokeMethod_WebDocumentRpc(impl SRPCWebRuntimeHostServer, strm srpc.Stream) error {
@@ -244,6 +272,14 @@ func (SRPCWebRuntimeHostHandler) InvokeMethod_ServiceWorkerRpc(impl SRPCWebRunti
 func (SRPCWebRuntimeHostHandler) InvokeMethod_WebWorkerRpc(impl SRPCWebRuntimeHostServer, strm srpc.Stream) error {
 	clientStrm := &srpcWebRuntimeHost_WebWorkerRpcStream{strm}
 	return impl.WebWorkerRpc(clientStrm)
+}
+
+type SRPCWebRuntimeHost_RequestRuntimeQuitStream interface {
+	srpc.Stream
+}
+
+type srpcWebRuntimeHost_RequestRuntimeQuitStream struct {
+	srpc.Stream
 }
 
 type SRPCWebRuntimeHost_WebDocumentRpcStream interface {

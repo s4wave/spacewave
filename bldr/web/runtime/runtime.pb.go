@@ -124,6 +124,28 @@ func (x *WebRuntimeHostInit) GetWebRuntimeId() string {
 	return ""
 }
 
+// RequestRuntimeQuitRequest requests a clean host runtime quit.
+type RequestRuntimeQuitRequest struct {
+	unknownFields []byte
+}
+
+func (x *RequestRuntimeQuitRequest) Reset() {
+	*x = RequestRuntimeQuitRequest{}
+}
+
+func (*RequestRuntimeQuitRequest) ProtoMessage() {}
+
+// RequestRuntimeQuitResponse is the response to RequestRuntimeQuit.
+type RequestRuntimeQuitResponse struct {
+	unknownFields []byte
+}
+
+func (x *RequestRuntimeQuitResponse) Reset() {
+	*x = RequestRuntimeQuitResponse{}
+}
+
+func (*RequestRuntimeQuitResponse) ProtoMessage() {}
+
 // WatchWebRuntimeStatusRequest is the body of the WatchWebRuntimeStatus request.
 type WatchWebRuntimeStatusRequest struct {
 	unknownFields []byte
@@ -372,6 +394,36 @@ func (m *WebRuntimeHostInit) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *RequestRuntimeQuitRequest) CloneVT() *RequestRuntimeQuitRequest {
+	if m == nil {
+		return (*RequestRuntimeQuitRequest)(nil)
+	}
+	r := new(RequestRuntimeQuitRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RequestRuntimeQuitRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RequestRuntimeQuitResponse) CloneVT() *RequestRuntimeQuitResponse {
+	if m == nil {
+		return (*RequestRuntimeQuitResponse)(nil)
+	}
+	r := new(RequestRuntimeQuitResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RequestRuntimeQuitResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *WatchWebRuntimeStatusRequest) CloneVT() *WatchWebRuntimeStatusRequest {
 	if m == nil {
 		return (*WatchWebRuntimeStatusRequest)(nil)
@@ -526,6 +578,40 @@ func (this *WebRuntimeHostInit) EqualVT(that *WebRuntimeHostInit) bool {
 
 func (this *WebRuntimeHostInit) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*WebRuntimeHostInit)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RequestRuntimeQuitRequest) EqualVT(that *RequestRuntimeQuitRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RequestRuntimeQuitRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RequestRuntimeQuitRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RequestRuntimeQuitResponse) EqualVT(that *RequestRuntimeQuitResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RequestRuntimeQuitResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RequestRuntimeQuitResponse)
 	if !ok {
 		return false
 	}
@@ -846,6 +932,66 @@ func (x *WebRuntimeHostInit) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the WebRuntimeHostInit from JSON.
 func (x *WebRuntimeHostInit) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RequestRuntimeQuitRequest message to JSON.
+func (x *RequestRuntimeQuitRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RequestRuntimeQuitRequest to JSON.
+func (x *RequestRuntimeQuitRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RequestRuntimeQuitRequest message from JSON.
+func (x *RequestRuntimeQuitRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the RequestRuntimeQuitRequest from JSON.
+func (x *RequestRuntimeQuitRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RequestRuntimeQuitResponse message to JSON.
+func (x *RequestRuntimeQuitResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RequestRuntimeQuitResponse to JSON.
+func (x *RequestRuntimeQuitResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RequestRuntimeQuitResponse message from JSON.
+func (x *RequestRuntimeQuitResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the RequestRuntimeQuitResponse from JSON.
+func (x *RequestRuntimeQuitResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1298,6 +1444,72 @@ func (m *WebRuntimeHostInit) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *RequestRuntimeQuitRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RequestRuntimeQuitRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RequestRuntimeQuitRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RequestRuntimeQuitResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RequestRuntimeQuitResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RequestRuntimeQuitResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *WatchWebRuntimeStatusRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1705,6 +1917,26 @@ func (m *WebRuntimeHostInit) SizeVT() (n int) {
 	return n
 }
 
+func (m *RequestRuntimeQuitRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RequestRuntimeQuitResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *WatchWebRuntimeStatusRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1862,6 +2094,28 @@ func (x *WebRuntimeHostInit) MarshalProtoText() string {
 }
 
 func (x *WebRuntimeHostInit) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RequestRuntimeQuitRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("RequestRuntimeQuitRequest {")
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *RequestRuntimeQuitRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RequestRuntimeQuitResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("RequestRuntimeQuitResponse {")
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *RequestRuntimeQuitResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -2108,6 +2362,92 @@ func (m *WebRuntimeHostInit) UnmarshalVT(dAtA []byte) error {
 			}
 			m.WebRuntimeId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RequestRuntimeQuitRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RequestRuntimeQuitRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RequestRuntimeQuitRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RequestRuntimeQuitResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RequestRuntimeQuitResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RequestRuntimeQuitResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

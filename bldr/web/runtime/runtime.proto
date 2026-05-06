@@ -7,6 +7,9 @@ import "github.com/aperturerobotics/starpc/rpcstream/rpcstream.proto";
 //
 // Usually accessed by the WebRuntime.
 service WebRuntimeHost {
+  // RequestRuntimeQuit asks the host runtime to perform a user-initiated quit.
+  rpc RequestRuntimeQuit(RequestRuntimeQuitRequest) returns (RequestRuntimeQuitResponse);
+
   // WebDocumentRpc opens a stream for a RPC call to a WebDocument.
   // Exposes the WebDocumentHost service.
   // Id is the webDocumentId.
@@ -58,6 +61,12 @@ message WebRuntimeHostInit {
   // must be set
   string web_runtime_id = 1;
 }
+
+// RequestRuntimeQuitRequest requests a clean host runtime quit.
+message RequestRuntimeQuitRequest {}
+
+// RequestRuntimeQuitResponse is the response to RequestRuntimeQuit.
+message RequestRuntimeQuitResponse {}
 
 // WatchWebRuntimeStatusRequest is the body of the WatchWebRuntimeStatus request.
 message WatchWebRuntimeStatusRequest {}

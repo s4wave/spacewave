@@ -35,6 +35,8 @@ class SRPCWebRuntimeHostClient {
   // SRPCClient returns the underlying SRPC client.
   virtual starpc::Client* SRPCClient() = 0;
 
+  // RequestRuntimeQuit
+  virtual starpc::Error RequestRuntimeQuit(const web::runtime::RequestRuntimeQuitRequest& in, web::runtime::RequestRuntimeQuitResponse* out) = 0;
   // WebDocumentRpc
   virtual std::pair<std::unique_ptr<SRPCWebRuntimeHost_WebDocumentRpcClient>, starpc::Error> WebDocumentRpc() = 0;
   // ServiceWorkerRpc
@@ -51,6 +53,8 @@ class SRPCWebRuntimeHostClientImpl : public SRPCWebRuntimeHostClient {
 
   starpc::Client* SRPCClient() override { return cc_; }
 
+  // RequestRuntimeQuit
+  virtual starpc::Error RequestRuntimeQuit(const web::runtime::RequestRuntimeQuitRequest& in, web::runtime::RequestRuntimeQuitResponse* out) override;
   // WebDocumentRpc
   virtual std::pair<std::unique_ptr<SRPCWebRuntimeHost_WebDocumentRpcClient>, starpc::Error> WebDocumentRpc() override;
   // ServiceWorkerRpc
@@ -73,6 +77,8 @@ class SRPCWebRuntimeHostServer {
  public:
   virtual ~SRPCWebRuntimeHostServer() = default;
 
+  // RequestRuntimeQuit
+  virtual starpc::Error RequestRuntimeQuit(const web::runtime::RequestRuntimeQuitRequest& req, web::runtime::RequestRuntimeQuitResponse* resp) = 0;
   // WebDocumentRpc
   virtual starpc::Error WebDocumentRpc(SRPCWebRuntimeHost_WebDocumentRpcStream* strm) = 0;
   // ServiceWorkerRpc

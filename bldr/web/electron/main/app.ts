@@ -13,6 +13,7 @@ import {
   RemoveWebDocumentResponse,
   WebRuntimeClientInit,
 } from '../../runtime/runtime.pb.js'
+import { WebRuntimeHostClient } from '../../runtime/runtime_srpc.pb.js'
 import type { OpenOrFocusMainWindowRequest } from '../desktop-runtime/desktop-runtime.pb.js'
 import { APP_SCHEME, appRequestHandler } from './protocol.js'
 import { ServiceWorkerHostClient } from '../../runtime/sw/sw_srpc.pb.js'
@@ -47,6 +48,10 @@ export class BldrElectronApp {
   // webRuntimeHostOpenStreamCtr contains the OpenStreamFn for the WebRuntimeHost.
   // this is the Go runtime that is managing the Bldr Electron instance.
   public readonly webRuntimeHostOpenStreamCtr: OpenStreamCtr
+  // webRuntimeHostClient contacts the Go WebRuntimeHost via the runtime socket.
+  public readonly webRuntimeHostClient: SRPCClient
+  // webRuntimeHostServiceClient is the RPC wrapper for webRuntimeHostClient.
+  public readonly webRuntimeHostServiceClient: WebRuntimeHostClient
   // serviceWorkerHostClient contacts the ServiceWorkerHost via the webRuntime
   public readonly serviceWorkerHostClient: SRPCClient
   // serviceWorkerHostClient is the ServiceWorkerHost RPC wrapper for serviceWorkerHostClient.
@@ -78,6 +83,12 @@ export class BldrElectronApp {
 
     // openStreamCtr will contain the runtime open stream func.
     this.webRuntimeHostOpenStreamCtr = new OpenStreamCtr(undefined)
+    this.webRuntimeHostClient = new SRPCClient(
+      this.webRuntimeHostOpenStreamCtr.openStreamFunc,
+    )
+    this.webRuntimeHostServiceClient = new WebRuntimeHostClient(
+      this.webRuntimeHostClient,
+    )
 
     this.webRuntime = new WebRuntime(
       webRuntimeID,
@@ -463,8 +474,13 @@ export class BldrElectronApp {
     nwindow.focus()
   }
 
-  private quitDesktopRuntime() {
-    this.app.quit()
+  private async quitDesktopRuntime() {
+    try {
+      await this.webRuntimeHostServiceClient.RequestRuntimeQuit({})
+    } catch (err) {
+      console.error('failed to request host runtime quit', err)
+      this.app.quit()
+    }
   }
 
   private hasTrayBackgroundPresence(): boolean {

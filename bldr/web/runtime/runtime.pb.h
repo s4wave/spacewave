@@ -79,6 +79,14 @@ class RemoveWebDocumentResponse;
 struct RemoveWebDocumentResponseDefaultTypeInternal;
 extern RemoveWebDocumentResponseDefaultTypeInternal _RemoveWebDocumentResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull RemoveWebDocumentResponse_class_data_;
+class RequestRuntimeQuitRequest;
+struct RequestRuntimeQuitRequestDefaultTypeInternal;
+extern RequestRuntimeQuitRequestDefaultTypeInternal _RequestRuntimeQuitRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull RequestRuntimeQuitRequest_class_data_;
+class RequestRuntimeQuitResponse;
+struct RequestRuntimeQuitResponseDefaultTypeInternal;
+extern RequestRuntimeQuitResponseDefaultTypeInternal _RequestRuntimeQuitResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull RequestRuntimeQuitResponse_class_data_;
 class WatchWebRuntimeStatusRequest;
 struct WatchWebRuntimeStatusRequestDefaultTypeInternal;
 extern WatchWebRuntimeStatusRequestDefaultTypeInternal _WatchWebRuntimeStatusRequest_default_instance_;
@@ -445,7 +453,7 @@ class WebRuntimeClientInit final : public ::google::protobuf::Message
     return *reinterpret_cast<const WebRuntimeClientInit*>(
         &_WebRuntimeClientInit_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 8;
+  static constexpr int kIndexInFileMessages = 10;
   friend void swap(WebRuntimeClientInit& a, WebRuntimeClientInit& b) { a.Swap(&b); }
   inline void Swap(WebRuntimeClientInit* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -698,7 +706,7 @@ class WebDocumentStatus final : public ::google::protobuf::Message
     return *reinterpret_cast<const WebDocumentStatus*>(
         &_WebDocumentStatus_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 3;
+  static constexpr int kIndexInFileMessages = 5;
   friend void swap(WebDocumentStatus& a, WebDocumentStatus& b) { a.Swap(&b); }
   inline void Swap(WebDocumentStatus* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -916,7 +924,7 @@ class WatchWebRuntimeStatusRequest final : public ::google::protobuf::internal::
     return *reinterpret_cast<const WatchWebRuntimeStatusRequest*>(
         &_WatchWebRuntimeStatusRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 1;
+  static constexpr int kIndexInFileMessages = 3;
   friend void swap(WatchWebRuntimeStatusRequest& a, WatchWebRuntimeStatusRequest& b) { a.Swap(&b); }
   inline void Swap(WatchWebRuntimeStatusRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -996,6 +1004,274 @@ class WatchWebRuntimeStatusRequest final : public ::google::protobuf::internal::
 extern const ::google::protobuf::internal::ClassDataFull WatchWebRuntimeStatusRequest_class_data_;
 // -------------------------------------------------------------------
 
+class RequestRuntimeQuitResponse final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:web.runtime.RequestRuntimeQuitResponse) */ {
+ public:
+  inline RequestRuntimeQuitResponse() : RequestRuntimeQuitResponse(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(RequestRuntimeQuitResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(RequestRuntimeQuitResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR RequestRuntimeQuitResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline RequestRuntimeQuitResponse(const RequestRuntimeQuitResponse& from) : RequestRuntimeQuitResponse(nullptr, from) {}
+  inline RequestRuntimeQuitResponse(RequestRuntimeQuitResponse&& from) noexcept
+      : RequestRuntimeQuitResponse(nullptr, ::std::move(from)) {}
+  inline RequestRuntimeQuitResponse& operator=(const RequestRuntimeQuitResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline RequestRuntimeQuitResponse& operator=(RequestRuntimeQuitResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const RequestRuntimeQuitResponse& default_instance() {
+    return *reinterpret_cast<const RequestRuntimeQuitResponse*>(
+        &_RequestRuntimeQuitResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 2;
+  friend void swap(RequestRuntimeQuitResponse& a, RequestRuntimeQuitResponse& b) { a.Swap(&b); }
+  inline void Swap(RequestRuntimeQuitResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(RequestRuntimeQuitResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  RequestRuntimeQuitResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<RequestRuntimeQuitResponse>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const RequestRuntimeQuitResponse& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const RequestRuntimeQuitResponse& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "web.runtime.RequestRuntimeQuitResponse"; }
+
+  explicit RequestRuntimeQuitResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  RequestRuntimeQuitResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const RequestRuntimeQuitResponse& from);
+  RequestRuntimeQuitResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, RequestRuntimeQuitResponse&& from) noexcept
+      : RequestRuntimeQuitResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:web.runtime.RequestRuntimeQuitResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fruntime_2fruntime_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull RequestRuntimeQuitResponse_class_data_;
+// -------------------------------------------------------------------
+
+class RequestRuntimeQuitRequest final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:web.runtime.RequestRuntimeQuitRequest) */ {
+ public:
+  inline RequestRuntimeQuitRequest() : RequestRuntimeQuitRequest(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(RequestRuntimeQuitRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(RequestRuntimeQuitRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR RequestRuntimeQuitRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline RequestRuntimeQuitRequest(const RequestRuntimeQuitRequest& from) : RequestRuntimeQuitRequest(nullptr, from) {}
+  inline RequestRuntimeQuitRequest(RequestRuntimeQuitRequest&& from) noexcept
+      : RequestRuntimeQuitRequest(nullptr, ::std::move(from)) {}
+  inline RequestRuntimeQuitRequest& operator=(const RequestRuntimeQuitRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline RequestRuntimeQuitRequest& operator=(RequestRuntimeQuitRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const RequestRuntimeQuitRequest& default_instance() {
+    return *reinterpret_cast<const RequestRuntimeQuitRequest*>(
+        &_RequestRuntimeQuitRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 1;
+  friend void swap(RequestRuntimeQuitRequest& a, RequestRuntimeQuitRequest& b) { a.Swap(&b); }
+  inline void Swap(RequestRuntimeQuitRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(RequestRuntimeQuitRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  RequestRuntimeQuitRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<RequestRuntimeQuitRequest>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const RequestRuntimeQuitRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const RequestRuntimeQuitRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "web.runtime.RequestRuntimeQuitRequest"; }
+
+  explicit RequestRuntimeQuitRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  RequestRuntimeQuitRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const RequestRuntimeQuitRequest& from);
+  RequestRuntimeQuitRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, RequestRuntimeQuitRequest&& from) noexcept
+      : RequestRuntimeQuitRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:web.runtime.RequestRuntimeQuitRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fruntime_2fruntime_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull RequestRuntimeQuitRequest_class_data_;
+// -------------------------------------------------------------------
+
 class RemoveWebDocumentResponse final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:web.runtime.RemoveWebDocumentResponse) */ {
  public:
@@ -1051,7 +1327,7 @@ class RemoveWebDocumentResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const RemoveWebDocumentResponse*>(
         &_RemoveWebDocumentResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 7;
+  static constexpr int kIndexInFileMessages = 9;
   friend void swap(RemoveWebDocumentResponse& a, RemoveWebDocumentResponse& b) { a.Swap(&b); }
   inline void Swap(RemoveWebDocumentResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1241,7 +1517,7 @@ class RemoveWebDocumentRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const RemoveWebDocumentRequest*>(
         &_RemoveWebDocumentRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 6;
+  static constexpr int kIndexInFileMessages = 8;
   friend void swap(RemoveWebDocumentRequest& a, RemoveWebDocumentRequest& b) { a.Swap(&b); }
   inline void Swap(RemoveWebDocumentRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1436,7 +1712,7 @@ class CreateWebDocumentResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const CreateWebDocumentResponse*>(
         &_CreateWebDocumentResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 5;
+  static constexpr int kIndexInFileMessages = 7;
   friend void swap(CreateWebDocumentResponse& a, CreateWebDocumentResponse& b) { a.Swap(&b); }
   inline void Swap(CreateWebDocumentResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1626,7 +1902,7 @@ class CreateWebDocumentRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const CreateWebDocumentRequest*>(
         &_CreateWebDocumentRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 4;
+  static constexpr int kIndexInFileMessages = 6;
   friend void swap(CreateWebDocumentRequest& a, CreateWebDocumentRequest& b) { a.Swap(&b); }
   inline void Swap(CreateWebDocumentRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1821,7 +2097,7 @@ class WebRuntimeStatus final : public ::google::protobuf::Message
     return *reinterpret_cast<const WebRuntimeStatus*>(
         &_WebRuntimeStatus_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 2;
+  static constexpr int kIndexInFileMessages = 4;
   friend void swap(WebRuntimeStatus& a, WebRuntimeStatus& b) { a.Swap(&b); }
   inline void Swap(WebRuntimeStatus* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2066,6 +2342,14 @@ inline void WebRuntimeHostInit::set_allocated_web_runtime_id(::std::string* PROT
   }
   // @@protoc_insertion_point(field_set_allocated:web.runtime.WebRuntimeHostInit.web_runtime_id)
 }
+
+// -------------------------------------------------------------------
+
+// RequestRuntimeQuitRequest
+
+// -------------------------------------------------------------------
+
+// RequestRuntimeQuitResponse
 
 // -------------------------------------------------------------------
 

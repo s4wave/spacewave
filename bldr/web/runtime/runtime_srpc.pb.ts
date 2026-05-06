@@ -2,22 +2,24 @@
 // @generated from file github.com/s4wave/spacewave/bldr/web/runtime/runtime.proto (package web.runtime, syntax proto3)
 /* eslint-disable */
 
-import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js'
+import {
+  CreateWebDocumentRequest,
+  CreateWebDocumentResponse,
+  RemoveWebDocumentRequest,
+  RemoveWebDocumentResponse,
+  RequestRuntimeQuitRequest,
+  RequestRuntimeQuitResponse,
+  WatchWebRuntimeStatusRequest,
+  WebRuntimeStatus,
+} from './runtime.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
+import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js'
 import {
   buildDecodeMessageTransform,
   buildEncodeMessageTransform,
   MessageStream,
   ProtoRpc,
 } from 'starpc'
-import {
-  CreateWebDocumentRequest,
-  CreateWebDocumentResponse,
-  RemoveWebDocumentRequest,
-  RemoveWebDocumentResponse,
-  WatchWebRuntimeStatusRequest,
-  WebRuntimeStatus,
-} from './runtime.pb.js'
 
 /**
  * WebRuntimeHost is the API exposed by the Go runtime to the WebRuntime.
@@ -29,6 +31,17 @@ import {
 export const WebRuntimeHostDefinition = {
   typeName: 'web.runtime.WebRuntimeHost',
   methods: {
+    /**
+     * RequestRuntimeQuit asks the host runtime to perform a user-initiated quit.
+     *
+     * @generated from rpc web.runtime.WebRuntimeHost.RequestRuntimeQuit
+     */
+    RequestRuntimeQuit: {
+      name: 'RequestRuntimeQuit',
+      I: RequestRuntimeQuitRequest,
+      O: RequestRuntimeQuitResponse,
+      kind: MethodKind.Unary,
+    },
     /**
      * WebDocumentRpc opens a stream for a RPC call to a WebDocument.
      * Exposes the WebDocumentHost service.
@@ -80,6 +93,16 @@ export const WebRuntimeHostDefinition = {
  */
 export interface WebRuntimeHost {
   /**
+   * RequestRuntimeQuit asks the host runtime to perform a user-initiated quit.
+   *
+   * @generated from rpc web.runtime.WebRuntimeHost.RequestRuntimeQuit
+   */
+  RequestRuntimeQuit(
+    request: RequestRuntimeQuitRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<RequestRuntimeQuitResponse>
+
+  /**
    * WebDocumentRpc opens a stream for a RPC call to a WebDocument.
    * Exposes the WebDocumentHost service.
    * Id is the webDocumentId.
@@ -124,10 +147,30 @@ export class WebRuntimeHostClient implements WebRuntimeHost {
   constructor(rpc: ProtoRpc, opts?: { service?: string }) {
     this.service = opts?.service || WebRuntimeHostServiceName
     this.rpc = rpc
+    this.RequestRuntimeQuit = this.RequestRuntimeQuit.bind(this)
     this.WebDocumentRpc = this.WebDocumentRpc.bind(this)
     this.ServiceWorkerRpc = this.ServiceWorkerRpc.bind(this)
     this.WebWorkerRpc = this.WebWorkerRpc.bind(this)
   }
+  /**
+   * RequestRuntimeQuit asks the host runtime to perform a user-initiated quit.
+   *
+   * @generated from rpc web.runtime.WebRuntimeHost.RequestRuntimeQuit
+   */
+  async RequestRuntimeQuit(
+    request: RequestRuntimeQuitRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<RequestRuntimeQuitResponse> {
+    const requestMsg = RequestRuntimeQuitRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      WebRuntimeHostDefinition.methods.RequestRuntimeQuit.name,
+      RequestRuntimeQuitRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return RequestRuntimeQuitResponse.fromBinary(result)
+  }
+
   /**
    * WebDocumentRpc opens a stream for a RPC call to a WebDocument.
    * Exposes the WebDocumentHost service.

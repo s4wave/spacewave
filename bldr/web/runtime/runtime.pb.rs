@@ -11,6 +11,14 @@ pub struct WebRuntimeHostInit {
     #[prost(string, tag="1")]
     pub web_runtime_id: ::prost::alloc::string::String,
 }
+/// RequestRuntimeQuitRequest requests a clean host runtime quit.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RequestRuntimeQuitRequest {
+}
+/// RequestRuntimeQuitResponse is the response to RequestRuntimeQuit.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RequestRuntimeQuitResponse {
+}
 /// WatchWebRuntimeStatusRequest is the body of the WatchWebRuntimeStatus request.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct WatchWebRuntimeStatusRequest {

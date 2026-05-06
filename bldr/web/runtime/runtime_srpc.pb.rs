@@ -50,6 +50,8 @@ pub trait WebRuntimeHostWebWorkerRpcStream: Send + Sync {
 /// Client trait for WebRuntimeHost.
 #[starpc::async_trait]
 pub trait WebRuntimeHostClient: Send + Sync {
+    /// RequestRuntimeQuit.
+    async fn request_runtime_quit(&self, request: &RequestRuntimeQuitRequest) -> starpc::Result<RequestRuntimeQuitResponse>;
     /// WebDocumentRpc.
     async fn web_document_rpc(&self) -> starpc::Result<Box<dyn WebRuntimeHostWebDocumentRpcStream>>;
     /// ServiceWorkerRpc.
@@ -72,6 +74,9 @@ impl<C: starpc::Client> WebRuntimeHostClientImpl<C> {
 
 #[starpc::async_trait]
 impl<C: starpc::Client + 'static> WebRuntimeHostClient for WebRuntimeHostClientImpl<C> {
+    async fn request_runtime_quit(&self, request: &RequestRuntimeQuitRequest) -> starpc::Result<RequestRuntimeQuitResponse> {
+        self.client.exec_call("web.runtime.WebRuntimeHost", "RequestRuntimeQuit", request).await
+    }
     async fn web_document_rpc(&self) -> starpc::Result<Box<dyn WebRuntimeHostWebDocumentRpcStream>> {
         let stream = self.client.new_stream("web.runtime.WebRuntimeHost", "WebDocumentRpc", None).await?;
         Ok(Box::new(WebRuntimeHostWebDocumentRpcStreamImpl { stream }))
@@ -149,6 +154,8 @@ impl WebRuntimeHostWebWorkerRpcStream for WebRuntimeHostWebWorkerRpcStreamImpl {
 /// Server trait for WebRuntimeHost.
 #[starpc::async_trait]
 pub trait WebRuntimeHostServer: Send + Sync {
+    /// RequestRuntimeQuit.
+    async fn request_runtime_quit(&self, request: RequestRuntimeQuitRequest) -> starpc::Result<RequestRuntimeQuitResponse>;
     /// WebDocumentRpc.
     async fn web_document_rpc(&self, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
     /// ServiceWorkerRpc.
@@ -158,6 +165,7 @@ pub trait WebRuntimeHostServer: Send + Sync {
 }
 
 const WEB_RUNTIME_HOST_METHOD_IDS: &[&str] = &[
+    "RequestRuntimeQuit",
     "WebDocumentRpc",
     "ServiceWorkerRpc",
     "WebWorkerRpc",
@@ -189,6 +197,21 @@ impl<S: WebRuntimeHostServer + 'static> starpc::Invoker for WebRuntimeHostHandle
         stream: Box<dyn starpc::Stream>,
     ) -> (bool, starpc::Result<()>) {
         match method_id {
+            "RequestRuntimeQuit" => {
+                let request: RequestRuntimeQuitRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.request_runtime_quit(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
             "WebDocumentRpc" => {
                 (true, self.server.web_document_rpc(stream).await)
             }
