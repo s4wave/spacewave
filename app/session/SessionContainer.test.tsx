@@ -128,8 +128,19 @@ vi.mock('./PinUnlockOverlay.js', () => ({
 }))
 
 vi.mock('@s4wave/app/provider/spacewave/SpacewaveSessionContent.js', () => ({
-  SpacewaveSessionContent: ({ children }: { children?: ReactNode }) => (
-    <div data-testid="spacewave-content">{children}</div>
+  SpacewaveSessionContent: ({
+    children,
+    onboarding,
+  }: {
+    children?: ReactNode
+    onboarding?: { accountStatus?: ProviderAccountStatus } | null
+  }) => (
+    <div
+      data-testid="spacewave-content"
+      data-account-status={onboarding?.accountStatus ?? ''}
+    >
+      {children}
+    </div>
   ),
 }))
 
@@ -218,6 +229,12 @@ vi.mock('./ReAuthOverlay.js', () => ({
 }))
 
 describe('SessionContainer', () => {
+  type StreamingResourceCall = [
+    { value: unknown },
+    (value: unknown, signal: AbortSignal) => unknown,
+    unknown?,
+  ]
+
   function mockStreams(lockState: unknown, onboardingState: unknown) {
     mockUseStreamingResource
       .mockReturnValueOnce({ value: onboardingState })
@@ -258,6 +275,103 @@ describe('SessionContainer', () => {
     expect(within(content).getByTestId('spacewave-content')).toBeTruthy()
     expect(within(overlay).queryByTestId('spacewave-content')).toBeNull()
     expect(within(overlay).getByTestId('session-details')).toBeTruthy()
+  })
+
+  it('opens the Onboarding Status stream once at the session container boundary', () => {
+    cleanup()
+    mockNavigate.mockReset()
+    mockUseStreamingResource.mockReset()
+    mockUseSessionIndex.mockReturnValue(1)
+    mockUsePath.mockReturnValue('/u/1')
+    mockUseSessionInfo.mockReturnValue({
+      peerId: 'peer-id',
+    })
+    mockUseBottomBarSetOpenMenu.mockReturnValue(undefined)
+    mockUseRootResource.mockReturnValue({ value: null })
+    mockStreams(null, {
+      accountStatus: ProviderAccountStatus.ProviderAccountStatus_READY,
+    })
+    mockConsumePendingJoin.mockReturnValue(null)
+    const watchOnboardingStatus = vi.fn(() => 'onboarding-stream')
+    const watchLockState = vi.fn(() => 'lock-stream')
+    const session = {
+      spacewave: { watchOnboardingStatus },
+      watchLockState,
+    }
+    const signal = new AbortController().signal
+
+    render(
+      <SessionContainer
+        sessionResource={{
+          value: session as never,
+          loading: false,
+          error: null,
+          retry: vi.fn(),
+        }}
+        metadata={{
+          providerId: 'spacewave',
+          displayName: 'Cloud Session',
+        }}
+      />,
+    )
+
+    expect(mockUseStreamingResource.mock.calls.length).toBeGreaterThanOrEqual(2)
+    const streamingCalls = mockUseStreamingResource.mock
+      .calls as StreamingResourceCall[]
+    const [[onboardingResource, onboardingReader], [lockResource, lockReader]] =
+      streamingCalls
+    expect(onboardingResource.value).toBe(session)
+    expect(onboardingReader(session, signal)).toBe('onboarding-stream')
+    expect(watchOnboardingStatus).toHaveBeenCalledWith(signal)
+    expect(lockResource.value).toBe(session)
+    expect(lockReader(session, signal)).toBe('lock-stream')
+    expect(watchLockState).toHaveBeenCalledWith({}, signal)
+    expect(
+      screen
+        .getByTestId('spacewave-content')
+        .getAttribute('data-account-status'),
+    ).toBe(String(ProviderAccountStatus.ProviderAccountStatus_READY))
+  })
+
+  it('keeps local sessions off the Onboarding Status stream', () => {
+    cleanup()
+    mockNavigate.mockReset()
+    mockUseStreamingResource.mockReset()
+    mockUseSessionIndex.mockReturnValue(1)
+    mockUsePath.mockReturnValue('/u/1')
+    mockUseSessionInfo.mockReturnValue({
+      peerId: 'peer-id',
+    })
+    mockUseBottomBarSetOpenMenu.mockReturnValue(undefined)
+    mockUseRootResource.mockReturnValue({ value: null })
+    mockStreams(null, null)
+    mockConsumePendingJoin.mockReturnValue(null)
+    const session = {
+      spacewave: { watchOnboardingStatus: vi.fn() },
+      watchLockState: vi.fn(),
+    }
+
+    render(
+      <SessionContainer
+        sessionResource={{
+          value: session as never,
+          loading: false,
+          error: null,
+          retry: vi.fn(),
+        }}
+        metadata={{
+          providerId: 'local',
+          displayName: 'Local Session',
+        }}
+      />,
+    )
+
+    const streamingCalls = mockUseStreamingResource.mock
+      .calls as StreamingResourceCall[]
+    const [[onboardingResource]] = streamingCalls
+    expect(onboardingResource.value).toBeNull()
+    expect(session.spacewave.watchOnboardingStatus).not.toHaveBeenCalled()
+    expect(screen.queryByTestId('spacewave-content')).toBeNull()
   })
 
   it('renders the local account overlay without any session provider chrome inside it', () => {
