@@ -50,6 +50,35 @@ import { timeoutPromise } from './timeout.js'
 // spurious ERR_STREAM_IDLE errors when browser timers are throttled.
 export const WebRuntimeClientChannelStreamOpts: ChannelStreamOpts = {}
 
+export function logWebRuntimeMessage(...args: unknown[]) {
+  try {
+    console.log(...args)
+  } catch (err) {
+    if (!isClosedStreamWriteError(err)) {
+      throw err
+    }
+  }
+}
+
+function logWebRuntimeError(...args: unknown[]) {
+  try {
+    console.error(...args)
+  } catch (err) {
+    if (!isClosedStreamWriteError(err)) {
+      throw err
+    }
+  }
+}
+
+export function isClosedStreamWriteError(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'code' in err &&
+    (err.code === 'EPIPE' || err.code === 'ERR_STREAM_DESTROYED')
+  )
+}
+
 // WebRuntimeClientInstance is an attached client instance.
 class WebRuntimeClientInstance {
   // waitClosed is resolved when the instance is closed.
@@ -131,7 +160,7 @@ class WebRuntimeClientInstance {
       .request(lockName, { signal: this.abortController.signal }, () => {
         // Lock acquired means the WebDocument has disconnected.
         if (!this.closed) {
-          console.log(
+          logWebRuntimeMessage(
             `WebRuntime: detected client disconnect via Web Lock: ${clientUuid}`,
           )
           this.close()
@@ -212,7 +241,9 @@ class WebRuntimeClientInstance {
       this.port.close()
     } finally {
       const clientUuid = this.init.clientUuid ?? ''
-      console.log(`WebRuntime: client connection removed: ${clientUuid}`)
+      logWebRuntimeMessage(
+        `WebRuntime: client connection removed: ${clientUuid}`,
+      )
       this.host.removeConnection(this.clientId)
     }
   }
@@ -226,7 +257,7 @@ class WebRuntimeClientInstance {
         this.port.postMessage(msg)
       }
     } catch (err) {
-      console.error(
+      logWebRuntimeError(
         `WebRuntime: client connection error: ${this.init.clientUuid} => ${castToError(err).toString()}`,
       )
       this.close()
@@ -247,7 +278,7 @@ class WebRuntimeClientInstance {
       this.armWebLock()
     }
     if (msg.close) {
-      console.log(
+      logWebRuntimeMessage(
         `WebRuntimeClientInstance: remote client closed session: ${this.init.clientUuid}`,
       )
       this.close()
@@ -265,19 +296,13 @@ class WebRuntimeClientInstance {
       let streamPromise: Promise<PacketStream>
       switch (this.init.clientType) {
         case WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT:
-          streamPromise = this.host.openWebDocumentHostStream(
-            this.clientId,
-          )
+          streamPromise = this.host.openWebDocumentHostStream(this.clientId)
           break
         case WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER:
-          streamPromise = this.host.openServiceWorkerHostStream(
-            this.clientId,
-          )
+          streamPromise = this.host.openServiceWorkerHostStream(this.clientId)
           break
         case WebRuntimeClientType.WebRuntimeClientType_WEB_WORKER:
-          streamPromise = this.host.openWebWorkerHostStream(
-            this.clientId,
-          )
+          streamPromise = this.host.openWebWorkerHostStream(this.clientId)
           break
         default:
           throw new Error('unknown client type: ' + this.init.clientType)
@@ -559,7 +584,7 @@ export class WebRuntime {
         if (isAbortError(err)) {
           return
         }
-        console.error(
+        logWebRuntimeError(
           `WebRuntime: ${this.webRuntimeId}: client waiter lock failed for ${clientId}:`,
           err,
         )
@@ -630,7 +655,7 @@ export class WebRuntime {
     const clientTypeStr =
       WebRuntimeClientType_Enum.findNumber(msg.clientType ?? 0)?.name ??
       'unknown'
-    console.log(
+    logWebRuntimeMessage(
       `WebRuntime: ${this.webRuntimeId}: registered client: ${msg.clientUuid} => ${clientId} type ${clientTypeStr}`,
     )
     this.clients[clientId] = new WebRuntimeClientInstance(this, port, msg)
@@ -675,7 +700,7 @@ export class WebRuntime {
     const clientType = client.init.clientType
     const clientTypeStr =
       WebRuntimeClientType_Enum.findNumber(clientType ?? 0)?.name ?? 'unknown'
-    console.log(
+    logWebRuntimeMessage(
       `WebRuntime: ${this.webRuntimeId}: removed client: ${clientId} type ${clientTypeStr}`,
     )
     if (

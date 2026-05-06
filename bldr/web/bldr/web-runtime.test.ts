@@ -1,12 +1,47 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { WebRuntimeClientType } from '../runtime/runtime.pb.js'
-import { WebRuntime, WebRuntimeClientChannelStreamOpts } from './web-runtime.js'
+import {
+  isClosedStreamWriteError,
+  logWebRuntimeMessage,
+  WebRuntime,
+  WebRuntimeClientChannelStreamOpts,
+} from './web-runtime.js'
 
 describe('WebRuntime', () => {
   it('allows web runtime streams to stay idle', () => {
     expect(WebRuntimeClientChannelStreamOpts.keepAliveMs).toBeUndefined()
     expect(WebRuntimeClientChannelStreamOpts.idleTimeoutMs).toBeUndefined()
+  })
+
+  it('treats closed log streams as teardown', () => {
+    const err = new Error('write EPIPE') as Error & { code: string }
+    err.code = 'EPIPE'
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {
+      throw err
+    })
+    try {
+      expect(isClosedStreamWriteError(err)).toBe(true)
+      expect(() => logWebRuntimeMessage('closing')).not.toThrow()
+    } finally {
+      log.mockRestore()
+    }
+  })
+
+  it('keeps non-stream log failures fatal', () => {
+    const err = new Error('unexpected console failure') as Error & {
+      code: string
+    }
+    err.code = 'OTHER'
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {
+      throw err
+    })
+    try {
+      expect(isClosedStreamWriteError(err)).toBe(false)
+      expect(() => logWebRuntimeMessage('closing')).toThrow(err)
+    } finally {
+      log.mockRestore()
+    }
   })
 
   it('rejects pending waiters when a client is invalidated', async () => {
