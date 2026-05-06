@@ -605,7 +605,7 @@ function isSwOrigin(origin: string): boolean {
 }
 
 // swFetch is called when the page attempts to fetch a resource.
-async function swFetch(
+export async function swFetch(
   ev: FetchEvent,
   matchPrefixes = BLDR_URI_PREFIXES,
 ): Promise<Response> {

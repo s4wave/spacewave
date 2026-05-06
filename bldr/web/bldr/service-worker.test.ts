@@ -9,6 +9,7 @@ import {
   handleBrowserReleaseRequest,
   handleServiceWorkerMessage,
   resetServiceWorkerTestState,
+  swFetch,
 } from './service-worker.js'
 
 class FakeCache {
@@ -102,11 +103,27 @@ async function writeBrowserReleaseState(
   )
 }
 
+async function writeGenerationCacheResponse(
+  caches: FakeCacheStorage,
+  generationId: string,
+  path: string,
+  response: Response,
+): Promise<void> {
+  const cache = await caches.open(`bldr-generation-${generationId}`)
+  await cache.put(new Request(new URL(path, self.location)), response)
+}
+
 function buildMessageEvent(data: unknown): ExtendableMessageEvent {
   return {
     data,
     waitUntil: vi.fn(),
   } as unknown as ExtendableMessageEvent
+}
+
+function buildFetchOnlyEvent(path: string): FetchEvent {
+  return {
+    request: new Request(new URL(path, self.location)),
+  } as FetchEvent
 }
 
 describe('service worker browser release requests', () => {
@@ -249,6 +266,81 @@ describe('service worker browser release requests', () => {
       'browser release manifest unavailable',
     )
     expect(waitUntilPromises).toHaveLength(0)
+  })
+})
+
+describe('service worker fetch release cache routing', () => {
+  beforeEach(() => {
+    resetServiceWorkerTestState()
+    vi.stubGlobal('BLDR_DEBUG', false)
+    vi.stubGlobal('caches', new FakeCacheStorage())
+    vi.stubGlobal('fetch', vi.fn())
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  it('serves promoted generation assets from the generation cache', async () => {
+    const release = buildRelease('gen-a')
+    const caches = globalThis.caches as unknown as FakeCacheStorage
+    await writeBrowserReleaseState(caches, {
+      ...createEmptyBrowserReleaseState(),
+      promotedCurrent: release,
+    })
+    await writeGenerationCacheResponse(
+      caches,
+      release.generationId,
+      release.shellAssets.wasm,
+      new Response('cached wasm', { status: 200 }),
+    )
+    vi.mocked(fetch).mockResolvedValue(new Response('network', { status: 200 }))
+
+    const response = await swFetch(
+      buildFetchOnlyEvent(release.shellAssets.wasm),
+      [],
+    )
+
+    expect(await response.text()).toBe('cached wasm')
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it('uses native fetch for non-promoted paths', async () => {
+    const release = buildRelease('gen-a')
+    await writeBrowserReleaseState(
+      globalThis.caches as unknown as FakeCacheStorage,
+      {
+        ...createEmptyBrowserReleaseState(),
+        promotedCurrent: release,
+      },
+    )
+    vi.mocked(fetch).mockResolvedValue(new Response('network', { status: 200 }))
+
+    const response = await swFetch(buildFetchOnlyEvent('/other.wasm'), [])
+
+    expect(await response.text()).toBe('network')
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('uses native fetch on promoted generation cache miss', async () => {
+    const release = buildRelease('gen-a')
+    await writeBrowserReleaseState(
+      globalThis.caches as unknown as FakeCacheStorage,
+      {
+        ...createEmptyBrowserReleaseState(),
+        promotedCurrent: release,
+      },
+    )
+    vi.mocked(fetch).mockResolvedValue(new Response('network', { status: 200 }))
+
+    const response = await swFetch(
+      buildFetchOnlyEvent(release.shellAssets.wasm),
+      [],
+    )
+
+    expect(await response.text()).toBe('network')
+    expect(fetch).toHaveBeenCalledTimes(1)
   })
 })
 
