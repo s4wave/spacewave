@@ -56,6 +56,7 @@ export interface ServiceWorkerMessageDeps {
   clients: Clients
   fetchTracker: ServiceWorkerFetchTracker
   webDocumentTracker: WebDocumentTracker
+  syncLatestBrowserRelease(): Promise<BrowserReleaseState>
   handleCrossTabMessage(
     clients: Clients,
     senderId: string,
@@ -63,10 +64,17 @@ export interface ServiceWorkerMessageDeps {
   ): Promise<void>
 }
 
+export interface BrowserReleaseSyncMessage {
+  bldrSyncManifest?: boolean
+}
+
 // resetServiceWorkerTestState clears module-level cache handles for unit tests.
 export function resetServiceWorkerTestState(): void {
   CACHES[controlCacheName] = undefined
+  browserReleaseSyncInFlight = null
 }
+
+let browserReleaseSyncInFlight: Promise<BrowserReleaseState> | null = null
 
 function buildCacheRequest(path: string): Request {
   return new Request(new URL(path, baseURL).toString())
@@ -524,6 +532,20 @@ export function handleServiceWorkerMessage(
   ev: ExtendableMessageEvent,
   deps: ServiceWorkerMessageDeps,
 ): void {
+  if (isBrowserReleaseSyncMessage(ev.data)) {
+    if (browserReleaseSyncInFlight) {
+      return
+    }
+    const syncPromise = deps.syncLatestBrowserRelease().finally(() => {
+      if (browserReleaseSyncInFlight === syncPromise) {
+        browserReleaseSyncInFlight = null
+      }
+    })
+    browserReleaseSyncInFlight = syncPromise
+    ev.waitUntil(syncPromise)
+    return
+  }
+
   // Cross-tab channel broker: handle hello/goodbye before WebDocument messages.
   if (isCrossTabMessage(ev.data)) {
     const senderId = (ev.source as Client)?.id
@@ -539,6 +561,15 @@ export function handleServiceWorkerMessage(
     return
   }
   deps.webDocumentTracker.handleWebDocumentMessage(ev.data)
+}
+
+function isBrowserReleaseSyncMessage(
+  data: unknown,
+): data is BrowserReleaseSyncMessage {
+  if (!data || typeof data !== 'object') {
+    return false
+  }
+  return (data as BrowserReleaseSyncMessage).bldrSyncManifest === true
 }
 
 // isSwOrigin checks if the given origin matches the local origin.
@@ -696,6 +727,7 @@ function initServiceWorker() {
       clients: self.clients,
       fetchTracker: serviceWorkerFetchTracker,
       webDocumentTracker,
+      syncLatestBrowserRelease,
       handleCrossTabMessage,
     })
   })

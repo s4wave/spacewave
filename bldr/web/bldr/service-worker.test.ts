@@ -253,8 +253,15 @@ describe('service worker browser release requests', () => {
 })
 
 describe('service worker messages', () => {
-  it('does not handle bldrSyncManifest messages yet', () => {
+  beforeEach(() => {
+    resetServiceWorkerTestState()
+  })
+
+  it('runs sync for bldrSyncManifest messages', () => {
     const ev = buildMessageEvent({ bldrSyncManifest: true })
+    const syncLatestBrowserRelease = vi
+      .fn()
+      .mockResolvedValue(createEmptyBrowserReleaseState())
     const deps = {
       clients: {} as Clients,
       fetchTracker: {
@@ -263,17 +270,17 @@ describe('service worker messages', () => {
       webDocumentTracker: {
         handleWebDocumentMessage: vi.fn(),
       },
+      syncLatestBrowserRelease,
       handleCrossTabMessage: vi.fn(),
     }
 
     handleServiceWorkerMessage(ev, deps)
 
-    expect(ev.waitUntil).not.toHaveBeenCalled()
+    expect(ev.waitUntil).toHaveBeenCalledWith(expect.any(Promise))
+    expect(syncLatestBrowserRelease).toHaveBeenCalledTimes(1)
     expect(deps.handleCrossTabMessage).not.toHaveBeenCalled()
     expect(
       deps.webDocumentTracker.handleWebDocumentMessage,
-    ).toHaveBeenCalledWith({
-      bldrSyncManifest: true,
-    })
+    ).not.toHaveBeenCalled()
   })
 })
