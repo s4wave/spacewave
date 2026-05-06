@@ -890,7 +890,7 @@
     },
     {
       "name": "github.com/aperturerobotics/fsnotify",
-      "version": "v1.9.1-0.20260329111252-827e5e9feeab",
+      "version": "v1.9.1-0.20260506174630-74798513100f",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/fsnotify",
