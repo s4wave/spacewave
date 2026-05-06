@@ -5,7 +5,9 @@ import (
 	"testing"
 
 	desktop_runtime "github.com/s4wave/spacewave/bldr/web/electron/desktop-runtime"
+	"github.com/s4wave/spacewave/core/provider"
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
+	"github.com/s4wave/spacewave/core/session"
 )
 
 type fakeDesktopRuntimePublisher struct {
@@ -111,6 +113,124 @@ func TestPublishDesktopRuntimeStateSuppressesDuplicate(t *testing.T) {
 	}
 	if len(publisher.states) != 1 {
 		t.Fatalf("published states = %d, want 1", len(publisher.states))
+	}
+}
+
+func TestBuildSessionProjectionSortsAndFlagsAuth(t *testing.T) {
+	projection := buildSessionProjection([]*sessionProjectionRow{
+		{
+			entry: testSessionEntry(1, "spacewave", "acct-1"),
+			metadata: &session.SessionMetadata{
+				DisplayName:         "old@example.com",
+				ProviderDisplayName: "Cloud",
+				CreatedAt:           1,
+			},
+			accountStatus: provider.ProviderAccountStatus_ProviderAccountStatus_READY,
+		},
+		{
+			entry: testSessionEntry(2, "spacewave", "acct-2"),
+			metadata: &session.SessionMetadata{
+				DisplayName:         "new@example.com",
+				ProviderDisplayName: "Cloud",
+				CreatedAt:           2,
+			},
+			accountStatus: provider.ProviderAccountStatus_ProviderAccountStatus_UNAUTHENTICATED,
+		},
+	})
+	if len(projection.Sessions) != 2 {
+		t.Fatalf("session rows = %d, want 2", len(projection.Sessions))
+	}
+	if projection.Sessions[0].GetLabel() != "new@example.com" {
+		t.Fatalf("first session label = %q, want newest session first", projection.Sessions[0].GetLabel())
+	}
+	if projection.Sessions[0].GetStatusText() != "Sign in required" {
+		t.Fatalf("first session status = %q, want auth attention", projection.Sessions[0].GetStatusText())
+	}
+	if len(projection.AttentionItems) != 1 {
+		t.Fatalf("attention items = %d, want 1", len(projection.AttentionItems))
+	}
+	attention := projection.AttentionItems[0]
+	if attention.GetKind() != desktop_runtime.DesktopRuntimeAttentionKind_DESKTOP_RUNTIME_ATTENTION_KIND_AUTH_REQUIRED {
+		t.Fatalf("attention kind = %v, want auth required", attention.GetKind())
+	}
+	if attention.GetRoute() != "/u/2/" {
+		t.Fatalf("attention route = %q, want session route", attention.GetRoute())
+	}
+
+	state := BuildDesktopRuntimeState(resource_listener.ListenerStatus{
+		SocketPath: "/run/spacewave.sock",
+		Listening:  true,
+	}, projection)
+	if state.GetHealth() != desktop_runtime.DesktopRuntimeHealth_DESKTOP_RUNTIME_HEALTH_NEEDS_ATTENTION {
+		t.Fatalf("health = %v, want needs attention", state.GetHealth())
+	}
+	if state.GetStatusText() != "Needs attention" {
+		t.Fatalf("status text = %q, want Needs attention", state.GetStatusText())
+	}
+}
+
+func TestBuildSessionProjectionFlagsStepUp(t *testing.T) {
+	projection := buildSessionProjection([]*sessionProjectionRow{
+		{
+			entry: testSessionEntry(7, "spacewave", "acct-7"),
+			metadata: &session.SessionMetadata{
+				DisplayName:         "cloud@example.com",
+				ProviderDisplayName: "Cloud",
+				CreatedAt:           7,
+			},
+			accountStatus: provider.ProviderAccountStatus_ProviderAccountStatus_READY,
+			selfEnrollment: &sessionSelfEnrollmentProjection{
+				count:              2,
+				credentialRequired: true,
+			},
+		},
+	})
+	if len(projection.Sessions) != 1 {
+		t.Fatalf("session rows = %d, want 1", len(projection.Sessions))
+	}
+	if projection.Sessions[0].GetStatusText() != "Unlock required" {
+		t.Fatalf("session status = %q, want unlock status", projection.Sessions[0].GetStatusText())
+	}
+	if len(projection.AttentionItems) != 1 {
+		t.Fatalf("attention items = %d, want 1", len(projection.AttentionItems))
+	}
+	attention := projection.AttentionItems[0]
+	if attention.GetKind() != desktop_runtime.DesktopRuntimeAttentionKind_DESKTOP_RUNTIME_ATTENTION_KIND_STEP_UP_REQUIRED {
+		t.Fatalf("attention kind = %v, want step-up required", attention.GetKind())
+	}
+	if attention.GetDetail() != "2 spaces need this session key" {
+		t.Fatalf("attention detail = %q, want space count", attention.GetDetail())
+	}
+	if attention.GetRoute() != "/u/7/" {
+		t.Fatalf("attention route = %q, want session route", attention.GetRoute())
+	}
+}
+
+func TestBuildSessionProjectionBoundsSessionRows(t *testing.T) {
+	rows := make([]*sessionProjectionRow, 0, maxProjectedSessions+1)
+	for i := uint32(1); i <= maxProjectedSessions+1; i++ {
+		rows = append(rows, &sessionProjectionRow{
+			entry:         testSessionEntry(i, "local", "local"),
+			metadata:      &session.SessionMetadata{CreatedAt: int64(i)},
+			accountStatus: provider.ProviderAccountStatus_ProviderAccountStatus_READY,
+		})
+	}
+	projection := buildSessionProjection(rows)
+	if len(projection.Sessions) != maxProjectedSessions {
+		t.Fatalf("session rows = %d, want %d", len(projection.Sessions), maxProjectedSessions)
+	}
+}
+
+func testSessionEntry(idx uint32, providerID, accountID string) *session.SessionListEntry {
+	return &session.SessionListEntry{
+		SessionIndex: idx,
+		SessionRef: &session.SessionRef{
+			ProviderResourceRef: &provider.ProviderResourceRef{
+				Id:                "session",
+				ProviderId:        providerID,
+				ProviderAccountId: accountID,
+			},
+		},
 	}
 }
 
