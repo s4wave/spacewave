@@ -52,6 +52,13 @@ func TestBuildSharedObjectHealthFromErrorKnownReasons(t *testing.T) {
 			detail: ErrNotParticipant.Error(),
 		},
 		{
+			name:   "cannot decode",
+			err:    ErrCannotDecode,
+			reason: SharedObjectHealthCommonReason_SHARED_OBJECT_HEALTH_COMMON_REASON_ACCESS_REVOKED,
+			hint:   SharedObjectHealthRemediationHint_SHARED_OBJECT_HEALTH_REMEDIATION_HINT_REQUEST_ACCESS,
+			detail: ErrCannotDecode.Error(),
+		},
+		{
 			name:   "transform config",
 			err:    ErrEmptyTransformConfig,
 			reason: SharedObjectHealthCommonReason_SHARED_OBJECT_HEALTH_COMMON_REASON_TRANSFORM_CONFIG_DECODE_FAILED,

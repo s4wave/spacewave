@@ -21,14 +21,26 @@ describe('buildSharedObjectFallbackHealth', () => {
       hint: SharedObjectHealthRemediationHint.CONTACT_OWNER,
     },
     {
+      name: 'initial state rejected',
+      error: 'initial state pull: shared object initial state rejected',
+      reason: SharedObjectHealthCommonReason.INITIAL_STATE_REJECTED,
+      hint: SharedObjectHealthRemediationHint.CONTACT_OWNER,
+    },
+    {
+      name: 'current key epoch missing',
+      error: 'rejoin: current key epoch missing for self-enroll recovery',
+      reason: SharedObjectHealthCommonReason.INITIAL_STATE_REJECTED,
+      hint: SharedObjectHealthRemediationHint.CONTACT_OWNER,
+    },
+    {
       name: 'not a participant',
-      error: 'not a participant',
+      error: 'access denied: peer is not a participant',
       reason: SharedObjectHealthCommonReason.ACCESS_REVOKED,
       hint: SharedObjectHealthRemediationHint.REQUEST_ACCESS,
     },
     {
-      name: 'access denied',
-      error: 'access denied',
+      name: 'no valid grant',
+      error: 'access denied: no valid grant for our peer',
       reason: SharedObjectHealthCommonReason.ACCESS_REVOKED,
       hint: SharedObjectHealthRemediationHint.REQUEST_ACCESS,
     },
@@ -62,7 +74,7 @@ describe('buildSharedObjectFallbackHealth', () => {
       reason: SharedObjectHealthCommonReason.UNKNOWN,
       hint: SharedObjectHealthRemediationHint.NONE,
     },
-  ])('preserves the current local fallback for $name', (tc) => {
+  ])('matches backend health vocabulary for $name', (tc) => {
     const health = buildSharedObjectFallbackHealth(
       new Error(tc.error),
       SharedObjectHealthLayer.SHARED_OBJECT,
@@ -88,6 +100,21 @@ describe('buildSharedObjectFallbackHealth', () => {
       layer: SharedObjectHealthLayer.BODY,
       commonReason: SharedObjectHealthCommonReason.BLOCK_NOT_FOUND,
       remediationHint: SharedObjectHealthRemediationHint.REPAIR_SOURCE_DATA,
+    })
+  })
+
+  it('leaves generic access denied errors as unknown without a known SharedObject marker', () => {
+    const health = buildSharedObjectFallbackHealth(
+      new Error('access denied'),
+      SharedObjectHealthLayer.SHARED_OBJECT,
+    )
+
+    expect(health).toMatchObject({
+      status: SharedObjectHealthStatus.CLOSED,
+      layer: SharedObjectHealthLayer.SHARED_OBJECT,
+      commonReason: SharedObjectHealthCommonReason.UNKNOWN,
+      remediationHint: SharedObjectHealthRemediationHint.NONE,
+      error: 'access denied',
     })
   })
 })

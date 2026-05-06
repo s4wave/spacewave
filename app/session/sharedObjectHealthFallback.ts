@@ -47,32 +47,13 @@ export function buildSharedObjectFallbackHealth(
   layer: SharedObjectHealthLayer,
 ): SharedObjectHealth {
   const msg = err.message || 'unknown shared object error'
-  const lower = msg.toLowerCase()
-  const reason = getSharedObjectFallbackReason(lower)
+  const classification = classifySharedObjectFallbackError(msg)
 
-  if (lower.includes('shared object not found')) {
-    return {
-      status: SharedObjectHealthStatus.CLOSED,
-      layer,
-      commonReason: SharedObjectHealthCommonReason.NOT_FOUND,
-      remediationHint: SharedObjectHealthRemediationHint.CONTACT_OWNER,
-      error: msg,
-    }
-  }
-  if (lower.includes('not a participant') || lower.includes('access denied')) {
-    return {
-      status: SharedObjectHealthStatus.CLOSED,
-      layer,
-      commonReason: SharedObjectHealthCommonReason.ACCESS_REVOKED,
-      remediationHint: SharedObjectHealthRemediationHint.REQUEST_ACCESS,
-      error: msg,
-    }
-  }
   return {
     status: SharedObjectHealthStatus.CLOSED,
     layer,
-    commonReason: reason.commonReason,
-    remediationHint: reason.remediationHint,
+    commonReason: classification.commonReason,
+    remediationHint: classification.remediationHint,
     error: msg,
   }
 }
@@ -89,10 +70,35 @@ export function buildSharedObjectLoadingHealth(
   }
 }
 
-function getSharedObjectFallbackReason(lower: string): {
+function classifySharedObjectFallbackError(message: string): {
   commonReason: SharedObjectHealthCommonReason
   remediationHint: SharedObjectHealthRemediationHint
 } {
+  const lower = message.toLowerCase()
+  if (
+    lower.includes('shared object initial state rejected') ||
+    lower.includes('current key epoch missing')
+  ) {
+    return {
+      commonReason: SharedObjectHealthCommonReason.INITIAL_STATE_REJECTED,
+      remediationHint: SharedObjectHealthRemediationHint.CONTACT_OWNER,
+    }
+  }
+  if (lower.includes('shared object not found')) {
+    return {
+      commonReason: SharedObjectHealthCommonReason.NOT_FOUND,
+      remediationHint: SharedObjectHealthRemediationHint.CONTACT_OWNER,
+    }
+  }
+  if (
+    lower.includes('not a participant') ||
+    lower.includes('no valid grant for our peer')
+  ) {
+    return {
+      commonReason: SharedObjectHealthCommonReason.ACCESS_REVOKED,
+      remediationHint: SharedObjectHealthRemediationHint.REQUEST_ACCESS,
+    }
+  }
   if (lower.includes('block not found')) {
     return {
       commonReason: SharedObjectHealthCommonReason.BLOCK_NOT_FOUND,
