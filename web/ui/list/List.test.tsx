@@ -195,7 +195,7 @@ describe('ListRow', () => {
         { selectedIds: [], focusedIndex: 0, sortDirection: 'asc' },
       )
       const row = screen.getByRole('row')
-      expect(row.className).toContain('ring-ui-outline-active')
+      expect(row.className).toContain('ring-brand/25')
     })
 
     it('does not have focus ring class when not focused', () => {
@@ -204,7 +204,7 @@ describe('ListRow', () => {
         { selectedIds: [], focusedIndex: 2, sortDirection: 'asc' },
       )
       const row = screen.getByRole('row')
-      expect(row.className).not.toContain('ring-ui-outline-active')
+      expect(row.className).not.toContain('ring-brand/25')
     })
   })
 

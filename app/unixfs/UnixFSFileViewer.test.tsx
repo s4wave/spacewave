@@ -124,7 +124,7 @@ describe('UnixFSFileViewer image preview', () => {
     )
 
     expect(screen.queryByRole('img', { name: 'logo.png' })).toBeNull()
-    expect(screen.getByText('Binary file preview not available')).toBeDefined()
+    expect(screen.getByText('Preview not available')).toBeDefined()
   })
 
   it('keeps the binary placeholder for non-image files', () => {
@@ -141,7 +141,7 @@ describe('UnixFSFileViewer image preview', () => {
     )
 
     expect(screen.queryByRole('img')).toBeNull()
-    expect(screen.getByText('Binary file preview not available')).toBeDefined()
+    expect(screen.getByText('Preview not available')).toBeDefined()
   })
 
   it('renders a pdf viewer for pdf mime types when an inline raw url is provided', () => {
@@ -179,7 +179,7 @@ describe('UnixFSFileViewer image preview', () => {
     )
 
     expect(screen.queryByTestId('unixfs-pdf-viewer')).toBeNull()
-    expect(screen.getByText('Binary file preview not available')).toBeDefined()
+    expect(screen.getByText('Preview not available')).toBeDefined()
   })
 
   it('renders an audio element for audio mime types when an inline raw url is provided', () => {
@@ -259,7 +259,7 @@ describe('UnixFSFileViewer image preview', () => {
     )
 
     expect(screen.queryByTestId('unixfs-audio-viewer')).toBeNull()
-    expect(screen.getByText('Binary file preview not available')).toBeDefined()
+    expect(screen.getByText('Preview not available')).toBeDefined()
   })
 
   it('renders a video element for video mime types when an inline raw url is provided', () => {
@@ -297,6 +297,6 @@ describe('UnixFSFileViewer image preview', () => {
     )
 
     expect(screen.queryByTestId('unixfs-video-viewer')).toBeNull()
-    expect(screen.getByText('Binary file preview not available')).toBeDefined()
+    expect(screen.getByText('Preview not available')).toBeDefined()
   })
 })

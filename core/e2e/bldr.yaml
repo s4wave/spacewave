@@ -11,3 +11,4 @@ manifests:
         modules:
         - kind: JS_MODULE_KIND_BACKEND
           path: ./core/e2e/e2e.ts
+          entrypoint: true
