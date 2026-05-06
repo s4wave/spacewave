@@ -26,10 +26,8 @@ const cdpReadyTimeout = 10 * time.Minute
 // Harness owns a Bldr desktop runtime plus a Playwright CDP attachment to the
 // Electron renderer.
 type Harness struct {
-	ctx    context.Context
 	cancel context.CancelFunc
 
-	repoRoot  string
 	stateRoot string
 	cdpPort   int
 
@@ -69,9 +67,7 @@ func Boot(ctx context.Context, le *logrus.Entry) (_ *Harness, retErr error) {
 
 	hctx, cancel := context.WithCancel(ctx)
 	h := &Harness{
-		ctx:       hctx,
 		cancel:    cancel,
-		repoRoot:  repoRoot,
 		stateRoot: stateRoot,
 		cdpPort:   port,
 		done:      make(chan struct{}),
