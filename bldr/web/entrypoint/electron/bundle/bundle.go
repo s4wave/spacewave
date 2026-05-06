@@ -293,11 +293,11 @@ func BuildAsar(ctx context.Context, le *logrus.Entry, stateDir, buildDir, outPat
 // If npmPkg is empty, defaults to latest.
 //
 // When plat is a NativePlatform whose goos/goarch differ from the host,
-// npm_config_platform + npm_config_arch are set on the bun subprocess so
-// @electron/get (electron's postinstall) fetches the target redistributable
-// instead of the host's. Without this, cross-platform release builds land
-// with a host-arch electron in dist/, which then fails downstream branding
-// / packaging steps that expect target-arch layout.
+// npm_config_* and ELECTRON_INSTALL_* are set so Electron's installer fetches
+// the target redistributable instead of the host's. Without this,
+// cross-platform release builds land with a host-arch electron in dist/, which
+// then fails downstream branding / packaging steps that expect target-arch
+// layout.
 func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, stateDir string, plat bldr_platform.Platform, buildDir, destDir string, npmPkg string) error {
 	// use the latest version if not defined
 	if npmPkg == "" {
