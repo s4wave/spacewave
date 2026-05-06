@@ -775,6 +775,45 @@ func TestDeleteSharedObjectRemovesMetadataAndListCaches(t *testing.T) {
 	}
 }
 
+func TestFetchSharedObjectListPreservesCreatedCacheEntry(t *testing.T) {
+	const soID = "so-created"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/sobject/list" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(mustMarshalVT(t, &sobject.SharedObjectList{}))
+	}))
+	defer srv.Close()
+
+	acc := NewTestProviderAccount(t, srv.URL)
+	acc.syncSharedObjectListAccess(s4wave_provider_spacewave.BillingStatus_BillingStatus_ACTIVE)
+	meta, err := space.NewSharedObjectMeta("Created Space")
+	if err != nil {
+		t.Fatalf("NewSharedObjectMeta: %v", err)
+	}
+	acc.cacheSharedObjectListEntry(&sobject.SharedObjectListEntry{
+		Ref:    acc.buildSharedObjectRef(soID),
+		Meta:   meta,
+		Source: "created",
+	})
+
+	if err := acc.fetchSharedObjectList(context.Background()); err != nil {
+		t.Fatalf("fetchSharedObjectList: %v", err)
+	}
+	list := acc.soListCtr.GetValue()
+	if list == nil || len(list.GetSharedObjects()) != 1 {
+		t.Fatalf("expected created shared object preserved, got %#v", list)
+	}
+	entry := list.GetSharedObjects()[0]
+	if got := entry.GetRef().GetProviderResourceRef().GetId(); got != soID {
+		t.Fatalf("expected cached SO id %q, got %q", soID, got)
+	}
+	if got := entry.GetSource(); got != "created" {
+		t.Fatalf("expected source created, got %q", got)
+	}
+}
+
 func mustMarshalVT(t *testing.T, marshaler interface{ MarshalVT() ([]byte, error) }) []byte {
 	t.Helper()
 	data, err := marshaler.MarshalVT()

@@ -824,9 +824,41 @@ func (a *ProviderAccount) fetchSharedObjectList(ctx context.Context) error {
 		}
 	}
 
-	a.soListCtr.SetValue(list)
+	a.soListCtr.SetValue(mergeSharedObjectListSnapshot(list, a.soListCtr.GetValue()))
 	a.refreshSelfEnrollmentSummary(ctx)
 	return nil
+}
+
+func mergeSharedObjectListSnapshot(
+	snapshot *sobject.SharedObjectList,
+	cached *sobject.SharedObjectList,
+) *sobject.SharedObjectList {
+	if cached == nil {
+		return snapshot
+	}
+	next := snapshot.CloneVT()
+	if next == nil {
+		next = &sobject.SharedObjectList{}
+	}
+	seen := make(map[string]bool, len(next.GetSharedObjects()))
+	for _, entry := range next.GetSharedObjects() {
+		soID := entry.GetRef().GetProviderResourceRef().GetId()
+		if soID != "" {
+			seen[soID] = true
+		}
+	}
+	for _, entry := range cached.GetSharedObjects() {
+		if entry.GetSource() != "created" {
+			continue
+		}
+		soID := entry.GetRef().GetProviderResourceRef().GetId()
+		if soID == "" || seen[soID] {
+			continue
+		}
+		next.SharedObjects = append(next.SharedObjects, entry.CloneVT())
+		seen[soID] = true
+	}
+	return next
 }
 
 // SobjectBlockStoreID returns the block store ID for a shared object.
