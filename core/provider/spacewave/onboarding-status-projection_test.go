@@ -12,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func TestBuildOnboardingStatusProjectionReadySnapshot(t *testing.T) {
+func TestBuildOnboardingStatusProjectionReadyCloudRouteStatus(t *testing.T) {
 	acc := newProjectionEmptyManagedBillingTestAccount(t)
 	acc.accountBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		acc.state.info = &api.AccountStateResponse{
@@ -70,7 +70,7 @@ func TestBuildOnboardingStatusProjectionReadySnapshot(t *testing.T) {
 	}
 }
 
-func TestBuildOnboardingStatusProjectionTerminalWithoutAccountState(t *testing.T) {
+func TestBuildOnboardingStatusProjectionTerminalRouteStatusWithoutAccountSnapshot(t *testing.T) {
 	acc := newProjectionTestAccount(t)
 	acc.accountBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		acc.state.status = provider.ProviderAccountStatus_ProviderAccountStatus_DELETED
@@ -90,7 +90,7 @@ func TestBuildOnboardingStatusProjectionTerminalWithoutAccountState(t *testing.T
 	}
 }
 
-func TestBuildOnboardingStatusProjectionAutoRejoinGate(t *testing.T) {
+func TestBuildOnboardingStatusProjectionAutoRejoinRouteGate(t *testing.T) {
 	acc := newProjectionEmptyManagedBillingTestAccount(t)
 	acc.accountBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		acc.state.status = provider.ProviderAccountStatus_ProviderAccountStatus_READY
@@ -109,7 +109,7 @@ func TestBuildOnboardingStatusProjectionAutoRejoinGate(t *testing.T) {
 	}
 }
 
-func TestBuildOnboardingStatusProjectionLoadsManagedBillingSummaryWhenReady(t *testing.T) {
+func TestBuildOnboardingStatusProjectionLoadsRouteBillingSummaryWhenReady(t *testing.T) {
 	var calls int
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/billing/accounts" {
@@ -192,19 +192,19 @@ func TestBuildManagedBillingSummaryReturnsUnloadedOnError(t *testing.T) {
 	}
 }
 
-func TestShouldLoadManagedBillingSummaryReady(t *testing.T) {
+func TestShouldLoadManagedBillingSummaryForReadyRouteStatus(t *testing.T) {
 	if !ShouldLoadManagedBillingSummary(provider.ProviderAccountStatus_ProviderAccountStatus_READY) {
 		t.Fatal("expected READY Onboarding Status to load billing summary")
 	}
 }
 
-func TestShouldLoadManagedBillingSummaryUnauthenticated(t *testing.T) {
+func TestShouldLoadManagedBillingSummarySkipsUnauthenticatedRouteStatus(t *testing.T) {
 	if ShouldLoadManagedBillingSummary(provider.ProviderAccountStatus_ProviderAccountStatus_UNAUTHENTICATED) {
 		t.Fatal("expected UNAUTHENTICATED Onboarding Status to skip billing summary")
 	}
 }
 
-func TestShouldLoadManagedBillingSummaryDormant(t *testing.T) {
+func TestShouldLoadManagedBillingSummarySkipsDormantRouteStatus(t *testing.T) {
 	if ShouldLoadManagedBillingSummary(provider.ProviderAccountStatus_ProviderAccountStatus_DORMANT) {
 		t.Fatal("expected DORMANT Onboarding Status to skip billing summary")
 	}

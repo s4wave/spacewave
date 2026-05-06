@@ -11,7 +11,7 @@ import {
   isOnboardingReady,
 } from './account-status.js'
 
-describe('account status route predicates', () => {
+describe('Onboarding Status route predicates', () => {
   it.each([
     {
       name: 'undefined',
@@ -53,11 +53,14 @@ describe('account status route predicates', () => {
       status: ProviderAccountStatus.ProviderAccountStatus_FAILED,
       expected: true,
     },
-  ])('treats $name as loaded=$expected', ({ status, expected }) => {
-    expect(isAccountStatusLoaded(status)).toBe(expected)
-  })
+  ])(
+    'treats account_status $name as route-status loaded=$expected',
+    ({ status, expected }) => {
+      expect(isAccountStatusLoaded(status)).toBe(expected)
+    },
+  )
 
-  it('holds route readiness until the account and billing summary are loaded', () => {
+  it('holds route readiness until Onboarding Status has account and billing data', () => {
     expect(isOnboardingReady(null)).toBe(false)
     expect(
       isOnboardingReady({
@@ -91,14 +94,17 @@ describe('account status route predicates', () => {
       name: 'deleted',
       status: ProviderAccountStatus.ProviderAccountStatus_DELETED,
     },
-  ])('treats $name account overlay status as route-ready', ({ status }) => {
-    expect(
-      isOnboardingReady({
-        accountStatus: status,
-        billingSummaryLoaded: true,
-      } as WatchOnboardingStatusResponse),
-    ).toBe(true)
-  })
+  ])(
+    'treats $name account overlay status as route-status ready',
+    ({ status }) => {
+      expect(
+        isOnboardingReady({
+          accountStatus: status,
+          billingSummaryLoaded: true,
+        } as WatchOnboardingStatusResponse),
+      ).toBe(true)
+    },
+  )
 
   it.each([
     {
@@ -150,7 +156,7 @@ describe('account status route predicates', () => {
       reactivatableManagedBilling: false,
     },
   ])(
-    'characterizes billing route readiness for $name',
+    'characterizes Onboarding Status billing route readiness for $name',
     ({ onboarding, ready, reactivatableManagedBilling }) => {
       expect(
         isOnboardingReady(onboarding as WatchOnboardingStatusResponse),
@@ -190,11 +196,14 @@ describe('account status route predicates', () => {
       },
       expected: true,
     },
-  ])('detects $name', ({ onboarding, expected }) => {
-    expect(
-      hasReactivatableManagedBilling(
-        onboarding as WatchOnboardingStatusResponse,
-      ),
-    ).toBe(expected)
-  })
+  ])(
+    'detects $name from Onboarding Status managed billing counts',
+    ({ onboarding, expected }) => {
+      expect(
+        hasReactivatableManagedBilling(
+          onboarding as WatchOnboardingStatusResponse,
+        ),
+      ).toBe(expected)
+    },
+  )
 })

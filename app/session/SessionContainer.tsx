@@ -196,7 +196,8 @@ export function SessionContainer(props: {
     lockState?.mode === SessionLockMode.PIN_ENCRYPTED &&
     (lockState?.locked ?? false)
 
-  // Account status from the onboarding watch (reactive, not stale metadata).
+  // Account status from Onboarding Status, the reactive cloud route-status
+  // projection. Do not read stale session metadata for overlay routing.
   const accountStatus = onboardingState.value?.accountStatus
   const isDeleted =
     accountStatus === ProviderAccountStatus.ProviderAccountStatus_DELETED

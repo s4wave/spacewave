@@ -11,7 +11,8 @@ import {
 } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 
 export interface SpacewaveOnboardingContextValue {
-  // onboarding is the current onboarding status, or null if not yet loaded.
+  // onboarding is the current Onboarding Status route-status projection, or
+  // null if WatchOnboardingStatus has not emitted yet.
   onboarding: WatchOnboardingStatusResponse | null
   // isLapsed indicates a lapsed subscription (canceled, past_due_readonly, deleted).
   isLapsed: boolean
@@ -86,7 +87,8 @@ const useSpacewaveOnboardingContextSafe =
     return useContext(Context)
   }
 
-// SpacewaveOnboardingContext provides onboarding state to spacewave session children.
+// SpacewaveOnboardingContext provides Onboarding Status route state to
+// spacewave session children.
 export const SpacewaveOnboardingContext = {
   Provider,
   useContext: useSpacewaveOnboardingContext,

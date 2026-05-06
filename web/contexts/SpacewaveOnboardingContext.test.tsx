@@ -34,7 +34,7 @@ function renderContext(
   return screen.getByTestId('has-active-billing').textContent
 }
 
-describe('SpacewaveOnboardingContext', () => {
+describe('SpacewaveOnboardingContext route-state projection', () => {
   it.each([
     {
       name: 'TRIALING counts as active billing',

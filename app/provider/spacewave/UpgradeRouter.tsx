@@ -16,8 +16,8 @@ import { useCloudProviderConfig } from './useSpacewaveAuth.js'
 import { isAccountStatusLoaded } from './account-status.js'
 import type { Session } from '@s4wave/sdk/session/session.js'
 
-// UpgradeRouter is a thin router at /plan/upgrade that watches onboarding
-// status and routes to the appropriate page. If the user already has a
+// UpgradeRouter is a thin router at /plan/upgrade that reads Onboarding Status
+// route state and routes to the appropriate page. If the user already has a
 // subscription, it redirects to /plan/migrate (non-empty local) or the
 // dashboard (no local / empty local). If no subscription exists, it renders
 // the cloud confirmation checkout flow with auto-start.
@@ -34,10 +34,10 @@ export function UpgradeRouter() {
   // Detect session type. Non-cloud sessions redirect to login first.
   const { providerId, isCloud: isCloudSession } = useSessionInfo(session)
 
-  // The onboarding payload is trustworthy once the account status has
+  // The Onboarding Status projection is trustworthy once account_status has
   // advanced past the pre-fetch placeholder. UpgradeRouter only reads
-  // hasSubscription / hasLinkedLocal / linkedLocalHasContent so the
-  // managed BA summary is not required here.
+  // hasSubscription / hasLinkedLocal / linkedLocalHasContent so the managed BA
+  // summary is not required here.
   const noSubscription =
     !!onboarding &&
     isAccountStatusLoaded(onboarding.accountStatus) &&
@@ -140,8 +140,8 @@ export function UpgradeRouter() {
     }
   }, [checkoutResultBaseUrl, session, navigate])
 
-  // Auto-start Stripe once onboarding confirms the caller has no
-  // subscription. Holding until onboardingLoaded prevents firing a
+  // Auto-start Stripe once Onboarding Status confirms the caller has no
+  // subscription. Holding until account_status is loaded prevents firing a
   // createCheckoutSession RPC while the cloud account snapshot is still
   // loading, which would otherwise push subscribed users through Stripe.
   useEffect(() => {
@@ -193,8 +193,8 @@ export function UpgradeRouter() {
   }
 
   // Wait for the cloud account snapshot to load before deciding anything.
-  // Without this gate a pre-fetch onboarding response would fall through to
-  // the checkout flow below and auto-start a Stripe session for a user we
+  // Without this gate a pre-fetch Onboarding Status response would fall through
+  // to the checkout flow below and auto-start a Stripe session for a user we
   // already know is subscribed.
   if (!onboarding || !isAccountStatusLoaded(onboarding.accountStatus)) {
     return null

@@ -79,7 +79,8 @@ export class SpacewaveSession extends Resource {
     this.service = new SpacewaveSessionResourceServiceClient(resourceRef.client)
   }
 
-  // watchOnboardingStatus streams onboarding state changes.
+  // watchOnboardingStatus streams Onboarding Status, the session route-status
+  // projection used by cloud routing screens. Wire names stay historical.
   public watchOnboardingStatus(
     abortSignal?: AbortSignal,
   ): AsyncIterable<WatchOnboardingStatusResponse> {

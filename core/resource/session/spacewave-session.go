@@ -69,7 +69,8 @@ func (r *SpacewaveSessionResource) getSessionID() string {
 	return r.getSessionRef().GetProviderResourceRef().GetId()
 }
 
-// WatchOnboardingStatus streams onboarding state changes.
+// WatchOnboardingStatus streams Onboarding Status, the Spacewave cloud session
+// route-status projection used by root, plan, billing, and lifecycle routers.
 func (r *SpacewaveSessionResource) WatchOnboardingStatus(
 	req *s4wave_provider_spacewave.WatchOnboardingStatusRequest,
 	strm s4wave_session.SRPCSpacewaveSessionResourceService_WatchOnboardingStatusStream,
@@ -93,10 +94,10 @@ func (r *SpacewaveSessionResource) WatchOnboardingStatus(
 			}
 		})
 
-		// Hold the first emission until the account snapshot has been
-		// populated from the cloud, unless the account is in a terminal
-		// non-ready state. Prevents a "not subscribed" flash for subscribed
-		// users while the account fetcher is still loading.
+		// Hold the first route-status projection until the account snapshot
+		// has been populated from the cloud, unless the account is in a
+		// terminal non-ready state. Prevents a "not subscribed" flash for
+		// subscribed users while the account fetcher is still loading.
 		if prev == nil && !shouldEmitOnboardingStatus(stateLoaded, accountStatus) {
 			select {
 			case <-ctx.Done():
@@ -153,10 +154,11 @@ func (r *SpacewaveSessionResource) buildOnboardingStatusProjectionContext(
 	return projCtx
 }
 
-// shouldEmitOnboardingStatus returns whether a WatchOnboardingStatus response
-// should be sent given the current account state. The first emission holds
-// until the cloud account snapshot has been populated by the fetcher. Terminal
-// non-ready statuses are meaningful to clients even with a nil snapshot.
+// shouldEmitOnboardingStatus returns whether the Onboarding Status
+// route-status projection should be sent given the current account state. The
+// first emission holds until the cloud account snapshot has been populated by
+// the fetcher. Terminal non-ready statuses are meaningful to clients even with
+// a nil snapshot.
 func shouldEmitOnboardingStatus(stateLoaded bool, accountStatus provider.ProviderAccountStatus) bool {
 	if stateLoaded {
 		return true

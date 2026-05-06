@@ -7,7 +7,8 @@ import (
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
 )
 
-// ManagedBillingSummary carries route-level managed billing account counts.
+// ManagedBillingSummary carries managed billing account counts for the
+// Onboarding Status route-status projection.
 type ManagedBillingSummary struct {
 	ManagedBaCount               uint32
 	ManagedActiveBaCount         uint32
@@ -15,8 +16,9 @@ type ManagedBillingSummary struct {
 	BillingSummaryLoaded         bool
 }
 
-// OnboardingStatusProjectionContext carries session-scoped Onboarding Status
-// state that is not owned by ProviderAccount.
+// OnboardingStatusProjectionContext carries session-scoped inputs for
+// Onboarding Status, the Spacewave cloud session route-status projection served
+// by WatchOnboardingStatus. These fields are not owned by ProviderAccount.
 type OnboardingStatusProjectionContext struct {
 	HasLinkedLocal          bool
 	LinkedLocalSessionIndex uint32
@@ -25,8 +27,9 @@ type OnboardingStatusProjectionContext struct {
 	LinkedCloudSessionIndex uint32
 }
 
-// BuildOnboardingStatusProjection builds the session Onboarding Status
-// projection from cached Provider Account state plus explicit session context.
+// BuildOnboardingStatusProjection builds Onboarding Status: the session
+// route-status projection from cached Provider Account state plus explicit
+// session context. The wire message keeps its historical onboarding name.
 func (a *ProviderAccount) BuildOnboardingStatusProjection(
 	ctx context.Context,
 	projCtx OnboardingStatusProjectionContext,
@@ -102,14 +105,14 @@ func (a *ProviderAccount) BuildOnboardingStatusProjection(
 	return resp, err
 }
 
-// ShouldLoadManagedBillingSummary returns whether route-status projection should
-// query the managed billing-account summary.
+// ShouldLoadManagedBillingSummary returns whether the Onboarding Status
+// route-status projection should query the managed billing-account summary.
 func ShouldLoadManagedBillingSummary(accountStatus provider.ProviderAccountStatus) bool {
 	return accountStatus == provider.ProviderAccountStatus_ProviderAccountStatus_READY
 }
 
-// BuildManagedBillingSummary builds managed billing route counts from the
-// Provider Account-owned managed billing account cache.
+// BuildManagedBillingSummary builds managed billing counts for Onboarding
+// Status routing from the Provider Account-owned managed billing account cache.
 func (a *ProviderAccount) BuildManagedBillingSummary(
 	ctx context.Context,
 	accountStatus provider.ProviderAccountStatus,

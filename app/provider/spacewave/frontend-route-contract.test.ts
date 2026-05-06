@@ -6,7 +6,7 @@ function readLocalSource(fileName: string): string {
 }
 
 describe('spacewave frontend route contract', () => {
-  it('keeps cloud root routing on the Onboarding Status context instead of route-level streams', () => {
+  it('keeps cloud root routing on Onboarding Status route context instead of route-level streams', () => {
     const source = readLocalSource('./SpacewaveRootRouter.tsx')
 
     expect(source).toContain('SpacewaveOnboardingContext.useContextSafe()')
@@ -17,7 +17,7 @@ describe('spacewave frontend route contract', () => {
     expect(source).not.toMatch(/\bWebSocket\b/)
   })
 
-  it('keeps account-status helpers as pure Onboarding Status predicates', () => {
+  it('keeps account-status helpers as pure Onboarding Status route predicates', () => {
     const source = readLocalSource('./account-status.ts')
 
     expect(source).toContain('WatchOnboardingStatusResponse')

@@ -8,8 +8,9 @@ import { BillingStateProvider } from '@s4wave/app/billing/BillingStateProvider.j
 import { SubscriptionLapseBanner } from './SubscriptionLapseBanner.js'
 import type { WatchOnboardingStatusResponse } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 
-// SpacewaveSessionContent wraps session children with the onboarding context,
-// org list context, and subscription lapse banner for spacewave sessions.
+// SpacewaveSessionContent wraps session children with Onboarding Status route
+// context, org list context, and the subscription lapse banner for spacewave
+// sessions.
 export function SpacewaveSessionContent(props: {
   onboarding: WatchOnboardingStatusResponse | null
   children: ReactNode

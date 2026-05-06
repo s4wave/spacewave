@@ -45,7 +45,8 @@ function RouterLoadingGate({ detail }: { detail: string }) {
   )
 }
 
-// SpacewaveRootRouter handles all cloud session root routing.
+// SpacewaveRootRouter handles all cloud session root routing from Onboarding
+// Status, the WatchOnboardingStatus route-status projection.
 // Gates: loading -> dormant reactivation -> linked-local redirect -> lapsed
 // -> email verification -> no-active-billing -> dashboard.
 export function SpacewaveRootRouter() {
@@ -96,8 +97,9 @@ export function SpacewaveRootRouter() {
   }, [shouldRedirectToLocal, linkedLocalIndex, navigate])
 
   // Hold until the cloud account snapshot has loaded. Without this gate a
-  // pre-fetch onboarding response would flash the plan page for subscribed
-  // users whose subscription_status field has not yet been populated.
+  // pre-fetch Onboarding Status response would flash the plan page for
+  // subscribed users whose subscription_status field has not yet been
+  // populated.
   if (!onboarding || !accountLoaded) {
     return <RouterLoadingGate detail="Fetching account status." />
   }

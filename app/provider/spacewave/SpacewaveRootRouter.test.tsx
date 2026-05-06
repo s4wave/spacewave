@@ -130,7 +130,7 @@ describe('SpacewaveRootRouter', () => {
     expect(mockBillingStateProvider).toHaveBeenCalledTimes(1)
   })
 
-  it('renders the loading card before the first onboarding status emission', () => {
+  it('renders the loading card before the first Onboarding Status route-status emission', () => {
     mockUseContextSafe.mockReturnValue({
       onboarding: null,
       isLapsed: false,

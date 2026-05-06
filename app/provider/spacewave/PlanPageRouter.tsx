@@ -9,9 +9,10 @@ import {
 
 // PlanPageRouter handles the shared /plan route for both local and cloud
 // sessions. Local sessions have no Spacewave onboarding context, so they
-// always render PlanSelectionPage. Cloud sessions use WatchOnboardingStatus to
-// determine whether to stay on PlanSelectionPage, redirect to the dashboard,
-// or forward to /plan/no-active.
+// always render PlanSelectionPage. Cloud sessions use Onboarding Status, the
+// WatchOnboardingStatus route-status projection, to determine whether to stay
+// on PlanSelectionPage, redirect to the dashboard, or forward to
+// /plan/no-active.
 //
 // Case 1: active subscription                 -> redirect to dashboard
 // Case 2: no subscription + has_linked_cloud  -> redirect to cloud session
@@ -26,9 +27,9 @@ export function PlanPageRouter() {
   const onboarding = ctx?.onboarding ?? null
   const hasActiveBilling = ctx?.hasActiveBilling ?? false
 
-  // Hold the render until the onboarding snapshot (account status + billing
-  // summary) is definitive. Otherwise the pre-fetch response flashes the
-  // plan page for subscribed users or misroutes first-run users.
+  // Hold the render until the Onboarding Status projection (account status +
+  // billing summary) is definitive. Otherwise the pre-fetch response flashes
+  // the plan page for subscribed users or misroutes first-run users.
   if (!onboarding || !isOnboardingReady(onboarding)) {
     return null
   }

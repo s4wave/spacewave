@@ -277,7 +277,7 @@ describe('SessionContainer', () => {
     expect(within(overlay).getByTestId('session-details')).toBeTruthy()
   })
 
-  it('opens the Onboarding Status stream once at the session container boundary', () => {
+  it('opens the Onboarding Status route-status stream at the session container boundary', () => {
     cleanup()
     mockNavigate.mockReset()
     mockUseStreamingResource.mockReset()
@@ -333,7 +333,7 @@ describe('SessionContainer', () => {
     ).toBe(String(ProviderAccountStatus.ProviderAccountStatus_READY))
   })
 
-  it('keeps local sessions off the Onboarding Status stream', () => {
+  it('keeps local sessions off the Onboarding Status route-status stream', () => {
     cleanup()
     mockNavigate.mockReset()
     mockUseStreamingResource.mockReset()
