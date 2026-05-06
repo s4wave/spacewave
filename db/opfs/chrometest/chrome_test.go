@@ -183,6 +183,32 @@ func TestOpfsChromeConcurrentMetaOverflowWriters(t *testing.T) {
 	})
 }
 
+func TestOpfsChromeManifestBloomSplitSafety(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-manifest-bloom-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	s.runWorker(t, workerArgs{
+		scenario: "meta-manifest-bloom-split",
+		root:     root,
+		shards:   defaultShards,
+	})
+
+	s.reopenPage(t)
+
+	s.runWorker(t, workerArgs{
+		scenario: "meta-manifest-bloom-verify",
+		root:     root,
+		shards:   defaultShards,
+	})
+}
+
 func TestOpfsChromePersistsAcrossPageLifecycle(t *testing.T) {
 	requireChromeProfile(t, chromeSmoke)
 	h := newChromeHarness(t)

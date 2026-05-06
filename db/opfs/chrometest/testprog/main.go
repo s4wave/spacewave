@@ -52,6 +52,31 @@ type blockEventPub struct {
 	bc js.Value
 }
 
+type manifestBloomCase struct {
+	shard string
+	pack  string
+	size  int
+}
+
+type manifestSeedEntry struct {
+	sub  string
+	size int
+}
+
+var manifestSeedEntries = []manifestSeedEntry{
+	{sub: "pack_bloom/00/pfv1_seed_left", size: 1700},
+	{sub: "pack_bloom/zz/pfv1_seed_right", size: 1700},
+}
+
+var manifestBloomCases = []manifestBloomCase{
+	{shard: "mm", pack: "pfv1_manifest_middle_split", size: 2500},
+	{shard: "2B", pack: "pfv1_manifest_2B", size: 1892},
+	{shard: "4U", pack: "pfv1_manifest_4U", size: 2801},
+	{shard: "Bn", pack: "pfv1_manifest_Bn", size: 2367},
+	{shard: "pQ", pack: "pfv1_manifest_pQ", size: 2119},
+	{shard: "z3", pack: "pfv1_manifest_z3", size: 1954},
+}
+
 func main() {
 	start := time.Now()
 	c, err := parseConfig(os.Args)
@@ -118,6 +143,10 @@ func run(ctx context.Context, c *config) error {
 		return runMetaMixedWriter(ctx, c)
 	case "meta-mixed-verify":
 		return runMetaMixedVerify(ctx, c)
+	case "meta-manifest-bloom-split":
+		return runMetaManifestBloomSplit(ctx, c)
+	case "meta-manifest-bloom-verify":
+		return runMetaManifestBloomVerify(ctx, c)
 	case "meta-crash-before-superblock":
 		return runMetaCrashWrite(c, false)
 	case "meta-crash-after-superblock":
@@ -473,6 +502,75 @@ func runMetaMixedVerify(ctx context.Context, c *config) error {
 			if err := verifyMetaValue(ctx, store, key, metaMixedValue(w, key)); err != nil {
 				return err
 			}
+		}
+	}
+	return nil
+}
+
+func runMetaManifestBloomSplit(ctx context.Context, c *config) error {
+	store, err := openMetaStore(c)
+	if err != nil {
+		return err
+	}
+	tx, err := store.NewTransaction(ctx, true)
+	if err != nil {
+		return errors.Wrap(err, "open manifest seed tx")
+	}
+	defer tx.Discard()
+	for _, entry := range manifestSeedEntries {
+		if err := tx.Set(ctx, manifestKey(entry.sub), manifestSizedValue(entry.sub, entry.size)); err != nil {
+			return errors.Wrap(err, "set manifest seed")
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return errors.Wrap(err, "commit manifest seed")
+	}
+
+	tx, err = store.NewTransaction(ctx, true)
+	if err != nil {
+		return errors.Wrap(err, "open manifest delta tx")
+	}
+	defer tx.Discard()
+	if err := tx.Set(ctx, manifestKey("meta/lastPullSequence"), []byte("42")); err != nil {
+		return errors.Wrap(err, "set manifest sequence")
+	}
+	for _, entry := range manifestBloomCases {
+		key := manifestKey("pack_bloom/" + entry.shard + "/" + entry.pack)
+		if err := tx.Set(ctx, key, manifestBloomValue(entry)); err != nil {
+			return errors.Wrap(err, "set manifest bloom")
+		}
+		packKey := manifestKey("packs/" + entry.shard + "/" + entry.pack)
+		if err := tx.Set(ctx, packKey, manifestPackValue(entry)); err != nil {
+			return errors.Wrap(err, "set manifest pack")
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return errors.Wrap(err, "commit manifest delta")
+	}
+	return nil
+}
+
+func runMetaManifestBloomVerify(ctx context.Context, c *config) error {
+	store, err := openMetaStore(c)
+	if err != nil {
+		return err
+	}
+	for _, entry := range manifestSeedEntries {
+		if err := verifyMetaValue(ctx, store, manifestKey(entry.sub), manifestSizedValue(entry.sub, entry.size)); err != nil {
+			return err
+		}
+	}
+	if err := verifyMetaValue(ctx, store, manifestKey("meta/lastPullSequence"), []byte("42")); err != nil {
+		return err
+	}
+	for _, entry := range manifestBloomCases {
+		key := manifestKey("pack_bloom/" + entry.shard + "/" + entry.pack)
+		if err := verifyMetaValue(ctx, store, key, manifestBloomValue(entry)); err != nil {
+			return err
+		}
+		packKey := manifestKey("packs/" + entry.shard + "/" + entry.pack)
+		if err := verifyMetaValue(ctx, store, packKey, manifestPackValue(entry)); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -834,6 +932,24 @@ func metaMixedValue(worker int, key []byte) []byte {
 	seed := []byte("overflow:" + string(key) + ":")
 	size := pagestore.DefaultPageSize + 2048
 	out := bytes.Repeat(seed, size/len(seed)+1)
+	return out[:size]
+}
+
+func manifestKey(sub string) []byte {
+	return []byte("h/objs/p/spacewave/test-account/bstore/test-bstore/meta/" + sub)
+}
+
+func manifestBloomValue(entry manifestBloomCase) []byte {
+	return manifestSizedValue(entry.pack, entry.size)
+}
+
+func manifestPackValue(entry manifestBloomCase) []byte {
+	return []byte("pack:" + entry.shard + "/" + entry.pack)
+}
+
+func manifestSizedValue(seed string, size int) []byte {
+	prefix := []byte("manifest:" + seed + ":")
+	out := bytes.Repeat(prefix, size/len(prefix)+1)
 	return out[:size]
 }
 

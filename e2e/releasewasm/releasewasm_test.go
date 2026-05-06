@@ -6,6 +6,7 @@ import (
 	"context"
 	"os"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -87,6 +88,55 @@ func TestRootPrerenderLoadsProductionWasmBundle(t *testing.T) {
 		t.Fatalf("start root production wasm: %v", err)
 	}
 	waitForLiveApp(t, page)
+}
+
+func TestProductionRuntimeMatchesReleaseDescriptor(t *testing.T) {
+	desc, err := testHarness.browserRelease(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	page := testHarness.newPage(t)
+	if _, err := page.Goto(testHarness.getBaseURL() + "/"); err != nil {
+		t.Fatalf("goto root: %v", err)
+	}
+
+	waitForPrerenderRoot(t, page)
+	waitForBootFunction(t, page)
+	_, err = page.Evaluate(`() => {
+		globalThis.__swBoot('#/')
+	}`)
+	if err != nil {
+		t.Fatalf("start root production wasm: %v", err)
+	}
+	waitForLiveApp(t, page)
+
+	raw, err := page.Evaluate(`async () => {
+		const registration = await navigator.serviceWorker.ready
+		return {
+			generationId: globalThis.__swGenerationId || '',
+			controllerURL: navigator.serviceWorker.controller?.scriptURL || '',
+			activeURL: registration.active?.scriptURL || '',
+		}
+	}`)
+	if err != nil {
+		t.Fatalf("read production runtime state: %v", err)
+	}
+	state, ok := raw.(map[string]any)
+	if !ok {
+		t.Fatalf("unexpected production runtime state %T", raw)
+	}
+	generationID, _ := state["generationId"].(string)
+	if generationID != desc.GenerationID {
+		t.Fatalf("generation id=%q want %q", generationID, desc.GenerationID)
+	}
+	controllerURL, _ := state["controllerURL"].(string)
+	if !strings.HasSuffix(controllerURL, "/"+desc.ShellAssets.ServiceWorker) {
+		t.Fatalf("controller service worker=%q want suffix %q", controllerURL, desc.ShellAssets.ServiceWorker)
+	}
+	activeURL, _ := state["activeURL"].(string)
+	if !strings.HasSuffix(activeURL, "/"+desc.ShellAssets.ServiceWorker) {
+		t.Fatalf("active service worker=%q want suffix %q", activeURL, desc.ShellAssets.ServiceWorker)
+	}
 }
 
 func TestQuickstartPrerenderAutoBootsProductionWasmBundle(t *testing.T) {
