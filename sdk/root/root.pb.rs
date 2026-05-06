@@ -392,6 +392,25 @@ pub struct WatchSpaceRootRuntimeResponse {
     /// Error is a user-actionable status message when status is ERROR.
     #[prost(string, tag="6")]
     pub error: ::prost::alloc::string::String,
+    /// RuntimeSessions are enriched sessions from the selected root daemon.
+    #[prost(message, repeated, tag="7")]
+    pub runtime_sessions: ::prost::alloc::vec::Vec<SpaceRootRuntimeSession>,
+}
+/// SpaceRootRuntimeSession describes one selected-root session and its spaces.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SpaceRootRuntimeSession {
+    /// Session is the raw session list entry.
+    #[prost(message, optional, tag="1")]
+    pub session: ::core::option::Option<super::super::session::SessionListEntry>,
+    /// Metadata is stored display metadata for the session.
+    #[prost(message, optional, tag="2")]
+    pub metadata: ::core::option::Option<super::super::session::SessionMetadata>,
+    /// Spaces are the first resources-list snapshot for the mounted session.
+    #[prost(message, repeated, tag="3")]
+    pub spaces: ::prost::alloc::vec::Vec<super::super::space::SpaceSoListEntry>,
+    /// Error is set when this session could not be enriched.
+    #[prost(string, tag="4")]
+    pub error: ::prost::alloc::string::String,
 }
 /// GetChangelogRequest is the request type for GetChangelog.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]

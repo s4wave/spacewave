@@ -21,6 +21,7 @@ import {
 } from '../../core/provider/provider.pb.js'
 import type { HashType } from '../../net/hash/hash.pb.js'
 import { Hash, HashType_Enum } from '../../net/hash/hash.pb.js'
+import { SpaceSoListEntry } from '../../core/space/space.pb.js'
 import { Changelog } from '../../core/changelog/changelog.pb.js'
 
 export const protobufPackage = 's4wave.root'
@@ -1490,6 +1491,57 @@ export const WatchSpaceRootRuntimeRequest: MessageType<WatchSpaceRootRuntimeRequ
   })
 
 /**
+ * SpaceRootRuntimeSession describes one selected-root session and its spaces.
+ *
+ * @generated from message s4wave.root.SpaceRootRuntimeSession
+ */
+export interface SpaceRootRuntimeSession {
+  /**
+   * Session is the raw session list entry.
+   *
+   * @generated from field: session.SessionListEntry session = 1;
+   */
+  session?: SessionListEntry
+  /**
+   * Metadata is stored display metadata for the session.
+   *
+   * @generated from field: session.SessionMetadata metadata = 2;
+   */
+  metadata?: SessionMetadata
+  /**
+   * Spaces are the first resources-list snapshot for the mounted session.
+   *
+   * @generated from field: repeated space.SpaceSoListEntry spaces = 3;
+   */
+  spaces?: SpaceSoListEntry[]
+  /**
+   * Error is set when this session could not be enriched.
+   *
+   * @generated from field: string error = 4;
+   */
+  error?: string
+}
+
+// SpaceRootRuntimeSession contains the message type declaration for SpaceRootRuntimeSession.
+export const SpaceRootRuntimeSession: MessageType<SpaceRootRuntimeSession> =
+  createMessageType({
+    typeName: 's4wave.root.SpaceRootRuntimeSession',
+    fields: [
+      { no: 1, name: 'session', kind: 'message', T: () => SessionListEntry },
+      { no: 2, name: 'metadata', kind: 'message', T: () => SessionMetadata },
+      {
+        no: 3,
+        name: 'spaces',
+        kind: 'message',
+        T: () => SpaceSoListEntry,
+        repeated: true,
+      },
+      { no: 4, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * WatchSpaceRootRuntimeResponse streams the selected root daemon state.
  *
  * @generated from message s4wave.root.WatchSpaceRootRuntimeResponse
@@ -1531,6 +1583,12 @@ export interface WatchSpaceRootRuntimeResponse {
    * @generated from field: string error = 6;
    */
   error?: string
+  /**
+   * RuntimeSessions are enriched sessions from the selected root daemon.
+   *
+   * @generated from field: repeated s4wave.root.SpaceRootRuntimeSession runtime_sessions = 7;
+   */
+  runtimeSessions?: SpaceRootRuntimeSession[]
 }
 
 // WatchSpaceRootRuntimeResponse contains the message type declaration for WatchSpaceRootRuntimeResponse.
@@ -1550,6 +1608,13 @@ export const WatchSpaceRootRuntimeResponse: MessageType<WatchSpaceRootRuntimeRes
         repeated: true,
       },
       { no: 6, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 7,
+        name: 'runtime_sessions',
+        kind: 'message',
+        T: () => SpaceRootRuntimeSession,
+        repeated: true,
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

@@ -19,8 +19,11 @@ import (
 	"github.com/pkg/errors"
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
+	session "github.com/s4wave/spacewave/core/session"
+	space "github.com/s4wave/spacewave/core/space"
 	"github.com/s4wave/spacewave/net/util/randstring"
 	s4wave_root "github.com/s4wave/spacewave/sdk/root"
+	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 )
 
 const spaceRootRuntimeSocketName = "spacewave.sock"
@@ -41,6 +44,8 @@ type spaceRootRuntimeClient struct {
 
 type spaceRootRuntimeRoot interface {
 	WatchSessions(context.Context) (s4wave_root.SRPCRootResourceService_WatchSessionsClient, error)
+	MountSessionByIdx(context.Context, uint32) (*s4wave_root.MountSessionByIdxResponse, error)
+	GetSessionMetadata(context.Context, uint32) (*session.SessionMetadata, bool, error)
 }
 
 var connectSpaceRootRuntimeFunc = connectSpaceRootRuntime
@@ -106,16 +111,80 @@ func (s *CoreRootServer) WatchSpaceRootRuntime(
 			}
 			return sendSpaceRootRuntimeError(strm, alias.GetAliasId(), statePath, socketPath, errors.Wrap(err, "watch sessions"))
 		}
+		runtimeSessions := client.buildSpaceRootRuntimeSessions(ctx, resp.GetSessions())
 		if err := strm.Send(&s4wave_root.WatchSpaceRootRuntimeResponse{
-			Status:     s4wave_root.SpaceRootRuntimeStatus_SpaceRootRuntimeStatus_READY,
-			AliasId:    alias.GetAliasId(),
-			StatePath:  statePath,
-			SocketPath: socketPath,
-			Sessions:   resp.GetSessions(),
+			Status:          s4wave_root.SpaceRootRuntimeStatus_SpaceRootRuntimeStatus_READY,
+			AliasId:         alias.GetAliasId(),
+			StatePath:       statePath,
+			SocketPath:      socketPath,
+			Sessions:        resp.GetSessions(),
+			RuntimeSessions: runtimeSessions,
 		}); err != nil {
 			return err
 		}
 	}
+}
+
+func (c *spaceRootRuntimeClient) buildSpaceRootRuntimeSessions(
+	ctx context.Context,
+	sessions []*session.SessionListEntry,
+) []*s4wave_root.SpaceRootRuntimeSession {
+	out := make([]*s4wave_root.SpaceRootRuntimeSession, 0, len(sessions))
+	for _, entry := range sessions {
+		runtimeSession := &s4wave_root.SpaceRootRuntimeSession{Session: entry}
+		idx := entry.GetSessionIndex()
+		meta, notFound, err := c.root.GetSessionMetadata(ctx, idx)
+		if err != nil {
+			runtimeSession.Error = errors.Wrap(err, "read session metadata").Error()
+			out = append(out, runtimeSession)
+			continue
+		}
+		if !notFound {
+			runtimeSession.Metadata = meta
+		}
+		spaces, err := c.listSpaceRootRuntimeSessionSpaces(ctx, idx)
+		if err != nil {
+			runtimeSession.Error = err.Error()
+			out = append(out, runtimeSession)
+			continue
+		}
+		runtimeSession.Spaces = spaces
+		out = append(out, runtimeSession)
+	}
+	return out
+}
+
+func (c *spaceRootRuntimeClient) listSpaceRootRuntimeSessionSpaces(
+	ctx context.Context,
+	idx uint32,
+) ([]*space.SpaceSoListEntry, error) {
+	if c.resClient == nil {
+		return nil, nil
+	}
+	mount, err := c.root.MountSessionByIdx(ctx, idx)
+	if err != nil {
+		return nil, errors.Wrap(err, "mount session")
+	}
+	if mount.GetNotFound() {
+		return nil, nil
+	}
+	ref := c.resClient.CreateResourceReference(mount.GetResourceId())
+	sess, err := s4wave_session.NewSession(c.resClient, ref)
+	if err != nil {
+		ref.Release()
+		return nil, errors.Wrap(err, "session resource")
+	}
+	defer sess.Release()
+	watch, err := sess.WatchResourcesList(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "watch spaces")
+	}
+	defer watch.Close()
+	resp, err := watch.Recv()
+	if err != nil {
+		return nil, errors.Wrap(err, "read spaces")
+	}
+	return resp.GetSpacesList(), nil
 }
 
 func (s *CoreRootServer) lookupReadySpaceRootAlias(

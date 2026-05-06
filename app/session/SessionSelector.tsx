@@ -30,6 +30,7 @@ import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import {
   SpaceRootRuntimeStatus,
   SpaceRootStatus,
+  type SpaceRootRuntimeSession,
   type SpaceRootAliasRecord,
   type WatchSpaceRootRuntimeResponse,
 } from '@s4wave/sdk/root/root.pb.js'
@@ -255,10 +256,15 @@ function SpaceRootRuntimePanel(props: {
 }) {
   const runtime = props.runtime
   const sessions = runtime?.sessions ?? []
+  const runtimeSessions =
+    runtime?.runtimeSessions?.length ?
+      runtime.runtimeSessions
+    : sessions.map((session): SpaceRootRuntimeSession => ({ session }))
   const statusLabel = runtimeStatusLabel(runtime?.status)
   const loading =
     !runtime ||
-    runtime.status === SpaceRootRuntimeStatus.SpaceRootRuntimeStatus_CONNECTING ||
+    runtime.status ===
+      SpaceRootRuntimeStatus.SpaceRootRuntimeStatus_CONNECTING ||
     runtime.status === SpaceRootRuntimeStatus.SpaceRootRuntimeStatus_STARTING
 
   return (
@@ -266,8 +272,10 @@ function SpaceRootRuntimePanel(props: {
       <div className="flex items-center gap-2">
         {loading ?
           <LuLoaderCircle className="h-4 w-4 animate-spin" />
-        : runtime?.status ===
-            SpaceRootRuntimeStatus.SpaceRootRuntimeStatus_ERROR ?
+        : (
+          runtime?.status ===
+          SpaceRootRuntimeStatus.SpaceRootRuntimeStatus_ERROR
+        ) ?
           <LuTriangleAlert className="text-warning h-4 w-4" />
         : <LuPlug className="h-4 w-4" />}
         <span className="text-foreground text-sm font-medium">
@@ -282,22 +290,53 @@ function SpaceRootRuntimePanel(props: {
           {runtime.statePath}
         </div>
       )}
-      {sessions.length > 0 && (
+      {runtimeSessions.length > 0 && (
         <div className="mt-3 space-y-2">
-          {sessions.map((session) => (
+          {runtimeSessions.map((runtimeSession) => (
             <div
-              key={session.sessionIndex}
-              className="bg-foreground/5 flex items-center gap-2 rounded-md px-3 py-2"
+              key={runtimeSession.session?.sessionIndex}
+              className="bg-foreground/5 rounded-md px-3 py-2"
             >
-              <LuUser className="h-4 w-4" />
-              <span className="text-foreground text-sm">
-                Session {session.sessionIndex}
-              </span>
+              <div className="flex items-center gap-2">
+                <LuUser className="h-4 w-4" />
+                <div className="min-w-0">
+                  <div className="text-foreground truncate text-sm">
+                    {runtimeSessionTitle(runtimeSession)}
+                  </div>
+                  <div className="text-foreground-alt/60 truncate text-xs">
+                    {runtimeSessionSubtitle(runtimeSession)}
+                  </div>
+                </div>
+              </div>
+              {runtimeSession.spaces && runtimeSession.spaces.length > 0 && (
+                <div className="mt-2 space-y-1 pl-6">
+                  {runtimeSession.spaces.map((space, index) => (
+                    <div
+                      key={
+                        space.entry?.ref?.providerResourceRef?.id ??
+                        `${runtimeSession.session?.sessionIndex}-space-${index}`
+                      }
+                      className="text-foreground-alt/80 flex items-center gap-2 text-xs"
+                    >
+                      <LuFolderOpen className="h-3.5 w-3.5" />
+                      <span className="truncate">
+                        {space.spaceMeta?.name || 'Untitled space'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {runtimeSession.error && (
+                <div className="text-warning mt-2 pl-6 text-xs">
+                  {runtimeSession.error}
+                </div>
+              )}
             </div>
           ))}
         </div>
       )}
-      {runtime?.status === SpaceRootRuntimeStatus.SpaceRootRuntimeStatus_READY &&
+      {runtime?.status ===
+        SpaceRootRuntimeStatus.SpaceRootRuntimeStatus_READY &&
         sessions.length === 0 && (
           <div className="text-foreground-alt/60 mt-2 text-xs">
             No sessions in this state root.
@@ -305,6 +344,26 @@ function SpaceRootRuntimePanel(props: {
         )}
     </div>
   )
+}
+
+function runtimeSessionTitle(session: SpaceRootRuntimeSession): string {
+  return (
+    session.metadata?.displayName ||
+    session.metadata?.cloudEntityId ||
+    session.metadata?.providerAccountId ||
+    `Session ${session.session?.sessionIndex ?? ''}`
+  )
+}
+
+function runtimeSessionSubtitle(session: SpaceRootRuntimeSession): string {
+  const provider =
+    session.metadata?.providerDisplayName || session.metadata?.providerId
+  const count = session.spaces?.length ?? 0
+  const spaces = count === 1 ? '1 space' : `${count} spaces`
+  if (provider) {
+    return `${provider} - ${spaces}`
+  }
+  return spaces
 }
 
 function runtimeStatusLabel(status?: SpaceRootRuntimeStatus): string {

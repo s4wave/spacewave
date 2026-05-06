@@ -159,6 +159,9 @@ func TestSpaceRootRuntimeStreamsSelectedRootSessions(t *testing.T) {
 		return &spaceRootRuntimeClient{
 			root: &testSpaceRootRuntimeRoot{
 				sessions: []*session.SessionListEntry{{SessionIndex: 7}},
+				metadata: map[uint32]*session.SessionMetadata{
+					7: {DisplayName: "External Account"},
+				},
 			},
 		}, nil
 	}
@@ -189,6 +192,9 @@ func TestSpaceRootRuntimeStreamsSelectedRootSessions(t *testing.T) {
 	}
 	if len(ready.GetSessions()) != 1 || ready.GetSessions()[0].GetSessionIndex() != 7 {
 		t.Fatalf("sessions = %#v, want session 7", ready.GetSessions())
+	}
+	if len(ready.GetRuntimeSessions()) != 1 || ready.GetRuntimeSessions()[0].GetMetadata().GetDisplayName() != "External Account" {
+		t.Fatalf("runtime sessions = %#v, want enriched session", ready.GetRuntimeSessions())
 	}
 	records, err := server.snapshotSpaceRootAliases(t.Context())
 	if err != nil {
@@ -274,10 +280,20 @@ func (s *testSpaceRootRuntimeStream) SendAndClose(resp *s4wave_root.WatchSpaceRo
 
 type testSpaceRootRuntimeRoot struct {
 	sessions []*session.SessionListEntry
+	metadata map[uint32]*session.SessionMetadata
 }
 
 func (r *testSpaceRootRuntimeRoot) WatchSessions(ctx context.Context) (s4wave_root.SRPCRootResourceService_WatchSessionsClient, error) {
 	return &testSpaceRootRuntimeWatch{sessions: r.sessions, ctx: ctx}, nil
+}
+
+func (r *testSpaceRootRuntimeRoot) MountSessionByIdx(context.Context, uint32) (*s4wave_root.MountSessionByIdxResponse, error) {
+	return &s4wave_root.MountSessionByIdxResponse{NotFound: true}, nil
+}
+
+func (r *testSpaceRootRuntimeRoot) GetSessionMetadata(_ context.Context, idx uint32) (*session.SessionMetadata, bool, error) {
+	meta, ok := r.metadata[idx]
+	return meta, !ok, nil
 }
 
 type testSpaceRootRuntimeWatch struct {

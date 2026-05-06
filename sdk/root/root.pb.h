@@ -36,6 +36,7 @@
 #include "../../core/changelog/changelog.pb.h"
 #include "../../core/provider/provider.pb.h"
 #include "../../core/session/session.pb.h"
+#include "../../core/space/space.pb.h"
 #include "../../net/hash/hash.pb.h"
 // @@protoc_insertion_point(includes)
 
@@ -262,6 +263,10 @@ class SpaceRootAliasRecord;
 struct SpaceRootAliasRecordDefaultTypeInternal;
 extern SpaceRootAliasRecordDefaultTypeInternal _SpaceRootAliasRecord_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull SpaceRootAliasRecord_class_data_;
+class SpaceRootRuntimeSession;
+struct SpaceRootRuntimeSessionDefaultTypeInternal;
+extern SpaceRootRuntimeSessionDefaultTypeInternal _SpaceRootRuntimeSession_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SpaceRootRuntimeSession_class_data_;
 class StopWebListenerRequest;
 struct StopWebListenerRequestDefaultTypeInternal;
 extern StopWebListenerRequestDefaultTypeInternal _StopWebListenerRequest_default_instance_;
@@ -604,7 +609,7 @@ class WebListenerInfo final : public ::google::protobuf::Message
     return *reinterpret_cast<const WebListenerInfo*>(
         &_WebListenerInfo_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 59;
+  static constexpr int kIndexInFileMessages = 60;
   friend void swap(WebListenerInfo& a, WebListenerInfo& b) { a.Swap(&b); }
   inline void Swap(WebListenerInfo* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -844,7 +849,7 @@ class WatchWebListenersRequest final : public ::google::protobuf::internal::Zero
     return *reinterpret_cast<const WatchWebListenersRequest*>(
         &_WatchWebListenersRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 58;
+  static constexpr int kIndexInFileMessages = 59;
   friend void swap(WatchWebListenersRequest& a, WatchWebListenersRequest& b) { a.Swap(&b); }
   inline void Swap(WatchWebListenersRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1991,7 +1996,7 @@ class WatchRuntimeHandoffRequest final : public ::google::protobuf::internal::Ze
     return *reinterpret_cast<const WatchRuntimeHandoffRequest*>(
         &_WatchRuntimeHandoffRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 69;
+  static constexpr int kIndexInFileMessages = 70;
   friend void swap(WatchRuntimeHandoffRequest& a, WatchRuntimeHandoffRequest& b) { a.Swap(&b); }
   inline void Swap(WatchRuntimeHandoffRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2125,7 +2130,7 @@ class WatchListenerYieldPromptsRequest final : public ::google::protobuf::intern
     return *reinterpret_cast<const WatchListenerYieldPromptsRequest*>(
         &_WatchListenerYieldPromptsRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 64;
+  static constexpr int kIndexInFileMessages = 65;
   friend void swap(WatchListenerYieldPromptsRequest& a, WatchListenerYieldPromptsRequest& b) { a.Swap(&b); }
   inline void Swap(WatchListenerYieldPromptsRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2260,7 +2265,7 @@ class WatchListenerStatusResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchListenerStatusResponse*>(
         &_WatchListenerStatusResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 74;
+  static constexpr int kIndexInFileMessages = 75;
   friend void swap(WatchListenerStatusResponse& a, WatchListenerStatusResponse& b) { a.Swap(&b); }
   inline void Swap(WatchListenerStatusResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2478,7 +2483,7 @@ class WatchListenerStatusRequest final : public ::google::protobuf::internal::Ze
     return *reinterpret_cast<const WatchListenerStatusRequest*>(
         &_WatchListenerStatusRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 73;
+  static constexpr int kIndexInFileMessages = 74;
   friend void swap(WatchListenerStatusRequest& a, WatchListenerStatusRequest& b) { a.Swap(&b); }
   inline void Swap(WatchListenerStatusRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3088,7 +3093,7 @@ class StopWebListenerResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const StopWebListenerResponse*>(
         &_StopWebListenerResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 62;
+  static constexpr int kIndexInFileMessages = 63;
   friend void swap(StopWebListenerResponse& a, StopWebListenerResponse& b) { a.Swap(&b); }
   inline void Swap(StopWebListenerResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3278,7 +3283,7 @@ class StopWebListenerRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const StopWebListenerRequest*>(
         &_StopWebListenerRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 61;
+  static constexpr int kIndexInFileMessages = 62;
   friend void swap(StopWebListenerRequest& a, StopWebListenerRequest& b) { a.Swap(&b); }
   inline void Swap(StopWebListenerRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3675,7 +3680,7 @@ class RuntimeHandoffState final : public ::google::protobuf::Message
     return *reinterpret_cast<const RuntimeHandoffState*>(
         &_RuntimeHandoffState_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 68;
+  static constexpr int kIndexInFileMessages = 69;
   friend void swap(RuntimeHandoffState& a, RuntimeHandoffState& b) { a.Swap(&b); }
   inline void Swap(RuntimeHandoffState* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3911,7 +3916,7 @@ class RespondToListenerYieldPromptResponse final : public ::google::protobuf::Me
     return *reinterpret_cast<const RespondToListenerYieldPromptResponse*>(
         &_RespondToListenerYieldPromptResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 67;
+  static constexpr int kIndexInFileMessages = 68;
   friend void swap(RespondToListenerYieldPromptResponse& a, RespondToListenerYieldPromptResponse& b) { a.Swap(&b); }
   inline void Swap(RespondToListenerYieldPromptResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4101,7 +4106,7 @@ class RespondToListenerYieldPromptRequest final : public ::google::protobuf::Mes
     return *reinterpret_cast<const RespondToListenerYieldPromptRequest*>(
         &_RespondToListenerYieldPromptRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 66;
+  static constexpr int kIndexInFileMessages = 67;
   friend void swap(RespondToListenerYieldPromptRequest& a, RespondToListenerYieldPromptRequest& b) { a.Swap(&b); }
   inline void Swap(RespondToListenerYieldPromptRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4827,7 +4832,7 @@ class ReclaimRuntimeResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ReclaimRuntimeResponse*>(
         &_ReclaimRuntimeResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 72;
+  static constexpr int kIndexInFileMessages = 73;
   friend void swap(ReclaimRuntimeResponse& a, ReclaimRuntimeResponse& b) { a.Swap(&b); }
   inline void Swap(ReclaimRuntimeResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5016,7 +5021,7 @@ class ReclaimRuntimeRequest final : public ::google::protobuf::internal::ZeroFie
     return *reinterpret_cast<const ReclaimRuntimeRequest*>(
         &_ReclaimRuntimeRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 71;
+  static constexpr int kIndexInFileMessages = 72;
   friend void swap(ReclaimRuntimeRequest& a, ReclaimRuntimeRequest& b) { a.Swap(&b); }
   inline void Swap(ReclaimRuntimeRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6501,7 +6506,7 @@ class ListenerYieldPrompt final : public ::google::protobuf::Message
     return *reinterpret_cast<const ListenerYieldPrompt*>(
         &_ListenerYieldPrompt_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 63;
+  static constexpr int kIndexInFileMessages = 64;
   friend void swap(ListenerYieldPrompt& a, ListenerYieldPrompt& b) { a.Swap(&b); }
   inline void Swap(ListenerYieldPrompt* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7748,7 +7753,7 @@ class GetDebugDbResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetDebugDbResponse*>(
         &_GetDebugDbResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 53;
+  static constexpr int kIndexInFileMessages = 54;
   friend void swap(GetDebugDbResponse& a, GetDebugDbResponse& b) { a.Swap(&b); }
   inline void Swap(GetDebugDbResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7937,7 +7942,7 @@ class GetDebugDbRequest final : public ::google::protobuf::internal::ZeroFieldsB
     return *reinterpret_cast<const GetDebugDbRequest*>(
         &_GetDebugDbRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 52;
+  static constexpr int kIndexInFileMessages = 53;
   friend void swap(GetDebugDbRequest& a, GetDebugDbRequest& b) { a.Swap(&b); }
   inline void Swap(GetDebugDbRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -8071,7 +8076,7 @@ class GetChangelogRequest final : public ::google::protobuf::internal::ZeroField
     return *reinterpret_cast<const GetChangelogRequest*>(
         &_GetChangelogRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 50;
+  static constexpr int kIndexInFileMessages = 51;
   friend void swap(GetChangelogRequest& a, GetChangelogRequest& b) { a.Swap(&b); }
   inline void Swap(GetChangelogRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -8206,7 +8211,7 @@ class GetCdnResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetCdnResponse*>(
         &_GetCdnResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 55;
+  static constexpr int kIndexInFileMessages = 56;
   friend void swap(GetCdnResponse& a, GetCdnResponse& b) { a.Swap(&b); }
   inline void Swap(GetCdnResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -8413,7 +8418,7 @@ class GetCdnRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetCdnRequest*>(
         &_GetCdnRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 54;
+  static constexpr int kIndexInFileMessages = 55;
   friend void swap(GetCdnRequest& a, GetCdnRequest& b) { a.Swap(&b); }
   inline void Swap(GetCdnRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9066,7 +9071,7 @@ class AccessWebListenerResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccessWebListenerResponse*>(
         &_AccessWebListenerResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 57;
+  static constexpr int kIndexInFileMessages = 58;
   friend void swap(AccessWebListenerResponse& a, AccessWebListenerResponse& b) { a.Swap(&b); }
   inline void Swap(AccessWebListenerResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9336,7 +9341,7 @@ class AccessWebListenerRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccessWebListenerRequest*>(
         &_AccessWebListenerRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 56;
+  static constexpr int kIndexInFileMessages = 57;
   friend void swap(AccessWebListenerRequest& a, AccessWebListenerRequest& b) { a.Swap(&b); }
   inline void Swap(AccessWebListenerRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9928,7 +9933,7 @@ class WatchWebListenersResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchWebListenersResponse*>(
         &_WatchWebListenersResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 60;
+  static constexpr int kIndexInFileMessages = 61;
   friend void swap(WatchWebListenersResponse& a, WatchWebListenersResponse& b) { a.Swap(&b); }
   inline void Swap(WatchWebListenersResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -10332,7 +10337,7 @@ class WatchRuntimeHandoffResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchRuntimeHandoffResponse*>(
         &_WatchRuntimeHandoffResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 70;
+  static constexpr int kIndexInFileMessages = 71;
   friend void swap(WatchRuntimeHandoffResponse& a, WatchRuntimeHandoffResponse& b) { a.Swap(&b); }
   inline void Swap(WatchRuntimeHandoffResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -10527,7 +10532,7 @@ class WatchListenerYieldPromptsResponse final : public ::google::protobuf::Messa
     return *reinterpret_cast<const WatchListenerYieldPromptsResponse*>(
         &_WatchListenerYieldPromptsResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 65;
+  static constexpr int kIndexInFileMessages = 66;
   friend void swap(WatchListenerYieldPromptsResponse& a, WatchListenerYieldPromptsResponse& b) { a.Swap(&b); }
   inline void Swap(WatchListenerYieldPromptsResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -13778,283 +13783,6 @@ class ListSpaceRootAliasesResponse final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull ListSpaceRootAliasesResponse_class_data_;
 // -------------------------------------------------------------------
 
-class WatchSpaceRootRuntimeResponse final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:s4wave.root.WatchSpaceRootRuntimeResponse) */ {
- public:
-  inline WatchSpaceRootRuntimeResponse() : WatchSpaceRootRuntimeResponse(nullptr) {}
-  ~WatchSpaceRootRuntimeResponse() PROTOBUF_FINAL;
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(WatchSpaceRootRuntimeResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
-    SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(WatchSpaceRootRuntimeResponse));
-  }
-#endif
-
-  template <typename = void>
-  explicit PROTOBUF_CONSTEXPR WatchSpaceRootRuntimeResponse(::google::protobuf::internal::ConstantInitialized);
-
-  inline WatchSpaceRootRuntimeResponse(const WatchSpaceRootRuntimeResponse& from) : WatchSpaceRootRuntimeResponse(nullptr, from) {}
-  inline WatchSpaceRootRuntimeResponse(WatchSpaceRootRuntimeResponse&& from) noexcept
-      : WatchSpaceRootRuntimeResponse(nullptr, ::std::move(from)) {}
-  inline WatchSpaceRootRuntimeResponse& operator=(const WatchSpaceRootRuntimeResponse& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline WatchSpaceRootRuntimeResponse& operator=(WatchSpaceRootRuntimeResponse&& from) noexcept {
-    if (this == &from) return *this;
-    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
-      InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
-  }
-  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
-  }
-
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
-    return GetDescriptor();
-  }
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
-    return default_instance().GetMetadata().descriptor;
-  }
-  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
-    return default_instance().GetMetadata().reflection;
-  }
-  static const WatchSpaceRootRuntimeResponse& default_instance() {
-    return *reinterpret_cast<const WatchSpaceRootRuntimeResponse*>(
-        &_WatchSpaceRootRuntimeResponse_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages = 49;
-  friend void swap(WatchSpaceRootRuntimeResponse& a, WatchSpaceRootRuntimeResponse& b) { a.Swap(&b); }
-  inline void Swap(WatchSpaceRootRuntimeResponse* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
-      InternalSwap(other);
-    } else {
-      ::google::protobuf::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(WatchSpaceRootRuntimeResponse* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    ABSL_DCHECK(GetArena() == other->GetArena());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  WatchSpaceRootRuntimeResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::Message::DefaultConstruct<WatchSpaceRootRuntimeResponse>(arena);
-  }
-  using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const WatchSpaceRootRuntimeResponse& from);
-  using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom(const WatchSpaceRootRuntimeResponse& from) { WatchSpaceRootRuntimeResponse::MergeImpl(*this, from); }
-
-  private:
-  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
-                        const ::google::protobuf::MessageLite& from_msg);
-
-  public:
-  bool IsInitialized() const {
-    return true;
-  }
-  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
-  #if defined(PROTOBUF_CUSTOM_VTABLE)
-  private:
-  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
-  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
-
-  public:
-  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-    return _InternalSerialize(*this, target, stream);
-  }
-  #else   // PROTOBUF_CUSTOM_VTABLE
-  ::size_t ByteSizeLong() const final;
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
-  #endif  // PROTOBUF_CUSTOM_VTABLE
-  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
-
-  private:
-  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static void SharedDtor(MessageLite& self);
-  void InternalSwap(WatchSpaceRootRuntimeResponse* PROTOBUF_NONNULL other);
- private:
-  template <typename T>
-  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "s4wave.root.WatchSpaceRootRuntimeResponse"; }
-
-  explicit WatchSpaceRootRuntimeResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  WatchSpaceRootRuntimeResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const WatchSpaceRootRuntimeResponse& from);
-  WatchSpaceRootRuntimeResponse(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, WatchSpaceRootRuntimeResponse&& from) noexcept
-      : WatchSpaceRootRuntimeResponse(arena) {
-    *this = ::std::move(from);
-  }
-  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
-  static void* PROTOBUF_NONNULL PlacementNew_(
-      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static constexpr auto InternalNewImpl_();
-
- public:
-  static constexpr auto InternalGenerateClassData_();
-
-  ::google::protobuf::Metadata GetMetadata() const;
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-  enum : int {
-    kSessionsFieldNumber = 5,
-    kAliasIdFieldNumber = 2,
-    kStatePathFieldNumber = 3,
-    kSocketPathFieldNumber = 4,
-    kErrorFieldNumber = 6,
-    kStatusFieldNumber = 1,
-  };
-  // repeated .session.SessionListEntry sessions = 5;
-  int sessions_size() const;
-  private:
-  int _internal_sessions_size() const;
-
-  public:
-  void clear_sessions() ;
-  ::session::SessionListEntry* PROTOBUF_NONNULL mutable_sessions(int index);
-  ::google::protobuf::RepeatedPtrField<::session::SessionListEntry>* PROTOBUF_NONNULL mutable_sessions();
-
-  private:
-  const ::google::protobuf::RepeatedPtrField<::session::SessionListEntry>& _internal_sessions() const;
-  ::google::protobuf::RepeatedPtrField<::session::SessionListEntry>* PROTOBUF_NONNULL _internal_mutable_sessions();
-  public:
-  const ::session::SessionListEntry& sessions(int index) const;
-  ::session::SessionListEntry* PROTOBUF_NONNULL add_sessions();
-  const ::google::protobuf::RepeatedPtrField<::session::SessionListEntry>& sessions() const;
-  // string alias_id = 2;
-  void clear_alias_id() ;
-  const ::std::string& alias_id() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_alias_id(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_alias_id();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_alias_id();
-  void set_allocated_alias_id(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_alias_id() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_alias_id(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_alias_id();
-
-  public:
-  // string state_path = 3;
-  void clear_state_path() ;
-  const ::std::string& state_path() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_state_path(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_state_path();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_state_path();
-  void set_allocated_state_path(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_state_path() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_state_path(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_state_path();
-
-  public:
-  // string socket_path = 4;
-  void clear_socket_path() ;
-  const ::std::string& socket_path() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_socket_path(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_socket_path();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_socket_path();
-  void set_allocated_socket_path(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_socket_path() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_socket_path(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_socket_path();
-
-  public:
-  // string error = 6;
-  void clear_error() ;
-  const ::std::string& error() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_error(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_error();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_error();
-  void set_allocated_error(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_error() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_error(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_error();
-
-  public:
-  // .s4wave.root.SpaceRootRuntimeStatus status = 1;
-  void clear_status() ;
-  ::s4wave::root::SpaceRootRuntimeStatus status() const;
-  void set_status(::s4wave::root::SpaceRootRuntimeStatus value);
-
-  private:
-  ::s4wave::root::SpaceRootRuntimeStatus _internal_status() const;
-  void _internal_set_status(::s4wave::root::SpaceRootRuntimeStatus value);
-
-  public:
-  // @@protoc_insertion_point(class_scope:s4wave.root.WatchSpaceRootRuntimeResponse)
- private:
-  class _Internal;
-  friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 6,
-                                   1, 84,
-                                   2>
-      _table_;
-
-  friend class ::google::protobuf::MessageLite;
-  friend class ::google::protobuf::Arena;
-  template <typename T>
-  friend class ::google::protobuf::Arena::InternalHelper;
-  using InternalArenaConstructable_ = void;
-  using DestructorSkippable_ = void;
-  struct Impl_ {
-    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-        const WatchSpaceRootRuntimeResponse& from_msg);
-    ::google::protobuf::internal::HasBits<1> _has_bits_;
-    ::google::protobuf::internal::CachedSize _cached_size_;
-    ::google::protobuf::RepeatedPtrField< ::session::SessionListEntry > sessions_;
-    ::google::protobuf::internal::ArenaStringPtr alias_id_;
-    ::google::protobuf::internal::ArenaStringPtr state_path_;
-    ::google::protobuf::internal::ArenaStringPtr socket_path_;
-    ::google::protobuf::internal::ArenaStringPtr error_;
-    int status_;
-    PROTOBUF_TSAN_DECLARE_MEMBER
-  };
-  union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto;
-};
-
-extern const ::google::protobuf::internal::ClassDataFull WatchSpaceRootRuntimeResponse_class_data_;
-// -------------------------------------------------------------------
-
 class WatchSessionsResponse final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.root.WatchSessionsResponse) */ {
  public:
@@ -14504,7 +14232,7 @@ class GetChangelogResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetChangelogResponse*>(
         &_GetChangelogResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 51;
+  static constexpr int kIndexInFileMessages = 52;
   friend void swap(GetChangelogResponse& a, GetChangelogResponse& b) { a.Swap(&b); }
   inline void Swap(GetChangelogResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -14642,6 +14370,550 @@ class GetChangelogResponse final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull GetChangelogResponse_class_data_;
+// -------------------------------------------------------------------
+
+class SpaceRootRuntimeSession final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.root.SpaceRootRuntimeSession) */ {
+ public:
+  inline SpaceRootRuntimeSession() : SpaceRootRuntimeSession(nullptr) {}
+  ~SpaceRootRuntimeSession() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SpaceRootRuntimeSession* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SpaceRootRuntimeSession));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SpaceRootRuntimeSession(::google::protobuf::internal::ConstantInitialized);
+
+  inline SpaceRootRuntimeSession(const SpaceRootRuntimeSession& from) : SpaceRootRuntimeSession(nullptr, from) {}
+  inline SpaceRootRuntimeSession(SpaceRootRuntimeSession&& from) noexcept
+      : SpaceRootRuntimeSession(nullptr, ::std::move(from)) {}
+  inline SpaceRootRuntimeSession& operator=(const SpaceRootRuntimeSession& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SpaceRootRuntimeSession& operator=(SpaceRootRuntimeSession&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SpaceRootRuntimeSession& default_instance() {
+    return *reinterpret_cast<const SpaceRootRuntimeSession*>(
+        &_SpaceRootRuntimeSession_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 50;
+  friend void swap(SpaceRootRuntimeSession& a, SpaceRootRuntimeSession& b) { a.Swap(&b); }
+  inline void Swap(SpaceRootRuntimeSession* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SpaceRootRuntimeSession* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SpaceRootRuntimeSession* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<SpaceRootRuntimeSession>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const SpaceRootRuntimeSession& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const SpaceRootRuntimeSession& from) { SpaceRootRuntimeSession::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(SpaceRootRuntimeSession* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.root.SpaceRootRuntimeSession"; }
+
+  explicit SpaceRootRuntimeSession(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SpaceRootRuntimeSession(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SpaceRootRuntimeSession& from);
+  SpaceRootRuntimeSession(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SpaceRootRuntimeSession&& from) noexcept
+      : SpaceRootRuntimeSession(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kSpacesFieldNumber = 3,
+    kErrorFieldNumber = 4,
+    kSessionFieldNumber = 1,
+    kMetadataFieldNumber = 2,
+  };
+  // repeated .space.SpaceSoListEntry spaces = 3;
+  int spaces_size() const;
+  private:
+  int _internal_spaces_size() const;
+
+  public:
+  void clear_spaces() ;
+  ::space::SpaceSoListEntry* PROTOBUF_NONNULL mutable_spaces(int index);
+  ::google::protobuf::RepeatedPtrField<::space::SpaceSoListEntry>* PROTOBUF_NONNULL mutable_spaces();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::space::SpaceSoListEntry>& _internal_spaces() const;
+  ::google::protobuf::RepeatedPtrField<::space::SpaceSoListEntry>* PROTOBUF_NONNULL _internal_mutable_spaces();
+  public:
+  const ::space::SpaceSoListEntry& spaces(int index) const;
+  ::space::SpaceSoListEntry* PROTOBUF_NONNULL add_spaces();
+  const ::google::protobuf::RepeatedPtrField<::space::SpaceSoListEntry>& spaces() const;
+  // string error = 4;
+  void clear_error() ;
+  const ::std::string& error() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_error(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_error();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_error();
+  void set_allocated_error(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_error() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_error(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_error();
+
+  public:
+  // .session.SessionListEntry session = 1;
+  bool has_session() const;
+  void clear_session() ;
+  const ::session::SessionListEntry& session() const;
+  [[nodiscard]] ::session::SessionListEntry* PROTOBUF_NULLABLE release_session();
+  ::session::SessionListEntry* PROTOBUF_NONNULL mutable_session();
+  void set_allocated_session(::session::SessionListEntry* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_session(::session::SessionListEntry* PROTOBUF_NULLABLE value);
+  ::session::SessionListEntry* PROTOBUF_NULLABLE unsafe_arena_release_session();
+
+  private:
+  const ::session::SessionListEntry& _internal_session() const;
+  ::session::SessionListEntry* PROTOBUF_NONNULL _internal_mutable_session();
+
+  public:
+  // .session.SessionMetadata metadata = 2;
+  bool has_metadata() const;
+  void clear_metadata() ;
+  const ::session::SessionMetadata& metadata() const;
+  [[nodiscard]] ::session::SessionMetadata* PROTOBUF_NULLABLE release_metadata();
+  ::session::SessionMetadata* PROTOBUF_NONNULL mutable_metadata();
+  void set_allocated_metadata(::session::SessionMetadata* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_metadata(::session::SessionMetadata* PROTOBUF_NULLABLE value);
+  ::session::SessionMetadata* PROTOBUF_NULLABLE unsafe_arena_release_metadata();
+
+  private:
+  const ::session::SessionMetadata& _internal_metadata() const;
+  ::session::SessionMetadata* PROTOBUF_NONNULL _internal_mutable_metadata();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.root.SpaceRootRuntimeSession)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   3, 49,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const SpaceRootRuntimeSession& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField< ::space::SpaceSoListEntry > spaces_;
+    ::google::protobuf::internal::ArenaStringPtr error_;
+    ::session::SessionListEntry* PROTOBUF_NULLABLE session_;
+    ::session::SessionMetadata* PROTOBUF_NULLABLE metadata_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SpaceRootRuntimeSession_class_data_;
+// -------------------------------------------------------------------
+
+class WatchSpaceRootRuntimeResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.root.WatchSpaceRootRuntimeResponse) */ {
+ public:
+  inline WatchSpaceRootRuntimeResponse() : WatchSpaceRootRuntimeResponse(nullptr) {}
+  ~WatchSpaceRootRuntimeResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(WatchSpaceRootRuntimeResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(WatchSpaceRootRuntimeResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR WatchSpaceRootRuntimeResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline WatchSpaceRootRuntimeResponse(const WatchSpaceRootRuntimeResponse& from) : WatchSpaceRootRuntimeResponse(nullptr, from) {}
+  inline WatchSpaceRootRuntimeResponse(WatchSpaceRootRuntimeResponse&& from) noexcept
+      : WatchSpaceRootRuntimeResponse(nullptr, ::std::move(from)) {}
+  inline WatchSpaceRootRuntimeResponse& operator=(const WatchSpaceRootRuntimeResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline WatchSpaceRootRuntimeResponse& operator=(WatchSpaceRootRuntimeResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const WatchSpaceRootRuntimeResponse& default_instance() {
+    return *reinterpret_cast<const WatchSpaceRootRuntimeResponse*>(
+        &_WatchSpaceRootRuntimeResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 49;
+  friend void swap(WatchSpaceRootRuntimeResponse& a, WatchSpaceRootRuntimeResponse& b) { a.Swap(&b); }
+  inline void Swap(WatchSpaceRootRuntimeResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(WatchSpaceRootRuntimeResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  WatchSpaceRootRuntimeResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<WatchSpaceRootRuntimeResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const WatchSpaceRootRuntimeResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const WatchSpaceRootRuntimeResponse& from) { WatchSpaceRootRuntimeResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(WatchSpaceRootRuntimeResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.root.WatchSpaceRootRuntimeResponse"; }
+
+  explicit WatchSpaceRootRuntimeResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  WatchSpaceRootRuntimeResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const WatchSpaceRootRuntimeResponse& from);
+  WatchSpaceRootRuntimeResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, WatchSpaceRootRuntimeResponse&& from) noexcept
+      : WatchSpaceRootRuntimeResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kSessionsFieldNumber = 5,
+    kRuntimeSessionsFieldNumber = 7,
+    kAliasIdFieldNumber = 2,
+    kStatePathFieldNumber = 3,
+    kSocketPathFieldNumber = 4,
+    kErrorFieldNumber = 6,
+    kStatusFieldNumber = 1,
+  };
+  // repeated .session.SessionListEntry sessions = 5;
+  int sessions_size() const;
+  private:
+  int _internal_sessions_size() const;
+
+  public:
+  void clear_sessions() ;
+  ::session::SessionListEntry* PROTOBUF_NONNULL mutable_sessions(int index);
+  ::google::protobuf::RepeatedPtrField<::session::SessionListEntry>* PROTOBUF_NONNULL mutable_sessions();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::session::SessionListEntry>& _internal_sessions() const;
+  ::google::protobuf::RepeatedPtrField<::session::SessionListEntry>* PROTOBUF_NONNULL _internal_mutable_sessions();
+  public:
+  const ::session::SessionListEntry& sessions(int index) const;
+  ::session::SessionListEntry* PROTOBUF_NONNULL add_sessions();
+  const ::google::protobuf::RepeatedPtrField<::session::SessionListEntry>& sessions() const;
+  // repeated .s4wave.root.SpaceRootRuntimeSession runtime_sessions = 7;
+  int runtime_sessions_size() const;
+  private:
+  int _internal_runtime_sessions_size() const;
+
+  public:
+  void clear_runtime_sessions() ;
+  ::s4wave::root::SpaceRootRuntimeSession* PROTOBUF_NONNULL mutable_runtime_sessions(int index);
+  ::google::protobuf::RepeatedPtrField<::s4wave::root::SpaceRootRuntimeSession>* PROTOBUF_NONNULL mutable_runtime_sessions();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::s4wave::root::SpaceRootRuntimeSession>& _internal_runtime_sessions() const;
+  ::google::protobuf::RepeatedPtrField<::s4wave::root::SpaceRootRuntimeSession>* PROTOBUF_NONNULL _internal_mutable_runtime_sessions();
+  public:
+  const ::s4wave::root::SpaceRootRuntimeSession& runtime_sessions(int index) const;
+  ::s4wave::root::SpaceRootRuntimeSession* PROTOBUF_NONNULL add_runtime_sessions();
+  const ::google::protobuf::RepeatedPtrField<::s4wave::root::SpaceRootRuntimeSession>& runtime_sessions() const;
+  // string alias_id = 2;
+  void clear_alias_id() ;
+  const ::std::string& alias_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_alias_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_alias_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_alias_id();
+  void set_allocated_alias_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_alias_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_alias_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_alias_id();
+
+  public:
+  // string state_path = 3;
+  void clear_state_path() ;
+  const ::std::string& state_path() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_state_path(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_state_path();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_state_path();
+  void set_allocated_state_path(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_state_path() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_state_path(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_state_path();
+
+  public:
+  // string socket_path = 4;
+  void clear_socket_path() ;
+  const ::std::string& socket_path() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_socket_path(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_socket_path();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_socket_path();
+  void set_allocated_socket_path(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_socket_path() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_socket_path(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_socket_path();
+
+  public:
+  // string error = 6;
+  void clear_error() ;
+  const ::std::string& error() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_error(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_error();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_error();
+  void set_allocated_error(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_error() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_error(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_error();
+
+  public:
+  // .s4wave.root.SpaceRootRuntimeStatus status = 1;
+  void clear_status() ;
+  ::s4wave::root::SpaceRootRuntimeStatus status() const;
+  void set_status(::s4wave::root::SpaceRootRuntimeStatus value);
+
+  private:
+  ::s4wave::root::SpaceRootRuntimeStatus _internal_status() const;
+  void _internal_set_status(::s4wave::root::SpaceRootRuntimeStatus value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.root.WatchSpaceRootRuntimeResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 7,
+                                   2, 84,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const WatchSpaceRootRuntimeResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField< ::session::SessionListEntry > sessions_;
+    ::google::protobuf::RepeatedPtrField< ::s4wave::root::SpaceRootRuntimeSession > runtime_sessions_;
+    ::google::protobuf::internal::ArenaStringPtr alias_id_;
+    ::google::protobuf::internal::ArenaStringPtr state_path_;
+    ::google::protobuf::internal::ArenaStringPtr socket_path_;
+    ::google::protobuf::internal::ArenaStringPtr error_;
+    int status_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull WatchSpaceRootRuntimeResponse_class_data_;
 
 // ===================================================================
 
@@ -17953,7 +18225,7 @@ inline void WatchSpaceRootRuntimeResponse::clear_status() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.status_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000020U);
+                  0x00000040U);
 }
 inline ::s4wave::root::SpaceRootRuntimeStatus WatchSpaceRootRuntimeResponse::status() const {
   // @@protoc_insertion_point(field_get:s4wave.root.WatchSpaceRootRuntimeResponse.status)
@@ -17961,7 +18233,7 @@ inline ::s4wave::root::SpaceRootRuntimeStatus WatchSpaceRootRuntimeResponse::sta
 }
 inline void WatchSpaceRootRuntimeResponse::set_status(::s4wave::root::SpaceRootRuntimeStatus value) {
   _internal_set_status(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   // @@protoc_insertion_point(field_set:s4wave.root.WatchSpaceRootRuntimeResponse.status)
 }
 inline ::s4wave::root::SpaceRootRuntimeStatus WatchSpaceRootRuntimeResponse::_internal_status() const {
@@ -17978,7 +18250,7 @@ inline void WatchSpaceRootRuntimeResponse::clear_alias_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.alias_id_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000002U);
+                  0x00000004U);
 }
 inline const ::std::string& WatchSpaceRootRuntimeResponse::alias_id() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -17988,13 +18260,13 @@ inline const ::std::string& WatchSpaceRootRuntimeResponse::alias_id() const
 template <typename Arg_, typename... Args_>
 PROTOBUF_ALWAYS_INLINE void WatchSpaceRootRuntimeResponse::set_alias_id(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   _impl_.alias_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
   // @@protoc_insertion_point(field_set:s4wave.root.WatchSpaceRootRuntimeResponse.alias_id)
 }
 inline ::std::string* PROTOBUF_NONNULL WatchSpaceRootRuntimeResponse::mutable_alias_id()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::std::string* _s = _internal_mutable_alias_id();
   // @@protoc_insertion_point(field_mutable:s4wave.root.WatchSpaceRootRuntimeResponse.alias_id)
   return _s;
@@ -18014,10 +18286,10 @@ inline ::std::string* PROTOBUF_NONNULL WatchSpaceRootRuntimeResponse::_internal_
 inline ::std::string* PROTOBUF_NULLABLE WatchSpaceRootRuntimeResponse::release_alias_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:s4wave.root.WatchSpaceRootRuntimeResponse.alias_id)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
     return nullptr;
   }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   auto* released = _impl_.alias_id_.Release();
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
     _impl_.alias_id_.Set("", GetArena());
@@ -18027,9 +18299,9 @@ inline ::std::string* PROTOBUF_NULLABLE WatchSpaceRootRuntimeResponse::release_a
 inline void WatchSpaceRootRuntimeResponse::set_allocated_alias_id(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   }
   _impl_.alias_id_.SetAllocated(value, GetArena());
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.alias_id_.IsDefault()) {
@@ -18043,7 +18315,7 @@ inline void WatchSpaceRootRuntimeResponse::clear_state_path() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.state_path_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
+                  0x00000008U);
 }
 inline const ::std::string& WatchSpaceRootRuntimeResponse::state_path() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -18053,13 +18325,13 @@ inline const ::std::string& WatchSpaceRootRuntimeResponse::state_path() const
 template <typename Arg_, typename... Args_>
 PROTOBUF_ALWAYS_INLINE void WatchSpaceRootRuntimeResponse::set_state_path(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   _impl_.state_path_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
   // @@protoc_insertion_point(field_set:s4wave.root.WatchSpaceRootRuntimeResponse.state_path)
 }
 inline ::std::string* PROTOBUF_NONNULL WatchSpaceRootRuntimeResponse::mutable_state_path()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   ::std::string* _s = _internal_mutable_state_path();
   // @@protoc_insertion_point(field_mutable:s4wave.root.WatchSpaceRootRuntimeResponse.state_path)
   return _s;
@@ -18079,10 +18351,10 @@ inline ::std::string* PROTOBUF_NONNULL WatchSpaceRootRuntimeResponse::_internal_
 inline ::std::string* PROTOBUF_NULLABLE WatchSpaceRootRuntimeResponse::release_state_path() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:s4wave.root.WatchSpaceRootRuntimeResponse.state_path)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
     return nullptr;
   }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
   auto* released = _impl_.state_path_.Release();
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
     _impl_.state_path_.Set("", GetArena());
@@ -18092,9 +18364,9 @@ inline ::std::string* PROTOBUF_NULLABLE WatchSpaceRootRuntimeResponse::release_s
 inline void WatchSpaceRootRuntimeResponse::set_allocated_state_path(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
   }
   _impl_.state_path_.SetAllocated(value, GetArena());
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.state_path_.IsDefault()) {
@@ -18108,7 +18380,7 @@ inline void WatchSpaceRootRuntimeResponse::clear_socket_path() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.socket_path_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000008U);
+                  0x00000010U);
 }
 inline const ::std::string& WatchSpaceRootRuntimeResponse::socket_path() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -18118,13 +18390,13 @@ inline const ::std::string& WatchSpaceRootRuntimeResponse::socket_path() const
 template <typename Arg_, typename... Args_>
 PROTOBUF_ALWAYS_INLINE void WatchSpaceRootRuntimeResponse::set_socket_path(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   _impl_.socket_path_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
   // @@protoc_insertion_point(field_set:s4wave.root.WatchSpaceRootRuntimeResponse.socket_path)
 }
 inline ::std::string* PROTOBUF_NONNULL WatchSpaceRootRuntimeResponse::mutable_socket_path()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   ::std::string* _s = _internal_mutable_socket_path();
   // @@protoc_insertion_point(field_mutable:s4wave.root.WatchSpaceRootRuntimeResponse.socket_path)
   return _s;
@@ -18144,10 +18416,10 @@ inline ::std::string* PROTOBUF_NONNULL WatchSpaceRootRuntimeResponse::_internal_
 inline ::std::string* PROTOBUF_NULLABLE WatchSpaceRootRuntimeResponse::release_socket_path() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:s4wave.root.WatchSpaceRootRuntimeResponse.socket_path)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
     return nullptr;
   }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   auto* released = _impl_.socket_path_.Release();
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
     _impl_.socket_path_.Set("", GetArena());
@@ -18157,9 +18429,9 @@ inline ::std::string* PROTOBUF_NULLABLE WatchSpaceRootRuntimeResponse::release_s
 inline void WatchSpaceRootRuntimeResponse::set_allocated_socket_path(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   }
   _impl_.socket_path_.SetAllocated(value, GetArena());
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.socket_path_.IsDefault()) {
@@ -18223,7 +18495,7 @@ inline void WatchSpaceRootRuntimeResponse::clear_error() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.error_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000010U);
+                  0x00000020U);
 }
 inline const ::std::string& WatchSpaceRootRuntimeResponse::error() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -18233,13 +18505,13 @@ inline const ::std::string& WatchSpaceRootRuntimeResponse::error() const
 template <typename Arg_, typename... Args_>
 PROTOBUF_ALWAYS_INLINE void WatchSpaceRootRuntimeResponse::set_error(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   _impl_.error_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
   // @@protoc_insertion_point(field_set:s4wave.root.WatchSpaceRootRuntimeResponse.error)
 }
 inline ::std::string* PROTOBUF_NONNULL WatchSpaceRootRuntimeResponse::mutable_error()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   ::std::string* _s = _internal_mutable_error();
   // @@protoc_insertion_point(field_mutable:s4wave.root.WatchSpaceRootRuntimeResponse.error)
   return _s;
@@ -18259,10 +18531,10 @@ inline ::std::string* PROTOBUF_NONNULL WatchSpaceRootRuntimeResponse::_internal_
 inline ::std::string* PROTOBUF_NULLABLE WatchSpaceRootRuntimeResponse::release_error() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:s4wave.root.WatchSpaceRootRuntimeResponse.error)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000020U)) {
     return nullptr;
   }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
   auto* released = _impl_.error_.Release();
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
     _impl_.error_.Set("", GetArena());
@@ -18272,15 +18544,376 @@ inline ::std::string* PROTOBUF_NULLABLE WatchSpaceRootRuntimeResponse::release_e
 inline void WatchSpaceRootRuntimeResponse::set_allocated_error(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
   }
   _impl_.error_.SetAllocated(value, GetArena());
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.error_.IsDefault()) {
     _impl_.error_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:s4wave.root.WatchSpaceRootRuntimeResponse.error)
+}
+
+// repeated .s4wave.root.SpaceRootRuntimeSession runtime_sessions = 7;
+inline int WatchSpaceRootRuntimeResponse::_internal_runtime_sessions_size() const {
+  return _internal_runtime_sessions().size();
+}
+inline int WatchSpaceRootRuntimeResponse::runtime_sessions_size() const {
+  return _internal_runtime_sessions_size();
+}
+inline void WatchSpaceRootRuntimeResponse::clear_runtime_sessions() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.runtime_sessions_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::s4wave::root::SpaceRootRuntimeSession* PROTOBUF_NONNULL WatchSpaceRootRuntimeResponse::mutable_runtime_sessions(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.root.WatchSpaceRootRuntimeResponse.runtime_sessions)
+  return _internal_mutable_runtime_sessions()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::s4wave::root::SpaceRootRuntimeSession>* PROTOBUF_NONNULL WatchSpaceRootRuntimeResponse::mutable_runtime_sessions()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.root.WatchSpaceRootRuntimeResponse.runtime_sessions)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_runtime_sessions();
+}
+inline const ::s4wave::root::SpaceRootRuntimeSession& WatchSpaceRootRuntimeResponse::runtime_sessions(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.root.WatchSpaceRootRuntimeResponse.runtime_sessions)
+  return _internal_runtime_sessions().Get(index);
+}
+inline ::s4wave::root::SpaceRootRuntimeSession* PROTOBUF_NONNULL WatchSpaceRootRuntimeResponse::add_runtime_sessions()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::s4wave::root::SpaceRootRuntimeSession* _add =
+      _internal_mutable_runtime_sessions()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_add:s4wave.root.WatchSpaceRootRuntimeResponse.runtime_sessions)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::s4wave::root::SpaceRootRuntimeSession>& WatchSpaceRootRuntimeResponse::runtime_sessions() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.root.WatchSpaceRootRuntimeResponse.runtime_sessions)
+  return _internal_runtime_sessions();
+}
+inline const ::google::protobuf::RepeatedPtrField<::s4wave::root::SpaceRootRuntimeSession>&
+WatchSpaceRootRuntimeResponse::_internal_runtime_sessions() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.runtime_sessions_;
+}
+inline ::google::protobuf::RepeatedPtrField<::s4wave::root::SpaceRootRuntimeSession>* PROTOBUF_NONNULL
+WatchSpaceRootRuntimeResponse::_internal_mutable_runtime_sessions() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.runtime_sessions_;
+}
+
+// -------------------------------------------------------------------
+
+// SpaceRootRuntimeSession
+
+// .session.SessionListEntry session = 1;
+inline bool SpaceRootRuntimeSession::has_session() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000004U);
+  PROTOBUF_ASSUME(!value || _impl_.session_ != nullptr);
+  return value;
+}
+inline const ::session::SessionListEntry& SpaceRootRuntimeSession::_internal_session() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::session::SessionListEntry* p = _impl_.session_;
+  return p != nullptr ? *p : reinterpret_cast<const ::session::SessionListEntry&>(::session::_SessionListEntry_default_instance_);
+}
+inline const ::session::SessionListEntry& SpaceRootRuntimeSession::session() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.root.SpaceRootRuntimeSession.session)
+  return _internal_session();
+}
+inline void SpaceRootRuntimeSession::unsafe_arena_set_allocated_session(
+    ::session::SessionListEntry* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.session_);
+  }
+  _impl_.session_ = reinterpret_cast<::session::SessionListEntry*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.root.SpaceRootRuntimeSession.session)
+}
+inline ::session::SessionListEntry* PROTOBUF_NULLABLE SpaceRootRuntimeSession::release_session() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::session::SessionListEntry* released = _impl_.session_;
+  _impl_.session_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::session::SessionListEntry* PROTOBUF_NULLABLE SpaceRootRuntimeSession::unsafe_arena_release_session() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.root.SpaceRootRuntimeSession.session)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::session::SessionListEntry* temp = _impl_.session_;
+  _impl_.session_ = nullptr;
+  return temp;
+}
+inline ::session::SessionListEntry* PROTOBUF_NONNULL SpaceRootRuntimeSession::_internal_mutable_session() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.session_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::session::SessionListEntry>(GetArena());
+    _impl_.session_ = reinterpret_cast<::session::SessionListEntry*>(p);
+  }
+  return _impl_.session_;
+}
+inline ::session::SessionListEntry* PROTOBUF_NONNULL SpaceRootRuntimeSession::mutable_session()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::session::SessionListEntry* _msg = _internal_mutable_session();
+  // @@protoc_insertion_point(field_mutable:s4wave.root.SpaceRootRuntimeSession.session)
+  return _msg;
+}
+inline void SpaceRootRuntimeSession::set_allocated_session(::session::SessionListEntry* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.session_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+
+  _impl_.session_ = reinterpret_cast<::session::SessionListEntry*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.root.SpaceRootRuntimeSession.session)
+}
+
+// .session.SessionMetadata metadata = 2;
+inline bool SpaceRootRuntimeSession::has_metadata() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000008U);
+  PROTOBUF_ASSUME(!value || _impl_.metadata_ != nullptr);
+  return value;
+}
+inline const ::session::SessionMetadata& SpaceRootRuntimeSession::_internal_metadata() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::session::SessionMetadata* p = _impl_.metadata_;
+  return p != nullptr ? *p : reinterpret_cast<const ::session::SessionMetadata&>(::session::_SessionMetadata_default_instance_);
+}
+inline const ::session::SessionMetadata& SpaceRootRuntimeSession::metadata() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.root.SpaceRootRuntimeSession.metadata)
+  return _internal_metadata();
+}
+inline void SpaceRootRuntimeSession::unsafe_arena_set_allocated_metadata(
+    ::session::SessionMetadata* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.metadata_);
+  }
+  _impl_.metadata_ = reinterpret_cast<::session::SessionMetadata*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.root.SpaceRootRuntimeSession.metadata)
+}
+inline ::session::SessionMetadata* PROTOBUF_NULLABLE SpaceRootRuntimeSession::release_metadata() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::session::SessionMetadata* released = _impl_.metadata_;
+  _impl_.metadata_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::session::SessionMetadata* PROTOBUF_NULLABLE SpaceRootRuntimeSession::unsafe_arena_release_metadata() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.root.SpaceRootRuntimeSession.metadata)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::session::SessionMetadata* temp = _impl_.metadata_;
+  _impl_.metadata_ = nullptr;
+  return temp;
+}
+inline ::session::SessionMetadata* PROTOBUF_NONNULL SpaceRootRuntimeSession::_internal_mutable_metadata() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.metadata_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::session::SessionMetadata>(GetArena());
+    _impl_.metadata_ = reinterpret_cast<::session::SessionMetadata*>(p);
+  }
+  return _impl_.metadata_;
+}
+inline ::session::SessionMetadata* PROTOBUF_NONNULL SpaceRootRuntimeSession::mutable_metadata()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::session::SessionMetadata* _msg = _internal_mutable_metadata();
+  // @@protoc_insertion_point(field_mutable:s4wave.root.SpaceRootRuntimeSession.metadata)
+  return _msg;
+}
+inline void SpaceRootRuntimeSession::set_allocated_metadata(::session::SessionMetadata* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.metadata_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+
+  _impl_.metadata_ = reinterpret_cast<::session::SessionMetadata*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.root.SpaceRootRuntimeSession.metadata)
+}
+
+// repeated .space.SpaceSoListEntry spaces = 3;
+inline int SpaceRootRuntimeSession::_internal_spaces_size() const {
+  return _internal_spaces().size();
+}
+inline int SpaceRootRuntimeSession::spaces_size() const {
+  return _internal_spaces_size();
+}
+inline ::space::SpaceSoListEntry* PROTOBUF_NONNULL SpaceRootRuntimeSession::mutable_spaces(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.root.SpaceRootRuntimeSession.spaces)
+  return _internal_mutable_spaces()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::space::SpaceSoListEntry>* PROTOBUF_NONNULL SpaceRootRuntimeSession::mutable_spaces()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.root.SpaceRootRuntimeSession.spaces)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_spaces();
+}
+inline const ::space::SpaceSoListEntry& SpaceRootRuntimeSession::spaces(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.root.SpaceRootRuntimeSession.spaces)
+  return _internal_spaces().Get(index);
+}
+inline ::space::SpaceSoListEntry* PROTOBUF_NONNULL SpaceRootRuntimeSession::add_spaces()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::space::SpaceSoListEntry* _add =
+      _internal_mutable_spaces()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:s4wave.root.SpaceRootRuntimeSession.spaces)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::space::SpaceSoListEntry>& SpaceRootRuntimeSession::spaces() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.root.SpaceRootRuntimeSession.spaces)
+  return _internal_spaces();
+}
+inline const ::google::protobuf::RepeatedPtrField<::space::SpaceSoListEntry>&
+SpaceRootRuntimeSession::_internal_spaces() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.spaces_;
+}
+inline ::google::protobuf::RepeatedPtrField<::space::SpaceSoListEntry>* PROTOBUF_NONNULL
+SpaceRootRuntimeSession::_internal_mutable_spaces() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.spaces_;
+}
+
+// string error = 4;
+inline void SpaceRootRuntimeSession::clear_error() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.error_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& SpaceRootRuntimeSession::error() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.root.SpaceRootRuntimeSession.error)
+  return _internal_error();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SpaceRootRuntimeSession::set_error(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.error_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.root.SpaceRootRuntimeSession.error)
+}
+inline ::std::string* PROTOBUF_NONNULL SpaceRootRuntimeSession::mutable_error()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_error();
+  // @@protoc_insertion_point(field_mutable:s4wave.root.SpaceRootRuntimeSession.error)
+  return _s;
+}
+inline const ::std::string& SpaceRootRuntimeSession::_internal_error() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.error_.Get();
+}
+inline void SpaceRootRuntimeSession::_internal_set_error(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.error_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SpaceRootRuntimeSession::_internal_mutable_error() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.error_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SpaceRootRuntimeSession::release_error() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.root.SpaceRootRuntimeSession.error)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.error_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.error_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SpaceRootRuntimeSession::set_allocated_error(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.error_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.error_.IsDefault()) {
+    _impl_.error_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.root.SpaceRootRuntimeSession.error)
 }
 
 // -------------------------------------------------------------------

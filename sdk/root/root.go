@@ -69,6 +69,18 @@ func (r *Root) MountSessionByIdx(ctx context.Context, idx uint32) (*MountSession
 	return r.service.MountSessionByIdx(ctx, &MountSessionByIdxRequest{SessionIdx: idx})
 }
 
+// GetSessionMetadata returns stored display metadata for a session.
+func (r *Root) GetSessionMetadata(ctx context.Context, idx uint32) (*session.SessionMetadata, bool, error) {
+	resp, err := r.service.GetSessionMetadata(ctx, &GetSessionMetadataRequest{SessionIdx: idx})
+	if err != nil {
+		return nil, false, err
+	}
+	if resp.GetNotFound() {
+		return nil, true, nil
+	}
+	return resp.GetMetadata(), false, nil
+}
+
 // AccessStateAtom accesses the global state atom resource.
 // Returns the resource ID for the StateAtom which provides Get/Set/Watch RPCs.
 func (r *Root) AccessStateAtom(ctx context.Context, storeID string) (uint32, error) {

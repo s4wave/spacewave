@@ -1779,44 +1779,6 @@ struct ListSpaceRootAliasesResponseDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ListSpaceRootAliasesResponseDefaultTypeInternal _ListSpaceRootAliasesResponse_default_instance_;
 
-inline constexpr WatchSpaceRootRuntimeResponse::Impl_::Impl_(
-    ::_pbi::ConstantInitialized) noexcept
-      : _cached_size_{0},
-        sessions_{},
-        alias_id_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
-        state_path_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
-        socket_path_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
-        error_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
-        status_{static_cast< ::s4wave::root::SpaceRootRuntimeStatus >(0)} {}
-
-template <typename>
-PROTOBUF_CONSTEXPR WatchSpaceRootRuntimeResponse::WatchSpaceRootRuntimeResponse(::_pbi::ConstantInitialized)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(WatchSpaceRootRuntimeResponse_class_data_.base()),
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(),
-#endif  // PROTOBUF_CUSTOM_VTABLE
-      _impl_(::_pbi::ConstantInitialized()) {
-}
-struct WatchSpaceRootRuntimeResponseDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR WatchSpaceRootRuntimeResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~WatchSpaceRootRuntimeResponseDefaultTypeInternal() {}
-  union {
-    WatchSpaceRootRuntimeResponse _instance;
-  };
-};
-
-PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WatchSpaceRootRuntimeResponseDefaultTypeInternal _WatchSpaceRootRuntimeResponse_default_instance_;
-
 inline constexpr WatchSessionsResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -1891,6 +1853,75 @@ struct GetChangelogResponseDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GetChangelogResponseDefaultTypeInternal _GetChangelogResponse_default_instance_;
+
+inline constexpr SpaceRootRuntimeSession::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        spaces_{},
+        error_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        session_{nullptr},
+        metadata_{nullptr} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR SpaceRootRuntimeSession::SpaceRootRuntimeSession(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(SpaceRootRuntimeSession_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct SpaceRootRuntimeSessionDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SpaceRootRuntimeSessionDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SpaceRootRuntimeSessionDefaultTypeInternal() {}
+  union {
+    SpaceRootRuntimeSession _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SpaceRootRuntimeSessionDefaultTypeInternal _SpaceRootRuntimeSession_default_instance_;
+
+inline constexpr WatchSpaceRootRuntimeResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        sessions_{},
+        runtime_sessions_{},
+        alias_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        state_path_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        socket_path_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        error_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        status_{static_cast< ::s4wave::root::SpaceRootRuntimeStatus >(0)} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR WatchSpaceRootRuntimeResponse::WatchSpaceRootRuntimeResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(WatchSpaceRootRuntimeResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct WatchSpaceRootRuntimeResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR WatchSpaceRootRuntimeResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~WatchSpaceRootRuntimeResponseDefaultTypeInternal() {}
+  union {
+    WatchSpaceRootRuntimeResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WatchSpaceRootRuntimeResponseDefaultTypeInternal _WatchSpaceRootRuntimeResponse_default_instance_;
 }  // namespace root
 }  // namespace s4wave
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
@@ -2143,19 +2174,32 @@ const ::uint32_t
         1,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::root::WatchSpaceRootRuntimeResponse, _impl_._has_bits_),
-        9, // hasbit index offset
+        10, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::root::WatchSpaceRootRuntimeResponse, _impl_.status_),
         PROTOBUF_FIELD_OFFSET(::s4wave::root::WatchSpaceRootRuntimeResponse, _impl_.alias_id_),
         PROTOBUF_FIELD_OFFSET(::s4wave::root::WatchSpaceRootRuntimeResponse, _impl_.state_path_),
         PROTOBUF_FIELD_OFFSET(::s4wave::root::WatchSpaceRootRuntimeResponse, _impl_.socket_path_),
         PROTOBUF_FIELD_OFFSET(::s4wave::root::WatchSpaceRootRuntimeResponse, _impl_.sessions_),
         PROTOBUF_FIELD_OFFSET(::s4wave::root::WatchSpaceRootRuntimeResponse, _impl_.error_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::WatchSpaceRootRuntimeResponse, _impl_.runtime_sessions_),
+        6,
+        2,
+        3,
+        4,
+        0,
         5,
         1,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::SpaceRootRuntimeSession, _impl_._has_bits_),
+        7, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::SpaceRootRuntimeSession, _impl_.session_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::SpaceRootRuntimeSession, _impl_.metadata_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::SpaceRootRuntimeSession, _impl_.spaces_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::root::SpaceRootRuntimeSession, _impl_.error_),
         2,
         3,
         0,
-        4,
+        1,
         0x000, // bitmap
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::root::GetChangelogResponse, _impl_._has_bits_),
@@ -2345,31 +2389,32 @@ static const ::_pbi::MigrationSchema
         {229, sizeof(::s4wave::root::RemoveSpaceRootAliasResponse)},
         {234, sizeof(::s4wave::root::WatchSpaceRootRuntimeRequest)},
         {241, sizeof(::s4wave::root::WatchSpaceRootRuntimeResponse)},
-        {256, sizeof(::s4wave::root::GetChangelogRequest)},
-        {257, sizeof(::s4wave::root::GetChangelogResponse)},
-        {262, sizeof(::s4wave::root::GetDebugDbRequest)},
-        {263, sizeof(::s4wave::root::GetDebugDbResponse)},
-        {268, sizeof(::s4wave::root::GetCdnRequest)},
-        {273, sizeof(::s4wave::root::GetCdnResponse)},
-        {280, sizeof(::s4wave::root::AccessWebListenerRequest)},
-        {287, sizeof(::s4wave::root::AccessWebListenerResponse)},
-        {302, sizeof(::s4wave::root::WatchWebListenersRequest)},
-        {303, sizeof(::s4wave::root::WebListenerInfo)},
-        {314, sizeof(::s4wave::root::WatchWebListenersResponse)},
-        {319, sizeof(::s4wave::root::StopWebListenerRequest)},
-        {324, sizeof(::s4wave::root::StopWebListenerResponse)},
-        {329, sizeof(::s4wave::root::ListenerYieldPrompt)},
-        {340, sizeof(::s4wave::root::WatchListenerYieldPromptsRequest)},
-        {341, sizeof(::s4wave::root::WatchListenerYieldPromptsResponse)},
-        {346, sizeof(::s4wave::root::RespondToListenerYieldPromptRequest)},
-        {353, sizeof(::s4wave::root::RespondToListenerYieldPromptResponse)},
-        {358, sizeof(::s4wave::root::RuntimeHandoffState)},
-        {369, sizeof(::s4wave::root::WatchRuntimeHandoffRequest)},
-        {370, sizeof(::s4wave::root::WatchRuntimeHandoffResponse)},
-        {375, sizeof(::s4wave::root::ReclaimRuntimeRequest)},
-        {376, sizeof(::s4wave::root::ReclaimRuntimeResponse)},
-        {381, sizeof(::s4wave::root::WatchListenerStatusRequest)},
-        {382, sizeof(::s4wave::root::WatchListenerStatusResponse)},
+        {258, sizeof(::s4wave::root::SpaceRootRuntimeSession)},
+        {269, sizeof(::s4wave::root::GetChangelogRequest)},
+        {270, sizeof(::s4wave::root::GetChangelogResponse)},
+        {275, sizeof(::s4wave::root::GetDebugDbRequest)},
+        {276, sizeof(::s4wave::root::GetDebugDbResponse)},
+        {281, sizeof(::s4wave::root::GetCdnRequest)},
+        {286, sizeof(::s4wave::root::GetCdnResponse)},
+        {293, sizeof(::s4wave::root::AccessWebListenerRequest)},
+        {300, sizeof(::s4wave::root::AccessWebListenerResponse)},
+        {315, sizeof(::s4wave::root::WatchWebListenersRequest)},
+        {316, sizeof(::s4wave::root::WebListenerInfo)},
+        {327, sizeof(::s4wave::root::WatchWebListenersResponse)},
+        {332, sizeof(::s4wave::root::StopWebListenerRequest)},
+        {337, sizeof(::s4wave::root::StopWebListenerResponse)},
+        {342, sizeof(::s4wave::root::ListenerYieldPrompt)},
+        {353, sizeof(::s4wave::root::WatchListenerYieldPromptsRequest)},
+        {354, sizeof(::s4wave::root::WatchListenerYieldPromptsResponse)},
+        {359, sizeof(::s4wave::root::RespondToListenerYieldPromptRequest)},
+        {366, sizeof(::s4wave::root::RespondToListenerYieldPromptResponse)},
+        {371, sizeof(::s4wave::root::RuntimeHandoffState)},
+        {382, sizeof(::s4wave::root::WatchRuntimeHandoffRequest)},
+        {383, sizeof(::s4wave::root::WatchRuntimeHandoffResponse)},
+        {388, sizeof(::s4wave::root::ReclaimRuntimeRequest)},
+        {389, sizeof(::s4wave::root::ReclaimRuntimeResponse)},
+        {394, sizeof(::s4wave::root::WatchListenerStatusRequest)},
+        {395, sizeof(::s4wave::root::WatchListenerStatusResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::root::_LookupProviderRequest_default_instance_._instance,
@@ -2422,6 +2467,7 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::root::_RemoveSpaceRootAliasResponse_default_instance_._instance,
     &::s4wave::root::_WatchSpaceRootRuntimeRequest_default_instance_._instance,
     &::s4wave::root::_WatchSpaceRootRuntimeResponse_default_instance_._instance,
+    &::s4wave::root::_SpaceRootRuntimeSession_default_instance_._instance,
     &::s4wave::root::_GetChangelogRequest_default_instance_._instance,
     &::s4wave::root::_GetChangelogResponse_default_instance_._instance,
     &::s4wave::root::_GetDebugDbRequest_default_instance_._instance,
@@ -2455,247 +2501,255 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fr
     "e/spacewave/core/changelog/changelog.pro"
     "to\0328github.com/s4wave/spacewave/core/pro"
     "vider/provider.proto\0326github.com/s4wave/"
-    "spacewave/core/session/session.proto\032/gi"
-    "thub.com/s4wave/spacewave/net/hash/hash."
-    "proto\",\n\025LookupProviderRequest\022\023\n\013provid"
-    "er_id\030\001 \001(\t\"-\n\026LookupProviderResponse\022\023\n"
-    "\013resource_id\030\001 \001(\r\"\?\n\023MountSessionReques"
-    "t\022(\n\013session_ref\030\001 \001(\0132\023.session.Session"
-    "Ref\"+\n\024MountSessionResponse\022\023\n\013resource_"
-    "id\030\001 \001(\r\"/\n\030MountSessionByIdxRequest\022\023\n\013"
-    "session_idx\030\001 \001(\r\"m\n\031MountSessionByIdxRe"
-    "sponse\022\023\n\013resource_id\030\001 \001(\r\022(\n\013session_r"
-    "ef\030\002 \001(\0132\023.session.SessionRef\022\021\n\tnot_fou"
-    "nd\030\003 \001(\010\"\026\n\024ListProvidersRequest\"B\n\025List"
-    "ProvidersResponse\022)\n\tproviders\030\001 \003(\0132\026.p"
-    "rovider.ProviderInfo\"\025\n\023ListSessionsRequ"
-    "est\"C\n\024ListSessionsResponse\022+\n\010sessions\030"
-    "\001 \003(\0132\031.session.SessionListEntry\"\026\n\024Watc"
-    "hSessionsRequest\"D\n\025WatchSessionsRespons"
-    "e\022+\n\010sessions\030\001 \003(\0132\031.session.SessionLis"
-    "tEntry\" \n\036WatchAllAccountStatusesRequest"
-    "\"d\n\024SessionAccountStatus\022\023\n\013session_idx\030"
-    "\001 \001(\r\0227\n\016account_status\030\002 \001(\0162\037.provider"
-    ".ProviderAccountStatus\"V\n\037WatchAllAccoun"
-    "tStatusesResponse\0223\n\010statuses\030\001 \003(\0132!.s4"
-    "wave.root.SessionAccountStatus\"0\n\031GetSes"
-    "sionMetadataRequest\022\023\n\013session_idx\030\001 \001(\r"
-    "\"[\n\032GetSessionMetadataResponse\022*\n\010metada"
-    "ta\030\001 \001(\0132\030.session.SessionMetadata\022\021\n\tno"
-    "t_found\030\002 \001(\010\"2\n\033WatchSessionMetadataReq"
-    "uest\022\023\n\013session_idx\030\001 \001(\r\"]\n\034WatchSessio"
-    "nMetadataResponse\022*\n\010metadata\030\001 \001(\0132\030.se"
-    "ssion.SessionMetadata\022\021\n\tnot_found\030\002 \001(\010"
-    "\"=\n\031UnlockSessionByIdxRequest\022\023\n\013session"
-    "_idx\030\001 \001(\r\022\013\n\003pin\030\002 \001(\014\"\034\n\032UnlockSession"
-    "ByIdxResponse\"+\n\024DeleteSessionRequest\022\023\n"
-    "\013session_idx\030\001 \001(\r\"\027\n\025DeleteSessionRespo"
-    "nse\"^\n\030ResetSessionByIdxRequest\022\023\n\013sessi"
-    "on_idx\030\001 \001(\r\022-\n\ncredential\030\002 \001(\0132\031.sessi"
-    "on.EntityCredential\"\033\n\031ResetSessionByIdx"
-    "Response\".\n\022MarshalHashRequest\022\030\n\004hash\030\001"
-    " \001(\0132\n.hash.Hash\"\'\n\023MarshalHashResponse\022"
-    "\020\n\010hash_str\030\001 \001(\t\"$\n\020ParseHashRequest\022\020\n"
-    "\010hash_str\030\001 \001(\t\"-\n\021ParseHashResponse\022\030\n\004"
-    "hash\030\001 \001(\0132\n.hash.Hash\"A\n\016HashSumRequest"
-    "\022!\n\thash_type\030\001 \001(\0162\016.hash.HashType\022\014\n\004d"
-    "ata\030\002 \001(\014\"+\n\017HashSumResponse\022\030\n\004hash\030\001 \001"
-    "(\0132\n.hash.Hash\"/\n\023HashValidateRequest\022\030\n"
-    "\004hash\030\001 \001(\0132\n.hash.Hash\"4\n\024HashValidateR"
-    "esponse\022\r\n\005valid\030\001 \001(\010\022\r\n\005error\030\002 \001(\t\"*\n"
-    "\026AccessStateAtomRequest\022\020\n\010store_id\030\001 \001("
-    "\t\".\n\027AccessStateAtomResponse\022\023\n\013resource"
-    "_id\030\001 \001(\r\"\030\n\026WatchStateAtomsRequest\"A\n\027W"
-    "atchStateAtomsResponse\022\021\n\tstore_ids\030\001 \003("
-    "\t\022\023\n\013store_count\030\002 \001(\r\"\'\n\027NativeSpaceRoo"
-    "tMetadata\022\014\n\004path\030\001 \001(\t\" \n\030BrowserSpaceR"
-    "ootMetadataJ\004\010\001\020\020\"\207\003\n\024SpaceRootAliasReco"
-    "rd\022\020\n\010alias_id\030\001 \001(\t\022\024\n\014display_name\030\002 \001"
-    "(\t\022(\n\004kind\030\003 \001(\0162\032.s4wave.root.SpaceRoot"
-    "Kind\0221\n\topen_mode\030\004 \001(\0162\036.s4wave.root.Sp"
-    "aceRootOpenMode\0224\n\006native\030\005 \001(\0132$.s4wave"
-    ".root.NativeSpaceRootMetadata\022,\n\006status\030"
-    "\006 \001(\0162\034.s4wave.root.SpaceRootStatus\022\026\n\016s"
-    "tatus_message\030\007 \001(\t\0226\n\007browser\030\010 \001(\0132%.s"
-    "4wave.root.BrowserSpaceRootMetadata\022\032\n\022c"
-    "reated_at_unix_ms\030\t \001(\003\022\032\n\022updated_at_un"
-    "ix_ms\030\n \001(\003\"\035\n\033ListSpaceRootAliasesReque"
-    "st\"R\n\034ListSpaceRootAliasesResponse\0222\n\007re"
-    "cords\030\001 \003(\0132!.s4wave.root.SpaceRootAlias"
-    "Record\"\036\n\034WatchSpaceRootAliasesRequest\"S"
-    "\n\035WatchSpaceRootAliasesResponse\0222\n\007recor"
-    "ds\030\001 \003(\0132!.s4wave.root.SpaceRootAliasRec"
-    "ord\"P\n\033UpsertSpaceRootAliasRequest\0221\n\006re"
-    "cord\030\001 \001(\0132!.s4wave.root.SpaceRootAliasR"
-    "ecord\"Q\n\034UpsertSpaceRootAliasResponse\0221\n"
-    "\006record\030\001 \001(\0132!.s4wave.root.SpaceRootAli"
-    "asRecord\"/\n\033RemoveSpaceRootAliasRequest\022"
-    "\020\n\010alias_id\030\001 \001(\t\"1\n\034RemoveSpaceRootAlia"
-    "sResponse\022\021\n\tnot_found\030\001 \001(\010\"C\n\034WatchSpa"
-    "ceRootRuntimeRequest\022\020\n\010alias_id\030\001 \001(\t\022\021"
-    "\n\tautostart\030\002 \001(\010\"\313\001\n\035WatchSpaceRootRunt"
-    "imeResponse\0223\n\006status\030\001 \001(\0162#.s4wave.roo"
-    "t.SpaceRootRuntimeStatus\022\020\n\010alias_id\030\002 \001"
-    "(\t\022\022\n\nstate_path\030\003 \001(\t\022\023\n\013socket_path\030\004 "
-    "\001(\t\022+\n\010sessions\030\005 \003(\0132\031.session.SessionL"
-    "istEntry\022\r\n\005error\030\006 \001(\t\"\025\n\023GetChangelogR"
-    "equest\"\?\n\024GetChangelogResponse\022\'\n\tchange"
-    "log\030\001 \001(\0132\024.changelog.Changelog\"\023\n\021GetDe"
-    "bugDbRequest\")\n\022GetDebugDbResponse\022\023\n\013re"
-    "source_id\030\001 \001(\r\"\037\n\rGetCdnRequest\022\016\n\006cdn_"
-    "id\030\001 \001(\t\";\n\016GetCdnResponse\022\023\n\013resource_i"
-    "d\030\001 \001(\r\022\024\n\014cdn_space_id\030\002 \001(\t\"H\n\030AccessW"
-    "ebListenerRequest\022\030\n\020listen_multiaddr\030\001 "
-    "\001(\t\022\022\n\nbackground\030\002 \001(\010\"\226\001\n\031AccessWebLis"
-    "tenerResponse\022\023\n\013resource_id\030\001 \001(\r\022\023\n\013li"
-    "stener_id\030\002 \001(\t\022\030\n\020listen_multiaddr\030\003 \001("
-    "\t\022\013\n\003url\030\004 \001(\t\022\030\n\020bootstrap_secret\030\005 \001(\t"
-    "\022\016\n\006reused\030\006 \001(\010\"\032\n\030WatchWebListenersReq"
-    "uest\"a\n\017WebListenerInfo\022\023\n\013listener_id\030\001"
-    " \001(\t\022\030\n\020listen_multiaddr\030\002 \001(\t\022\013\n\003url\030\003 "
-    "\001(\t\022\022\n\nbackground\030\004 \001(\010\"L\n\031WatchWebListe"
-    "nersResponse\022/\n\tlisteners\030\001 \003(\0132\034.s4wave"
-    ".root.WebListenerInfo\"-\n\026StopWebListener"
-    "Request\022\023\n\013listener_id\030\001 \001(\t\",\n\027StopWebL"
-    "istenerResponse\022\021\n\tnot_found\030\001 \001(\010\"o\n\023Li"
-    "stenerYieldPrompt\022\021\n\tprompt_id\030\001 \001(\t\022\026\n\016"
-    "requester_name\030\002 \001(\t\022\023\n\013socket_path\030\003 \001("
-    "\t\022\030\n\020deadline_unix_ms\030\004 \001(\003\"\"\n WatchList"
-    "enerYieldPromptsRequest\"V\n!WatchListener"
-    "YieldPromptsResponse\0221\n\007prompts\030\001 \003(\0132 ."
-    "s4wave.root.ListenerYieldPrompt\"G\n#Respo"
-    "ndToListenerYieldPromptRequest\022\021\n\tprompt"
-    "_id\030\001 \001(\t\022\r\n\005allow\030\002 \001(\010\"9\n$RespondToLis"
-    "tenerYieldPromptResponse\022\021\n\tnot_found\030\001 "
-    "\001(\010\"i\n\023RuntimeHandoffState\022\016\n\006active\030\001 \001"
-    "(\010\022\026\n\016requester_name\030\002 \001(\t\022\023\n\013socket_pat"
-    "h\030\003 \001(\t\022\025\n\rsince_unix_ms\030\004 \001(\003\"\034\n\032WatchR"
-    "untimeHandoffRequest\"N\n\033WatchRuntimeHand"
-    "offResponse\022/\n\005state\030\001 \001(\0132 .s4wave.root"
-    ".RuntimeHandoffState\"\027\n\025ReclaimRuntimeRe"
-    "quest\"+\n\026ReclaimRuntimeResponse\022\021\n\trecla"
-    "imed\030\001 \001(\010\"\034\n\032WatchListenerStatusRequest"
-    "\"`\n\033WatchListenerStatusResponse\022\023\n\013socke"
-    "t_path\030\001 \001(\t\022\021\n\tlistening\030\002 \001(\010\022\031\n\021conne"
-    "cted_clients\030\003 \001(\r*q\n\rSpaceRootKind\022\035\n\031S"
-    "paceRootKind_UNSPECIFIED\020\000\022\"\n\036SpaceRootK"
-    "ind_NATIVE_DIRECTORY\020\001\022\035\n\031SpaceRootKind_"
-    "S4WAVE_FILE\020\002*y\n\021SpaceRootOpenMode\022!\n\035Sp"
-    "aceRootOpenMode_UNSPECIFIED\020\000\022#\n\037SpaceRo"
-    "otOpenMode_OPEN_EXISTING\020\001\022\034\n\030SpaceRootO"
-    "penMode_CREATE\020\002*\244\001\n\017SpaceRootStatus\022\033\n\027"
-    "SpaceRootStatus_UNKNOWN\020\000\022\031\n\025SpaceRootSt"
-    "atus_READY\020\001\022\033\n\027SpaceRootStatus_MISSING\020"
-    "\002\022\037\n\033SpaceRootStatus_UNSUPPORTED\020\003\022\033\n\027Sp"
-    "aceRootStatus_INVALID\020\004*\311\001\n\026SpaceRootRun"
-    "timeStatus\022\037\n\033SpaceRootRuntimeStatus_IDL"
-    "E\020\000\022%\n!SpaceRootRuntimeStatus_CONNECTING"
-    "\020\001\022#\n\037SpaceRootRuntimeStatus_STARTING\020\002\022"
-    " \n\034SpaceRootRuntimeStatus_READY\020\003\022 \n\034Spa"
-    "ceRootRuntimeStatus_ERROR\020\0042\377\031\n\023RootReso"
-    "urceService\022V\n\rListProviders\022!.s4wave.ro"
-    "ot.ListProvidersRequest\032\".s4wave.root.Li"
-    "stProvidersResponse\022Y\n\016LookupProvider\022\"."
-    "s4wave.root.LookupProviderRequest\032#.s4wa"
-    "ve.root.LookupProviderResponse\022S\n\014MountS"
-    "ession\022 .s4wave.root.MountSessionRequest"
-    "\032!.s4wave.root.MountSessionResponse\022b\n\021M"
-    "ountSessionByIdx\022%.s4wave.root.MountSess"
-    "ionByIdxRequest\032&.s4wave.root.MountSessi"
-    "onByIdxResponse\022S\n\014ListSessions\022 .s4wave"
-    ".root.ListSessionsRequest\032!.s4wave.root."
-    "ListSessionsResponse\022X\n\rWatchSessions\022!."
-    "s4wave.root.WatchSessionsRequest\032\".s4wav"
-    "e.root.WatchSessionsResponse0\001\022v\n\027WatchA"
-    "llAccountStatuses\022+.s4wave.root.WatchAll"
-    "AccountStatusesRequest\032,.s4wave.root.Wat"
-    "chAllAccountStatusesResponse0\001\022e\n\022GetSes"
-    "sionMetadata\022&.s4wave.root.GetSessionMet"
-    "adataRequest\032\'.s4wave.root.GetSessionMet"
-    "adataResponse\022m\n\024WatchSessionMetadata\022(."
-    "s4wave.root.WatchSessionMetadataRequest\032"
-    ").s4wave.root.WatchSessionMetadataRespon"
-    "se0\001\022`\n\rUnlockSession\022&.s4wave.root.Unlo"
-    "ckSessionByIdxRequest\032\'.s4wave.root.Unlo"
-    "ckSessionByIdxResponse\022V\n\rDeleteSession\022"
-    "!.s4wave.root.DeleteSessionRequest\032\".s4w"
-    "ave.root.DeleteSessionResponse\022]\n\014ResetS"
-    "ession\022%.s4wave.root.ResetSessionByIdxRe"
-    "quest\032&.s4wave.root.ResetSessionByIdxRes"
-    "ponse\022\\\n\017AccessStateAtom\022#.s4wave.root.A"
-    "ccessStateAtomRequest\032$.s4wave.root.Acce"
-    "ssStateAtomResponse\022^\n\017WatchStateAtoms\022#"
-    ".s4wave.root.WatchStateAtomsRequest\032$.s4"
-    "wave.root.WatchStateAtomsResponse0\001\022k\n\024L"
-    "istSpaceRootAliases\022(.s4wave.root.ListSp"
-    "aceRootAliasesRequest\032).s4wave.root.List"
-    "SpaceRootAliasesResponse\022p\n\025WatchSpaceRo"
-    "otAliases\022).s4wave.root.WatchSpaceRootAl"
-    "iasesRequest\032*.s4wave.root.WatchSpaceRoo"
-    "tAliasesResponse0\001\022k\n\024UpsertSpaceRootAli"
-    "as\022(.s4wave.root.UpsertSpaceRootAliasReq"
-    "uest\032).s4wave.root.UpsertSpaceRootAliasR"
-    "esponse\022k\n\024RemoveSpaceRootAlias\022(.s4wave"
-    ".root.RemoveSpaceRootAliasRequest\032).s4wa"
-    "ve.root.RemoveSpaceRootAliasResponse\022p\n\025"
-    "WatchSpaceRootRuntime\022).s4wave.root.Watc"
-    "hSpaceRootRuntimeRequest\032*.s4wave.root.W"
-    "atchSpaceRootRuntimeResponse0\001\022P\n\013Marsha"
-    "lHash\022\037.s4wave.root.MarshalHashRequest\032 "
-    ".s4wave.root.MarshalHashResponse\022J\n\tPars"
-    "eHash\022\035.s4wave.root.ParseHashRequest\032\036.s"
-    "4wave.root.ParseHashResponse\022D\n\007HashSum\022"
-    "\033.s4wave.root.HashSumRequest\032\034.s4wave.ro"
-    "ot.HashSumResponse\022S\n\014HashValidate\022 .s4w"
-    "ave.root.HashValidateRequest\032!.s4wave.ro"
-    "ot.HashValidateResponse\022S\n\014GetChangelog\022"
-    " .s4wave.root.GetChangelogRequest\032!.s4wa"
-    "ve.root.GetChangelogResponse\022M\n\nGetDebug"
-    "Db\022\036.s4wave.root.GetDebugDbRequest\032\037.s4w"
-    "ave.root.GetDebugDbResponse\022A\n\006GetCdn\022\032."
-    "s4wave.root.GetCdnRequest\032\033.s4wave.root."
-    "GetCdnResponse\022b\n\021AccessWebListener\022%.s4"
-    "wave.root.AccessWebListenerRequest\032&.s4w"
-    "ave.root.AccessWebListenerResponse\022d\n\021Wa"
-    "tchWebListeners\022%.s4wave.root.WatchWebLi"
-    "stenersRequest\032&.s4wave.root.WatchWebLis"
-    "tenersResponse0\001\022\\\n\017StopWebListener\022#.s4"
-    "wave.root.StopWebListenerRequest\032$.s4wav"
-    "e.root.StopWebListenerResponse\022|\n\031WatchL"
-    "istenerYieldPrompts\022-.s4wave.root.WatchL"
-    "istenerYieldPromptsRequest\032..s4wave.root"
-    ".WatchListenerYieldPromptsResponse0\001\022\203\001\n"
-    "\034RespondToListenerYieldPrompt\0220.s4wave.r"
-    "oot.RespondToListenerYieldPromptRequest\032"
-    "1.s4wave.root.RespondToListenerYieldProm"
-    "ptResponse\022j\n\023WatchRuntimeHandoff\022\'.s4wa"
-    "ve.root.WatchRuntimeHandoffRequest\032(.s4w"
-    "ave.root.WatchRuntimeHandoffResponse0\001\022Y"
-    "\n\016ReclaimRuntime\022\".s4wave.root.ReclaimRu"
-    "ntimeRequest\032#.s4wave.root.ReclaimRuntim"
-    "eResponse\022j\n\023WatchListenerStatus\022\'.s4wav"
-    "e.root.WatchListenerStatusRequest\032(.s4wa"
-    "ve.root.WatchListenerStatusResponse0\001b\006p"
-    "roto3"
+    "spacewave/core/session/session.proto\0322gi"
+    "thub.com/s4wave/spacewave/core/space/spa"
+    "ce.proto\032/github.com/s4wave/spacewave/ne"
+    "t/hash/hash.proto\",\n\025LookupProviderReque"
+    "st\022\023\n\013provider_id\030\001 \001(\t\"-\n\026LookupProvide"
+    "rResponse\022\023\n\013resource_id\030\001 \001(\r\"\?\n\023MountS"
+    "essionRequest\022(\n\013session_ref\030\001 \001(\0132\023.ses"
+    "sion.SessionRef\"+\n\024MountSessionResponse\022"
+    "\023\n\013resource_id\030\001 \001(\r\"/\n\030MountSessionById"
+    "xRequest\022\023\n\013session_idx\030\001 \001(\r\"m\n\031MountSe"
+    "ssionByIdxResponse\022\023\n\013resource_id\030\001 \001(\r\022"
+    "(\n\013session_ref\030\002 \001(\0132\023.session.SessionRe"
+    "f\022\021\n\tnot_found\030\003 \001(\010\"\026\n\024ListProvidersReq"
+    "uest\"B\n\025ListProvidersResponse\022)\n\tprovide"
+    "rs\030\001 \003(\0132\026.provider.ProviderInfo\"\025\n\023List"
+    "SessionsRequest\"C\n\024ListSessionsResponse\022"
+    "+\n\010sessions\030\001 \003(\0132\031.session.SessionListE"
+    "ntry\"\026\n\024WatchSessionsRequest\"D\n\025WatchSes"
+    "sionsResponse\022+\n\010sessions\030\001 \003(\0132\031.sessio"
+    "n.SessionListEntry\" \n\036WatchAllAccountSta"
+    "tusesRequest\"d\n\024SessionAccountStatus\022\023\n\013"
+    "session_idx\030\001 \001(\r\0227\n\016account_status\030\002 \001("
+    "\0162\037.provider.ProviderAccountStatus\"V\n\037Wa"
+    "tchAllAccountStatusesResponse\0223\n\010statuse"
+    "s\030\001 \003(\0132!.s4wave.root.SessionAccountStat"
+    "us\"0\n\031GetSessionMetadataRequest\022\023\n\013sessi"
+    "on_idx\030\001 \001(\r\"[\n\032GetSessionMetadataRespon"
+    "se\022*\n\010metadata\030\001 \001(\0132\030.session.SessionMe"
+    "tadata\022\021\n\tnot_found\030\002 \001(\010\"2\n\033WatchSessio"
+    "nMetadataRequest\022\023\n\013session_idx\030\001 \001(\r\"]\n"
+    "\034WatchSessionMetadataResponse\022*\n\010metadat"
+    "a\030\001 \001(\0132\030.session.SessionMetadata\022\021\n\tnot"
+    "_found\030\002 \001(\010\"=\n\031UnlockSessionByIdxReques"
+    "t\022\023\n\013session_idx\030\001 \001(\r\022\013\n\003pin\030\002 \001(\014\"\034\n\032U"
+    "nlockSessionByIdxResponse\"+\n\024DeleteSessi"
+    "onRequest\022\023\n\013session_idx\030\001 \001(\r\"\027\n\025Delete"
+    "SessionResponse\"^\n\030ResetSessionByIdxRequ"
+    "est\022\023\n\013session_idx\030\001 \001(\r\022-\n\ncredential\030\002"
+    " \001(\0132\031.session.EntityCredential\"\033\n\031Reset"
+    "SessionByIdxResponse\".\n\022MarshalHashReque"
+    "st\022\030\n\004hash\030\001 \001(\0132\n.hash.Hash\"\'\n\023MarshalH"
+    "ashResponse\022\020\n\010hash_str\030\001 \001(\t\"$\n\020ParseHa"
+    "shRequest\022\020\n\010hash_str\030\001 \001(\t\"-\n\021ParseHash"
+    "Response\022\030\n\004hash\030\001 \001(\0132\n.hash.Hash\"A\n\016Ha"
+    "shSumRequest\022!\n\thash_type\030\001 \001(\0162\016.hash.H"
+    "ashType\022\014\n\004data\030\002 \001(\014\"+\n\017HashSumResponse"
+    "\022\030\n\004hash\030\001 \001(\0132\n.hash.Hash\"/\n\023HashValida"
+    "teRequest\022\030\n\004hash\030\001 \001(\0132\n.hash.Hash\"4\n\024H"
+    "ashValidateResponse\022\r\n\005valid\030\001 \001(\010\022\r\n\005er"
+    "ror\030\002 \001(\t\"*\n\026AccessStateAtomRequest\022\020\n\010s"
+    "tore_id\030\001 \001(\t\".\n\027AccessStateAtomResponse"
+    "\022\023\n\013resource_id\030\001 \001(\r\"\030\n\026WatchStateAtoms"
+    "Request\"A\n\027WatchStateAtomsResponse\022\021\n\tst"
+    "ore_ids\030\001 \003(\t\022\023\n\013store_count\030\002 \001(\r\"\'\n\027Na"
+    "tiveSpaceRootMetadata\022\014\n\004path\030\001 \001(\t\" \n\030B"
+    "rowserSpaceRootMetadataJ\004\010\001\020\020\"\207\003\n\024SpaceR"
+    "ootAliasRecord\022\020\n\010alias_id\030\001 \001(\t\022\024\n\014disp"
+    "lay_name\030\002 \001(\t\022(\n\004kind\030\003 \001(\0162\032.s4wave.ro"
+    "ot.SpaceRootKind\0221\n\topen_mode\030\004 \001(\0162\036.s4"
+    "wave.root.SpaceRootOpenMode\0224\n\006native\030\005 "
+    "\001(\0132$.s4wave.root.NativeSpaceRootMetadat"
+    "a\022,\n\006status\030\006 \001(\0162\034.s4wave.root.SpaceRoo"
+    "tStatus\022\026\n\016status_message\030\007 \001(\t\0226\n\007brows"
+    "er\030\010 \001(\0132%.s4wave.root.BrowserSpaceRootM"
+    "etadata\022\032\n\022created_at_unix_ms\030\t \001(\003\022\032\n\022u"
+    "pdated_at_unix_ms\030\n \001(\003\"\035\n\033ListSpaceRoot"
+    "AliasesRequest\"R\n\034ListSpaceRootAliasesRe"
+    "sponse\0222\n\007records\030\001 \003(\0132!.s4wave.root.Sp"
+    "aceRootAliasRecord\"\036\n\034WatchSpaceRootAlia"
+    "sesRequest\"S\n\035WatchSpaceRootAliasesRespo"
+    "nse\0222\n\007records\030\001 \003(\0132!.s4wave.root.Space"
+    "RootAliasRecord\"P\n\033UpsertSpaceRootAliasR"
+    "equest\0221\n\006record\030\001 \001(\0132!.s4wave.root.Spa"
+    "ceRootAliasRecord\"Q\n\034UpsertSpaceRootAlia"
+    "sResponse\0221\n\006record\030\001 \001(\0132!.s4wave.root."
+    "SpaceRootAliasRecord\"/\n\033RemoveSpaceRootA"
+    "liasRequest\022\020\n\010alias_id\030\001 \001(\t\"1\n\034RemoveS"
+    "paceRootAliasResponse\022\021\n\tnot_found\030\001 \001(\010"
+    "\"C\n\034WatchSpaceRootRuntimeRequest\022\020\n\010alia"
+    "s_id\030\001 \001(\t\022\021\n\tautostart\030\002 \001(\010\"\213\002\n\035WatchS"
+    "paceRootRuntimeResponse\0223\n\006status\030\001 \001(\0162"
+    "#.s4wave.root.SpaceRootRuntimeStatus\022\020\n\010"
+    "alias_id\030\002 \001(\t\022\022\n\nstate_path\030\003 \001(\t\022\023\n\013so"
+    "cket_path\030\004 \001(\t\022+\n\010sessions\030\005 \003(\0132\031.sess"
+    "ion.SessionListEntry\022\r\n\005error\030\006 \001(\t\022>\n\020r"
+    "untime_sessions\030\007 \003(\0132$.s4wave.root.Spac"
+    "eRootRuntimeSession\"\251\001\n\027SpaceRootRuntime"
+    "Session\022*\n\007session\030\001 \001(\0132\031.session.Sessi"
+    "onListEntry\022*\n\010metadata\030\002 \001(\0132\030.session."
+    "SessionMetadata\022\'\n\006spaces\030\003 \003(\0132\027.space."
+    "SpaceSoListEntry\022\r\n\005error\030\004 \001(\t\"\025\n\023GetCh"
+    "angelogRequest\"\?\n\024GetChangelogResponse\022\'"
+    "\n\tchangelog\030\001 \001(\0132\024.changelog.Changelog\""
+    "\023\n\021GetDebugDbRequest\")\n\022GetDebugDbRespon"
+    "se\022\023\n\013resource_id\030\001 \001(\r\"\037\n\rGetCdnRequest"
+    "\022\016\n\006cdn_id\030\001 \001(\t\";\n\016GetCdnResponse\022\023\n\013re"
+    "source_id\030\001 \001(\r\022\024\n\014cdn_space_id\030\002 \001(\t\"H\n"
+    "\030AccessWebListenerRequest\022\030\n\020listen_mult"
+    "iaddr\030\001 \001(\t\022\022\n\nbackground\030\002 \001(\010\"\226\001\n\031Acce"
+    "ssWebListenerResponse\022\023\n\013resource_id\030\001 \001"
+    "(\r\022\023\n\013listener_id\030\002 \001(\t\022\030\n\020listen_multia"
+    "ddr\030\003 \001(\t\022\013\n\003url\030\004 \001(\t\022\030\n\020bootstrap_secr"
+    "et\030\005 \001(\t\022\016\n\006reused\030\006 \001(\010\"\032\n\030WatchWebList"
+    "enersRequest\"a\n\017WebListenerInfo\022\023\n\013liste"
+    "ner_id\030\001 \001(\t\022\030\n\020listen_multiaddr\030\002 \001(\t\022\013"
+    "\n\003url\030\003 \001(\t\022\022\n\nbackground\030\004 \001(\010\"L\n\031Watch"
+    "WebListenersResponse\022/\n\tlisteners\030\001 \003(\0132"
+    "\034.s4wave.root.WebListenerInfo\"-\n\026StopWeb"
+    "ListenerRequest\022\023\n\013listener_id\030\001 \001(\t\",\n\027"
+    "StopWebListenerResponse\022\021\n\tnot_found\030\001 \001"
+    "(\010\"o\n\023ListenerYieldPrompt\022\021\n\tprompt_id\030\001"
+    " \001(\t\022\026\n\016requester_name\030\002 \001(\t\022\023\n\013socket_p"
+    "ath\030\003 \001(\t\022\030\n\020deadline_unix_ms\030\004 \001(\003\"\"\n W"
+    "atchListenerYieldPromptsRequest\"V\n!Watch"
+    "ListenerYieldPromptsResponse\0221\n\007prompts\030"
+    "\001 \003(\0132 .s4wave.root.ListenerYieldPrompt\""
+    "G\n#RespondToListenerYieldPromptRequest\022\021"
+    "\n\tprompt_id\030\001 \001(\t\022\r\n\005allow\030\002 \001(\010\"9\n$Resp"
+    "ondToListenerYieldPromptResponse\022\021\n\tnot_"
+    "found\030\001 \001(\010\"i\n\023RuntimeHandoffState\022\016\n\006ac"
+    "tive\030\001 \001(\010\022\026\n\016requester_name\030\002 \001(\t\022\023\n\013so"
+    "cket_path\030\003 \001(\t\022\025\n\rsince_unix_ms\030\004 \001(\003\"\034"
+    "\n\032WatchRuntimeHandoffRequest\"N\n\033WatchRun"
+    "timeHandoffResponse\022/\n\005state\030\001 \001(\0132 .s4w"
+    "ave.root.RuntimeHandoffState\"\027\n\025ReclaimR"
+    "untimeRequest\"+\n\026ReclaimRuntimeResponse\022"
+    "\021\n\treclaimed\030\001 \001(\010\"\034\n\032WatchListenerStatu"
+    "sRequest\"`\n\033WatchListenerStatusResponse\022"
+    "\023\n\013socket_path\030\001 \001(\t\022\021\n\tlistening\030\002 \001(\010\022"
+    "\031\n\021connected_clients\030\003 \001(\r*q\n\rSpaceRootK"
+    "ind\022\035\n\031SpaceRootKind_UNSPECIFIED\020\000\022\"\n\036Sp"
+    "aceRootKind_NATIVE_DIRECTORY\020\001\022\035\n\031SpaceR"
+    "ootKind_S4WAVE_FILE\020\002*y\n\021SpaceRootOpenMo"
+    "de\022!\n\035SpaceRootOpenMode_UNSPECIFIED\020\000\022#\n"
+    "\037SpaceRootOpenMode_OPEN_EXISTING\020\001\022\034\n\030Sp"
+    "aceRootOpenMode_CREATE\020\002*\244\001\n\017SpaceRootSt"
+    "atus\022\033\n\027SpaceRootStatus_UNKNOWN\020\000\022\031\n\025Spa"
+    "ceRootStatus_READY\020\001\022\033\n\027SpaceRootStatus_"
+    "MISSING\020\002\022\037\n\033SpaceRootStatus_UNSUPPORTED"
+    "\020\003\022\033\n\027SpaceRootStatus_INVALID\020\004*\311\001\n\026Spac"
+    "eRootRuntimeStatus\022\037\n\033SpaceRootRuntimeSt"
+    "atus_IDLE\020\000\022%\n!SpaceRootRuntimeStatus_CO"
+    "NNECTING\020\001\022#\n\037SpaceRootRuntimeStatus_STA"
+    "RTING\020\002\022 \n\034SpaceRootRuntimeStatus_READY\020"
+    "\003\022 \n\034SpaceRootRuntimeStatus_ERROR\020\0042\377\031\n\023"
+    "RootResourceService\022V\n\rListProviders\022!.s"
+    "4wave.root.ListProvidersRequest\032\".s4wave"
+    ".root.ListProvidersResponse\022Y\n\016LookupPro"
+    "vider\022\".s4wave.root.LookupProviderReques"
+    "t\032#.s4wave.root.LookupProviderResponse\022S"
+    "\n\014MountSession\022 .s4wave.root.MountSessio"
+    "nRequest\032!.s4wave.root.MountSessionRespo"
+    "nse\022b\n\021MountSessionByIdx\022%.s4wave.root.M"
+    "ountSessionByIdxRequest\032&.s4wave.root.Mo"
+    "untSessionByIdxResponse\022S\n\014ListSessions\022"
+    " .s4wave.root.ListSessionsRequest\032!.s4wa"
+    "ve.root.ListSessionsResponse\022X\n\rWatchSes"
+    "sions\022!.s4wave.root.WatchSessionsRequest"
+    "\032\".s4wave.root.WatchSessionsResponse0\001\022v"
+    "\n\027WatchAllAccountStatuses\022+.s4wave.root."
+    "WatchAllAccountStatusesRequest\032,.s4wave."
+    "root.WatchAllAccountStatusesResponse0\001\022e"
+    "\n\022GetSessionMetadata\022&.s4wave.root.GetSe"
+    "ssionMetadataRequest\032\'.s4wave.root.GetSe"
+    "ssionMetadataResponse\022m\n\024WatchSessionMet"
+    "adata\022(.s4wave.root.WatchSessionMetadata"
+    "Request\032).s4wave.root.WatchSessionMetada"
+    "taResponse0\001\022`\n\rUnlockSession\022&.s4wave.r"
+    "oot.UnlockSessionByIdxRequest\032\'.s4wave.r"
+    "oot.UnlockSessionByIdxResponse\022V\n\rDelete"
+    "Session\022!.s4wave.root.DeleteSessionReque"
+    "st\032\".s4wave.root.DeleteSessionResponse\022]"
+    "\n\014ResetSession\022%.s4wave.root.ResetSessio"
+    "nByIdxRequest\032&.s4wave.root.ResetSession"
+    "ByIdxResponse\022\\\n\017AccessStateAtom\022#.s4wav"
+    "e.root.AccessStateAtomRequest\032$.s4wave.r"
+    "oot.AccessStateAtomResponse\022^\n\017WatchStat"
+    "eAtoms\022#.s4wave.root.WatchStateAtomsRequ"
+    "est\032$.s4wave.root.WatchStateAtomsRespons"
+    "e0\001\022k\n\024ListSpaceRootAliases\022(.s4wave.roo"
+    "t.ListSpaceRootAliasesRequest\032).s4wave.r"
+    "oot.ListSpaceRootAliasesResponse\022p\n\025Watc"
+    "hSpaceRootAliases\022).s4wave.root.WatchSpa"
+    "ceRootAliasesRequest\032*.s4wave.root.Watch"
+    "SpaceRootAliasesResponse0\001\022k\n\024UpsertSpac"
+    "eRootAlias\022(.s4wave.root.UpsertSpaceRoot"
+    "AliasRequest\032).s4wave.root.UpsertSpaceRo"
+    "otAliasResponse\022k\n\024RemoveSpaceRootAlias\022"
+    "(.s4wave.root.RemoveSpaceRootAliasReques"
+    "t\032).s4wave.root.RemoveSpaceRootAliasResp"
+    "onse\022p\n\025WatchSpaceRootRuntime\022).s4wave.r"
+    "oot.WatchSpaceRootRuntimeRequest\032*.s4wav"
+    "e.root.WatchSpaceRootRuntimeResponse0\001\022P"
+    "\n\013MarshalHash\022\037.s4wave.root.MarshalHashR"
+    "equest\032 .s4wave.root.MarshalHashResponse"
+    "\022J\n\tParseHash\022\035.s4wave.root.ParseHashReq"
+    "uest\032\036.s4wave.root.ParseHashResponse\022D\n\007"
+    "HashSum\022\033.s4wave.root.HashSumRequest\032\034.s"
+    "4wave.root.HashSumResponse\022S\n\014HashValida"
+    "te\022 .s4wave.root.HashValidateRequest\032!.s"
+    "4wave.root.HashValidateResponse\022S\n\014GetCh"
+    "angelog\022 .s4wave.root.GetChangelogReques"
+    "t\032!.s4wave.root.GetChangelogResponse\022M\n\n"
+    "GetDebugDb\022\036.s4wave.root.GetDebugDbReque"
+    "st\032\037.s4wave.root.GetDebugDbResponse\022A\n\006G"
+    "etCdn\022\032.s4wave.root.GetCdnRequest\032\033.s4wa"
+    "ve.root.GetCdnResponse\022b\n\021AccessWebListe"
+    "ner\022%.s4wave.root.AccessWebListenerReque"
+    "st\032&.s4wave.root.AccessWebListenerRespon"
+    "se\022d\n\021WatchWebListeners\022%.s4wave.root.Wa"
+    "tchWebListenersRequest\032&.s4wave.root.Wat"
+    "chWebListenersResponse0\001\022\\\n\017StopWebListe"
+    "ner\022#.s4wave.root.StopWebListenerRequest"
+    "\032$.s4wave.root.StopWebListenerResponse\022|"
+    "\n\031WatchListenerYieldPrompts\022-.s4wave.roo"
+    "t.WatchListenerYieldPromptsRequest\032..s4w"
+    "ave.root.WatchListenerYieldPromptsRespon"
+    "se0\001\022\203\001\n\034RespondToListenerYieldPrompt\0220."
+    "s4wave.root.RespondToListenerYieldPrompt"
+    "Request\0321.s4wave.root.RespondToListenerY"
+    "ieldPromptResponse\022j\n\023WatchRuntimeHandof"
+    "f\022\'.s4wave.root.WatchRuntimeHandoffReque"
+    "st\032(.s4wave.root.WatchRuntimeHandoffResp"
+    "onse0\001\022Y\n\016ReclaimRuntime\022\".s4wave.root.R"
+    "eclaimRuntimeRequest\032#.s4wave.root.Recla"
+    "imRuntimeResponse\022j\n\023WatchListenerStatus"
+    "\022\'.s4wave.root.WatchListenerStatusReques"
+    "t\032(.s4wave.root.WatchListenerStatusRespo"
+    "nse0\001b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto_deps[4] = {
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto_deps[5] = {
         &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fchangelog_2fchangelog_2eproto,
         &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fprovider_2eproto,
         &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsession_2fsession_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fspace_2fspace_2eproto,
         &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fnet_2fhash_2fhash_2eproto,
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto = {
     false,
     false,
-    9045,
+    9333,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto,
     "github.com/s4wave/spacewave/sdk/root/root.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto_deps,
-    4,
-    75,
+    5,
+    76,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto::offsets,
@@ -14993,6 +15047,7 @@ PROTOBUF_NDEBUG_INLINE WatchSpaceRootRuntimeResponse::Impl_::Impl_(
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
         sessions_{visibility, arena, from.sessions_},
+        runtime_sessions_{visibility, arena, from.runtime_sessions_},
         alias_id_(arena, from.alias_id_),
         state_path_(arena, from.state_path_),
         socket_path_(arena, from.socket_path_),
@@ -15020,6 +15075,7 @@ PROTOBUF_NDEBUG_INLINE WatchSpaceRootRuntimeResponse::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
         sessions_{visibility, arena},
+        runtime_sessions_{visibility, arena},
         alias_id_(arena),
         state_path_(arena),
         socket_path_(arena),
@@ -15056,6 +15112,10 @@ constexpr auto WatchSpaceRootRuntimeResponse::InternalNewImpl_() {
   constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
       PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_.sessions_) +
           decltype(WatchSpaceRootRuntimeResponse::_impl_.sessions_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_.runtime_sessions_) +
+          decltype(WatchSpaceRootRuntimeResponse::_impl_.runtime_sessions_)::
               InternalGetArenaOffset(
                   ::google::protobuf::Message::internal_visibility()),
   });
@@ -15102,17 +15162,17 @@ WatchSpaceRootRuntimeResponse::GetClassData() const {
   return WatchSpaceRootRuntimeResponse_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 6, 1, 84, 2>
+const ::_pbi::TcParseTable<3, 7, 2, 84, 2>
 WatchSpaceRootRuntimeResponse::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_._has_bits_),
     0, // no _extensions_
-    6, 56,  // max_field_number, fast_idx_mask
+    7, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967232,  // skipmap
+    4294967168,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    6,  // num_field_entries
-    1,  // num_aux_entries
+    7,  // num_field_entries
+    2,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     WatchSpaceRootRuntimeResponse_class_data_.base(),
     nullptr,  // post_loop_handler
@@ -15123,20 +15183,20 @@ WatchSpaceRootRuntimeResponse::_table_ = {
   }, {{
     {::_pbi::TcParser::MiniParse, {}},
     // .s4wave.root.SpaceRootRuntimeStatus status = 1;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(WatchSpaceRootRuntimeResponse, _impl_.status_), 5>(),
-     {8, 5, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(WatchSpaceRootRuntimeResponse, _impl_.status_), 6>(),
+     {8, 6, 0,
       PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_.status_)}},
     // string alias_id = 2;
     {::_pbi::TcParser::FastUS1,
-     {18, 1, 0,
+     {18, 2, 0,
       PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_.alias_id_)}},
     // string state_path = 3;
     {::_pbi::TcParser::FastUS1,
-     {26, 2, 0,
+     {26, 3, 0,
       PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_.state_path_)}},
     // string socket_path = 4;
     {::_pbi::TcParser::FastUS1,
-     {34, 3, 0,
+     {34, 4, 0,
       PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_.socket_path_)}},
     // repeated .session.SessionListEntry sessions = 5;
     {::_pbi::TcParser::FastMtR1,
@@ -15144,27 +15204,33 @@ WatchSpaceRootRuntimeResponse::_table_ = {
       PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_.sessions_)}},
     // string error = 6;
     {::_pbi::TcParser::FastUS1,
-     {50, 4, 0,
+     {50, 5, 0,
       PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_.error_)}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // repeated .s4wave.root.SpaceRootRuntimeSession runtime_sessions = 7;
+    {::_pbi::TcParser::FastMtR1,
+     {58, 1, 1,
+      PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_.runtime_sessions_)}},
   }}, {{
     65535, 65535
   }}, {{
     // .s4wave.root.SpaceRootRuntimeStatus status = 1;
-    {PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_.status_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    {PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_.status_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
     // string alias_id = 2;
-    {PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_.alias_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_.alias_id_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string state_path = 3;
-    {PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_.state_path_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_.state_path_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string socket_path = 4;
-    {PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_.socket_path_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_.socket_path_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // repeated .session.SessionListEntry sessions = 5;
     {PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_.sessions_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
     // string error = 6;
-    {PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_.error_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_.error_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // repeated .s4wave.root.SpaceRootRuntimeSession runtime_sessions = 7;
+    {PROTOBUF_FIELD_OFFSET(WatchSpaceRootRuntimeResponse, _impl_.runtime_sessions_), _Internal::kHasBitsOffset + 1, 1, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::session::SessionListEntry>()},
+      {::_pbi::TcParser::GetTable<::s4wave::root::SpaceRootRuntimeSession>()},
   }},
   {{
     "\51\0\10\12\13\0\5\0"
@@ -15183,20 +15249,23 @@ PROTOBUF_NOINLINE void WatchSpaceRootRuntimeResponse::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       _impl_.sessions_.Clear();
     }
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-      _impl_.alias_id_.ClearNonDefaultToEmpty();
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      _impl_.runtime_sessions_.Clear();
     }
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
-      _impl_.state_path_.ClearNonDefaultToEmpty();
+      _impl_.alias_id_.ClearNonDefaultToEmpty();
     }
     if (CheckHasBit(cached_has_bits, 0x00000008U)) {
-      _impl_.socket_path_.ClearNonDefaultToEmpty();
+      _impl_.state_path_.ClearNonDefaultToEmpty();
     }
     if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      _impl_.socket_path_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       _impl_.error_.ClearNonDefaultToEmpty();
     }
   }
@@ -15225,7 +15294,7 @@ PROTOBUF_NOINLINE void WatchSpaceRootRuntimeResponse::Clear() {
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // .s4wave.root.SpaceRootRuntimeStatus status = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
     if (this_._internal_status() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteEnumToArray(
@@ -15234,7 +15303,7 @@ PROTOBUF_NOINLINE void WatchSpaceRootRuntimeResponse::Clear() {
   }
 
   // string alias_id = 2;
-  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
     if (!this_._internal_alias_id().empty()) {
       const ::std::string& _s = this_._internal_alias_id();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
@@ -15244,7 +15313,7 @@ PROTOBUF_NOINLINE void WatchSpaceRootRuntimeResponse::Clear() {
   }
 
   // string state_path = 3;
-  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
     if (!this_._internal_state_path().empty()) {
       const ::std::string& _s = this_._internal_state_path();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
@@ -15254,7 +15323,7 @@ PROTOBUF_NOINLINE void WatchSpaceRootRuntimeResponse::Clear() {
   }
 
   // string socket_path = 4;
-  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
     if (!this_._internal_socket_path().empty()) {
       const ::std::string& _s = this_._internal_socket_path();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
@@ -15277,12 +15346,25 @@ PROTOBUF_NOINLINE void WatchSpaceRootRuntimeResponse::Clear() {
   }
 
   // string error = 6;
-  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
     if (!this_._internal_error().empty()) {
       const ::std::string& _s = this_._internal_error();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
           _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.root.WatchSpaceRootRuntimeResponse.error");
       target = stream->WriteStringMaybeAliased(6, _s, target);
+    }
+  }
+
+  // repeated .s4wave.root.SpaceRootRuntimeSession runtime_sessions = 7;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_runtime_sessions_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_runtime_sessions().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              7, repfield, repfield.GetCachedSize(),
+              target, stream);
     }
   }
 
@@ -15311,7 +15393,7 @@ PROTOBUF_NOINLINE void WatchSpaceRootRuntimeResponse::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
     // repeated .session.SessionListEntry sessions = 5;
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       total_size += 1UL * this_._internal_sessions_size();
@@ -15319,36 +15401,43 @@ PROTOBUF_NOINLINE void WatchSpaceRootRuntimeResponse::Clear() {
         total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
       }
     }
+    // repeated .s4wave.root.SpaceRootRuntimeSession runtime_sessions = 7;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      total_size += 1UL * this_._internal_runtime_sessions_size();
+      for (const auto& msg : this_._internal_runtime_sessions()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
     // string alias_id = 2;
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       if (!this_._internal_alias_id().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_alias_id());
       }
     }
     // string state_path = 3;
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       if (!this_._internal_state_path().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_state_path());
       }
     }
     // string socket_path = 4;
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (!this_._internal_socket_path().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_socket_path());
       }
     }
     // string error = 6;
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       if (!this_._internal_error().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_error());
       }
     }
     // .s4wave.root.SpaceRootRuntimeStatus status = 1;
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       if (this_._internal_status() != 0) {
         total_size += 1 +
                       ::_pbi::WireFormatLite::EnumSize(this_._internal_status());
@@ -15374,13 +15463,18 @@ void WatchSpaceRootRuntimeResponse::MergeImpl(::google::protobuf::MessageLite& t
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       _this->_internal_mutable_sessions()->InternalMergeFromWithArena(
           ::google::protobuf::MessageLite::internal_visibility(), arena,
           from._internal_sessions());
     }
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      _this->_internal_mutable_runtime_sessions()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_runtime_sessions());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       if (!from._internal_alias_id().empty()) {
         _this->_internal_set_alias_id(from._internal_alias_id());
       } else {
@@ -15389,7 +15483,7 @@ void WatchSpaceRootRuntimeResponse::MergeImpl(::google::protobuf::MessageLite& t
         }
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       if (!from._internal_state_path().empty()) {
         _this->_internal_set_state_path(from._internal_state_path());
       } else {
@@ -15398,7 +15492,7 @@ void WatchSpaceRootRuntimeResponse::MergeImpl(::google::protobuf::MessageLite& t
         }
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (!from._internal_socket_path().empty()) {
         _this->_internal_set_socket_path(from._internal_socket_path());
       } else {
@@ -15407,7 +15501,7 @@ void WatchSpaceRootRuntimeResponse::MergeImpl(::google::protobuf::MessageLite& t
         }
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       if (!from._internal_error().empty()) {
         _this->_internal_set_error(from._internal_error());
       } else {
@@ -15416,7 +15510,7 @@ void WatchSpaceRootRuntimeResponse::MergeImpl(::google::protobuf::MessageLite& t
         }
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       if (from._internal_status() != 0) {
         _this->_impl_.status_ = from._impl_.status_;
       }
@@ -15442,6 +15536,7 @@ void WatchSpaceRootRuntimeResponse::InternalSwap(WatchSpaceRootRuntimeResponse* 
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   _impl_.sessions_.InternalSwap(&other->_impl_.sessions_);
+  _impl_.runtime_sessions_.InternalSwap(&other->_impl_.runtime_sessions_);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.alias_id_, &other->_impl_.alias_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.state_path_, &other->_impl_.state_path_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.socket_path_, &other->_impl_.socket_path_, arena);
@@ -15450,6 +15545,439 @@ void WatchSpaceRootRuntimeResponse::InternalSwap(WatchSpaceRootRuntimeResponse* 
 }
 
 ::google::protobuf::Metadata WatchSpaceRootRuntimeResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class SpaceRootRuntimeSession::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<SpaceRootRuntimeSession>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(SpaceRootRuntimeSession, _impl_._has_bits_);
+};
+
+void SpaceRootRuntimeSession::clear_session() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.session_ != nullptr) _impl_.session_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+void SpaceRootRuntimeSession::clear_metadata() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.metadata_ != nullptr) _impl_.metadata_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+void SpaceRootRuntimeSession::clear_spaces() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.spaces_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+SpaceRootRuntimeSession::SpaceRootRuntimeSession(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SpaceRootRuntimeSession_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.root.SpaceRootRuntimeSession)
+}
+PROTOBUF_NDEBUG_INLINE SpaceRootRuntimeSession::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::root::SpaceRootRuntimeSession& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        spaces_{visibility, arena, from.spaces_},
+        error_(arena, from.error_) {}
+
+SpaceRootRuntimeSession::SpaceRootRuntimeSession(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const SpaceRootRuntimeSession& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SpaceRootRuntimeSession_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SpaceRootRuntimeSession* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.session_ = (CheckHasBit(cached_has_bits, 0x00000004U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.session_)
+                : nullptr;
+  _impl_.metadata_ = (CheckHasBit(cached_has_bits, 0x00000008U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.metadata_)
+                : nullptr;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.root.SpaceRootRuntimeSession)
+}
+PROTOBUF_NDEBUG_INLINE SpaceRootRuntimeSession::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        spaces_{visibility, arena},
+        error_(arena) {}
+
+inline void SpaceRootRuntimeSession::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, session_),
+           0,
+           offsetof(Impl_, metadata_) -
+               offsetof(Impl_, session_) +
+               sizeof(Impl_::metadata_));
+}
+SpaceRootRuntimeSession::~SpaceRootRuntimeSession() {
+  // @@protoc_insertion_point(destructor:s4wave.root.SpaceRootRuntimeSession)
+  SharedDtor(*this);
+}
+inline void SpaceRootRuntimeSession::SharedDtor(MessageLite& self) {
+  SpaceRootRuntimeSession& this_ = static_cast<SpaceRootRuntimeSession&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.error_.Destroy();
+  delete this_._impl_.session_;
+  delete this_._impl_.metadata_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL SpaceRootRuntimeSession::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) SpaceRootRuntimeSession(arena);
+}
+constexpr auto SpaceRootRuntimeSession::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(SpaceRootRuntimeSession, _impl_.spaces_) +
+          decltype(SpaceRootRuntimeSession::_impl_.spaces_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
+        sizeof(SpaceRootRuntimeSession), alignof(SpaceRootRuntimeSession), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&SpaceRootRuntimeSession::PlacementNew_,
+                                 sizeof(SpaceRootRuntimeSession),
+                                 alignof(SpaceRootRuntimeSession));
+  }
+}
+constexpr auto SpaceRootRuntimeSession::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_SpaceRootRuntimeSession_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &SpaceRootRuntimeSession::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<SpaceRootRuntimeSession>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &SpaceRootRuntimeSession::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<SpaceRootRuntimeSession>(), &SpaceRootRuntimeSession::ByteSizeLong,
+              &SpaceRootRuntimeSession::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(SpaceRootRuntimeSession, _impl_._cached_size_),
+          false,
+      },
+      &SpaceRootRuntimeSession::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2froot_2froot_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull SpaceRootRuntimeSession_class_data_ =
+        SpaceRootRuntimeSession::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+SpaceRootRuntimeSession::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&SpaceRootRuntimeSession_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(SpaceRootRuntimeSession_class_data_.tc_table);
+  return SpaceRootRuntimeSession_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 4, 3, 49, 2>
+SpaceRootRuntimeSession::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(SpaceRootRuntimeSession, _impl_._has_bits_),
+    0, // no _extensions_
+    4, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967280,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    4,  // num_field_entries
+    3,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    SpaceRootRuntimeSession_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::root::SpaceRootRuntimeSession>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string error = 4;
+    {::_pbi::TcParser::FastUS1,
+     {34, 1, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceRootRuntimeSession, _impl_.error_)}},
+    // .session.SessionListEntry session = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 2, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceRootRuntimeSession, _impl_.session_)}},
+    // .session.SessionMetadata metadata = 2;
+    {::_pbi::TcParser::FastMtS1,
+     {18, 3, 1,
+      PROTOBUF_FIELD_OFFSET(SpaceRootRuntimeSession, _impl_.metadata_)}},
+    // repeated .space.SpaceSoListEntry spaces = 3;
+    {::_pbi::TcParser::FastMtR1,
+     {26, 0, 2,
+      PROTOBUF_FIELD_OFFSET(SpaceRootRuntimeSession, _impl_.spaces_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .session.SessionListEntry session = 1;
+    {PROTOBUF_FIELD_OFFSET(SpaceRootRuntimeSession, _impl_.session_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .session.SessionMetadata metadata = 2;
+    {PROTOBUF_FIELD_OFFSET(SpaceRootRuntimeSession, _impl_.metadata_), _Internal::kHasBitsOffset + 3, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // repeated .space.SpaceSoListEntry spaces = 3;
+    {PROTOBUF_FIELD_OFFSET(SpaceRootRuntimeSession, _impl_.spaces_), _Internal::kHasBitsOffset + 0, 2, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    // string error = 4;
+    {PROTOBUF_FIELD_OFFSET(SpaceRootRuntimeSession, _impl_.error_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::session::SessionListEntry>()},
+      {::_pbi::TcParser::GetTable<::session::SessionMetadata>()},
+      {::_pbi::TcParser::GetTable<::space::SpaceSoListEntry>()},
+  }},
+  {{
+    "\43\0\0\0\5\0\0\0"
+    "s4wave.root.SpaceRootRuntimeSession"
+    "error"
+  }},
+};
+PROTOBUF_NOINLINE void SpaceRootRuntimeSession::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.root.SpaceRootRuntimeSession)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.spaces_.Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.error_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(_impl_.session_ != nullptr);
+      _impl_.session_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(_impl_.metadata_ != nullptr);
+      _impl_.metadata_->Clear();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL SpaceRootRuntimeSession::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const SpaceRootRuntimeSession& this_ = static_cast<const SpaceRootRuntimeSession&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL SpaceRootRuntimeSession::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const SpaceRootRuntimeSession& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.root.SpaceRootRuntimeSession)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .session.SessionListEntry session = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        1, *this_._impl_.session_, this_._impl_.session_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .session.SessionMetadata metadata = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        2, *this_._impl_.metadata_, this_._impl_.metadata_->GetCachedSize(), target,
+        stream);
+  }
+
+  // repeated .space.SpaceSoListEntry spaces = 3;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_spaces_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_spaces().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              3, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  // string error = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_error().empty()) {
+      const ::std::string& _s = this_._internal_error();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.root.SpaceRootRuntimeSession.error");
+      target = stream->WriteStringMaybeAliased(4, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.root.SpaceRootRuntimeSession)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t SpaceRootRuntimeSession::ByteSizeLong(const MessageLite& base) {
+  const SpaceRootRuntimeSession& this_ = static_cast<const SpaceRootRuntimeSession&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t SpaceRootRuntimeSession::ByteSizeLong() const {
+  const SpaceRootRuntimeSession& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.root.SpaceRootRuntimeSession)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    // repeated .space.SpaceSoListEntry spaces = 3;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size += 1UL * this_._internal_spaces_size();
+      for (const auto& msg : this_._internal_spaces()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+    // string error = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_error().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_error());
+      }
+    }
+    // .session.SessionListEntry session = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.session_);
+    }
+    // .session.SessionMetadata metadata = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.metadata_);
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void SpaceRootRuntimeSession::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<SpaceRootRuntimeSession*>(&to_msg);
+  auto& from = static_cast<const SpaceRootRuntimeSession&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.root.SpaceRootRuntimeSession)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_spaces()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_spaces());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_error().empty()) {
+        _this->_internal_set_error(from._internal_error());
+      } else {
+        if (_this->_impl_.error_.IsDefault()) {
+          _this->_internal_set_error("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(from._impl_.session_ != nullptr);
+      if (_this->_impl_.session_ == nullptr) {
+        _this->_impl_.session_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.session_);
+      } else {
+        _this->_impl_.session_->MergeFrom(*from._impl_.session_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(from._impl_.metadata_ != nullptr);
+      if (_this->_impl_.metadata_ == nullptr) {
+        _this->_impl_.metadata_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.metadata_);
+      } else {
+        _this->_impl_.metadata_->MergeFrom(*from._impl_.metadata_);
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void SpaceRootRuntimeSession::CopyFrom(const SpaceRootRuntimeSession& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.root.SpaceRootRuntimeSession)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void SpaceRootRuntimeSession::InternalSwap(SpaceRootRuntimeSession* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.spaces_.InternalSwap(&other->_impl_.spaces_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.error_, &other->_impl_.error_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(SpaceRootRuntimeSession, _impl_.metadata_)
+      + sizeof(SpaceRootRuntimeSession::_impl_.metadata_)
+      - PROTOBUF_FIELD_OFFSET(SpaceRootRuntimeSession, _impl_.session_)>(
+          reinterpret_cast<char*>(&_impl_.session_),
+          reinterpret_cast<char*>(&other->_impl_.session_));
+}
+
+::google::protobuf::Metadata SpaceRootRuntimeSession::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================

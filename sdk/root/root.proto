@@ -4,6 +4,7 @@ package s4wave.root;
 import "github.com/s4wave/spacewave/core/changelog/changelog.proto";
 import "github.com/s4wave/spacewave/core/provider/provider.proto";
 import "github.com/s4wave/spacewave/core/session/session.proto";
+import "github.com/s4wave/spacewave/core/space/space.proto";
 import "github.com/s4wave/spacewave/net/hash/hash.proto";
 
 service RootResourceService {
@@ -420,6 +421,20 @@ message WatchSpaceRootRuntimeResponse {
   repeated .session.SessionListEntry sessions = 5;
   // Error is a user-actionable status message when status is ERROR.
   string error = 6;
+  // RuntimeSessions are enriched sessions from the selected root daemon.
+  repeated SpaceRootRuntimeSession runtime_sessions = 7;
+}
+
+// SpaceRootRuntimeSession describes one selected-root session and its spaces.
+message SpaceRootRuntimeSession {
+  // Session is the raw session list entry.
+  .session.SessionListEntry session = 1;
+  // Metadata is stored display metadata for the session.
+  .session.SessionMetadata metadata = 2;
+  // Spaces are the first resources-list snapshot for the mounted session.
+  repeated .space.SpaceSoListEntry spaces = 3;
+  // Error is set when this session could not be enriched.
+  string error = 4;
 }
 
 // GetChangelogRequest is the request type for GetChangelog.
