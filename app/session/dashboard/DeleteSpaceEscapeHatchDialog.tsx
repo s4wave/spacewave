@@ -54,6 +54,9 @@ export function DeleteSpaceEscapeHatchDialog({
 }: DeleteSpaceEscapeHatchDialogProps) {
   const [step, setStep] = useState<Step>('select')
   const [selectedId, setSelectedId] = useState('')
+  const [selectedSnapshot, setSelectedSnapshot] = useState<SpaceChoice | null>(
+    null,
+  )
   const [acknowledged, setAcknowledged] = useState(false)
   const [typedConfirm, setTypedConfirm] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -86,10 +89,11 @@ export function DeleteSpaceEscapeHatchDialog({
       .filter((choice): choice is SpaceChoice => choice !== null)
   }, [resourcesList])
 
-  const selected = useMemo(
+  const liveSelected = useMemo(
     () => choices.find((c) => c.id === selectedId) ?? null,
     [choices, selectedId],
   )
+  const selected = selectedSnapshot ?? liveSelected
 
   // Only watch health once the user has picked a space. This avoids fanning
   // out one Watch stream per space in the list.
@@ -112,6 +116,7 @@ export function DeleteSpaceEscapeHatchDialog({
       if (!next) {
         setStep('select')
         setSelectedId('')
+        setSelectedSnapshot(null)
         setAcknowledged(false)
         setTypedConfirm('')
         setError(undefined)
@@ -122,10 +127,14 @@ export function DeleteSpaceEscapeHatchDialog({
     [onOpenChange],
   )
 
-  const handleSelect = useCallback((id: string) => {
-    setSelectedId(id)
-    setError(undefined)
-  }, [])
+  const handleSelect = useCallback(
+    (id: string) => {
+      setSelectedId(id)
+      setSelectedSnapshot(choices.find((c) => c.id === id) ?? null)
+      setError(undefined)
+    },
+    [choices],
+  )
 
   const handleContinueFromSelect = useCallback(() => {
     if (!selected) return
