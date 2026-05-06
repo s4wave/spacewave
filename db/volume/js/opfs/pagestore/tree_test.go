@@ -111,6 +111,33 @@ func TestTreeOverflowManifestBloomAfterLeafSplit(t *testing.T) {
 	}
 }
 
+func TestTreeLargeMiddleValueUsesOverflowForSplitSafety(t *testing.T) {
+	pager := NewMemPager(DefaultPageSize)
+	tree := NewTree(pager)
+
+	left := bytes.Repeat([]byte("l"), 1700)
+	right := bytes.Repeat([]byte("r"), 1700)
+	middle := bytes.Repeat([]byte("m"), 2500)
+
+	if err := tree.Put([]byte("pack_bloom/aa/left"), left); err != nil {
+		t.Fatalf("Put left: %v", err)
+	}
+	if err := tree.Put([]byte("pack_bloom/zz/right"), right); err != nil {
+		t.Fatalf("Put right: %v", err)
+	}
+	if err := tree.Put([]byte("pack_bloom/mm/middle"), middle); err != nil {
+		t.Fatalf("Put middle: %v", err)
+	}
+
+	got, found, err := tree.Get([]byte("pack_bloom/mm/middle"))
+	if err != nil {
+		t.Fatalf("Get middle: %v", err)
+	}
+	if !found || !bytes.Equal(got, middle) {
+		t.Fatalf("Get middle: found=%v got %d want %d", found, len(got), len(middle))
+	}
+}
+
 func TestTreeLeafSplitBalancesEncodedSize(t *testing.T) {
 	pager := NewMemPager(1024)
 	tree := NewTree(pager)
@@ -123,15 +150,15 @@ func TestTreeLeafSplitBalancesEncodedSize(t *testing.T) {
 	}
 	large := bytes.Repeat([]byte("l"), 650)
 	if err := tree.Put([]byte("z"), large); err != nil {
-		t.Fatalf("Put large inline value: %v", err)
+		t.Fatalf("Put large value: %v", err)
 	}
 
 	got, found, err := tree.Get([]byte("z"))
 	if err != nil {
-		t.Fatalf("Get large inline value: %v", err)
+		t.Fatalf("Get large value: %v", err)
 	}
 	if !found || !bytes.Equal(got, large) {
-		t.Fatalf("Get large inline value: found=%v got %d want %d", found, len(got), len(large))
+		t.Fatalf("Get large value: found=%v got %d want %d", found, len(got), len(large))
 	}
 }
 

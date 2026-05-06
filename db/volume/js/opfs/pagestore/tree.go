@@ -520,8 +520,10 @@ func (t *Tree) makeLeafEntry(key, value []byte) (LeafEntry, error) {
 	if len(key) > int(^uint16(0)) {
 		return LeafEntry{}, errors.New("leaf key length overflows uint16")
 	}
-	needed := PageHeaderSize + LeafEntryOverhead + len(key) + len(value)
-	if needed <= t.pager.PageSize() && len(value) < int(OverflowSentinel) {
+	inlineSize := LeafEntryOverhead + len(key) + len(value)
+	needed := PageHeaderSize + inlineSize
+	if needed <= t.pager.PageSize() && len(value) < int(OverflowSentinel) &&
+		(inlineSize <= maxInlineLeafEntrySize(t.pager.PageSize()) || len(value) == 0) {
 		return LeafEntry{Key: key, Value: value}, nil
 	}
 	refNeeded := PageHeaderSize + LeafEntryOverhead + len(key) + 8
@@ -540,6 +542,10 @@ func (t *Tree) makeLeafEntry(key, value []byte) (LeafEntry, error) {
 		OverflowPage: firstPage,
 		OverflowLen:  uint32(len(value)),
 	}, nil
+}
+
+func maxInlineLeafEntrySize(pageSize int) int {
+	return (pageSize - PageHeaderSize) / 2
 }
 
 func (t *Tree) writeOverflowValue(value []byte) (PageID, error) {
