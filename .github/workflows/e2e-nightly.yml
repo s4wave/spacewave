@@ -1,0 +1,65 @@
+name: Nightly E2E
+
+on:
+  schedule:
+    - cron: '17 9 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  e2e-go-nightly:
+    name: Nightly E2E (${{ matrix.suite.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # core/e2e/onboarding requires SPACEWAVE_CLOUD_DIR, so it stays out of
+        # this public nightly matrix until CI has a cloud checkout available.
+        suite:
+          - name: electron
+            script: test:go:e2e:electron
+            needs_playwright: true
+            playwright_browsers: chromium
+            use_xvfb: true
+          - name: release-wasm
+            script: test:go:e2e:release-wasm
+            needs_playwright: true
+            playwright_browsers: chromium
+            use_xvfb: false
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup Go
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install Bun dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      - name: Install Playwright browsers
+        if: ${{ matrix.suite.needs_playwright }}
+        run: bunx playwright install --with-deps ${{ matrix.suite.playwright_browsers }}
+
+      - name: Cache aptre tools
+        uses: actions/cache@v5
+        with:
+          path: ./.tools
+          key: ${{ runner.os }}-aptre-tools-${{ hashFiles('**/go.sum') }}
+
+      - name: Setup aptre tools and vendor
+        run: bun run prepare
+
+      - name: Run Nightly E2E suite
+        if: ${{ !matrix.suite.use_xvfb }}
+        run: bun run ${{ matrix.suite.script }}
+
+      - name: Run Nightly E2E suite with xvfb
+        if: ${{ matrix.suite.use_xvfb }}
+        run: xvfb-run --auto-servernum --server-args='-screen 0 1280x720x24' bun run ${{ matrix.suite.script }}
