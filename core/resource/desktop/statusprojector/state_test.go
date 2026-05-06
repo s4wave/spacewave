@@ -116,6 +116,36 @@ func TestPublishDesktopRuntimeStateSuppressesDuplicate(t *testing.T) {
 	}
 }
 
+func TestPublishDesktopRuntimeTeardownStatePublishesDisconnected(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	publisher := &fakeDesktopRuntimePublisher{}
+	prev := BuildDesktopRuntimeStateFromListener(resource_listener.ListenerStatus{
+		SocketPath: "/run/spacewave.sock",
+		Listening:  true,
+	})
+
+	next, err := publishDesktopRuntimeTeardownState(ctx, publisher, prev)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(publisher.states) != 1 {
+		t.Fatalf("published states = %d, want 1", len(publisher.states))
+	}
+	if next.GetStatusText() != "Disconnected" {
+		t.Fatalf("status text = %q, want Disconnected", next.GetStatusText())
+	}
+	if next.GetLifecycle() != desktop_runtime.DesktopRuntimeLifecycle_DESKTOP_RUNTIME_LIFECYCLE_DISCONNECTED {
+		t.Fatalf("lifecycle = %v, want disconnected", next.GetLifecycle())
+	}
+	if next.GetListener().GetSocketPath() != "" {
+		t.Fatalf("teardown socket path = %q, want cleared", next.GetListener().GetSocketPath())
+	}
+	if len(next.GetSessions()) != 0 || len(next.GetSpaces()) != 0 || len(next.GetActivity()) != 0 {
+		t.Fatalf("teardown must clear runtime-owned rows")
+	}
+}
+
 func TestBuildSessionProjectionSortsAndFlagsAuth(t *testing.T) {
 	projection := buildSessionProjection([]*sessionProjectionRow{
 		{

@@ -2,6 +2,7 @@ package statusprojector
 
 import (
 	"context"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/pkg/errors"
@@ -14,6 +15,8 @@ import (
 type desktopRuntimePublisher interface {
 	SetDesktopState(ctx context.Context, in *desktop_runtime.SetDesktopStateRequest) (*desktop_runtime.SetDesktopStateResponse, error)
 }
+
+const desktopRuntimeTeardownTimeout = 2 * time.Second
 
 // Execute publishes listener status changes into the desktop runtime resource tree.
 func (c *Controller) Execute(ctx context.Context) error {
@@ -71,8 +74,14 @@ func projectRuntimeStatus(
 	sessionCtrl session.SessionController,
 	launcher *launcherInfoWatcher,
 	service desktopRuntimePublisher,
-) error {
+) (rerr error) {
 	var prev *desktop_runtime.DesktopRuntimeState
+	defer func() {
+		_, err := publishDesktopRuntimeTeardownState(ctx, service, prev)
+		if err != nil && rerr == nil && ctx.Err() == nil {
+			rerr = errors.Wrap(err, "publish desktop runtime teardown status")
+		}
+	}()
 	for {
 		snapshot, listenerWaitCh := broker.Snapshot()
 		projection, sessionWaitChs, releases, err := snapshotSessionProjection(ctx, b, sessionCtrl)
@@ -127,4 +136,16 @@ func publishDesktopRuntimeState(
 		return prev, false, err
 	}
 	return current.CloneVT(), true, nil
+}
+
+func publishDesktopRuntimeTeardownState(
+	ctx context.Context,
+	service desktopRuntimePublisher,
+	prev *desktop_runtime.DesktopRuntimeState,
+) (*desktop_runtime.DesktopRuntimeState, error) {
+	teardownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), desktopRuntimeTeardownTimeout)
+	defer cancel()
+	current := BuildDesktopRuntimeStateFromListener(resource_listener.ListenerStatus{})
+	next, _, err := publishDesktopRuntimeState(teardownCtx, service, prev, current)
+	return next, err
 }
