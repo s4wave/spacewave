@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, type ComponentType } from 'react'
 
 import { WebView } from '@aptre/bldr-react'
 
@@ -33,6 +33,14 @@ export function shouldShowStartupLoading(
   return isPathnameAppRoute(pathname)
 }
 
+function StaticStartupPage({
+  PageComponent,
+}: {
+  PageComponent: ComponentType
+}) {
+  return <PageComponent />
+}
+
 // Startup renders the initial UI while the Go runtime loads.
 // On static pages (pathname-based, no hash), renders the page
 // component wrapped in StaticProvider to suppress RPC hooks.
@@ -52,7 +60,7 @@ export default function Startup() {
             onNavigate={handleStaticStartupNavigate}
           >
             <StaticProvider>
-              <PageComponent />
+              <StaticStartupPage PageComponent={PageComponent} />
             </StaticProvider>
           </RouterProvider>
         )

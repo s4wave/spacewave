@@ -28,9 +28,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const usageText = "usage: entrypoint-handoff --version X.Y.Z --platforms p1,p2 [--include-browser|--browser-only] --out-dir /path/to/out"
-const manifestPackFilename = "manifest.pack.kvf"
-const manifestPackMetadataFilename = "manifest-pack.bin"
+const (
+	usageText                    = "usage: entrypoint-handoff --version X.Y.Z --platforms p1,p2 [--include-browser|--browser-only] --out-dir /path/to/out"
+	manifestPackFilename         = "manifest.pack.kvf"
+	manifestPackMetadataFilename = "manifest-pack.bin"
+)
 
 // Args contains entrypoint handoff command flags.
 type Args struct {
@@ -461,9 +463,9 @@ func produceManifestPack(
 		return errors.Wrap(err, "create manifest pack")
 	}
 	meta, produceErr := bldr_manifest_pack.ProduceManifestPack(ctx, &bldr_manifest_pack.ProducerConfig{
-		Bus:            busHandle.GetBus(),
-		WorldState:     busHandle.GetWorldState(),
-		Sender:         busHandle.GetVolume().GetPeerID(),
+		Bus:        busHandle.GetBus(),
+		WorldState: busHandle.GetWorldState(),
+		Sender:     busHandle.GetVolume().GetPeerID(),
 		Tuple: &bldr_manifest_pack.ManifestTuple{
 			ManifestId:     manifestID,
 			PlatformId:     platformID,

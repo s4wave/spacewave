@@ -42,7 +42,9 @@ function tcpSocketToPacketStream(socket: net.Socket): PacketStream {
     sink: async (source: Source<Uint8Array>): Promise<void> => {
       for await (const chunk of pipe(source, prependLengthPrefixTransform())) {
         const data =
-          chunk instanceof Uint8Array ? chunk : (chunk as any).subarray()
+          chunk instanceof Uint8Array ? chunk : (
+            (chunk as { subarray(): Uint8Array }).subarray()
+          )
         await new Promise<void>((resolve, reject) => {
           socket.write(data, (err) => {
             if (err) reject(err)
@@ -95,28 +97,36 @@ async function main(): Promise<void> {
   })
 
   const childMux = createMux()
-  childMux.register(new StaticHandler('test.Child', {
-    Ping: async (dataSource, dataSink) => {
-      await readOne(dataSource)
-      await dataSink(unaryResponse(ResourceRefReleaseResponse.toBinary({})))
-    },
-  } satisfies Record<string, InvokeFn>))
+  childMux.register(
+    new StaticHandler('test.Child', {
+      Ping: async (dataSource, dataSink) => {
+        await readOne(dataSource)
+        await dataSink(unaryResponse(ResourceRefReleaseResponse.toBinary({})))
+      },
+    } satisfies Record<string, InvokeFn>),
+  )
 
   const rootMux = createMux()
-  rootMux.register(new StaticHandler('test.Root', {
-    CreateChild: async (dataSource, dataSink) => {
-      await readOne(dataSource)
-      const child = await client.attachResourceTree(
-        'ts-child',
-        childMux.lookupMethod,
-        undefined,
-        releaseChild,
-      )
-      await dataSink(unaryResponse(ResourceAttachAddAck.toBinary({
-        resourceId: child.resourceId,
-      })))
-    },
-  } satisfies Record<string, InvokeFn>))
+  rootMux.register(
+    new StaticHandler('test.Root', {
+      CreateChild: async (dataSource, dataSink) => {
+        await readOne(dataSource)
+        const child = await client.attachResourceTree(
+          'ts-child',
+          childMux.lookupMethod,
+          undefined,
+          releaseChild,
+        )
+        await dataSink(
+          unaryResponse(
+            ResourceAttachAddAck.toBinary({
+              resourceId: child.resourceId,
+            }),
+          ),
+        )
+      },
+    } satisfies Record<string, InvokeFn>),
+  )
 
   const root = await client.attachResourceTree('ts-root', rootMux.lookupMethod)
   const rootRef = client.createResourceReference(root.resourceId)
@@ -127,7 +137,8 @@ async function main(): Promise<void> {
     controller.signal,
   )
   const child = ResourceAttachAddAck.fromBinary(childBytes)
-  if (!child.resourceId) throw new Error('CreateChild returned empty resource id')
+  if (!child.resourceId)
+    throw new Error('CreateChild returned empty resource id')
 
   const childRef = client.createResourceReference(child.resourceId)
   const pingBytes = await childRef.client.request(
@@ -145,11 +156,13 @@ async function main(): Promise<void> {
   controller.abort()
   client.dispose()
 
-  console.log(JSON.stringify({
-    childResourceId: child.resourceId,
-    ok: true,
-    rootResourceId: root.resourceId,
-  }))
+  console.log(
+    JSON.stringify({
+      childResourceId: child.resourceId,
+      ok: true,
+      rootResourceId: root.resourceId,
+    }),
+  )
 }
 
 main().catch((err) => {

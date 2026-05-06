@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react'
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  cleanup,
+} from '@testing-library/react'
 import { StateNamespaceProvider, atom } from '@s4wave/web/state/index.js'
 
 const mockUseWorldObjectMessageState = vi.hoisted(() => vi.fn())
@@ -50,11 +56,7 @@ vi.mock('./NoteContentView.js', () => ({
 }))
 
 vi.mock('./NoteList.js', () => ({
-  default: ({
-    onCreateNote,
-  }: {
-    onCreateNote?: () => void
-  }) => (
+  default: ({ onCreateNote }: { onCreateNote?: () => void }) => (
     <button title="New note" onClick={onCreateNote}>
       New note
     </button>
@@ -81,11 +83,11 @@ const rootHandle = buildResource({ id: 'root-handle' })
 function renderViewer() {
   const rootAtom = atom<Record<string, unknown>>({})
   return render(
-    <StateNamespaceProvider rootAtom={rootAtom} namespace={['blog-viewer-test']}>
-      <BlogViewer
-        objectInfo={{} as never}
-        worldState={mockWorldState as never}
-      />
+    <StateNamespaceProvider
+      rootAtom={rootAtom}
+      namespace={['blog-viewer-test']}
+    >
+      <BlogViewer objectInfo={{}} worldState={mockWorldState as never} />
     </StateNamespaceProvider>,
   )
 }
@@ -101,7 +103,10 @@ describe('BlogViewer', () => {
     const entries = buildResource([])
 
     mockUseWorldObjectMessageState.mockReturnValue({
-      state: buildResource({ name: 'Blog', authorRegistryPath: 'authors.yaml' }),
+      state: buildResource({
+        name: 'Blog',
+        authorRegistryPath: 'authors.yaml',
+      }),
       sources: [{ name: 'Posts', ref: 'blog-fs/-/nested/posts' }],
     })
     mockParseObjectUri.mockReturnValue({
@@ -155,7 +160,10 @@ describe('BlogViewer', () => {
     fireEvent.click(screen.getByTitle('New note'))
 
     await waitFor(() => {
-      expect(handle.mknod).toHaveBeenCalledWith(['new-post.md'], expect.anything())
+      expect(handle.mknod).toHaveBeenCalledWith(
+        ['new-post.md'],
+        expect.anything(),
+      )
       expect(child.writeAt).toHaveBeenCalled()
     })
 

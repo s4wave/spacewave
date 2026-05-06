@@ -79,7 +79,8 @@ describe('SpaceIndex', () => {
       expect(applyWorldOp).toHaveBeenCalledTimes(1)
     })
 
-    const opData = applyWorldOp.mock.calls[0]?.[1]
+    const opData = applyWorldOp.mock.calls[0]?.[1] as Uint8Array | undefined
+    expect(opData).toBeDefined()
     const op = SetSpaceSettingsOp.fromBinary(opData)
     expect(op.settings?.indexPath).toBe('files-1')
     expect(op.settings?.pluginIds).toEqual(['spacewave-app'])

@@ -53,7 +53,7 @@ describe('ForgeClusterViewer', () => {
     return render(
       <SpaceContainerContext.Provider
         spaceId="space-1"
-        spaceState={{ ready: true } as never}
+        spaceState={{ ready: true }}
         spaceWorldResource={{
           value: mockSpaceWorld as never,
           loading: false,
@@ -114,7 +114,7 @@ describe('ForgeClusterViewer', () => {
     expect(decoded.targetTypeId).toBe('forge/job')
     expect(decoded.initialStep).toBe(1)
 
-    const config = ForgeJobCreateOp.fromBinary(decoded.initialConfigData!)
+    const config = ForgeJobCreateOp.fromBinary(decoded.initialConfigData)
     expect(config.clusterKey).toBe('forge/cluster/main')
     expect(mockNavigateToObjects).toHaveBeenCalledWith([decoded.objectKey])
   })

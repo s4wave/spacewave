@@ -67,7 +67,9 @@ export function RecoveryPage() {
   const rootResource = useRootResource()
   const root = useResourceValue(rootResource)
   const cloudProviderConfig = useCloudProviderConfig()
-  const token = useMemo(parseRecoveryToken, [])
+  const token = useMemo(function parseToken() {
+    return parseRecoveryToken()
+  }, [])
   const turnstileRef = useRef<TurnstileInstance>(null)
 
   const [step, setStep] = useState<RecoveryStep>('verifying')

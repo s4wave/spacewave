@@ -36,7 +36,9 @@ export function useUploadManager(
 ): UploadManager {
   const [items, setItems] = useState<UploadItem[]>([])
   const handleRef = useRef(handle)
-  handleRef.current = handle
+  useEffect(() => {
+    handleRef.current = handle
+  }, [handle])
 
   const nextIdRef = useRef(0)
   const nextGroupIdRef = useRef(0)
@@ -83,7 +85,7 @@ export function useUploadManager(
       items.filter((i) => i.status === 'uploading').map((i) => i.groupId),
     ).size
     if (queued && active < concurrency) {
-      processQueue()
+      queueMicrotask(processQueue)
     }
   }, [items, concurrency, processQueue])
 

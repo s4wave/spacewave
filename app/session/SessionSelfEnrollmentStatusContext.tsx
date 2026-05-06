@@ -125,7 +125,7 @@ export function buildSessionSelfEnrollmentStatusView(
     }
   }
   if (loading && !snapshot) {
-    return {...loadingView, resource}
+    return { ...loadingView, resource }
   }
 
   const failures = snapshot?.failures ?? []
@@ -213,7 +213,8 @@ function selfEnrollmentDetailLabel(
     return `${formatSpaceCount(count)} can connect in the background.`
   }
   if (state === 'skipped') return 'This generation will stay skipped for now.'
-  if (state === 'failed') return `${formatSpaceCount(failureCount)} failed to connect.`
+  if (state === 'failed')
+    return `${formatSpaceCount(failureCount)} failed to connect.`
   if (state === 'loading') return 'Waiting for connected-space status.'
   return ''
 }

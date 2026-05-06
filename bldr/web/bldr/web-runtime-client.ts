@@ -90,7 +90,7 @@ export class WebRuntimeClient {
     }
 
     err = new Error(
-      `WebRuntimeClient: ${this.clientId}: unable to open stream with host${err ? ': ' + err : ''}`,
+      `WebRuntimeClient: ${this.clientId}: unable to open stream with host${err ? ': ' + String(err) : ''}`,
     )
     console.warn(err.message)
     throw err
@@ -180,11 +180,13 @@ export class WebRuntimeClient {
       return this.reconnectingClientChannel
     }
 
-    const reconnectPromise = this.openClientChannelWithRetryImpl().finally(() => {
-      if (this.reconnectingClientChannel === reconnectPromise) {
-        this.reconnectingClientChannel = undefined
-      }
-    })
+    const reconnectPromise = this.openClientChannelWithRetryImpl().finally(
+      () => {
+        if (this.reconnectingClientChannel === reconnectPromise) {
+          this.reconnectingClientChannel = undefined
+        }
+      },
+    )
     this.reconnectingClientChannel = reconnectPromise
     return reconnectPromise
   }
@@ -210,7 +212,9 @@ export class WebRuntimeClient {
     }
     throw (
       errors[errors.length - 1] ??
-      new Error(`WebRuntimeClient: ${this.clientId}: unable to connect to runtime`)
+      new Error(
+        `WebRuntimeClient: ${this.clientId}: unable to connect to runtime`,
+      )
     )
   }
 

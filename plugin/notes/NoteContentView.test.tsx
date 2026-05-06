@@ -30,7 +30,13 @@ vi.mock('@s4wave/sdk/space/object-uri.js', () => ({
 }))
 
 vi.mock('./LexicalEditor.js', () => ({
-  default: ({ markdown, onSave }: { markdown: string; onSave: (md: string) => void }) => (
+  default: ({
+    markdown,
+    onSave,
+  }: {
+    markdown: string
+    onSave: (md: string) => void
+  }) => (
     <div data-testid="lexical-editor" data-markdown={markdown}>
       <button type="button" onClick={() => onSave('saved-content')}>
         mock-save
@@ -42,7 +48,9 @@ vi.mock('./LexicalEditor.js', () => ({
 vi.mock('./FrontmatterDisplay.js', () => ({
   default: ({ frontmatter }: { frontmatter: Record<string, unknown> }) => (
     <div data-testid="frontmatter-display">
-      {frontmatter.tags ? `tags: ${(frontmatter.tags as string[]).join(',')}` : null}
+      {frontmatter.tags ?
+        `tags: ${(frontmatter.tags as string[]).join(',')}`
+      : null}
     </div>
   ),
 }))
@@ -82,7 +90,7 @@ describe('NoteContentView', () => {
       loading: true,
       error: null,
       retry: vi.fn(),
-    } as never)
+    })
 
     render(
       <NoteContentView
@@ -102,7 +110,7 @@ describe('NoteContentView', () => {
       loading: false,
       error: new Error('Permission denied'),
       retry: vi.fn(),
-    } as never)
+    })
 
     render(
       <NoteContentView
@@ -123,7 +131,7 @@ describe('NoteContentView', () => {
       loading: false,
       error: null,
       retry: vi.fn(),
-    } as never)
+    })
 
     render(
       <NoteContentView
@@ -151,7 +159,7 @@ describe('NoteContentView', () => {
       loading: false,
       error: null,
       retry: vi.fn(),
-    } as never)
+    })
 
     render(
       <NoteContentView
@@ -173,7 +181,7 @@ describe('NoteContentView', () => {
       loading: false,
       error: null,
       retry: vi.fn(),
-    } as never)
+    })
 
     const { container } = render(
       <NoteContentView
@@ -197,7 +205,7 @@ describe('NoteContentView', () => {
       loading: false,
       error: null,
       retry: vi.fn(),
-    } as never)
+    })
 
     const onToggleEdit = vi.fn()
     render(
@@ -219,7 +227,7 @@ describe('NoteContentView', () => {
       loading: false,
       error: null,
       retry: vi.fn(),
-    } as never)
+    })
 
     const onToggleEdit = vi.fn()
     render(
@@ -241,7 +249,7 @@ describe('NoteContentView', () => {
       loading: false,
       error: null,
       retry: vi.fn(),
-    } as never)
+    })
 
     const { container } = render(
       <NoteContentView

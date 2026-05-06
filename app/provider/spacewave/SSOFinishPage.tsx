@@ -58,24 +58,28 @@ export function SSOFinishPage() {
   useEffect(() => {
     if (state.step !== 'exchanging') return
     if (exchangeResult.error) {
-      setState({
-        step: 'error',
-        message: getErrorMessage(
-          exchangeResult.error,
-          'SSO nonce expired or invalid',
-        ),
+      queueMicrotask(() => {
+        setState({
+          step: 'error',
+          message: getErrorMessage(
+            exchangeResult.error,
+            'SSO nonce expired or invalid',
+          ),
+        })
       })
       return
     }
     const result = exchangeResult.data
     if (!result) return
     if (result.linked) {
-      setState({ step: 'linked', result })
+      queueMicrotask(() => setState({ step: 'linked', result }))
       return
     }
     const provider = result.ssoProvider
     if (!provider) {
-      setState({ step: 'error', message: 'SSO provider is missing' })
+      queueMicrotask(() =>
+        setState({ step: 'error', message: 'SSO provider is missing' }),
+      )
       return
     }
     setPendingSSOState({

@@ -8,7 +8,7 @@ describe('registerUpdatedServiceWorker', () => {
   })
 
   it('registers the manifest service worker URL when it differs', async () => {
-    const register = vi.fn().mockResolvedValue({} as ServiceWorkerRegistration)
+    const register = vi.fn().mockResolvedValue({})
     const registration = {
       scope: 'https://example.test/',
     } as ServiceWorkerRegistration
@@ -29,7 +29,7 @@ describe('registerUpdatedServiceWorker', () => {
   })
 
   it('does not re-register when the URLs match', async () => {
-    const register = vi.fn().mockResolvedValue({} as ServiceWorkerRegistration)
+    const register = vi.fn().mockResolvedValue({})
 
     const result = await registerUpdatedServiceWorker(
       '/sw-a.mjs',

@@ -66,18 +66,18 @@ describe('Onboarding Status route predicates', () => {
       isOnboardingReady({
         accountStatus: ProviderAccountStatus.ProviderAccountStatus_PENDING,
         billingSummaryLoaded: true,
-      } as WatchOnboardingStatusResponse),
+      }),
     ).toBe(false)
     expect(
       isOnboardingReady({
         accountStatus: ProviderAccountStatus.ProviderAccountStatus_READY,
-      } as WatchOnboardingStatusResponse),
+      }),
     ).toBe(false)
     expect(
       isOnboardingReady({
         accountStatus: ProviderAccountStatus.ProviderAccountStatus_READY,
         billingSummaryLoaded: true,
-      } as WatchOnboardingStatusResponse),
+      }),
     ).toBe(true)
   })
 
@@ -101,7 +101,7 @@ describe('Onboarding Status route predicates', () => {
         isOnboardingReady({
           accountStatus: status,
           billingSummaryLoaded: true,
-        } as WatchOnboardingStatusResponse),
+        }),
       ).toBe(true)
     },
   )

@@ -56,10 +56,7 @@ const GetStartedItem = ({ item }: { item: (typeof COMMAND_ITEMS)[number] }) => {
 }
 
 function AddStateRootItem() {
-  const {
-    add: addRootAlias,
-    canAdd: canAddRootAlias,
-  } = useAddSpaceRootAlias()
+  const { add: addRootAlias, canAdd: canAddRootAlias } = useAddSpaceRootAlias()
   const handleClick = useCallback(() => {
     void addRootAlias()
   }, [addRootAlias])

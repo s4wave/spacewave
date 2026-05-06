@@ -12,7 +12,7 @@ import './AnimatedLogo.css'
 // dynamicRangeLimit) and returns it as React.CSSProperties. Centralizes the
 // single type widening needed for non-standard CSS properties.
 function extStyle(s: Record<string, unknown>): React.CSSProperties {
-  return s as never
+  return s
 }
 
 const AnimatedLogo = ({

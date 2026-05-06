@@ -105,7 +105,7 @@ export function SubscriptionLapseBanner() {
   // Lapsed or grace period: determine message and action.
   let message: string | undefined
   let actionLabel: string | undefined
-  let onAction: (() => void) | undefined
+  let onAction: (() => void | Promise<void>) | undefined
 
   if (
     lifecycleState ===
@@ -156,7 +156,9 @@ export function SubscriptionLapseBanner() {
   return (
     <button
       type="button"
-      onClick={onAction}
+      onClick={() => {
+        void onAction()
+      }}
       aria-disabled={resolving}
       className="border-destructive/20 bg-destructive/5 hover:bg-destructive/8 flex w-full items-center border-b text-left transition-colors disabled:cursor-default"
     >

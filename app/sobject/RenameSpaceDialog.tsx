@@ -30,9 +30,11 @@ export function RenameSpaceDialog({
 
   useEffect(() => {
     if (open) {
-      setValue(spaceName)
-      setError(undefined)
-      setSubmitting(false)
+      queueMicrotask(() => {
+        setValue(spaceName)
+        setError(undefined)
+        setSubmitting(false)
+      })
     }
   }, [open, spaceName])
 

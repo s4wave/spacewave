@@ -62,7 +62,6 @@ export function useHashPath(): [string, (path: string) => void] {
 
   // Function to update the hash path
   const updatePath = useCallback((newPath: string) => {
-    // eslint-disable-next-line react-compiler/react-compiler
     window.location.hash = newPath.startsWith('/') ? newPath : `/${newPath}`
   }, [])
 

@@ -26,6 +26,7 @@ async function runObjectBlockStep<T>(
   } catch (err) {
     throw new Error(
       label + ': ' + (err instanceof Error ? err.message : String(err)),
+      { cause: err },
     )
   }
 }

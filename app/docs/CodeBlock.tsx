@@ -47,7 +47,7 @@ export function CodeBlock({ lang, code }: CodeBlockProps) {
 
   useEffect(() => {
     let cancelled = false
-    getHighlighter().then((highlighter) => {
+    void getHighlighter().then((highlighter) => {
       if (cancelled) return
       const trimmed = code.replace(/\n$/, '')
       const language =
@@ -70,7 +70,7 @@ export function CodeBlock({ lang, code }: CodeBlockProps) {
   }, [])
 
   const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(code.replace(/\n$/, ''))
+    void navigator.clipboard.writeText(code.replace(/\n$/, ''))
     setCopied(true)
     clearTimeout(copyTimer.current)
     copyTimer.current = setTimeout(() => setCopied(false), 1500)
@@ -123,9 +123,7 @@ export function PreBlock({
     if (langMatch) {
       const lang = langMatch[1].replace(/^language-|^lang-/, '')
       const code =
-        typeof child.props.children === 'string' ?
-          child.props.children
-        : String(child.props.children ?? '')
+        typeof child.props.children === 'string' ? child.props.children : ''
       return <CodeBlock lang={lang} code={code} />
     }
   }

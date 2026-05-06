@@ -79,7 +79,7 @@ describe('ForgeJobWizardViewer', () => {
     const user = userEvent.setup()
     render(
       <ForgeJobWizardViewer
-        objectInfo={{} as never}
+        objectInfo={{}}
         worldState={{
           value: {} as never,
           loading: false,
@@ -99,7 +99,7 @@ describe('ForgeJobWizardViewer', () => {
     currentStep = 1
     render(
       <ForgeJobWizardViewer
-        objectInfo={{} as never}
+        objectInfo={{}}
         worldState={{
           value: {} as never,
           loading: false,

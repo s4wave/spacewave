@@ -54,7 +54,7 @@ export function TransferWizard() {
   // Default source to current session.
   useEffect(() => {
     if (currentIdx != null && sourceIdx === null) {
-      setSourceIdx(currentIdx)
+      queueMicrotask(() => setSourceIdx(currentIdx))
     }
   }, [currentIdx, sourceIdx])
 
@@ -128,9 +128,11 @@ export function TransferWizard() {
   // Initialize selected spaces when inventory loads.
   useEffect(() => {
     if (spaces.length > 0 && selectedSpaces === null) {
-      setSelectedSpaces(
-        new Set(
-          spaces.map((sp) => sp.entry?.ref?.providerResourceRef?.id ?? ''),
+      queueMicrotask(() =>
+        setSelectedSpaces(
+          new Set(
+            spaces.map((sp) => sp.entry?.ref?.providerResourceRef?.id ?? ''),
+          ),
         ),
       )
     }
@@ -211,13 +213,15 @@ export function TransferWizard() {
       overallPhase === TransferPhase.TransferPhase_COMPLETE &&
       step === 'progress'
     ) {
-      setStep('complete')
+      queueMicrotask(() => setStep('complete'))
     }
     if (
       overallPhase === TransferPhase.TransferPhase_FAILED &&
       step === 'progress'
     ) {
-      setError(transferState?.errorMessage ?? 'Transfer failed')
+      queueMicrotask(() =>
+        setError(transferState?.errorMessage ?? 'Transfer failed'),
+      )
     }
   }, [overallPhase, step, transferState])
 

@@ -169,13 +169,13 @@ describe('DeleteBillingAccountSection', () => {
     )
 
     fireEvent.click(
-      screen.getAllByRole('button', { name: 'Delete billing account' })[0]!,
+      screen.getAllByRole('button', { name: 'Delete billing account' })[0],
     )
     fireEvent.change(screen.getByPlaceholderText('DELETE'), {
       target: { value: 'DELETE' },
     })
     fireEvent.click(
-      screen.getAllByRole('button', { name: 'Delete billing account' })[1]!,
+      screen.getAllByRole('button', { name: 'Delete billing account' })[1],
     )
 
     await waitFor(() =>

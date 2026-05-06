@@ -10,16 +10,16 @@ describe('ProgressBar', () => {
 
   it('renders determinate fill at the supplied percentage', () => {
     const { container } = render(<ProgressBar value={42} />)
-    const fill = container.querySelector('div.bg-brand') as HTMLElement | null
+    const fill = container.querySelector('div.bg-brand')
     expect(fill).toBeTruthy()
-    expect(fill?.style.width).toBe('42%')
+    expect(fill instanceof HTMLElement ? fill.style.width : '').toBe('42%')
     expect(screen.getByText('42%')).toBeTruthy()
   })
 
   it('clamps determinate values outside 0..100', () => {
     const { container } = render(<ProgressBar value={175} />)
-    const fill = container.querySelector('div.bg-brand') as HTMLElement | null
-    expect(fill?.style.width).toBe('100%')
+    const fill = container.querySelector('div.bg-brand')
+    expect(fill instanceof HTMLElement ? fill.style.width : '').toBe('100%')
   })
 
   it('renders an animated indeterminate bar with no percent label', () => {

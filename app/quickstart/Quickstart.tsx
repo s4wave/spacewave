@@ -15,11 +15,7 @@ import { ErrorState } from '@s4wave/web/ui/ErrorState.js'
 
 import { createQuickstartSetup, createLocalSession } from './create.js'
 import { LoadingScreen } from './LoadingScreen.js'
-import {
-  isQuickstartCreateId,
-  type QuickstartSpaceCreateId,
-  type QuickstartId,
-} from './options.js'
+import { isQuickstartCreateId, type QuickstartId } from './options.js'
 import { NavigatePath } from '@s4wave/web/router/NavigatePath.js'
 
 interface QuickstartProps {
@@ -81,12 +77,7 @@ export const Quickstart: React.FC<QuickstartProps> = ({ quickstartId }) => {
     rootResource,
     async (root, signal, cleanup) => {
       if (!isCreate || isLocal) return null
-      return createQuickstartSetup(
-        root,
-        quickstartId as QuickstartSpaceCreateId,
-        signal,
-        cleanup,
-      )
+      return createQuickstartSetup(root, quickstartId, signal, cleanup)
     },
     [isCreate, isLocal, quickstartId],
     { enabled: isCreate && !isLocal },

@@ -4,7 +4,6 @@ import {
   LuCircleAlert,
   LuCircleCheck,
   LuCloud,
-  LuHardDrive,
   LuLoader,
 } from 'react-icons/lu'
 

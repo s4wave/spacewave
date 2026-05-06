@@ -32,7 +32,7 @@ vi.mock('@aptre/bldr-react', async () => {
         const abort = new AbortController()
         const stream = rpc(req, abort.signal)
         if (!stream) return () => abort.abort()
-        ;(async () => {
+        void (async () => {
           for await (const resp of stream) {
             if (abort.signal.aborted) return
             setValue(resp)

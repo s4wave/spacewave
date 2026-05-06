@@ -441,11 +441,18 @@ export function LoginForm({
     [handleContinueWithPassword, loading],
   )
 
-  // Auto-retry after rate limit countdown reaches 0.
-  if (rateLimitCountdown === 0 && pendingRetryRef.current && loading === null) {
+  useEffect(() => {
+    if (
+      rateLimitCountdown !== 0 ||
+      !pendingRetryRef.current ||
+      loading !== null
+    ) {
+      return
+    }
     pendingRetryRef.current = false
-    setTimeout(() => void handleContinueWithPassword(), 0)
-  }
+    const id = setTimeout(() => void handleContinueWithPassword(), 0)
+    return () => clearTimeout(id)
+  }, [handleContinueWithPassword, loading, rateLimitCountdown])
 
   const handleUsernameChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -792,66 +799,64 @@ export function LoginForm({
                   icon={<LuKeyRound className="text-foreground-alt h-5 w-5" />}
                   label={
                     loading === 'pem' ? 'Signing in with backup key...'
-                    : pemFileName ? `Backup key: ${pemFileName}`
+                    : pemFileName ?
+                      `Backup key: ${pemFileName}`
                     : 'Backup key (.pem)'
                   }
                   onClick={() => pemInputRef.current?.click()}
                 />
                 <div className="flex gap-2">
-                  {[
-                    {
-                      action: 'passkey',
-                      enabled: !!onContinueWithPasskey,
-                      icon: (
-                        <LuFingerprint className="text-foreground-alt h-5 w-5" />
-                      ),
-                      label: 'Passkey',
-                      onClick: () =>
-                        isDesktop ?
-                          void handleDesktopBrowserSignIn('passkey')
-                        : void handleAction('passkey', onContinueWithPasskey),
-                    },
-                    googleSsoEnabled ?
-                      {
-                        action: 'google',
-                        enabled: true,
-                        icon: <FcGoogle className="h-5 w-5" />,
-                        label: 'Google',
-                        onClick: () => void handleSSOSignIn('google'),
-                      }
-                    : null,
-                    githubSsoEnabled ?
-                      {
-                        action: 'github',
-                        enabled: true,
-                        icon: (
-                          <LuGithub className="text-foreground-alt h-5 w-5" />
-                        ),
-                        label: 'GitHub',
-                        onClick: () => void handleSSOSignIn('github'),
-                      }
-                    : null,
-                  ]
-                    .filter((item) => item !== null)
-                    .map(({ action, enabled, icon, label, onClick }) => (
-                      <Tooltip key={action}>
-                        <TooltipTrigger asChild>
-                          <SignInMethodButton
-                            enabled={enabled}
-                            busy={loading !== null}
-                            loading={loading === action}
-                            icon={icon}
-                            label={label}
-                            onClick={onClick}
-                          />
-                        </TooltipTrigger>
-                        {!enabled && (
-                          <TooltipContent side="bottom">
-                            Coming soon
-                          </TooltipContent>
-                        )}
-                      </Tooltip>
-                    ))}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <SignInMethodButton
+                        enabled={!!onContinueWithPasskey}
+                        busy={loading !== null}
+                        loading={loading === 'passkey'}
+                        icon={
+                          <LuFingerprint className="text-foreground-alt h-5 w-5" />
+                        }
+                        label="Passkey"
+                        onClick={() =>
+                          isDesktop ?
+                            void handleDesktopBrowserSignIn('passkey')
+                          : void handleAction('passkey', onContinueWithPasskey)
+                        }
+                      />
+                    </TooltipTrigger>
+                    {!onContinueWithPasskey && (
+                      <TooltipContent side="bottom">Coming soon</TooltipContent>
+                    )}
+                  </Tooltip>
+                  {googleSsoEnabled && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <SignInMethodButton
+                          enabled
+                          busy={loading !== null}
+                          loading={loading === 'google'}
+                          icon={<FcGoogle className="h-5 w-5" />}
+                          label="Google"
+                          onClick={() => void handleSSOSignIn('google')}
+                        />
+                      </TooltipTrigger>
+                    </Tooltip>
+                  )}
+                  {githubSsoEnabled && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <SignInMethodButton
+                          enabled
+                          busy={loading !== null}
+                          loading={loading === 'github'}
+                          icon={
+                            <LuGithub className="text-foreground-alt h-5 w-5" />
+                          }
+                          label="GitHub"
+                          onClick={() => void handleSSOSignIn('github')}
+                        />
+                      </TooltipTrigger>
+                    </Tooltip>
+                  )}
                 </div>
               </div>
 

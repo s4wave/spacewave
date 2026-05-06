@@ -1,7 +1,18 @@
 import { describe, expect, it, vi } from 'vitest'
+import type { TreeUploadEntry } from '@s4wave/sdk/unixfs/handle.js'
 
 const h = vi.hoisted(() => ({
-  mockUploadTree: vi.fn(),
+  mockUploadTree: vi.fn<
+    (
+      entries: TreeUploadEntry[],
+      options?: unknown,
+      abortSignal?: AbortSignal,
+    ) => Promise<{
+      bytesWritten: bigint
+      filesWritten: bigint
+      directoriesWritten: bigint
+    }>
+  >(),
 }))
 
 vi.mock('@s4wave/sdk/unixfs/handle.js', () => {
@@ -44,7 +55,7 @@ describe('uploadSeedTree', () => {
     )
 
     expect(h.mockUploadTree).toHaveBeenCalledTimes(1)
-    const [entries] = h.mockUploadTree.mock.calls[0]
+    const entries = h.mockUploadTree.mock.calls[0][0]
     expect(entries).toHaveLength(2)
     expect(entries[0]).toMatchObject({ kind: 'directory', path: 'nested' })
     expect(entries[1]).toMatchObject({

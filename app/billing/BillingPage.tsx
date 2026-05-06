@@ -64,9 +64,13 @@ export function BillingPage() {
 
   const { data: managedData } = usePromise(
     useCallback(
-      (signal: AbortSignal) =>
-        session?.spacewave.listManagedBillingAccounts(signal) ??
-        Promise.resolve(null),
+      (signal: AbortSignal) => {
+        void reloadKey
+        return (
+          session?.spacewave.listManagedBillingAccounts(signal) ??
+          Promise.resolve(null)
+        )
+      },
       [session, reloadKey],
     ),
   )
@@ -81,7 +85,9 @@ export function BillingPage() {
     : null
 
   useEffect(() => {
-    if (!renaming) setRenameValue(displayName)
+    if (!renaming) {
+      queueMicrotask(() => setRenameValue(displayName))
+    }
   }, [displayName, renaming])
 
   const handleBack = useCallback(() => {

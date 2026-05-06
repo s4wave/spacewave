@@ -5,8 +5,8 @@ import (
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
 	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/identity"
-	"github.com/s4wave/spacewave/db/bucket"
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
+	"github.com/s4wave/spacewave/db/bucket"
 )
 
 const (

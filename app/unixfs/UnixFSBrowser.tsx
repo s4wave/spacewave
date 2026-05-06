@@ -1034,14 +1034,12 @@ export function UnixFSBrowser({
       }
 
       // New folder or new file inline input.
-      const value = isNewFolder ? newFolderName! : newFileName!
+      const value = isNewFolder ? newFolderName : newFileName!
       const placeholder = isNewFolder ? 'Folder name' : 'File name'
-      const handleConfirm = isNewFolder ?
-          handleNewFolderConfirm
-        : handleNewFileConfirm
-      const handleCancel = isNewFolder ?
-          handleNewFolderCancel
-        : handleNewFileCancel
+      const handleConfirm =
+        isNewFolder ? handleNewFolderConfirm : handleNewFileConfirm
+      const handleCancel =
+        isNewFolder ? handleNewFolderCancel : handleNewFileCancel
       const dispatchType =
         isNewFolder ? 'set-new-folder-name' : 'set-new-file-name'
 
@@ -1309,9 +1307,7 @@ export function UnixFSBrowser({
               root={rootHandle}
               lookup={pathHandle}
               stat={statResource}
-              entries={
-                isDir === true ? (entriesResource as Resource<unknown>) : null
-              }
+              entries={isDir === true ? entriesResource : null}
               path={displayPath}
             />
           </div>

@@ -34,9 +34,11 @@ export function LinkDeviceDoneStep({
   const syncDone = syncState === 'done'
 
   useEffect(() => {
-    setPairingConfirmed(false)
-    setPairingError(null)
-    setSyncState('confirming')
+    queueMicrotask(() => {
+      setPairingConfirmed(false)
+      setPairingError(null)
+      setSyncState('confirming')
+    })
     if (!session || !remotePeerId) return
     const controller = new AbortController()
     session

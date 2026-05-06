@@ -10,10 +10,7 @@ import { useForgeBlockData } from '@s4wave/web/forge/useForgeBlockData.js'
 export const ChatMessageTypeID = 'spacewave-chat/message'
 
 // ChatMessageViewer displays a Chat Message entity.
-export function ChatMessageViewer({
-  objectInfo,
-  objectState,
-}: ObjectViewerComponentProps) {
+export function ChatMessageViewer({ objectState }: ObjectViewerComponentProps) {
   const message = useForgeBlockData(objectState, ChatMessage)
 
   const textContent =

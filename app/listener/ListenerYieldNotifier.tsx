@@ -140,8 +140,8 @@ function ListenerYieldNotifierInner({
             <DialogDescription>
               A local process is asking to take over Spacewave's shared runtime
               socket. If you allow it, that process will act with your runtime
-              authority until you reclaim it from this window. Only continue
-              if you started this process yourself.
+              authority until you reclaim it from this window. Only continue if
+              you started this process yourself.
             </DialogDescription>
           </DialogHeader>
 
@@ -270,7 +270,7 @@ function RuntimeHandoffBanner({
         onClick={onReclaim}
         disabled={reclaiming}
         className={cn(
-          'shrink-0 h-7 rounded-md border px-3 text-xs font-medium transition-all duration-150',
+          'h-7 shrink-0 rounded-md border px-3 text-xs font-medium transition-all duration-150',
           'border-warning/30 bg-warning/10 hover:border-warning/50 hover:bg-warning/15',
           'text-foreground disabled:cursor-not-allowed disabled:opacity-50',
         )}

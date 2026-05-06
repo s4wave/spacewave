@@ -139,7 +139,9 @@ export function SessionSelector() {
           </Button>
           <Button
             variant="outline"
-            onClick={addRootAlias.add}
+            onClick={() => {
+              void addRootAlias.add()
+            }}
             disabled={!addRootAlias.canAdd}
           >
             <LuFolderOpen className="h-4 w-4" />
@@ -175,37 +177,32 @@ function SpaceRootAliasCard(props: {
   onSelect: (aliasId: string) => void
   onRemoveSelected: (aliasId: string | null) => void
 }) {
+  const { record, selected, onSelect, onRemoveSelected } = props
   const rootResource = useRootResource()
   const root = rootResource.value
   const [removing, setRemoving] = useState(false)
   const ready =
-    props.record.status === SpaceRootStatus.SpaceRootStatus_READY ||
-    props.record.status === SpaceRootStatus.SpaceRootStatus_UNKNOWN
-  const path = props.record.native?.path ?? ''
+    record.status === SpaceRootStatus.SpaceRootStatus_READY ||
+    record.status === SpaceRootStatus.SpaceRootStatus_UNKNOWN
+  const path = record.native?.path ?? ''
 
   const handleRemove = useCallback(async () => {
-    if (!root || !props.record.aliasId || removing) return
+    if (!root || !record.aliasId || removing) return
     setRemoving(true)
     try {
-      await root.removeSpaceRootAlias(props.record.aliasId)
-      if (props.selected) props.onRemoveSelected(null)
+      await root.removeSpaceRootAlias(record.aliasId)
+      if (selected) onRemoveSelected(null)
     } catch (err) {
       toast.error('Could not remove state root', { description: String(err) })
     } finally {
       setRemoving(false)
     }
-  }, [
-    props.onRemoveSelected,
-    props.record.aliasId,
-    props.selected,
-    removing,
-    root,
-  ])
+  }, [onRemoveSelected, record.aliasId, selected, removing, root])
 
   const handleSelect = useCallback(() => {
-    if (!ready || !props.record.aliasId) return
-    props.onSelect(props.record.aliasId)
-  }, [props.onSelect, props.record.aliasId, ready])
+    if (!ready || !record.aliasId) return
+    onSelect(record.aliasId)
+  }, [onSelect, record.aliasId, ready])
 
   return (
     <div className="border-foreground/10 flex items-center gap-3 rounded-lg border px-4 py-3">
@@ -217,29 +214,31 @@ function SpaceRootAliasCard(props: {
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="text-foreground truncate text-sm font-medium">
-            {props.record.displayName || props.record.aliasId}
+            {record.displayName || record.aliasId}
           </span>
           <span className="bg-foreground/6 text-foreground-alt/75 rounded-full px-1.5 py-0.5 text-[10px] font-medium">
             State root
           </span>
         </div>
         <div className="text-foreground-alt/60 truncate text-xs">
-          {props.record.statusMessage || path}
+          {record.statusMessage || path}
         </div>
       </div>
       <Button
-        variant={props.selected ? 'secondary' : 'outline'}
+        variant={selected ? 'secondary' : 'outline'}
         onClick={handleSelect}
         disabled={!ready}
         className="h-8 px-2 text-xs"
       >
         <LuPlug className="h-3.5 w-3.5" />
-        {props.selected ? 'Using' : 'Use'}
+        {selected ? 'Using' : 'Use'}
       </Button>
       <Button
         variant="ghost"
         size="icon"
-        onClick={handleRemove}
+        onClick={() => {
+          void handleRemove()
+        }}
         disabled={!root || removing}
         aria-label="Remove state root"
         className="text-foreground-alt/60 hover:text-foreground h-8 w-8"

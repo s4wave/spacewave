@@ -171,9 +171,11 @@ export function SessionDetails({
   const showTransfer = sessionCount > 1
 
   useEffect(() => {
-    setDisplayName(currentDisplayName)
-    setDisplayNameError(null)
-    setEditingDisplayName(false)
+    queueMicrotask(() => {
+      setDisplayName(currentDisplayName)
+      setDisplayNameError(null)
+      setEditingDisplayName(false)
+    })
   }, [currentDisplayName])
 
   useEffect(() => {

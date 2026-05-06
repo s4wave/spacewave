@@ -287,7 +287,7 @@ export async function proxyFetch(
 
     // stream the body
     if (hasBody) {
-      const bodyIt = toIt(requestBody!)
+      const bodyIt = toIt(requestBody)
       const fetchRequestSink =
         buildPushableSink<FetchRequest>(fetchRequestStream)
       pipe(bodyIt, transformRequestData, fetchRequestSink)

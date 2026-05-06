@@ -74,11 +74,12 @@ function NoteList({
   renderEntryExtra,
 }: NoteListProps) {
   const [searchQuery, setSearchQuery] = useState('')
+  const sourceRef = source?.ref
 
   const parsed = useMemo(() => {
-    if (!source?.ref) return null
-    return parseObjectUri(source.ref)
-  }, [source?.ref])
+    if (!sourceRef) return null
+    return parseObjectUri(sourceRef)
+  }, [sourceRef])
 
   const objectKey = parsed?.objectKey ?? ''
   const subpath = parsed?.path ?? ''
@@ -121,10 +122,12 @@ function NoteList({
         entries.push({
           name: entry.name,
           title:
-            typeof note.frontmatter.title === 'string' &&
-            note.frontmatter.title.trim()
-              ? note.frontmatter.title.trim()
-              : entry.name.replace(/\.md$/, ''),
+            (
+              typeof note.frontmatter.title === 'string' &&
+              note.frontmatter.title.trim()
+            ) ?
+              note.frontmatter.title.trim()
+            : entry.name.replace(/\.md$/, ''),
           frontmatter: note.frontmatter,
           tags: getFrontmatterTags(note.frontmatter),
           status: normalizeFrontmatterStatus(note.frontmatter.status),
@@ -153,9 +156,10 @@ function NoteList({
     let entries = noteEntries.value ?? []
     if (searchQuery) {
       const lower = searchQuery.toLowerCase()
-      entries = entries.filter((entry) =>
-        entry.name.toLowerCase().includes(lower) ||
-        entry.title.toLowerCase().includes(lower),
+      entries = entries.filter(
+        (entry) =>
+          entry.name.toLowerCase().includes(lower) ||
+          entry.title.toLowerCase().includes(lower),
       )
     }
     if (filterTag) {
@@ -199,7 +203,10 @@ function NoteList({
     if (!prompt || !handle) return
 
     const name = prompt('Folder name')?.trim() ?? ''
-    const parts = name.split('/').map((part) => part.trim()).filter(Boolean)
+    const parts = name
+      .split('/')
+      .map((part) => part.trim())
+      .filter(Boolean)
     if (parts.length === 0) return
 
     await handle.mkdirAll(parts)
@@ -243,7 +250,11 @@ function NoteList({
   const hasFilter = !!filterTag || !!filterStatus
   const showEmptyState =
     filteredDirEntries.length === 0 && filteredNoteEntries.length === 0
-  const isEmptyDirectory = !hasFilter && !searchQuery && dirEntries.length === 0 && mdEntries.length === 0
+  const isEmptyDirectory =
+    !hasFilter &&
+    !searchQuery &&
+    dirEntries.length === 0 &&
+    mdEntries.length === 0
 
   if (!source) {
     return (
@@ -295,21 +306,21 @@ function NoteList({
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
-      <div className="flex items-center gap-1 border-b border-border px-2 py-1.5">
-        <div className="flex flex-1 items-center gap-1.5 rounded bg-muted px-2 py-1">
+      <div className="border-border flex items-center gap-1 border-b px-2 py-1.5">
+        <div className="bg-muted flex flex-1 items-center gap-1.5 rounded px-2 py-1">
           <LuSearch className="text-muted-foreground h-3 w-3 shrink-0" />
           <input
             type="text"
             placeholder="Search notes..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-transparent text-foreground placeholder:text-muted-foreground w-full border-none text-xs outline-none"
+            className="text-foreground placeholder:text-muted-foreground w-full border-none bg-transparent text-xs outline-none"
           />
         </div>
         <button
           type="button"
           className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex items-center justify-center rounded p-1.5"
-          onClick={handleCreateFolder}
+          onClick={() => void handleCreateFolder()}
           title="New folder"
         >
           <LuFolderPlus className="h-3.5 w-3.5" />
@@ -317,14 +328,14 @@ function NoteList({
         <button
           type="button"
           className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex items-center justify-center rounded p-1.5"
-          onClick={handleCreateNote}
+          onClick={() => void handleCreateNote()}
           title="New note"
         >
           <LuPlus className="h-3.5 w-3.5" />
         </button>
       </div>
       {currentPath && (
-        <div className="flex items-center gap-1 border-b border-border px-2 py-1 text-xs">
+        <div className="border-border flex items-center gap-1 border-b px-2 py-1 text-xs">
           <button
             type="button"
             className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground rounded p-1"
@@ -337,7 +348,7 @@ function NoteList({
         </div>
       )}
       {hasFilter && (
-        <div className="bg-brand/5 flex flex-wrap items-center gap-2 border-b border-border px-3 py-1 text-xs">
+        <div className="bg-brand/5 border-border flex flex-wrap items-center gap-2 border-b px-3 py-1 text-xs">
           <span className="text-muted-foreground">Filtering:</span>
           {filterTag && (
             <button
@@ -385,7 +396,9 @@ function NoteList({
                 key={entry.name}
                 type="button"
                 className="hover:bg-list-hover-background flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs"
-                onClick={() => onChangePath?.(joinNotePath(currentPath, entry.name))}
+                onClick={() =>
+                  onChangePath?.(joinNotePath(currentPath, entry.name))
+                }
               >
                 <LuFolder className="h-3 w-3 shrink-0" />
                 <span className="min-w-0 flex-1 truncate">{entry.name}</span>
@@ -409,7 +422,9 @@ function NoteList({
                     onClick={() => onSelectNote(notePath)}
                   >
                     <LuFile className="h-3 w-3 shrink-0" />
-                    <span className="min-w-0 flex-1 truncate">{entry.title}</span>
+                    <span className="min-w-0 flex-1 truncate">
+                      {entry.title}
+                    </span>
                     {renderEntryExtra?.(notePath)}
                   </button>
                   <button
@@ -431,7 +446,8 @@ function NoteList({
                 </div>
               )
             })}
-          </>}
+          </>
+        }
       </div>
     </div>
   )

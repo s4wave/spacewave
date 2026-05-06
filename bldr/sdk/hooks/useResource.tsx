@@ -115,7 +115,7 @@ function parseArgs<T>(args: unknown[]): ParsedArgs<T> {
     }
     return {
       type: 'no-parent',
-      factory: firstArg as NoParentFactory<T>,
+      factory: firstArg,
       deps: secondArg,
       options: thirdArg as UseResourceOptions<T> | undefined,
       parents: [],
@@ -129,8 +129,8 @@ function parseArgs<T>(args: unknown[]): ParsedArgs<T> {
     }
     return {
       type: 'multi-parent',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      factory: secondArg as MultiParentFactory<any[], T>,
+
+      factory: secondArg,
       deps: thirdArg,
       options: fourthArg as UseResourceOptions<T> | undefined,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -144,8 +144,8 @@ function parseArgs<T>(args: unknown[]): ParsedArgs<T> {
   }
   return {
     type: 'single-parent',
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    factory: secondArg as SingleParentFactory<any, T>,
+
+    factory: secondArg,
     deps: thirdArg,
     options: fourthArg as UseResourceOptions<T> | undefined,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

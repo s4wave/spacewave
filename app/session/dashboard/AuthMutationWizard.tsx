@@ -559,6 +559,7 @@ function UnlockRow({
   const truncated = truncatePeerId(peerId)
 
   const cred = useCredentialProof()
+  const { fileInputRef, handleFileChange } = cred
   const [unlocking, setUnlocking] = useState(false)
 
   const needsPassword = method === 'password'
@@ -647,7 +648,7 @@ function UnlockRow({
         : <>
             <button
               type="button"
-              onClick={() => cred.fileInputRef.current?.click()}
+              onClick={() => fileInputRef.current?.click()}
               className={cn(
                 'border-foreground/20 bg-background/30 text-foreground w-full rounded-md border px-2.5 py-1.5 text-left text-xs transition-colors outline-none',
                 'hover:border-foreground/30 focus:border-brand/50',
@@ -662,10 +663,10 @@ function UnlockRow({
               </span>
             </button>
             <input
-              ref={cred.fileInputRef}
+              ref={fileInputRef}
               type="file"
               accept=".pem"
-              onChange={cred.handleFileChange}
+              onChange={handleFileChange}
               className="hidden"
             />
           </>

@@ -58,17 +58,28 @@ vi.mock('@s4wave/app/provider/spacewave/useSpacewaveAuth.js', () => ({
 }))
 
 vi.mock('./useEntityKeypairs.js', () => ({
-  useEntityKeypairs: () => mockUseEntityKeypairs(),
+  useEntityKeypairs: () => {
+    const keypairs: unknown = mockUseEntityKeypairs()
+    return keypairs
+  },
 }))
 
 vi.mock('./sso-popup.js', () => ({
-  startSSOPopupFlow: () => mockStartSSOPopupFlow(),
+  startSSOPopupFlow: () => {
+    const flow: unknown = mockStartSSOPopupFlow()
+    return flow
+  },
 }))
 
 vi.mock('./accountEscalationUnlock.js', () => ({
-  recoverPasskeyEntityPem: (...args: unknown[]) =>
-    mockRecoverPasskeyEntityPem(...args),
-  recoverSSOEntityPem: (...args: unknown[]) => mockRecoverSSOEntityPem(...args),
+  recoverPasskeyEntityPem: (...args: unknown[]) => {
+    const pem: unknown = mockRecoverPasskeyEntityPem(...args)
+    return pem
+  },
+  recoverSSOEntityPem: (...args: unknown[]) => {
+    const pem: unknown = mockRecoverSSOEntityPem(...args)
+    return pem
+  },
   resolveRecoveredEntityPem: vi.fn(),
 }))
 
@@ -201,14 +212,16 @@ describe('AuthUnlockWizard desktop SSO unlock', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Use passkey' }))
 
     await waitFor(() => {
-      expect(mockRecoverPasskeyEntityPem).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          desktopSession: expect.objectContaining({
-            startDesktopPasskeyReauth: mockStartDesktopPasskeyReauth,
-          }),
-          targetPeerId: 'peer-passkey',
-        }),
+      expect(mockRecoverPasskeyEntityPem).toHaveBeenCalled()
+      const opts = mockRecoverPasskeyEntityPem.mock.calls[0]?.[1] as
+        | {
+            desktopSession?: { startDesktopPasskeyReauth?: unknown }
+            targetPeerId?: string
+          }
+        | undefined
+      expect(opts?.targetPeerId).toBe('peer-passkey')
+      expect(opts?.desktopSession?.startDesktopPasskeyReauth).toBe(
+        mockStartDesktopPasskeyReauth,
       )
       expect(unlockEntityKeypair).toHaveBeenCalledWith('peer-passkey', {
         credential: {

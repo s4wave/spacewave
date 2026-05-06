@@ -18,8 +18,7 @@ export function useSpaceRootAliases(): Resource<WatchSpaceRootAliasesResponse> {
   const rootResource = useRootResource()
   const resource = useStreamingResource(
     rootResource,
-    (root: Root, signal: AbortSignal) =>
-      root.watchSpaceRootAliases({}, signal),
+    (root: Root, signal: AbortSignal) => root.watchSpaceRootAliases({}, signal),
     [],
   )
   if (isStatic) return EMPTY_ROOT_ALIASES

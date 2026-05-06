@@ -25,10 +25,9 @@ describe('OptionalPinLock', () => {
     expect(screen.getByText('Optional PIN lock')).toBeDefined()
     expect(screen.getByPlaceholderText('Leave blank to skip')).toBeDefined()
     expect(screen.getByPlaceholderText('Confirm PIN')).toBeDefined()
-    expect(
-      (screen.getByPlaceholderText('Leave blank to skip') as HTMLInputElement)
-        .id,
-    ).toBe('test-pin')
+    expect(screen.getByPlaceholderText('Leave blank to skip').id).toBe(
+      'test-pin',
+    )
   })
 
   it('reports PIN and confirm-PIN changes through their callbacks', () => {

@@ -105,19 +105,19 @@ describe('v86 wizard config', () => {
       isDefaultV86Image({
         platform: 'v86',
         tags: ['default', 'stable'],
-      } as never),
+      }),
     ).toBe(true)
     expect(
       isDefaultV86Image({
         platform: 'wasi',
         tags: ['default'],
-      } as never),
+      }),
     ).toBe(false)
     expect(
       isDefaultV86Image({
         platform: 'v86',
         tags: ['stable'],
-      } as never),
+      }),
     ).toBe(false)
   })
 })

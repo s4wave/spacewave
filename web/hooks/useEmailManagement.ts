@@ -74,10 +74,11 @@ export function useEmailManagement(): EmailManagement {
   useEffect(() => {
     if (!verifyingEmail || !emails) return
     const row = emails.find((e) => e.email === verifyingEmail)
-    if (row?.verified) {
+    if (!row?.verified) return
+    queueMicrotask(() => {
       setVerifyingEmail(null)
       setCode('')
-    }
+    })
   }, [emails, verifyingEmail])
 
   const sendCode = useCallback(

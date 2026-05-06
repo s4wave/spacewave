@@ -20,7 +20,10 @@ vi.mock('@s4wave/web/images/AppLogo.js', () => ({
 }))
 
 vi.mock('@s4wave/web/command/index.js', () => ({
-  useCommands: () => mockUseCommands(),
+  useCommands: () => {
+    const commands: unknown = mockUseCommands()
+    return commands
+  },
   useInvokeCommand: () => mockInvokeCommand,
   useOpenCommand: () => mockOpenCommand,
 }))

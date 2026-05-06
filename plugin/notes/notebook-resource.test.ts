@@ -6,18 +6,26 @@ function createMockCursor(
   blockData?: Uint8Array,
   options?: {
     buildTransaction?: () => Promise<{
-      transaction: { write: ReturnType<typeof vi.fn>; release: ReturnType<typeof vi.fn> }
-      cursor: { setBlock: ReturnType<typeof vi.fn>; release: ReturnType<typeof vi.fn> }
+      transaction: {
+        write: ReturnType<typeof vi.fn>
+        release: ReturnType<typeof vi.fn>
+      }
+      cursor: {
+        setBlock: ReturnType<typeof vi.fn>
+        release: ReturnType<typeof vi.fn>
+      }
     }>
     getRef?: () => Promise<{ ref?: string }>
   },
 ) {
   const release = vi.fn()
   return {
-    getBlock: vi.fn(() => Promise.resolve({
-      found: !!blockData,
-      data: blockData,
-    })),
+    getBlock: vi.fn(() =>
+      Promise.resolve({
+        found: !!blockData,
+        data: blockData,
+      }),
+    ),
     buildTransaction:
       options?.buildTransaction ??
       vi.fn(() =>
@@ -33,9 +41,12 @@ function createMockCursor(
           },
         }),
       ),
-    getRef: options?.getRef ?? vi.fn(() => Promise.resolve({ ref: 'next-ref' })),
+    getRef:
+      options?.getRef ?? vi.fn(() => Promise.resolve({ ref: 'next-ref' })),
     release,
-    [Symbol.dispose]: () => release(),
+    [Symbol.dispose]: () => {
+      release()
+    },
   }
 }
 
@@ -45,11 +56,12 @@ function createMockObjectState(
     | ReturnType<typeof createMockCursor>
     | ReturnType<typeof createMockCursor>[],
 ) {
-  const cursors = Array.isArray(cursor) ? cursor : [cursor ?? createMockCursor()]
+  const cursors =
+    Array.isArray(cursor) ? cursor : [cursor ?? createMockCursor()]
   let idx = 0
   return {
     accessWorldState: vi.fn(() => {
-      const current = cursors[Math.min(idx, cursors.length - 1)]!
+      const current = cursors[Math.min(idx, cursors.length - 1)]
       idx++
       return Promise.resolve(current)
     }),
@@ -248,9 +260,7 @@ describe('NotebookResource', () => {
       const tx = {
         getObject: vi.fn(() => {
           readCount++
-          return Promise.resolve(
-            readCount === 1 ? objectState1 : objectState2,
-          )
+          return Promise.resolve(readCount === 1 ? objectState1 : objectState2)
         }),
         commit: vi.fn(() => Promise.resolve()),
         discard: vi.fn(() => Promise.resolve()),
@@ -324,8 +334,10 @@ describe('NotebookResource', () => {
       const readCursor = createMockCursor(notebookData)
       const blockCursor = {
         setBlock: vi.fn(
-          (_req: { data: Uint8Array; markDirty?: boolean }, _signal?: AbortSignal) =>
-            Promise.resolve(),
+          (
+            _req: { data: Uint8Array; markDirty?: boolean },
+            _signal?: AbortSignal,
+          ) => Promise.resolve(),
         ),
         markDirty: vi.fn(() => Promise.resolve()),
         release: vi.fn(),
@@ -381,8 +393,10 @@ describe('NotebookResource', () => {
       const readCursor = createMockCursor(notebookData)
       const blockCursor = {
         setBlock: vi.fn(
-          (_req: { data: Uint8Array; markDirty?: boolean }, _signal?: AbortSignal) =>
-            Promise.resolve(),
+          (
+            _req: { data: Uint8Array; markDirty?: boolean },
+            _signal?: AbortSignal,
+          ) => Promise.resolve(),
         ),
         markDirty: vi.fn(() => Promise.resolve()),
         release: vi.fn(),

@@ -5,7 +5,6 @@ import { SessionLockSection } from './SessionLockSection.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { SessionLockMode } from '@s4wave/core/session/session.pb.js'
 import type { Session } from '@s4wave/sdk/session/session.js'
-import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 
 vi.mock('@aptre/bldr-sdk/hooks/useStreamingResource.js', () => ({
   useStreamingResource: vi.fn(),
@@ -37,14 +36,12 @@ function renderWithContext(lockState: { mode: SessionLockMode } | null) {
 
   return render(
     <SessionContext.Provider
-      resource={
-        {
-          value: mockSession,
-          loading: false,
-          error: null,
-          retry: mockRetry,
-        } as Resource<Session>
-      }
+      resource={{
+        value: mockSession,
+        loading: false,
+        error: null,
+        retry: mockRetry,
+      }}
     >
       <SessionLockSection />
     </SessionContext.Provider>,

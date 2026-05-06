@@ -59,7 +59,7 @@ function fakeResource<T>(overrides: Partial<Resource<T>>): Resource<T> {
     error: null,
     retry: () => {},
     ...overrides,
-  } as Resource<T>
+  }
 }
 
 // Tests ----------------------------------------------------------------------
@@ -215,7 +215,7 @@ describe('toLockView', () => {
 
 describe('toUnixFSPathView', () => {
   const loading = fakeResource({ loading: true })
-  const done = fakeResource({ value: {} as unknown, loading: false })
+  const done = fakeResource({ value: {}, loading: false })
 
   it('surfaces the first pending stage in detail', () => {
     const view = toUnixFSPathView({
@@ -317,7 +317,7 @@ describe('toResourceView', () => {
     const view = toResourceView(
       fakeResource({
         loading: false,
-        value: { orgs: [] } as unknown,
+        value: { orgs: [] },
       }),
       { title: 'Org list' },
     )

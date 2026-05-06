@@ -83,7 +83,9 @@ export function PlanControls(props: {
     if (!session || !billingState.billingAccountId || action !== 'idle') return
     autoTriggered.current = true
     clearAutoReactivateIntent()
-    void handleReactivate()
+    queueMicrotask(() => {
+      void handleReactivate()
+    })
   }, [
     action,
     billingState.billingAccountId,

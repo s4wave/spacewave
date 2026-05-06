@@ -16,13 +16,17 @@ function buildResource<T>(value: T) {
 
 function makeRootHandle(files: Record<string, string>) {
   return {
-    lookup: vi.fn(async (name: string) => ({
-      readAt: vi.fn(async () => ({
-        data: new TextEncoder().encode(files[name] ?? ''),
-        eof: true,
-      })),
-      release: vi.fn(),
-    })),
+    lookup: vi.fn((name: string) =>
+      Promise.resolve({
+        readAt: vi.fn(() =>
+          Promise.resolve({
+            data: new TextEncoder().encode(files[name] ?? ''),
+            eof: true,
+          }),
+        ),
+        release: vi.fn(),
+      }),
+    ),
   }
 }
 

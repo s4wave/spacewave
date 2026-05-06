@@ -28,10 +28,7 @@ import NoteContentView from './NoteContentView.js'
 
 // BlogViewer is the viewer for spacewave-notes Blog objects.
 // Supports reading mode (blog reading view) and editing mode (NoteList + NoteContentView).
-function BlogViewer({
-  objectInfo,
-  worldState,
-}: ObjectViewerComponentProps) {
+function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
   const objectKey = getObjectKey(objectInfo)
   const ns = useStateNamespace(['blog'])
 
@@ -43,10 +40,11 @@ function BlogViewer({
 
   // Parse the first source to get the UnixFS object key and subpath.
   const firstSource = sources[0]
+  const firstSourceRef = firstSource?.ref
   const parsed = useMemo(() => {
-    if (!firstSource?.ref) return null
-    return parseObjectUri(firstSource.ref)
-  }, [firstSource?.ref])
+    if (!firstSourceRef) return null
+    return parseObjectUri(firstSourceRef)
+  }, [firstSourceRef])
 
   const sourceObjectKey = parsed?.objectKey ?? ''
   const sourceSubpath = parsed?.path ?? ''
@@ -136,7 +134,7 @@ function BlogViewer({
     (name: string) => {
       if (!draftNames.has(name)) return null
       return (
-        <span className="bg-brand/10 text-brand shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium leading-none">
+        <span className="bg-brand/10 text-brand shrink-0 rounded px-1.5 py-0.5 text-[10px] leading-none font-medium">
           Draft
         </span>
       )
@@ -165,7 +163,9 @@ function BlogViewer({
     const template =
       '---\n' +
       'title: New Post\n' +
-      'date: ' + dateStr + '\n' +
+      'date: ' +
+      dateStr +
+      '\n' +
       'author: \n' +
       'summary: \n' +
       'tags: []\n' +
@@ -195,86 +195,86 @@ function BlogViewer({
       emptyText="No sources configured for this blog"
       sources={sources}
     >
-    <div className="bg-background-primary flex h-full w-full flex-col overflow-hidden">
-      {/* Mode toggle header */}
-      <div className="border-border flex h-9 shrink-0 items-center justify-between border-b px-3">
-        <span className="text-foreground text-xs font-medium">
-          {state.value?.name ?? 'Blog'}
-        </span>
-        <div className="flex items-center gap-0.5">
-          <button
-            type="button"
-            onClick={handleSetReading}
-            className={cn(
-              'flex items-center gap-1 rounded px-2 py-0.5 text-xs',
-              'hover:bg-list-hover-background',
-              mode === 'reading' ? 'text-brand' : 'text-foreground-alt',
-            )}
-            title="Reading mode"
-          >
-            <LuBookOpen className="h-3 w-3" />
-            Read
-          </button>
-          <button
-            type="button"
-            onClick={handleSetEditing}
-            className={cn(
-              'flex items-center gap-1 rounded px-2 py-0.5 text-xs',
-              'hover:bg-list-hover-background',
-              mode === 'editing' ? 'text-brand' : 'text-foreground-alt',
-            )}
-            title="Editing mode"
-          >
-            <LuPenLine className="h-3 w-3" />
-            Edit
-          </button>
+      <div className="bg-background-primary flex h-full w-full flex-col overflow-hidden">
+        {/* Mode toggle header */}
+        <div className="border-border flex h-9 shrink-0 items-center justify-between border-b px-3">
+          <span className="text-foreground text-xs font-medium">
+            {state.value?.name ?? 'Blog'}
+          </span>
+          <div className="flex items-center gap-0.5">
+            <button
+              type="button"
+              onClick={handleSetReading}
+              className={cn(
+                'flex items-center gap-1 rounded px-2 py-0.5 text-xs',
+                'hover:bg-list-hover-background',
+                mode === 'reading' ? 'text-brand' : 'text-foreground-alt',
+              )}
+              title="Reading mode"
+            >
+              <LuBookOpen className="h-3 w-3" />
+              Read
+            </button>
+            <button
+              type="button"
+              onClick={handleSetEditing}
+              className={cn(
+                'flex items-center gap-1 rounded px-2 py-0.5 text-xs',
+                'hover:bg-list-hover-background',
+                mode === 'editing' ? 'text-brand' : 'text-foreground-alt',
+              )}
+              title="Editing mode"
+            >
+              <LuPenLine className="h-3 w-3" />
+              Edit
+            </button>
+          </div>
+        </div>
+
+        {/* Content area */}
+        <div className="min-h-0 flex-1">
+          {mode === 'reading' ?
+            <BlogReadingView
+              posts={blogPosts}
+              selectedPost={selectedPost}
+              onSelectPost={handleSelectPostReading}
+              authorRegistry={authorRegistry}
+            />
+          : <div className="flex h-full overflow-hidden">
+              {/* Post list sidebar */}
+              <div
+                className="border-border border-r"
+                style={{ width: 250, minWidth: 250 }}
+              >
+                <NoteList
+                  source={firstSource}
+                  worldState={worldState}
+                  selectedNote={selectedPostName}
+                  onSelectNote={handleSelectPostEditing}
+                  onCreateNote={handleCreateBlogPostClick}
+                  renderEntryExtra={renderDraftBadge}
+                />
+              </div>
+
+              {/* Editor area */}
+              <div className="min-w-0 flex-1">
+                {firstSource?.ref && selectedPostName ?
+                  <NoteContentView
+                    worldState={worldState}
+                    sourceRef={firstSource.ref}
+                    noteName={selectedPostName}
+                    editing={editing}
+                    onToggleEdit={handleToggleEdit}
+                  />
+                : <div className="text-muted-foreground flex h-full items-center justify-center text-xs">
+                    Select a post to edit
+                  </div>
+                }
+              </div>
+            </div>
+          }
         </div>
       </div>
-
-      {/* Content area */}
-      <div className="min-h-0 flex-1">
-        {mode === 'reading' ?
-          <BlogReadingView
-            posts={blogPosts}
-            selectedPost={selectedPost}
-            onSelectPost={handleSelectPostReading}
-            authorRegistry={authorRegistry}
-          />
-        : <div className="flex h-full overflow-hidden">
-            {/* Post list sidebar */}
-            <div
-              className="border-r border-border"
-              style={{ width: 250, minWidth: 250 }}
-            >
-              <NoteList
-                source={firstSource}
-                worldState={worldState}
-                selectedNote={selectedPostName}
-                onSelectNote={handleSelectPostEditing}
-                onCreateNote={handleCreateBlogPostClick}
-                renderEntryExtra={renderDraftBadge}
-              />
-            </div>
-
-            {/* Editor area */}
-            <div className="min-w-0 flex-1">
-              {firstSource?.ref && selectedPostName ?
-                <NoteContentView
-                  worldState={worldState}
-                  sourceRef={firstSource.ref}
-                  noteName={selectedPostName}
-                  editing={editing}
-                  onToggleEdit={handleToggleEdit}
-                />
-              : <div className="text-muted-foreground flex h-full items-center justify-center text-xs">
-                  Select a post to edit
-                </div>
-              }
-            </div>
-          </div>
-        }
-      </div>
-    </div>
     </ViewerStatusShell>
   )
 }

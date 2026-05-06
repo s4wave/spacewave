@@ -379,8 +379,7 @@ describe('SessionSharedObjectContainer', () => {
           layer: SharedObjectHealthLayer.BODY,
           commonReason:
             SharedObjectHealthCommonReason.BODY_CONFIG_DECODE_FAILED,
-          remediationHint:
-            SharedObjectHealthRemediationHint.REPAIR_SOURCE_DATA,
+          remediationHint: SharedObjectHealthRemediationHint.REPAIR_SOURCE_DATA,
           error: 'unsupported shared object type "example"',
         },
       },
@@ -440,9 +439,7 @@ describe('SessionSharedObjectContainer', () => {
         /no longer available from the current account or provider/i,
       ),
     ).toBeTruthy()
-    expect(
-      screen.getByText(/ask the owner for an updated link/i),
-    ).toBeTruthy()
+    expect(screen.getByText(/ask the owner for an updated link/i)).toBeTruthy()
     expect(
       screen.getByText(`shared object not found: ${SPACE_ID}`),
     ).toBeTruthy()
@@ -671,7 +668,9 @@ describe('SessionSharedObjectContainer', () => {
     expect(screen.getByText('Unlock to open this Space')).toBeTruthy()
     expect(screen.getByText('Unlock Space access')).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Unlock and open Space' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Unlock and open Space' }),
+    )
 
     await waitFor(() => {
       expect(mockSelfEnrollmentStart).toHaveBeenCalledTimes(1)

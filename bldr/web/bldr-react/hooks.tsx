@@ -532,20 +532,18 @@ export function useMemoEqual<T>(
 ): T {
   const ref = useRef<T>(value)
 
-   
   const isEqual =
     value === ref.current ||
     (value != null &&
       ref.current != null &&
       checkEqual &&
-      checkEqual(value as NonNullable<T>, ref.current as NonNullable<T>))
+      checkEqual(value, ref.current))
 
   if (!isEqual) {
     ref.current = value
   }
 
   return ref.current
-   
 }
 
 /**
@@ -577,13 +575,13 @@ export function useMemoEqualGetter<T, V = T>(
     [value, memoValue, checkEqual],
   )
   const outValue = memoEquiv ? memoState.outValue : getter(value)
-   
+
   useEffect(() => {
     if (!memoEquiv) {
       setMemoState({ memoValue: value, outValue: outValue })
     }
   }, [memoEquiv, value, outValue])
-   
+
   return outValue
 }
 
@@ -769,7 +767,6 @@ export function useOnChangeToValue<T>(
 ): void {
   const [, setCurrValue] = useState<T>(() => value)
 
-   
   useEffect(() => {
     setCurrValue((prev) => {
       if (prev !== value) {
@@ -788,7 +785,6 @@ export function useOnChangeToValue<T>(
     callback,
     ...(deps ?? []), // eslint-disable-line react-hooks/exhaustive-deps
   ])
-   
 }
 
 /**

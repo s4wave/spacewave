@@ -27,9 +27,12 @@ export function ShellTabLabel({ tab }: ShellTabLabelProps) {
   // renamingTabId is cleared.
   useEffect(() => {
     if (renamingTabId === tab.id) {
-      setEditValue(displayName)
-      setEditing(true)
-      queueMicrotask(stopRenaming)
+      const timer = window.setTimeout(() => {
+        setEditValue(displayName)
+        setEditing(true)
+        stopRenaming()
+      }, 0)
+      return () => window.clearTimeout(timer)
     }
   }, [renamingTabId, tab.id, displayName, stopRenaming])
 

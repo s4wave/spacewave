@@ -11,7 +11,10 @@ vi.mock('@s4wave/web/hooks/useRootResource.js', () => ({
 }))
 
 vi.mock('@aptre/bldr-sdk/hooks/useResource.js', () => ({
-  useResource: (...args: unknown[]) => mockUseResource(...args),
+  useResource: (...args: unknown[]) => {
+    const resource: unknown = mockUseResource(...args)
+    return resource
+  },
 }))
 
 vi.mock('./useLandingBackNavigation.js', () => ({

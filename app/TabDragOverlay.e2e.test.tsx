@@ -1829,7 +1829,7 @@ describe('Grid Mode CSS Visual Issues', () => {
       >
         <div
           className="shell-flexlayout shell-flexlayout--with-menu bg-editor-border flex flex-1 flex-col gap-1 overflow-hidden p-1"
-          style={{ '--menu-bar-width': '233px' } as React.CSSProperties}
+          style={{ '--menu-bar-width': '233px' }}
           data-testid="shell-container"
         >
           <OptimizedLayout

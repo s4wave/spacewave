@@ -593,7 +593,7 @@ export class Directory extends Inode {
         }
         return { ret: wasi.ERRNO_SUCCESS, entry: child }
       },
-      { ret: wasi.ERRNO_SUCCESS, entry: this as Inode },
+      { ret: wasi.ERRNO_SUCCESS, entry: this },
     )
 
     if (result.entry === null) {
@@ -940,5 +940,3 @@ export class DevDirectory extends Fd {
     return { ret: wasi.ERRNO_NOENT, fd_obj: null }
   }
 }
-
-

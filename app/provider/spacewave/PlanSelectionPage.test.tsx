@@ -12,7 +12,7 @@ vi.mock('@s4wave/app/landing/AnimatedLogo.js', () => ({
 }))
 
 const mockSessionResource = vi.hoisted(() => ({
-  value: null as unknown,
+  value: null,
   loading: false,
   error: null,
   retry: vi.fn(),

@@ -13,6 +13,7 @@ import {
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const projectRoot = resolve(__dirname, '../../')
+const goAliases = buildGoAliases(projectRoot)
 
 export default defineConfig({
   root: __dirname,
@@ -45,7 +46,7 @@ export default defineConfig({
         find: /^@aptre\/bldr-sdk\/(.*)$/,
         replacement: resolve(projectRoot, './.bldr/src/sdk/$1'),
       },
-      ...buildGoAliases(projectRoot),
+      ...goAliases,
       {
         find: /^@s4wave\/core\/(.*)$/,
         replacement: resolve(projectRoot, './core/$1'),

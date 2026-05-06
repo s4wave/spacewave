@@ -196,7 +196,7 @@ export class DerivedAtom<T, U> implements Atom<U> {
 // useMemoPath memoizes a path array by comparing string contents rather than reference.
 export function useMemoPath(path: string[] | null | undefined): string[] {
   const pathStr = path?.join('\0') ?? ''
-  // eslint-disable-next-line react-hooks/preserve-manual-memoization, react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   return useMemo(() => path ?? [], [pathStr])
 }
 
@@ -507,7 +507,7 @@ function useRegisterStateAtomForDevTools(
   const shouldRegister = scope !== null && !storeId.startsWith('devtools/')
   const registry = useStateAtomRegistryContext()
   const registeredAtomRef = useRef<RegisteredStateAtom | null>(null)
-  if (!registeredAtomRef.current) {
+  if (registeredAtomRef.current == null) {
     registeredAtomRef.current = createRegisteredStateAtom()
   }
 

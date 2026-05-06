@@ -44,7 +44,7 @@ export async function withCleanup<T>(
         resources.length = 0
       },
     },
-  ) as CleanupTracker
+  )
   try {
     return await fn(tracker)
   } finally {

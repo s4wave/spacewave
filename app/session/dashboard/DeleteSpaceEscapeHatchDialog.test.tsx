@@ -21,7 +21,10 @@ const mockDeleteSpace = vi.hoisted(() => vi.fn())
 const watchState: { spacesList: unknown[] } = { spacesList: [] }
 
 vi.mock('@aptre/bldr-react', () => ({
-  useWatchStateRpc: (...args: unknown[]) => mockUseWatchStateRpc(...args),
+  useWatchStateRpc: (...args: unknown[]) => {
+    const state: unknown = mockUseWatchStateRpc(...args)
+    return state
+  },
 }))
 
 vi.mock('@s4wave/web/ui/dialog.js', () => ({
@@ -126,7 +129,7 @@ describe('DeleteSpaceEscapeHatchDialog', () => {
     expect(screen.getByText('space-2')).toBeDefined()
   })
 
-  it('gates deletion behind selection, acknowledgment, and typed confirmation', async () => {
+  it('gates deletion behind selection, acknowledgment, and typed confirmation', () => {
     renderDialog()
 
     const continueButtons = screen.getAllByRole('button', { name: 'Continue' })
@@ -135,7 +138,7 @@ describe('DeleteSpaceEscapeHatchDialog', () => {
     fireEvent.click(screen.getByRole('radio', { name: /Broken Space/i }))
     expect(continueButtons[0]?.hasAttribute('disabled')).toBe(false)
 
-    fireEvent.click(continueButtons[0]!)
+    fireEvent.click(continueButtons[0])
 
     const warningContinue = screen.getByRole('button', { name: 'Continue' })
     expect(warningContinue.hasAttribute('disabled')).toBe(true)
@@ -173,7 +176,7 @@ describe('DeleteSpaceEscapeHatchDialog', () => {
     })
   })
 
-  it('keeps final-step content while the selected space disappears during delete', async () => {
+  it('keeps final-step content while the selected space disappears during delete', () => {
     const deleteControl: { resolve?: () => void } = {}
     mockDeleteSpace.mockReturnValue(
       new Promise<void>((resolve) => {

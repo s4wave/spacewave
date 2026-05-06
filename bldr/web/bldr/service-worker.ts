@@ -20,7 +20,6 @@ import { isCrossTabMessage, handleCrossTabMessage } from './cross-tab-broker.js'
 import { randomId } from './random-id.js'
 import { ServiceWorkerFetchTracker } from './service-worker-fetch-tracker.js'
 import { WebDocumentTracker } from './web-document-tracker.js'
-import { ServiceWorkerToWebDocument } from 'web/runtime/runtime.js'
 
 declare let BLDR_DEBUG: boolean
 
@@ -513,7 +512,7 @@ const onWebDocumentsExhausted = async () => {
     )
   }
   for (const client of currClients) {
-    client.postMessage(<ServiceWorkerToWebDocument>{
+    client.postMessage({
       from: serviceWorkerLogicalId,
       init: true,
     })
@@ -671,7 +670,7 @@ export async function swFetch(
       )
     }
 
-    let response: Response | null = null
+    let response: Response | null
     let responseErr: unknown | null = null
     try {
       response = await fetch(ev.request)

@@ -137,9 +137,7 @@ function loadModelFromStorage(
               }
             }
             if (model.layout) {
-              countTabsets(
-                model.layout as { type?: string; children?: unknown[] },
-              )
+              countTabsets(model.layout)
             }
             if (tabsetCount <= 1) {
               return model

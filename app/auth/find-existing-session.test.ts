@@ -12,20 +12,18 @@ describe('findExistingSessionIndexByUsername', () => {
           { sessionIndex: 7 },
         ],
       }),
-      getSessionMetadata: vi
-        .fn()
-        .mockImplementation(async (sessionIndex: number) => {
-          if (sessionIndex === 5) {
-            return { metadata: { cloudEntityId: 'other-user' } }
-          }
-          if (sessionIndex === 2) {
-            return { metadata: { cloudEntityId: 'casey' } }
-          }
-          if (sessionIndex === 7) {
-            return { metadata: { cloudEntityId: 'casey' } }
-          }
-          return { metadata: null }
-        }),
+      getSessionMetadata: vi.fn().mockImplementation((sessionIndex: number) => {
+        if (sessionIndex === 5) {
+          return { metadata: { cloudEntityId: 'other-user' } }
+        }
+        if (sessionIndex === 2) {
+          return { metadata: { cloudEntityId: 'casey' } }
+        }
+        if (sessionIndex === 7) {
+          return { metadata: { cloudEntityId: 'casey' } }
+        }
+        return { metadata: null }
+      }),
     }
 
     await expect(

@@ -98,7 +98,7 @@ function SpaceMountStepper({ current }: { current: SpaceMountStage }) {
             </span>
             <span
               className={cn(
-                'text-[0.6rem] font-medium tracking-widest uppercase select-none transition-colors',
+                'text-[0.6rem] font-medium tracking-widest uppercase transition-colors select-none',
                 isComplete && 'text-foreground-alt/55',
                 isActive && 'text-foreground',
                 !isComplete && !isActive && 'text-foreground-alt/35',

@@ -155,6 +155,7 @@ export function Canvas({
     })
   }, [
     focusNodeId,
+    selection,
     state.nodes,
     selection.selectedNodeIds,
     selection.focus,

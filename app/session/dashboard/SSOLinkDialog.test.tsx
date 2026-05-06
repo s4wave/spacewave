@@ -144,10 +144,7 @@ describe('SSOLinkDialog', () => {
     openSpy.mockReset()
     onOpenChange.mockReset()
     linkSSO.mockClear()
-    vi.stubGlobal(
-      'BroadcastChannel',
-      FakeBroadcastChannel as unknown as typeof BroadcastChannel,
-    )
+    vi.stubGlobal('BroadcastChannel', FakeBroadcastChannel)
     vi.stubGlobal('open', openSpy)
   })
 

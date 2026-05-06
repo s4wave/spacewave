@@ -79,7 +79,7 @@ describe('CanvasMinimap', () => {
   })
 
   it('calls onViewportChange when clicked', () => {
-    const onViewportChange = vi.fn()
+    const onViewportChange = vi.fn<(viewport: Viewport) => void>()
     const n1 = makeNode({ id: 'a', x: 0, y: 0, width: 200, height: 200 })
     const nodes = new Map([['a', n1]])
     render(
@@ -107,7 +107,8 @@ describe('CanvasMinimap', () => {
     })
     fireEvent.click(minimap, { clientX: 100, clientY: 75 })
     expect(onViewportChange).toHaveBeenCalled()
-    const call = onViewportChange.mock.calls[0][0]
+    const call = onViewportChange.mock.calls[0]?.[0]
+    expect(call).toBeDefined()
     expect(call).toHaveProperty('x')
     expect(call).toHaveProperty('y')
     expect(call).toHaveProperty('scale')
@@ -127,7 +128,7 @@ describe('CanvasMinimap', () => {
   })
 
   it('preserves viewport scale on click navigation', () => {
-    const onViewportChange = vi.fn()
+    const onViewportChange = vi.fn<(viewport: Viewport) => void>()
     const viewport: Viewport = { x: 0, y: 0, scale: 2 }
     const n1 = makeNode({ id: 'a', x: 0, y: 0 })
     const nodes = new Map([['a', n1]])
@@ -156,6 +157,6 @@ describe('CanvasMinimap', () => {
     fireEvent.click(minimap, { clientX: 50, clientY: 50 })
     expect(onViewportChange).toHaveBeenCalled()
     // Scale should be preserved from the current viewport.
-    expect(onViewportChange.mock.calls[0][0].scale).toBe(2)
+    expect(onViewportChange.mock.calls[0]?.[0]?.scale).toBe(2)
   })
 })

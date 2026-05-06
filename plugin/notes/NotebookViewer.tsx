@@ -47,7 +47,11 @@ function NotebookViewer({
     'selectedNote',
     '',
   )
-  const [currentPath, setCurrentPath] = useStateAtom<string>(ns, 'currentPath', '')
+  const [currentPath, setCurrentPath] = useStateAtom<string>(
+    ns,
+    'currentPath',
+    '',
+  )
   const [editing, setEditing] = useStateAtom<boolean>(ns, 'editing', false)
 
   // Tag filter state.
@@ -190,92 +194,92 @@ function NotebookViewer({
       state={state}
       loadingText="Loading notebook..."
     >
-    <div className="bg-background-primary flex h-full w-full overflow-hidden">
-      {/* Mobile hamburger toggle */}
-      <button
-        type="button"
-        className="bg-background-primary text-foreground-alt hover:text-foreground absolute left-2 top-2 z-30 rounded p-1 md:hidden"
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-      >
-        {sidebarOpen ?
-          <LuX className="h-5 w-5" />
-        : <LuMenu className="h-5 w-5" />}
-      </button>
+      <div className="bg-background-primary flex h-full w-full overflow-hidden">
+        {/* Mobile hamburger toggle */}
+        <button
+          type="button"
+          className="bg-background-primary text-foreground-alt hover:text-foreground absolute top-2 left-2 z-30 rounded p-1 md:hidden"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+        >
+          {sidebarOpen ?
+            <LuX className="h-5 w-5" />
+          : <LuMenu className="h-5 w-5" />}
+        </button>
 
-      {/* Sidebar - responsive: hidden on mobile unless toggled */}
-      <div
-        className={cn(
-          'border-r border-border',
-          'md:relative md:block',
-          sidebarOpen
-            ? 'bg-background-primary absolute inset-y-0 left-0 z-20 block'
-            : 'hidden',
-        )}
-        style={{ width: 200, minWidth: 200 }}
-      >
-        <NotebookSidebar
-          sources={sources}
-          selectedSource={selectedSource}
-          onSelectSource={handleSelectSource}
-          onAddSource={handleAddSource}
-          onRemoveSource={handleRemoveSource}
-          onMoveSource={handleMoveSource}
-          namespace={ns}
-        />
-      </div>
-
-      {/* Note list - responsive: hidden on mobile when note is selected */}
-      <div
-        className={cn(
-          'border-r border-border',
-          selectedNote ? 'hidden md:block' : 'block',
-        )}
-        style={{ width: 250, minWidth: 250 }}
-      >
-        <NoteList
-          source={currentSource}
-          worldState={worldState}
-          selectedNote={selectedNote}
-          currentPath={currentPath}
-          onSelectNote={handleSelectNote}
-          onChangePath={handleChangePath}
-          onNoteRenamed={handleNoteRenamed}
-          onNoteDeleted={handleNoteDeleted}
-          filterTag={filterTag}
-          filterStatus={filterStatus}
-          onFilterTagChange={setFilterTag}
-          onFilterStatusChange={setFilterStatus}
-        />
-      </div>
-
-      {/* Content area */}
-      <div className="min-w-0 flex-1">
-        {currentSource?.ref && selectedNote ?
-          <NoteContentView
-            worldState={worldState}
-            sourceRef={currentSource.ref}
-            noteName={selectedNote}
-            editing={editing}
-            onToggleEdit={handleToggleEdit}
-            onFilterTag={setFilterTag}
-            onFilterStatus={setFilterStatus}
-          />
-        : <div className="text-muted-foreground flex h-full items-center justify-center text-xs">
-            {sources.length === 0 ?
-              'No sources configured for this notebook'
-            : 'Select a note to view'}
-          </div>
-        }
-      </div>
-
-      {/* Backdrop for mobile sidebar */}
-      {sidebarOpen && (
+        {/* Sidebar - responsive: hidden on mobile unless toggled */}
         <div
-          className="fixed inset-0 z-10 bg-black/40 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-    </div>
+          className={cn(
+            'border-border border-r',
+            'md:relative md:block',
+            sidebarOpen ?
+              'bg-background-primary absolute inset-y-0 left-0 z-20 block'
+            : 'hidden',
+          )}
+          style={{ width: 200, minWidth: 200 }}
+        >
+          <NotebookSidebar
+            sources={sources}
+            selectedSource={selectedSource}
+            onSelectSource={handleSelectSource}
+            onAddSource={() => void handleAddSource()}
+            onRemoveSource={(index) => void handleRemoveSource(index)}
+            onMoveSource={(index, delta) => void handleMoveSource(index, delta)}
+            namespace={ns}
+          />
+        </div>
+
+        {/* Note list - responsive: hidden on mobile when note is selected */}
+        <div
+          className={cn(
+            'border-border border-r',
+            selectedNote ? 'hidden md:block' : 'block',
+          )}
+          style={{ width: 250, minWidth: 250 }}
+        >
+          <NoteList
+            source={currentSource}
+            worldState={worldState}
+            selectedNote={selectedNote}
+            currentPath={currentPath}
+            onSelectNote={handleSelectNote}
+            onChangePath={handleChangePath}
+            onNoteRenamed={handleNoteRenamed}
+            onNoteDeleted={handleNoteDeleted}
+            filterTag={filterTag}
+            filterStatus={filterStatus}
+            onFilterTagChange={setFilterTag}
+            onFilterStatusChange={setFilterStatus}
+          />
+        </div>
+
+        {/* Content area */}
+        <div className="min-w-0 flex-1">
+          {currentSource?.ref && selectedNote ?
+            <NoteContentView
+              worldState={worldState}
+              sourceRef={currentSource.ref}
+              noteName={selectedNote}
+              editing={editing}
+              onToggleEdit={handleToggleEdit}
+              onFilterTag={setFilterTag}
+              onFilterStatus={setFilterStatus}
+            />
+          : <div className="text-muted-foreground flex h-full items-center justify-center text-xs">
+              {sources.length === 0 ?
+                'No sources configured for this notebook'
+              : 'Select a note to view'}
+            </div>
+          }
+        </div>
+
+        {/* Backdrop for mobile sidebar */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 z-10 bg-black/40 md:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+      </div>
     </ViewerStatusShell>
   )
 }

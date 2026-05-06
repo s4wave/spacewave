@@ -544,7 +544,8 @@ export class Client {
       yamuxParams: { enableKeepAlive: false },
     })
 
-    const client = this
+    const releaseAttachedResource = (resourceId: number) =>
+      this.releaseAttachedResource(sess, resourceId)
 
     // Pipe mux_data between ResourceAttach stream and yamux.
     // Incoming packets -> dispatch control or extract mux_data bytes.
@@ -581,7 +582,7 @@ export class Client {
           }
         }
         if (body?.case === 'detachAck') {
-          client.releaseAttachedResource(sess, body.value.resourceId ?? 0)
+          releaseAttachedResource(body.value.resourceId ?? 0)
         }
       }
     })()

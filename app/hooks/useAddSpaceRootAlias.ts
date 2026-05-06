@@ -3,10 +3,7 @@ import { isDesktop, openElectronDirectory } from '@aptre/bldr'
 
 import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
-import {
-  SpaceRootKind,
-  SpaceRootOpenMode,
-} from '@s4wave/sdk/root/root.pb.js'
+import { SpaceRootKind, SpaceRootOpenMode } from '@s4wave/sdk/root/root.pb.js'
 
 // useAddSpaceRootAlias opens the native directory picker and persists a root alias.
 export function useAddSpaceRootAlias() {

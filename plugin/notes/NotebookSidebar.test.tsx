@@ -110,7 +110,7 @@ describe('NotebookSidebar', () => {
       onRemoveSource,
     })
     const removeButtons = screen.getAllByTitle('Remove source')
-    fireEvent.click(removeButtons[1]!)
+    fireEvent.click(removeButtons[1])
     expect(onRemoveSource).toHaveBeenCalledWith(1)
   })
 
@@ -121,7 +121,7 @@ describe('NotebookSidebar', () => {
       onMoveSource,
     })
     const moveDownButtons = screen.getAllByTitle('Move source down')
-    fireEvent.click(moveDownButtons[0]!)
+    fireEvent.click(moveDownButtons[0])
     expect(onMoveSource).toHaveBeenCalledWith(0, 1)
   })
 })

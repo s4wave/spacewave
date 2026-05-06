@@ -1338,10 +1338,7 @@ const ComparisonChart: React.FC = () => {
     <div className="mx-auto max-w-4xl text-base @md:text-lg">
       <div className="border-foreground/10 bg-background-card-alt overflow-hidden rounded-lg border backdrop-blur-sm">
         {/* Header */}
-        <div
-          className="border-foreground/10 grid border-b"
-          style={columns}
-        >
+        <div className="border-foreground/10 grid border-b" style={columns}>
           <div className="p-4 font-medium">Feature</div>
           <div className="px-1 py-4 text-center text-sm font-medium text-white @md:p-4 @md:text-base">
             Spacewave
@@ -1354,11 +1351,7 @@ const ComparisonChart: React.FC = () => {
         {/* Features */}
         <div className="divide-foreground/10 divide-y">
           {features.map((feature, index) => (
-            <div
-              key={index}
-              className="grid items-center"
-              style={columns}
-            >
+            <div key={index} className="grid items-center" style={columns}>
               <div className="flex items-center gap-2 p-4">
                 <span className="text-foreground-alt flex-shrink-0">
                   {feature.icon}

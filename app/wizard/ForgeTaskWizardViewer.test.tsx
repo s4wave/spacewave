@@ -78,7 +78,7 @@ describe('ForgeTaskWizardViewer', () => {
     const user = userEvent.setup()
     render(
       <ForgeTaskWizardViewer
-        objectInfo={{} as never}
+        objectInfo={{}}
         worldState={{
           value: {} as never,
           loading: false,

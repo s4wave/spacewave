@@ -181,10 +181,7 @@ export function useCommand(opts: UseCommandOpts): void {
 }
 
 function isCommandRegistrationLifecycleError(err: unknown): boolean {
-  if (
-    err instanceof ResourceClientError &&
-    err.code === 'CONNECTION_FAILED'
-  ) {
+  if (err instanceof ResourceClientError && err.code === 'CONNECTION_FAILED') {
     return true
   }
   if (!(err instanceof Error)) return false

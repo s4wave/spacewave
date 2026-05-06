@@ -53,14 +53,14 @@ class ItemsStore {
       }
 
       const updated = [...this.items]
-      updated[existingIndex] = item as BottomBarItem
+      updated[existingIndex] = item
       updated.sort((a, b) => a.depth - b.depth)
       this.items = updated
       this.notify()
       return
     }
 
-    const next = [...this.items, item as BottomBarItem]
+    const next = [...this.items, item]
     next.sort((a, b) => a.depth - b.depth)
     this.items = next
     this.notify()

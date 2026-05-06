@@ -25,7 +25,7 @@ export function DebugObjectViewer({
       if (!world || !objectKey) return ''
       return getObjectType(world, objectKey, signal)
     },
-    [objectKey],
+    [objectKey, worldState],
   )
 
   const resolvedTypeIDResource = useResource(worldState, resolveTypeID, [

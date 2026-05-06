@@ -29,7 +29,7 @@ export function parseAuthorRegistry(yamlContent: string): AuthorRegistry {
   if (!parsed || typeof parsed !== 'object') return {}
 
   const registry: AuthorRegistry = {}
-  for (const [slug, value] of Object.entries(parsed as Record<string, unknown>)) {
+  for (const [slug, value] of Object.entries(parsed)) {
     if (!value || typeof value !== 'object') continue
     const entry = value as Record<string, unknown>
     registry[slug] = {

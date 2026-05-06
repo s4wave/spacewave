@@ -241,7 +241,9 @@ describe('ResourceServer', () => {
 
       await iterator.next()
 
-      const clients = (server as unknown as { clients: Map<number, RemoteResourceClient> }).clients
+      const clients = (
+        server as unknown as { clients: Map<number, RemoteResourceClient> }
+      ).clients
       const client = clients.get(1)!
       expect(client).toBeDefined()
 
@@ -270,7 +272,9 @@ describe('ResourceServer', () => {
 
       await iterator.next()
 
-      const clients = (server as unknown as { clients: Map<number, RemoteResourceClient> }).clients
+      const clients = (
+        server as unknown as { clients: Map<number, RemoteResourceClient> }
+      ).clients
       expect(clients.has(1)).toBe(true)
 
       controller.abort()
@@ -287,7 +291,9 @@ describe('ResourceServer', () => {
 
       await iterator.next()
 
-      const clients = (server as unknown as { clients: Map<number, RemoteResourceClient> }).clients
+      const clients = (
+        server as unknown as { clients: Map<number, RemoteResourceClient> }
+      ).clients
       const client = clients.get(1)!
 
       const releaseFn = vi.fn()
@@ -309,7 +315,9 @@ describe('ResourceServer', () => {
 
       await iterator.next()
 
-      const clients = (server as unknown as { clients: Map<number, RemoteResourceClient> }).clients
+      const clients = (
+        server as unknown as { clients: Map<number, RemoteResourceClient> }
+      ).clients
       const client = clients.get(1)!
 
       // Root resource (ID 1) has no releaseFn (added with undefined)
@@ -394,7 +402,9 @@ describe('ResourceServer', () => {
       const iterator = stream[Symbol.asyncIterator]()
       await iterator.next()
 
-      const clients = (server as unknown as { clients: Map<number, RemoteResourceClient> }).clients
+      const clients = (
+        server as unknown as { clients: Map<number, RemoteResourceClient> }
+      ).clients
       const client = clients.get(1)!
       const rootResourceId = 1
       expect(client.resources.has(rootResourceId)).toBe(true)
@@ -418,7 +428,9 @@ describe('ResourceServer', () => {
       const iterator = stream[Symbol.asyncIterator]()
       await iterator.next()
 
-      const clients = (server as unknown as { clients: Map<number, RemoteResourceClient> }).clients
+      const clients = (
+        server as unknown as { clients: Map<number, RemoteResourceClient> }
+      ).clients
       const client = clients.get(1)!
 
       const releaseFn = vi.fn()
@@ -444,7 +456,9 @@ describe('ResourceServer', () => {
       const iterator = stream[Symbol.asyncIterator]()
       await iterator.next()
 
-      const clients = (server as unknown as { clients: Map<number, RemoteResourceClient> }).clients
+      const clients = (
+        server as unknown as { clients: Map<number, RemoteResourceClient> }
+      ).clients
       const client = clients.get(1)!
       const childId = client.addResource(createMux(), () => {})
 
@@ -479,7 +493,9 @@ describe('constructChildResource', () => {
     const iterator = stream[Symbol.asyncIterator]()
     await iterator.next()
 
-    const clients = (server as unknown as { clients: Map<number, RemoteResourceClient> }).clients
+    const clients = (
+      server as unknown as { clients: Map<number, RemoteResourceClient> }
+    ).clients
     const client = clients.get(1)!
 
     // Verify we can add resources to the client
@@ -510,7 +526,7 @@ describe('newResourceMux', () => {
       getMethodIDs: () => ['TestMethod'],
       lookupMethod: async (_serviceID: string, _methodID: string) => null,
     }
-    const mux = newResourceMux(handler as never)
+    const mux = newResourceMux(handler)
     expect(mux).toBeDefined()
   })
 })
@@ -527,18 +543,20 @@ describe('integration: full resource lifecycle', () => {
     const { value: initMsg } = await iterator.next()
     expect(initMsg.body?.case).toBe('init')
     const clientHandleId =
-      initMsg.body?.case === 'init'
-        ? (initMsg.body.value.clientHandleId ?? 0)
-        : 0
+      initMsg.body?.case === 'init' ?
+        (initMsg.body.value.clientHandleId ?? 0)
+      : 0
     const rootResourceId =
-      initMsg.body?.case === 'init'
-        ? (initMsg.body.value.rootResourceId ?? 0)
-        : 0
+      initMsg.body?.case === 'init' ?
+        (initMsg.body.value.rootResourceId ?? 0)
+      : 0
     expect(clientHandleId).toBe(1)
     expect(rootResourceId).toBeGreaterThan(0)
 
     // Step 2: add a child resource via internals
-    const clients = (server as unknown as { clients: Map<number, RemoteResourceClient> }).clients
+    const clients = (
+      server as unknown as { clients: Map<number, RemoteResourceClient> }
+    ).clients
     const client = clients.get(clientHandleId)!
     const releaseFn = vi.fn()
     const childMux = createMux()
@@ -574,7 +592,9 @@ describe('integration: full resource lifecycle', () => {
 
     await iterator.next()
 
-    const clients = (server as unknown as { clients: Map<number, RemoteResourceClient> }).clients
+    const clients = (
+      server as unknown as { clients: Map<number, RemoteResourceClient> }
+    ).clients
     const client = clients.get(1)!
 
     const releaseFn = vi.fn()
@@ -605,7 +625,9 @@ describe('integration: full resource lifecycle', () => {
 
     await iterator.next()
 
-    const clients = (server as unknown as { clients: Map<number, RemoteResourceClient> }).clients
+    const clients = (
+      server as unknown as { clients: Map<number, RemoteResourceClient> }
+    ).clients
     const client = clients.get(1)!
     const childId = client.addResource(createMux(), () => {})
 
@@ -676,9 +698,7 @@ async function setupClientSession(server: ResourceServer) {
   const clientIter = clientStream[Symbol.asyncIterator]()
   const { value: initMsg } = await clientIter.next()
   const clientHandleId =
-    initMsg.body?.case === 'init'
-      ? (initMsg.body.value.clientHandleId ?? 0)
-      : 0
+    initMsg.body?.case === 'init' ? (initMsg.body.value.clientHandleId ?? 0) : 0
   const clients = (
     server as unknown as { clients: Map<number, RemoteResourceClient> }
   ).clients
@@ -701,8 +721,8 @@ async function sendAddAndGetResourceId(
   })
   const { value: addAckPkt } = await attachIter.next()
   expect(addAckPkt.body?.case).toBe('addAck')
-  return addAckPkt.body?.case === 'addAck'
-    ? (addAckPkt.body.value.resourceId ?? 0)
+  return addAckPkt.body?.case === 'addAck' ?
+      (addAckPkt.body.value.resourceId ?? 0)
     : 0
 }
 
@@ -735,9 +755,7 @@ async function readNextControlPacket(
     },
   })
   const pkt = await readNextControl(attachIter, 'addAck')
-  return pkt.body?.case === 'addAck'
-    ? (pkt.body.value.resourceId ?? 0)
-    : 0
+  return pkt.body?.case === 'addAck' ? (pkt.body.value.resourceId ?? 0) : 0
 }
 
 describe('ResourceAttach handler', () => {
@@ -1255,7 +1273,11 @@ describe('ResourceAttach handler', () => {
         attachIter,
         'resource-a',
       )
-      const resId2 = await readNextControlPacket(stream, attachIter, 'resource-b')
+      const resId2 = await readNextControlPacket(
+        stream,
+        attachIter,
+        'resource-b',
+      )
       expect(resId2).toBeGreaterThan(0)
 
       const attached1 = client.attachedResources.get(resId1)!
@@ -1397,7 +1419,11 @@ describe('ResourceAttach handler', () => {
         attachIter,
         'session-close-a',
       )
-      const resId2 = await readNextControlPacket(stream, attachIter, 'session-close-b')
+      const resId2 = await readNextControlPacket(
+        stream,
+        attachIter,
+        'session-close-b',
+      )
 
       const attached1 = client.attachedResources.get(resId1)!
       const attached2 = client.attachedResources.get(resId2)!

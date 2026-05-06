@@ -14,12 +14,12 @@ export function createEvent(): {
   readonly AT_TARGET: 2
   readonly BUBBLING_PHASE: 3
 } {
-  return globalThis.Event as any
+  return globalThis.Event
 }
 
 // createEventTarget returns the EventTarget constructor from globalThis.
 export function createEventTarget(): new () => EventTarget {
-  return globalThis.EventTarget as any
+  return globalThis.EventTarget
 }
 
 // createCustomEvent returns the CustomEvent constructor from globalThis.
@@ -27,5 +27,5 @@ export function createCustomEvent(): new <T = any>(
   type: string,
   eventInitDict?: CustomEventInit<T>,
 ) => CustomEvent<T> {
-  return globalThis.CustomEvent as any
+  return globalThis.CustomEvent
 }

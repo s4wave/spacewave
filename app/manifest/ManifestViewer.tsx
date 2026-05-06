@@ -122,7 +122,10 @@ export function ManifestViewer({
               <InfoCard>
                 <div className="space-y-2">
                   {meta?.manifestId && (
-                    <CopyableField label="Manifest ID" value={meta.manifestId} />
+                    <CopyableField
+                      label="Manifest ID"
+                      value={meta.manifestId}
+                    />
                   )}
                   {meta?.buildType && (
                     <CopyableField label="Build Type" value={meta.buildType} />
@@ -134,7 +137,10 @@ export function ManifestViewer({
                     <CopyableField label="Rev" value={String(meta.rev)} />
                   )}
                   {meta?.description && (
-                    <CopyableField label="Description" value={meta.description} />
+                    <CopyableField
+                      label="Description"
+                      value={meta.description}
+                    />
                   )}
                 </div>
               </InfoCard>

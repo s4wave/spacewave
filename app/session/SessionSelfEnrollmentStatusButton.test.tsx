@@ -123,7 +123,10 @@ describe('SessionSelfEnrollmentStatusButton', () => {
     const skip = vi.fn().mockResolvedValue(undefined)
     mockUseSessionSelfEnrollmentStatus.mockReturnValue(
       view({
-        resource: { start, skip } as unknown as SessionSelfEnrollmentStatusView['resource'],
+        resource: {
+          start,
+          skip,
+        } as unknown as SessionSelfEnrollmentStatusView['resource'],
         count: 1,
         sharedObjectIds: ['a'],
         generationKey: 'gen-1',

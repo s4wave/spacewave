@@ -23,7 +23,7 @@ const GLOBAL_KEY = '__s4wave_debug'
 
 // globalStore returns globalThis typed for debug context storage.
 function globalStore(): Record<string, unknown> {
-  return globalThis as never
+  return globalThis
 }
 
 // setDebugContext stores the debug context on globalThis for eval scripts to access.

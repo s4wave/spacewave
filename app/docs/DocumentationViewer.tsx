@@ -136,7 +136,7 @@ export function DocumentationViewer({
         const handle = fileHandle.value
         if (handle) {
           const encoded = new TextEncoder().encode(editContent)
-          handle
+          void handle
             .writeAt(0n, encoded)
             .then(() => handle.truncate(BigInt(encoded.byteLength)))
         }
@@ -253,7 +253,9 @@ export function DocumentationViewer({
           <button
             type="button"
             className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex items-center justify-center rounded p-1.5"
-            onClick={handleCreatePage}
+            onClick={() => {
+              void handleCreatePage()
+            }}
             title="New page"
           >
             <LuPlus className="h-3.5 w-3.5" />
@@ -270,7 +272,9 @@ export function DocumentationViewer({
                   <button
                     type="button"
                     className="bg-brand text-brand-foreground rounded-md px-3 py-1.5 text-xs font-medium hover:opacity-90"
-                    onClick={handleCreatePage}
+                    onClick={() => {
+                      void handleCreatePage()
+                    }}
                   >
                     Create first page
                   </button>

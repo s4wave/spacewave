@@ -10,9 +10,9 @@ describe('buildInviteLink', () => {
   })
 
   it('prefers the configured cloud public base url', () => {
-    expect(
-      buildInviteLink('https://staging.spacewave.app', 'enc'),
-    ).toBe('https://staging.spacewave.app/#/join/enc')
+    expect(buildInviteLink('https://staging.spacewave.app', 'enc')).toBe(
+      'https://staging.spacewave.app/#/join/enc',
+    )
   })
 
   it('strips trailing slashes from the base url', () => {

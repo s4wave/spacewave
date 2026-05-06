@@ -50,7 +50,7 @@ export function CodeBlock({ code, language, className }: CodeBlockProps) {
       .then(async (h) => {
         if (cancelled) return
         const loadedLangs = h.getLoadedLanguages()
-        if (!loadedLangs.includes(lang as BundledLanguage)) {
+        if (!loadedLangs.includes(lang)) {
           try {
             await h.loadLanguage(lang as BundledLanguage)
           } catch {
@@ -77,10 +77,7 @@ export function CodeBlock({ code, language, className }: CodeBlockProps) {
 
   if (html) {
     return (
-      <div
-        className={className}
-        dangerouslySetInnerHTML={{ __html: html }}
-      />
+      <div className={className} dangerouslySetInnerHTML={{ __html: html }} />
     )
   }
 

@@ -4,9 +4,7 @@ import { toast } from '@s4wave/web/ui/toaster.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { Redirect } from '@s4wave/web/router/Redirect.js'
 import { SpacewaveOnboardingContext } from '@s4wave/web/contexts/SpacewaveOnboardingContext.js'
-import {
-  AccountLifecycleState,
-} from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
+import { AccountLifecycleState } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 import { BillingStateProvider } from '@s4wave/app/billing/BillingStateProvider.js'
 import { SessionDashboardContainer } from '@s4wave/app/session/SessionDashboardContainer.js'
 import { ProviderAccountStatus } from '@s4wave/core/provider/provider.pb.js'

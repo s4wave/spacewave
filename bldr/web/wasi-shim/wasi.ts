@@ -186,14 +186,14 @@ export default class WASI {
 
       fd_allocate: (fd: number, offset: bigint, len: bigint): number => {
         if (this.fds[fd] != undefined) {
-          return this.fds[fd]!.fd_allocate(offset, len)
+          return this.fds[fd].fd_allocate(offset, len)
         }
         return wasi.ERRNO_BADF
       },
 
       fd_close: (fd: number): number => {
         if (this.fds[fd] != undefined) {
-          const ret = this.fds[fd]!.fd_close()
+          const ret = this.fds[fd].fd_close()
           this.fds[fd] = undefined
           this.#freeFds.push(fd)
           return ret
@@ -203,14 +203,14 @@ export default class WASI {
 
       fd_datasync: (fd: number): number => {
         if (this.fds[fd] != undefined) {
-          return this.fds[fd]!.fd_sync()
+          return this.fds[fd].fd_sync()
         }
         return wasi.ERRNO_BADF
       },
 
       fd_fdstat_get: (fd: number, fdstat_ptr: number): number => {
         if (this.fds[fd] != undefined) {
-          const { ret, fdstat } = this.fds[fd]!.fd_fdstat_get()
+          const { ret, fdstat } = this.fds[fd].fd_fdstat_get()
           if (fdstat != null) {
             fdstat.write_bytes(
               new DataView(this.inst.exports.memory.buffer),
@@ -224,7 +224,7 @@ export default class WASI {
 
       fd_fdstat_set_flags: (fd: number, flags: number): number => {
         if (this.fds[fd] != undefined) {
-          return this.fds[fd]!.fd_fdstat_set_flags(flags)
+          return this.fds[fd].fd_fdstat_set_flags(flags)
         }
         return wasi.ERRNO_BADF
       },
@@ -235,7 +235,7 @@ export default class WASI {
         fs_rights_inheriting: bigint,
       ): number => {
         if (this.fds[fd] != undefined) {
-          return this.fds[fd]!.fd_fdstat_set_rights(
+          return this.fds[fd].fd_fdstat_set_rights(
             fs_rights_base,
             fs_rights_inheriting,
           )
@@ -245,7 +245,7 @@ export default class WASI {
 
       fd_filestat_get: (fd: number, filestat_ptr: number): number => {
         if (this.fds[fd] != undefined) {
-          const { ret, filestat } = this.fds[fd]!.fd_filestat_get()
+          const { ret, filestat } = this.fds[fd].fd_filestat_get()
           if (filestat != null) {
             filestat.write_bytes(
               new DataView(this.inst.exports.memory.buffer),
@@ -259,7 +259,7 @@ export default class WASI {
 
       fd_filestat_set_size: (fd: number, size: bigint): number => {
         if (this.fds[fd] != undefined) {
-          return this.fds[fd]!.fd_filestat_set_size(size)
+          return this.fds[fd].fd_filestat_set_size(size)
         }
         return wasi.ERRNO_BADF
       },
@@ -271,7 +271,7 @@ export default class WASI {
         fst_flags: number,
       ): number => {
         if (this.fds[fd] != undefined) {
-          return this.fds[fd]!.fd_filestat_set_times(atim, mtim, fst_flags)
+          return this.fds[fd].fd_filestat_set_times(atim, mtim, fst_flags)
         }
         return wasi.ERRNO_BADF
       },
@@ -289,7 +289,7 @@ export default class WASI {
           const iovecs = wasi.Iovec.read_bytes_array(buffer, iovs_ptr, iovs_len)
           let nread = 0
           for (const iovec of iovecs) {
-            const { ret, data } = this.fds[fd]!.fd_pread(iovec.buf_len, offset)
+            const { ret, data } = this.fds[fd].fd_pread(iovec.buf_len, offset)
             if (ret != wasi.ERRNO_SUCCESS) {
               buffer.setUint32(nread_ptr, nread, true)
               return ret
@@ -310,7 +310,7 @@ export default class WASI {
       fd_prestat_get: (fd: number, buf_ptr: number): number => {
         const buffer = new DataView(this.inst.exports.memory.buffer)
         if (this.fds[fd] != undefined) {
-          const { ret, prestat } = this.fds[fd]!.fd_prestat_get()
+          const { ret, prestat } = this.fds[fd].fd_prestat_get()
           if (prestat != null) {
             prestat.write_bytes(buffer, buf_ptr)
           }
@@ -325,7 +325,7 @@ export default class WASI {
         path_len: number,
       ): number => {
         if (this.fds[fd] != undefined) {
-          const { ret, prestat } = this.fds[fd]!.fd_prestat_get()
+          const { ret, prestat } = this.fds[fd].fd_prestat_get()
           if (prestat == null) {
             return ret
           }
@@ -357,7 +357,7 @@ export default class WASI {
           let nwritten = 0
           for (const iovec of iovecs) {
             const data = buffer8.slice(iovec.buf, iovec.buf + iovec.buf_len)
-            const { ret, nwritten: nwritten_part } = this.fds[fd]!.fd_pwrite(
+            const { ret, nwritten: nwritten_part } = this.fds[fd].fd_pwrite(
               data,
               offset,
             )
@@ -389,7 +389,7 @@ export default class WASI {
           const iovecs = wasi.Iovec.read_bytes_array(buffer, iovs_ptr, iovs_len)
           let nread = 0
           for (const iovec of iovecs) {
-            const { ret, data } = this.fds[fd]!.fd_read(iovec.buf_len)
+            const { ret, data } = this.fds[fd].fd_read(iovec.buf_len)
             if (ret != wasi.ERRNO_SUCCESS) {
               buffer.setUint32(nread_ptr, nread, true)
               return ret
@@ -419,7 +419,7 @@ export default class WASI {
           let bufused = 0
 
           for (;;) {
-            const { ret, dirent } = this.fds[fd]!.fd_readdir_single(cookie)
+            const { ret, dirent } = this.fds[fd].fd_readdir_single(cookie)
             if (ret != 0) {
               buffer.setUint32(bufused_ptr, bufused, true)
               return ret
@@ -465,7 +465,7 @@ export default class WASI {
 
       fd_renumber: (fd: number, to: number) => {
         if (this.fds[fd] != undefined && this.fds[to] != undefined) {
-          const ret = this.fds[to]!.fd_close()
+          const ret = this.fds[to].fd_close()
           if (ret != 0) {
             return ret
           }
@@ -485,7 +485,7 @@ export default class WASI {
       ): number => {
         const buffer = new DataView(this.inst.exports.memory.buffer)
         if (this.fds[fd] != undefined) {
-          const { ret, offset: offset_out } = this.fds[fd]!.fd_seek(
+          const { ret, offset: offset_out } = this.fds[fd].fd_seek(
             offset,
             whence,
           )
@@ -497,7 +497,7 @@ export default class WASI {
 
       fd_sync: (fd: number): number => {
         if (this.fds[fd] != undefined) {
-          return this.fds[fd]!.fd_sync()
+          return this.fds[fd].fd_sync()
         }
         return wasi.ERRNO_BADF
       },
@@ -505,7 +505,7 @@ export default class WASI {
       fd_tell: (fd: number, offset_ptr: number): number => {
         const buffer = new DataView(this.inst.exports.memory.buffer)
         if (this.fds[fd] != undefined) {
-          const { ret, offset } = this.fds[fd]!.fd_tell()
+          const { ret, offset } = this.fds[fd].fd_tell()
           buffer.setBigUint64(offset_ptr, offset, true)
           return ret
         }
@@ -529,8 +529,7 @@ export default class WASI {
           let nwritten = 0
           for (const iovec of iovecs) {
             const data = buffer8.slice(iovec.buf, iovec.buf + iovec.buf_len)
-            const { ret, nwritten: nwritten_part } =
-              this.fds[fd]!.fd_write(data)
+            const { ret, nwritten: nwritten_part } = this.fds[fd].fd_write(data)
             if (ret != wasi.ERRNO_SUCCESS) {
               buffer.setUint32(nwritten_ptr, nwritten, true)
               return ret
@@ -556,7 +555,7 @@ export default class WASI {
           const path = new TextDecoder('utf-8').decode(
             buffer8.slice(path_ptr, path_ptr + path_len),
           )
-          return this.fds[fd]!.path_create_directory(path)
+          return this.fds[fd].path_create_directory(path)
         }
         return wasi.ERRNO_BADF
       },
@@ -574,7 +573,7 @@ export default class WASI {
           const path = new TextDecoder('utf-8').decode(
             buffer8.slice(path_ptr, path_ptr + path_len),
           )
-          const { ret, filestat } = this.fds[fd]!.path_filestat_get(flags, path)
+          const { ret, filestat } = this.fds[fd].path_filestat_get(flags, path)
           if (filestat != null) {
             filestat.write_bytes(buffer, filestat_ptr)
           }
@@ -597,7 +596,7 @@ export default class WASI {
           const path = new TextDecoder('utf-8').decode(
             buffer8.slice(path_ptr, path_ptr + path_len),
           )
-          return this.fds[fd]!.path_filestat_set_times(
+          return this.fds[fd].path_filestat_set_times(
             flags,
             path,
             atim,
@@ -625,14 +624,14 @@ export default class WASI {
           const new_path = new TextDecoder('utf-8').decode(
             buffer8.slice(new_path_ptr, new_path_ptr + new_path_len),
           )
-          const { ret, inode_obj } = this.fds[old_fd]!.path_lookup(
+          const { ret, inode_obj } = this.fds[old_fd].path_lookup(
             old_path,
             old_flags,
           )
           if (inode_obj == null) {
             return ret
           }
-          return this.fds[new_fd]!.path_link(new_path, inode_obj, false)
+          return this.fds[new_fd].path_link(new_path, inode_obj, false)
         }
         return wasi.ERRNO_BADF
       },
@@ -655,7 +654,7 @@ export default class WASI {
             buffer8.slice(path_ptr, path_ptr + path_len),
           )
           this.log('path_open', path)
-          const { ret, fd_obj } = this.fds[fd]!.path_open(
+          const { ret, fd_obj } = this.fds[fd].path_open(
             dirflags,
             path,
             oflags,
@@ -695,7 +694,7 @@ export default class WASI {
           const path = new TextDecoder('utf-8').decode(
             buffer8.slice(path_ptr, path_ptr + path_len),
           )
-          const { ret, data } = this.fds[fd]!.path_readlink(path)
+          const { ret, data } = this.fds[fd].path_readlink(path)
           if (data != null) {
             const data_buf = new TextEncoder().encode(data)
             if (data_buf.length > buf_len) {
@@ -720,7 +719,7 @@ export default class WASI {
           const path = new TextDecoder('utf-8').decode(
             buffer8.slice(path_ptr, path_ptr + path_len),
           )
-          return this.fds[fd]!.path_remove_directory(path)
+          return this.fds[fd].path_remove_directory(path)
         }
         return wasi.ERRNO_BADF
       },
@@ -742,14 +741,14 @@ export default class WASI {
             buffer8.slice(new_path_ptr, new_path_ptr + new_path_len),
           )
           const { ret: unlinkRet, inode_obj } =
-            this.fds[fd]!.path_unlink(old_path)
+            this.fds[fd].path_unlink(old_path)
           if (inode_obj == null) {
             return unlinkRet
           }
-          const linkRet = this.fds[new_fd]!.path_link(new_path, inode_obj, true)
+          const linkRet = this.fds[new_fd].path_link(new_path, inode_obj, true)
           if (linkRet != wasi.ERRNO_SUCCESS) {
             if (
-              this.fds[fd]!.path_link(old_path, inode_obj, true) !=
+              this.fds[fd].path_link(old_path, inode_obj, true) !=
               wasi.ERRNO_SUCCESS
             ) {
               throw 'path_link should always return success when relinking an inode back to the original place'
@@ -787,7 +786,7 @@ export default class WASI {
           const path = new TextDecoder('utf-8').decode(
             buffer8.slice(path_ptr, path_ptr + path_len),
           )
-          return this.fds[fd]!.path_unlink_file(path)
+          return this.fds[fd].path_unlink_file(path)
         }
         return wasi.ERRNO_BADF
       },

@@ -18,7 +18,6 @@ import {
 
 import { cn } from '@s4wave/web/style/utils.js'
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
-import { PhaseChecklist } from './PhaseChecklist.js'
 import { LinkDeviceDoneStep } from './LinkDeviceDoneStep.js'
 import { SetupPageLayout } from './SetupPageLayout.js'
 import {
@@ -470,18 +469,15 @@ function PlatformLink({ label }: { label: string }) {
 
 // PairingQRCode renders a QR code encoding the deep link URL for the pairing code.
 function PairingQRCode({ code }: { code: string }) {
-  const qrCallback = useCallback(
-    (signal: AbortSignal) => {
-      if (!code) return undefined
-      const url = `${SPACEWAVE_PUBLIC_BASE_URL}/#/pair/${code}`
-      return QRCode.toDataURL(url, {
-        width: 160,
-        margin: 1,
-        color: { dark: '#ffffff', light: '#00000000' },
-      })
-    },
-    [code],
-  )
+  const qrCallback = useCallback(() => {
+    if (!code) return undefined
+    const url = `${SPACEWAVE_PUBLIC_BASE_URL}/#/pair/${code}`
+    return QRCode.toDataURL(url, {
+      width: 160,
+      margin: 1,
+      color: { dark: '#ffffff', light: '#00000000' },
+    })
+  }, [code])
   const qrResult = usePromise(qrCallback)
 
   if (!qrResult.data) return null
@@ -528,7 +524,7 @@ function PairingStep({
   // Watch pairing status to detect peer connection or transport errors.
   useEffect(() => {
     if (!session || !code) return
-    setConnectionError(null)
+    queueMicrotask(() => setConnectionError(null))
     const controller = new AbortController()
     ;(async () => {
       for await (const resp of session.watchPairingStatus(controller.signal)) {
@@ -566,7 +562,7 @@ function PairingStep({
   const [elapsed, setElapsed] = useState(0)
 
   useEffect(() => {
-    setElapsed(0)
+    queueMicrotask(() => setElapsed(0))
     if (!code) return
     const interval = setInterval(() => {
       setElapsed((e) => e + 1)
@@ -913,7 +909,9 @@ function EnterCodeStep({
         value={code}
         onChange={handleCodeChange}
         onPaste={handlePaste}
-        onSubmit={handleSubmit}
+        onSubmit={() => {
+          void handleSubmit()
+        }}
         disabled={loading}
       />
 
@@ -943,7 +941,9 @@ function EnterCodeStep({
           <LuArrowLeft className="text-foreground-alt h-4 w-4" />
         </button>
         <button
-          onClick={handleSubmit}
+          onClick={() => {
+            void handleSubmit()
+          }}
           disabled={loading || code.length < 8 || !session}
           className={cn(
             'flex-1 rounded-md border transition-all duration-300',
@@ -1029,11 +1029,11 @@ function VerifyStep({
   }, [session, onContinue])
 
   const handleConfirm = useCallback(() => {
-    session?.confirmSASMatch(true)
+    void session?.confirmSASMatch(true)
   }, [session])
 
   const handleReject = useCallback(() => {
-    session?.confirmSASMatch(false)
+    void session?.confirmSASMatch(false)
     onAbort()
   }, [session, onAbort])
 
@@ -1269,12 +1269,14 @@ function DirectOfferStep({
   }, [session])
 
   useEffect(() => {
-    generateOffer()
+    queueMicrotask(() => {
+      void generateOffer()
+    })
   }, [generateOffer])
 
   const handleCopy = useCallback(() => {
     if (!offerPayload) return
-    navigator.clipboard.writeText(offerPayload)
+    void navigator.clipboard.writeText(offerPayload)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }, [offerPayload])
@@ -1295,19 +1297,16 @@ function DirectOfferStep({
     }
   }, [session, answerInput, onRemotePeerResolved])
 
-  const qrCallback = useCallback(
-    (signal: AbortSignal) => {
-      if (!offerPayload) return undefined
-      const url = `${SPACEWAVE_PUBLIC_BASE_URL}/#/pair/${offerPayload}`
-      return QRCode.toDataURL(url, {
-        width: 200,
-        margin: 1,
-        color: { dark: '#ffffff', light: '#00000000' },
-        errorCorrectionLevel: 'L',
-      })
-    },
-    [offerPayload],
-  )
+  const qrCallback = useCallback(() => {
+    if (!offerPayload) return undefined
+    const url = `${SPACEWAVE_PUBLIC_BASE_URL}/#/pair/${offerPayload}`
+    return QRCode.toDataURL(url, {
+      width: 200,
+      margin: 1,
+      color: { dark: '#ffffff', light: '#00000000' },
+      errorCorrectionLevel: 'L',
+    })
+  }, [offerPayload])
   const qrResult = usePromise(qrCallback)
 
   return (
@@ -1397,7 +1396,9 @@ function DirectOfferStep({
           <LuArrowLeft className="text-foreground-alt h-4 w-4" />
         </button>
         <button
-          onClick={handleAcceptAnswer}
+          onClick={() => {
+            void handleAcceptAnswer()
+          }}
           disabled={accepting || !answerInput.trim() || !session}
           className={cn(
             'flex-1 rounded-md border transition-all duration-300',
@@ -1457,7 +1458,7 @@ function DirectAnswerStep({
   )
 
   const handleSubmit = useCallback(() => {
-    handleAcceptOffer(offerInput)
+    void handleAcceptOffer(offerInput)
   }, [handleAcceptOffer, offerInput])
 
   const handleQRScanned = useCallback(
@@ -1465,14 +1466,14 @@ function DirectAnswerStep({
       setScanning(false)
       const payload = extractDirectOfferPayload(decoded)
       setOfferInput(payload)
-      handleAcceptOffer(payload)
+      void handleAcceptOffer(payload)
     },
     [handleAcceptOffer],
   )
 
   const handleCopy = useCallback(() => {
     if (!answerPayload) return
-    navigator.clipboard.writeText(answerPayload)
+    void navigator.clipboard.writeText(answerPayload)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }, [answerPayload])

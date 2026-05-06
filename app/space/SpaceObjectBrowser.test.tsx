@@ -262,7 +262,7 @@ describe('SpaceObjectBrowser', () => {
     const settingsData = vi.mocked(mockSpaceWorld.applyWorldOp).mock
       .calls[0]?.[1]
     expect(settingsData).toBeInstanceOf(Uint8Array)
-    const settingsOp = SetSpaceSettingsOp.fromBinary(settingsData as Uint8Array)
+    const settingsOp = SetSpaceSettingsOp.fromBinary(settingsData)
     expect(settingsOp.settings?.indexPath).toBe('myrepo')
     expect(settingsOp.settings?.pluginIds).toEqual(['spacewave-app'])
   })
@@ -295,7 +295,7 @@ describe('SpaceObjectBrowser', () => {
     const settingsData = vi.mocked(mockSpaceWorld.applyWorldOp).mock
       .calls[0]?.[1]
     expect(settingsData).toBeInstanceOf(Uint8Array)
-    const settingsOp = SetSpaceSettingsOp.fromBinary(settingsData as Uint8Array)
+    const settingsOp = SetSpaceSettingsOp.fromBinary(settingsData)
     expect(settingsOp.settings?.indexPath).toBe('files')
     expect(settingsOp.settings?.pluginIds).toEqual(['spacewave-app'])
   })

@@ -98,7 +98,7 @@ export function applyPolyfills(
 
   target.console = createQuickjsConsole(target.console)
   target.performance = createQuickjsPerformance(target.performance)
-  target.Event = createEvent() as typeof Event
+  target.Event = createEvent()
   target.EventTarget = createEventTarget()
   target.CustomEvent = createCustomEvent()
   target.AbortController = createAbortController()

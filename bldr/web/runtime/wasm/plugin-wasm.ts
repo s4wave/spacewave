@@ -24,7 +24,7 @@ globalScope.BLDR_BASE_URL = baseURL
 
 // BLDR_PLUGIN_ENTRYPOINT is declared at build time by the plugin compiler.
 declare const BLDR_PLUGIN_ENTRYPOINT: string
-const pluginEntrypointPath = BLDR_PLUGIN_ENTRYPOINT!
+const pluginEntrypointPath = BLDR_PLUGIN_ENTRYPOINT
 
 // startGoPlugin starts the go wasm process.
 function startGoPlugin(startInfo: PluginStartInfo) {

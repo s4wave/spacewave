@@ -40,7 +40,7 @@ export function useMergeRefs<T>(
       if (typeof inputRef === 'function') {
         inputRef(ref)
       } else if (inputRef) {
-        ;(inputRef as React.RefObject<T | null>).current = ref
+        inputRef.current = ref
       }
     }
   }

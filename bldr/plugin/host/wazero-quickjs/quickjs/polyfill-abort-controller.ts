@@ -120,5 +120,5 @@ export function createAbortController(): new () => AbortController {
     configurable: false,
   })
 
-  return AbortControllerImpl as new () => AbortController
+  return AbortControllerImpl
 }

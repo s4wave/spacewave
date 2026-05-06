@@ -88,12 +88,17 @@ export function PairCodePage(props: PairCodePageProps) {
   const [error, setError] = useState<string | null>(null)
   const [remotePeerId, setRemotePeerId] = useState<string | null>(null)
   const [sessionIndex, setSessionIndex] = useState<number | null>(null)
+  const [currentSession, setCurrentSession] = useState<Session | null>(
+    providedSession,
+  )
   const sessionRef = useRef<Session | null>(providedSession)
 
   // Keep sessionRef in sync when prop changes.
   useEffect(() => {
     if (!providedSession) return
     sessionRef.current = providedSession
+    const timer = window.setTimeout(() => setCurrentSession(providedSession), 0)
+    return () => window.clearTimeout(timer)
   }, [providedSession])
 
   const handleCodeChange = useCallback((value: string) => {
@@ -134,6 +139,7 @@ export function PairCodePage(props: PairCodePageProps) {
         )
         session = setup.session
         sessionRef.current = session
+        setCurrentSession(session)
         setSessionIndex(setup.sessionIndex)
       }
       const peerId = await session.completePairing(code, controller.signal)
@@ -261,11 +267,12 @@ export function PairCodePage(props: PairCodePageProps) {
           {step === 'direct' && (
             <PairDirectStep
               initialOfferPayload={initialOfferPayload}
-              session={sessionRef.current}
+              session={currentSession}
               root={root ?? null}
               registerCleanup={registerCleanup}
               onSessionCreated={(sess, idx) => {
                 sessionRef.current = sess
+                setCurrentSession(sess)
                 setSessionIndex(idx)
               }}
               onRemotePeerResolved={(peerId) => {
@@ -278,7 +285,7 @@ export function PairCodePage(props: PairCodePageProps) {
 
           {step === 'verify' && (
             <PairVerifyStep
-              session={sessionRef.current}
+              session={currentSession}
               remotePeerId={remotePeerId}
               onConfirmed={() => setStep('done')}
               onAbort={() => {

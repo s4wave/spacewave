@@ -50,7 +50,7 @@ export function SSOWaitPage() {
   useEffect(() => {
     if (!isDesktop || !root || !provider) return
     const controller = new AbortController()
-    setState({ step: 'waiting' })
+    queueMicrotask(() => setState({ step: 'waiting' }))
 
     const run = async () => {
       try {
@@ -117,7 +117,7 @@ export function SSOWaitPage() {
     if (isDesktop || !provider) return
     const ssoBaseUrl = cloudProviderConfig?.ssoBaseUrl
     if (!ssoBaseUrl) return
-    setState({ step: 'redirecting' })
+    queueMicrotask(() => setState({ step: 'redirecting' }))
     const origin = encodeURIComponent(window.location.origin)
     window.location.assign(`${ssoBaseUrl}/${provider}?origin=${origin}`)
   }, [cloudProviderConfig, provider])

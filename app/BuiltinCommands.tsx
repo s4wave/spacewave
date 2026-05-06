@@ -21,10 +21,7 @@ export function BuiltinCommands() {
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const [aboutOpen, setAboutOpen] = useState(false)
   const [emailSupportOpen, setEmailSupportOpen] = useState(false)
-  const {
-    add: addRootAlias,
-    canAdd: canAddRootAlias,
-  } = useAddSpaceRootAlias()
+  const { add: addRootAlias, canAdd: canAddRootAlias } = useAddSpaceRootAlias()
 
   const openPathInNewTab = useCallback(
     (path: string) => {

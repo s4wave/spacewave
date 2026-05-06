@@ -14,11 +14,17 @@ const mockActiveRoutePath = vi.hoisted(() => ({ value: '/join/:code' }))
 vi.mock('@s4wave/web/router/router.js', () => ({
   Route: ({ children, path }: { children?: React.ReactNode; path: string }) =>
     path === mockActiveRoutePath.value ? <>{children}</> : null,
-  useParams: () => mockUseParams(),
+  useParams: () => {
+    const params: unknown = mockUseParams()
+    return params
+  },
 }))
 
 vi.mock('@s4wave/app/hooks/useSessionList.js', () => ({
-  useSessionList: () => mockUseSessionList(),
+  useSessionList: () => {
+    const list: unknown = mockUseSessionList()
+    return list
+  },
 }))
 
 vi.mock('@s4wave/web/router/NavigatePath.js', () => ({

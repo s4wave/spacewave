@@ -101,7 +101,9 @@ export function DormantOverlay({ metadata }: DormantOverlayProps) {
             </p>
 
             <button
-              onClick={handleReactivate}
+              onClick={() => {
+                void handleReactivate()
+              }}
               disabled={resolving}
               className={cn(
                 'group w-full rounded-md border transition-all duration-300',

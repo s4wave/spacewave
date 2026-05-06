@@ -66,18 +66,19 @@ function Intro() {
         Forge ObjectViewer variant gallery
       </p>
       <p className="text-foreground-alt/70 mt-1 text-xs leading-relaxed">
-        Side-by-side variants for the primitives that compose every Forge
-        viewer (Task, Job, Pass, Worker, Cluster, Execution, Dashboard). Each
-        section shows the historical production rendering, then candidate
-        variants drawn from the modern token set in
-        guides/alpha-ui-design-system.org.
+        Side-by-side variants for the primitives that compose every Forge viewer
+        (Task, Job, Pass, Worker, Cluster, Execution, Dashboard). Each section
+        shows the historical production rendering, then candidate variants drawn
+        from the modern token set in guides/alpha-ui-design-system.org.
       </p>
       <p className="text-foreground-alt/70 mt-2 text-xs leading-relaxed">
         Decisions live in production code:
       </p>
       <ul className="text-foreground-alt/70 mt-1 list-disc space-y-0.5 pl-5 text-xs leading-relaxed">
-        <li>State badge: B (tinted pill) is default, C (dot + label) is the
-          list variant via prop.</li>
+        <li>
+          State badge: B (tinted pill) is default, C (dot + label) is the list
+          variant via prop.
+        </li>
         <li>Entity rows: C (compact dense single-line) for ForgeEntityList.</li>
         <li>Stat tile: C (inline StatCard, web/ui/StatCard.tsx).</li>
         <li>Empty state: B (compact single-line, foreground-alt/40).</li>
@@ -595,9 +596,9 @@ function CurrentTabs({
           onClick={() => onSelect(i)}
           className={cn(
             'relative px-3 pt-1 pb-1.5 text-xs font-medium transition-colors',
-            i === active ?
-              'text-foreground'
-            : 'text-foreground/50 hover:text-foreground/70',
+            i === active ? 'text-foreground' : (
+              'text-foreground/50 hover:text-foreground/70'
+            ),
           )}
         >
           {label}
@@ -626,9 +627,9 @@ function BrandTabs({
           onClick={() => onSelect(i)}
           className={cn(
             'relative px-3 pt-1.5 pb-2 text-xs font-medium tracking-tight transition-colors',
-            i === active ?
-              'text-foreground'
-            : 'text-foreground-alt/50 hover:text-foreground-alt/80',
+            i === active ? 'text-foreground' : (
+              'text-foreground-alt/50 hover:text-foreground-alt/80'
+            ),
           )}
         >
           {label}
@@ -700,9 +701,9 @@ function ViewerShellSection() {
               onClick={() => setTab(i)}
               className={cn(
                 'relative px-3 pt-1.5 pb-2 text-xs font-medium tracking-tight transition-colors',
-                i === tab ?
-                  'text-foreground'
-                : 'text-foreground-alt/50 hover:text-foreground-alt/80',
+                i === tab ? 'text-foreground' : (
+                  'text-foreground-alt/50 hover:text-foreground-alt/80'
+                ),
               )}
             >
               {label}
@@ -840,4 +841,3 @@ function ShellAction({
     </button>
   )
 }
-

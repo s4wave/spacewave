@@ -56,9 +56,11 @@ export function PasskeyWaitPage() {
   useEffect(() => {
     if (!isDesktop || !root) return
     const controller = new AbortController()
-    setState({ step: 'waiting' })
-    setPin('')
-    setPinError('')
+    queueMicrotask(() => {
+      setState({ step: 'waiting' })
+      setPin('')
+      setPinError('')
+    })
 
     const run = async () => {
       try {

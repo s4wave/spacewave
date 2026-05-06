@@ -45,15 +45,20 @@ describe('proxyFetch', () => {
     const svc: FetchService = {
       Fetch(_request, signal) {
         observedSignal = signal
-        return (async function* () {
-          await new Promise<never>((_, reject) => {
-            signal?.addEventListener(
-              'abort',
-              () => reject(new Error('aborted by owner')),
-              { once: true },
-            )
-          })
-        })()
+        return {
+          [Symbol.asyncIterator]() {
+            return {
+              next: () =>
+                new Promise<IteratorResult<never>>((_, reject) => {
+                  signal?.addEventListener(
+                    'abort',
+                    () => reject(new Error('aborted by owner')),
+                    { once: true },
+                  )
+                }),
+            }
+          },
+        }
       },
     }
 

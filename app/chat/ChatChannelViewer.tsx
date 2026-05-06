@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import { useAccessTypedHandle } from '@s4wave/web/hooks/useAccessTypedHandle.js'
@@ -29,14 +29,12 @@ export function ChatChannelViewer({
     ChatChannelTypeID,
   )
 
-  // Accumulate streamed message batches in a ref.
+  // Accumulate streamed message batches in state.
   // Each yield from watchMessages is a delta (new messages only).
-  const allRef = useRef<ChatMessageInfo[]>([])
-  const [version, setVersion] = useState(0)
+  const [messages, setMessages] = useState<ChatMessageInfo[]>([])
 
   const streamFactory = useCallback((h: ChatHandle, signal: AbortSignal) => {
-    allRef.current = []
-    setVersion(0)
+    setMessages([])
     return h.watchMessages(signal)
   }, [])
 
@@ -50,15 +48,16 @@ export function ChatChannelViewer({
   useEffect(() => {
     const batch = messagesResource.value
     if (!batch || batch.length === 0) return
-    const existing = new Set(allRef.current.map((m) => m.objectKey))
-    const newMsgs = batch.filter((m) => !existing.has(m.objectKey))
-    if (newMsgs.length === 0) return
-    allRef.current = [...allRef.current, ...newMsgs]
-    setVersion((v) => v + 1)
+    const timer = window.setTimeout(() => {
+      setMessages((prev) => {
+        const existing = new Set(prev.map((m) => m.objectKey))
+        const newMsgs = batch.filter((m) => !existing.has(m.objectKey))
+        if (newMsgs.length === 0) return prev
+        return [...prev, ...newMsgs]
+      })
+    }, 0)
+    return () => window.clearTimeout(timer)
   }, [messagesResource.value])
-
-  // Suppress unused-variable warning; version drives re-renders.
-  void version
 
   const handleSend = useCallback(
     async (text: string) => {
@@ -76,22 +75,20 @@ export function ChatChannelViewer({
           Chat
         </span>
       </div>
-      {messagesResource.loading &&
-        allRef.current.length === 0 &&
-        showLoadingCard && (
-          <div className="flex flex-1 items-center justify-center p-6">
-            <div className="w-full max-w-sm">
-              <LoadingCard
-                view={{
-                  state: 'active',
-                  title: 'Loading messages',
-                  detail: 'Reading channel history from the peer group.',
-                }}
-              />
-            </div>
+      {messagesResource.loading && messages.length === 0 && showLoadingCard && (
+        <div className="flex flex-1 items-center justify-center p-6">
+          <div className="w-full max-w-sm">
+            <LoadingCard
+              view={{
+                state: 'active',
+                title: 'Loading messages',
+                detail: 'Reading channel history from the peer group.',
+              }}
+            />
           </div>
-        )}
-      <MessageList messages={allRef.current} />
+        </div>
+      )}
+      <MessageList messages={messages} />
       <MessageInput onSend={handleSend} />
     </div>
   )

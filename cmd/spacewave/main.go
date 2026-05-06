@@ -4,6 +4,7 @@ package main
 
 import (
 	"embed"
+
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	auth_method_password "github.com/s4wave/spacewave/auth/method/password"

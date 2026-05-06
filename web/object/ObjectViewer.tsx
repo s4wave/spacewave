@@ -103,7 +103,6 @@ export function ObjectViewer({
     viewer.objectState.value,
     viewer.selectedComponent,
     worldState,
-    worldState.value,
     objectInfo,
     routerPath,
     navigateHandler,

@@ -113,7 +113,7 @@ describe('ForgeDashboardViewer', () => {
     return render(
       <SpaceContainerContext.Provider
         spaceId="space-1"
-        spaceState={{ ready: true } as never}
+        spaceState={{ ready: true }}
         spaceWorldResource={{
           value: mockSpaceWorld as never,
           loading: false,

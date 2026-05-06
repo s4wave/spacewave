@@ -32,7 +32,10 @@ export function QuickstartLoading() {
         <p className="text-lg text-[var(--color-neutral-400)]">
           {option.description}
         </p>
-        <div data-sw-boot-state={boot.state} className="flex flex-col items-center gap-3">
+        <div
+          data-sw-boot-state={boot.state}
+          className="flex flex-col items-center gap-3"
+        >
           <LoadingDots />
           <p
             data-sw-boot-status

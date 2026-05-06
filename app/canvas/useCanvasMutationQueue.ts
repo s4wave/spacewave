@@ -128,9 +128,9 @@ export function useCanvasMutationQueue(
 ): MutationQueueResult {
   const nextSeqRef = useRef(0)
   const serverVersionRef = useRef(0)
-  const queueRef = useRef<CanvasMutation[]>([])
+  const [queue, setQueue] = useState<CanvasMutation[]>([])
   const confirmedSeqs = useRef(new Set<number>())
-  const [version, setVersion] = useState(0)
+  const sendRef = useRef(sendMutation)
 
   // When server state updates, drop confirmed mutations.
   useEffect(() => {
@@ -138,18 +138,18 @@ export function useCanvasMutationQueue(
     if (!serverState || confirmedSeqs.current.size === 0) return
 
     const confirmed = confirmedSeqs.current
-    const prev = queueRef.current
-    const next = prev.filter((m) => !confirmed.has(m.seq))
-    if (next.length !== prev.length) {
-      queueRef.current = next
+    setQueue((prev) => {
+      const next = prev.filter((m) => !confirmed.has(m.seq))
+      if (next.length === prev.length) return prev
       confirmed.clear()
-      setVersion((v) => v + 1)
-    }
+      return next
+    })
   }, [serverState])
 
   // Ref for sendMutation so the enqueue callback stays stable.
-  const sendRef = useRef(sendMutation)
-  sendRef.current = sendMutation
+  useEffect(() => {
+    sendRef.current = sendMutation
+  }, [sendMutation])
 
   const enqueue = useCallback(
     (mutation: Omit<CanvasMutation, 'seq' | 'serverVersion'>) => {
@@ -162,27 +162,24 @@ export function useCanvasMutationQueue(
         seq,
         serverVersion: serverVersionRef.current,
       }
-      queueRef.current = [...queueRef.current, full]
-      setVersion((v) => v + 1)
+      setQueue((prev) => [...prev, full])
 
       void send(mutation).then(
         () => {
           confirmedSeqs.current.add(seq)
-          const prev = queueRef.current
-          const next = prev.filter((m) => {
-            if (m.seq !== seq) return true
-            return serverVersionRef.current <= m.serverVersion
-          })
-          if (next.length !== prev.length) {
-            queueRef.current = next
+          setQueue((prev) => {
+            const next = prev.filter((m) => {
+              if (m.seq !== seq) return true
+              return serverVersionRef.current <= m.serverVersion
+            })
+            if (next.length === prev.length) return prev
             confirmedSeqs.current.delete(seq)
-            setVersion((v) => v + 1)
-          }
+            return next
+          })
         },
         (err) => {
           // On failure, remove this mutation from queue.
-          queueRef.current = queueRef.current.filter((m) => m.seq !== seq)
-          setVersion((v) => v + 1)
+          setQueue((prev) => prev.filter((m) => m.seq !== seq))
           onError?.(err)
         },
       )
@@ -232,16 +229,14 @@ export function useCanvasMutationQueue(
     [enqueue],
   )
 
-  const base: CanvasStateData = serverState ?? {
-    nodes: new Map(),
-    edges: [],
-    hiddenGraphLinks: [],
-  }
-  const effectiveState = useMemo(
-    () => applyMutations(base, queueRef.current),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [base, version],
-  )
+  const effectiveState = useMemo(() => {
+    const base = serverState ?? {
+      nodes: new Map(),
+      edges: [],
+      hiddenGraphLinks: [],
+    }
+    return applyMutations(base, queue)
+  }, [serverState, queue])
 
   return {
     effectiveState,
@@ -251,6 +246,6 @@ export function useCanvasMutationQueue(
     enqueueEdgesRemove,
     enqueueHiddenGraphLinksAdd,
     enqueueHiddenGraphLinksRemove,
-    pending: queueRef.current.length,
+    pending: queue.length,
   }
 }

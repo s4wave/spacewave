@@ -102,7 +102,7 @@ describe('NotebookViewer', () => {
       loading: true,
       error: null,
       retry: vi.fn(),
-    } as never)
+    })
     renderViewer()
     expect(screen.getByText('Loading notebook...')).toBeDefined()
   })
@@ -134,7 +134,7 @@ describe('NotebookViewer', () => {
       loading: false,
       error: new Error('Connection refused'),
       retry: vi.fn(),
-    } as never)
+    })
     mockUseWorldObjectMessageState.mockReturnValue({
       state: {
         value: null,

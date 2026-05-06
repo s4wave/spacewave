@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, useEffect } from 'react'
+import { useRef, useCallback, useEffect } from 'react'
 
 import { cn } from '@s4wave/web/style/utils.js'
 
@@ -42,6 +42,8 @@ export function CanvasDrawingLayer({
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const currentStroke = useRef<Stroke | null>(null)
   const drawing = useRef(false)
+  const viewportRef = useRef(viewport)
+  const onStrokeCompleteRef = useRef(onStrokeComplete)
 
   const redraw = useCallback(() => {
     const canvas = canvasRef.current
@@ -86,8 +88,10 @@ export function CanvasDrawingLayer({
     return () => observer.disconnect()
   }, [redraw])
 
-  const viewportRef = useRef(viewport)
-  viewportRef.current = viewport
+  useEffect(() => {
+    viewportRef.current = viewport
+    redraw()
+  }, [redraw, viewport])
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
@@ -123,8 +127,9 @@ export function CanvasDrawingLayer({
     [redraw],
   )
 
-  const onStrokeCompleteRef = useRef(onStrokeComplete)
-  onStrokeCompleteRef.current = onStrokeComplete
+  useEffect(() => {
+    onStrokeCompleteRef.current = onStrokeComplete
+  }, [onStrokeComplete])
 
   const handlePointerUp = useCallback(() => {
     if (!drawing.current || !currentStroke.current) return

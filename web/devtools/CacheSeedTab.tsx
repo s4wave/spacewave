@@ -34,8 +34,12 @@ export function CacheSeedTab({ rootResource }: CacheSeedTabProps) {
     (signal: AbortSignal) => {
       if (!root) return
       const svc: CacheSeedInspector = new CacheSeedInspectorClient(root.client)
-      ;(async () => {
+      void (async () => {
         try {
+          await Promise.resolve()
+          if (signal.aborted) return
+          setEntries([])
+          setError(null)
           const stream = svc.GetCacheSeedReasons(
             GetCacheSeedReasonsRequest.create({}),
             signal,
@@ -61,8 +65,6 @@ export function CacheSeedTab({ rootResource }: CacheSeedTabProps) {
   useEffect(() => {
     const ctrl = new AbortController()
     abortRef.current = ctrl
-    setEntries([])
-    setError(null)
     start(ctrl.signal)
     return () => ctrl.abort()
   }, [start])

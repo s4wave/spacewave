@@ -118,21 +118,23 @@ export function SpaceCommands({
   })
 
   const createObjectSubItems: SubItemsCallback = useCallback(
-    async (query, signal) => {
-      if (signal.aborted) return []
+    (query, signal) => {
+      if (signal.aborted) return Promise.resolve([])
       const q = query.toLowerCase()
-      return wizards
-        .filter(
-          (w) =>
-            !q ||
-            w.displayName?.toLowerCase().includes(q) ||
-            w.category?.toLowerCase().includes(q),
-        )
-        .map((w) => ({
-          id: w.typeId ?? '',
-          label: w.displayName ?? '',
-          description: w.category,
-        }))
+      return Promise.resolve(
+        wizards
+          .filter(
+            (w) =>
+              !q ||
+              w.displayName?.toLowerCase().includes(q) ||
+              w.category?.toLowerCase().includes(q),
+          )
+          .map((w) => ({
+            id: w.typeId ?? '',
+            label: w.displayName ?? '',
+            description: w.category,
+          })),
+      )
     },
     [wizards],
   )

@@ -186,6 +186,7 @@ function AuthMethodsSectionContent({
         if (msg.includes('unknown_keypair')) {
           throw new Error(
             'Incorrect password or unrecognized key. Please try again.',
+            { cause: err },
           )
         }
         throw err

@@ -13,6 +13,7 @@ import {
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const projectRoot = resolve(__dirname, '../../')
+const goAliases = buildGoAliases(projectRoot)
 
 // Resolves image imports to /static/assets/<basename> so the hydrate
 // bundle produces the same URLs as the SSR prerender build.
@@ -84,7 +85,7 @@ export default defineConfig({
         find: /^@aptre\/bldr-sdk\/(.*)$/,
         replacement: resolve(projectRoot, './.bldr/src/sdk/$1'),
       },
-      ...buildGoAliases(projectRoot),
+      ...goAliases,
       {
         find: /^@s4wave\/core\/(.*)$/,
         replacement: resolve(projectRoot, './core/$1'),

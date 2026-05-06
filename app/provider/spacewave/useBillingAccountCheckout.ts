@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
@@ -19,6 +19,7 @@ export function useBillingAccountCheckout(
   const sessionResource = SessionContext.useContext()
   const session = useResourceValue(sessionResource)
   const cloudProviderConfig = useCloudProviderConfig()
+  const { onCompleted } = opts
   const checkoutResultBaseUrl =
     getBrowserCheckoutResultBaseUrl(cloudProviderConfig)
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -28,13 +29,13 @@ export function useBillingAccountCheckout(
   const [checkoutUrl, setCheckoutUrl] = useState('')
   const [error, setError] = useState<string | null>(null)
 
-  const handleCompleted = useEffectEvent(() => {
+  const handleCompleted = useCallback(() => {
     setPolling(false)
     setShowRetry(false)
     setCheckoutUrl('')
     setError(null)
-    opts.onCompleted?.()
-  })
+    onCompleted?.()
+  }, [onCompleted])
 
   const checkoutStatusResource = useStreamingResource(
     sessionResource,
@@ -51,17 +52,19 @@ export function useBillingAccountCheckout(
   const checkoutStatus = checkoutStatusResource.value?.status
   useEffect(() => {
     if (checkoutStatus === CheckoutStatus.CheckoutStatus_COMPLETED) {
-      handleCompleted()
+      queueMicrotask(handleCompleted)
       return
     }
     if (
       checkoutStatus === CheckoutStatus.CheckoutStatus_CANCELED ||
       checkoutStatus === CheckoutStatus.CheckoutStatus_EXPIRED
     ) {
-      setPolling(false)
-      setShowRetry(false)
-      setCheckoutUrl('')
-      setError('Checkout was not completed. You can try again.')
+      queueMicrotask(() => {
+        setPolling(false)
+        setShowRetry(false)
+        setCheckoutUrl('')
+        setError('Checkout was not completed. You can try again.')
+      })
     }
   }, [checkoutStatus, handleCompleted])
 

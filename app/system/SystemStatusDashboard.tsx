@@ -1336,7 +1336,6 @@ function SidebarTree({
     directiveCount,
     openSections,
     pluginCount,
-    plugins,
     selected,
     sessions,
     showAllControllers,

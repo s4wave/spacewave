@@ -71,11 +71,11 @@ describe('passkey-prf', () => {
     const pem = '-----BEGIN TEST-----\nabc\n-----END TEST-----\n'
     const plaintext = new TextEncoder().encode(pem)
     const provider = {
-      wrapWithPasskeyPrf: vi.fn(async () => ({
+      wrapWithPasskeyPrf: vi.fn(() => ({
         encryptedBlobBase64: btoa('ciphertext'),
         authParamsBase64: btoa('auth-params'),
       })),
-      unwrapWithPasskeyPrf: vi.fn(async () => ({
+      unwrapWithPasskeyPrf: vi.fn(() => ({
         plaintext,
         pinWrapped: false,
       })),
@@ -110,7 +110,7 @@ describe('passkey-prf', () => {
 
   it('generates PRF salt through the provider', async () => {
     const provider = {
-      generatePasskeyPrfSalt: vi.fn(async () => ({ prfSalt: 'salt-1' })),
+      generatePasskeyPrfSalt: vi.fn(() => ({ prfSalt: 'salt-1' })),
     } as unknown as SpacewaveProvider
 
     await expect(generatePasskeyPrfSalt(provider)).resolves.toBe('salt-1')

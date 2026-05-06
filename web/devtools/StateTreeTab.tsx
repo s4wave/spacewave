@@ -41,7 +41,6 @@ type EntryNode = {
 }
 
 type ChildNode = GroupNode | EntryNode
-type TreeNode = ScopeNode | ChildNode
 
 const SCOPE_LABELS: Record<StateInspectorScope, string> = {
   local: 'Local State',

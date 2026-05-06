@@ -106,10 +106,7 @@ function buildWorkerParams(
   return `s=${encodedPath}${workerTypeParam}${pluginParam}`
 }
 
-function buildWorkerURL(
-  sharedWorkerPath: string,
-  params: string,
-): URL {
+function buildWorkerURL(sharedWorkerPath: string, params: string): URL {
   const url = new URL(sharedWorkerPath, baseURL)
   url.search = params
   return url
@@ -614,7 +611,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       this.isSaucer = true
     }
     this.webRuntimeClientId =
-      this.isElectron ? `${this.webDocumentUuid}-${randomId()}` : this.webDocumentUuid
+      this.isElectron ?
+        `${this.webDocumentUuid}-${randomId()}`
+      : this.webDocumentUuid
     this.webViews = {}
     this.webWorkers = {}
     if (opts?.disableStoragePersist) {
@@ -786,7 +785,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       } else {
         // SharedWorker mode: all tabs share a single Worker.
         this.worker = new SharedWorker(runtimeJsURL, workerOptions)
-        this.webRuntimePort = this.worker!.port!
+        this.webRuntimePort = this.worker.port!
         this.webRuntimePort.postMessage(initMsg)
       }
     }
@@ -817,7 +816,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     }
 
     // we don't expect any messages directly from the main worker port.
-    this.webRuntimePort!.start()
+    this.webRuntimePort.start()
 
     // setup the service worker
     // NOTE: if the script isn't in /, requires the Service-Worker-Allowed: '/' header
@@ -1147,7 +1146,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       try {
         this.serviceWorkerPort.postMessage({
           close: true,
-        } as WebDocumentToClient)
+        })
       } finally {
         this.serviceWorkerPort.close()
         this.serviceWorkerPort = undefined

@@ -6,8 +6,10 @@ import { cn } from '@s4wave/web/style/utils.js'
 // extStyle accepts a style object with extended CSS properties (such as
 // dynamicRangeLimit) and returns it as React.CSSProperties. Centralizes the
 // single type widening needed for non-standard CSS properties.
-function extStyle(s: Record<string, unknown>): React.CSSProperties {
-  return s as never
+function extStyle(
+  s: React.CSSProperties & Record<string, unknown>,
+): React.CSSProperties {
+  return s
 }
 
 // Swatch renders a color sample with its token name.

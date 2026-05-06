@@ -64,25 +64,33 @@ function Intro() {
         UnixFS browser variant gallery
       </p>
       <p className="text-foreground-alt/70 mt-1 text-xs leading-relaxed">
-        Side-by-side variants for the surfaces that compose UnixFSBrowser
-        (file row, toolbar, empty state, drag overlay, error state, delete
-        dialog). Each section shows the current production rendering, then
-        candidate variants drawn from the modern token set.
+        Side-by-side variants for the surfaces that compose UnixFSBrowser (file
+        row, toolbar, empty state, drag overlay, error state, delete dialog).
+        Each section shows the current production rendering, then candidate
+        variants drawn from the modern token set.
       </p>
       <p className="text-foreground-alt/70 mt-2 text-xs leading-relaxed">
         Decisions live in production code:
       </p>
       <ul className="text-foreground-alt/70 mt-1 list-disc space-y-0.5 pl-5 text-xs leading-relaxed">
-        <li>File row: B (compact dense, modern tokens, brand left bar on
-          selected) in web/editors/file-browser/FileListEntry.tsx.</li>
-        <li>Toolbar: B (modern, NavIconButton-style buttons) in
-          web/editors/file-browser/Toolbar.tsx.</li>
+        <li>
+          File row: B (compact dense, modern tokens, brand left bar on selected)
+          in web/editors/file-browser/FileListEntry.tsx.
+        </li>
+        <li>
+          Toolbar: B (modern, NavIconButton-style buttons) in
+          web/editors/file-browser/Toolbar.tsx.
+        </li>
         <li>Empty state: A (current centered three-line) kept as-is.</li>
         <li>Drag overlay: A (current dashed border) kept as-is.</li>
-        <li>Error state: C (inline strip under toolbar) in
-          app/unixfs/UnixFSBrowser.tsx.</li>
-        <li>Delete dialog buttons: B (tinted destructive outline) in
-          app/unixfs/UnixFSBrowser.tsx.</li>
+        <li>
+          Error state: C (inline strip under toolbar) in
+          app/unixfs/UnixFSBrowser.tsx.
+        </li>
+        <li>
+          Delete dialog buttons: B (tinted destructive outline) in
+          app/unixfs/UnixFSBrowser.tsx.
+        </li>
       </ul>
     </div>
   )
@@ -356,7 +364,9 @@ function CardRow({
       <span
         className={cn(
           'flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors',
-          selected ? 'bg-brand/15' : 'bg-foreground/5 group-hover:bg-foreground/8',
+          selected ? 'bg-brand/15' : (
+            'bg-foreground/5 group-hover:bg-foreground/8'
+          ),
         )}
       >
         {row.isDir ?
@@ -468,13 +478,19 @@ function ModernToolbar() {
   return (
     <div className="border-foreground/8 flex h-9 items-center gap-1.5 border-b px-3">
       <div className="flex items-center gap-0.5">
-        <NavIconButton icon={<LuChevronLeft className="h-3.5 w-3.5" />} label="Back" />
+        <NavIconButton
+          icon={<LuChevronLeft className="h-3.5 w-3.5" />}
+          label="Back"
+        />
         <NavIconButton
           icon={<LuChevronRight className="h-3.5 w-3.5" />}
           label="Forward"
           disabled
         />
-        <NavIconButton icon={<LuChevronUp className="h-3.5 w-3.5" />} label="Up" />
+        <NavIconButton
+          icon={<LuChevronUp className="h-3.5 w-3.5" />}
+          label="Up"
+        />
       </div>
       <div className="border-foreground/8 hover:border-foreground/15 mx-1 flex h-6 flex-1 items-center gap-1.5 rounded-md border bg-transparent px-2 transition-colors">
         <LuFolderOpen className="text-foreground-alt/60 h-3 w-3 shrink-0" />
@@ -651,10 +667,7 @@ function DummyRows() {
   return (
     <div className="opacity-60">
       {FILE_ROWS.slice(0, 4).map((row) => (
-        <div
-          key={row.id}
-          className="flex items-center px-3 py-1.5 text-xs"
-        >
+        <div key={row.id} className="flex items-center px-3 py-1.5 text-xs">
           <div className="flex min-w-[120px] flex-1 items-center gap-2 overflow-hidden">
             {row.isDir ?
               <LuFolder className="text-foreground-alt/60 h-4 w-4 shrink-0" />
@@ -774,7 +787,7 @@ function DestructiveDialogSection() {
         note="border-destructive/30 bg-destructive/10 hover:bg-destructive/15"
       >
         <div className="bg-background flex justify-end gap-2 p-3">
-          <button className="text-foreground-alt hover:text-foreground rounded-md px-3 text-xs h-7 transition-colors">
+          <button className="text-foreground-alt hover:text-foreground h-7 rounded-md px-3 text-xs transition-colors">
             Cancel
           </button>
           <button className="border-destructive/30 bg-destructive/10 hover:border-destructive/50 hover:bg-destructive/15 text-foreground h-7 rounded-md border px-3 text-xs font-medium transition-all duration-150">

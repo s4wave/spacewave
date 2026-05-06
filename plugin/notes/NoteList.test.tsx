@@ -56,18 +56,22 @@ const mockWorldState = {
 
 function makeDirectoryHandle(files: Record<string, string> = {}) {
   return {
-    lookup: vi.fn(async (name: string) => ({
-      readAt: vi.fn(async () => ({
-        data: new TextEncoder().encode(files[name] ?? ''),
-        eof: true,
-      })),
-      writeAt: vi.fn(async () => {}),
-      release: vi.fn(),
-    })),
-    mknod: vi.fn(async () => {}),
-    mkdirAll: vi.fn(async () => {}),
-    remove: vi.fn(async () => {}),
-    rename: vi.fn(async () => {}),
+    lookup: vi.fn((name: string) =>
+      Promise.resolve({
+        readAt: vi.fn(() =>
+          Promise.resolve({
+            data: new TextEncoder().encode(files[name] ?? ''),
+            eof: true,
+          }),
+        ),
+        writeAt: vi.fn(() => Promise.resolve()),
+        release: vi.fn(),
+      }),
+    ),
+    mknod: vi.fn(() => Promise.resolve()),
+    mkdirAll: vi.fn(() => Promise.resolve()),
+    remove: vi.fn(() => Promise.resolve()),
+    rename: vi.fn(() => Promise.resolve()),
   }
 }
 
@@ -95,12 +99,12 @@ function renderList(
   props: Partial<React.ComponentProps<typeof NoteList>> = {},
 ) {
   const source =
-    'source' in props
-      ? props.source
-      : ({
-          name: 'Docs',
-          ref: 'obj-key/-/docs',
-        } satisfies NotebookSource)
+    'source' in props ?
+      props.source
+    : ({
+        name: 'Docs',
+        ref: 'obj-key/-/docs',
+      } satisfies NotebookSource)
 
   return render(
     <NoteList
@@ -145,7 +149,7 @@ describe('NoteList', () => {
       loading: true,
       error: null,
       retry: vi.fn(),
-    } as never)
+    })
 
     renderList()
     expect(screen.getByText('Loading...')).toBeDefined()
@@ -157,7 +161,7 @@ describe('NoteList', () => {
       loading: false,
       error: new Error('Network failure'),
       retry: vi.fn(),
-    } as never)
+    })
 
     renderList()
     expect(screen.getByText('Network failure')).toBeDefined()
@@ -193,13 +197,10 @@ describe('NoteList', () => {
   })
 
   it('renders undated markdown notes that stay notebook-visible', async () => {
-    mockDirectory(
-      [{ name: 'work-note.md', isDir: false }],
-      {
-        'work-note.md':
-          '---\nstatus: in-progress\ntags: [internal]\n---\n\n# Work Note',
-      },
-    )
+    mockDirectory([{ name: 'work-note.md', isDir: false }], {
+      'work-note.md':
+        '---\nstatus: in-progress\ntags: [internal]\n---\n\n# Work Note',
+    })
 
     renderList()
     await waitFor(() => {
@@ -336,7 +337,10 @@ describe('NoteList', () => {
 
   it('creates a folder in the current directory', () => {
     const handle = mockDirectory([])
-    vi.stubGlobal('prompt', vi.fn(() => 'projects/client-a'))
+    vi.stubGlobal(
+      'prompt',
+      vi.fn(() => 'projects/client-a'),
+    )
 
     renderList()
 
@@ -345,11 +349,13 @@ describe('NoteList', () => {
   })
 
   it('renames a note and reports the path change', async () => {
-    const handle = mockDirectory(
-      [{ name: 'draft.md', isDir: false }],
-      { 'draft.md': '# Draft' },
+    const handle = mockDirectory([{ name: 'draft.md', isDir: false }], {
+      'draft.md': '# Draft',
+    })
+    vi.stubGlobal(
+      'prompt',
+      vi.fn(() => 'final'),
     )
-    vi.stubGlobal('prompt', vi.fn(() => 'final'))
     const onNoteRenamed = vi.fn()
 
     renderList({ currentPath: 'projects', onNoteRenamed })
@@ -365,11 +371,13 @@ describe('NoteList', () => {
   })
 
   it('deletes a note and reports the deleted path', async () => {
-    const handle = mockDirectory(
-      [{ name: 'draft.md', isDir: false }],
-      { 'draft.md': '# Draft' },
+    const handle = mockDirectory([{ name: 'draft.md', isDir: false }], {
+      'draft.md': '# Draft',
+    })
+    vi.stubGlobal(
+      'confirm',
+      vi.fn(() => true),
     )
-    vi.stubGlobal('confirm', vi.fn(() => true))
     const onNoteDeleted = vi.fn()
 
     renderList({ currentPath: 'projects', onNoteDeleted })

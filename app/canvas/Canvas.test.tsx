@@ -143,8 +143,9 @@ describe('Canvas', () => {
 
     // onNodeSelect should have been called with a set containing the node id.
     expect(onNodeSelect).toHaveBeenCalled()
-    const lastCall = onNodeSelect.mock.calls[onNodeSelect.mock.calls.length - 1]
-    const selected = lastCall[0] as Set<string>
+    const lastCall = onNodeSelect.mock.lastCall
+    expect(lastCall).toBeDefined()
+    const selected = lastCall?.[0] ?? new Set<string>()
     expect(selected.has('sel-test')).toBe(true)
   })
 
@@ -213,16 +214,15 @@ describe('Canvas', () => {
   it('focusNodeId selects and centers the target node', async () => {
     const node = makeNode({ id: 'focus-test', x: 200, y: 100 })
     const state = makeState([node])
-    const onNodeSelect = vi.fn()
+    const onNodeSelect = vi.fn<(nodeIds: Set<string>) => void>()
     const callbacks = makeCallbacks({ onNodeSelect })
     render(
       <Canvas state={state} callbacks={callbacks} focusNodeId="focus-test" />,
     )
 
+    const calls = onNodeSelect.mock.calls as [Set<string>][]
     await waitFor(() => {
-      const call = onNodeSelect.mock.calls.find(([selected]) =>
-        selected.has('focus-test'),
-      )
+      const call = calls.find(([selectedIds]) => selectedIds.has('focus-test'))
       expect(call).toBeTruthy()
     })
     const viewport = screen.getByTestId('canvas-viewport')

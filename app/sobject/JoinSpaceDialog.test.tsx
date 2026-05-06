@@ -35,7 +35,10 @@ vi.mock('@s4wave/web/contexts/contexts.js', () => ({
 }))
 
 vi.mock('@s4wave/web/hooks/useSessionInfo.js', () => ({
-  useSessionInfo: (...args: unknown[]) => mockUseSessionInfo(...args),
+  useSessionInfo: (...args: unknown[]) => {
+    const info: unknown = mockUseSessionInfo(...args)
+    return info
+  },
 }))
 
 vi.mock('@s4wave/web/ui/dialog.js', () => ({

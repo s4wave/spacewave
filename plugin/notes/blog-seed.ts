@@ -19,6 +19,7 @@ async function runBlogSeedStep<T>(
   } catch (err) {
     throw new Error(
       label + ': ' + (err instanceof Error ? err.message : String(err)),
+      { cause: err },
     )
   }
 }
@@ -52,16 +53,22 @@ export function buildSeedBlogPost(blogName: string, date: string): string {
   return (
     '---\n' +
     'title: Hello World\n' +
-    'date: ' + date + '\n' +
+    'date: ' +
+    date +
+    '\n' +
     'author: spacewave\n' +
-    'summary: Welcome to ' + blogName + '.\n' +
+    'summary: Welcome to ' +
+    blogName +
+    '.\n' +
     'tags: [welcome]\n' +
     'draft: false\n' +
     '---\n' +
     '\n' +
     '# Hello World\n' +
     '\n' +
-    'This is your first post in ' + blogName + '.\n' +
+    'This is your first post in ' +
+    blogName +
+    '.\n' +
     '\n' +
     'Edit this post from the companion notebook or switch this blog into edit mode to keep writing.\n'
   )

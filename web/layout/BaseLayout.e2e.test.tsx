@@ -189,15 +189,14 @@ function findTabDefById(
         if (tab) return tab
       }
       if (node?.case === 'row') {
-        const rowChildren = node.value?.children as Parameters<typeof visit>[0]
-        const tab = visit(rowChildren)
+        const tab = visit(node.value?.children as Parameters<typeof visit>[0])
         if (tab) return tab
       }
     }
     return undefined
   }
 
-  return visit(layoutModel.layout?.children as Parameters<typeof visit>[0])
+  return visit(layoutModel.layout?.children)
 }
 
 describe('BaseLayout E2E', () => {

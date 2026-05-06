@@ -24,7 +24,6 @@ import {
   type SharedObjectHealth,
 } from '@s4wave/core/sobject/sobject.pb.js'
 import type {
-  OrganizationRootStateInfo,
   SharedObjectMutationPermission,
   WatchOrganizationStateResponse,
 } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'

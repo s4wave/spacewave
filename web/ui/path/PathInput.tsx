@@ -24,12 +24,13 @@ export function PathInput({
   className,
 }: PathInputProps) {
   const [isEditing, setIsEditing] = useState(false)
-  const [editValue, setEditValue] = useState(path)
+  const [editState, setEditState] = useState({ path, value: path })
   const inputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    setEditValue(path)
-  }, [path])
+  const editValue = editState.path === path ? editState.value : path
+  const setEditValue = useCallback(
+    (value: string) => setEditState({ path, value }),
+    [path],
+  )
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -73,7 +74,7 @@ export function PathInput({
       }
       if (e.key === 'Escape') {
         setIsEditing(false)
-        setEditValue(path)
+        setEditState({ path, value: path })
       }
     },
     [editValue, path, onPathChange],

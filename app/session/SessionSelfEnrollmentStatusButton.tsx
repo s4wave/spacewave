@@ -129,7 +129,10 @@ function SessionSelfEnrollmentStatusPopover({
   }, [busy, status.generationKey, status.resource])
 
   return (
-    <div className="space-y-3 p-3" data-testid="session-self-enrollment-status-popover">
+    <div
+      className="space-y-3 p-3"
+      data-testid="session-self-enrollment-status-popover"
+    >
       <div className="flex items-start gap-3">
         <div
           className={cn(
@@ -153,7 +156,10 @@ function SessionSelfEnrollmentStatusPopover({
         </div>
       </div>
 
-      {(status.running || status.pending || status.skipped || status.failed) && (
+      {(status.running ||
+        status.pending ||
+        status.skipped ||
+        status.failed) && (
         <ProgressBar
           value={status.progress}
           indeterminate={status.running && status.totalCount === 0}
@@ -194,7 +200,9 @@ function SessionSelfEnrollmentStatusPopover({
             variant="outline"
             size="sm"
             disabled={!status.resource || busy || status.running}
-            onClick={handleStart}
+            onClick={() => {
+              void handleStart()
+            }}
           >
             {busy ?
               <Spinner size="sm" />
@@ -207,7 +215,9 @@ function SessionSelfEnrollmentStatusPopover({
               variant="ghost"
               size="sm"
               disabled={!status.resource || busy || status.running}
-              onClick={handleSkip}
+              onClick={() => {
+                void handleSkip()
+              }}
             >
               <LuSkipForward className="h-3.5 w-3.5" aria-hidden="true" />
               Skip

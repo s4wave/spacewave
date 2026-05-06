@@ -4,7 +4,6 @@ import {
   LuCircleAlert,
   LuCircleCheck,
   LuShieldAlert,
-  LuTrash2,
   LuTriangleAlert,
 } from 'react-icons/lu'
 import { useWatchStateRpc } from '@aptre/bldr-react'

@@ -348,13 +348,17 @@ describe('AuthUnlockWizard', () => {
 
     await waitFor(() => {
       expect(mockResolveRecoveredEntityPem).toHaveBeenCalledWith(
-        expect.objectContaining({ lookupProvider: expect.any(Function) }),
+        expect.anything(),
         {
           case: 'pin',
           encryptedBlobBase64: 'blob-123',
         },
         '2468',
       )
+      const root = mockResolveRecoveredEntityPem.mock.calls[0]?.[0] as
+        | { lookupProvider?: unknown }
+        | undefined
+      expect(root?.lookupProvider).toEqual(expect.any(Function))
       expect(unlockEntityKeypair).toHaveBeenCalledWith('peer-passkey', {
         credential: {
           case: 'pemPrivateKey',

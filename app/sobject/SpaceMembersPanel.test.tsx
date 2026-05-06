@@ -2,7 +2,6 @@ import React from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, screen } from '@testing-library/react'
 
-import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import type { Session } from '@s4wave/sdk/session/session.js'
@@ -26,14 +25,12 @@ const mockSession = {
 function renderPanel(spaceSharingState: SpaceSharingState) {
   return render(
     <SessionContext.Provider
-      resource={
-        {
-          value: mockSession,
-          loading: false,
-          error: null,
-          retry: vi.fn(),
-        } as Resource<Session>
-      }
+      resource={{
+        value: mockSession,
+        loading: false,
+        error: null,
+        retry: vi.fn(),
+      }}
     >
       <SpaceContainerContext.Provider
         spaceId="space-1"
@@ -91,7 +88,7 @@ describe('SpaceMembersPanel', () => {
           inviteId: 'invite-1',
         },
       ],
-    } as SpaceSharingState)
+    })
 
     expect(screen.getByText('alice')).toBeDefined()
     expect(screen.getByText('acct-alice')).toBeDefined()
@@ -113,7 +110,7 @@ describe('SpaceMembersPanel', () => {
         },
       ],
       mailboxEntries: [],
-    } as SpaceSharingState)
+    })
 
     expect(screen.getByText('Pending Requests')).toBeDefined()
     expect(screen.getByTestId('pending-request-empty').textContent).toBe(

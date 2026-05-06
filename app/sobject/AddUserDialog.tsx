@@ -100,7 +100,6 @@ function getOrgMemberSecondaryLabel(member: OrgMemberInfo): string {
 export function AddUserDialog({
   open,
   onOpenChange,
-  spaceName,
   spaceId,
   orgId,
   orgMembers,

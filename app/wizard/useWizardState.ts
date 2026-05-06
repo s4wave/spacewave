@@ -75,19 +75,21 @@ export function useWizardState(
   const remoteName = state?.name ?? ''
   useEffect(() => {
     if (nameDirty) {
-      if (localName === remoteName) setNameDirty(false)
+      if (localName === remoteName) queueMicrotask(() => setNameDirty(false))
       return
     }
-    setLocalName(remoteName)
+    queueMicrotask(() => setLocalName(remoteName))
   }, [localName, nameDirty, remoteName])
 
   const remoteConfigData = state?.configData ?? undefined
   useEffect(() => {
     if (configDirty) {
-      if (bytesEqual(draftConfigData, remoteConfigData)) setConfigDirty(false)
+      if (bytesEqual(draftConfigData, remoteConfigData)) {
+        queueMicrotask(() => setConfigDirty(false))
+      }
       return
     }
-    setDraftConfigData(remoteConfigData)
+    queueMicrotask(() => setDraftConfigData(remoteConfigData))
   }, [configDirty, draftConfigData, remoteConfigData])
 
   const handleConfigDataChange = useCallback(

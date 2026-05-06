@@ -34,7 +34,6 @@ export default async function main(
     success = true
     console.log('testbed wrapper: test completed successfully')
   } catch (err) {
-    success = false
     errorMsg = String(err)
     console.error('testbed wrapper: test failed:', err)
   }

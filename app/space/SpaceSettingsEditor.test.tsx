@@ -172,7 +172,7 @@ describe('SpaceSettingsEditor', () => {
       '',
     )
     const opData = vi.mocked(mockSpaceWorld.applyWorldOp).mock.calls[0]?.[1]
-    const op = SetSpaceSettingsOp.fromBinary(opData as Uint8Array)
+    const op = SetSpaceSettingsOp.fromBinary(opData)
     expect(op.settings?.indexPath).toBe('new/path')
     expect(op.settings?.pluginIds).toEqual(['spacewave-app'])
   })

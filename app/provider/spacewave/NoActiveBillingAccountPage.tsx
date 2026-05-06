@@ -17,10 +17,7 @@ import { SpacewaveOrgListContext } from '@s4wave/web/contexts/SpacewaveOrgListCo
 import { Redirect } from '@s4wave/web/router/Redirect.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { useSessionMetadata } from '@s4wave/app/hooks/useSessionMetadata.js'
-import {
-  BillingStatus,
-  type ManagedBillingAccount,
-} from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
+import type { ManagedBillingAccount } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 import {
   isStatusActive,
   lifecycleStateLabel,
@@ -94,7 +91,10 @@ export function NoActiveBillingAccountPage() {
     ),
   )
 
-  const accounts: ManagedBillingAccount[] = data?.accounts ?? []
+  const accounts = useMemo<ManagedBillingAccount[]>(
+    () => data?.accounts ?? [],
+    [data?.accounts],
+  )
   const hasAccounts = accounts.length > 0
   const targetOverride = getNoActiveBillingTargetOverride()
   const target = useMemo<BillingSetupTarget>(() => {

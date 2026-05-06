@@ -32,8 +32,8 @@ describe('parseULID', () => {
     // Find a letter character to uppercase (skip leading digits)
     let mixed = id
     for (let i = 0; i < id.length; i++) {
-      if (id[i]! >= 'a' && id[i]! <= 'z') {
-        mixed = id.slice(0, i) + id[i]!.toUpperCase() + id.slice(i + 1)
+      if (id[i] >= 'a' && id[i] <= 'z') {
+        mixed = id.slice(0, i) + id[i].toUpperCase() + id.slice(i + 1)
         break
       }
     }

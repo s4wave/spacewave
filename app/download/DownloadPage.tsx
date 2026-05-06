@@ -76,9 +76,9 @@ export function DownloadPage({ cliOnly = false }: { cliOnly?: boolean }) {
       icon={<LuDownload className="h-6 w-6" />}
       title={cliOnly ? 'Download Spacewave CLI' : 'Download Spacewave'}
       subtitle={
-        cliOnly
-          ? 'Standalone command-line builds for macOS, Windows, and Linux.'
-          : 'Self-hosted in your browser. Available for macOS, Windows, and Linux.'
+        cliOnly ?
+          'Standalone command-line builds for macOS, Windows, and Linux.'
+        : 'Self-hosted in your browser. Available for macOS, Windows, and Linux.'
       }
     >
       <section className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center gap-14 px-4 pb-14 @lg:px-8 @lg:pb-16">

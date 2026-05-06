@@ -21,10 +21,7 @@ describe('sso-popup', () => {
 
   beforeEach(() => {
     openSpy.mockReset()
-    vi.stubGlobal(
-      'BroadcastChannel',
-      FakeBroadcastChannel as unknown as typeof BroadcastChannel,
-    )
+    vi.stubGlobal('BroadcastChannel', FakeBroadcastChannel)
     vi.stubGlobal('open', openSpy)
     vi.spyOn(crypto, 'randomUUID').mockReturnValue(
       '00000000-0000-0000-0000-000000000000',

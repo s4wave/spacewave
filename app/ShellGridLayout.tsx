@@ -59,35 +59,38 @@ export function ShellGridLayout() {
   const navigate = useNavigate()
   const { tabs, setTabs, setActiveTabId, startRenaming } = useShellTabs()
 
-  // Track the structural layout (without local state) to detect real changes
-  const structureRef = useRef<string | null>(null)
-  // Track if we've done initial setup
-  const initializedRef = useRef(false)
-  // Track tabs for reconciliation without triggering re-decode
-  const tabsRef = useRef(tabs)
-  tabsRef.current = tabs
-
   // Decode layout from URL - only on initial mount or when URL changes externally
   const initialDecodeResult = useMemo((): DecodeResult | null => {
     if (!layoutData) return null
     const decoded = decodeGridLayout(layoutData, SHELL_GRID_BASE_MODEL)
     if (!decoded) return null
     return {
-      model: reconcileModelWithTabs(decoded.model, tabsRef.current),
+      model: reconcileModelWithTabs(decoded.model, tabs),
       localState: decoded.localState,
     }
-  }, [layoutData])
+  }, [layoutData, tabs])
 
-  // Model state - initialized once from URL
-  const [model, setModel] = useState<Model | null>(() => {
+  const initialModelResult = useMemo(() => {
     if (!initialDecodeResult) return null
     const m = Model.fromJson(initialDecodeResult.model)
     applyLocalStateToModel(m, initialDecodeResult.localState)
-    // Store initial structure
-    structureRef.current = encodeGridLayoutStructure(m)
-    initializedRef.current = true
-    return m
-  })
+    return {
+      model: m,
+      structure: encodeGridLayoutStructure(m),
+    }
+  }, [initialDecodeResult])
+
+  // Track the structural layout (without local state) to detect real changes
+  const structureRef = useRef<string | null>(
+    initialModelResult?.structure ?? null,
+  )
+  // Track if we've done initial setup
+  const initializedRef = useRef(initialModelResult !== null)
+
+  // Model state - initialized once from URL
+  const [model, setModel] = useState<Model | null>(
+    initialModelResult?.model ?? null,
+  )
 
   // Handle URL changes from external sources (back/forward navigation)
   useEffect(() => {
@@ -404,7 +407,7 @@ function reconcileModelWithTabs(
     }
   }
 
-  collectTabIds(model.layout as LayoutNode)
+  collectTabIds(model.layout)
 
   // Check if all model tabs exist in global state
   const missingFromGlobal = modelTabIds.filter((id) => !tabIds.has(id))

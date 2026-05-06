@@ -121,7 +121,12 @@ export function BlogCta() {
                 <LuCheck className="h-4 w-4" />
                 Subscribed.
               </div>
-            : <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+            : <form
+                onSubmit={(e) => {
+                  void handleSubmit(e)
+                }}
+                className="flex flex-col gap-3"
+              >
                 <div className="flex gap-2">
                   <input
                     type="email"

@@ -3,12 +3,7 @@ import { cn } from '@s4wave/web/style/utils.js'
 
 export type StateBadgeVariant = 'pill' | 'dot'
 
-export type StateBadgeTone =
-  | 'idle'
-  | 'active'
-  | 'success'
-  | 'warning'
-  | 'error'
+export type StateBadgeTone = 'idle' | 'active' | 'success' | 'warning' | 'error'
 
 interface StateBadgeProps {
   state: number
@@ -44,7 +39,11 @@ const DOT_TONE: Record<StateBadgeTone, string> = {
 }
 
 // StateBadge renders a tone-tinted pill or dot+label for a proto enum state.
-export function StateBadge({ state, labels, variant = 'pill' }: StateBadgeProps) {
+export function StateBadge({
+  state,
+  labels,
+  variant = 'pill',
+}: StateBadgeProps) {
   const label = useMemo(() => labels[state] ?? 'UNKNOWN', [state, labels])
   const tone = useMemo(() => stateTone(label), [label])
   if (variant === 'dot') {

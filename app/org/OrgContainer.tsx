@@ -180,7 +180,7 @@ export function OrgContainer() {
         onCloseClick={handleCloseDetails}
       />
     ),
-    [orgId, orgState, isOwner, handleCloseDetails],
+    [orgId, orgState, orgName, degraded, isOwner, handleCloseDetails],
   )
 
   const containerState = useMemo<OrgContainerState>(
