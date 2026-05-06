@@ -61,19 +61,6 @@ func (c *Controller) processOp(
 			nonce,
 		)
 	case *SOWorldOp_ApplyTxOp:
-		// Build world state with engine once for all operations
-		var ws *blkEngine
-		{
-			taskCtx, task := trace.NewTask(ctx, "alpha/so-engine/process-op/build-block-engine")
-			var err error
-			ws, err = c.buildBlkEngine(taskCtx, le, so, headState.GetHeadRef(), headState.GetHeadRef().GetTransformConf())
-			task.End()
-			if err != nil {
-				return nil, nil, err
-			}
-		}
-		defer ws.Release()
-
 		if headState.GetHeadRef().GetEmpty() {
 			if peerID != "" {
 				ole.Warn("rejecting apply tx op: world is not initialized")
@@ -88,6 +75,19 @@ func (c *Controller) processOp(
 			}
 			return nil, nil, errors.New("world is not initialized")
 		}
+
+		// Build world state with engine once for all operations
+		var ws *blkEngine
+		{
+			taskCtx, task := trace.NewTask(ctx, "alpha/so-engine/process-op/build-block-engine")
+			var err error
+			ws, err = c.buildBlkEngine(taskCtx, le, so, headState.GetHeadRef(), headState.GetHeadRef().GetTransformConf())
+			task.End()
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+		defer ws.Release()
 
 		// Process ApplyTxOp using the shared world state
 		nhs, res, err := c.processApplyTxOpWithEngine(

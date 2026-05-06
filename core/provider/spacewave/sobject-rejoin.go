@@ -29,6 +29,9 @@ func (t *sobjectTracker) tryRecoverMissingSharedObjectPeer(
 	// recovered on the next config-chain re-verify, which still rotates the
 	// host into the new participant set.
 	if peerEnrolledInCurrentEpoch(so.host.GetKeyEpochs(), so.localPid.String()) {
+		if epoch := currentEpochWithFallback(so.host.stateCtr.GetValue(), so.host.GetKeyEpochs()); epoch != nil {
+			so.host.applyKeyEpoch(ctx, epoch)
+		}
 		t.a.le.WithField("sobject-id", t.id).
 			WithField("peer-id", so.localPid.String()).
 			Debug("self-rejoin gate held: peer already enrolled in cached current epoch")

@@ -458,6 +458,129 @@ func TestTryRecoverMissingSharedObjectPeerSkipsWhenEnrolled(t *testing.T) {
 	}
 }
 
+func TestTryRecoverMissingSharedObjectPeerRefreshesCachedEpochGrants(t *testing.T) {
+	const (
+		soID      = "so-enrolled-stale-grants"
+		accountID = "test-account"
+	)
+
+	priv, pid := generateTestKeypair(t)
+	transformConf, err := block_transform.NewConfig([]config.Config{
+		&transform_blockenc.Config{
+			BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
+			Key:      []byte("0123456789abcdef0123456789abcdef"),
+		},
+	})
+	if err != nil {
+		t.Fatalf("build transform config: %v", err)
+	}
+	staleTransformConf, err := block_transform.NewConfig([]config.Config{
+		&transform_blockenc.Config{
+			BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
+			Key:      []byte("abcdef0123456789abcdef0123456789"),
+		},
+	})
+	if err != nil {
+		t.Fatalf("build stale transform config: %v", err)
+	}
+	pub, err := pid.ExtractPublicKey()
+	if err != nil {
+		t.Fatalf("extract public key: %v", err)
+	}
+	staleGrant, err := sobject.EncryptSOGrant(
+		priv,
+		pub,
+		soID,
+		&sobject.SOGrantInner{TransformConf: staleTransformConf},
+	)
+	if err != nil {
+		t.Fatalf("encrypt stale grant: %v", err)
+	}
+	validGrant, err := sobject.EncryptSOGrant(
+		priv,
+		pub,
+		soID,
+		&sobject.SOGrantInner{TransformConf: transformConf},
+	)
+	if err != nil {
+		t.Fatalf("encrypt valid grant: %v", err)
+	}
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatalf("unexpected HTTP call from rejoin gate: %s", r.URL.Path)
+	}))
+	defer srv.Close()
+
+	acc := NewTestProviderAccount(t, srv.URL)
+	acc.sessionClient = NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
+
+	host := newCloudSOHost(
+		logrus.New().WithField("test", t.Name()),
+		acc.sessionClient,
+		soID,
+		accountID,
+		newWSTracker(logrus.New().WithField("test", t.Name()), func() *SessionClient { return acc.sessionClient }),
+		priv,
+		pid,
+		acc.sfs,
+		&api.VerifiedSOStateCache{
+			VerifiedConfigChainHash:  []byte("verified-head"),
+			VerifiedConfigChainSeqno: 4,
+			KeyEpochs: []*sobject.SOKeyEpoch{{
+				Epoch:      2,
+				SeqnoStart: 1,
+				Grants:     []*sobject.SOGrant{validGrant},
+			}},
+		},
+		nil,
+		nil,
+	)
+	host.soHost.SetContext(context.Background())
+	host.stateCtr.SetValue(&sobject.SOState{
+		Config: &sobject.SharedObjectConfig{
+			Participants: []*sobject.SOParticipantConfig{{
+				PeerId:   pid.String(),
+				Role:     sobject.SOParticipantRole_SOParticipantRole_OWNER,
+				EntityId: accountID,
+			}},
+		},
+		Root: &sobject.SORoot{
+			InnerSeqno: 1,
+		},
+		RootGrants: []*sobject.SOGrant{staleGrant},
+	})
+	so := &SharedObject{
+		tkr:      &sobjectTracker{a: acc, id: soID},
+		host:     host,
+		privKey:  priv,
+		localPid: pid,
+	}
+	ref := sobject.NewSharedObjectRef("spacewave", accountID, soID, soID)
+
+	if err := so.tkr.tryRecoverMissingSharedObjectPeer(
+		context.Background(),
+		ref,
+		so,
+		acc.sessionClient,
+	); err != nil {
+		t.Fatalf("tryRecoverMissingSharedObjectPeer: %v", err)
+	}
+	next := host.stateCtr.GetValue()
+	if len(next.GetRootGrants()) != 1 {
+		t.Fatalf("expected one root grant, got %d", len(next.GetRootGrants()))
+	}
+	grantInner, err := next.GetRootGrants()[0].DecryptInnerData(priv, soID)
+	if err != nil {
+		t.Fatalf("decrypt refreshed grant: %v", err)
+	}
+	if err := grantInner.Validate(); err != nil {
+		t.Fatalf("expected refreshed grant with transform config: %v", err)
+	}
+	if !grantInner.GetTransformConf().EqualVT(transformConf) {
+		t.Fatal("expected root grant to refresh from cached current epoch")
+	}
+}
+
 func TestTryRecoverMissingSharedObjectPeerAllowsReadOnlyLifecycle(t *testing.T) {
 	const (
 		soID      = "so-readonly"
