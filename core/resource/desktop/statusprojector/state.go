@@ -15,6 +15,7 @@ const maxProjectedSessions = 5
 // SessionProjection contains tray-visible session rows and attention items.
 type SessionProjection struct {
 	Sessions       []*desktop_runtime.DesktopRuntimeNavigationItem
+	Spaces         []*desktop_runtime.DesktopRuntimeNavigationItem
 	AttentionItems []*desktop_runtime.DesktopRuntimeAttentionItem
 }
 
@@ -44,7 +45,7 @@ func BuildDesktopRuntimeState(
 		Lifecycle:      desktop_runtime.DesktopRuntimeLifecycle_DESKTOP_RUNTIME_LIFECYCLE_STARTING,
 		Listener:       buildDesktopRuntimeListenerStatus(status),
 		Sessions:       projection.Sessions,
-		Spaces:         []*desktop_runtime.DesktopRuntimeNavigationItem{},
+		Spaces:         projection.Spaces,
 		Activity:       []*desktop_runtime.DesktopRuntimeActivityItem{},
 		Update:         &desktop_runtime.DesktopRuntimeUpdateStatus{},
 		AttentionItems: projection.AttentionItems,

@@ -76,6 +76,9 @@ func projectRuntimeStatus(
 		projection, sessionWaitChs, releases, err := snapshotSessionProjection(ctx, b, sessionCtrl)
 		if err != nil {
 			releaseAll(releases)
+			if ctx.Err() != nil {
+				return nil
+			}
 			return errors.Wrap(err, "snapshot session projection")
 		}
 		waitChs := make([]<-chan struct{}, 0, len(sessionWaitChs)+1)
