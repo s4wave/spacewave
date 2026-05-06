@@ -7,24 +7,6 @@ import (
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 )
 
-func TestShouldLoadManagedBillingSummaryReady(t *testing.T) {
-	if !shouldLoadManagedBillingSummary(provider.ProviderAccountStatus_ProviderAccountStatus_READY) {
-		t.Fatal("expected READY onboarding status to load billing summary")
-	}
-}
-
-func TestShouldLoadManagedBillingSummaryUnauthenticated(t *testing.T) {
-	if shouldLoadManagedBillingSummary(provider.ProviderAccountStatus_ProviderAccountStatus_UNAUTHENTICATED) {
-		t.Fatal("expected UNAUTHENTICATED onboarding status to skip billing summary")
-	}
-}
-
-func TestShouldLoadManagedBillingSummaryDormant(t *testing.T) {
-	if shouldLoadManagedBillingSummary(provider.ProviderAccountStatus_ProviderAccountStatus_DORMANT) {
-		t.Fatal("expected DORMANT onboarding status to skip billing summary")
-	}
-}
-
 func TestShouldEmitOnboardingStatusFirstEmissionGate(t *testing.T) {
 	t.Parallel()
 

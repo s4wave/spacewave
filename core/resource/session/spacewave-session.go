@@ -130,28 +130,9 @@ func (r *SpacewaveSessionResource) WatchOnboardingStatus(
 		hasSubscription := billingStatus == s4wave_provider_spacewave.BillingStatus_BillingStatus_ACTIVE ||
 			billingStatus == s4wave_provider_spacewave.BillingStatus_BillingStatus_TRIALING
 
-		managedBAsLoaded := false
-		var managedBAs []*s4wave_provider_spacewave.ManagedBillingAccount
-		if shouldLoadManagedBillingSummary(accountStatus) {
-			var err error
-			managedBAs, err = r.swAcc.GetManagedBAsSnapshot(ctx)
-			if err != nil {
-				r.le.WithError(err).Warn("failed to fetch managed billing account list")
-				managedBAs = nil
-			} else {
-				managedBAsLoaded = true
-			}
-		}
-		var managedTotal, managedActive, managedNoSubscription uint32
-		for _, ba := range managedBAs {
-			managedTotal++
-			switch ba.GetSubscriptionStatus() {
-			case s4wave_provider_spacewave.BillingStatus_BillingStatus_ACTIVE,
-				s4wave_provider_spacewave.BillingStatus_BillingStatus_TRIALING:
-				managedActive++
-			case s4wave_provider_spacewave.BillingStatus_BillingStatus_NONE:
-				managedNoSubscription++
-			}
+		managedSummary, err := r.swAcc.BuildManagedBillingSummary(ctx, accountStatus)
+		if err != nil {
+			r.le.WithError(err).Warn("failed to fetch managed billing account list")
 		}
 
 		resp := &s4wave_provider_spacewave.WatchOnboardingStatusResponse{
@@ -165,10 +146,10 @@ func (r *SpacewaveSessionResource) WatchOnboardingStatus(
 			EmailVerified:                emailVerified,
 			LifecycleState:               lifecycleState,
 			AccountStatus:                accountStatus,
-			ManagedBaCount:               managedTotal,
-			ManagedActiveBaCount:         managedActive,
-			ManagedNoSubscriptionBaCount: managedNoSubscription,
-			BillingSummaryLoaded:         managedBAsLoaded,
+			ManagedBaCount:               managedSummary.ManagedBaCount,
+			ManagedActiveBaCount:         managedSummary.ManagedActiveBaCount,
+			ManagedNoSubscriptionBaCount: managedSummary.ManagedNoSubscriptionBaCount,
+			BillingSummaryLoaded:         managedSummary.BillingSummaryLoaded,
 		}
 		if selfEnrollmentSummary != nil {
 			resp.SessionSelfEnrollmentGenerationKey = selfEnrollmentSummary.GetGenerationKey()
@@ -228,12 +209,6 @@ func shouldEmitOnboardingStatus(stateLoaded bool, accountStatus provider.Provide
 		return true
 	}
 	return false
-}
-
-// shouldLoadManagedBillingSummary returns whether ambient onboarding watches
-// should query the managed billing-account summary.
-func shouldLoadManagedBillingSummary(accountStatus provider.ProviderAccountStatus) bool {
-	return accountStatus == provider.ProviderAccountStatus_ProviderAccountStatus_READY
 }
 
 func selfEnrollmentGateState(

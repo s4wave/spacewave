@@ -1,29 +1,36 @@
 package provider_spacewave
 
 import (
+	"context"
+
 	provider "github.com/s4wave/spacewave/core/provider"
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
 )
 
-// OnboardingStatusProjectionContext carries session-scoped Onboarding Status
-// state that is not owned by ProviderAccount.
-type OnboardingStatusProjectionContext struct {
-	HasLinkedLocal               bool
-	LinkedLocalSessionIndex      uint32
-	LinkedLocalHasContent        bool
-	HasLinkedCloud               bool
-	LinkedCloudSessionIndex      uint32
+// ManagedBillingSummary carries route-level managed billing account counts.
+type ManagedBillingSummary struct {
 	ManagedBaCount               uint32
 	ManagedActiveBaCount         uint32
 	ManagedNoSubscriptionBaCount uint32
 	BillingSummaryLoaded         bool
 }
 
+// OnboardingStatusProjectionContext carries session-scoped Onboarding Status
+// state that is not owned by ProviderAccount.
+type OnboardingStatusProjectionContext struct {
+	HasLinkedLocal          bool
+	LinkedLocalSessionIndex uint32
+	LinkedLocalHasContent   bool
+	HasLinkedCloud          bool
+	LinkedCloudSessionIndex uint32
+}
+
 // BuildOnboardingStatusProjection builds the session Onboarding Status
 // projection from cached Provider Account state plus explicit session context.
 func (a *ProviderAccount) BuildOnboardingStatusProjection(
-	ctx OnboardingStatusProjectionContext,
-) *s4wave_provider_spacewave.WatchOnboardingStatusResponse {
+	ctx context.Context,
+	projCtx OnboardingStatusProjectionContext,
+) (*s4wave_provider_spacewave.WatchOnboardingStatusResponse, error) {
 	var accountStatus provider.ProviderAccountStatus
 	var subStatus s4wave_provider_spacewave.BillingStatus
 	var cancelAt int64
@@ -54,6 +61,11 @@ func (a *ProviderAccount) BuildOnboardingStatusProjection(
 		}
 	})
 
+	managedSummary, err := a.BuildManagedBillingSummary(ctx, accountStatus)
+	if err != nil {
+		managedSummary = ManagedBillingSummary{}
+	}
+
 	billingStatus := subStatus
 	hasSubscription := billingStatus == s4wave_provider_spacewave.BillingStatus_BillingStatus_ACTIVE ||
 		billingStatus == s4wave_provider_spacewave.BillingStatus_BillingStatus_TRIALING
@@ -61,11 +73,11 @@ func (a *ProviderAccount) BuildOnboardingStatusProjection(
 	resp := &s4wave_provider_spacewave.WatchOnboardingStatusResponse{
 		HasSubscription:              hasSubscription,
 		SubscriptionStatus:           billingStatus,
-		HasLinkedLocal:               ctx.HasLinkedLocal,
-		LinkedLocalSessionIndex:      ctx.LinkedLocalSessionIndex,
-		LinkedLocalHasContent:        ctx.LinkedLocalHasContent,
-		HasLinkedCloud:               ctx.HasLinkedCloud,
-		LinkedCloudSessionIndex:      ctx.LinkedCloudSessionIndex,
+		HasLinkedLocal:               projCtx.HasLinkedLocal,
+		LinkedLocalSessionIndex:      projCtx.LinkedLocalSessionIndex,
+		LinkedLocalHasContent:        projCtx.LinkedLocalHasContent,
+		HasLinkedCloud:               projCtx.HasLinkedCloud,
+		LinkedCloudSessionIndex:      projCtx.LinkedCloudSessionIndex,
 		CheckoutInProgress:           a.checkoutWatcher.HasTicket(),
 		CancelAt:                     cancelAt,
 		DeleteAt:                     deleteAt,
@@ -74,10 +86,10 @@ func (a *ProviderAccount) BuildOnboardingStatusProjection(
 		EmailVerified:                emailVerified,
 		LifecycleState:               lifecycleState,
 		AccountStatus:                accountStatus,
-		ManagedBaCount:               ctx.ManagedBaCount,
-		ManagedActiveBaCount:         ctx.ManagedActiveBaCount,
-		ManagedNoSubscriptionBaCount: ctx.ManagedNoSubscriptionBaCount,
-		BillingSummaryLoaded:         ctx.BillingSummaryLoaded,
+		ManagedBaCount:               managedSummary.ManagedBaCount,
+		ManagedActiveBaCount:         managedSummary.ManagedActiveBaCount,
+		ManagedNoSubscriptionBaCount: managedSummary.ManagedNoSubscriptionBaCount,
+		BillingSummaryLoaded:         managedSummary.BillingSummaryLoaded,
 	}
 	if selfEnrollmentSummary != nil {
 		resp.SessionSelfEnrollmentGenerationKey = selfEnrollmentSummary.GetGenerationKey()
@@ -87,7 +99,40 @@ func (a *ProviderAccount) BuildOnboardingStatusProjection(
 		selfEnrollmentSummary,
 		selfEnrollmentAutoRejoinRunning,
 	)
-	return resp
+	return resp, err
+}
+
+// ShouldLoadManagedBillingSummary returns whether route-status projection should
+// query the managed billing-account summary.
+func ShouldLoadManagedBillingSummary(accountStatus provider.ProviderAccountStatus) bool {
+	return accountStatus == provider.ProviderAccountStatus_ProviderAccountStatus_READY
+}
+
+// BuildManagedBillingSummary builds managed billing route counts from the
+// Provider Account-owned managed billing account cache.
+func (a *ProviderAccount) BuildManagedBillingSummary(
+	ctx context.Context,
+	accountStatus provider.ProviderAccountStatus,
+) (ManagedBillingSummary, error) {
+	if !ShouldLoadManagedBillingSummary(accountStatus) {
+		return ManagedBillingSummary{}, nil
+	}
+	managedBAs, err := a.GetManagedBAsSnapshot(ctx)
+	if err != nil {
+		return ManagedBillingSummary{}, err
+	}
+	summary := ManagedBillingSummary{BillingSummaryLoaded: true}
+	for _, ba := range managedBAs {
+		summary.ManagedBaCount++
+		switch ba.GetSubscriptionStatus() {
+		case s4wave_provider_spacewave.BillingStatus_BillingStatus_ACTIVE,
+			s4wave_provider_spacewave.BillingStatus_BillingStatus_TRIALING:
+			summary.ManagedActiveBaCount++
+		case s4wave_provider_spacewave.BillingStatus_BillingStatus_NONE:
+			summary.ManagedNoSubscriptionBaCount++
+		}
+	}
+	return summary, nil
 }
 
 func selfEnrollmentGateState(
