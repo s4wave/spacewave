@@ -1,0 +1,28 @@
+# README development commands stay wired to the cheap command surfaces the
+# testscript lane can run without dependency install, codegen, or full-suite work.
+readme-command "bun install"
+readme-command "bun run start:desktop"
+readme-command "bun run start:web"
+readme-command "bun run start:web:wasm"
+readme-command "bun run test"
+readme-command "bun run test:go"
+readme-command "bun run lint"
+readme-command "bun run typecheck"
+readme-command "bun run gen"
+
+bun-help install
+stdout "Install the dependencies listed in package.json."
+
+bun-help run
+stdout "Usage: bun run"
+
+package-script start:desktop "bun run bldr -- start desktop"
+package-script start:web "bun run bldr -- --minify-entrypoint=false start web"
+package-script start:web:wasm "bun run bldr -- --log-level debug --minify-entrypoint=false start web --wasm"
+package-script test "bun run test:js && bun run test:browser && bun run test:go"
+package-script test:go "go test -tags skip_e2e -timeout=30s -v ./..."
+package-script lint "bun run lint:js && bun run lint:go"
+package-script typecheck "tsgo --noEmit -p tsconfig.json"
+package-script gen "bun run go:aptre -- generate"
+
+go-build ./cmd/spacewave

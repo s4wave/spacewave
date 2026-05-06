@@ -17,6 +17,7 @@ import (
 	"time"
 
 	bdb "github.com/aperturerobotics/bbolt"
+	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
 )
 
@@ -25,11 +26,12 @@ const enableCLITestscriptEnv = "SPACEWAVE_CLI_TESTSCRIPT"
 var updateSnapshots = flag.Bool("update", false, "refresh CLI trajectory snapshots")
 
 type scriptState struct {
-	bin    string
-	work   string
-	env    []string
-	stdout string
-	stderr string
+	bin      string
+	repoRoot string
+	work     string
+	env      []string
+	stdout   string
+	stderr   string
 }
 
 func TestSpacewaveCLITrajectoryScripts(t *testing.T) {
@@ -68,9 +70,10 @@ func TestSpacewaveCLITrajectoryScripts(t *testing.T) {
 				_ = os.RemoveAll(work)
 			})
 			runScript(t, script, scriptState{
-				bin:  bin,
-				work: work,
-				env:  os.Environ(),
+				bin:      bin,
+				repoRoot: repoRoot,
+				work:     work,
+				env:      os.Environ(),
 			})
 		})
 	}
@@ -94,6 +97,8 @@ func runScript(t *testing.T, path string, st scriptState) {
 			continue
 		}
 		switch fields[0] {
+		case "bun-help":
+			st = runBunHelp(t, path, idx+1, fields, st)
 		case "env":
 			if len(fields) != 2 || !strings.Contains(fields[1], "=") {
 				t.Fatalf("%s:%d: usage: env KEY=VALUE", path, idx+1)
@@ -104,6 +109,12 @@ func runScript(t *testing.T, path string, st scriptState) {
 				t.Fatalf("%s:%d: usage: git-fixture PATH", path, idx+1)
 			}
 			createGitFixture(t, path, idx+1, expand(fields[1], st))
+		case "go-build":
+			st = runGoBuild(t, path, idx+1, fields, st)
+		case "package-script":
+			assertPackageScript(t, path, idx+1, line, st)
+		case "readme-command":
+			assertReadmeCommand(t, path, idx+1, line, st)
 		case "volume-stats-min":
 			assertVolumeStatsMin(t, path, idx+1, fields, st)
 		case "spacewave", "!":
@@ -160,6 +171,52 @@ func runCommandLine(t *testing.T, path string, lineNo int, line string, st scrip
 	}
 	if err != nil {
 		t.Fatalf("%s:%d: command failed: %s: %v\nstdout:\n%s\nstderr:\n%s", path, lineNo, line, err, st.stdout, st.stderr)
+	}
+	return st
+}
+
+func runBunHelp(t *testing.T, path string, lineNo int, fields []string, st scriptState) scriptState {
+	t.Helper()
+
+	if len(fields) != 2 {
+		t.Fatalf("%s:%d: usage: bun-help COMMAND", path, lineNo)
+	}
+	return runRepoCommand(t, path, lineNo, st, "bun", fields[1], "--help")
+}
+
+func runGoBuild(t *testing.T, path string, lineNo int, fields []string, st scriptState) scriptState {
+	t.Helper()
+
+	if len(fields) != 2 {
+		t.Fatalf("%s:%d: usage: go-build PACKAGE", path, lineNo)
+	}
+	out := filepath.Join(st.work, "readme-go-build")
+	return runRepoCommand(t, path, lineNo, st, "go", "build", "-o", out, fields[1])
+}
+
+func runRepoCommand(t *testing.T, path string, lineNo int, st scriptState, name string, args ...string) scriptState {
+	t.Helper()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, name, args...)
+	cmd.Dir = st.repoRoot
+	cmd.Env = st.env
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	st.stdout = stdout.String()
+	st.stderr = stderr.String()
+	if ctx.Err() != nil {
+		t.Fatalf("%s:%d: %s timed out", path, lineNo, strings.Join(append([]string{name}, args...), " "))
+	}
+	if err != nil {
+		t.Fatalf("%s:%d: %s: %v\nstdout:\n%s\nstderr:\n%s", path, lineNo, strings.Join(append([]string{name}, args...), " "), err, st.stdout, st.stderr)
+	}
+	if st.stderr != "" {
+		t.Fatalf("%s:%d: %s wrote stderr:\n%s", path, lineNo, strings.Join(append([]string{name}, args...), " "), st.stderr)
 	}
 	return st
 }
@@ -230,6 +287,58 @@ func assertVolumeStatsMin(t *testing.T, path string, lineNo int, fields []string
 	if blocks < wantBlocks || bytes < wantBytes {
 		t.Fatalf("%s:%d: volume stats below floor: got blocks=%d bytes=%d, want at least blocks=%d bytes=%d", path, lineNo, blocks, bytes, wantBlocks, wantBytes)
 	}
+}
+
+func assertReadmeCommand(t *testing.T, path string, lineNo int, line string, st scriptState) {
+	t.Helper()
+
+	want, err := quotedArg(line, "readme-command")
+	if err != nil {
+		t.Fatalf("%s:%d: %v", path, lineNo, err)
+	}
+	data, err := os.ReadFile(filepath.Join(st.repoRoot, "README.md"))
+	if err != nil {
+		t.Fatalf("%s:%d: read README.md: %v", path, lineNo, err)
+	}
+	if !strings.Contains(string(data), "\n"+want+"\n") {
+		t.Fatalf("%s:%d: README.md missing command %q", path, lineNo, want)
+	}
+}
+
+func assertPackageScript(t *testing.T, path string, lineNo int, line string, st scriptState) {
+	t.Helper()
+
+	name, want, err := packageScriptArgs(line)
+	if err != nil {
+		t.Fatalf("%s:%d: %v", path, lineNo, err)
+	}
+	data, err := os.ReadFile(filepath.Join(st.repoRoot, "package.json"))
+	if err != nil {
+		t.Fatalf("%s:%d: read package.json: %v", path, lineNo, err)
+	}
+	var p fastjson.Parser
+	v, err := p.ParseBytes(data)
+	if err != nil {
+		t.Fatalf("%s:%d: parse package.json: %v", path, lineNo, err)
+	}
+	raw := v.GetStringBytes("scripts", name)
+	if raw == nil {
+		t.Fatalf("%s:%d: package.json missing script %q", path, lineNo, name)
+	}
+	got := string(raw)
+	if got != want {
+		t.Fatalf("%s:%d: package.json script %q mismatch\nwant: %s\ngot:  %s", path, lineNo, name, want, got)
+	}
+}
+
+func packageScriptArgs(line string) (string, string, error) {
+	raw := strings.TrimSpace(strings.TrimPrefix(line, "package-script"))
+	name, quoted, ok := strings.Cut(raw, " ")
+	if !ok || name == "" {
+		return "", "", strconv.ErrSyntax
+	}
+	want, err := strconv.Unquote(strings.TrimSpace(quoted))
+	return name, want, err
 }
 
 func volumeStats(work string) (uint64, uint64, error) {
