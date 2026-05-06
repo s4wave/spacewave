@@ -189,7 +189,7 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 	for _, want := range []string{
 		`"desktopPresencePolicy":"DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND"`,
 		`"trayIconPath":"web/images/spacewave-icon.png"`,
-		`"macosTemplateTrayIconPath":"web/images/spacewave-menubar.svg"`,
+		`"macosTemplateTrayIconPath":"web/images/spacewave-tray-template.png"`,
 	} {
 		if !strings.Contains(webCfg, want) {
 			t.Fatalf("web config missing %s: %s", want, webCfg)
