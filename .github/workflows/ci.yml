@@ -236,9 +236,13 @@ jobs:
       - name: Install Bun dependencies
         run: bun install --frozen-lockfile --ignore-scripts
 
-      - name: Install Playwright browsers
-        if: ${{ matrix.suite.needs_playwright }}
+      - name: Install Playwright browsers for Go tests
+        if: ${{ matrix.suite.needs_playwright && matrix.suite.name != 'alpha-browser' }}
         run: go run github.com/playwright-community/playwright-go/cmd/playwright install --with-deps ${{ matrix.suite.playwright_browsers }}
+
+      - name: Install Playwright browsers for Vitest
+        if: ${{ matrix.suite.name == 'alpha-browser' }}
+        run: bunx playwright install --with-deps ${{ matrix.suite.playwright_browsers }}
 
       - name: Cache aptre tools
         uses: actions/cache@v5

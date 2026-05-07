@@ -38,6 +38,9 @@ func ResolveSpace(
 
 	cleanup := func() {
 		for _, v := range slices.Backward(refs) {
+			if v == nil {
+				continue
+			}
 			v.Release()
 		}
 	}
@@ -113,6 +116,14 @@ func ResolveSpace(
 	if err != nil {
 		cleanup()
 		return nil, nil, errors.Wrap(err, "lookup world engine")
+	}
+	if engine == nil {
+		cleanup()
+		return nil, nil, errors.Errorf("lookup world engine %q returned nil engine", engineID)
+	}
+	if engineRef == nil {
+		cleanup()
+		return nil, nil, errors.Errorf("lookup world engine %q returned nil directive ref", engineID)
 	}
 	refs = append(refs, engineRef)
 

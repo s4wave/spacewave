@@ -2,7 +2,7 @@ package hydra_git
 
 import (
 	"context"
-	_ "crypto/sha1"
+	_ "crypto/sha1" // #nosec G505 -- Git object IDs require SHA-1 registration.
 
 	"github.com/go-git/go-git/v6/storage"
 	"github.com/s4wave/spacewave/db/tx"
