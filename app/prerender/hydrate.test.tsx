@@ -84,7 +84,7 @@ describe('hydrate root hash boot', () => {
     const boot = vi.fn()
     globalThis.__swBoot = boot
     ready.resolve()
-    await globalThis.__swReady
+    await ready.promise
     await Promise.resolve()
 
     expect(boot).toHaveBeenCalledWith('#/login')
@@ -101,7 +101,7 @@ describe('hydrate root hash boot', () => {
     const boot = vi.fn()
     globalThis.__swBoot = boot
     ready.resolve()
-    await globalThis.__swReady
+    await ready.promise
     await Promise.resolve()
 
     expect(boot).toHaveBeenCalledWith('#/quickstart/drive')
@@ -118,7 +118,7 @@ describe('hydrate root hash boot', () => {
     const boot = vi.fn()
     globalThis.__swBoot = boot
     ready.resolve()
-    await globalThis.__swReady
+    await ready.promise
     await Promise.resolve()
 
     expect(boot).toHaveBeenCalledWith('')

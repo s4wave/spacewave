@@ -41,7 +41,7 @@ __debug_bin*
 hydra/
 *.test
 __screenshots__
-/.opencode/sess
+/.opencode/
 /.claude/cache
 *-eslint.json
 eslint-errors.json
@@ -57,4 +57,3 @@ eslint-errors.json
 trace.out
 /e2e/wasm/testdata
 .aider*
-.opencode/tool-output
