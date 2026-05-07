@@ -18,6 +18,8 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
+	"github.com/s4wave/spacewave/db/volume"
+	"github.com/s4wave/spacewave/db/world"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 )
 
@@ -42,6 +44,8 @@ func newPluginCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 func buildPluginImportManifestCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 	var dbPath string
 	var manifestID string
+	var objectKey string
+	var targetDBPath string
 	return &cli.Command{
 		Name:  "import-manifest",
 		Usage: "import a built manifest into the local plugin host store",
@@ -58,9 +62,20 @@ func buildPluginImportManifestCommand(getBus func() cli_entrypoint.CliBus) *cli.
 				Required:    true,
 				Destination: &manifestID,
 			},
+			&cli.StringFlag{
+				Name:        "object-key",
+				Usage:       "plugin host object key to import into",
+				Value:       daemonPluginHostObjectKey,
+				Destination: &objectKey,
+			},
+			&cli.StringFlag{
+				Name:        "target-db",
+				Usage:       "optional path to target .bldr/ devtool DB; defaults to the running daemon world",
+				Destination: &targetDBPath,
+			},
 		},
 		Action: func(c *cli.Context) error {
-			return runPluginImportManifest(c.Context, getBus, dbPath, manifestID)
+			return runPluginImportManifest(c.Context, getBus, dbPath, targetDBPath, manifestID, objectKey)
 		},
 	}
 }
@@ -69,11 +84,16 @@ func runPluginImportManifest(
 	ctx context.Context,
 	getBus func() cli_entrypoint.CliBus,
 	dbPath string,
+	targetDBPath string,
 	manifestID string,
+	objectKey string,
 ) error {
 	cliBus := getBus()
 	if cliBus == nil {
 		return errors.New("bus not initialized")
+	}
+	if objectKey == "" {
+		return errors.New("object-key is required")
 	}
 	le := cliBus.GetLogger()
 	src, err := openDevtoolVolume(ctx, le, dbPath)
@@ -99,27 +119,50 @@ func runPluginImportManifest(
 	if err != nil {
 		return errors.Wrap(err, "build block transformer")
 	}
-	dest := cliBus.GetVolume()
+	var dest volume.Volume
+	var destEngine world.Engine
+	var destClose func() error
+	destBucketID := "bldr/cli"
+	if targetDBPath == "" {
+		dest = cliBus.GetVolume()
+		destEngine = cliBus.GetWorldEngine()
+	} else {
+		dest, err = openDevtoolVolume(ctx, le, targetDBPath)
+		if err != nil {
+			return errors.Wrap(err, "open target devtool storage")
+		}
+		defer dest.Close()
+		targetEng, err := openDevtoolWorldEngine(ctx, le, dest)
+		if err != nil {
+			return errors.Wrap(err, "open target devtool world")
+		}
+		destEngine = targetEng
+		destClose = targetEng.Close
+		destBucketID = devtoolEngineBucketID
+	}
+	if destClose != nil {
+		defer destClose()
+	}
 	rootRef := collected.ManifestRef.GetRootRef()
 	if err := copyManifestBlockDAG(ctx, rootRef, src, dest, xfrm); err != nil {
 		return errors.Wrap(err, "copy manifest blocks")
 	}
-	tx, err := cliBus.GetWorldEngine().NewTransaction(ctx, true)
+	tx, err := destEngine.NewTransaction(ctx, true)
 	if err != nil {
 		return errors.Wrap(err, "new transaction")
 	}
 	defer tx.Discard()
-	if _, err := bldr_manifest_world.CreateManifestStore(ctx, tx, daemonPluginHostObjectKey); err != nil {
+	if _, err := bldr_manifest_world.CreateManifestStore(ctx, tx, objectKey); err != nil {
 		return errors.Wrap(err, "create plugin host manifest store")
 	}
-	manifestKey := bldr_manifest.NewManifestKey(daemonPluginHostObjectKey, collected.Manifest.GetMeta())
+	manifestKey := bldr_manifest.NewManifestKey(objectKey, collected.Manifest.GetMeta())
 	objRef := collected.ManifestRef.Clone()
-	objRef.BucketId = "bldr/cli"
+	objRef.BucketId = destBucketID
 	objRef.TransformConf = transformConf
 	if _, _, err := bldr_manifest_world.SetManifest(ctx, tx, "", manifestKey, objRef); err != nil {
 		return errors.Wrap(err, "set manifest")
 	}
-	if err := tx.SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad(daemonPluginHostObjectKey, manifestKey, manifestID)); err != nil {
+	if err := tx.SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad(objectKey, manifestKey, manifestID)); err != nil {
 		return errors.Wrap(err, "link manifest")
 	}
 	if err := tx.Commit(ctx); err != nil {

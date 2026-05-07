@@ -38,3 +38,24 @@ func TestPluginSubcommandsUseClientFlags(t *testing.T) {
 		})
 	}
 }
+
+func TestPluginImportManifestObjectKeyFlag(t *testing.T) {
+	cmd := buildPluginImportManifestCommand(nil)
+	set := flag.NewFlagSet(cmd.Name, flag.ContinueOnError)
+	set.SetOutput(io.Discard)
+	for _, fl := range cmd.Flags {
+		if err := fl.Apply(set); err != nil {
+			t.Fatalf("apply flag: %v", err)
+		}
+	}
+	objectKey := set.Lookup("object-key")
+	if objectKey == nil {
+		t.Fatal("object-key flag missing")
+	}
+	if objectKey.DefValue != daemonPluginHostObjectKey {
+		t.Fatalf("object-key default = %q, want %q", objectKey.DefValue, daemonPluginHostObjectKey)
+	}
+	if set.Lookup("target-db") == nil {
+		t.Fatal("target-db flag missing")
+	}
+}

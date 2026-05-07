@@ -82,13 +82,11 @@ func loadDevtoolHeadRef(ctx context.Context, vol volume.Volume) (*bucket.ObjectR
 	return state.GetHeadRef(), nil
 }
 
-// lookupDevtoolManifest opens the devtool world and finds a manifest by ID.
-func lookupDevtoolManifest(
+func openDevtoolWorldEngine(
 	ctx context.Context,
 	le *logrus.Entry,
 	vol volume.Volume,
-	manifestID string,
-) (*bldr_manifest_world.CollectedManifest, error) {
+) (*devtoolWorldEngine, error) {
 	headRef, err := loadDevtoolHeadRef(ctx, vol)
 	if err != nil {
 		return nil, errors.Wrap(err, "load head ref")
@@ -133,17 +131,66 @@ func lookupDevtoolManifest(
 		transformConf,
 	)
 
+	store, rel, err := vol.AccessObjectStore(ctx, devtoolEngineObjStoreID, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "access object store")
+	}
+
+	commitFn := func(nref *bucket.ObjectRef) error {
+		tx, err := store.NewTransaction(ctx, true)
+		if err != nil {
+			return errors.Wrap(err, "open object store tx")
+		}
+		defer tx.Discard()
+		state := &world_block_engine.HeadState{HeadRef: nref}
+		data, err := state.MarshalVT()
+		if err != nil {
+			return errors.Wrap(err, "marshal head state")
+		}
+		if err := tx.Set(ctx, []byte("world-head"), data); err != nil {
+			return errors.Wrap(err, "write world-head")
+		}
+		return tx.Commit(ctx)
+	}
+
 	eng, err := world_block.NewEngine(
 		ctx,
 		le,
 		cursor,
 		bldr_manifest_world.LookupOp,
-		nil,
+		commitFn,
 		false,
 	)
 	if err != nil {
+		rel()
 		return nil, errors.Wrap(err, "build world engine")
 	}
+
+	return &devtoolWorldEngine{Engine: eng, release: rel}, nil
+}
+
+type devtoolWorldEngine struct {
+	world.Engine
+	release func()
+}
+
+func (e *devtoolWorldEngine) Close() error {
+	e.release()
+	return nil
+}
+
+// lookupDevtoolManifest opens the devtool world and finds a manifest by ID.
+func lookupDevtoolManifest(
+	ctx context.Context,
+	le *logrus.Entry,
+	vol volume.Volume,
+	manifestID string,
+) (*bldr_manifest_world.CollectedManifest, error) {
+	eng, err := openDevtoolWorldEngine(ctx, le, vol)
+	if err != nil {
+		return nil, err
+	}
+	defer eng.Close()
 
 	ws := world.NewEngineWorldState(eng, false)
 
