@@ -794,13 +794,21 @@ func importV86ImageTar(
 	ts := time.Now()
 	edges := make(map[string]string, 5)
 	for _, asset := range assetPaths {
-		key, err := importV86SingleFile(ctx, tx, asset.name, asset.path, ts)
+		key, err := v86ImageImportAssetObjectKey(dstKey, string(asset.pred))
+		if err != nil {
+			return "", err
+		}
+		key, err = importV86SingleFile(ctx, tx, key, asset.name, asset.path, ts)
 		if err != nil {
 			return "", err
 		}
 		edges[string(asset.pred)] = key
 	}
-	rootfsKey, err := importV86RootfsTar(ctx, tx, args.rootfsTarPath, ts)
+	rootfsKey, err := v86ImageImportAssetObjectKey(dstKey, string(s4wave_vm.PredV86ImageRootfs))
+	if err != nil {
+		return "", err
+	}
+	rootfsKey, err = importV86RootfsTar(ctx, tx, rootfsKey, args.rootfsTarPath, ts)
 	if err != nil {
 		return "", err
 	}
@@ -828,6 +836,26 @@ func importV86ImageTar(
 		return "", errors.Wrap(err, "commit import")
 	}
 	return dstKey, nil
+}
+
+func v86ImageImportAssetObjectKey(imageKey, pred string) (string, error) {
+	if imageKey == "" {
+		return "", errors.New("image object key is required")
+	}
+	switch pred {
+	case string(s4wave_vm.PredV86ImageWasm):
+		return imageKey + "/wasm", nil
+	case string(s4wave_vm.PredV86ImageBiosSeabios):
+		return imageKey + "/bios/seabios", nil
+	case string(s4wave_vm.PredV86ImageBiosVgabios):
+		return imageKey + "/bios/vgabios", nil
+	case string(s4wave_vm.PredV86ImageKernel):
+		return imageKey + "/kernel", nil
+	case string(s4wave_vm.PredV86ImageRootfs):
+		return imageKey + "/rootfs", nil
+	default:
+		return "", errors.Errorf("unsupported v86 image asset predicate %q", pred)
+	}
 }
 
 func validateV86ImageImportTarArgs(args *v86ImageImportTarArgs) error {
@@ -860,7 +888,7 @@ func validateV86ImageImportTarArgs(args *v86ImageImportTarArgs) error {
 	return nil
 }
 
-func importV86SingleFile(ctx context.Context, tx world.WorldState, name, path string, ts time.Time) (string, error) {
+func importV86SingleFile(ctx context.Context, tx world.WorldState, key, name, path string, ts time.Time) (string, error) {
 	st, err := os.Stat(path)
 	if err != nil {
 		return "", errors.Wrapf(err, "stat %s", path)
@@ -873,7 +901,6 @@ func importV86SingleFile(ctx context.Context, tx world.WorldState, name, path st
 		return "", errors.Wrapf(err, "open %s", path)
 	}
 	defer f.Close()
-	key := "v86image-asset-" + ulid.NewULID()
 	if _, _, err := unixfs_world.FsInit(ctx, tx, "", key, unixfs_world.FSType_FSType_FS_NODE, nil, false, ts); err != nil {
 		return "", errors.Wrap(err, "fs-init "+name)
 	}
@@ -898,7 +925,7 @@ func importV86SingleFile(ctx context.Context, tx world.WorldState, name, path st
 	return key, nil
 }
 
-func importV86RootfsTar(ctx context.Context, tx world.WorldState, path string, ts time.Time) (string, error) {
+func importV86RootfsTar(ctx context.Context, tx world.WorldState, key, path string, ts time.Time) (string, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return "", errors.Wrapf(err, "open rootfs tar %s", path)
@@ -921,7 +948,6 @@ func importV86RootfsTar(ctx context.Context, tx world.WorldState, path string, t
 		return "", errors.Wrap(err, "build tar fs handle")
 	}
 	defer srcHandle.Release()
-	key := "v86image-asset-" + ulid.NewULID()
 	if _, _, err := unixfs_world.FsInit(ctx, tx, "", key, unixfs_world.FSType_FSType_FS_NODE, nil, false, ts); err != nil {
 		return "", errors.Wrap(err, "fs-init rootfs")
 	}

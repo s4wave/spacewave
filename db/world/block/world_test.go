@@ -291,6 +291,64 @@ func TestWorldState_DeleteObject(t *testing.T) {
 	t.Log("DeleteObject test successful")
 }
 
+func TestWorldState_DeleteObjectRemovesLiteralPredicateQuads(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	rootRef := &bucket.ObjectRef{BucketId: "test-bucket"}
+	imageKey := "image"
+	oldAssetKey := "image-old-asset"
+	if _, err := ws.CreateObject(ctx, imageKey, rootRef); err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := ws.CreateObject(ctx, oldAssetKey, rootRef); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := ws.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(imageKey, "v86image/wasm", oldAssetKey, "")); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := ws.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	deleted, err := ws.DeleteObject(ctx, imageKey)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !deleted {
+		t.Fatalf("expected %q to be deleted", imageKey)
+	}
+	if err := ws.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	quads, err := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys(imageKey, "", "", ""), 0)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(quads) != 0 {
+		t.Fatalf("expected no outgoing quads for deleted image, got %d", len(quads))
+	}
+}
+
 // TestWorldState_DeleteObjectWithMalformedGraphQuad verifies object deletion can clean up legacy graph quads.
 func TestWorldState_DeleteObjectWithMalformedGraphQuad(t *testing.T) {
 	ctx := context.Background()

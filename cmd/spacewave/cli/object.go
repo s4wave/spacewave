@@ -12,6 +12,7 @@ import (
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
 	git_world "github.com/s4wave/spacewave/db/git/world"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
+	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 )
@@ -37,6 +38,7 @@ func newObjectCommand(statePath *string, sessionIdx *uint) *cli.Command {
 		Subcommands: []*cli.Command{
 			buildObjectListCommand(statePath, sessionIdx, &spaceID),
 			buildObjectInfoCommand(statePath, sessionIdx, &spaceID),
+			buildObjectGraphCommand(statePath, sessionIdx, &spaceID),
 			buildObjectCreateCommand(statePath, sessionIdx, &spaceID),
 			buildObjectDeleteCommand(statePath, sessionIdx, &spaceID),
 		},
@@ -200,6 +202,88 @@ func buildObjectInfoCommand(statePath *string, sessionIdx *uint, spaceID *string
 				}
 			}
 			writeFields(w, fields)
+			return nil
+		},
+	}
+}
+
+func buildObjectGraphCommand(statePath *string, sessionIdx *uint, spaceID *string) *cli.Command {
+	return &cli.Command{
+		Name:      "graph",
+		Usage:     "show graph quads referencing an object",
+		ArgsUsage: "<object-key>",
+		Action: func(c *cli.Context) error {
+			key := c.Args().First()
+			if key == "" {
+				return errors.New("object key required")
+			}
+
+			ctx := c.Context
+			client, err := connectDaemonFromContext(ctx, c, *statePath)
+			if err != nil {
+				return err
+			}
+			defer client.close()
+
+			sess, err := client.mountSession(ctx, uint32(*sessionIdx))
+			if err != nil {
+				return err
+			}
+			defer sess.Release()
+
+			sid, err := client.resolveSpaceID(ctx, sess, *spaceID)
+			if err != nil {
+				return err
+			}
+
+			spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, sid)
+			if err != nil {
+				return err
+			}
+			defer spaceCleanup()
+
+			engine, engineCleanup, err := client.accessWorldEngine(ctx, spaceSvc)
+			if err != nil {
+				return err
+			}
+			defer engineCleanup()
+
+			tx, err := engine.NewTransaction(ctx, false)
+			if err != nil {
+				return errors.Wrap(err, "new transaction")
+			}
+			defer tx.Discard()
+
+			subjQuads, err := tx.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys(key, "", "", ""), 0)
+			if err != nil {
+				return errors.Wrap(err, "lookup outgoing quads")
+			}
+			objQuads, err := tx.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys("", "", key, ""), 0)
+			if err != nil {
+				return errors.Wrap(err, "lookup incoming quads")
+			}
+
+			rows := [][]string{{"DIR", "SUBJECT", "PREDICATE", "OBJECT", "LABEL"}}
+			seen := make(map[string]struct{}, len(subjQuads)+len(objQuads))
+			appendQuad := func(dir string, q world.GraphQuad) {
+				id := dir + "\x00" + q.GetSubject() + "\x00" + q.GetPredicate() + "\x00" + q.GetObj() + "\x00" + q.GetLabel()
+				if _, ok := seen[id]; ok {
+					return
+				}
+				seen[id] = struct{}{}
+				rows = append(rows, []string{dir, q.GetSubject(), q.GetPredicate(), q.GetObj(), q.GetLabel()})
+			}
+			for _, q := range subjQuads {
+				appendQuad("out", q)
+			}
+			for _, q := range objQuads {
+				appendQuad("in", q)
+			}
+			if len(rows) == 1 {
+				os.Stdout.WriteString("no graph quads\n")
+				return nil
+			}
+			writeTable(os.Stdout, "", rows)
 			return nil
 		},
 	}

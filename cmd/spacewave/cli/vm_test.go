@@ -113,6 +113,34 @@ func TestValidateV86ImageImportTarArgs(t *testing.T) {
 	}
 }
 
+func TestV86ImageImportAssetObjectKey(t *testing.T) {
+	cases := []struct {
+		pred string
+		want string
+	}{
+		{"v86image/wasm", "glados/codex-rootfs/c5-image/wasm"},
+		{"v86image/bios/seabios", "glados/codex-rootfs/c5-image/bios/seabios"},
+		{"v86image/bios/vgabios", "glados/codex-rootfs/c5-image/bios/vgabios"},
+		{"v86image/kernel", "glados/codex-rootfs/c5-image/kernel"},
+		{"v86image/rootfs", "glados/codex-rootfs/c5-image/rootfs"},
+	}
+	for _, c := range cases {
+		got, err := v86ImageImportAssetObjectKey("glados/codex-rootfs/c5-image", c.pred)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got != c.want {
+			t.Fatalf("asset key for %s = %q, want %q", c.pred, got, c.want)
+		}
+	}
+	if _, err := v86ImageImportAssetObjectKey("", "v86image/rootfs"); err == nil {
+		t.Fatal("expected empty image key error")
+	}
+	if _, err := v86ImageImportAssetObjectKey("image", "v86image/other"); err == nil {
+		t.Fatal("expected unsupported predicate error")
+	}
+}
+
 func writeTestFile(t *testing.T, dir, name, body string) string {
 	t.Helper()
 	path := filepath.Join(dir, name)

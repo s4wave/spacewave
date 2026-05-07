@@ -20,8 +20,7 @@ type GraphQuad interface {
 
 // GraphQuadStringToCayleyValue converts a graph quad string to a quad.Value
 func GraphQuadStringToCayleyValue(s string) quad.Value {
-	// note: this checks the first few characters for < or _: or @
-	return quad.StringToValue(s)
+	return quad.Raw(s)
 }
 
 // GraphQuadToCayleyQuad converts a graph quad to a cayley quad.
