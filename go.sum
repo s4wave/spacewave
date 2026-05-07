@@ -74,6 +74,8 @@ github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c h1:32+9phq
 github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c/go.mod h1:L9/rUdjzzI9mMWKJcbh7T8LSQ43JKwrxYv4I2i2YsY4=
 github.com/aperturerobotics/starpc v0.49.7 h1:teNtPdGb+xeeaN3Ovcabu/S/1P8zFqlfuEtsPyON05E=
 github.com/aperturerobotics/starpc v0.49.7/go.mod h1:OHFZGc3qFPzztRW8XPJEGSw+HkRRlnXOnUK+nXF3iS4=
+github.com/aperturerobotics/starpc v0.49.8 h1:cagLHoWoTBC+du9/Qwgh2fowDXYOi794k6iwziyVu9I=
+github.com/aperturerobotics/starpc v0.49.8/go.mod h1:QASM2PU+f00Vpl7YDlmIhY0S0X438hGsSEIWEuV0cNw=
 github.com/aperturerobotics/util v1.34.3 h1:9lFYJovGlAHYX66aWKVzfoVzYox13P054d/Dy8T/GRg=
 github.com/aperturerobotics/util v1.34.3/go.mod h1:xtE2hwpgKGaW0TLx01+9xLsG+rYvhygQ+JCuQeAbvME=
 github.com/aperturerobotics/vitess v0.0.0-20260430160346-12753f562010 h1:gOEsFiQyF2xvAp+V57qc998Y1F+LNwFuzgXjwMo8+0o=
