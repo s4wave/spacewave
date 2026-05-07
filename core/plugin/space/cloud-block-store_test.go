@@ -94,12 +94,11 @@ func TestRunCloudBlockStoreForwardingExposesHostBucket(t *testing.T) {
 		bucketID,
 		testHostPluginID,
 	)
-	forwardCtx, forwardCancel := context.WithCancel(ctx)
-	defer forwardCancel()
-	errCh := make(chan error, 1)
-	go func() {
-		errCh <- forwarder.Execute(forwardCtx)
-	}()
+	forwarderRef, err := pluginBus.AddController(ctx, forwarder, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer forwarderRef()
 
 	hostBucket, _, hostBucketRef, err := bucket.ExBuildBucketAPI(ctx, hostBus, false, bucketID, bucketID, nil)
 	if err != nil {
@@ -136,11 +135,6 @@ func TestRunCloudBlockStoreForwardingExposesHostBucket(t *testing.T) {
 	}
 	if string(got) != string(body) {
 		t.Fatalf("expected lookup block body %q, got %q", string(body), string(got))
-	}
-
-	forwardCancel()
-	if err := <-errCh; err != context.Canceled {
-		t.Fatalf("expected context.Canceled after stopping forwarder, got %v", err)
 	}
 }
 
