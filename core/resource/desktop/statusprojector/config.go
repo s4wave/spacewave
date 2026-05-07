@@ -26,10 +26,5 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// ResolvedWebRuntimeID returns the configured web runtime id.
-func (c *Config) ResolvedWebRuntimeID() string {
-	return c.GetWebRuntimeId()
-}
-
 // _ is a type assertion
 var _ config.Config = ((*Config)(nil))

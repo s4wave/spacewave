@@ -3,9 +3,5 @@ package resource.desktop.status_projector;
 
 option go_package = "github.com/s4wave/spacewave/core/resource/desktop/statusprojector;statusprojector";
 
-// Config configures the desktop runtime status projector.
-message Config {
-  // WebRuntimeId is the Bldr web runtime controller id that exposes the
-  // DesktopRuntimeResource tree.
-  string web_runtime_id = 1;
-}
+// Config configures the desktop tray status projector.
+message Config {}

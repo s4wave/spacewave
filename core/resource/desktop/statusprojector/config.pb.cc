@@ -29,23 +29,14 @@ namespace _fl = ::google::protobuf::internal::field_layout;
 namespace resource {
 namespace desktop {
 namespace status_projector {
-
-inline constexpr Config::Impl_::Impl_(
-    ::_pbi::ConstantInitialized) noexcept
-      : _cached_size_{0},
-        web_runtime_id_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()) {}
-
 template <typename>
 PROTOBUF_CONSTEXPR Config::Config(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(Config_class_data_.base()),
+    : ::google::protobuf::internal::ZeroFieldsBase(Config_class_data_.base()){}
 #else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(),
-#endif  // PROTOBUF_CUSTOM_VTABLE
-      _impl_(::_pbi::ConstantInitialized()) {
+    : ::google::protobuf::internal::ZeroFieldsBase() {
 }
+#endif  // PROTOBUF_CUSTOM_VTABLE
 struct ConfigDefaultTypeInternal {
   PROTOBUF_CONSTEXPR ConfigDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
   ~ConfigDefaultTypeInternal() {}
@@ -66,11 +57,7 @@ static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULL
 const ::uint32_t
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fresource_2fdesktop_2fstatusprojector_2fconfig_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
-        0x081, // bitmap
-        PROTOBUF_FIELD_OFFSET(::resource::desktop::status_projector::Config, _impl_._has_bits_),
-        4, // hasbit index offset
-        PROTOBUF_FIELD_OFFSET(::resource::desktop::status_projector::Config, _impl_.web_runtime_id_),
-        0,
+        0x000, // bitmap
 };
 
 static const ::_pbi::MigrationSchema
@@ -84,17 +71,16 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2f
     protodesc_cold) = {
     "\nNgithub.com/s4wave/spacewave/core/resou"
     "rce/desktop/statusprojector/config.proto"
-    "\022!resource.desktop.status_projector\" \n\006C"
-    "onfig\022\026\n\016web_runtime_id\030\001 \001(\tBSZQgithub."
-    "com/s4wave/spacewave/core/resource/deskt"
-    "op/statusprojector;statusprojectorb\006prot"
-    "o3"
+    "\022!resource.desktop.status_projector\"\010\n\006C"
+    "onfigBSZQgithub.com/s4wave/spacewave/cor"
+    "e/resource/desktop/statusprojector;statu"
+    "sprojectorb\006proto3"
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fresource_2fdesktop_2fstatusprojector_2fconfig_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fresource_2fdesktop_2fstatusprojector_2fconfig_2eproto = {
     false,
     false,
-    242,
+    218,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2fresource_2fdesktop_2fstatusprojector_2fconfig_2eproto,
     "github.com/s4wave/spacewave/core/resource/desktop/statusprojector/config.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fresource_2fdesktop_2fstatusprojector_2fconfig_2eproto_once,
@@ -114,67 +100,30 @@ namespace status_projector {
 
 class Config::_Internal {
  public:
-  using HasBits =
-      decltype(::std::declval<Config>()._impl_._has_bits_);
-  static constexpr ::int32_t kHasBitsOffset =
-      8 * PROTOBUF_FIELD_OFFSET(Config, _impl_._has_bits_);
 };
 
 Config::Config(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, Config_class_data_.base()) {
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, Config_class_data_.base()) {
 #else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(arena) {
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
 #endif  // PROTOBUF_CUSTOM_VTABLE
-  SharedCtor(arena);
   // @@protoc_insertion_point(arena_constructor:resource.desktop.status_projector.Config)
 }
-PROTOBUF_NDEBUG_INLINE Config::Impl_::Impl_(
-    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
-    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-    [[maybe_unused]] const ::resource::desktop::status_projector::Config& from_msg)
-      : _has_bits_{from._has_bits_},
-        _cached_size_{0},
-        web_runtime_id_(arena, from.web_runtime_id_) {}
-
 Config::Config(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
     const Config& from)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, Config_class_data_.base()) {
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, Config_class_data_.base()) {
 #else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(arena) {
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
 #endif  // PROTOBUF_CUSTOM_VTABLE
   Config* const _this = this;
   (void)_this;
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
-  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
 
   // @@protoc_insertion_point(copy_constructor:resource.desktop.status_projector.Config)
-}
-PROTOBUF_NDEBUG_INLINE Config::Impl_::Impl_(
-    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
-    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
-      : _cached_size_{0},
-        web_runtime_id_(arena) {}
-
-inline void Config::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
-  new (&_impl_) Impl_(internal_visibility(), arena);
-}
-Config::~Config() {
-  // @@protoc_insertion_point(destructor:resource.desktop.status_projector.Config)
-  SharedDtor(*this);
-}
-inline void Config::SharedDtor(MessageLite& self) {
-  Config& this_ = static_cast<Config&>(self);
-  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
-    this_.CheckHasBitConsistency();
-  }
-  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
-  ABSL_DCHECK(this_.GetArena() == nullptr);
-  this_._impl_.web_runtime_id_.Destroy();
-  this_._impl_.~Impl_();
 }
 
 inline void* PROTOBUF_NONNULL Config::PlacementNew_(
@@ -183,7 +132,7 @@ inline void* PROTOBUF_NONNULL Config::PlacementNew_(
   return ::new (mem) Config(arena);
 }
 constexpr auto Config::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(Config),
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(Config),
                                             alignof(Config));
 }
 constexpr auto Config::InternalGenerateClassData_() {
@@ -194,10 +143,10 @@ constexpr auto Config::InternalGenerateClassData_() {
           nullptr,  // OnDemandRegisterArenaDtor
           nullptr,  // IsInitialized
           &Config::MergeImpl,
-          ::google::protobuf::Message::GetNewImpl<Config>(),
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<Config>(),
 #if defined(PROTOBUF_CUSTOM_VTABLE)
           &Config::SharedDtor,
-          ::google::protobuf::Message::GetClearImpl<Config>(), &Config::ByteSizeLong,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<Config>(), &Config::ByteSizeLong,
               &Config::_InternalSerialize,
 #endif  // PROTOBUF_CUSTOM_VTABLE
           PROTOBUF_FIELD_OFFSET(Config, _impl_._cached_size_),
@@ -220,16 +169,16 @@ Config::GetClassData() const {
   return Config_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<0, 1, 0, 63, 2>
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
 Config::_table_ = {
   {
-    PROTOBUF_FIELD_OFFSET(Config, _impl_._has_bits_),
+    0,  // no _has_bits_
     0, // no _extensions_
-    1, 0,  // max_field_number, fast_idx_mask
+    0, 0,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967294,  // skipmap
-    offsetof(decltype(_table_), field_entries),
-    1,  // num_field_entries
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     Config_class_data_.base(),
@@ -239,151 +188,22 @@ Config::_table_ = {
     ::_pbi::TcParser::GetTable<::resource::desktop::status_projector::Config>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // string web_runtime_id = 1;
-    {::_pbi::TcParser::FastUS1,
-     {10, 0, 0,
-      PROTOBUF_FIELD_OFFSET(Config, _impl_.web_runtime_id_)}},
+    {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
-  }}, {{
-    // string web_runtime_id = 1;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.web_runtime_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-  }},
-  // no aux_entries
+  }}, // no field_entries, or aux_entries
   {{
-    "\50\16\0\0\0\0\0\0"
-    "resource.desktop.status_projector.Config"
-    "web_runtime_id"
   }},
 };
-PROTOBUF_NOINLINE void Config::Clear() {
-// @@protoc_insertion_point(message_clear_start:resource.desktop.status_projector.Config)
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  ::uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
-
-  cached_has_bits = _impl_._has_bits_[0];
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    _impl_.web_runtime_id_.ClearNonDefaultToEmpty();
-  }
-  _impl_._has_bits_.Clear();
-  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
-}
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-::uint8_t* PROTOBUF_NONNULL Config::_InternalSerialize(
-    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
-    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
-  const Config& this_ = static_cast<const Config&>(base);
-#else   // PROTOBUF_CUSTOM_VTABLE
-::uint8_t* PROTOBUF_NONNULL Config::_InternalSerialize(
-    ::uint8_t* PROTOBUF_NONNULL target,
-    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-  const Config& this_ = *this;
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
-    this_.CheckHasBitConsistency();
-  }
-  // @@protoc_insertion_point(serialize_to_array_start:resource.desktop.status_projector.Config)
-  ::uint32_t cached_has_bits = 0;
-  (void)cached_has_bits;
-
-  cached_has_bits = this_._impl_._has_bits_[0];
-  // string web_runtime_id = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    if (!this_._internal_web_runtime_id().empty()) {
-      const ::std::string& _s = this_._internal_web_runtime_id();
-      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "resource.desktop.status_projector.Config.web_runtime_id");
-      target = stream->WriteStringMaybeAliased(1, _s, target);
-    }
-  }
-
-  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
-    target =
-        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
-            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
-  }
-  // @@protoc_insertion_point(serialize_to_array_end:resource.desktop.status_projector.Config)
-  return target;
-}
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-::size_t Config::ByteSizeLong(const MessageLite& base) {
-  const Config& this_ = static_cast<const Config&>(base);
-#else   // PROTOBUF_CUSTOM_VTABLE
-::size_t Config::ByteSizeLong() const {
-  const Config& this_ = *this;
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  // @@protoc_insertion_point(message_byte_size_start:resource.desktop.status_projector.Config)
-  ::size_t total_size = 0;
-
-  ::uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void)cached_has_bits;
-
-   {
-    // string web_runtime_id = 1;
-    cached_has_bits = this_._impl_._has_bits_[0];
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-      if (!this_._internal_web_runtime_id().empty()) {
-        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
-                                        this_._internal_web_runtime_id());
-      }
-    }
-  }
-  return this_.MaybeComputeUnknownFieldsSize(total_size,
-                                             &this_._impl_._cached_size_);
-}
-
-void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
-                            const ::google::protobuf::MessageLite& from_msg) {
-   auto* const _this =
-      static_cast<Config*>(&to_msg);
-  auto& from = static_cast<const Config&>(from_msg);
-  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
-    from.CheckHasBitConsistency();
-  }
-  // @@protoc_insertion_point(class_specific_merge_from_start:resource.desktop.status_projector.Config)
-  ABSL_DCHECK_NE(&from, _this);
-  ::uint32_t cached_has_bits = 0;
-  (void)cached_has_bits;
-
-  cached_has_bits = from._impl_._has_bits_[0];
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    if (!from._internal_web_runtime_id().empty()) {
-      _this->_internal_set_web_runtime_id(from._internal_web_runtime_id());
-    } else {
-      if (_this->_impl_.web_runtime_id_.IsDefault()) {
-        _this->_internal_set_web_runtime_id("");
-      }
-    }
-  }
-  _this->_impl_._has_bits_[0] |= cached_has_bits;
-  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
-      from._internal_metadata_);
-}
-
-void Config::CopyFrom(const Config& from) {
-  // @@protoc_insertion_point(class_specific_copy_from_start:resource.desktop.status_projector.Config)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
 
 
-void Config::InternalSwap(Config* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
-  using ::std::swap;
-  auto* arena = GetArena();
-  ABSL_DCHECK_EQ(arena, other->GetArena());
-  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
-  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.web_runtime_id_, &other->_impl_.web_runtime_id_, arena);
-}
+
+
+
+
 
 ::google::protobuf::Metadata Config::GetMetadata() const {
-  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
 }
 // @@protoc_insertion_point(namespace_scope)
 }  // namespace status_projector

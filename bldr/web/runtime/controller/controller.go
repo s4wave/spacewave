@@ -172,7 +172,7 @@ func (c *Controller) GetWebRuntime(ctx context.Context) (web_runtime.WebRuntime,
 func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
 	switch dir := di.GetDirective().(type) {
 	case web_runtime.LookupWebRuntime:
-		if dir.LookupWebRuntimeID() == c.runtimeID || dir.LookupWebRuntimeID() == "" {
+		if dir.LookupWebRuntimeID() == c.runtimeID {
 			return directive.R(directive.NewGetterResolver(c.GetWebRuntime), nil)
 		}
 	}

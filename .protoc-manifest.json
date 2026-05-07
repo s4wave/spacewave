@@ -47,6 +47,22 @@
       ],
       "protoFiles": ["bldr/cli/compiler/compiler.proto"]
     },
+    "github.com/s4wave/spacewave/bldr/desktop/tray": {
+      "hash": "83c55210ab3bbcd6d68b394730ca231b0794a13008242d32e105bfe07ebcbb9b",
+      "generatedFiles": [
+        "bldr/desktop/tray/tray.pb.cc",
+        "bldr/desktop/tray/tray.pb.go",
+        "bldr/desktop/tray/tray.pb.h",
+        "bldr/desktop/tray/tray.pb.rs",
+        "bldr/desktop/tray/tray.pb.ts",
+        "bldr/desktop/tray/tray_srpc.pb.cpp",
+        "bldr/desktop/tray/tray_srpc.pb.go",
+        "bldr/desktop/tray/tray_srpc.pb.hpp",
+        "bldr/desktop/tray/tray_srpc.pb.rs",
+        "bldr/desktop/tray/tray_srpc.pb.ts"
+      ],
+      "protoFiles": ["bldr/desktop/tray/tray.proto"]
+    },
     "github.com/s4wave/spacewave/bldr/devtool/web": {
       "hash": "5c769040e039f1ffb10193454ee1ee6d8c732be26cdaaf2236be7dc0fb27208a",
       "generatedFiles": [
@@ -1342,7 +1358,7 @@
       "protoFiles": ["core/release/release.proto"]
     },
     "github.com/s4wave/spacewave/core/resource/desktop/statusprojector": {
-      "hash": "621219f8b2f4c263c3350718571ad1e673efc844ca30ffdc08558c2118c6ad5d",
+      "hash": "82d01b51d5ec0182f9aac5e5a92b5ab3f148f019f1717666616cbe097425abbc",
       "generatedFiles": [
         "core/resource/desktop/statusprojector/config.pb.cc",
         "core/resource/desktop/statusprojector/config.pb.go",

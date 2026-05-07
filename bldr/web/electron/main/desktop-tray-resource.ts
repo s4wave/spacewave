@@ -13,10 +13,10 @@ import {
   type DesktopTrayResourceService,
 } from '@go/github.com/s4wave/spacewave/bldr/desktop/tray/tray_srpc.pb.js'
 import {
-  DesktopTrayEntry,
   DesktopTrayEntryKind,
   DesktopTrayIconState,
-  DesktopTrayState,
+  type DesktopTrayEntry,
+  type DesktopTrayState,
   type InvokeDesktopTrayEntryRequest,
   type InvokeDesktopTrayEntryResponse,
   type RegisterDesktopTrayEntryRequest,
@@ -39,9 +39,6 @@ interface DesktopTrayRegistration {
 
 // DesktopTrayResource owns an Electron-scoped desktop tray entry registry.
 export class DesktopTrayResource implements DesktopTrayResourceService {
-  private rootEntries: DesktopTrayEntry[] = []
-  private rootStatusText = ''
-  private rootIconState = DesktopTrayIconState.NORMAL
   private readonly registrations = new Map<number, DesktopTrayRegistration>()
   private readonly stateStream = new ItState<WatchDesktopTrayResponse>(
     () => Promise.resolve(this.buildStateResponse()),
@@ -125,46 +122,14 @@ export class DesktopTrayResource implements DesktopTrayResourceService {
   }
 
   public getState(): DesktopTrayState {
-    const entries = [
-      ...this.rootEntries.map((entry) => cloneEntry(entry)),
-      ...[...this.registrations.values()]
-        .sort(compareRegistrations)
-        .map((reg) => cloneEntry(reg.entry)),
-    ]
+    const entries = [...this.registrations.values()]
+      .sort(compareRegistrations)
+      .map((reg) => cloneEntry(reg.entry))
     return {
       entries,
-      iconState: maxIconState(entries, this.rootIconState),
-      statusText: this.rootStatusText,
+      iconState: maxIconState(entries, DesktopTrayIconState.NORMAL),
+      statusText: '',
     }
-  }
-
-  public setEntries(
-    entries: DesktopTrayEntry[],
-    statusText: string,
-    iconState: DesktopTrayIconState,
-  ): void {
-    const next = entries.map((entry) => cloneEntry(entry))
-    const state = {
-      entries: next,
-      statusText,
-      iconState,
-    }
-    if (
-      DesktopTrayState.equals(
-        {
-          entries: this.rootEntries,
-          statusText: this.rootStatusText,
-          iconState: this.rootIconState,
-        },
-        state,
-      )
-    ) {
-      return
-    }
-    this.rootEntries = next
-    this.rootStatusText = statusText
-    this.rootIconState = iconState
-    this.pushState()
   }
 
   private unregister(resourceId: number): void {

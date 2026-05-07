@@ -1,6 +1,7 @@
 import { EventEmitter } from 'events'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { Client as ResourceClient } from '../../../sdk/resource/client.js'
 import {
   DesktopTrayActionKind,
   DesktopTrayEntryKind,
@@ -9,6 +10,7 @@ import {
   type WatchDesktopTrayResponse,
   type DesktopTrayEntry,
 } from '@go/github.com/s4wave/spacewave/bldr/desktop/tray/tray.pb.js'
+import { DesktopTrayResourceServiceClient } from '@go/github.com/s4wave/spacewave/bldr/desktop/tray/tray_srpc.pb.js'
 import {
   DesktopRuntimeActionKind,
   DesktopRuntimeHealth,
@@ -252,7 +254,7 @@ describe('DesktopTrayController', () => {
     )
   })
 
-  it('records the current publisher to resource to tray menu path', async () => {
+  it('records the tray resource to native menu path', async () => {
     const resource = new DesktopRuntimeResource({
       openOrFocusMainWindow: vi.fn(),
       quitDesktopRuntime: vi.fn(),
@@ -265,42 +267,59 @@ describe('DesktopTrayController', () => {
     controller.init()
     await flushPromises()
 
-    await resource.SetDesktopState({
-      state: {
-        statusText: 'Running',
-        health: DesktopRuntimeHealth.HEALTHY,
-        listener: {
-          label: 'CLI reachable',
-          detail: '1 CLI client connected',
-          socketPath: '/tmp/spacewave.sock',
+    const abort = new AbortController()
+    const resourceClient = new ResourceClient(
+      resource.resourceServer,
+      abort.signal,
+    )
+    const rootRef = await resourceClient.accessRootResource()
+    const tray = new DesktopTrayResourceServiceClient(rootRef.client)
+
+    await tray.RegisterDesktopTrayEntry({
+      entry: {
+        id: 'status-runtime',
+        kind: DesktopTrayEntryKind.STATUS,
+        label: 'CLI reachable - 1 CLI client connected',
+        order: 0,
+      },
+    })
+    await tray.RegisterDesktopTrayEntry({
+      entry: {
+        id: 'navigation-session-1',
+        kind: DesktopTrayEntryKind.ACTION,
+        label: 'coolguy@spacewave.app - Cloud - Ready',
+        order: 1,
+        enabled: true,
+        action: { kind: DesktopTrayActionKind.OPEN_ROUTE, route: '/u/1/' },
+      },
+    })
+    await tray.RegisterDesktopTrayEntry({
+      entry: {
+        id: 'navigation-drive',
+        kind: DesktopTrayEntryKind.ACTION,
+        label: 'Drive - Open',
+        order: 2,
+        enabled: true,
+        action: {
+          kind: DesktopTrayActionKind.OPEN_ROUTE,
+          route: '/u/1/so/drive',
         },
-        sessions: [
-          {
-            label: 'coolguy@spacewave.app',
-            detail: 'Cloud',
-            statusText: 'Ready',
-            route: '/u/1/',
-          },
-        ],
-        spaces: [
-          {
-            label: 'Drive',
-            detail: 'Open',
-            route: '/u/1/so/drive',
-          },
-        ],
       },
     })
     await flushPromises()
 
-    expect(trayInstances[0]?.setContextMenu).toHaveBeenCalledTimes(2)
-    expect(templateLabels(menuTemplates[1])).toContain(
+    expect(trayInstances[0]?.setContextMenu).toHaveBeenCalledTimes(4)
+    expect(templateLabels(menuTemplates[3])).toContain(
       'CLI reachable - 1 CLI client connected',
     )
-    expect(templateLabels(menuTemplates[1])).toContain(
+    expect(templateLabels(menuTemplates[3])).toContain(
       'coolguy@spacewave.app - Cloud - Ready',
     )
-    expect(templateLabels(menuTemplates[1])).toContain('Drive - Open')
+    expect(templateLabels(menuTemplates[3])).toContain('Drive - Open')
+
+    rootRef.release()
+    resourceClient.dispose()
+    abort.abort()
   })
 
   it('renders healthy menu sections in daemon-console order', async () => {

@@ -12,7 +12,6 @@ import type { ElectronInit } from '../../plugin/electron/electron.pb.js'
 import type { DesktopRuntimeState as DesktopRuntimeStateMessage } from '../desktop-runtime/desktop-runtime.pb.js'
 import type { DesktopRuntimeResource } from './desktop-runtime.js'
 import { DesktopTrayPopoverController } from './desktop-tray-popover.js'
-import { buildDesktopTrayEntriesFromRuntimeState } from './desktop-tray-runtime-projection.js'
 
 interface DesktopTrayControllerOpts {
   init: ElectronInit
@@ -154,11 +153,6 @@ export class DesktopTrayController {
     )
   }
 
-  private buildTrayEntries(
-    state: DesktopRuntimeStateMessage,
-  ): DesktopTrayEntry[] {
-    return buildDesktopTrayEntriesFromRuntimeState(state)
-  }
   private buildMenuTemplate(
     entries: DesktopTrayEntry[],
   ): Electron.MenuItemConstructorOptions[] {

@@ -143,6 +143,12 @@ func (r *Controller) Execute(ctx context.Context) error {
 				return nil, err
 			}
 			var webController web_runtime.WebRuntime = remote
+			if r.hasTrayBackgroundPresence() {
+				webController = &desktopTrayMirroredRuntime{
+					WebRuntime: remote,
+					controller: r,
+				}
+			}
 			r.electronCtr.SetValue(e)
 			return webController, nil
 		},

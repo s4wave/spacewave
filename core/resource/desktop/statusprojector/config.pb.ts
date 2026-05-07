@@ -3,30 +3,20 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'resource.desktop.status_projector'
 
 /**
- * Config configures the desktop runtime status projector.
+ * Config configures the desktop tray status projector.
  *
  * @generated from message resource.desktop.status_projector.Config
  */
-export interface Config {
-  /**
-   * WebRuntimeId is the Bldr web runtime controller id that exposes the
-   * DesktopRuntimeResource tree.
-   *
-   * @generated from field: string web_runtime_id = 1;
-   */
-  webRuntimeId?: string
-}
+export interface Config {}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'resource.desktop.status_projector.Config',
-  fields: [
-    { no: 1, name: 'web_runtime_id', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
+  fields: [] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

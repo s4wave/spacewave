@@ -511,6 +511,83 @@ func TestReconcileDesktopTrayMirrorsEntriesToTargetResource(t *testing.T) {
 	}
 }
 
+func TestReconcileDesktopTrayMirrorsExistingEntriesAcrossTargetReconnect(t *testing.T) {
+	_, source, sourceRelease := newTestDesktopTrayResourceClient(t)
+	defer sourceRelease()
+
+	_, err := source.RegisterDesktopTrayEntry(t.Context(), &RegisterDesktopTrayEntryRequest{
+		Entry: &DesktopTrayEntry{
+			Id:      "space",
+			Kind:    DesktopTrayEntryKind_DESKTOP_TRAY_ENTRY_KIND_ACTION,
+			Label:   "My Drive",
+			Enabled: true,
+			Action: &DesktopTrayAction{
+				Kind:  DesktopTrayActionKind_DESKTOP_TRAY_ACTION_KIND_OPEN_ROUTE,
+				Route: "/u/1/so/space",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("register source entry: %v", err)
+	}
+
+	firstTargetClient, firstTarget, firstTargetRelease := newTestDesktopTrayResourceClient(t)
+	defer firstTargetRelease()
+	firstStream, err := firstTarget.WatchDesktopTray(t.Context(), &WatchDesktopTrayRequest{})
+	if err != nil {
+		t.Fatalf("watch first target tray: %v", err)
+	}
+	if state := recvTrayState(t, firstStream); len(state.GetEntries()) != 0 {
+		t.Fatalf("first target initial entries = %d, want 0", len(state.GetEntries()))
+	}
+
+	firstCtx, firstCancel := context.WithCancel(t.Context())
+	firstErrCh := make(chan error, 1)
+	go func() {
+		firstErrCh <- ReconcileDesktopTray(firstCtx, source, firstTarget, firstTargetClient)
+	}()
+
+	state := recvTrayState(t, firstStream)
+	if len(state.GetEntries()) != 1 || state.GetEntries()[0].GetLabel() != "My Drive" {
+		t.Fatalf("first target mirrored entries = %#v", state.GetEntries())
+	}
+
+	firstCancel()
+	if err := <-firstErrCh; err == nil {
+		t.Fatalf("expected first reconciler to stop on context cancel")
+	}
+	state = recvTrayState(t, firstStream)
+	if len(state.GetEntries()) != 0 {
+		t.Fatalf("first target entries after reconciler stop = %d, want 0", len(state.GetEntries()))
+	}
+
+	secondTargetClient, secondTarget, secondTargetRelease := newTestDesktopTrayResourceClient(t)
+	defer secondTargetRelease()
+	secondStream, err := secondTarget.WatchDesktopTray(t.Context(), &WatchDesktopTrayRequest{})
+	if err != nil {
+		t.Fatalf("watch second target tray: %v", err)
+	}
+	if state := recvTrayState(t, secondStream); len(state.GetEntries()) != 0 {
+		t.Fatalf("second target initial entries = %d, want 0", len(state.GetEntries()))
+	}
+
+	secondCtx, secondCancel := context.WithCancel(t.Context())
+	secondErrCh := make(chan error, 1)
+	go func() {
+		secondErrCh <- ReconcileDesktopTray(secondCtx, source, secondTarget, secondTargetClient)
+	}()
+
+	state = recvTrayState(t, secondStream)
+	if len(state.GetEntries()) != 1 || state.GetEntries()[0].GetLabel() != "My Drive" {
+		t.Fatalf("second target mirrored entries = %#v", state.GetEntries())
+	}
+
+	secondCancel()
+	if err := <-secondErrCh; err == nil {
+		t.Fatalf("expected second reconciler to stop on context cancel")
+	}
+}
+
 func newTestDesktopTrayResourceClient(
 	t *testing.T,
 ) (*resource_client.Client, SRPCDesktopTrayResourceServiceClient, func()) {

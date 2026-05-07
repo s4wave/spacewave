@@ -24,7 +24,6 @@ import (
 	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 	default_storage "github.com/s4wave/spacewave/bldr/storage/default"
 	storage_volume "github.com/s4wave/spacewave/bldr/storage/volume"
-	statusprojector "github.com/s4wave/spacewave/core/resource/desktop/statusprojector"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/bucket"
 	node_controller "github.com/s4wave/spacewave/db/node/controller"
@@ -426,20 +425,6 @@ func BuildDistBus(
 	}
 	rels = append(rels, pluginHostRel)
 
-	if webRuntimeID != "" && isDesktopPlatformID(platformID) {
-		_, statusProjectorRef, err := b.AddDirective(
-			resolver.NewLoadControllerWithConfig(&statusprojector.Config{
-				WebRuntimeId: webRuntimeID,
-			}),
-			nil,
-		)
-		if err != nil {
-			rel()
-			return nil, err
-		}
-		rels = append(rels, statusProjectorRef.Release)
-	}
-
 	// Create LoadPlugin directives for the startup plugins.
 	for _, pluginID := range distMeta.GetStartupPlugins() {
 		_, pluginRef, err := b.AddDirective(bldr_plugin.NewLoadPlugin(pluginID), nil)
@@ -516,10 +501,6 @@ func (d *DistBus) GetWorldEngine() world.Engine {
 // GetWorldState returns the world state handle.
 func (d *DistBus) GetWorldState() world.WorldState {
 	return d.worldState
-}
-
-func isDesktopPlatformID(platformID string) bool {
-	return platformID == "desktop" || strings.HasPrefix(platformID, "desktop/")
 }
 
 // GetPluginHostObjectKey returns the object key for the plugin host.

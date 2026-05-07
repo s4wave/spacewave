@@ -8,19 +8,15 @@ import (
 	fmt "fmt"
 	io "io"
 	slices "slices"
-	strconv "strconv"
 	strings "strings"
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
 
-// Config configures the desktop runtime status projector.
+// Config configures the desktop tray status projector.
 type Config struct {
 	unknownFields []byte
-	// WebRuntimeId is the Bldr web runtime controller id that exposes the
-	// DesktopRuntimeResource tree.
-	WebRuntimeId string `protobuf:"bytes,1,opt,name=web_runtime_id,json=webRuntimeId,proto3" json:"webRuntimeId,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -29,19 +25,11 @@ func (x *Config) Reset() {
 
 func (*Config) ProtoMessage() {}
 
-func (x *Config) GetWebRuntimeId() string {
-	if x != nil {
-		return x.WebRuntimeId
-	}
-	return ""
-}
-
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
 	}
 	r := new(Config)
-	r.WebRuntimeId = m.WebRuntimeId
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -56,9 +44,6 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
-		return false
-	}
-	if this.WebRuntimeId != that.WebRuntimeId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -79,12 +64,6 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		return
 	}
 	s.WriteObjectStart()
-	var wroteField bool
-	if x.WebRuntimeId != "" || s.HasField("webRuntimeId") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("webRuntimeId")
-		s.WriteString(x.WebRuntimeId)
-	}
 	s.WriteObjectEnd()
 }
 
@@ -99,13 +78,7 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		return
 	}
 	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "web_runtime_id", "webRuntimeId":
-			s.AddField("web_runtime_id")
-			x.WebRuntimeId = s.ReadString()
-		}
+		// no fields
 	})
 }
 
@@ -144,13 +117,6 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if len(m.WebRuntimeId) > 0 {
-		i -= len(m.WebRuntimeId)
-		copy(dAtA[i:], m.WebRuntimeId)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.WebRuntimeId)))
-		i--
-		dAtA[i] = 0xa
-	}
 	return len(dAtA) - i, nil
 }
 
@@ -160,10 +126,6 @@ func (m *Config) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	l = len(m.WebRuntimeId)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -171,13 +133,6 @@ func (m *Config) SizeVT() (n int) {
 func (x *Config) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("Config {")
-	if x.WebRuntimeId != "" {
-		if sb.Len() > 8 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("web_runtime_id: ")
-		sb.WriteString(strconv.Quote(x.WebRuntimeId))
-	}
 	sb.WriteString("}")
 	return sb.String()
 }
@@ -206,28 +161,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: Config: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field WebRuntimeId", wireType)
-			}
-			var stringLen uint64
-			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.WebRuntimeId = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -1,26 +1,14 @@
 package statusprojector
 
 import (
-	"context"
 	"testing"
 
+	desktop_tray "github.com/s4wave/spacewave/bldr/desktop/tray"
 	desktop_runtime "github.com/s4wave/spacewave/bldr/web/electron/desktop-runtime"
 	"github.com/s4wave/spacewave/core/provider"
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
 	"github.com/s4wave/spacewave/core/session"
 )
-
-type fakeDesktopRuntimePublisher struct {
-	states []*desktop_runtime.DesktopRuntimeState
-}
-
-func (p *fakeDesktopRuntimePublisher) SetDesktopState(
-	_ context.Context,
-	req *desktop_runtime.SetDesktopStateRequest,
-) (*desktop_runtime.SetDesktopStateResponse, error) {
-	p.states = append(p.states, req.GetState().CloneVT())
-	return &desktop_runtime.SetDesktopStateResponse{}, nil
-}
 
 func TestBuildDesktopRuntimeStateFromListenerReachable(t *testing.T) {
 	state := BuildDesktopRuntimeStateFromListener(resource_listener.ListenerStatus{
@@ -85,76 +73,20 @@ func TestBuildDesktopRuntimeStateFromListenerDisconnected(t *testing.T) {
 	}
 }
 
-func TestPublishDesktopRuntimeStateSuppressesDuplicate(t *testing.T) {
-	ctx := context.Background()
-	publisher := &fakeDesktopRuntimePublisher{}
-	current := BuildDesktopRuntimeStateFromListener(resource_listener.ListenerStatus{
-		SocketPath: "/run/spacewave.sock",
-		Listening:  true,
-	})
-
-	prev, sent, err := publishDesktopRuntimeState(ctx, publisher, nil, current)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !sent {
-		t.Fatalf("first publish did not send")
-	}
-	if len(publisher.states) != 1 {
-		t.Fatalf("published states = %d, want 1", len(publisher.states))
-	}
-
-	prev, sent, err = publishDesktopRuntimeState(ctx, publisher, prev, current.CloneVT())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if sent {
-		t.Fatalf("duplicate publish sent")
-	}
-	if len(publisher.states) != 1 {
-		t.Fatalf("published states = %d, want 1", len(publisher.states))
-	}
-}
-
-func TestPublishDesktopRuntimeTeardownStatePublishesDisconnected(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-	publisher := &fakeDesktopRuntimePublisher{}
-	prev := BuildDesktopRuntimeStateFromListener(resource_listener.ListenerStatus{
-		SocketPath: "/run/spacewave.sock",
-		Listening:  true,
-	})
-
-	next, err := publishDesktopRuntimeTeardownState(ctx, publisher, prev)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(publisher.states) != 1 {
-		t.Fatalf("published states = %d, want 1", len(publisher.states))
-	}
-	if next.GetStatusText() != "Disconnected" {
-		t.Fatalf("status text = %q, want Disconnected", next.GetStatusText())
-	}
-	if next.GetLifecycle() != desktop_runtime.DesktopRuntimeLifecycle_DESKTOP_RUNTIME_LIFECYCLE_DISCONNECTED {
-		t.Fatalf("lifecycle = %v, want disconnected", next.GetLifecycle())
-	}
-	if next.GetListener().GetSocketPath() != "" {
-		t.Fatalf("teardown socket path = %q, want cleared", next.GetListener().GetSocketPath())
-	}
-	if len(next.GetSessions()) != 0 || len(next.GetSpaces()) != 0 || len(next.GetActivity()) != 0 {
-		t.Fatalf("teardown must clear runtime-owned rows")
-	}
-}
-
-func TestPublishDesktopRuntimeTeardownOnExitSkipsContextCancel(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-
-	publisher := &fakeDesktopRuntimePublisher{}
-	prev := BuildDesktopRuntimeState(resource_listener.ListenerStatus{
+func TestBuildDesktopTrayEntriesFromRuntimeStateIncludesNavigationRows(t *testing.T) {
+	state := BuildDesktopRuntimeState(resource_listener.ListenerStatus{
 		SocketPath: "/run/spacewave.sock",
 		Listening:  true,
 	}, &SessionProjection{
+		Sessions: []*desktop_runtime.DesktopRuntimeNavigationItem{
+			{
+				Id:         "session-1",
+				Label:      "coolguy@spacewave.app",
+				Detail:     "Cloud",
+				Route:      "/u/1/",
+				StatusText: "Ready",
+			},
+		},
 		Spaces: []*desktop_runtime.DesktopRuntimeNavigationItem{
 			{
 				Id:    "space-1",
@@ -164,13 +96,38 @@ func TestPublishDesktopRuntimeTeardownOnExitSkipsContextCancel(t *testing.T) {
 		},
 	})
 
-	var rerr error
-	publishDesktopRuntimeTeardownOnExit(ctx, publisher, prev, &rerr)
-	if rerr != nil {
-		t.Fatal(rerr)
+	entries := BuildDesktopTrayEntriesFromRuntimeState(state)
+	if !hasTrayEntryLabel(entries, "coolguy@spacewave.app - Cloud - Ready") {
+		t.Fatalf("expected session row in tray entries")
 	}
-	if len(publisher.states) != 0 {
-		t.Fatalf("published states = %d, want no teardown publish", len(publisher.states))
+	if !hasTrayEntryLabel(entries, "My Drive") {
+		t.Fatalf("expected space row in tray entries")
+	}
+	if hasTrayEntryLabel(entries, "No sessions") || hasTrayEntryLabel(entries, "No spaces") {
+		t.Fatalf("did not expect empty navigation rows when entries exist")
+	}
+}
+
+func TestBuildDesktopTrayEntriesFromRuntimeStateOrdersMenuSections(t *testing.T) {
+	state := BuildDesktopRuntimeStateFromListener(resource_listener.ListenerStatus{
+		SocketPath: "/run/spacewave.sock",
+		Listening:  true,
+	})
+
+	entries := BuildDesktopTrayEntriesFromRuntimeState(state)
+	want := []string{
+		"Spacewave: Running",
+		"",
+		"Open Spacewave",
+		"New Window",
+	}
+	for idx, label := range want {
+		if entries[idx].GetLabel() != label {
+			t.Fatalf("entry %d label = %q, want %q", idx, entries[idx].GetLabel(), label)
+		}
+		if entries[idx].GetOrder() != int32(idx) {
+			t.Fatalf("entry %d order = %d, want %d", idx, entries[idx].GetOrder(), idx)
+		}
 	}
 }
 
@@ -312,5 +269,11 @@ func testSessionEntry(idx uint32, providerID, accountID string) *session.Session
 	}
 }
 
-// _ is a type assertion
-var _ desktopRuntimePublisher = ((*fakeDesktopRuntimePublisher)(nil))
+func hasTrayEntryLabel(entries []*desktop_tray.DesktopTrayEntry, label string) bool {
+	for _, entry := range entries {
+		if entry.GetLabel() == label {
+			return true
+		}
+	}
+	return false
+}

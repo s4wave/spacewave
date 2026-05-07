@@ -32,10 +32,6 @@ import {
   type WatchDesktopStateResponse,
 } from '../desktop-runtime/desktop-runtime.pb.js'
 import { DesktopTrayResource } from './desktop-tray-resource.js'
-import {
-  buildDesktopTrayEntriesFromRuntimeState,
-  iconStateForRuntimeHealth,
-} from './desktop-tray-runtime-projection.js'
 
 interface DesktopRuntimeResourceOpts {
   openOrFocusMainWindow: (
@@ -56,7 +52,6 @@ export class DesktopRuntimeResource implements DesktopRuntimeResourceService {
 
   constructor(private readonly opts: DesktopRuntimeResourceOpts) {
     this.desktopTrayResource = new DesktopTrayResource()
-    this.updateDesktopTrayResource()
     const mux = newResourceMux(
       createHandler(DesktopRuntimeResourceServiceDefinition, this),
       createHandler(
@@ -155,16 +150,7 @@ export class DesktopRuntimeResource implements DesktopRuntimeResourceService {
   }
 
   private pushState(): void {
-    this.updateDesktopTrayResource()
     this.stateStream.pushChangeEvent(this.buildStateResponse())
-  }
-
-  private updateDesktopTrayResource(): void {
-    this.desktopTrayResource.setEntries(
-      buildDesktopTrayEntriesFromRuntimeState(this.state),
-      this.state.statusText || 'Running',
-      iconStateForRuntimeHealth(this.state.health),
-    )
   }
 }
 
