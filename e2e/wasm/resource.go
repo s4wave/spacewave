@@ -5,6 +5,7 @@ package wasm
 import (
 	"context"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
@@ -51,12 +52,17 @@ func (h *Harness) connectSessionResources(ctx context.Context, s *TestSession) e
 		peerStart := time.Now()
 		for {
 			attemptCtx, attemptCancel := context.WithTimeout(ctx, attemptTimeout)
-			err := h.tryConnectSession(attemptCtx, s, browserPeer)
+			clientCtx, clientCancel := context.WithCancel(ctx)
+			conn, err := h.tryConnectSessionWithTimeout(attemptCtx, clientCtx, browserPeer)
 			attemptCancel()
 			if err == nil {
+				s.browserClient = conn.browserClient
+				s.resClient = conn.resClient
+				s.root = conn.root
 				s.browserPeer = browserPeer
 				return nil
 			}
+			clientCancel()
 
 			lastErr = err
 			entry := le.WithField("peer", browserPeer.String()).WithError(err)
@@ -85,8 +91,61 @@ func (h *Harness) connectSessionResources(ctx context.Context, s *TestSession) e
 	}
 }
 
+type sessionResourceConnection struct {
+	browserClient srpc.Client
+	resClient     *resource_client.Client
+	root          *s4wave_root.Root
+}
+
+type sessionResourceConnectionResult struct {
+	conn *sessionResourceConnection
+	err  error
+}
+
+func (c *sessionResourceConnection) Release() {
+	if c.root != nil {
+		c.root.Release()
+		c.root = nil
+	}
+	if c.resClient != nil {
+		c.resClient.Release()
+		c.resClient = nil
+	}
+}
+
+func (h *Harness) tryConnectSessionWithTimeout(
+	attemptCtx context.Context,
+	clientCtx context.Context,
+	browserPeer peer.ID,
+) (*sessionResourceConnection, error) {
+	resultCh := make(chan sessionResourceConnectionResult, 1)
+	var cleanupOnce sync.Once
+	cleanupLateResult := func() {
+		cleanupOnce.Do(func() {
+			result := <-resultCh
+			if result.conn != nil {
+				result.conn.Release()
+			}
+		})
+	}
+
+	go func() {
+		conn, err := h.tryConnectSession(clientCtx, browserPeer)
+		resultCh <- sessionResourceConnectionResult{conn: conn, err: err}
+	}()
+
+	select {
+	case result := <-resultCh:
+		cleanupOnce.Do(func() {})
+		return result.conn, result.err
+	case <-attemptCtx.Done():
+		go cleanupLateResult()
+		return nil, attemptCtx.Err()
+	}
+}
+
 // tryConnectSession attempts a single resource connection on the TestSession.
-func (h *Harness) tryConnectSession(ctx context.Context, s *TestSession, browserPeer peer.ID) error {
+func (h *Harness) tryConnectSession(ctx context.Context, browserPeer peer.ID) (*sessionResourceConnection, error) {
 	openStreamFn := stream_srpc.NewOpenStreamFunc(
 		h.devtool.GetBus(),
 		browserProtocolID,
@@ -100,7 +159,7 @@ func (h *Harness) tryConnectSession(ctx context.Context, s *TestSession, browser
 	resourceSvc := resource.NewSRPCResourceServiceClientWithServiceID(client, serviceID)
 	resClient, err := resource_client.NewClient(ctx, resourceSvc)
 	if err != nil {
-		return errors.Wrap(err, "resource client")
+		return nil, errors.Wrap(err, "resource client")
 	}
 
 	rootRef := resClient.AccessRootResource()
@@ -108,13 +167,14 @@ func (h *Harness) tryConnectSession(ctx context.Context, s *TestSession, browser
 	if err != nil {
 		rootRef.Release()
 		resClient.Release()
-		return errors.Wrap(err, "root resource")
+		return nil, errors.Wrap(err, "root resource")
 	}
 
-	s.browserClient = client
-	s.resClient = resClient
-	s.root = root
-	return nil
+	return &sessionResourceConnection{
+		browserClient: client,
+		resClient:     resClient,
+		root:          root,
+	}, nil
 }
 
 func shouldAbandonBrowserPeer(err error) bool {
