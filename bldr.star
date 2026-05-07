@@ -181,7 +181,7 @@ manifest("spacewave-loader",
 
 manifest("spacewave-core",
     builder="bldr/plugin/compiler/go",
-    rev=11,
+    rev=12,
     config={
         "goPkgs": CORE_GO_PKGS,
         "configSet": core_config_set(),
@@ -267,7 +267,7 @@ def js_plugin(name, rev, modules, extra_web_pkgs=None):
         },
     )
 
-js_plugin("spacewave-app", rev=221, modules=[
+js_plugin("spacewave-app", rev=222, modules=[
     js_module("JS_MODULE_KIND_FRONTEND", "./app/App.tsx",
               entrypoint=True,
               webViewParentId={"empty": True}),

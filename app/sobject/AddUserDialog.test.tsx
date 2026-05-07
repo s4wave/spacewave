@@ -50,7 +50,7 @@ const mockSession = {
   service: {},
 } as unknown as Session
 
-function renderDialog() {
+function renderDialog({ isCloudProvider = true } = {}) {
   return render(
     <SessionContext.Provider
       resource={{
@@ -81,6 +81,7 @@ function renderDialog() {
           onOpenChange={vi.fn()}
           spaceName="Launch Space"
           spaceId="space-1"
+          isCloudProvider={isCloudProvider}
           orgId="org-1"
           orgMembers={[
             {
@@ -144,10 +145,16 @@ describe('AddUserDialog', () => {
     expect(screen.getByText('Code')).toBeDefined()
     expect(screen.getByText('Username')).toBeDefined()
     expect(screen.getByText('Link')).toBeDefined()
+    expect(
+      screen
+        .getByText('Username')
+        .compareDocumentPosition(screen.getByText('Code')) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
     expect(screen.queryByText('Search all users')).toBeNull()
   })
 
-  it('creates a targeted username invite', async () => {
+  it('creates a targeted username invite', () => {
     renderDialog()
 
     fireEvent.change(screen.getByPlaceholderText('alice'), {
@@ -158,5 +165,26 @@ describe('AddUserDialog', () => {
     expect(
       mockSession.spacewave.createSpaceTargetedInvitationByUsername,
     ).toHaveBeenCalledWith('casey', 'space-1', 'writer')
+  })
+
+  it('hides username invites for local provider sessions', () => {
+    renderDialog({ isCloudProvider: false })
+
+    expect(screen.getByText('Org Members')).toBeDefined()
+    expect(screen.getByText('Code')).toBeDefined()
+    expect(screen.getByText('Link')).toBeDefined()
+    expect(screen.queryByText('Username')).toBeNull()
+    expect(screen.queryByText('Spacewave username')).toBeNull()
+    expect(screen.queryByText('Send Invite')).toBeNull()
+    expect(
+      screen.getByText(
+        'Add an existing org member, or create a shareable code or link.',
+      ),
+    ).toBeDefined()
+    expect(
+      screen.getByText(
+        'Choose someone already in this organization. Use Code or Link to share with anyone else.',
+      ),
+    ).toBeDefined()
   })
 })

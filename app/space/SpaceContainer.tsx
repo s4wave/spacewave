@@ -554,6 +554,7 @@ export function SpaceContainer() {
         onOpenChange={setSharingOpen}
         spaceName={spaceName}
         spaceId={sharedObjectId}
+        isCloudProvider={providerId === 'spacewave'}
         orgId={spaceOrgId}
         orgMembers={spaceOrgState?.members ?? []}
         orgMembersLoading={!!spaceOrgId && !spaceOrgState}

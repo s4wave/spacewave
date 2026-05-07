@@ -43,6 +43,7 @@ export interface AddUserDialogProps {
   onOpenChange: (open: boolean) => void
   spaceName: string
   spaceId: string
+  isCloudProvider?: boolean
   orgId?: string
   orgMembers?: OrgMemberInfo[]
   orgMembersLoading?: boolean
@@ -116,6 +117,7 @@ export function AddUserDialog({
   open,
   onOpenChange,
   spaceId,
+  isCloudProvider = false,
   orgId,
   orgMembers,
   orgMembersLoading,
@@ -152,7 +154,7 @@ export function AddUserDialog({
 
   const handleSendUsernameInvite = useCallback(async () => {
     const username = state.username.trim()
-    if (!session || !username) return
+    if (!session || !username || !isCloudProvider) return
     dispatch({ type: 'creating' })
     try {
       await session.spacewave.createSpaceTargetedInvitationByUsername(
@@ -168,7 +170,7 @@ export function AddUserDialog({
           err instanceof Error ? err.message : 'Failed to send username invite',
       })
     }
-  }, [session, spaceId, state.username])
+  }, [isCloudProvider, session, spaceId, state.username])
 
   const shortCode = state.inviteResp?.shortCode ?? ''
 
@@ -193,11 +195,23 @@ export function AddUserDialog({
     orgMembersLoading ?? (!!effectiveOrgId && !spaceContainer?.orgState)
   const hasOrgTab = effectiveOrgId.length > 0
 
-  const defaultTab = hasOrgTab ? 'members' : 'code'
+  const defaultTab =
+    hasOrgTab ? 'members'
+    : isCloudProvider ? 'username'
+    : 'code'
 
   const inputClass = cn(
-    'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-2 text-sm font-mono outline-none transition-colors',
-    'focus:border-foreground/40',
+    'border-foreground/10 bg-background-card/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-2 text-sm font-mono outline-none transition-colors duration-150',
+    'focus:border-foreground/30',
+  )
+  const actionButtonClass = cn(
+    'border-foreground/10 bg-background-card/20 flex w-full items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm transition-all duration-150',
+    'hover:border-foreground/12 hover:bg-background-card/50',
+    'disabled:cursor-not-allowed disabled:opacity-50',
+  )
+  const successActionClass = cn(
+    'border-success/30 bg-success/5 text-success',
+    'hover:border-success/40 hover:bg-success/10',
   )
 
   return (
@@ -206,8 +220,9 @@ export function AddUserDialog({
         <DialogHeader>
           <DialogTitle>Add User</DialogTitle>
           <DialogDescription>
-            Add an existing org member, send a username invite, or create a
-            shareable code or link.
+            {isCloudProvider ?
+              'Add an existing org member, send a username invite, or create a shareable code or link.'
+            : 'Add an existing org member, or create a shareable code or link.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -219,13 +234,15 @@ export function AddUserDialog({
                 Org Members
               </TabsTrigger>
             )}
+            {isCloudProvider && (
+              <TabsTrigger value="username">
+                <LuUserPlus className="h-3.5 w-3.5" />
+                Username
+              </TabsTrigger>
+            )}
             <TabsTrigger value="code">
               <LuQrCode className="h-3.5 w-3.5" />
               Code
-            </TabsTrigger>
-            <TabsTrigger value="username">
-              <LuUserPlus className="h-3.5 w-3.5" />
-              Username
             </TabsTrigger>
             <TabsTrigger value="link">
               <LuLink className="h-3.5 w-3.5" />
@@ -240,6 +257,7 @@ export function AddUserDialog({
                 spaceId={spaceId}
                 members={effectiveOrgMembers}
                 loading={effectiveOrgMembersLoading}
+                isCloudProvider={isCloudProvider}
               />
             </TabsContent>
           )}
@@ -262,9 +280,8 @@ export function AddUserDialog({
                 <button
                   onClick={() => handleCopy(shortCode)}
                   className={cn(
-                    'flex w-full items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm transition-all',
-                    'border-foreground/20 hover:border-foreground/40 hover:bg-foreground/5',
-                    state.copied && 'border-green-500/50 text-green-500',
+                    actionButtonClass,
+                    state.copied && successActionClass,
                   )}
                 >
                   {state.copied ?
@@ -287,53 +304,51 @@ export function AddUserDialog({
             : <button
                 onClick={() => void handleCreateInvite()}
                 disabled={state.creating || !session}
-                className={cn(
-                  'flex w-full items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm transition-all',
-                  'border-foreground/20 hover:border-foreground/40 hover:bg-foreground/5',
-                  'disabled:cursor-not-allowed disabled:opacity-50',
-                )}
+                className={actionButtonClass}
               >
                 {state.creating ? 'Creating...' : 'Create Invite Code'}
               </button>
             }
           </TabsContent>
 
-          <TabsContent value="username" className="space-y-3 pt-2">
-            <div className="space-y-2">
-              <label className="text-foreground-alt mb-1.5 block text-xs select-none">
-                Spacewave username
-              </label>
-              <input
-                value={state.username}
-                onChange={(e) =>
-                  dispatch({ type: 'username', value: e.target.value })
-                }
-                placeholder="alice"
-                className={inputClass}
-              />
-              <button
-                onClick={() => void handleSendUsernameInvite()}
-                disabled={state.creating || !session || !state.username.trim()}
-                className={cn(
-                  'flex w-full items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm transition-all',
-                  'border-foreground/20 hover:border-foreground/40 hover:bg-foreground/5',
-                  'disabled:cursor-not-allowed disabled:opacity-50',
-                  state.usernameSent && 'border-green-500/50 text-green-500',
-                )}
-              >
-                {state.usernameSent ?
-                  <>
-                    <LuCheck className="h-3.5 w-3.5" />
-                    Sent
-                  </>
-                : <>
-                    <LuUserPlus className="h-3.5 w-3.5" />
-                    {state.creating ? 'Sending...' : 'Send Invite'}
-                  </>
-                }
-              </button>
-            </div>
-          </TabsContent>
+          {isCloudProvider && (
+            <TabsContent value="username" className="space-y-3 pt-2">
+              <div className="space-y-2">
+                <label className="text-foreground-alt mb-1.5 block text-xs select-none">
+                  Spacewave username
+                </label>
+                <input
+                  value={state.username}
+                  onChange={(e) =>
+                    dispatch({ type: 'username', value: e.target.value })
+                  }
+                  placeholder="alice"
+                  className={inputClass}
+                />
+                <button
+                  onClick={() => void handleSendUsernameInvite()}
+                  disabled={
+                    state.creating || !session || !state.username.trim()
+                  }
+                  className={cn(
+                    actionButtonClass,
+                    state.usernameSent && successActionClass,
+                  )}
+                >
+                  {state.usernameSent ?
+                    <>
+                      <LuCheck className="h-3.5 w-3.5" />
+                      Sent
+                    </>
+                  : <>
+                      <LuUserPlus className="h-3.5 w-3.5" />
+                      {state.creating ? 'Sending...' : 'Send Invite'}
+                    </>
+                  }
+                </button>
+              </div>
+            </TabsContent>
+          )}
 
           <TabsContent value="link" className="space-y-3 pt-2">
             {state.inviteResp?.inviteMessage ?
@@ -350,9 +365,8 @@ export function AddUserDialog({
                 <button
                   onClick={() => handleCopy(inviteLink)}
                   className={cn(
-                    'flex w-full items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm transition-all',
-                    'border-foreground/20 hover:border-foreground/40 hover:bg-foreground/5',
-                    state.copied && 'border-green-500/50 text-green-500',
+                    actionButtonClass,
+                    state.copied && successActionClass,
                   )}
                 >
                   {state.copied ?
@@ -370,11 +384,7 @@ export function AddUserDialog({
             : <button
                 onClick={() => void handleCreateInvite()}
                 disabled={state.creating || !session}
-                className={cn(
-                  'flex w-full items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm transition-all',
-                  'border-foreground/20 hover:border-foreground/40 hover:bg-foreground/5',
-                  'disabled:cursor-not-allowed disabled:opacity-50',
-                )}
+                className={actionButtonClass}
               >
                 {state.creating ? 'Creating...' : 'Create Invite Link'}
               </button>
@@ -395,6 +405,7 @@ interface OrgMembersTabProps {
   spaceId: string
   members: OrgMemberInfo[]
   loading?: boolean
+  isCloudProvider: boolean
 }
 
 // OrgMembersTab renders the org member picker with search and enrollment.
@@ -403,6 +414,7 @@ function OrgMembersTab({
   spaceId,
   members,
   loading,
+  isCloudProvider,
 }: OrgMembersTabProps) {
   const [search, setSearch] = useState('')
   const [enrolling, setEnrolling] = useState<string | null>(null)
@@ -468,8 +480,10 @@ function OrgMembersTab({
   return (
     <>
       <p className="text-foreground-alt/60 text-xs">
-        Choose someone already in this organization. Use Username, Code, or Link
-        to share with anyone else.
+        {isCloudProvider ?
+          'Choose someone already in this organization. Use Username, Code, or Link to share with anyone else.'
+        : 'Choose someone already in this organization. Use Code or Link to share with anyone else.'
+        }
       </p>
       <div className="relative">
         <LuSearch className="text-foreground-alt/50 absolute top-2.5 left-2.5 h-3.5 w-3.5" />
@@ -490,7 +504,7 @@ function OrgMembersTab({
           </p>
         )}
         {!loading && filtered.length === 0 && (
-          <p className="text-foreground-alt/50 py-2 text-center text-xs">
+          <p className="text-foreground-alt/40 py-2 text-center text-xs">
             {search ? 'No matching members' : 'No org members'}
           </p>
         )}
@@ -508,7 +522,7 @@ function OrgMembersTab({
               className={cn(
                 'flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left transition-colors',
                 'hover:bg-foreground/5 disabled:cursor-default disabled:opacity-60',
-                isEnrolled && 'bg-green-500/5',
+                isEnrolled && 'bg-success/5',
               )}
             >
               <div className="min-w-0 flex-1">
@@ -526,7 +540,7 @@ function OrgMembersTab({
               </div>
               <div className="shrink-0">
                 {isEnrolled ?
-                  <LuCheck className="h-3.5 w-3.5 text-green-500" />
+                  <LuCheck className="text-success h-3.5 w-3.5" />
                 : isEnrolling ?
                   <span className="text-foreground-alt text-xs">Adding...</span>
                 : <LuUserPlus className="text-foreground-alt/50 h-3.5 w-3.5" />}

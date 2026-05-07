@@ -33,6 +33,7 @@ import {
 import { CommandProvider } from '@s4wave/web/command/index.js'
 import { UpdateNotifier } from '@s4wave/web/launcher/UpdateNotifier.js'
 import { ListenerYieldNotifier } from '@s4wave/app/listener/ListenerYieldNotifier.js'
+import { DesktopRuntimeRendererProjector } from '@s4wave/app/DesktopRuntimeRendererProjector.js'
 import { ViewerRegistryProvider } from '@s4wave/web/hooks/useViewerRegistry.js'
 import { ConfigTypeRegistryProvider } from '@s4wave/web/configtype/ConfigTypeRegistryContext.js'
 import { getAllObjectViewers } from '@s4wave/app/viewers.js'
@@ -184,6 +185,7 @@ function AppAPIInner({
         <QuickstartOptionsProvider rootResource={rootResource}>
           <CommandProvider rootResource={rootResource}>
             <UpdateNotifier rootResource={rootResource} />
+            <DesktopRuntimeRendererProjector root={rootResource.value} />
             <ListenerYieldNotifier rootResource={rootResource}>
               {children}
             </ListenerYieldNotifier>

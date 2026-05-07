@@ -1,6 +1,7 @@
 package statusprojector
 
 import (
+	"context"
 	"testing"
 
 	"github.com/s4wave/spacewave/core/cdn"
@@ -51,6 +52,77 @@ func TestBuildSessionSpacesFiltersCdnSpace(t *testing.T) {
 	if spaceID(spaces[0]) != "regular" {
 		t.Fatalf("space id = %q, want regular", spaceID(spaces[0]))
 	}
+}
+
+func TestReadSessionSpacesSnapshotAllowsMissingInitialList(t *testing.T) {
+	watchable := &initialNilSharedObjectListWatchable{next: &sobject.SharedObjectList{
+		SharedObjects: []*sobject.SharedObjectListEntry{
+			testSpaceEntry("regular", "Regular", "created").GetEntry(),
+		},
+	}}
+
+	soList, spaces, err := readSessionSpacesSnapshot(watchable)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if soList != nil {
+		t.Fatal("expected nil initial list")
+	}
+	if watchable.waited {
+		t.Fatal("expected initial nil snapshot to avoid waiting")
+	}
+	if len(spaces) != 0 {
+		t.Fatalf("spaces = %d, want 0", len(spaces))
+	}
+}
+
+type initialNilSharedObjectListWatchable struct {
+	next   *sobject.SharedObjectList
+	waited bool
+}
+
+func (w *initialNilSharedObjectListWatchable) GetValue() *sobject.SharedObjectList {
+	return nil
+}
+
+func (w *initialNilSharedObjectListWatchable) WaitValueWithValidator(
+	ctx context.Context,
+	valid func(v *sobject.SharedObjectList) (bool, error),
+	errCh <-chan error,
+) (*sobject.SharedObjectList, error) {
+	if valid != nil {
+		ok, err := valid(w.next)
+		if err != nil || !ok {
+			return nil, err
+		}
+	}
+	w.waited = true
+	return w.next, nil
+}
+
+func (w *initialNilSharedObjectListWatchable) WaitValue(
+	ctx context.Context,
+	errCh <-chan error,
+) (*sobject.SharedObjectList, error) {
+	w.waited = true
+	return w.next, nil
+}
+
+func (w *initialNilSharedObjectListWatchable) WaitValueChange(
+	ctx context.Context,
+	old *sobject.SharedObjectList,
+	errCh <-chan error,
+) (*sobject.SharedObjectList, error) {
+	w.waited = true
+	return w.next, nil
+}
+
+func (w *initialNilSharedObjectListWatchable) WaitValueEmpty(
+	ctx context.Context,
+	errCh <-chan error,
+) error {
+	w.waited = true
+	return nil
 }
 
 func testSpaceEntry(id, name, source string) *space.SpaceSoListEntry {

@@ -239,8 +239,7 @@ func snapshotSessionSpaces(
 		return nil, nil, nil, err
 	}
 
-	soList := soListWatchable.GetValue()
-	spaces, err := buildSessionSpaces(soList)
+	soList, spaces, err := readSessionSpacesSnapshot(soListWatchable)
 	if err != nil {
 		if releaseList != nil {
 			releaseList()
@@ -251,6 +250,17 @@ func snapshotSessionSpaces(
 	watchCtx, cancel := context.WithCancel(ctx)
 	waitCh := watchWatchableChange(watchCtx, soListWatchable, soList)
 	return spaces, []<-chan struct{}{waitCh}, []func(){cancel, releaseList}, nil
+}
+
+func readSessionSpacesSnapshot(
+	soListWatchable ccontainer.Watchable[*sobject.SharedObjectList],
+) (*sobject.SharedObjectList, []*space.SpaceSoListEntry, error) {
+	soList := soListWatchable.GetValue()
+	spaces, err := buildSessionSpaces(soList)
+	if err != nil {
+		return nil, nil, err
+	}
+	return soList, spaces, nil
 }
 
 func buildSessionSpaces(soList *sobject.SharedObjectList) ([]*space.SpaceSoListEntry, error) {

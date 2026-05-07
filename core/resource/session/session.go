@@ -323,6 +323,12 @@ func (r *SessionResource) WatchResourcesList(
 	}
 	defer relSoList()
 
+	if soListWatchable.GetValue() == nil {
+		if err := strm.Send(&s4wave_session.WatchResourcesListResponse{}); err != nil {
+			return err
+		}
+	}
+
 	// watch the shared object list, find the matching value, write the response.
 	return ccontainer.WatchChanges(
 		ctx,
