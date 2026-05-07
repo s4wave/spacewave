@@ -398,7 +398,7 @@ describe('DesktopTrayController', () => {
     ])
   })
 
-  it('routes menu rows through the singleton app window', async () => {
+  it('routes menu rows through the desktop runtime resource', async () => {
     const state = {
       ...defaultRuntimeState(),
       sessions: [
@@ -439,7 +439,9 @@ describe('DesktopTrayController', () => {
     await clickMenuItem('About Spacewave')
 
     expect(mockResource.OpenOrFocusMainWindow).toHaveBeenNthCalledWith(1, {})
-    expect(mockResource.OpenOrFocusMainWindow).toHaveBeenNthCalledWith(2, {})
+    expect(mockResource.OpenOrFocusMainWindow).toHaveBeenNthCalledWith(2, {
+      route: '/',
+    })
     expect(mockResource.OpenOrFocusMainWindow).toHaveBeenNthCalledWith(3, {
       route: '/u/2/',
     })

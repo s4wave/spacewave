@@ -211,11 +211,17 @@ export class DesktopTrayController {
     }
     switch (action.kind) {
       case DesktopTrayActionKind.OPEN_ROUTE:
-      case DesktopTrayActionKind.NEW_WINDOW:
         return {
           label: entry.label,
           click: () => {
             void this.openRouteOrFocus(action.route)
+          },
+        }
+      case DesktopTrayActionKind.NEW_WINDOW:
+        return {
+          label: entry.label,
+          click: () => {
+            void this.openRoute(action.route || '/')
           },
         }
       case DesktopTrayActionKind.COPY_TEXT:

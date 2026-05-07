@@ -65,6 +65,7 @@ export class BldrElectronApp {
 
   // browserWindows contains the list of created browser windows.
   private browserWindows: Record<string, electron.BrowserWindow> = {}
+  private routeWindowCounter = 0
   // fetchTracker aborts proxied fetches when their owning WebDocument closes.
   private readonly fetchTracker = new ServiceWorkerFetchTracker()
 
@@ -459,13 +460,16 @@ export class BldrElectronApp {
 
   private async openOrFocusMainWindow(request?: OpenOrFocusMainWindowRequest) {
     const routeHash = this.normalizeRouteHash(request?.route)
-    const nwindow = this.browserWindows['electron-init']
-    if (!nwindow || nwindow.isDestroyed()) {
-      await this.createWebDocument({ id: 'electron-init' }, routeHash)
+    if (routeHash) {
+      await this.createRouteWindow(routeHash)
       return
     }
 
-    this.loadWindowRoute(nwindow, 'electron-init', routeHash)
+    const nwindow = this.browserWindows['electron-init']
+    if (!nwindow || nwindow.isDestroyed()) {
+      await this.createWebDocument({ id: 'electron-init' })
+      return
+    }
 
     if (nwindow.isMinimized()) {
       nwindow.restore()
@@ -490,19 +494,12 @@ export class BldrElectronApp {
     )
   }
 
-  private loadWindowRoute(
-    nwindow: electron.BrowserWindow,
-    webDocumentId: string,
-    routeHash: string,
-  ): void {
-    if (!routeHash) {
-      return
-    }
-    const url = this.buildWindowUrl(webDocumentId, routeHash)
-    if (nwindow.webContents.getURL() === url) {
-      return
-    }
-    nwindow.loadURL(url)
+  private async createRouteWindow(routeHash: string): Promise<void> {
+    this.routeWindowCounter += 1
+    await this.createWebDocument(
+      { id: `electron-route-${this.routeWindowCounter}` },
+      routeHash,
+    )
   }
 
   private buildWindowUrl(webDocumentId?: string, hash?: string): string {

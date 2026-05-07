@@ -395,7 +395,7 @@ describe('BldrElectronApp', () => {
     expect(mockElectronApp.quit).not.toHaveBeenCalled()
   })
 
-  it('opens or focuses the singleton main window', async () => {
+  it('opens routed requests in new hash-routed windows', async () => {
     const { BldrElectronApp } = await import('./app.js')
     const app = Reflect.construct(BldrElectronApp, [
       mockElectronApp,
@@ -412,18 +412,43 @@ describe('BldrElectronApp', () => {
       { route: '#/spaces/space-1' },
     ])
 
-    expect(browserWindows).toHaveLength(1)
+    expect(browserWindows).toHaveLength(3)
     expect(browserWindows[0]?.loadURL).toHaveBeenNthCalledWith(
       1,
-      'app://index.html?webDocumentId=electron-init#/settings',
+      'app://index.html?webDocumentId=electron-route-1#/settings',
     )
-    expect(browserWindows[0]?.loadURL).toHaveBeenNthCalledWith(
-      2,
-      'app://index.html?webDocumentId=electron-init#/spaces/space-1',
+    expect(browserWindows[1]?.loadURL).toHaveBeenNthCalledWith(
+      1,
+      'app://index.html?webDocumentId=electron-route-2#/spaces/space-1',
     )
-    expect(browserWindows[0]?.loadURL).toHaveBeenCalledTimes(2)
-    expect(browserWindows[0]?.show).toHaveBeenCalledTimes(2)
-    expect(browserWindows[0]?.focus).toHaveBeenCalledTimes(2)
+    expect(browserWindows[2]?.loadURL).toHaveBeenNthCalledWith(
+      1,
+      'app://index.html?webDocumentId=electron-route-3#/spaces/space-1',
+    )
+    expect(browserWindows[0]?.loadURL).toHaveBeenCalledTimes(1)
+    expect(browserWindows[1]?.loadURL).toHaveBeenCalledTimes(1)
+    expect(browserWindows[2]?.loadURL).toHaveBeenCalledTimes(1)
+  })
+
+  it('opens or focuses the singleton main window without a route', async () => {
+    const { BldrElectronApp } = await import('./app.js')
+    const app = Reflect.construct(BldrElectronApp, [
+      mockElectronApp,
+      'runtime-1',
+      {},
+    ])
+    const openOrFocusMainWindow = Reflect.get(app, 'openOrFocusMainWindow')
+
+    await Reflect.apply(openOrFocusMainWindow, app, [{}])
+    await Reflect.apply(openOrFocusMainWindow, app, [{}])
+
+    expect(browserWindows).toHaveLength(1)
+    expect(browserWindows[0]?.loadURL).toHaveBeenCalledWith(
+      'app://index.html?webDocumentId=electron-init',
+    )
+    expect(browserWindows[0]?.loadURL).toHaveBeenCalledTimes(1)
+    expect(browserWindows[0]?.show).toHaveBeenCalledTimes(1)
+    expect(browserWindows[0]?.focus).toHaveBeenCalledTimes(1)
   })
 
   it('quits duplicate instances after failing the singleton lock', async () => {
