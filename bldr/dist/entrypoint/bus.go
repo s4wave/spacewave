@@ -426,7 +426,7 @@ func BuildDistBus(
 	}
 	rels = append(rels, pluginHostRel)
 
-	if webRuntimeID != "" && strings.HasPrefix(platformID, "desktop/") {
+	if webRuntimeID != "" && isDesktopPlatformID(platformID) {
 		_, statusProjectorRef, err := b.AddDirective(
 			resolver.NewLoadControllerWithConfig(&statusprojector.Config{
 				WebRuntimeId: webRuntimeID,
@@ -516,6 +516,10 @@ func (d *DistBus) GetWorldEngine() world.Engine {
 // GetWorldState returns the world state handle.
 func (d *DistBus) GetWorldState() world.WorldState {
 	return d.worldState
+}
+
+func isDesktopPlatformID(platformID string) bool {
+	return platformID == "desktop" || strings.HasPrefix(platformID, "desktop/")
 }
 
 // GetPluginHostObjectKey returns the object key for the plugin host.
