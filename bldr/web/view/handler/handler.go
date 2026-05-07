@@ -87,7 +87,9 @@ func NewSetRenderMode(le *logrus.Entry, req *web_view.SetRenderModeRequest, opts
 	) error {
 		if le != nil {
 			le = req.Logger(le)
-			le.Debug("setting render mode")
+			le.WithField("web-view", webView.GetId()).
+				WithField("refresh", req.GetRefresh()).
+				Debug("setting render mode")
 		}
 		_, err := webView.SetRenderMode(ctx, req)
 		return err

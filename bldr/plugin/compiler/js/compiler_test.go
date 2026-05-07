@@ -24,6 +24,7 @@ import (
 	"github.com/s4wave/spacewave/bldr/testbed"
 	bldr_web_bundler_vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
 	bldr_web_bundler_vite_compiler "github.com/s4wave/spacewave/bldr/web/bundler/vite/compiler"
+	web_view "github.com/s4wave/spacewave/bldr/web/view"
 	"github.com/sirupsen/logrus"
 )
 
@@ -204,5 +205,39 @@ func TestCreateEntrypointsFromViteOutputsBackendImportPath(t *testing.T) {
 	}
 	if got := backend[0].GetImportPath(); got != "/assets/v/b/be/plugin/notes/backend-abc123.mjs" {
 		t.Fatalf("unexpected backend import path: %q", got)
+	}
+}
+
+func TestCreateEntrypointsFromViteOutputsFrontendIsIdempotent(t *testing.T) {
+	backend, frontend := bldr_plugin_compiler_js.CreateEntrypointsFromViteOutputs(
+		[]*bldr_plugin_compiler_js.JsModule{{
+			Kind:       bldr_plugin_compiler_js.JsModuleKind_JS_MODULE_KIND_FRONTEND,
+			Path:       "./app/App.tsx",
+			Entrypoint: true,
+		}},
+		[]*bldr_web_bundler_vite.ViteOutputMeta{{
+			EntrypointPath: "app/App.tsx",
+			Path:           "b/fe/app/App-abc123.mjs",
+		}},
+		nil,
+		nil,
+	)
+
+	if len(backend) != 0 {
+		t.Fatalf("expected no backend entrypoints, got %d", len(backend))
+	}
+	if len(frontend) != 1 {
+		t.Fatalf("expected one frontend entrypoint, got %d", len(frontend))
+	}
+
+	setRenderMode := frontend[0].GetSetRenderMode()
+	if setRenderMode.GetRenderMode() != web_view.RenderMode_RenderMode_REACT_COMPONENT {
+		t.Fatalf("unexpected render mode: %v", setRenderMode.GetRenderMode())
+	}
+	if got := setRenderMode.GetScriptPath(); got != "v/b/fe/app/App-abc123.mjs" {
+		t.Fatalf("unexpected frontend script path: %q", got)
+	}
+	if setRenderMode.GetRefresh() {
+		t.Fatal("frontend entrypoints should not force refresh for idempotent handler reattachment")
 	}
 }

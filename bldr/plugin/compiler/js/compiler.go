@@ -626,7 +626,6 @@ func CreateEntrypointsFromViteOutputs(
 				SetRenderMode: &web_view.SetRenderModeRequest{
 					RenderMode: web_view.RenderMode_RenderMode_REACT_COMPONENT,
 					ScriptPath: jsOutputPath,
-					Refresh:    true,
 				},
 				WebViewId:       mod.GetWebViewId(),
 				WebViewParentId: mod.GetWebViewParentId(),

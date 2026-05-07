@@ -57,7 +57,15 @@ export function getAppPath(): string {
 // route, the first setAppPath call transitions to the canonical root hash URL.
 export function setAppPath(path: string): void {
   const normalized = normalizeAppPath(path)
-  if (window.location.pathname !== '/' || window.location.search) {
+  if (window.location.search) {
+    window.history.replaceState(
+      {},
+      '',
+      `${window.location.pathname}${window.location.search}#${normalized}`,
+    )
+    return
+  }
+  if (window.location.pathname !== '/') {
     window.history.replaceState({}, '', `/#${normalized}`)
     return
   }

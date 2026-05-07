@@ -55,6 +55,20 @@ describe('app path helpers', () => {
     expect(window.location.hash).toBe('#/login')
   })
 
+  it('preserves query params when setting hash routes', () => {
+    window.history.replaceState(
+      {},
+      '',
+      '/index.html?webDocumentId=electron-route-1',
+    )
+
+    setAppPath('/u/1')
+
+    expect(window.location.pathname).toBe('/index.html')
+    expect(window.location.search).toBe('?webDocumentId=electron-route-1')
+    expect(window.location.hash).toBe('#/u/1')
+  })
+
   it('sets app paths as hash routes from root', () => {
     setAppPath('/login')
 
