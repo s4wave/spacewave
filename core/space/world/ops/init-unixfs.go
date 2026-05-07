@@ -102,8 +102,8 @@ can begin using it immediately.
 
 ## Next steps
 
-Try browsing the files in the left panel, uploading a file, or creating a
-folder to explore the filesystem.
+Try uploading a few files and opening them here. Video files are the best ones
+to try first.
 `
 	if err := b.AddFile(
 		ctx,
