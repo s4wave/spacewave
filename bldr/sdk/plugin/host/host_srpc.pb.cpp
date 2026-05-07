@@ -24,6 +24,10 @@ starpc::Error SRPCPluginHostResourceServiceClientImpl::AccessStateAtom(const bld
   return cc_->ExecCall(service_id_, "AccessStateAtom", in, out);
 }
 
+starpc::Error SRPCPluginHostResourceServiceClientImpl::AccessDesktopTray(const bldr::plugin::host::AccessDesktopTrayRequest& in, bldr::plugin::host::AccessDesktopTrayResponse* out) {
+  return cc_->ExecCall(service_id_, "AccessDesktopTray", in, out);
+}
+
 starpc::Error SRPCPluginHostResourceServiceClientImpl::GetPluginInfo(const bldr::plugin::host::GetPluginInfoRequest& in, bldr::plugin::host::GetPluginInfoResponse* out) {
   return cc_->ExecCall(service_id_, "GetPluginInfo", in, out);
 }
@@ -34,6 +38,7 @@ std::vector<std::string> SRPCPluginHostResourceServiceHandler::GetMethodIDs() co
     "AccessDistFS",
     "AccessVolume",
     "AccessStateAtom",
+    "AccessDesktopTray",
     "GetPluginInfo",
   };
 }
@@ -76,6 +81,14 @@ std::pair<bool, starpc::Error> SRPCPluginHostResourceServiceHandler::InvokeMetho
     if (err != starpc::Error::OK) return {true, err};
     bldr::plugin::host::AccessStateAtomResponse resp;
     err = impl_->AccessStateAtom(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "AccessDesktopTray") {
+    bldr::plugin::host::AccessDesktopTrayRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    bldr::plugin::host::AccessDesktopTrayResponse resp;
+    err = impl_->AccessDesktopTray(req, &resp);
     if (err != starpc::Error::OK) return {true, err};
     return {true, strm->MsgSend(resp)};
   } else if (method_id == "GetPluginInfo") {

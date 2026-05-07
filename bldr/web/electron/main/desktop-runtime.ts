@@ -6,6 +6,7 @@ import {
   ResourceServer,
   newResourceMux,
 } from '../../../sdk/resource/server/index.js'
+import { DesktopTrayResourceServiceDefinition } from '@go/github.com/s4wave/spacewave/bldr/desktop/tray/tray_srpc.pb.js'
 import {
   DesktopRuntimeResourceServiceDefinition,
   type DesktopRuntimeResourceService,
@@ -30,6 +31,11 @@ import {
   type WatchDesktopStateRequest,
   type WatchDesktopStateResponse,
 } from '../desktop-runtime/desktop-runtime.pb.js'
+import { DesktopTrayResource } from './desktop-tray-resource.js'
+import {
+  buildDesktopTrayEntriesFromRuntimeState,
+  iconStateForRuntimeHealth,
+} from './desktop-tray-runtime-projection.js'
 
 interface DesktopRuntimeResourceOpts {
   openOrFocusMainWindow: (
@@ -46,10 +52,17 @@ export class DesktopRuntimeResource implements DesktopRuntimeResourceService {
     { mostRecentOnly: true },
   )
   public readonly resourceServer: ResourceServer
+  public readonly desktopTrayResource: DesktopTrayResource
 
   constructor(private readonly opts: DesktopRuntimeResourceOpts) {
+    this.desktopTrayResource = new DesktopTrayResource()
+    this.updateDesktopTrayResource()
     const mux = newResourceMux(
       createHandler(DesktopRuntimeResourceServiceDefinition, this),
+      createHandler(
+        DesktopTrayResourceServiceDefinition,
+        this.desktopTrayResource,
+      ),
     )
     this.resourceServer = new ResourceServer(mux)
   }
@@ -142,7 +155,16 @@ export class DesktopRuntimeResource implements DesktopRuntimeResourceService {
   }
 
   private pushState(): void {
+    this.updateDesktopTrayResource()
     this.stateStream.pushChangeEvent(this.buildStateResponse())
+  }
+
+  private updateDesktopTrayResource(): void {
+    this.desktopTrayResource.setEntries(
+      buildDesktopTrayEntriesFromRuntimeState(this.state),
+      this.state.statusText || 'Running',
+      iconStateForRuntimeHealth(this.state.health),
+    )
   }
 }
 
@@ -165,7 +187,9 @@ function buildInitialDesktopRuntimeState(): DesktopRuntimeState {
   }
 }
 
-function cloneDesktopRuntimeState(state: DesktopRuntimeState): DesktopRuntimeState {
+function cloneDesktopRuntimeState(
+  state: DesktopRuntimeState,
+): DesktopRuntimeState {
   return {
     ...state,
     listener: cloneListener(state.listener),

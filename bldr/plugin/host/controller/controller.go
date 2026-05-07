@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	bldr_plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
+	plugin_host_root "github.com/s4wave/spacewave/bldr/plugin/host/root"
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,6 +22,8 @@ type Controller struct {
 	info *controller.Info
 	// host is the plugin host
 	host bldr_plugin_host.PluginHost
+	// hostRoot is the process-lifetime host resource root
+	hostRoot *plugin_host_root.Root
 	// platformID is the host platform id
 	platformID string
 }
@@ -37,6 +40,7 @@ func NewController(
 		bus:        bus,
 		info:       info,
 		host:       host,
+		hostRoot:   plugin_host_root.NewRoot(),
 		platformID: host.GetPlatformId(),
 	}
 }
@@ -49,6 +53,11 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 // GetPluginHost returns the plugin host.
 func (c *Controller) GetPluginHost() bldr_plugin_host.PluginHost {
 	return c.host
+}
+
+// GetHostRoot returns the process-lifetime host resource root.
+func (c *Controller) GetHostRoot() *plugin_host_root.Root {
+	return c.hostRoot
 }
 
 // Execute executes the controller.
@@ -71,6 +80,8 @@ func (c *Controller) HandleDirective(
 	switch d := inst.GetDirective().(type) {
 	case bldr_plugin_host.LookupPluginHost:
 		return directive.R(c.resolveLookupPluginHost(d))
+	case plugin_host_root.LookupRoot:
+		return directive.R(c.resolveLookupRoot(d))
 	}
 	return nil, nil
 }
@@ -89,6 +100,19 @@ func (c *Controller) resolveLookupPluginHost(
 
 	// resolve with the host
 	return directive.NewValueResolver([]bldr_plugin_host.LookupPluginHostValue{c.host}), nil
+}
+
+// resolveLookupRoot returns a resolver for looking up the host root.
+func (c *Controller) resolveLookupRoot(
+	dir plugin_host_root.LookupRoot,
+) (directive.Resolver, error) {
+	matchPlatformIDs := dir.LookupRootPlatformIDs()
+	if len(matchPlatformIDs) != 0 {
+		if !slices.Contains(matchPlatformIDs, c.platformID) {
+			return nil, nil
+		}
+	}
+	return directive.NewValueResolver([]plugin_host_root.LookupRootValue{c.hostRoot}), nil
 }
 
 // Close releases any resources used by the controller.

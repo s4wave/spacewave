@@ -9,6 +9,7 @@ import (
 	manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	bldr_plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
+	plugin_host_root "github.com/s4wave/spacewave/bldr/plugin/host/root"
 	"github.com/s4wave/spacewave/db/block"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/unixfs"
@@ -123,6 +124,18 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 		}
 		defer relAssetsAccessCtrl()
 
+		hostRoot, _, hostRootRef, err := plugin_host_root.ExLookupRootByPlatform(
+			ctx,
+			t.c.bus,
+			false,
+			args.pluginHost.GetPlatformId(),
+			nil,
+		)
+		if err != nil {
+			return err
+		}
+		defer hostRootRef.Release()
+
 		// build the mux for handling incoming RPCs from the plugin
 		hostMux, relHostMux := t.c.buildPluginMux(
 			ctx,
@@ -132,6 +145,7 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 			hostVol.info,
 			distFS,
 			assetsFS,
+			hostRoot,
 		)
 		defer relHostMux()
 

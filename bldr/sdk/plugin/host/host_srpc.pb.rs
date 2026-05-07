@@ -19,6 +19,8 @@ pub trait PluginHostResourceServiceClient: Send + Sync {
     async fn access_volume(&self, request: &AccessVolumeRequest) -> starpc::Result<AccessVolumeResponse>;
     /// AccessStateAtom.
     async fn access_state_atom(&self, request: &AccessStateAtomRequest) -> starpc::Result<AccessStateAtomResponse>;
+    /// AccessDesktopTray.
+    async fn access_desktop_tray(&self, request: &AccessDesktopTrayRequest) -> starpc::Result<AccessDesktopTrayResponse>;
     /// GetPluginInfo.
     async fn get_plugin_info(&self, request: &GetPluginInfoRequest) -> starpc::Result<GetPluginInfoResponse>;
 }
@@ -49,6 +51,9 @@ impl<C: starpc::Client + 'static> PluginHostResourceServiceClient for PluginHost
     async fn access_state_atom(&self, request: &AccessStateAtomRequest) -> starpc::Result<AccessStateAtomResponse> {
         self.client.exec_call("bldr.plugin.host.PluginHostResourceService", "AccessStateAtom", request).await
     }
+    async fn access_desktop_tray(&self, request: &AccessDesktopTrayRequest) -> starpc::Result<AccessDesktopTrayResponse> {
+        self.client.exec_call("bldr.plugin.host.PluginHostResourceService", "AccessDesktopTray", request).await
+    }
     async fn get_plugin_info(&self, request: &GetPluginInfoRequest) -> starpc::Result<GetPluginInfoResponse> {
         self.client.exec_call("bldr.plugin.host.PluginHostResourceService", "GetPluginInfo", request).await
     }
@@ -65,6 +70,8 @@ pub trait PluginHostResourceServiceServer: Send + Sync {
     async fn access_volume(&self, request: AccessVolumeRequest) -> starpc::Result<AccessVolumeResponse>;
     /// AccessStateAtom.
     async fn access_state_atom(&self, request: AccessStateAtomRequest) -> starpc::Result<AccessStateAtomResponse>;
+    /// AccessDesktopTray.
+    async fn access_desktop_tray(&self, request: AccessDesktopTrayRequest) -> starpc::Result<AccessDesktopTrayResponse>;
     /// GetPluginInfo.
     async fn get_plugin_info(&self, request: GetPluginInfoRequest) -> starpc::Result<GetPluginInfoResponse>;
 }
@@ -74,6 +81,7 @@ const PLUGIN_HOST_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
     "AccessDistFS",
     "AccessVolume",
     "AccessStateAtom",
+    "AccessDesktopTray",
     "GetPluginInfo",
 ];
 
@@ -154,6 +162,21 @@ impl<S: PluginHostResourceServiceServer + 'static> starpc::Invoker for PluginHos
                     Err(e) => return (true, Err(e)),
                 };
                 match self.server.access_state_atom(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "AccessDesktopTray" => {
+                let request: AccessDesktopTrayRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.access_desktop_tray(request).await {
                     Ok(response) => {
                         if let Err(e) = stream.msg_send(&response).await {
                             return (true, Err(e));

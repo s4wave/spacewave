@@ -47,6 +47,17 @@ pub struct AccessStateAtomResponse {
     #[prost(uint32, tag="1")]
     pub resource_id: u32,
 }
+/// AccessDesktopTrayRequest is the request for AccessDesktopTray.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AccessDesktopTrayRequest {
+}
+/// AccessDesktopTrayResponse is the response for AccessDesktopTray.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AccessDesktopTrayResponse {
+    /// ResourceId is the resource ID for the desktop tray resource.
+    #[prost(uint32, tag="1")]
+    pub resource_id: u32,
+}
 /// GetPluginInfoRequest is the request for GetPluginInfo.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetPluginInfoRequest {

@@ -42,6 +42,12 @@ export class PluginHostRoot extends Resource {
     return this.resourceRef.createResource(resp.resourceId ?? 0, StateAtom)
   }
 
+  // accessDesktopTray returns the process-lifetime desktop tray resource.
+  async accessDesktopTray(signal?: AbortSignal): Promise<ClientResourceRef> {
+    const resp = await this.svc.AccessDesktopTray({}, signal)
+    return this.resourceRef.createRef(resp.resourceId ?? 0)
+  }
+
   // getPluginInfo returns information about the running plugin.
   async getPluginInfo(signal?: AbortSignal) {
     return this.svc.GetPluginInfo({}, signal)

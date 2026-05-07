@@ -13,6 +13,8 @@ service PluginHostResourceService {
   rpc AccessVolume(AccessVolumeRequest) returns (AccessVolumeResponse);
   // AccessStateAtom returns a resource ID for a state atom store.
   rpc AccessStateAtom(AccessStateAtomRequest) returns (AccessStateAtomResponse);
+  // AccessDesktopTray returns the process-lifetime desktop tray resource.
+  rpc AccessDesktopTray(AccessDesktopTrayRequest) returns (AccessDesktopTrayResponse);
   // GetPluginInfo returns information about the running plugin.
   rpc GetPluginInfo(GetPluginInfoRequest) returns (GetPluginInfoResponse);
 }
@@ -53,6 +55,15 @@ message AccessStateAtomRequest {
 // AccessStateAtomResponse is the response for AccessStateAtom.
 message AccessStateAtomResponse {
   // ResourceId is the resource ID for the state atom store.
+  uint32 resource_id = 1;
+}
+
+// AccessDesktopTrayRequest is the request for AccessDesktopTray.
+message AccessDesktopTrayRequest {}
+
+// AccessDesktopTrayResponse is the response for AccessDesktopTray.
+message AccessDesktopTrayResponse {
+  // ResourceId is the resource ID for the desktop tray resource.
   uint32 resource_id = 1;
 }
 

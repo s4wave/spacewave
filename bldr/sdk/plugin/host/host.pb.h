@@ -66,6 +66,14 @@ class AccessAssetsFSResponse;
 struct AccessAssetsFSResponseDefaultTypeInternal;
 extern AccessAssetsFSResponseDefaultTypeInternal _AccessAssetsFSResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull AccessAssetsFSResponse_class_data_;
+class AccessDesktopTrayRequest;
+struct AccessDesktopTrayRequestDefaultTypeInternal;
+extern AccessDesktopTrayRequestDefaultTypeInternal _AccessDesktopTrayRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull AccessDesktopTrayRequest_class_data_;
+class AccessDesktopTrayResponse;
+struct AccessDesktopTrayResponseDefaultTypeInternal;
+extern AccessDesktopTrayResponseDefaultTypeInternal _AccessDesktopTrayResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull AccessDesktopTrayResponse_class_data_;
 class AccessDistFSRequest;
 struct AccessDistFSRequestDefaultTypeInternal;
 extern AccessDistFSRequestDefaultTypeInternal _AccessDistFSRequest_default_instance_;
@@ -170,7 +178,7 @@ class GetPluginInfoResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetPluginInfoResponse*>(
         &_GetPluginInfoResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 9;
+  static constexpr int kIndexInFileMessages = 11;
   friend void swap(GetPluginInfoResponse& a, GetPluginInfoResponse& b) { a.Swap(&b); }
   inline void Swap(GetPluginInfoResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -381,7 +389,7 @@ class GetPluginInfoRequest final : public ::google::protobuf::internal::ZeroFiel
     return *reinterpret_cast<const GetPluginInfoRequest*>(
         &_GetPluginInfoRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 8;
+  static constexpr int kIndexInFileMessages = 10;
   friend void swap(GetPluginInfoRequest& a, GetPluginInfoRequest& b) { a.Swap(&b); }
   inline void Swap(GetPluginInfoRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1494,6 +1502,330 @@ class AccessDistFSRequest final : public ::google::protobuf::internal::ZeroField
 extern const ::google::protobuf::internal::ClassDataFull AccessDistFSRequest_class_data_;
 // -------------------------------------------------------------------
 
+class AccessDesktopTrayResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:bldr.plugin.host.AccessDesktopTrayResponse) */ {
+ public:
+  inline AccessDesktopTrayResponse() : AccessDesktopTrayResponse(nullptr) {}
+  ~AccessDesktopTrayResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(AccessDesktopTrayResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(AccessDesktopTrayResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR AccessDesktopTrayResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline AccessDesktopTrayResponse(const AccessDesktopTrayResponse& from) : AccessDesktopTrayResponse(nullptr, from) {}
+  inline AccessDesktopTrayResponse(AccessDesktopTrayResponse&& from) noexcept
+      : AccessDesktopTrayResponse(nullptr, ::std::move(from)) {}
+  inline AccessDesktopTrayResponse& operator=(const AccessDesktopTrayResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline AccessDesktopTrayResponse& operator=(AccessDesktopTrayResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const AccessDesktopTrayResponse& default_instance() {
+    return *reinterpret_cast<const AccessDesktopTrayResponse*>(
+        &_AccessDesktopTrayResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 9;
+  friend void swap(AccessDesktopTrayResponse& a, AccessDesktopTrayResponse& b) { a.Swap(&b); }
+  inline void Swap(AccessDesktopTrayResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(AccessDesktopTrayResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  AccessDesktopTrayResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<AccessDesktopTrayResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const AccessDesktopTrayResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const AccessDesktopTrayResponse& from) { AccessDesktopTrayResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(AccessDesktopTrayResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "bldr.plugin.host.AccessDesktopTrayResponse"; }
+
+  explicit AccessDesktopTrayResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  AccessDesktopTrayResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const AccessDesktopTrayResponse& from);
+  AccessDesktopTrayResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, AccessDesktopTrayResponse&& from) noexcept
+      : AccessDesktopTrayResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kResourceIdFieldNumber = 1,
+  };
+  // uint32 resource_id = 1;
+  void clear_resource_id() ;
+  ::uint32_t resource_id() const;
+  void set_resource_id(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_resource_id() const;
+  void _internal_set_resource_id(::uint32_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:bldr.plugin.host.AccessDesktopTrayResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const AccessDesktopTrayResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::uint32_t resource_id_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull AccessDesktopTrayResponse_class_data_;
+// -------------------------------------------------------------------
+
+class AccessDesktopTrayRequest final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:bldr.plugin.host.AccessDesktopTrayRequest) */ {
+ public:
+  inline AccessDesktopTrayRequest() : AccessDesktopTrayRequest(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(AccessDesktopTrayRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(AccessDesktopTrayRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR AccessDesktopTrayRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline AccessDesktopTrayRequest(const AccessDesktopTrayRequest& from) : AccessDesktopTrayRequest(nullptr, from) {}
+  inline AccessDesktopTrayRequest(AccessDesktopTrayRequest&& from) noexcept
+      : AccessDesktopTrayRequest(nullptr, ::std::move(from)) {}
+  inline AccessDesktopTrayRequest& operator=(const AccessDesktopTrayRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline AccessDesktopTrayRequest& operator=(AccessDesktopTrayRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const AccessDesktopTrayRequest& default_instance() {
+    return *reinterpret_cast<const AccessDesktopTrayRequest*>(
+        &_AccessDesktopTrayRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 8;
+  friend void swap(AccessDesktopTrayRequest& a, AccessDesktopTrayRequest& b) { a.Swap(&b); }
+  inline void Swap(AccessDesktopTrayRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(AccessDesktopTrayRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  AccessDesktopTrayRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<AccessDesktopTrayRequest>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const AccessDesktopTrayRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const AccessDesktopTrayRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "bldr.plugin.host.AccessDesktopTrayRequest"; }
+
+  explicit AccessDesktopTrayRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  AccessDesktopTrayRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const AccessDesktopTrayRequest& from);
+  AccessDesktopTrayRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, AccessDesktopTrayRequest&& from) noexcept
+      : AccessDesktopTrayRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:bldr.plugin.host.AccessDesktopTrayRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull AccessDesktopTrayRequest_class_data_;
+// -------------------------------------------------------------------
+
 class AccessAssetsFSResponse final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:bldr.plugin.host.AccessAssetsFSResponse) */ {
  public:
@@ -2022,6 +2354,39 @@ inline ::uint32_t AccessStateAtomResponse::_internal_resource_id() const {
   return _impl_.resource_id_;
 }
 inline void AccessStateAtomResponse::_internal_set_resource_id(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.resource_id_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// AccessDesktopTrayRequest
+
+// -------------------------------------------------------------------
+
+// AccessDesktopTrayResponse
+
+// uint32 resource_id = 1;
+inline void AccessDesktopTrayResponse::clear_resource_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.resource_id_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::uint32_t AccessDesktopTrayResponse::resource_id() const {
+  // @@protoc_insertion_point(field_get:bldr.plugin.host.AccessDesktopTrayResponse.resource_id)
+  return _internal_resource_id();
+}
+inline void AccessDesktopTrayResponse::set_resource_id(::uint32_t value) {
+  _internal_set_resource_id(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_set:bldr.plugin.host.AccessDesktopTrayResponse.resource_id)
+}
+inline ::uint32_t AccessDesktopTrayResponse::_internal_resource_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.resource_id_;
+}
+inline void AccessDesktopTrayResponse::_internal_set_resource_id(::uint32_t value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.resource_id_ = value;
 }

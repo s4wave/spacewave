@@ -148,6 +148,37 @@ func (x *AccessStateAtomResponse) GetResourceId() uint32 {
 	return 0
 }
 
+// AccessDesktopTrayRequest is the request for AccessDesktopTray.
+type AccessDesktopTrayRequest struct {
+	unknownFields []byte
+}
+
+func (x *AccessDesktopTrayRequest) Reset() {
+	*x = AccessDesktopTrayRequest{}
+}
+
+func (*AccessDesktopTrayRequest) ProtoMessage() {}
+
+// AccessDesktopTrayResponse is the response for AccessDesktopTray.
+type AccessDesktopTrayResponse struct {
+	unknownFields []byte
+	// ResourceId is the resource ID for the desktop tray resource.
+	ResourceId uint32 `protobuf:"varint,1,opt,name=resource_id,json=resourceId,proto3" json:"resourceId,omitempty"`
+}
+
+func (x *AccessDesktopTrayResponse) Reset() {
+	*x = AccessDesktopTrayResponse{}
+}
+
+func (*AccessDesktopTrayResponse) ProtoMessage() {}
+
+func (x *AccessDesktopTrayResponse) GetResourceId() uint32 {
+	if x != nil {
+		return x.ResourceId
+	}
+	return 0
+}
+
 // GetPluginInfoRequest is the request for GetPluginInfo.
 type GetPluginInfoRequest struct {
 	unknownFields []byte
@@ -310,6 +341,37 @@ func (m *AccessStateAtomResponse) CloneVT() *AccessStateAtomResponse {
 }
 
 func (m *AccessStateAtomResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *AccessDesktopTrayRequest) CloneVT() *AccessDesktopTrayRequest {
+	if m == nil {
+		return (*AccessDesktopTrayRequest)(nil)
+	}
+	r := new(AccessDesktopTrayRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *AccessDesktopTrayRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *AccessDesktopTrayResponse) CloneVT() *AccessDesktopTrayResponse {
+	if m == nil {
+		return (*AccessDesktopTrayResponse)(nil)
+	}
+	r := new(AccessDesktopTrayResponse)
+	r.ResourceId = m.ResourceId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *AccessDesktopTrayResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -490,6 +552,43 @@ func (this *AccessStateAtomResponse) EqualVT(that *AccessStateAtomResponse) bool
 
 func (this *AccessStateAtomResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*AccessStateAtomResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *AccessDesktopTrayRequest) EqualVT(that *AccessDesktopTrayRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AccessDesktopTrayRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*AccessDesktopTrayRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *AccessDesktopTrayResponse) EqualVT(that *AccessDesktopTrayResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ResourceId != that.ResourceId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AccessDesktopTrayResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*AccessDesktopTrayResponse)
 	if !ok {
 		return false
 	}
@@ -833,6 +932,78 @@ func (x *AccessStateAtomResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the AccessStateAtomResponse from JSON.
 func (x *AccessStateAtomResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the AccessDesktopTrayRequest message to JSON.
+func (x *AccessDesktopTrayRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AccessDesktopTrayRequest to JSON.
+func (x *AccessDesktopTrayRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AccessDesktopTrayRequest message from JSON.
+func (x *AccessDesktopTrayRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the AccessDesktopTrayRequest from JSON.
+func (x *AccessDesktopTrayRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the AccessDesktopTrayResponse message to JSON.
+func (x *AccessDesktopTrayResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ResourceId != 0 || s.HasField("resourceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("resourceId")
+		s.WriteUint32(x.ResourceId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AccessDesktopTrayResponse to JSON.
+func (x *AccessDesktopTrayResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AccessDesktopTrayResponse message from JSON.
+func (x *AccessDesktopTrayResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "resource_id", "resourceId":
+			s.AddField("resource_id")
+			x.ResourceId = s.ReadUint32()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the AccessDesktopTrayResponse from JSON.
+func (x *AccessDesktopTrayResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1207,6 +1378,77 @@ func (m *AccessStateAtomResponse) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 	return len(dAtA) - i, nil
 }
 
+func (m *AccessDesktopTrayRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AccessDesktopTrayRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AccessDesktopTrayRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *AccessDesktopTrayResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AccessDesktopTrayResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AccessDesktopTrayResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.ResourceId != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ResourceId))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *GetPluginInfoRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1383,6 +1625,29 @@ func (m *AccessStateAtomResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *AccessDesktopTrayRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *AccessDesktopTrayResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.ResourceId != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.ResourceId))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *GetPluginInfoRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1531,6 +1796,35 @@ func (x *AccessStateAtomResponse) MarshalProtoText() string {
 }
 
 func (x *AccessStateAtomResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *AccessDesktopTrayRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("AccessDesktopTrayRequest {")
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *AccessDesktopTrayRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *AccessDesktopTrayResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("AccessDesktopTrayResponse {")
+	if x.ResourceId != 0 {
+		if sb.Len() > 27 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("resource_id: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.ResourceId), 10))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *AccessDesktopTrayResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1938,6 +2232,101 @@ func (m *AccessStateAtomResponse) UnmarshalVT(dAtA []byte) error {
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: AccessStateAtomResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ResourceId", wireType)
+			}
+			m.ResourceId = 0
+			m.ResourceId, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *AccessDesktopTrayRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AccessDesktopTrayRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AccessDesktopTrayRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *AccessDesktopTrayResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AccessDesktopTrayResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AccessDesktopTrayResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:

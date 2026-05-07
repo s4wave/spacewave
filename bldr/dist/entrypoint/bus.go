@@ -24,6 +24,7 @@ import (
 	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 	default_storage "github.com/s4wave/spacewave/bldr/storage/default"
 	storage_volume "github.com/s4wave/spacewave/bldr/storage/volume"
+	statusprojector "github.com/s4wave/spacewave/core/resource/desktop/statusprojector"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/bucket"
 	node_controller "github.com/s4wave/spacewave/db/node/controller"
@@ -424,6 +425,20 @@ func BuildDistBus(
 		return nil, err
 	}
 	rels = append(rels, pluginHostRel)
+
+	if webRuntimeID != "" && strings.HasPrefix(platformID, "desktop/") {
+		_, statusProjectorRef, err := b.AddDirective(
+			resolver.NewLoadControllerWithConfig(&statusprojector.Config{
+				WebRuntimeId: webRuntimeID,
+			}),
+			nil,
+		)
+		if err != nil {
+			rel()
+			return nil, err
+		}
+		rels = append(rels, statusProjectorRef.Release)
+	}
 
 	// Create LoadPlugin directives for the startup plugins.
 	for _, pluginID := range distMeta.GetStartupPlugins() {

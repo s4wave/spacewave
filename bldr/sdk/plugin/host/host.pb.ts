@@ -173,6 +173,45 @@ export const AccessStateAtomResponse: MessageType<AccessStateAtomResponse> =
   })
 
 /**
+ * AccessDesktopTrayRequest is the request for AccessDesktopTray.
+ *
+ * @generated from message bldr.plugin.host.AccessDesktopTrayRequest
+ */
+export interface AccessDesktopTrayRequest {}
+
+// AccessDesktopTrayRequest contains the message type declaration for AccessDesktopTrayRequest.
+export const AccessDesktopTrayRequest: MessageType<AccessDesktopTrayRequest> =
+  createMessageType({
+    typeName: 'bldr.plugin.host.AccessDesktopTrayRequest',
+    fields: [] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * AccessDesktopTrayResponse is the response for AccessDesktopTray.
+ *
+ * @generated from message bldr.plugin.host.AccessDesktopTrayResponse
+ */
+export interface AccessDesktopTrayResponse {
+  /**
+   * ResourceId is the resource ID for the desktop tray resource.
+   *
+   * @generated from field: uint32 resource_id = 1;
+   */
+  resourceId?: number
+}
+
+// AccessDesktopTrayResponse contains the message type declaration for AccessDesktopTrayResponse.
+export const AccessDesktopTrayResponse: MessageType<AccessDesktopTrayResponse> =
+  createMessageType({
+    typeName: 'bldr.plugin.host.AccessDesktopTrayResponse',
+    fields: [
+      { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * GetPluginInfoRequest is the request for GetPluginInfo.
  *
  * @generated from message bldr.plugin.host.GetPluginInfoRequest

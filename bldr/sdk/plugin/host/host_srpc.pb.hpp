@@ -37,6 +37,8 @@ class SRPCPluginHostResourceServiceClient {
   virtual starpc::Error AccessVolume(const bldr::plugin::host::AccessVolumeRequest& in, bldr::plugin::host::AccessVolumeResponse* out) = 0;
   // AccessStateAtom
   virtual starpc::Error AccessStateAtom(const bldr::plugin::host::AccessStateAtomRequest& in, bldr::plugin::host::AccessStateAtomResponse* out) = 0;
+  // AccessDesktopTray
+  virtual starpc::Error AccessDesktopTray(const bldr::plugin::host::AccessDesktopTrayRequest& in, bldr::plugin::host::AccessDesktopTrayResponse* out) = 0;
   // GetPluginInfo
   virtual starpc::Error GetPluginInfo(const bldr::plugin::host::GetPluginInfoRequest& in, bldr::plugin::host::GetPluginInfoResponse* out) = 0;
 };
@@ -57,6 +59,8 @@ class SRPCPluginHostResourceServiceClientImpl : public SRPCPluginHostResourceSer
   virtual starpc::Error AccessVolume(const bldr::plugin::host::AccessVolumeRequest& in, bldr::plugin::host::AccessVolumeResponse* out) override;
   // AccessStateAtom
   virtual starpc::Error AccessStateAtom(const bldr::plugin::host::AccessStateAtomRequest& in, bldr::plugin::host::AccessStateAtomResponse* out) override;
+  // AccessDesktopTray
+  virtual starpc::Error AccessDesktopTray(const bldr::plugin::host::AccessDesktopTrayRequest& in, bldr::plugin::host::AccessDesktopTrayResponse* out) override;
   // GetPluginInfo
   virtual starpc::Error GetPluginInfo(const bldr::plugin::host::GetPluginInfoRequest& in, bldr::plugin::host::GetPluginInfoResponse* out) override;
 
@@ -83,6 +87,8 @@ class SRPCPluginHostResourceServiceServer {
   virtual starpc::Error AccessVolume(const bldr::plugin::host::AccessVolumeRequest& req, bldr::plugin::host::AccessVolumeResponse* resp) = 0;
   // AccessStateAtom
   virtual starpc::Error AccessStateAtom(const bldr::plugin::host::AccessStateAtomRequest& req, bldr::plugin::host::AccessStateAtomResponse* resp) = 0;
+  // AccessDesktopTray
+  virtual starpc::Error AccessDesktopTray(const bldr::plugin::host::AccessDesktopTrayRequest& req, bldr::plugin::host::AccessDesktopTrayResponse* resp) = 0;
   // GetPluginInfo
   virtual starpc::Error GetPluginInfo(const bldr::plugin::host::GetPluginInfoRequest& req, bldr::plugin::host::GetPluginInfoResponse* resp) = 0;
 };

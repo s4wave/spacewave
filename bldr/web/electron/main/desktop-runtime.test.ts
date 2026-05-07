@@ -81,7 +81,7 @@ describe('DesktopRuntimeResource', () => {
       sessions: [
         {
           id: 'session-1',
-          label: 'christian@aperture.us',
+          label: 'coolguy@spacewave.app',
           detail: 'Pro',
           route: '/sessions/session-1',
           active: true,

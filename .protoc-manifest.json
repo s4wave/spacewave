@@ -480,7 +480,7 @@
       "protoFiles": ["bldr/resource/state/state.proto"]
     },
     "github.com/s4wave/spacewave/bldr/sdk/plugin/host": {
-      "hash": "67be476e60224f2d564394fa3ae17154aebf1ab3cef122b4ed92f962e9486221",
+      "hash": "7b74c0bbcd4b079f8347d30e30a1da1eb7c9473202d3818fed19c2147849280d",
       "generatedFiles": [
         "bldr/sdk/plugin/host/host.pb.cc",
         "bldr/sdk/plugin/host/host.pb.go",

@@ -216,6 +216,49 @@ struct AccessDistFSRequestDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 AccessDistFSRequestDefaultTypeInternal _AccessDistFSRequest_default_instance_;
 
+inline constexpr AccessDesktopTrayResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        resource_id_{0u} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR AccessDesktopTrayResponse::AccessDesktopTrayResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(AccessDesktopTrayResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct AccessDesktopTrayResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR AccessDesktopTrayResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~AccessDesktopTrayResponseDefaultTypeInternal() {}
+  union {
+    AccessDesktopTrayResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 AccessDesktopTrayResponseDefaultTypeInternal _AccessDesktopTrayResponse_default_instance_;
+template <typename>
+PROTOBUF_CONSTEXPR AccessDesktopTrayRequest::AccessDesktopTrayRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(AccessDesktopTrayRequest_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct AccessDesktopTrayRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR AccessDesktopTrayRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~AccessDesktopTrayRequestDefaultTypeInternal() {}
+  union {
+    AccessDesktopTrayRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 AccessDesktopTrayRequestDefaultTypeInternal _AccessDesktopTrayRequest_default_instance_;
+
 inline constexpr AccessAssetsFSResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -298,6 +341,12 @@ const ::uint32_t
         0,
         0x000, // bitmap
         0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::bldr::plugin::host::AccessDesktopTrayResponse, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::bldr::plugin::host::AccessDesktopTrayResponse, _impl_.resource_id_),
+        0,
+        0x000, // bitmap
+        0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::host::GetPluginInfoResponse, _impl_._has_bits_),
         5, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::host::GetPluginInfoResponse, _impl_.plugin_id_),
@@ -316,8 +365,10 @@ static const ::_pbi::MigrationSchema
         {13, sizeof(::bldr::plugin::host::AccessVolumeResponse)},
         {18, sizeof(::bldr::plugin::host::AccessStateAtomRequest)},
         {23, sizeof(::bldr::plugin::host::AccessStateAtomResponse)},
-        {28, sizeof(::bldr::plugin::host::GetPluginInfoRequest)},
-        {29, sizeof(::bldr::plugin::host::GetPluginInfoResponse)},
+        {28, sizeof(::bldr::plugin::host::AccessDesktopTrayRequest)},
+        {29, sizeof(::bldr::plugin::host::AccessDesktopTrayResponse)},
+        {34, sizeof(::bldr::plugin::host::GetPluginInfoRequest)},
+        {35, sizeof(::bldr::plugin::host::GetPluginInfoResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bldr::plugin::host::_AccessAssetsFSRequest_default_instance_._instance,
@@ -328,6 +379,8 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bldr::plugin::host::_AccessVolumeResponse_default_instance_._instance,
     &::bldr::plugin::host::_AccessStateAtomRequest_default_instance_._instance,
     &::bldr::plugin::host::_AccessStateAtomResponse_default_instance_._instance,
+    &::bldr::plugin::host::_AccessDesktopTrayRequest_default_instance_._instance,
+    &::bldr::plugin::host::_AccessDesktopTrayResponse_default_instance_._instance,
     &::bldr::plugin::host::_GetPluginInfoRequest_default_instance_._instance,
     &::bldr::plugin::host::_GetPluginInfoResponse_default_instance_._instance,
 };
@@ -342,36 +395,41 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2f
     "st\"+\n\024AccessVolumeResponse\022\023\n\013resource_i"
     "d\030\001 \001(\r\"*\n\026AccessStateAtomRequest\022\020\n\010sto"
     "re_id\030\001 \001(\t\".\n\027AccessStateAtomResponse\022\023"
-    "\n\013resource_id\030\001 \001(\r\"\026\n\024GetPluginInfoRequ"
-    "est\">\n\025GetPluginInfoResponse\022\021\n\tplugin_i"
-    "d\030\001 \001(\t\022\022\n\nentrypoint\030\002 \001(\t2\210\004\n\031PluginHo"
-    "stResourceService\022c\n\016AccessAssetsFS\022\'.bl"
-    "dr.plugin.host.AccessAssetsFSRequest\032(.b"
-    "ldr.plugin.host.AccessAssetsFSResponse\022]"
-    "\n\014AccessDistFS\022%.bldr.plugin.host.Access"
-    "DistFSRequest\032&.bldr.plugin.host.AccessD"
-    "istFSResponse\022]\n\014AccessVolume\022%.bldr.plu"
-    "gin.host.AccessVolumeRequest\032&.bldr.plug"
-    "in.host.AccessVolumeResponse\022f\n\017AccessSt"
-    "ateAtom\022(.bldr.plugin.host.AccessStateAt"
-    "omRequest\032).bldr.plugin.host.AccessState"
-    "AtomResponse\022`\n\rGetPluginInfo\022&.bldr.plu"
-    "gin.host.GetPluginInfoRequest\032\'.bldr.plu"
-    "gin.host.GetPluginInfoResponseBCZAgithub"
-    ".com/s4wave/spacewave/bldr/sdk/plugin/ho"
-    "st;bldr_plugin_hostb\006proto3"
+    "\n\013resource_id\030\001 \001(\r\"\032\n\030AccessDesktopTray"
+    "Request\"0\n\031AccessDesktopTrayResponse\022\023\n\013"
+    "resource_id\030\001 \001(\r\"\026\n\024GetPluginInfoReques"
+    "t\">\n\025GetPluginInfoResponse\022\021\n\tplugin_id\030"
+    "\001 \001(\t\022\022\n\nentrypoint\030\002 \001(\t2\366\004\n\031PluginHost"
+    "ResourceService\022c\n\016AccessAssetsFS\022\'.bldr"
+    ".plugin.host.AccessAssetsFSRequest\032(.bld"
+    "r.plugin.host.AccessAssetsFSResponse\022]\n\014"
+    "AccessDistFS\022%.bldr.plugin.host.AccessDi"
+    "stFSRequest\032&.bldr.plugin.host.AccessDis"
+    "tFSResponse\022]\n\014AccessVolume\022%.bldr.plugi"
+    "n.host.AccessVolumeRequest\032&.bldr.plugin"
+    ".host.AccessVolumeResponse\022f\n\017AccessStat"
+    "eAtom\022(.bldr.plugin.host.AccessStateAtom"
+    "Request\032).bldr.plugin.host.AccessStateAt"
+    "omResponse\022l\n\021AccessDesktopTray\022*.bldr.p"
+    "lugin.host.AccessDesktopTrayRequest\032+.bl"
+    "dr.plugin.host.AccessDesktopTrayResponse"
+    "\022`\n\rGetPluginInfo\022&.bldr.plugin.host.Get"
+    "PluginInfoRequest\032\'.bldr.plugin.host.Get"
+    "PluginInfoResponseBCZAgithub.com/s4wave/"
+    "spacewave/bldr/sdk/plugin/host;bldr_plug"
+    "in_hostb\006proto3"
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto = {
     false,
     false,
-    1067,
+    1255,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
     "github.com/s4wave/spacewave/bldr/sdk/plugin/host/host.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto_once,
     nullptr,
     0,
-    10,
+    12,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto::offsets,
@@ -1973,6 +2031,363 @@ void AccessStateAtomResponse::InternalSwap(AccessStateAtomResponse* PROTOBUF_RES
 }
 
 ::google::protobuf::Metadata AccessStateAtomResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class AccessDesktopTrayRequest::_Internal {
+ public:
+};
+
+AccessDesktopTrayRequest::AccessDesktopTrayRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, AccessDesktopTrayRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(arena_constructor:bldr.plugin.host.AccessDesktopTrayRequest)
+}
+AccessDesktopTrayRequest::AccessDesktopTrayRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const AccessDesktopTrayRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, AccessDesktopTrayRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  AccessDesktopTrayRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:bldr.plugin.host.AccessDesktopTrayRequest)
+}
+
+inline void* PROTOBUF_NONNULL AccessDesktopTrayRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) AccessDesktopTrayRequest(arena);
+}
+constexpr auto AccessDesktopTrayRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(AccessDesktopTrayRequest),
+                                            alignof(AccessDesktopTrayRequest));
+}
+constexpr auto AccessDesktopTrayRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_AccessDesktopTrayRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &AccessDesktopTrayRequest::MergeImpl,
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<AccessDesktopTrayRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &AccessDesktopTrayRequest::SharedDtor,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<AccessDesktopTrayRequest>(), &AccessDesktopTrayRequest::ByteSizeLong,
+              &AccessDesktopTrayRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(AccessDesktopTrayRequest, _impl_._cached_size_),
+          false,
+      },
+      &AccessDesktopTrayRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull AccessDesktopTrayRequest_class_data_ =
+        AccessDesktopTrayRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+AccessDesktopTrayRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&AccessDesktopTrayRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(AccessDesktopTrayRequest_class_data_.tc_table);
+  return AccessDesktopTrayRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+AccessDesktopTrayRequest::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    0, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    AccessDesktopTrayRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::bldr::plugin::host::AccessDesktopTrayRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, // no field_entries, or aux_entries
+  {{
+  }},
+};
+
+
+
+
+
+
+
+::google::protobuf::Metadata AccessDesktopTrayRequest::GetMetadata() const {
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class AccessDesktopTrayResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<AccessDesktopTrayResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(AccessDesktopTrayResponse, _impl_._has_bits_);
+};
+
+AccessDesktopTrayResponse::AccessDesktopTrayResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, AccessDesktopTrayResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:bldr.plugin.host.AccessDesktopTrayResponse)
+}
+AccessDesktopTrayResponse::AccessDesktopTrayResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const AccessDesktopTrayResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, AccessDesktopTrayResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(from._impl_) {
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+PROTOBUF_NDEBUG_INLINE AccessDesktopTrayResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void AccessDesktopTrayResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.resource_id_ = {};
+}
+AccessDesktopTrayResponse::~AccessDesktopTrayResponse() {
+  // @@protoc_insertion_point(destructor:bldr.plugin.host.AccessDesktopTrayResponse)
+  SharedDtor(*this);
+}
+inline void AccessDesktopTrayResponse::SharedDtor(MessageLite& self) {
+  AccessDesktopTrayResponse& this_ = static_cast<AccessDesktopTrayResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL AccessDesktopTrayResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) AccessDesktopTrayResponse(arena);
+}
+constexpr auto AccessDesktopTrayResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(AccessDesktopTrayResponse),
+                                            alignof(AccessDesktopTrayResponse));
+}
+constexpr auto AccessDesktopTrayResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_AccessDesktopTrayResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &AccessDesktopTrayResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<AccessDesktopTrayResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &AccessDesktopTrayResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<AccessDesktopTrayResponse>(), &AccessDesktopTrayResponse::ByteSizeLong,
+              &AccessDesktopTrayResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(AccessDesktopTrayResponse, _impl_._cached_size_),
+          false,
+      },
+      &AccessDesktopTrayResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull AccessDesktopTrayResponse_class_data_ =
+        AccessDesktopTrayResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+AccessDesktopTrayResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&AccessDesktopTrayResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(AccessDesktopTrayResponse_class_data_.tc_table);
+  return AccessDesktopTrayResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 0, 0, 2>
+AccessDesktopTrayResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(AccessDesktopTrayResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    AccessDesktopTrayResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::bldr::plugin::host::AccessDesktopTrayResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // uint32 resource_id = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(AccessDesktopTrayResponse, _impl_.resource_id_), 0>(),
+     {8, 0, 0,
+      PROTOBUF_FIELD_OFFSET(AccessDesktopTrayResponse, _impl_.resource_id_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // uint32 resource_id = 1;
+    {PROTOBUF_FIELD_OFFSET(AccessDesktopTrayResponse, _impl_.resource_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+  }},
+  // no aux_entries
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void AccessDesktopTrayResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:bldr.plugin.host.AccessDesktopTrayResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.resource_id_ = 0u;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL AccessDesktopTrayResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const AccessDesktopTrayResponse& this_ = static_cast<const AccessDesktopTrayResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL AccessDesktopTrayResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const AccessDesktopTrayResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:bldr.plugin.host.AccessDesktopTrayResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // uint32 resource_id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (this_._internal_resource_id() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          1, this_._internal_resource_id(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:bldr.plugin.host.AccessDesktopTrayResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t AccessDesktopTrayResponse::ByteSizeLong(const MessageLite& base) {
+  const AccessDesktopTrayResponse& this_ = static_cast<const AccessDesktopTrayResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t AccessDesktopTrayResponse::ByteSizeLong() const {
+  const AccessDesktopTrayResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:bldr.plugin.host.AccessDesktopTrayResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // uint32 resource_id = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (this_._internal_resource_id() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_resource_id());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void AccessDesktopTrayResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<AccessDesktopTrayResponse*>(&to_msg);
+  auto& from = static_cast<const AccessDesktopTrayResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:bldr.plugin.host.AccessDesktopTrayResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (from._internal_resource_id() != 0) {
+      _this->_impl_.resource_id_ = from._impl_.resource_id_;
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void AccessDesktopTrayResponse::CopyFrom(const AccessDesktopTrayResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:bldr.plugin.host.AccessDesktopTrayResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void AccessDesktopTrayResponse::InternalSwap(AccessDesktopTrayResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.resource_id_, other->_impl_.resource_id_);
+}
+
+::google::protobuf::Metadata AccessDesktopTrayResponse::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================

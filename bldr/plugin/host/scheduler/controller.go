@@ -16,6 +16,7 @@ import (
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	bldr_plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 	plugin_host_resource "github.com/s4wave/spacewave/bldr/plugin/host/resource"
+	plugin_host_root "github.com/s4wave/spacewave/bldr/plugin/host/root"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	web_view "github.com/s4wave/spacewave/bldr/web/view"
 	web_view_server "github.com/s4wave/spacewave/bldr/web/view/server"
@@ -346,6 +347,7 @@ func (c *Controller) buildPluginMux(
 	proxyHostVolInfo *volume.VolumeInfo,
 	distFS,
 	assetsFS *unixfs.FSHandle,
+	hostRoot *plugin_host_root.Root,
 ) (srpc.Mux, func()) {
 	// fallback to a LookupRpcService on the bus
 	mux := srpc.NewMux(bifrost_rpc.NewInvoker(c.bus, bldr_plugin.PluginServerID(pluginID, ""), true))
@@ -375,6 +377,7 @@ func (c *Controller) buildPluginMux(
 	pluginHostRoot := plugin_host_resource.NewPluginHostRoot(
 		c.le, c.bus, pluginID, manifest.GetManifest().GetEntrypoint(),
 		distFS, assetsFS, proxyHostVol,
+		hostRoot,
 		"plugin-state-atoms",
 		bldr_plugin.PluginVolumeID,
 	)

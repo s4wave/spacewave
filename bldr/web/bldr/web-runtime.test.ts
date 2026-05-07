@@ -10,6 +10,8 @@ import { pipe } from 'it-pipe'
 
 import { Client as ResourceClient } from '../../sdk/resource/client.js'
 import { ResourceServiceClient } from '../../sdk/resource/resource_srpc.pb.js'
+import { DesktopTrayResourceServiceClient } from '../../desktop/tray/tray_srpc.pb.js'
+import { DesktopTrayIconState } from '../../desktop/tray/tray.pb.js'
 import { DesktopRuntimeResourceServiceClient } from '../electron/desktop-runtime/desktop-runtime_srpc.pb.js'
 import {
   DesktopRuntimeHealth,
@@ -160,7 +162,9 @@ describe('WebRuntime', () => {
 
     const rootRef = await resourceClient.accessRootResource()
     const service = new DesktopRuntimeResourceServiceClient(rootRef.client)
+    const tray = new DesktopTrayResourceServiceClient(rootRef.client)
     const iter = service.WatchDesktopState({})[Symbol.asyncIterator]()
+    const trayIter = tray.WatchDesktopTray({})[Symbol.asyncIterator]()
 
     await expect(iter.next()).resolves.toMatchObject({
       value: {
@@ -168,6 +172,14 @@ describe('WebRuntime', () => {
           statusText: 'Running',
           health: DesktopRuntimeHealth.HEALTHY,
           lifecycle: DesktopRuntimeLifecycle.RUNNING,
+        },
+      },
+      done: false,
+    })
+    await expect(trayIter.next()).resolves.toMatchObject({
+      value: {
+        state: {
+          iconState: DesktopTrayIconState.NORMAL,
         },
       },
       done: false,
@@ -196,6 +208,7 @@ describe('WebRuntime', () => {
     })
 
     await iter.return?.()
+    await trayIter.return?.()
     rootRef.release()
     resourceClient.dispose()
     controller.abort()

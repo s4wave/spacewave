@@ -22,6 +22,8 @@ type SRPCPluginHostResourceServiceClient interface {
 	AccessVolume(ctx context.Context, in *AccessVolumeRequest) (*AccessVolumeResponse, error)
 	// AccessStateAtom returns a resource ID for a state atom store.
 	AccessStateAtom(ctx context.Context, in *AccessStateAtomRequest) (*AccessStateAtomResponse, error)
+	// AccessDesktopTray returns the process-lifetime desktop tray resource.
+	AccessDesktopTray(ctx context.Context, in *AccessDesktopTrayRequest) (*AccessDesktopTrayResponse, error)
 	// GetPluginInfo returns information about the running plugin.
 	GetPluginInfo(ctx context.Context, in *GetPluginInfoRequest) (*GetPluginInfoResponse, error)
 }
@@ -80,6 +82,15 @@ func (c *srpcPluginHostResourceServiceClient) AccessStateAtom(ctx context.Contex
 	return out, nil
 }
 
+func (c *srpcPluginHostResourceServiceClient) AccessDesktopTray(ctx context.Context, in *AccessDesktopTrayRequest) (*AccessDesktopTrayResponse, error) {
+	out := new(AccessDesktopTrayResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "AccessDesktopTray", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcPluginHostResourceServiceClient) GetPluginInfo(ctx context.Context, in *GetPluginInfoRequest) (*GetPluginInfoResponse, error) {
 	out := new(GetPluginInfoResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "GetPluginInfo", in, out)
@@ -98,6 +109,8 @@ type SRPCPluginHostResourceServiceServer interface {
 	AccessVolume(context.Context, *AccessVolumeRequest) (*AccessVolumeResponse, error)
 	// AccessStateAtom returns a resource ID for a state atom store.
 	AccessStateAtom(context.Context, *AccessStateAtomRequest) (*AccessStateAtomResponse, error)
+	// AccessDesktopTray returns the process-lifetime desktop tray resource.
+	AccessDesktopTray(context.Context, *AccessDesktopTrayRequest) (*AccessDesktopTrayResponse, error)
 	// GetPluginInfo returns information about the running plugin.
 	GetPluginInfo(context.Context, *GetPluginInfoRequest) (*GetPluginInfoResponse, error)
 }
@@ -132,6 +145,7 @@ func (SRPCPluginHostResourceServiceHandler) GetMethodIDs() []string {
 		"AccessDistFS",
 		"AccessVolume",
 		"AccessStateAtom",
+		"AccessDesktopTray",
 		"GetPluginInfo",
 	}
 }
@@ -153,6 +167,8 @@ func (d *SRPCPluginHostResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_AccessVolume(d.impl, strm)
 	case "AccessStateAtom":
 		return true, d.InvokeMethod_AccessStateAtom(d.impl, strm)
+	case "AccessDesktopTray":
+		return true, d.InvokeMethod_AccessDesktopTray(d.impl, strm)
 	case "GetPluginInfo":
 		return true, d.InvokeMethod_GetPluginInfo(d.impl, strm)
 	default:
@@ -208,6 +224,18 @@ func (SRPCPluginHostResourceServiceHandler) InvokeMethod_AccessStateAtom(impl SR
 	return strm.MsgSend(out)
 }
 
+func (SRPCPluginHostResourceServiceHandler) InvokeMethod_AccessDesktopTray(impl SRPCPluginHostResourceServiceServer, strm srpc.Stream) error {
+	req := new(AccessDesktopTrayRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.AccessDesktopTray(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
 func (SRPCPluginHostResourceServiceHandler) InvokeMethod_GetPluginInfo(impl SRPCPluginHostResourceServiceServer, strm srpc.Stream) error {
 	req := new(GetPluginInfoRequest)
 	if err := strm.MsgRecv(req); err != nil {
@@ -249,6 +277,14 @@ type SRPCPluginHostResourceService_AccessStateAtomStream interface {
 }
 
 type srpcPluginHostResourceService_AccessStateAtomStream struct {
+	srpc.Stream
+}
+
+type SRPCPluginHostResourceService_AccessDesktopTrayStream interface {
+	srpc.Stream
+}
+
+type srpcPluginHostResourceService_AccessDesktopTrayStream struct {
 	srpc.Stream
 }
 

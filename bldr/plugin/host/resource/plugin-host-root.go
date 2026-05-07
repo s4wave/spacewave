@@ -5,6 +5,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
+	plugin_host_root "github.com/s4wave/spacewave/bldr/plugin/host/root"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_state "github.com/s4wave/spacewave/bldr/resource/state"
 	sdk_plugin_host "github.com/s4wave/spacewave/bldr/sdk/plugin/host"
@@ -26,6 +27,7 @@ type PluginHostRoot struct {
 	assetsFS     *unixfs.FSHandle
 	proxyHostVol *volume_rpc_server.ProxyVolume
 	stateAtomMgr *resource_state.StateAtomManager
+	hostRoot     *plugin_host_root.Root
 	mux          srpc.Invoker
 }
 
@@ -36,6 +38,7 @@ func NewPluginHostRoot(
 	pluginID, entrypoint string,
 	distFS, assetsFS *unixfs.FSHandle,
 	proxyHostVol *volume_rpc_server.ProxyVolume,
+	hostRoot *plugin_host_root.Root,
 	stateAtomObjectStoreID, stateAtomVolumeID string,
 ) *PluginHostRoot {
 	r := &PluginHostRoot{
@@ -46,6 +49,7 @@ func NewPluginHostRoot(
 		distFS:       distFS,
 		assetsFS:     assetsFS,
 		proxyHostVol: proxyHostVol,
+		hostRoot:     hostRoot,
 	}
 	r.stateAtomMgr = resource_state.NewStateAtomManager(b, stateAtomObjectStoreID, stateAtomVolumeID)
 	mux := resource_server.NewResourceMux(func(m srpc.Mux) error {
@@ -149,6 +153,20 @@ func (r *PluginHostRoot) AccessStateAtom(
 		return nil, err
 	}
 	return &sdk_plugin_host.AccessStateAtomResponse{ResourceId: id}, nil
+}
+
+// AccessDesktopTray returns a resource ID for the process-lifetime desktop tray.
+func (r *PluginHostRoot) AccessDesktopTray(
+	ctx context.Context,
+	req *sdk_plugin_host.AccessDesktopTrayRequest,
+) (*sdk_plugin_host.AccessDesktopTrayResponse, error) {
+	_, id, err := resource_server.ConstructChildResource(ctx, func(_ context.Context) (srpc.Invoker, struct{}, func(), error) {
+		return r.hostRoot.GetDesktopTray().GetMux(), struct{}{}, nil, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &sdk_plugin_host.AccessDesktopTrayResponse{ResourceId: id}, nil
 }
 
 // GetPluginInfo returns information about the running plugin.

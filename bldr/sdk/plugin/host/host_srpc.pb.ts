@@ -5,6 +5,8 @@
 import {
   AccessAssetsFSRequest,
   AccessAssetsFSResponse,
+  AccessDesktopTrayRequest,
+  AccessDesktopTrayResponse,
   AccessDistFSRequest,
   AccessDistFSResponse,
   AccessStateAtomRequest,
@@ -70,6 +72,17 @@ export const PluginHostResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * AccessDesktopTray returns the process-lifetime desktop tray resource.
+     *
+     * @generated from rpc bldr.plugin.host.PluginHostResourceService.AccessDesktopTray
+     */
+    AccessDesktopTray: {
+      name: 'AccessDesktopTray',
+      I: AccessDesktopTrayRequest,
+      O: AccessDesktopTrayResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
      * GetPluginInfo returns information about the running plugin.
      *
      * @generated from rpc bldr.plugin.host.PluginHostResourceService.GetPluginInfo
@@ -130,6 +143,16 @@ export interface PluginHostResourceService {
   ): Promise<AccessStateAtomResponse>
 
   /**
+   * AccessDesktopTray returns the process-lifetime desktop tray resource.
+   *
+   * @generated from rpc bldr.plugin.host.PluginHostResourceService.AccessDesktopTray
+   */
+  AccessDesktopTray(
+    request: AccessDesktopTrayRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<AccessDesktopTrayResponse>
+
+  /**
    * GetPluginInfo returns information about the running plugin.
    *
    * @generated from rpc bldr.plugin.host.PluginHostResourceService.GetPluginInfo
@@ -153,6 +176,7 @@ export class PluginHostResourceServiceClient implements PluginHostResourceServic
     this.AccessDistFS = this.AccessDistFS.bind(this)
     this.AccessVolume = this.AccessVolume.bind(this)
     this.AccessStateAtom = this.AccessStateAtom.bind(this)
+    this.AccessDesktopTray = this.AccessDesktopTray.bind(this)
     this.GetPluginInfo = this.GetPluginInfo.bind(this)
   }
   /**
@@ -229,6 +253,25 @@ export class PluginHostResourceServiceClient implements PluginHostResourceServic
       abortSignal || undefined,
     )
     return AccessStateAtomResponse.fromBinary(result)
+  }
+
+  /**
+   * AccessDesktopTray returns the process-lifetime desktop tray resource.
+   *
+   * @generated from rpc bldr.plugin.host.PluginHostResourceService.AccessDesktopTray
+   */
+  async AccessDesktopTray(
+    request: AccessDesktopTrayRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<AccessDesktopTrayResponse> {
+    const requestMsg = AccessDesktopTrayRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      PluginHostResourceServiceDefinition.methods.AccessDesktopTray.name,
+      AccessDesktopTrayRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return AccessDesktopTrayResponse.fromBinary(result)
   }
 
   /**

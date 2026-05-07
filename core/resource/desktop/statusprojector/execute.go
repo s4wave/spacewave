@@ -5,7 +5,11 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
+	desktop_tray "github.com/s4wave/spacewave/bldr/desktop/tray"
+	plugin_host_root "github.com/s4wave/spacewave/bldr/plugin/host/root"
+	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	desktop_runtime "github.com/s4wave/spacewave/bldr/web/electron/desktop-runtime"
 	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
@@ -51,6 +55,15 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return errors.Wrap(err, "access desktop runtime root resource")
 	}
 
+	hostRoot, _, hostRootRef, err := plugin_host_root.ExLookupRoot(ctx, c.GetBus(), false, nil, nil)
+	if err != nil {
+		if ctx.Err() != nil {
+			return nil
+		}
+		return errors.Wrap(err, "lookup plugin host root")
+	}
+	defer hostRootRef.Release()
+
 	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, c.GetBus(), "", false, nil)
 	if err != nil {
 		if ctx.Err() != nil {
@@ -63,8 +76,56 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 
 	service := desktop_runtime.NewSRPCDesktopRuntimeResourceServiceClient(rootClient)
+	traySource := desktop_tray.NewSRPCDesktopTrayResourceServiceClient(
+		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(hostRoot.GetMux()))),
+	)
+	trayTarget := desktop_tray.NewSRPCDesktopTrayResourceServiceClient(rootClient)
 	launcher := newLauncherInfoWatcher(ctx, c.GetBus())
-	return projectRuntimeStatus(ctx, c.GetBus(), resource_listener.GetProcessStatusBroker(), sessionCtrl, launcher, service)
+	return projectRuntimeStatusAndTray(
+		ctx,
+		c.GetBus(),
+		resource_listener.GetProcessStatusBroker(),
+		sessionCtrl,
+		launcher,
+		service,
+		traySource,
+		trayTarget,
+		resourceClient,
+	)
+}
+
+func projectRuntimeStatusAndTray(
+	ctx context.Context,
+	b bus.Bus,
+	broker *resource_listener.StatusBroker,
+	sessionCtrl session.SessionController,
+	launcher *launcherInfoWatcher,
+	service desktopRuntimePublisher,
+	traySource desktop_tray.SRPCDesktopTrayResourceServiceClient,
+	trayTarget desktop_tray.SRPCDesktopTrayResourceServiceClient,
+	resourceClient *resource_client.Client,
+) error {
+	runCtx, runCancel := context.WithCancel(ctx)
+	defer runCancel()
+
+	errCh := make(chan error, 2)
+	go func() {
+		errCh <- projectRuntimeStatus(runCtx, b, broker, sessionCtrl, launcher, service)
+	}()
+	go func() {
+		errCh <- desktop_tray.ReconcileDesktopTray(runCtx, traySource, trayTarget, resourceClient)
+	}()
+
+	err := <-errCh
+	runCancel()
+	secondErr := <-errCh
+	if err == context.Canceled && ctx.Err() != nil {
+		return nil
+	}
+	if err == context.Canceled && secondErr != nil && secondErr != context.Canceled {
+		return secondErr
+	}
+	return err
 }
 
 func projectRuntimeStatus(

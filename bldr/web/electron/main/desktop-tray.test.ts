@@ -2,6 +2,14 @@ import { EventEmitter } from 'events'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  DesktopTrayActionKind,
+  DesktopTrayEntryKind,
+  DesktopTrayIconState,
+  type DesktopTrayState,
+  type WatchDesktopTrayResponse,
+  type DesktopTrayEntry,
+} from '@go/github.com/s4wave/spacewave/bldr/desktop/tray/tray.pb.js'
+import {
   DesktopRuntimeActionKind,
   DesktopRuntimeHealth,
   DesktopRuntimeSeverity,
@@ -12,6 +20,11 @@ import {
   DesktopRuntimeState,
   type WatchDesktopStateResponse,
 } from '../desktop-runtime/desktop-runtime.pb.js'
+import { DesktopRuntimeResource } from './desktop-runtime.js'
+import {
+  buildDesktopTrayEntriesFromRuntimeState,
+  iconStateForRuntimeHealth,
+} from './desktop-tray-runtime-projection.js'
 
 const platformState = { value: 'linux' }
 const menuTemplates: Electron.MenuItemConstructorOptions[][] = []
@@ -33,11 +46,16 @@ const mockResource = {
   getState: vi.fn(() => defaultRuntimeState()),
   OpenOrFocusMainWindow: vi.fn(() => Promise.resolve({})),
   QuitDesktopRuntime: vi.fn(() => Promise.resolve({})),
+  desktopTrayResource: {
+    WatchDesktopTray: vi.fn(),
+    getState: vi.fn(() => defaultTrayState()),
+  },
 }
 const browserWindowState = {
   shouldThrow: false,
 }
 let emitState: (state: DesktopRuntimeState) => void = () => {}
+let emitTrayState: (state: DesktopTrayState) => void = () => {}
 
 class MockNativeImage {
   public readonly setTemplateImage = vi.fn()
@@ -128,10 +146,24 @@ describe('DesktopTrayController', () => {
     browserWindowState.shouldThrow = false
     delete process.env.BLDR_ELECTRON_DESKTOP_TRAY_POPOVER
     vi.clearAllMocks()
-    mockResource.getState.mockReturnValue(defaultRuntimeState())
+    const state = defaultRuntimeState()
+    setMockRuntimeState(state)
     const stream = new TestStateStream()
-    emitState = (state: DesktopRuntimeState) => stream.emit({ state })
+    const trayStream = new TestTrayStateStream()
+    emitState = (state: DesktopRuntimeState) => {
+      stream.emit({ state })
+      const trayState = trayStateFromRuntimeState(state)
+      mockResource.desktopTrayResource.getState.mockReturnValue(trayState)
+      trayStream.emit({ state: trayState })
+    }
+    emitTrayState = (state: DesktopTrayState) => {
+      mockResource.desktopTrayResource.getState.mockReturnValue(state)
+      trayStream.emit({ state })
+    }
     mockResource.WatchDesktopState.mockReturnValue(stream)
+    mockResource.desktopTrayResource.WatchDesktopTray.mockReturnValue(
+      trayStream,
+    )
   })
 
   it('keeps one native tray item for the process lifetime', async () => {
@@ -153,7 +185,10 @@ describe('DesktopTrayController', () => {
       label: 'Spacewave: Running',
       enabled: false,
     })
-    expect(mockResource.WatchDesktopState).toHaveBeenCalledTimes(1)
+    expect(
+      mockResource.desktopTrayResource.WatchDesktopTray,
+    ).toHaveBeenCalledTimes(1)
+    expect(mockResource.WatchDesktopState).not.toHaveBeenCalled()
   })
 
   it('rebuilds the native menu from desktop runtime state updates', async () => {
@@ -171,7 +206,7 @@ describe('DesktopTrayController', () => {
       ...defaultRuntimeState(),
       statusText: 'Disconnected',
     }
-    mockResource.getState.mockReturnValue(disconnected)
+    setMockRuntimeState(disconnected)
     emitState(disconnected)
     await Promise.resolve()
 
@@ -180,6 +215,92 @@ describe('DesktopTrayController', () => {
       label: 'Spacewave: Disconnected',
       enabled: false,
     })
+  })
+
+  it('consumes the Electron-scoped DesktopTrayResource as the native menu source', async () => {
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+    controller.init()
+
+    emitTrayState(defaultTrayState())
+    await Promise.resolve()
+    expect(trayInstances[0]?.setContextMenu).toHaveBeenCalledTimes(1)
+
+    emitTrayState({
+      statusText: 'Tray Source',
+      iconState: DesktopTrayIconState.ACTIVE,
+      entries: [
+        {
+          id: 'tray-source',
+          kind: DesktopTrayEntryKind.STATUS,
+          label: 'From DesktopTray',
+        },
+      ],
+    })
+    await Promise.resolve()
+
+    expect(trayInstances[0]?.setContextMenu).toHaveBeenCalledTimes(2)
+    expect(menuTemplates[1]).toContainEqual({
+      label: 'From DesktopTray',
+      enabled: false,
+    })
+    expect(trayInstances[0]?.setToolTip).toHaveBeenLastCalledWith(
+      'Spacewave: Tray Source',
+    )
+  })
+
+  it('records the current publisher to resource to tray menu path', async () => {
+    const resource = new DesktopRuntimeResource({
+      openOrFocusMainWindow: vi.fn(),
+      quitDesktopRuntime: vi.fn(),
+    })
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource,
+    })
+    controller.init()
+    await flushPromises()
+
+    await resource.SetDesktopState({
+      state: {
+        statusText: 'Running',
+        health: DesktopRuntimeHealth.HEALTHY,
+        listener: {
+          label: 'CLI reachable',
+          detail: '1 CLI client connected',
+          socketPath: '/tmp/spacewave.sock',
+        },
+        sessions: [
+          {
+            label: 'coolguy@spacewave.app',
+            detail: 'Cloud',
+            statusText: 'Ready',
+            route: '/u/1/',
+          },
+        ],
+        spaces: [
+          {
+            label: 'Drive',
+            detail: 'Open',
+            route: '/u/1/so/drive',
+          },
+        ],
+      },
+    })
+    await flushPromises()
+
+    expect(trayInstances[0]?.setContextMenu).toHaveBeenCalledTimes(2)
+    expect(templateLabels(menuTemplates[1])).toContain(
+      'CLI reachable - 1 CLI client connected',
+    )
+    expect(templateLabels(menuTemplates[1])).toContain(
+      'coolguy@spacewave.app - Cloud - Ready',
+    )
+    expect(templateLabels(menuTemplates[1])).toContain('Drive - Open')
   })
 
   it('renders healthy menu sections in daemon-console order', async () => {
@@ -193,7 +314,7 @@ describe('DesktopTrayController', () => {
       },
       sessions: [
         {
-          label: 'christian@aperture.us',
+          label: 'coolguy@spacewave.app',
           detail: 'Cloud',
           statusText: 'Ready',
         },
@@ -201,7 +322,7 @@ describe('DesktopTrayController', () => {
       spaces: [
         {
           label: 'Project Alpha',
-          detail: 'christian@aperture.us',
+          detail: 'coolguy@spacewave.app',
           statusText: 'Shared',
         },
       ] satisfies DesktopRuntimeNavigationItem[],
@@ -219,7 +340,7 @@ describe('DesktopTrayController', () => {
         },
       ] satisfies DesktopRuntimeActionItem[],
     }
-    mockResource.getState.mockReturnValue(state)
+    setMockRuntimeState(state)
     const { DesktopTrayController } = await import('./desktop-tray.js')
     const controller = new DesktopTrayController({
       init: { appName: 'Spacewave' },
@@ -238,10 +359,10 @@ describe('DesktopTrayController', () => {
       'CLI reachable - 1 CLI client connected',
       '---',
       'Sessions',
-      'christian@aperture.us - Cloud - Ready',
+      'coolguy@spacewave.app - Cloud - Ready',
       '---',
       'Spaces',
-      'Project Alpha - christian@aperture.us - Shared',
+      'Project Alpha - coolguy@spacewave.app - Shared',
       '---',
       'Activity',
       'Uploading changes - 2 sync items',
@@ -263,7 +384,7 @@ describe('DesktopTrayController', () => {
       ...defaultRuntimeState(),
       sessions: [
         {
-          label: 'christian@aperture.us',
+          label: 'coolguy@spacewave.app',
           route: '/u/2/',
         },
       ] satisfies DesktopRuntimeNavigationItem[],
@@ -282,7 +403,7 @@ describe('DesktopTrayController', () => {
         },
       ] satisfies DesktopRuntimeActionItem[],
     }
-    mockResource.getState.mockReturnValue(state)
+    setMockRuntimeState(state)
     const { DesktopTrayController } = await import('./desktop-tray.js')
     const controller = new DesktopTrayController({
       init: { appName: 'Spacewave' },
@@ -292,7 +413,7 @@ describe('DesktopTrayController', () => {
 
     await clickMenuItem('Open Spacewave')
     await clickMenuItem('New Window')
-    await clickMenuItem('christian@aperture.us')
+    await clickMenuItem('coolguy@spacewave.app')
     await clickMenuItem('Project Alpha')
     await clickMenuItem('Open dashboard')
     await clickMenuItem('Settings...')
@@ -340,7 +461,7 @@ describe('DesktopTrayController', () => {
         },
       ] satisfies DesktopRuntimeActionItem[],
     }
-    mockResource.getState.mockReturnValue(state)
+    setMockRuntimeState(state)
     const { DesktopTrayController } = await import('./desktop-tray.js')
     const controller = new DesktopTrayController({
       init: { appName: 'Spacewave' },
@@ -381,7 +502,7 @@ describe('DesktopTrayController', () => {
         },
       ] satisfies DesktopRuntimeActionItem[],
     }
-    mockResource.getState.mockReturnValue(state)
+    setMockRuntimeState(state)
     const { DesktopTrayController } = await import('./desktop-tray.js')
     const controller = new DesktopTrayController({
       init: { appName: 'Spacewave' },
@@ -410,11 +531,11 @@ describe('DesktopTrayController', () => {
         {
           severity: DesktopRuntimeSeverity.CRITICAL,
           label: 'Sign in required',
-          detail: 'christian@aperture.us',
+          detail: 'coolguy@spacewave.app',
         },
       ] satisfies DesktopRuntimeAttentionItem[],
     }
-    mockResource.getState.mockReturnValue(state)
+    setMockRuntimeState(state)
     const { DesktopTrayController } = await import('./desktop-tray.js')
     const controller = new DesktopTrayController({
       init: { appName: 'Spacewave' },
@@ -426,7 +547,7 @@ describe('DesktopTrayController', () => {
     expect(templateLabels(menuTemplates[0])).toEqual([
       'Spacewave: Needs attention',
       'Sign in required',
-      'christian@aperture.us',
+      'coolguy@spacewave.app',
       '---',
       'Open Spacewave',
       '---',
@@ -495,6 +616,136 @@ describe('DesktopTrayController', () => {
     expect(mockResource.QuitDesktopRuntime).toHaveBeenCalledTimes(1)
   })
 
+  it('preserves the entry-backed menu contract for ordering and lifecycle actions', async () => {
+    const state = {
+      ...defaultRuntimeState(),
+      listener: {
+        label: 'CLI reachable',
+        detail: '1 CLI client connected',
+        socketPath: '/tmp/spacewave.sock',
+      },
+      sessions: [
+        {
+          label: 'coolguy@spacewave.app',
+          detail: 'Cloud',
+          statusText: 'Ready',
+          route: '/u/1/',
+        },
+      ] satisfies DesktopRuntimeNavigationItem[],
+      spaces: [
+        {
+          label: 'Drive',
+          detail: 'Open',
+          route: '/u/1/so/drive',
+        },
+      ] satisfies DesktopRuntimeNavigationItem[],
+    }
+    setMockRuntimeState(state)
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+    controller.init()
+
+    expect(templateLabels(menuTemplates[0])).toEqual([
+      'Spacewave: Running',
+      '---',
+      'Open Spacewave',
+      'New Window',
+      '---',
+      'Status',
+      'CLI reachable - 1 CLI client connected',
+      '---',
+      'Sessions',
+      'coolguy@spacewave.app - Cloud - Ready',
+      '---',
+      'Spaces',
+      'Drive - Open',
+      '---',
+      'Activity',
+      'No recent activity',
+      '---',
+      'Quick Actions',
+      'Copy CLI Socket',
+      'Copy Diagnostics',
+      '---',
+      'Settings...',
+      'About Spacewave',
+      '---',
+      'Quit',
+    ])
+
+    await clickMenuItem('Open Spacewave')
+    await clickMenuItem('coolguy@spacewave.app - Cloud - Ready')
+    await clickMenuItem('Drive - Open')
+    await clickMenuItem('Quit')
+
+    expect(mockResource.OpenOrFocusMainWindow).toHaveBeenNthCalledWith(1, {})
+    expect(mockResource.OpenOrFocusMainWindow).toHaveBeenNthCalledWith(2, {
+      route: '/u/1/',
+    })
+    expect(mockResource.OpenOrFocusMainWindow).toHaveBeenNthCalledWith(3, {
+      route: '/u/1/so/drive',
+    })
+    expect(mockResource.QuitDesktopRuntime).toHaveBeenCalledTimes(1)
+  })
+
+  it('renders DesktopTrayEntry paths as native submenus', async () => {
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+    const buildMenuTemplate = (
+      controller as unknown as {
+        buildMenuTemplate: (
+          entries: DesktopTrayEntry[],
+        ) => Electron.MenuItemConstructorOptions[]
+      }
+    ).buildMenuTemplate.bind(controller)
+
+    const template = buildMenuTemplate([
+      {
+        id: 'project-alpha',
+        kind: DesktopTrayEntryKind.ACTION,
+        path: ['Spaces'],
+        label: 'Project Alpha',
+        enabled: true,
+        action: {
+          kind: DesktopTrayActionKind.OPEN_ROUTE,
+          route: '/spaces/project-alpha',
+        },
+      },
+      {
+        id: 'copy-socket',
+        kind: DesktopTrayEntryKind.ACTION,
+        path: ['Diagnostics', 'CLI'],
+        label: 'Copy Socket',
+        enabled: true,
+        action: {
+          kind: DesktopTrayActionKind.COPY_TEXT,
+          value: '/tmp/spacewave.sock',
+        },
+      },
+    ])
+
+    expect(templateLabels(template)).toEqual(['Spaces', 'Diagnostics'])
+    expect(
+      templateLabels(
+        template[0]?.submenu as Electron.MenuItemConstructorOptions[],
+      ),
+    ).toEqual(['Project Alpha'])
+    const diagnostics = template[1]
+      ?.submenu as Electron.MenuItemConstructorOptions[]
+    expect(templateLabels(diagnostics)).toEqual(['CLI'])
+    expect(
+      templateLabels(
+        diagnostics[0]?.submenu as Electron.MenuItemConstructorOptions[],
+      ),
+    ).toEqual(['Copy Socket'])
+  })
+
   it('shows the dev popover from desktop runtime state while keeping native menu fallback', async () => {
     process.env.BLDR_ELECTRON_DESKTOP_TRAY_POPOVER = '1'
     const state = {
@@ -508,13 +759,13 @@ describe('DesktopTrayController', () => {
       },
       sessions: [
         {
-          label: 'christian@aperture.us',
+          label: 'coolguy@spacewave.app',
           detail: 'Cloud',
           statusText: 'Ready',
         },
       ] satisfies DesktopRuntimeNavigationItem[],
     }
-    mockResource.getState.mockReturnValue(state)
+    setMockRuntimeState(state)
     const { DesktopTrayController } = await import('./desktop-tray.js')
     const controller = new DesktopTrayController({
       init: { appName: 'Spacewave' },
@@ -532,7 +783,7 @@ describe('DesktopTrayController', () => {
     expect(mockResource.OpenOrFocusMainWindow).not.toHaveBeenCalled()
     expect(latestPopoverHtml()).toContain('Syncing')
     expect(latestPopoverHtml()).toContain('CLI reachable')
-    expect(latestPopoverHtml()).toContain('christian@aperture.us')
+    expect(latestPopoverHtml()).toContain('coolguy@spacewave.app')
 
     emitState({
       ...state,
@@ -541,7 +792,7 @@ describe('DesktopTrayController', () => {
       attentionItems: [
         {
           label: 'Sign in required',
-          detail: 'christian@aperture.us',
+          detail: 'coolguy@spacewave.app',
           severity: DesktopRuntimeSeverity.CRITICAL,
         },
       ],
@@ -617,6 +868,12 @@ async function clickMenuItem(label: string): Promise<void> {
   await Promise.resolve()
 }
 
+async function flushPromises(): Promise<void> {
+  await Promise.resolve()
+  await Promise.resolve()
+  await Promise.resolve()
+}
+
 function templateLabels(
   template: Electron.MenuItemConstructorOptions[] | undefined,
 ): string[] {
@@ -646,6 +903,27 @@ function defaultRuntimeState(): DesktopRuntimeState {
   }
 }
 
+function defaultTrayState(): DesktopTrayState {
+  return trayStateFromRuntimeState(defaultRuntimeState())
+}
+
+function setMockRuntimeState(state: DesktopRuntimeState): void {
+  mockResource.getState.mockReturnValue(state)
+  mockResource.desktopTrayResource.getState.mockReturnValue(
+    trayStateFromRuntimeState(state),
+  )
+}
+
+function trayStateFromRuntimeState(
+  state: DesktopRuntimeState,
+): DesktopTrayState {
+  return {
+    entries: buildDesktopTrayEntriesFromRuntimeState(state),
+    statusText: state.statusText || 'Running',
+    iconState: iconStateForRuntimeHealth(state.health),
+  }
+}
+
 class TestStateStream implements AsyncIterable<WatchDesktopStateResponse> {
   private queue: WatchDesktopStateResponse[] = []
   private resolveNext?: (
@@ -670,6 +948,40 @@ class TestStateStream implements AsyncIterable<WatchDesktopStateResponse> {
   }
 
   private next(): Promise<IteratorResult<WatchDesktopStateResponse>> {
+    const response = this.queue.shift()
+    if (response) {
+      return Promise.resolve({ value: response, done: false })
+    }
+    return new Promise((resolve) => {
+      this.resolveNext = resolve
+    })
+  }
+}
+
+class TestTrayStateStream implements AsyncIterable<WatchDesktopTrayResponse> {
+  private queue: WatchDesktopTrayResponse[] = []
+  private resolveNext?: (
+    value: IteratorResult<WatchDesktopTrayResponse>,
+  ) => void
+
+  public emit(response: WatchDesktopTrayResponse): void {
+    if (this.resolveNext) {
+      const resolve = this.resolveNext
+      this.resolveNext = undefined
+      resolve({ value: response, done: false })
+      return
+    }
+    this.queue.push(response)
+  }
+
+  public [Symbol.asyncIterator](): AsyncIterator<WatchDesktopTrayResponse> {
+    return {
+      next: () => this.next(),
+      return: () => Promise.resolve({ value: undefined, done: true }),
+    }
+  }
+
+  private next(): Promise<IteratorResult<WatchDesktopTrayResponse>> {
     const response = this.queue.shift()
     if (response) {
       return Promise.resolve({ value: response, done: false })
