@@ -1,9 +1,10 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { describe, it, expect, beforeEach } from 'vitest'
-import { render, cleanup } from '@testing-library/react'
+import { render, cleanup, fireEvent, screen } from '@testing-library/react'
 import { useBottomBarItems, BottomBarItem } from './bottom-bar-context.js'
 import { BottomBarLevel } from './bottom-bar-level.js'
 import { BottomBarRoot } from './bottom-bar-root.js'
+import { ViewerFrame } from './ViewerFrame.js'
 
 describe('BottomBarContext', () => {
   beforeEach(() => {
@@ -113,6 +114,44 @@ describe('BottomBarContext', () => {
       )
 
       expect(getByTestId('overlay').textContent).toBe('Test Overlay')
+    })
+
+    it('updates the active overlay when child state changes overlay content', () => {
+      function TestRoot() {
+        const [openMenu, setOpenMenu] = useState('')
+        return (
+          <BottomBarRoot openMenu={openMenu} setOpenMenu={setOpenMenu}>
+            <ViewerFrame>
+              <TestComponent />
+            </ViewerFrame>
+          </BottomBarRoot>
+        )
+      }
+
+      function TestComponent() {
+        const [count, setCount] = useState(0)
+        return (
+          <BottomBarLevel
+            id="item"
+            button={(selected, onClick) => (
+              <button onClick={onClick}>
+                Item {selected ? 'selected' : 'idle'}
+              </button>
+            )}
+            overlay={<div>Overlay {count}</div>}
+          >
+            <button onClick={() => setCount((n) => n + 1)}>Increment</button>
+          </BottomBarLevel>
+        )
+      }
+
+      render(<TestRoot />)
+
+      fireEvent.click(screen.getByText('Item idle'))
+      expect(screen.getByText('Overlay 0')).toBeDefined()
+
+      fireEvent.click(screen.getByText('Increment'))
+      expect(screen.getByText('Overlay 1')).toBeDefined()
     })
 
     it('handles missing overlay', () => {

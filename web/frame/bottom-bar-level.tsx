@@ -99,22 +99,13 @@ export function BottomBarLevel({
   // eslint-disable-next-line react-hooks/refs
   buttonStore.current.fn = button
 
-  const overlayStore = useRef<{ key?: React.Key; node?: React.ReactNode }>({
-    key: overlayKey,
-    node: overlay,
-  })
-  // eslint-disable-next-line react-hooks/refs
-  overlayStore.current.key = overlayKey
-  // eslint-disable-next-line react-hooks/refs
-  overlayStore.current.node = overlay
-
   const renderButton = useCallback(
     (selected: boolean, onClick: () => void, className?: string) =>
       buttonStore.current.fn(selected, onClick, className),
     [],
   )
 
-  const renderOverlay = useCallback(() => overlayStore.current.node, [])
+  const renderOverlay = useCallback(() => overlay, [overlay])
 
   const hasOverlay = overlay !== undefined
 
