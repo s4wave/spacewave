@@ -890,7 +890,7 @@
     },
     {
       "name": "github.com/aperturerobotics/fsnotify",
-      "version": "v1.9.1-0.20260506174630-74798513100f",
+      "version": "v1.9.1-0.20260506231828-931cb4bf1761",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/fsnotify",
@@ -1150,7 +1150,7 @@
     },
     {
       "name": "github.com/go-git/go-billy/v6",
-      "version": "v6.0.0-20260424211911-732291493fb8",
+      "version": "v6.0.0-20260505113209-2b60adf67f98",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://github.com/go-git/go-billy",
@@ -1158,7 +1158,7 @@
     },
     {
       "name": "github.com/go-git/go-git/v6",
-      "version": "v6.0.0-alpha.2",
+      "version": "v6.0.0-alpha.3",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://github.com/go-git/go-git",
@@ -1561,7 +1561,7 @@
     },
     {
       "name": "github.com/pjbgf/sha1cd",
-      "version": "v0.5.0",
+      "version": "v0.6.0",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://github.com/pjbgf/sha1cd",
