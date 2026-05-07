@@ -87,25 +87,18 @@ func TestRunCloudBlockStoreForwardingExposesHostBucket(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ctrl := &Controller{
-		BusController: bus.NewBusController(
-			le,
-			pluginBus,
-			&Config{
-				SpaceId:       "space/spacewave/acct/space",
-				WorldBucketId: bucketID,
-				HostPluginId:  testHostPluginID,
-			},
-			ControllerID,
-			Version,
-			controllerDescrip,
-		),
-	}
+	forwarder := NewCloudBlockStoreForwarder(
+		le,
+		pluginBus,
+		"space/spacewave/acct/space",
+		bucketID,
+		testHostPluginID,
+	)
 	forwardCtx, forwardCancel := context.WithCancel(ctx)
 	defer forwardCancel()
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- ctrl.runCloudBlockStoreForwarding(forwardCtx)
+		errCh <- forwarder.Execute(forwardCtx)
 	}()
 
 	hostBucket, _, hostBucketRef, err := bucket.ExBuildBucketAPI(ctx, hostBus, false, bucketID, bucketID, nil)
