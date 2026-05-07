@@ -1,4 +1,5 @@
 import { Toaster as Sonner, toast } from 'sonner'
+import type { CSSProperties } from 'react'
 
 type ToasterProps = React.ComponentProps<typeof Sonner>
 
@@ -11,11 +12,13 @@ function Toaster({ ...props }: ToasterProps) {
       offset={{ bottom: 50, right: 12 }}
       mobileOffset={{ bottom: 50, right: 12 }}
       gap={8}
-      style={{
-        '--width': '300px',
-        width: 'min(300px, calc(100vw - 24px))',
-        left: 'auto',
-      }}
+      style={
+        {
+          '--width': '300px',
+          width: 'min(300px, calc(100vw - 24px))',
+          left: 'auto',
+        } as CSSProperties
+      }
       toastOptions={{
         classNames: {
           toast:
