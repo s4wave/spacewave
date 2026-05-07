@@ -17,7 +17,7 @@
     <a href="https://github.com/s4wave/spacewave/releases">
       <img src="https://img.shields.io/github/v/release/s4wave/spacewave?include_prereleases&style=for-the-badge" alt="GitHub release" />
     </a>
-    <a href="https://github.com/s4wave/spacewave/blob/main/LICENSE">
+    <a href="https://github.com/s4wave/spacewave/blob/master/LICENSE">
       <img src="https://img.shields.io/github/license/s4wave/spacewave?style=for-the-badge" alt="License" />
     </a>
   </p>
