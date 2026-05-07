@@ -1,41 +1,59 @@
 #+TITLE: Spacewave Changelog
 
 * v0.51.2
-<2026-05-06 Wed>
+<2026-05-07 Thu>
 
-Spacewave 0.51.2 adds a first-class Drive space template, makes collaboration
-links and invites easier to use, and improves the desktop and web app
-experience with clearer sign-in feedback, better session handling, and more
-reliable updates.
+Spacewave 0.51.2 makes Drive workspaces, sharing, and desktop use easier while
+improving sign-in, session recovery, browser updates, and local file storage
+reliability.
 
 ** Features
-- Drive spaces are now available as a built-in app surface, giving new spaces a
-  ready-to-use file browser for storing, browsing, and organizing files.
-- You can now copy a public link for the current view directly from the app,
-  making it easier to share the exact page or space you are looking at.
-- Collaboration invites can now target Spacewave usernames, making it easier to
-  invite the right person into a shared space.
-- The desktop app now keeps a native tray or menu bar presence so you can reopen
-  Spacewave, check status, and quit from the system UI.
+- Drive workspaces now open directly into a file browser for folders, uploads,
+  downloads, and organization.
+- You can copy a public link to the current view from the app, making it easier
+  to share the exact Spacewave page you are using.
+- Space sharing can now invite someone by Spacewave username, with pending
+  invites shown in the app for accept or decline.
+- The desktop app now has a native desktop tray or menu bar item for reopening
+  Spacewave, checking sessions and Spaces, and quitting cleanly.
+- The desktop app can add and open existing local Spacewave data directories
+  from the sign-in and session screens.
 
 ** Fixes
-- Fixed public invite link generation so shared links open correctly.
-- Fixed an issue where newly created spaces could disappear from the list after
-  a refresh.
-- Fixed desktop file pickers to show hidden files when needed.
-- Added a confirmation step before logging out to help prevent accidental
-  session removal.
-- Improved invite handling so username-targeted invites stay tied to the
-  intended account.
+- Fixed invite links copied from the desktop app so recipients open the shared
+  Space in Spacewave correctly.
+- Fixed newly created Spaces disappearing from the Space list after refresh.
+- Fixed browser startup paths that could leave the app stuck on the loading
+  screen after opening account emails.
+- Fixed desktop launch and quit behavior so the app no longer reopens
+  unexpectedly or stalls before showing a window after an update.
+- Fixed desktop file pickers so hidden local Spacewave folders can be selected
+  when needed.
+- Fixed the Space details object list so it updates while the details panel
+  stays open.
+- Fixed Space deletion so the confirmation dialog stays populated and the
+  visible delete step completes faster.
+- Download and other off-site links now open in a separate tab instead of
+  replacing the running Spacewave page.
 
 ** Improvements
-- Sign-in now shows clearer in-progress feedback during authentication flows.
-- Background account and space enrollment after sign-in is smoother and less
-  disruptive.
-- Browser app update delivery and startup behavior are more reliable, especially
-  after release updates.
-- Desktop runtime status is preserved more consistently if a cancel action
-  interrupts startup or background work.
+- Sign-in now shows clearer in-progress feedback while passkey, browser, or SSO
+  authentication is running.
+- Session recovery after sign-in now runs in the background, with a compact
+  status indicator and unlock prompts only when a Space needs your account key.
+- Browser updates are more reliable when tabs reload, regain focus, or come back
+  online, reducing stale or mixed app versions after a release.
+- Browser file storage is more durable after interrupted writes or restored
+  tabs, reducing stale file views and startup failures.
+- Drive and file browser controls are clearer, with improved toolbar actions,
+  selected-row states, retryable file loading errors, and better
+  unavailable-preview messages.
+- The desktop tray shows session, Space, update, and attention status even when
+  all windows are closed.
+
+** Security
+- Username-addressed invites are tied to the intended Spacewave account and
+  require recipient acceptance before access is granted.
 
 * v0.51.0 Public Launch
 <2026-05-01 Fri>
