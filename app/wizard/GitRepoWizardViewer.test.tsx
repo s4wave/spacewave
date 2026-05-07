@@ -42,8 +42,7 @@ vi.mock('@aptre/bldr', () => ({
   get isDesktop() {
     return h.isDesktop
   },
-  cleanPath: (path: string) =>
-    ('/' + path.split('/').filter(Boolean).join('/')).replace(/^\/$/, '/'),
+  cleanPath: (path: string) => '/' + path.split('/').filter(Boolean).join('/'),
 }))
 
 vi.mock('@aptre/bldr-sdk/hooks/useStreamingResource.js', () => ({
