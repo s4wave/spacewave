@@ -78,9 +78,13 @@ func (h *pluginExecHandler) applyStream(
 	ctx context.Context,
 	strm SRPCPluginExecService_ExecuteStreamClient,
 ) error {
+	received := false
 	for {
 		resp, err := strm.Recv()
 		if err == io.EOF {
+			if !received {
+				return errors.New("plugin exec stream completed without a response")
+			}
 			return nil
 		}
 		if err != nil {
@@ -92,6 +96,7 @@ func (h *pluginExecHandler) applyStream(
 		if err := h.applyResponse(ctx, resp); err != nil {
 			return err
 		}
+		received = true
 	}
 }
 

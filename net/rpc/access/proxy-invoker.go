@@ -55,7 +55,8 @@ func (r *ProxyInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream
 		return false, err
 	}
 
-	errCh := make(chan error, 3)
+	serverDone := make(chan error, 1)
+	clientDone := make(chan error, 1)
 
 	// Read messages from prw -> write to invoker stream.
 	go func() {
@@ -81,13 +82,16 @@ func (r *ProxyInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream
 					return errors.New(errStr)
 				}
 				if complete {
-					errCh <- nil
 					return io.EOF
 				}
 			}
 			return nil
 		})
-		errCh <- rpcstream.ReadToHandler(rpcStream, handler)
+		err := rpcstream.ReadToHandler(rpcStream, handler)
+		if err == io.EOF {
+			err = nil
+		}
+		serverDone <- err
 	}()
 
 	// Write messages from invoker stream -> rpc client.
@@ -98,7 +102,7 @@ func (r *ProxyInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream
 			if err == io.EOF {
 				// EOF = normal exit
 				err = packetWriter.WritePacket(srpc.NewCallDataPacket(nil, false, true, nil))
-				errCh <- err
+				clientDone <- err
 				return
 			}
 			if err == nil {
@@ -108,15 +112,22 @@ func (r *ProxyInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream
 			if err != nil {
 				// attempt to write the error back to the client rpc
 				_ = packetWriter.WritePacket(srpc.NewCallDataPacket(nil, false, true, err))
-				errCh <- err
+				clientDone <- err
 				return
 			}
 		}
 	}()
 
-	// Wait for an error
-	resErr := <-errCh
-	return true, resErr
+	select {
+	case err := <-serverDone:
+		return true, err
+	case err := <-clientDone:
+		if err != nil {
+			return true, err
+		}
+		err = <-serverDone
+		return true, err
+	}
 }
 
 // _ is a type assertion

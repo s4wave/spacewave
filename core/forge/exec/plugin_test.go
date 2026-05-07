@@ -367,6 +367,30 @@ func TestPluginExecHandlerStreamsLogsBeforeCompletion(t *testing.T) {
 	}
 }
 
+func TestPluginExecHandlerRejectsEmptyStream(t *testing.T) {
+	ctx := context.Background()
+	client := &pluginExecClientStub{stream: &pluginExecStreamStub{}}
+	handler := &pluginExecHandler{
+		handle: &pluginExecHandleStub{},
+		conf: &PluginExecConfig{
+			PluginId:         "glados-core",
+			ControllerId:     "glados/workfront/runner/claude",
+			ControllerConfig: []byte{1, 2, 3},
+		},
+		inputs: forge_target.InputMap{},
+		load: func(ctx context.Context, b bus.Bus, pluginID string) (SRPCPluginExecServiceClient, directive.Reference, error) {
+			return client, nil, nil
+		},
+	}
+	err := handler.Execute(ctx)
+	if err == nil {
+		t.Fatal("expected empty stream error")
+	}
+	if err.Error() != "plugin exec stream completed without a response" {
+		t.Fatalf("error: %v", err)
+	}
+}
+
 func TestPluginExecHandlerFallsBackToUnaryExecute(t *testing.T) {
 	ctx := context.Background()
 	client := &pluginExecClientStub{

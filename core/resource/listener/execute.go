@@ -66,6 +66,16 @@ func (c *Controller) Execute(ctx context.Context) error {
 	broker := GetProcessYieldBroker()
 
 	for {
+		handoff, handoffWaitCh := broker.SnapshotHandoff()
+		if handoff.Active && handoff.SocketPath == absPath {
+			le.Infof("resource listener waiting for runtime handoff reclaim on %s", absPath)
+			select {
+			case <-ctx.Done():
+				return nil
+			case <-handoffWaitCh:
+				continue
+			}
+		}
 		yielded, err := c.serveOnce(ctx, le, invokers[0], absPath, broker, status)
 		if err != nil {
 			return err

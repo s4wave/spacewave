@@ -19,6 +19,7 @@ import (
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
+	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
 	resource_root "github.com/s4wave/spacewave/core/resource/root"
 	db_world "github.com/s4wave/spacewave/db/world"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
@@ -78,7 +79,12 @@ func newServeCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 			}
 			le = cliBus.GetLogger()
 			serveCtx, serveCancel := context.WithCancel(ctx)
-			defer serveCancel()
+			handoffBroker := resource_listener.GetProcessYieldBroker()
+			handoffBroker.BeginHandoff("spacewave serve", sockPath)
+			defer func() {
+				serveCancel()
+				handoffBroker.Reclaim()
+			}()
 			releasePluginRuntime, err := startDaemonPluginRuntime(serveCtx, resolved, cliBus)
 			if err != nil {
 				return err
