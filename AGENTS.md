@@ -19,6 +19,9 @@ company AGENTS rules first, then apply these Spacewave-specific rules.
   methods. These fallbacks mask bugs and rot into false invariants.
 - Docs describe the current system, not the migration path. Use direct
   present-state wording in docs, design notes, and tracker summaries.
+- Keep this file general-purpose. `AGENTS.md` should capture repository rules,
+  recurring patterns, and architectural invariants, not task-specific plans or
+  implementation notes.
 - Do not push to the `release` branch unless the user explicitly asks. Push
   commits to `master`; fast-forwarding `release` to `master` happens only on
   explicit request. `release` must always equal `master` after any update,
@@ -39,6 +42,19 @@ company AGENTS rules first, then apply these Spacewave-specific rules.
 - Keep `vendor/` synchronized with `go.mod`.
 
 ## RPC, Cache, And Resource Lifecycles
+
+### Plugin, RPC, And Directive Namespaces
+
+- Before wiring a controller to another runtime component, identify which
+  process/plugin owns each side and which RPC, resource, or directive namespace
+  the call travels through.
+- Controllerbus directives are local to the bus in that process/plugin. Do not
+  assume a directive emitted by `spacewave-core` can be handled by controllers in
+  the `web` plugin, Electron main, or another plugin process.
+- Cross-plugin behavior must use an explicit RPC/resource boundary such as
+  `plugin/<id>/...`, `plugin-host/...`, or a Resources SDK surface. If the path
+  crosses plugin boundaries, name the owning plugin/process at each hop before
+  implementing.
 
 ### Streaming State
 
