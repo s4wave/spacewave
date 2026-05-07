@@ -985,7 +985,7 @@
     },
     {
       "name": "github.com/aperturerobotics/starpc",
-      "version": "v0.49.7",
+      "version": "v0.49.8",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/starpc",
@@ -2277,8 +2277,20 @@
       "source": "js"
     },
     {
+      "name": "uint8arraylist",
+      "version": "3.0.1",
+      "spdx": "Apache-2.0 OR MIT",
+      "source": "js"
+    },
+    {
       "name": "uint8arrays",
       "version": "5.1.1",
+      "spdx": "Apache-2.0 OR MIT",
+      "source": "js"
+    },
+    {
+      "name": "uint8arrays",
+      "version": "6.1.1",
       "spdx": "Apache-2.0 OR MIT",
       "source": "js"
     },

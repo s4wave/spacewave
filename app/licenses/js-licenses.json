@@ -958,8 +958,18 @@
     "identifier": "Apache-2.0 OR MIT"
   },
   {
+    "name": "uint8arraylist",
+    "version": "3.0.1",
+    "identifier": "Apache-2.0 OR MIT"
+  },
+  {
     "name": "uint8arrays",
     "version": "5.1.1",
+    "identifier": "Apache-2.0 OR MIT"
+  },
+  {
+    "name": "uint8arrays",
+    "version": "6.1.1",
     "identifier": "Apache-2.0 OR MIT"
   },
   {
