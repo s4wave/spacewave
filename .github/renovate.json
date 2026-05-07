@@ -18,6 +18,11 @@
       "matchManagers": ["gomod"],
       "matchDepTypes": ["golang"],
       "enabled": false
+    },
+    {
+      "description": "Keep quickjs-wasi-reactor on 0.14.0-rev.* until 0.15.0 is available.",
+      "matchPackageNames": ["quickjs-wasi-reactor"],
+      "allowedVersions": "/^(0\\.14\\.0-rev\\..*|0\\.(1[5-9]|[2-9][0-9])\\..*|[1-9][0-9]*\\..*)$/"
     }
   ]
 }
