@@ -86,7 +86,7 @@ export class Retry<T = void> {
     this._errorCb =
       opts?.errorCb ??
       ((err) => {
-        console.warn('Retry: retrying after error', err)
+        console.warn('Retry: retrying after error', { error: err })
       })
 
     this._setTimeout = opts?.setTimeout || setTimeout.bind(globalThis)

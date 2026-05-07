@@ -72,8 +72,6 @@ github.com/aperturerobotics/protobuf-go-lite v0.13.0 h1:jEvCJhHaJEikDY/va2AUnS0D
 github.com/aperturerobotics/protobuf-go-lite v0.13.0/go.mod h1:lGH3s5ArCTXKI4wJdlNpaybUtwSjfAG0vdWjxOfMcF8=
 github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c h1:32+9phqiA+X/w4YAT3sP8DyhfP81mo3k6v/RI/t1qGk=
 github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c/go.mod h1:L9/rUdjzzI9mMWKJcbh7T8LSQ43JKwrxYv4I2i2YsY4=
-github.com/aperturerobotics/starpc v0.49.7 h1:teNtPdGb+xeeaN3Ovcabu/S/1P8zFqlfuEtsPyON05E=
-github.com/aperturerobotics/starpc v0.49.7/go.mod h1:OHFZGc3qFPzztRW8XPJEGSw+HkRRlnXOnUK+nXF3iS4=
 github.com/aperturerobotics/starpc v0.49.8 h1:cagLHoWoTBC+du9/Qwgh2fowDXYOi794k6iwziyVu9I=
 github.com/aperturerobotics/starpc v0.49.8/go.mod h1:QASM2PU+f00Vpl7YDlmIhY0S0X438hGsSEIWEuV0cNw=
 github.com/aperturerobotics/util v1.34.3 h1:9lFYJovGlAHYX66aWKVzfoVzYox13P054d/Dy8T/GRg=

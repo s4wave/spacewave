@@ -75,7 +75,7 @@ const CommandContext = createContext<CommandContextValue | null>(null)
 const commandWatchRetryOpts = {
   errorCb(err: unknown) {
     if (isCommandResourceLifecycleError(err)) return
-    console.warn('Retry: retrying after error', err)
+    console.warn('Retry: retrying after error', { error: err })
   },
 }
 
