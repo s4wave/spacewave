@@ -88,7 +88,21 @@ func (t *pluginInstance) processManifestWorldState(
 	}
 	skipSummary := summarizeStartupManifestSkips(manifestErrs)
 	if skipSummary != "" {
-		le.WithField("skipped-startup-manifest-refs", skipSummary).Warn("skipped startup manifest refs")
+		logEntry := le.WithField("skipped-startup-manifest-refs", skipSummary)
+		graphDump, dumpErr := bldr_manifest_world.DumpStartupManifestGraphForManifestID(
+			ctx,
+			ws,
+			t.pluginID,
+			platformIDs,
+			t.c.objKey,
+		)
+		if dumpErr != nil {
+			logEntry = logEntry.WithError(dumpErr)
+		}
+		if dumpErr == nil && graphDump != "" {
+			logEntry = logEntry.WithField("startup-manifest-graph", graphDump)
+		}
+		logEntry.Warn("skipped startup manifest refs")
 		t.c.recordPluginStatusError(
 			t.pluginID,
 			t.instanceKey,

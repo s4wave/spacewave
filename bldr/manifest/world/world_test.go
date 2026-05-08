@@ -293,6 +293,92 @@ func TestCollectStartupManifestsSkipsUnavailableBucketRef(t *testing.T) {
 	}
 }
 
+func TestDumpStartupManifestGraphForManifestIDIncludesRetainedRefDiagnostics(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const storeKey = "plugin-host"
+	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	goodRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 7)
+	const goodRefKey = "plugin-host/ref/good"
+	storeTestManifestRefObject(t, ctx, ws, goodRefKey, goodRef)
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, goodRefKey, "spacewave-web")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	badRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 9)
+	badRef.GetManifestRef().BucketId = "missing-bucket"
+	const badRefKey = "plugin-host/ref/missing-bucket"
+	storeTestManifestRefObject(t, ctx, ws, badRefKey, badRef)
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, badRefKey, "spacewave-web")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	legacyRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 11)
+	legacyRef.GetManifestRef().BucketId = "legacy-missing-bucket"
+	const legacyRefKey = "plugin-host/ref/legacy-missing-bucket"
+	storeTestManifestRefObject(t, ctx, ws, legacyRefKey, legacyRef)
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, legacyRefKey, "")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	dump, err := DumpStartupManifestGraphForManifestID(
+		ctx,
+		ws,
+		"spacewave-web",
+		[]string{"js"},
+		storeKey,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	for _, want := range []string{
+		"startup manifest graph manifest_id=spacewave-web platform_ids=js",
+		"root plugin-host type=bldr/manifest-store",
+		"edge plugin-host -> plugin-host/ref/good label=<spacewave-web>",
+		"edge plugin-host -> plugin-host/ref/missing-bucket label=<spacewave-web>",
+		"edge plugin-host -> plugin-host/ref/legacy-missing-bucket label=<empty>",
+		"candidate plugin-host/ref/good type=<unknown>",
+		"ref_meta=manifest_id=spacewave-web,build_type=production,platform_id=js,rev=7",
+		"manifest_meta=manifest_id=spacewave-web,build_type=production,platform_id=js,rev=7",
+		"candidate plugin-host/ref/missing-bucket type=<unknown>",
+		"manifest_bucket=missing-bucket",
+		"manifest_bucket=legacy-missing-bucket",
+		"skip=bucket not found",
+	} {
+		if !strings.Contains(dump, want) {
+			t.Fatalf("dump missing %q:\n%s", want, dump)
+		}
+	}
+	if !strings.Contains(dump, "manifest_root="+badRef.GetManifestRef().GetRootRef().MarshalString()) {
+		t.Fatalf("dump missing bad manifest root ref:\n%s", dump)
+	}
+	if !strings.Contains(dump, "object_root=") {
+		t.Fatalf("dump missing object root refs:\n%s", dump)
+	}
+}
+
 func TestCollectStartupManifestsForManifestIDNarrowsLabelsAndKeepsLegacyEmpty(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
