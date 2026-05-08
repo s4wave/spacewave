@@ -2,11 +2,13 @@ package bldr_manifest_world
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
@@ -112,12 +114,10 @@ func TestCollectStartupManifestsSkipsUnreadableLinkedRef(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	badRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 9).GetManifestRef().CloneVT()
-	badRef.RootRef.Hash.Hash[0] ^= 0xff
+	badRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 9)
+	badRef.ManifestRef.RootRef.Hash.Hash[0] ^= 0xff
 	const badRefKey = "plugin-host/ref/missing"
-	if _, err := ws.CreateObject(ctx, badRefKey, badRef); err != nil {
-		t.Fatal(err.Error())
-	}
+	storeTestManifestRefObject(t, ctx, ws, badRefKey, badRef)
 	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, badRefKey, "spacewave-web")); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -155,6 +155,22 @@ func TestCollectStartupManifestsSkipsUnreadableLinkedRef(t *testing.T) {
 	if !strings.Contains(errs[0].Error(), badRefKey) {
 		t.Fatalf("manifest error %q does not mention bad ref key %q", errs[0].Error(), badRefKey)
 	}
+	if !strings.Contains(errs[0].Error(), badRef.GetManifestRef().GetRootRef().MarshalString()) {
+		t.Fatalf("manifest error %q does not mention bad root ref", errs[0].Error())
+	}
+	if !errors.Is(errs[0], block.ErrNotFound) {
+		t.Fatalf("manifest error = %v, want block not found", errs[0])
+	}
+	var skipErr *StartupManifestSkipError
+	if !errors.As(errs[0], &skipErr) {
+		t.Fatalf("manifest error = %T, want StartupManifestSkipError", errs[0])
+	}
+	if skipErr.ObjectKey != badRefKey {
+		t.Fatalf("skip object key = %q, want %q", skipErr.ObjectKey, badRefKey)
+	}
+	if !skipErr.ObjectRef.EqualVT(badRef.GetManifestRef()) {
+		t.Fatalf("skip object ref was not preserved")
+	}
 	if len(got) != 1 {
 		t.Fatalf("manifest count = %d", len(got))
 	}
@@ -163,6 +179,32 @@ func TestCollectStartupManifestsSkipsUnreadableLinkedRef(t *testing.T) {
 	}
 	if !got[0].ManifestRef.EqualVT(goodRef.GetManifestRef()) {
 		t.Fatalf("manifest ref was not preserved")
+	}
+}
+
+func TestStartupManifestSkipErrorIncludesBucketDiagnostics(t *testing.T) {
+	err := newStartupManifestSkipError(
+		"plugin-host/ref/missing-bucket",
+		&bucket.ObjectRef{BucketId: "missing-bucket"},
+		bucket.ErrBucketNotFound,
+	)
+	if !errors.Is(err, bucket.ErrBucketNotFound) {
+		t.Fatalf("skip error = %v, want bucket not found", err)
+	}
+	if !strings.Contains(err.Error(), "bucket=missing-bucket") {
+		t.Fatalf("skip error %q does not mention missing bucket", err.Error())
+	}
+}
+
+func TestStartupContextErrorClassifiesFatalContextErrors(t *testing.T) {
+	if got := startupContextError(context.Canceled); !errors.Is(got, context.Canceled) {
+		t.Fatalf("canceled error = %v, want context canceled", got)
+	}
+	if got := startupContextError(context.DeadlineExceeded); !errors.Is(got, context.DeadlineExceeded) {
+		t.Fatalf("deadline error = %v, want deadline exceeded", got)
+	}
+	if got := startupContextError(bucket.ErrBucketNotFound); got != nil {
+		t.Fatalf("availability error = %v, want nil fatal context error", got)
 	}
 }
 

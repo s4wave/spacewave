@@ -2,6 +2,7 @@ package bldr_manifest_world
 
 import (
 	"context"
+	stderrors "errors"
 	"slices"
 	"sort"
 	"strings"
@@ -239,8 +240,12 @@ func (c *CollectedManifest) GetRev() uint64 {
 
 // StartupManifestSkipError describes a startup manifest candidate that was skipped.
 type StartupManifestSkipError struct {
+	// ObjectKey is the skipped candidate object key.
 	ObjectKey string
-	Err       error
+	// ObjectRef is the object or manifest ref involved in the skip, if known.
+	ObjectRef *bucket.ObjectRef
+	// Err is the underlying availability error.
+	Err error
 }
 
 // Error returns the startup manifest skip message.
@@ -251,7 +256,19 @@ func (e *StartupManifestSkipError) Error() string {
 	if e.Err == nil {
 		return "startup manifest candidate[" + e.ObjectKey + "] unavailable"
 	}
-	return "startup manifest candidate[" + e.ObjectKey + "]: " + e.Err.Error()
+	msg := "startup manifest candidate[" + e.ObjectKey + "]"
+	if e.ObjectRef != nil {
+		if !e.ObjectRef.GetEmpty() {
+			msg += " ref=" + e.ObjectRef.MarshalString()
+		}
+		if bucketID := e.ObjectRef.GetBucketId(); bucketID != "" {
+			msg += " bucket=" + bucketID
+		}
+		if rootRef := e.ObjectRef.GetRootRef(); !rootRef.GetEmpty() {
+			msg += " root=" + rootRef.MarshalString()
+		}
+	}
+	return msg + ": " + e.Err.Error()
 }
 
 // Unwrap returns the underlying skip cause.
@@ -260,6 +277,25 @@ func (e *StartupManifestSkipError) Unwrap() error {
 		return nil
 	}
 	return e.Err
+}
+
+func newStartupManifestSkipError(objKey string, objRef *bucket.ObjectRef, err error) *StartupManifestSkipError {
+	return &StartupManifestSkipError{
+		ObjectKey: objKey,
+		ObjectRef: objRef.Clone(),
+		Err:       err,
+	}
+}
+
+func startupContextError(err error) error {
+	cause := errors.Cause(err)
+	if cause == context.Canceled || stderrors.Is(err, context.Canceled) {
+		return context.Canceled
+	}
+	if cause == context.DeadlineExceeded || stderrors.Is(err, context.DeadlineExceeded) {
+		return context.DeadlineExceeded
+	}
+	return nil
 }
 
 // CollectManifests collects all Manifest linked to by the given object(s).
@@ -334,11 +370,10 @@ func CollectStartupManifests(
 	for _, objKey := range manifestObjKeys {
 		objType, err := world_types.GetObjectType(ctx, ws, objKey)
 		if err != nil {
-			cause := errors.Cause(err)
-			if cause == context.Canceled || cause == context.DeadlineExceeded {
-				return nil, manifestErrors, cause
+			if ctxErr := startupContextError(err); ctxErr != nil {
+				return nil, manifestErrors, ctxErr
 			}
-			manifestErrors = append(manifestErrors, &StartupManifestSkipError{ObjectKey: objKey, Err: err})
+			manifestErrors = append(manifestErrors, newStartupManifestSkipError(objKey, nil, err))
 			continue
 		}
 		if objType == ManifestStoreTypeID || objType == ManifestBundleTypeID {
@@ -350,11 +385,10 @@ func CollectStartupManifests(
 			continue
 		}
 		if err != nil {
-			cause := errors.Cause(err)
-			if cause == context.Canceled || cause == context.DeadlineExceeded {
-				return nil, manifestErrors, cause
+			if ctxErr := startupContextError(err); ctxErr != nil {
+				return nil, manifestErrors, ctxErr
 			}
-			manifestErrors = append(manifestErrors, &StartupManifestSkipError{ObjectKey: objKey, Err: err})
+			manifestErrors = append(manifestErrors, newStartupManifestSkipError(objKey, manifestRef, err))
 			continue
 		}
 		manifestID := manifest.GetMeta().GetManifestId()
@@ -387,32 +421,33 @@ func collectStartupManifestCandidate(
 		return manifest, manifestRef, false, err
 	}
 
-	manifestRef, _, err := LookupManifestRef(ctx, ws, objKey)
+	manifestRef, candidateRef, err := LookupManifestRef(ctx, ws, objKey)
 	if err != nil {
 		if objType == "" {
-			manifest, manifestRef, manifestErr := LookupManifest(ctx, ws, objKey)
+			manifest, directRef, manifestErr := LookupManifest(ctx, ws, objKey)
 			if manifestErr == nil && manifest != nil && manifest.Validate() == nil {
-				return manifest, manifestRef, false, nil
+				return manifest, directRef, false, nil
 			}
 			if _, _, bundleErr := LookupManifestBundle(ctx, ws, objKey); bundleErr == nil {
 				return nil, nil, true, nil
 			}
 		}
-		return nil, nil, false, err
+		return nil, candidateRef, false, err
 	}
+	manifestObjRef := manifestRef.GetManifestRef()
 	if err := manifestRef.Validate(); err != nil {
-		return nil, nil, false, err
+		return nil, manifestObjRef, false, err
 	}
 
 	var manifest *bldr_manifest.Manifest
-	manifest, err = lookupStartupManifestObjectRef(ctx, ws, manifestRef.GetManifestRef())
+	manifest, err = lookupStartupManifestObjectRef(ctx, ws, manifestObjRef)
 	if err != nil {
-		return nil, nil, false, err
+		return nil, manifestObjRef, false, err
 	}
 	if !manifest.GetMeta().EqualVT(manifestRef.GetMeta()) {
-		return nil, nil, false, errors.New("manifest ref meta does not match manifest meta")
+		return nil, manifestObjRef, false, errors.New("manifest ref meta does not match manifest meta")
 	}
-	return manifest, manifestRef.GetManifestRef(), false, nil
+	return manifest, manifestObjRef, false, nil
 }
 
 func lookupStartupManifestObjectRef(
