@@ -166,7 +166,7 @@ export class DesktopTrayResource implements DesktopTrayResourceService {
     return {
       entries,
       iconState: maxIconState(entries, DesktopTrayIconState.NORMAL),
-      statusText: '',
+      statusText: titleStatusText(entries),
     }
   }
 
@@ -282,6 +282,11 @@ function maxIconState(
     }
   }
   return state
+}
+
+function titleStatusText(entries: DesktopTrayEntry[]): string {
+  const title = entries.find((entry) => entry.id === 'title')?.label ?? ''
+  return title.replace(/^Spacewave: /, '')
 }
 
 function cloneEntry(entry: DesktopTrayEntry): DesktopTrayEntry {

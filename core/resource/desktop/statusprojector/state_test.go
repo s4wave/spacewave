@@ -154,6 +154,33 @@ func TestBuildDesktopTrayEntriesFromRuntimeStateRoutesSettingsToActiveSession(t 
 	}
 }
 
+func TestBuildDesktopTrayEntriesFromRuntimeStatePublishesUpdateAction(t *testing.T) {
+	state := BuildDesktopRuntimeStateFromListener(resource_listener.ListenerStatus{
+		SocketPath: "/run/spacewave.sock",
+		Listening:  true,
+	})
+	state.Update = &desktop_runtime.DesktopRuntimeUpdateStatus{
+		Ready:   true,
+		Version: "1.2.3",
+		Label:   "Update ready",
+	}
+
+	entries := BuildDesktopTrayEntriesFromRuntimeState(state)
+	entry := findTrayEntryByID(entries, "apply-update")
+	if entry == nil {
+		t.Fatalf("expected apply update tray entry")
+	}
+	if entry.GetKind() != desktop_tray.DesktopTrayEntryKind_DESKTOP_TRAY_ENTRY_KIND_ACTION {
+		t.Fatalf("kind = %v, want action", entry.GetKind())
+	}
+	if entry.GetAction().GetKind() != desktop_tray.DesktopTrayActionKind_DESKTOP_TRAY_ACTION_KIND_ATTACHED_HANDLER {
+		t.Fatalf("action kind = %v, want attached handler", entry.GetAction().GetKind())
+	}
+	if !entry.GetEnabled() {
+		t.Fatalf("enabled = false, want true")
+	}
+}
+
 func TestBuildDesktopTrayEntriesFromRuntimeStateOrdersMenuSections(t *testing.T) {
 	state := BuildDesktopRuntimeStateFromListener(resource_listener.ListenerStatus{
 		SocketPath: "/run/spacewave.sock",

@@ -307,17 +307,26 @@ func (r *DesktopTray) snapshotLocked() *DesktopTrayState {
 
 	entries := make([]*DesktopTrayEntry, 0, len(regs))
 	iconState := DesktopTrayIconState_DESKTOP_TRAY_ICON_STATE_NORMAL
+	var statusText string
 	for _, reg := range regs {
 		entry := reg.entry.CloneVT()
 		entries = append(entries, entry)
 		if entry.GetIconState() > iconState {
 			iconState = entry.GetIconState()
 		}
+		if statusText == "" && entry.GetId() == "title" {
+			statusText = desktopTrayTitleStatusText(entry.GetLabel())
+		}
 	}
 	return &DesktopTrayState{
-		Entries:   entries,
-		IconState: iconState,
+		Entries:    entries,
+		IconState:  iconState,
+		StatusText: statusText,
 	}
+}
+
+func desktopTrayTitleStatusText(label string) string {
+	return strings.TrimPrefix(label, "Spacewave: ")
 }
 
 func (r *DesktopTray) hasEntryIDLocked(entryID string, exceptResourceID uint32) bool {

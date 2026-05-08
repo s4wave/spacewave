@@ -228,6 +228,33 @@ func TestDesktopTrayRegistryOrdersEntriesAndUpdatesState(t *testing.T) {
 	}
 }
 
+func TestDesktopTrayRegistryDerivesStatusTextFromTitleEntry(t *testing.T) {
+	ctx := context.Background()
+	client := newTestResourceClientContext(ctx)
+	reqCtx := resource_server.WithResourceClientContext(ctx, client)
+	tray := NewDesktopTray()
+
+	_, err := tray.RegisterDesktopTrayEntry(reqCtx, &RegisterDesktopTrayEntryRequest{
+		Entry: &DesktopTrayEntry{
+			Id:        "title",
+			Kind:      DesktopTrayEntryKind_DESKTOP_TRAY_ENTRY_KIND_STATUS,
+			Label:     "Spacewave: Syncing",
+			IconState: DesktopTrayIconState_DESKTOP_TRAY_ICON_STATE_ACTIVE,
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	state := tray.snapshot()
+	if state.GetStatusText() != "Syncing" {
+		t.Fatalf("status text = %q, want Syncing", state.GetStatusText())
+	}
+	if state.GetIconState() != DesktopTrayIconState_DESKTOP_TRAY_ICON_STATE_ACTIVE {
+		t.Fatalf("icon state = %v, want active", state.GetIconState())
+	}
+}
+
 func TestDesktopTrayRegistryWatchStreamsSnapshots(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

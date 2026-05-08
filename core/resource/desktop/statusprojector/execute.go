@@ -35,7 +35,11 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 		return errors.Wrap(err, "open host desktop tray")
 	}
-	defer publisher.Release()
+	defer func() {
+		if err := publisher.Release(context.Background()); err != nil {
+			le.WithError(err).Warn("release desktop tray status publisher")
+		}
+	}()
 	le.Debug("desktop tray status projector opened host desktop tray")
 
 	launcher := newLauncherInfoWatcher(ctx, c.GetBus())

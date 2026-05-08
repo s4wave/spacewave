@@ -20,7 +20,13 @@ func BuildDesktopTrayEntriesFromRuntimeState(
 func buildHealthyTrayEntries(state *desktop_runtime.DesktopRuntimeState) []*desktop_tray.DesktopTrayEntry {
 	return joinTrayEntries(
 		[]*desktop_tray.DesktopTrayEntry{
-			statusTrayEntry("title", "Spacewave: "+runtimeStatusText(state)),
+			statusTrayEntryWithHints(
+				"title",
+				"Spacewave: "+runtimeStatusText(state),
+				false,
+				iconStateForRuntimeHealth(state.GetHealth()),
+				desktop_tray.DesktopTraySeverity_DESKTOP_TRAY_SEVERITY_UNSPECIFIED,
+			),
 			separatorTrayEntry("open-separator"),
 			actionTrayEntry("open", "Open Spacewave", desktop_tray.DesktopTrayActionKind_DESKTOP_TRAY_ACTION_KIND_OPEN_ROUTE, "", "", true),
 			actionTrayEntry("new-window", "New Window", desktop_tray.DesktopTrayActionKind_DESKTOP_TRAY_ACTION_KIND_NEW_WINDOW, "", "", true),
@@ -71,6 +77,15 @@ func buildAttentionTrayEntries(state *desktop_runtime.DesktopRuntimeState) []*de
 	entries = append(entries,
 		separatorTrayEntry("open-separator"),
 		actionTrayEntry("open", "Open Spacewave", desktop_tray.DesktopTrayActionKind_DESKTOP_TRAY_ACTION_KIND_OPEN_ROUTE, "", "", true),
+	)
+	if state.GetUpdate().GetReady() {
+		entries = append(entries,
+			separatorTrayEntry("quick-actions-separator"),
+			sectionTrayEntry("quick-actions-section", "Quick Actions"),
+			applyUpdateTrayEntry(state.GetUpdate()),
+		)
+	}
+	entries = append(entries,
 		separatorTrayEntry("quit-separator"),
 		actionTrayEntry("quit", "Quit", desktop_tray.DesktopTrayActionKind_DESKTOP_TRAY_ACTION_KIND_QUIT, "", "", true),
 	)
@@ -137,9 +152,23 @@ func buildActivityTraySection(
 }
 
 func buildActionTraySection(state *desktop_runtime.DesktopRuntimeState) []*desktop_tray.DesktopTrayEntry {
-	items := buildSyntheticTrayActions(state)
-	items = append(items, state.GetActions()...)
-	if len(items) == 0 {
+	actions := make([]*desktop_tray.DesktopTrayEntry, 0, len(state.GetActions())+3)
+	if state.GetUpdate().GetReady() {
+		actions = append(actions, applyUpdateTrayEntry(state.GetUpdate()))
+	}
+	for _, item := range buildSyntheticTrayActions(state) {
+		if item == nil {
+			continue
+		}
+		actions = append(actions, buildActionTrayItem(item))
+	}
+	for _, item := range state.GetActions() {
+		if item == nil {
+			continue
+		}
+		actions = append(actions, buildActionTrayItem(item))
+	}
+	if len(actions) == 0 {
 		return nil
 	}
 
@@ -147,13 +176,7 @@ func buildActionTraySection(state *desktop_runtime.DesktopRuntimeState) []*deskt
 		separatorTrayEntry("quick-actions-separator"),
 		sectionTrayEntry("quick-actions-section", "Quick Actions"),
 	}
-	for _, item := range items {
-		if item == nil {
-			continue
-		}
-		entries = append(entries, buildActionTrayItem(item))
-	}
-	return entries
+	return append(entries, actions...)
 }
 
 func buildNavigationTrayItem(item *desktop_runtime.DesktopRuntimeNavigationItem) *desktop_tray.DesktopTrayEntry {
@@ -238,6 +261,19 @@ func buildActionTrayItem(item *desktop_runtime.DesktopRuntimeActionItem) *deskto
 		item.GetValue(),
 		item.GetEnabled(),
 	)
+}
+
+func applyUpdateTrayEntry(update *desktop_runtime.DesktopRuntimeUpdateStatus) *desktop_tray.DesktopTrayEntry {
+	entry := actionTrayEntry(
+		"apply-update",
+		"Install Update",
+		desktop_tray.DesktopTrayActionKind_DESKTOP_TRAY_ACTION_KIND_ATTACHED_HANDLER,
+		"",
+		update.GetVersion(),
+		update.GetReady(),
+	)
+	entry.Severity = desktop_tray.DesktopTraySeverity_DESKTOP_TRAY_SEVERITY_INFO
+	return entry
 }
 
 func statusTrayEntry(id, label string) *desktop_tray.DesktopTrayEntry {

@@ -22,6 +22,8 @@ Electron main owns the generic desktop runtime Resource SDK tree in `bldr/web/el
 | `OpenOrFocusMainWindow` | Opens or focuses the singleton app window, optionally at a route.                               |
 | `QuitDesktopRuntime`    | Marks the runtime as quitting and requests an explicit shutdown.                                |
 
+Electron main also exposes a resource-backed `DesktopTrayResourceService`. Runtime publishers register `DesktopTrayEntry` rows there, and native tray renderers subscribe to `WatchDesktopTray` for the ordered menu tree.
+
 `DesktopRuntimeState` contains the tray-visible contract:
 
 | Field                               | Owner         | Meaning                                                                                    |
@@ -54,7 +56,7 @@ The projector is process-lifetime code. It watches the listener status broker, s
 
 ## Native Menu
 
-The native menu is rendered by `bldr/web/electron/main/desktop-tray.ts`. It subscribes to `WatchDesktopState`, ignores duplicate snapshots, and rebuilds the native menu only when the state changes.
+The native menu is rendered by `bldr/web/electron/main/desktop-tray.ts`. It subscribes to `WatchDesktopTray`, ignores duplicate snapshots, and rebuilds the native menu only when the published entry tree changes.
 
 Healthy mode contains:
 
@@ -65,11 +67,11 @@ Healthy mode contains:
 
 Attention mode collapses the top of the menu toward the highest-priority actionable item while keeping Open Spacewave and Quit available.
 
-Quick actions are intentionally conservative. Copy actions use the native clipboard. Reveal actions open the platform file manager. Restart and recovery actions stay disabled until they have explicit confirmation and clean shutdown semantics.
+Quick actions are intentionally conservative. Copy actions use the native clipboard. Reveal actions open the platform file manager. A staged native update publishes an attached `Install Update` tray action owned by the Spacewave launcher projector. Restart and recovery actions stay disabled until they have explicit confirmation and clean shutdown semantics.
 
 ## Popover Readiness
 
-The native menu state is the contract for any richer popover. A popover must consume the same `DesktopRuntimeState` stream that drives the native menu, preserve the native menu as fallback, and route commands through `DesktopRuntimeResource` instead of inventing a second status or command model.
+The native menu entry tree is the contract for tray commands. A richer popover may consume `DesktopRuntimeState` for presentation, but it must preserve the native menu as fallback and route commands through the desktop runtime or `DesktopTrayEntry` action transport instead of inventing a second status or command model.
 
 The current custom popover is a desktop-only development prototype. Enable it with:
 

@@ -28,7 +28,9 @@ export function buildDesktopTrayEntriesFromRuntimeState(
 
 function buildHealthyEntries(state: DesktopRuntimeState): DesktopTrayEntry[] {
   return [
-    statusEntry('title', `Spacewave: ${state.statusText || 'Running'}`),
+    statusEntry('title', `Spacewave: ${state.statusText || 'Running'}`, {
+      iconState: iconStateForRuntimeHealth(state.health),
+    }),
     separatorEntry('open-separator'),
     actionEntry('open', 'Open Spacewave', DesktopTrayActionKind.OPEN_ROUTE),
     actionEntry('new-window', 'New Window', DesktopTrayActionKind.NEW_WINDOW),
@@ -64,6 +66,13 @@ function buildAttentionEntries(state: DesktopRuntimeState): DesktopTrayEntry[] {
     ...(item?.detail ? [statusEntry('attention-detail', item.detail)] : []),
     separatorEntry('open-separator'),
     actionEntry('open', 'Open Spacewave', DesktopTrayActionKind.OPEN_ROUTE),
+    ...(state.update?.ready ?
+      [
+        separatorEntry('quick-actions-separator'),
+        sectionEntry('quick-actions-section', 'Quick Actions'),
+        applyUpdateEntry(state.update),
+      ]
+    : []),
     separatorEntry('quit-separator'),
     actionEntry('quit', 'Quit', DesktopTrayActionKind.QUIT),
   ]
@@ -124,14 +133,18 @@ function buildActivitySection(
 }
 
 function buildActionSection(state: DesktopRuntimeState): DesktopTrayEntry[] {
-  const items = [...buildSyntheticActions(state), ...nonEmpty(state.actions)]
-  if (!items.length) {
+  const entries = [
+    ...(state.update?.ready ? [applyUpdateEntry(state.update)] : []),
+    ...buildSyntheticActions(state).map((item) => buildActionItem(item)),
+    ...nonEmpty(state.actions).map((item) => buildActionItem(item)),
+  ]
+  if (!entries.length) {
     return []
   }
   return [
     separatorEntry('quick-actions-separator'),
     sectionEntry('quick-actions-section', 'Quick Actions'),
-    ...items.map((item) => buildActionItem(item)),
+    ...entries,
   ]
 }
 
@@ -215,6 +228,21 @@ function buildActionItem(item: DesktopRuntimeActionItem): DesktopTrayEntry {
   )
 }
 
+function applyUpdateEntry(
+  update: NonNullable<DesktopRuntimeState['update']>,
+): DesktopTrayEntry {
+  return actionEntry(
+    'apply-update',
+    'Install Update',
+    DesktopTrayActionKind.ATTACHED_HANDLER,
+    {
+      enabled: update.ready,
+      value: update.version,
+      severity: DesktopTraySeverity.INFO,
+    },
+  )
+}
+
 function statusEntry(
   id: string,
   label: string,
@@ -250,6 +278,7 @@ function actionEntry(
   label: string,
   kind: DesktopTrayActionKind,
   opts?: Partial<Pick<DesktopTrayEntry, 'active' | 'enabled'>> &
+    Partial<Pick<DesktopTrayEntry, 'severity'>> &
     Partial<Pick<DesktopTrayAction, 'route' | 'value'>>,
 ): DesktopTrayEntry {
   return {
@@ -258,6 +287,7 @@ function actionEntry(
     label,
     active: opts?.active ?? false,
     enabled: opts?.enabled ?? true,
+    severity: opts?.severity ?? DesktopTraySeverity.UNSPECIFIED,
     action: {
       kind,
       route: opts?.route,
