@@ -226,6 +226,89 @@ func TestFetchManifestValueStorerRepairsMissingManifestLink(t *testing.T) {
 	}
 }
 
+func TestWatchWorldManifestUsesStartupManifestRefsAndSkipsBadCandidate(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const objKey = "plugin-host"
+	if _, err := bldr_manifest_world.CreateManifestStore(ctx, ws, objKey); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	goodRef := newTestStoredManifestRef(t, ctx, tb, "spacewave-core", "desktop/darwin/arm64", 7)
+	const goodRefKey = "plugin-host/ref/good"
+	storeTestManifestRefObject(t, ctx, ws, goodRefKey, goodRef)
+	if err := ws.SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad(objKey, goodRefKey, "spacewave-core")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	badRef := newTestStoredManifestRef(t, ctx, tb, "spacewave-core", "desktop/darwin/arm64", 9)
+	badRef.GetManifestRef().RootRef.Hash.Hash[0] ^= 0xff
+	const badRefKey = "plugin-host/ref/missing"
+	storeTestManifestRefObject(t, ctx, ws, badRefKey, badRef)
+	if err := ws.SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad(objKey, badRefKey, "spacewave-core")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	host := &testPluginHost{id: "desktop/darwin/arm64"}
+	pi := &pluginInstance{
+		c: &Controller{
+			conf:   &Config{},
+			objKey: objKey,
+		},
+		le:                      le,
+		pluginID:                "spacewave-core",
+		downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.ManifestSnapshot](le),
+		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
+	}
+
+	obj, ok, err := ws.GetObject(ctx, objKey)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !ok {
+		t.Fatal("expected plugin host object")
+	}
+
+	wait, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
+		pluginHosts: []bldr_plugin_host.PluginHost{host},
+	}, ws, obj)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !wait {
+		t.Fatal("expected watch loop to wait for changes")
+	}
+
+	execState := pi.executePluginRoutine.GetState()
+	if execState == nil || execState.manifestSnapshot == nil {
+		t.Fatal("expected execute state from good startup manifest ref")
+	}
+	if execState.pluginHost != host {
+		t.Fatal("expected execute state to use matching plugin host")
+	}
+	if !execState.manifestSnapshot.GetManifestRef().EqualVT(goodRef.GetManifestRef()) {
+		t.Fatal("expected skipped bad ref not to clear the good execute candidate")
+	}
+}
+
 func TestProcessManifestWorldStateRunsDownloadAndExecuteForRemoteManifest(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
@@ -678,6 +761,23 @@ func newTestStoredManifestRefWithDistInBucket(
 	ref := oc.GetRef()
 	ref.RootRef = rootRef
 	return bldr_manifest.NewManifestRef(meta, ref)
+}
+
+func storeTestManifestRefObject(
+	t *testing.T,
+	ctx context.Context,
+	ws world.WorldState,
+	objKey string,
+	ref *bldr_manifest.ManifestRef,
+) {
+	t.Helper()
+
+	if _, _, err := world.AccessWorldObject(ctx, ws, objKey, true, func(bcs *block.Cursor) error {
+		bcs.SetBlock(ref.CloneVT(), true)
+		return nil
+	}); err != nil {
+		t.Fatal(err.Error())
+	}
 }
 
 type testPluginHost struct {

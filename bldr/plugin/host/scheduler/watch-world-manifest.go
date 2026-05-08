@@ -70,7 +70,7 @@ func (t *pluginInstance) processManifestWorldState(
 	})
 
 	// collect manifests
-	manifests, manifestErrs, err := bldr_manifest_world.CollectManifestsForManifestID(
+	manifests, manifestErrs, err := bldr_manifest_world.CollectStartupManifestsForManifestID(
 		ctx,
 		ws,
 		t.pluginID,
