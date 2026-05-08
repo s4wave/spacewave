@@ -34,6 +34,7 @@ func (t *pluginInstance) execDownloadManifest(
 	}
 	trace.Log(ctx, "plugin-id", t.pluginID)
 	trace.Log(ctx, "manifest-ref", ref.MarshalString())
+	trace.Log(ctx, "startup-fetch-kind", "background-manifest-dag-copy")
 
 	ws, err := t.c.worldStateCtr.WaitValue(ctx, nil)
 	if err != nil {

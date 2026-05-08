@@ -6,6 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	trace "github.com/s4wave/spacewave/db/traceutil"
 )
 
 // CopyBlockDAG copies all blocks reachable from rootRef from src to dest.
@@ -21,9 +22,14 @@ func CopyBlockDAG(
 	src block.StoreOps,
 	dest block.StoreOps,
 ) error {
+	ctx, task := trace.NewTask(ctx, "hydra/block/copy/dag")
+	defer task.End()
+
 	if rootRef.GetEmpty() {
+		trace.Log(ctx, "result", "empty-root")
 		return nil
 	}
+	trace.Log(ctx, "root-ref", rootRef.MarshalString())
 	visited := make(map[string]bool)
 	return copyBlock(ctx, rootRef, rootCtor, src, dest, visited)
 }
@@ -42,7 +48,12 @@ func copyBlock(
 	}
 
 	refStr := ref.MarshalString()
+	ctx, task := trace.NewTask(ctx, "hydra/block/copy/block")
+	defer task.End()
+	trace.Log(ctx, "block-ref", refStr)
+
 	if visited[refStr] {
+		trace.Log(ctx, "result", "already-visited")
 		return nil
 	}
 	visited[refStr] = true
@@ -53,29 +64,40 @@ func copyBlock(
 		return errors.Wrapf(err, "check block exists: %s", refStr)
 	}
 	if exists {
+		trace.Log(ctx, "result", "destination-exists")
 		return nil
 	}
 
 	// Read from source.
-	data, found, err := src.GetBlock(ctx, ref)
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/block/copy/source-get")
+	data, found, err := src.GetBlock(taskCtx, ref)
+	subtask.End()
 	if err != nil {
+		trace.Log(ctx, "result", "source-error")
 		return errors.Wrapf(err, "get block: %s", refStr)
 	}
 	if !found {
+		trace.Log(ctx, "result", "source-missing")
 		return errors.Wrapf(block.ErrNotFound, "block: %s", refStr)
 	}
 
 	// Write to dest.
-	if _, _, err := dest.PutBlock(ctx, data, nil); err != nil {
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/block/copy/destination-put")
+	_, _, err = dest.PutBlock(taskCtx, data, nil)
+	subtask.End()
+	if err != nil {
+		trace.Log(ctx, "result", "destination-error")
 		return errors.Wrapf(err, "put block: %s", refStr)
 	}
 
 	// Decode to find child refs (only if we have a constructor).
 	if ctor == nil {
+		trace.Log(ctx, "result", "leaf-copied")
 		return nil
 	}
 	blk := ctor()
 	if err := blk.UnmarshalBlock(data); err != nil {
+		trace.Log(ctx, "result", "unmarshal-error")
 		return errors.Wrapf(err, "unmarshal block: %s", refStr)
 	}
 
@@ -96,6 +118,7 @@ func copyBlock(
 		}
 	}
 
+	trace.Log(ctx, "result", "copied")
 	return nil
 }
 

@@ -69,6 +69,7 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 	trace.Log(ctx, "plugin-id", pluginID)
 	trace.Log(ctx, "instance-key", t.instanceKey)
 	trace.Log(ctx, "manifest-ref", pluginManifest.GetManifestRef().MarshalString())
+	trace.Log(ctx, "startup-fetch-kind", "demand-plugin-execute")
 
 	// build proxy volume
 	hostVol, err := t.c.hostVolumeCtr.WaitValue(ctx, nil)

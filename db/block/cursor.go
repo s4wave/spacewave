@@ -589,14 +589,19 @@ func (c *Cursor) Fetch(ctx context.Context) ([]byte, bool, error) {
 	defer task.End()
 
 	if c == nil {
+		trace.Log(ctx, "result", "nil-cursor")
 		return nil, false, nil
 	}
 	if c.pos.ref.GetEmpty() {
+		trace.Log(ctx, "result", "empty-ref")
 		return nil, false, nil
 	}
+	refStr := c.pos.ref.MarshalString()
+	trace.Log(ctx, "block-ref", refStr)
 
 	bkt, _ := c.GetBlockStore()
 	if bkt == nil {
+		trace.Log(ctx, "result", "store-unavailable")
 		return nil, false, ErrBlockStoreUnavailable
 	}
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/block/cursor/fetch/store-get")
@@ -606,6 +611,7 @@ func (c *Cursor) Fetch(ctx context.Context) ([]byte, bool, error) {
 		if err == nil {
 			err = ErrNotFound
 		}
+		trace.Log(ctx, "result", "not-found")
 		return nil, false, err
 	}
 	if c.t.xfrm != nil {
@@ -613,9 +619,11 @@ func (c *Cursor) Fetch(ctx context.Context) ([]byte, bool, error) {
 		data, err = c.t.xfrm.DecodeBlock(data)
 		subtask.End()
 		if err != nil {
+			trace.Log(ctx, "result", "decode-error")
 			return nil, false, err
 		}
 	}
+	trace.Log(ctx, "result", "fetched")
 	return data, true, nil
 }
 

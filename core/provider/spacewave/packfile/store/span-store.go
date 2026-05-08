@@ -4,6 +4,8 @@ import (
 	"context"
 	"io"
 	"time"
+
+	trace "github.com/s4wave/spacewave/db/traceutil"
 )
 
 // fetchMiss drives a transport fetch to cover off, bounded by readEnd.
@@ -13,6 +15,12 @@ import (
 // fetch via the loading map, guaranteeing one transport call per uncovered
 // span.
 func (e *PackReader) fetchMiss(ctx context.Context, off, readEnd int64) error {
+	ctx, task := trace.NewTask(ctx, "provider/spacewave/packfile/range-fetch")
+	defer task.End()
+	trace.Log(ctx, "pack-id", e.packID)
+	trace.Logf(ctx, "target-offset", "%d", off)
+	trace.Logf(ctx, "target-end", "%d", readEnd)
+
 	for {
 		var leader, resident bool
 		var key fetchKey
@@ -49,13 +57,18 @@ func (e *PackReader) fetchMiss(ctx context.Context, off, readEnd int64) error {
 			notifyStart()
 		}
 		if resident {
+			trace.Log(ctx, "result", "resident")
 			return nil
 		}
 		if load == nil && key.size == 0 {
+			trace.Log(ctx, "result", "empty-plan")
 			return io.EOF
 		}
 
 		if leader {
+			trace.Log(ctx, "role", "leader")
+			trace.Logf(ctx, "range-offset", "%d", key.off)
+			trace.Logf(ctx, "range-size", "%d", key.size)
 			data, err := e.transport.Fetch(ctx, key.off, key.size)
 			var sp *span
 			if len(data) != 0 {
@@ -85,24 +98,32 @@ func (e *PackReader) fetchMiss(ctx context.Context, off, readEnd int64) error {
 				notifyDone()
 			}
 			if err != nil {
+				trace.Log(ctx, "result", "transport-error")
 				return err
 			}
 			if sp == nil {
+				trace.Log(ctx, "result", "empty-response")
 				return io.EOF
 			}
+			trace.Log(ctx, "result", "fetched")
 			return nil
 		}
 
+		trace.Log(ctx, "role", "waiter")
 		select {
 		case <-ctx.Done():
+			trace.Log(ctx, "result", "wait-canceled")
 			return ctx.Err()
 		case <-load.done:
 			if load.err != nil {
+				trace.Log(ctx, "result", "wait-error")
 				return load.err
 			}
 			if load.sp == nil {
+				trace.Log(ctx, "result", "wait-empty-response")
 				return io.EOF
 			}
+			trace.Log(ctx, "result", "waited")
 			return nil
 		}
 	}
@@ -129,6 +150,12 @@ func (e *PackReader) ensureExactRangeResident(ctx context.Context, start, end in
 }
 
 func (e *PackReader) fetchExact(ctx context.Context, off, readEnd int64) error {
+	ctx, task := trace.NewTask(ctx, "provider/spacewave/packfile/exact-range-fetch")
+	defer task.End()
+	trace.Log(ctx, "pack-id", e.packID)
+	trace.Logf(ctx, "target-offset", "%d", off)
+	trace.Logf(ctx, "target-end", "%d", readEnd)
+
 	for {
 		var leader, resident bool
 		var key fetchKey
@@ -165,13 +192,18 @@ func (e *PackReader) fetchExact(ctx context.Context, off, readEnd int64) error {
 			notifyStart()
 		}
 		if resident {
+			trace.Log(ctx, "result", "resident")
 			return nil
 		}
 		if load == nil && key.size == 0 {
+			trace.Log(ctx, "result", "empty-plan")
 			return io.EOF
 		}
 
 		if leader {
+			trace.Log(ctx, "role", "leader")
+			trace.Logf(ctx, "range-offset", "%d", key.off)
+			trace.Logf(ctx, "range-size", "%d", key.size)
 			data, err := e.transport.Fetch(ctx, key.off, key.size)
 			var sp *span
 			if len(data) != 0 {
@@ -201,24 +233,32 @@ func (e *PackReader) fetchExact(ctx context.Context, off, readEnd int64) error {
 				notifyDone()
 			}
 			if err != nil {
+				trace.Log(ctx, "result", "transport-error")
 				return err
 			}
 			if sp == nil {
+				trace.Log(ctx, "result", "empty-response")
 				return io.EOF
 			}
+			trace.Log(ctx, "result", "fetched")
 			return nil
 		}
 
+		trace.Log(ctx, "role", "waiter")
 		select {
 		case <-ctx.Done():
+			trace.Log(ctx, "result", "wait-canceled")
 			return ctx.Err()
 		case <-load.done:
 			if load.err != nil {
+				trace.Log(ctx, "result", "wait-error")
 				return load.err
 			}
 			if load.sp == nil {
+				trace.Log(ctx, "result", "wait-empty-response")
 				return io.EOF
 			}
+			trace.Log(ctx, "result", "waited")
 			return nil
 		}
 	}

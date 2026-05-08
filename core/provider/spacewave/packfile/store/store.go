@@ -10,6 +10,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/bloom"
 	block_store "github.com/s4wave/spacewave/db/block/store"
+	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/net/hash"
 )
 
@@ -181,10 +182,15 @@ func (s *PackfileStore) GetSupportedFeatures() block.StoreFeature {
 // engine is consulted in turn. The first engine that finds the block
 // returns its bytes.
 func (s *PackfileStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	ctx, task := trace.NewTask(ctx, "provider/spacewave/packfile/store/get-block")
+	defer task.End()
+
 	h := ref.GetHash()
 	if h == nil {
+		trace.Log(ctx, "result", "empty-hash")
 		return nil, false, nil
 	}
+	trace.Log(ctx, "block-ref", ref.MarshalString())
 	key := []byte(h.MarshalString())
 
 	var entries []*packfile.PackfileEntry
@@ -194,10 +200,12 @@ func (s *PackfileStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]by
 		tree = s.tree
 	})
 	if len(entries) == 0 {
+		trace.Log(ctx, "result", "empty-manifest")
 		return nil, false, nil
 	}
 
 	candidates := s.findCandidates(key, entries, tree)
+	trace.Logf(ctx, "candidate-packs", "%d", len(candidates))
 	opened := 0
 	negative := 0
 	hit := false
@@ -220,20 +228,25 @@ func (s *PackfileStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]by
 		}
 		eng, err := s.getOrOpenEngine(entry.GetId(), size, entry.GetBlockCount())
 		if err != nil {
+			trace.Log(ctx, "result", "open-pack-error")
 			return nil, false, errors.Wrap(err, "opening packfile")
 		}
 		opened++
+		trace.Log(ctx, "pack-id", entry.GetId())
 		data, found, err := eng.getBlock(ctx, key)
 		if err != nil {
+			trace.Log(ctx, "result", "pack-error")
 			return data, found, err
 		}
 		if found {
 			hit = true
+			trace.Log(ctx, "result", "hit")
 			return data, found, err
 		}
 		negative++
 	}
 
+	trace.Log(ctx, "result", "miss")
 	return nil, false, nil
 }
 
