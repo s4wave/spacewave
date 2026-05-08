@@ -390,6 +390,30 @@ func collectQuickstartSmokeArtifact(
 			'runtime.connected',
 			'worker.first-ready',
 		]
+		const markMatches = (mark, label, predicate) =>
+			mark.label === label && (!predicate || predicate(mark))
+		const firstMark = (label, predicate) =>
+			startupMarks.find((mark) => markMatches(mark, label, predicate)) ?? null
+		const lastMark = (label, predicate) => {
+			for (let i = startupMarks.length - 1; i >= 0; i--) {
+				const mark = startupMarks[i]
+				if (markMatches(mark, label, predicate)) return mark
+			}
+			return null
+		}
+		const isPluginMark = (mark) =>
+			mark.detail?.plugin === true ||
+			(typeof mark.detail?.workerId === 'string' &&
+				mark.detail.workerId.startsWith('plugin/'))
+		const lastPluginReady =
+			lastMark('worker.ready', isPluginMark) ??
+			lastMark('worker.first-ready', isPluginMark)
+		const firstPluginStart =
+			firstMark('worker.first-create-start', isPluginMark) ??
+			firstMark('worker.construct-start', isPluginMark)
+		const shellEntrypoint = firstMark('shell.entrypoint-loaded')
+		const shellBootRequested = firstMark('shell.boot-requested')
+		const runtimeConnected = firstMark('runtime.connected')
 		const nav = performance.getEntriesByType('navigation')[0]
 		const navigation =
 			nav ?
@@ -414,6 +438,84 @@ func collectQuickstartSmokeArtifact(
 			globalThis.__s4waveQuickstartTiming ??
 			globalThis.__s4wave_debug?.quickstartTiming ??
 			null
+		const makeSegment = (name, startMs, endMs, attribution, evidence) => ({
+			name,
+			startMs: startMs ?? null,
+			endMs: endMs ?? null,
+			elapsedMs:
+				typeof startMs === 'number' && typeof endMs === 'number' ?
+					Math.max(0, endMs - startMs)
+				: null,
+			attribution,
+			evidence,
+		})
+		const startupAttributionSegments = [
+			makeSegment(
+				'navigation-to-entrypoint',
+				navigation?.startTimeMs,
+				shellEntrypoint?.startTimeMs,
+				'HTML, static assets, hydration entrypoint load',
+				['navigation.startTimeMs', 'shell.entrypoint-loaded'],
+			),
+			makeSegment(
+				'entrypoint-to-runtime-connected',
+				shellEntrypoint?.startTimeMs,
+				runtimeConnected?.startTimeMs,
+				'Bldr web document and runtime connection',
+				['shell.entrypoint-loaded', 'runtime.connected'],
+			),
+			makeSegment(
+				'boot-request-to-first-plugin-worker',
+				shellBootRequested?.startTimeMs,
+				firstPluginStart?.startTimeMs,
+				'Live app boot before the first plugin worker is constructed',
+				['shell.boot-requested', firstPluginStart?.label ?? 'worker.construct-start'],
+			),
+			makeSegment(
+				'plugin-worker-startup',
+				firstPluginStart?.startTimeMs,
+				lastPluginReady?.startTimeMs,
+				'Plugin worker construction and readiness',
+				[firstPluginStart?.label ?? 'worker.construct-start', lastPluginReady?.label ?? 'worker.ready'],
+			),
+			makeSegment(
+				'plugin-ready-to-quickstart-start',
+				lastPluginReady?.startTimeMs,
+				quickstartTiming?.startedMs,
+				'App shell, root resource access, routing, and quickstart resource scheduling before createQuickstartSetup begins',
+				[lastPluginReady?.label ?? 'worker.ready', 'quickstart.startedMs'],
+			),
+			makeSegment(
+				'quickstart-setup',
+				quickstartTiming?.startedMs,
+				quickstartTiming?.finishedMs,
+				'createQuickstartSetup RPC flow and seed content population',
+				['quickstart.startedMs', 'quickstart.finishedMs'],
+			),
+			makeSegment(
+				'quickstart-finished-to-drive-shell',
+				quickstartTiming?.finishedMs,
+				args.driveShellVisibleMs,
+				'Post-setup redirect, session mount, space mount, and drive shell render',
+				['quickstart.finishedMs', 'driveShellVisibleMs'],
+			),
+			makeSegment(
+				'drive-shell-to-content-ready',
+				args.driveShellVisibleMs,
+				args.driveReadyMs,
+				'Drive content watch and file list render',
+				['driveShellVisibleMs', 'driveReadyMs'],
+			),
+		]
+		const measuredSegments = startupAttributionSegments.filter(
+			(segment) => typeof segment.elapsedMs === 'number',
+		)
+		const longestSegment =
+			measuredSegments.length ?
+				measuredSegments.reduce((longest, segment) =>
+					segment.elapsedMs > longest.elapsedMs ? segment : longest,
+				)
+			: null
 		const artifact = {
 			schemaVersion: 1,
 			scenario: 'quickstart-drive-production-smoke',
@@ -448,6 +550,17 @@ func collectQuickstartSmokeArtifact(
 			},
 			startupMarks,
 			missingStartupMarks: expectedStartupMarks.filter((label) => !labels.has(label)),
+			startupAttribution: {
+				range: makeSegment(
+					'last-plugin-ready-to-drive-ready',
+					lastPluginReady?.startTimeMs,
+					args.driveReadyMs,
+					'Previously unattributed post-plugin startup tail',
+					[lastPluginReady?.label ?? 'worker.ready', 'driveReadyMs'],
+				),
+				longestSegment,
+				segments: startupAttributionSegments,
+			},
 		}
 		return JSON.stringify(artifact, null, 2)
 	}`, map[string]any{
