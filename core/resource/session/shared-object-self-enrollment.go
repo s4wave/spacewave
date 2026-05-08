@@ -41,28 +41,11 @@ func (r *SharedObjectSelfEnrollmentResource) WatchState(
 	strm s4wave_session.SRPCSharedObjectSelfEnrollmentResourceService_WatchStateStream,
 ) error {
 	ctx := strm.Context()
-	accountBcast := r.swAcc.GetAccountBroadcast()
 
 	var prev *s4wave_session.WatchSharedObjectSelfEnrollmentStateResponse
 	for {
-		var accountCh <-chan struct{}
-		var summary *provider_spacewave.SelfEnrollmentSummary
-		var skippedKey string
-		accountBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			accountCh = getWaitCh()
-			summary = r.swAcc.GetSelfEnrollmentSummary()
-			skippedKey = r.swAcc.GetSelfEnrollmentSkippedGenerationKey()
-		})
-
-		run, runCh := r.swAcc.WatchSelfEnrollmentRunSnapshot()
-		store := r.swAcc.GetEntityKeyStore()
-		var entityCh <-chan struct{}
-		unlockedCount := 0
-		if store != nil {
-			unlockedCount, entityCh = store.WatchUnlockedCount()
-		}
-
-		resp := r.buildStateResponse(summary, run, skippedKey, store != nil, unlockedCount)
+		proj, watch := r.swAcc.WatchSelfEnrollmentProjection()
+		resp := buildStateResponse(proj)
 		if prev == nil || !resp.EqualVT(prev) {
 			if err := strm.Send(resp); err != nil {
 				return err
@@ -73,9 +56,9 @@ func (r *SharedObjectSelfEnrollmentResource) WatchState(
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-accountCh:
-		case <-runCh:
-		case <-entityCh:
+		case <-watch.AccountCh:
+		case <-watch.RunCh:
+		case <-watch.EntityKeyCh:
 		}
 	}
 }
@@ -112,32 +95,21 @@ func (r *SharedObjectSelfEnrollmentResource) Skip(
 	return &s4wave_session.SkipSharedObjectSelfEnrollmentResponse{}, nil
 }
 
-func (r *SharedObjectSelfEnrollmentResource) buildStateResponse(
-	summary *provider_spacewave.SelfEnrollmentSummary,
-	run *provider_spacewave.SelfEnrollmentRunSnapshot,
-	skippedKey string,
-	hasEntityKeyStore bool,
-	unlockedCount int,
+func buildStateResponse(
+	proj *provider_spacewave.SelfEnrollmentProjection,
 ) *s4wave_session.WatchSharedObjectSelfEnrollmentStateResponse {
-	resp := &s4wave_session.WatchSharedObjectSelfEnrollmentStateResponse{
-		SkippedGenerationKey: skippedKey,
+	return &s4wave_session.WatchSharedObjectSelfEnrollmentStateResponse{
+		SharedObjectIds:          proj.SharedObjectIDs,
+		GenerationKey:            proj.GenerationKey,
+		Count:                    proj.Count,
+		CredentialRequired:       proj.CredentialRequired,
+		Running:                  proj.Running,
+		CurrentSharedObjectId:    proj.CurrentSharedObjectID,
+		CompletedSharedObjectIds: proj.CompletedSharedObjectIDs,
+		Skipped:                  proj.Skipped,
+		SkippedGenerationKey:     proj.SkippedGenerationKey,
+		Failures:                 buildSelfEnrollmentFailures(proj.Failures),
 	}
-	if run != nil {
-		resp.Running = run.Running
-		resp.CurrentSharedObjectId = run.CurrentSharedObjectID
-		resp.CompletedSharedObjectIds = run.CompletedIDs
-		resp.Failures = buildSelfEnrollmentFailures(run.Failures)
-	}
-	if summary == nil {
-		return resp
-	}
-	resp.SharedObjectIds = summary.GetIDs()
-	resp.GenerationKey = summary.GetGenerationKey()
-	resp.Count = summary.GetCount()
-	resp.CredentialRequired = summary.GetCount() != 0 &&
-		(!hasEntityKeyStore || unlockedCount == 0)
-	resp.Skipped = skippedKey != "" && skippedKey == summary.GetGenerationKey()
-	return resp
 }
 
 func buildSelfEnrollmentFailures(
