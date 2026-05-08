@@ -140,7 +140,7 @@ func AnalyzePackages(
 	conf.Logf = func(format string, args ...any) {
 		le.Debugf(format, args...)
 	}
-	conf.BuildFlags = append(conf.BuildFlags, "-mod=vendor")
+	conf.BuildFlags = append(conf.BuildFlags, "-mod=readonly")
 
 	// Use the target platform's GOOS / GOARCH so build-tag gating during
 	// analysis matches the target compile. Empty inputs fall back to
