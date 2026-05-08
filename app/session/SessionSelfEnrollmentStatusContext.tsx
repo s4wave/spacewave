@@ -25,6 +25,7 @@ export interface SessionSelfEnrollmentStatusView {
   resource: SharedObjectSelfEnrollment | null
   snapshot: WatchSharedObjectSelfEnrollmentStateResponse | null
   visualState: SessionSelfEnrollmentVisualState
+  visible: boolean
   loading: boolean
   pending: boolean
   running: boolean
@@ -39,12 +40,19 @@ export interface SessionSelfEnrollmentStatusView {
   failures: SharedObjectSelfEnrollmentFailure[]
   summaryLabel: string
   detailLabel: string
+  ariaLabel: string
+  progressVisible: boolean
+  progressIndeterminate: boolean
+  startVisible: boolean
+  startLabel: string
+  skipVisible: boolean
 }
 
 const loadingView: SessionSelfEnrollmentStatusView = {
   resource: null,
   snapshot: null,
   visualState: 'loading',
+  visible: false,
   loading: true,
   pending: false,
   running: false,
@@ -59,6 +67,12 @@ const loadingView: SessionSelfEnrollmentStatusView = {
   failures: [],
   summaryLabel: 'Checking connected spaces',
   detailLabel: 'Waiting for connected-space status.',
+  ariaLabel: 'Session self-enrollment status: Checking connected spaces',
+  progressVisible: false,
+  progressIndeterminate: false,
+  startVisible: false,
+  startLabel: 'Connect',
+  skipVisible: false,
 }
 
 const SessionSelfEnrollmentStatusContext =
@@ -122,6 +136,8 @@ export function buildSessionSelfEnrollmentStatusView(
       failed: true,
       summaryLabel: 'Connection status unavailable',
       detailLabel: error.message,
+      ariaLabel:
+        'Session self-enrollment status: Connection status unavailable',
     }
   }
   if (loading && !snapshot) {
@@ -148,11 +164,14 @@ export function buildSessionSelfEnrollmentStatusView(
     skipped,
     failed,
   )
+  const summaryLabel = selfEnrollmentSummaryLabel(visualState, count)
+  const generationKey = snapshot?.generationKey ?? ''
 
   return {
     resource,
     snapshot,
     visualState,
+    visible: selfEnrollmentVisible(pending, running, skipped, failures.length),
     loading: false,
     pending,
     running,
@@ -164,11 +183,26 @@ export function buildSessionSelfEnrollmentStatusView(
     totalCount,
     progress:
       totalCount > 0 ? Math.min(100, (completedCount / totalCount) * 100) : 0,
-    generationKey: snapshot?.generationKey ?? '',
+    generationKey,
     failures,
-    summaryLabel: selfEnrollmentSummaryLabel(visualState, count),
+    summaryLabel,
     detailLabel: selfEnrollmentDetailLabel(visualState, count, failures.length),
+    ariaLabel: `Session self-enrollment status: ${summaryLabel || 'ready'}`,
+    progressVisible: running || pending || skipped || failed,
+    progressIndeterminate: running && totalCount === 0,
+    startVisible: pending || failed || skipped,
+    startLabel: failed || skipped ? 'Retry' : 'Connect',
+    skipVisible: generationKey !== '' && !skipped,
   }
+}
+
+function selfEnrollmentVisible(
+  pending: boolean,
+  running: boolean,
+  skipped: boolean,
+  failureCount: number,
+): boolean {
+  return pending || running || skipped || failureCount > 0
 }
 
 function selfEnrollmentVisualState(
@@ -207,7 +241,7 @@ function selfEnrollmentDetailLabel(
 ): string {
   if (state === 'running') return `Connecting ${formatSpaceCount(count)}.`
   if (state === 'waiting-for-step-up') {
-    return `${formatSpaceCount(count)} need an account unlock before this session can connect.`
+    return `${formatSpaceCount(count)} ${formatNeedVerb(count)} an account unlock before this session can connect.`
   }
   if (state === 'pending') {
     return `${formatSpaceCount(count)} can connect in the background.`
@@ -222,4 +256,9 @@ function selfEnrollmentDetailLabel(
 function formatSpaceCount(count: number): string {
   if (count === 1) return '1 space'
   return `${count} spaces`
+}
+
+function formatNeedVerb(count: number): string {
+  if (count === 1) return 'needs'
+  return 'need'
 }

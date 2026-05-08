@@ -79,7 +79,8 @@ describe('SessionSelfEnrollmentStatusButton', () => {
         sharedObjectIds: ['a'],
       }),
       label: 'Spaces need this session key',
-      detail: '1 space need an account unlock before this session can connect.',
+      detail:
+        '1 space needs an account unlock before this session can connect.',
     },
     {
       name: 'failed',
@@ -111,6 +112,11 @@ describe('SessionSelfEnrollmentStatusButton', () => {
     expect(
       screen.getByTestId('bottom-bar-level-session-self-enrollment-status'),
     ).toBeTruthy()
+    expect(
+      screen
+        .getByTestId('session-self-enrollment-status-button')
+        .getAttribute('aria-label'),
+    ).toBe(`Session self-enrollment status: ${test.label}`)
     expect(screen.getByText(test.label)).toBeTruthy()
     expect(screen.getByText(test.detail)).toBeTruthy()
     if (test.failure) {

@@ -27,7 +27,6 @@ import {
 // SessionSelfEnrollmentStatusButton registers the self-enrollment bottom-bar item.
 export function SessionSelfEnrollmentStatusButton() {
   const status = useSessionSelfEnrollmentStatus()
-  const visible = sessionSelfEnrollmentStatusVisible(status)
   const buttonRender = useCallback(
     (selected: boolean, onClick: () => void, className?: string) => (
       <Popover open={selected}>
@@ -41,7 +40,7 @@ export function SessionSelfEnrollmentStatusButton() {
               status.failed && 'text-destructive',
               status.credentialRequired && 'text-warning',
             )}
-            aria-label={`Session self-enrollment status: ${status.summaryLabel}`}
+            aria-label={status.ariaLabel}
             data-testid="session-self-enrollment-status-button"
           >
             <SessionSelfEnrollmentStatusGlyph status={status} />
@@ -62,7 +61,7 @@ export function SessionSelfEnrollmentStatusButton() {
     [status],
   )
 
-  if (!visible) return null
+  if (!status.visible) return null
 
   return (
     <BottomBarLevel
@@ -72,17 +71,6 @@ export function SessionSelfEnrollmentStatusButton() {
     >
       {null}
     </BottomBarLevel>
-  )
-}
-
-function sessionSelfEnrollmentStatusVisible(
-  status: SessionSelfEnrollmentStatusView,
-): boolean {
-  return (
-    status.pending ||
-    status.running ||
-    status.skipped ||
-    status.failures.length > 0
   )
 }
 
@@ -166,13 +154,10 @@ function SessionSelfEnrollmentStatusPopover({
         </div>
       </div>
 
-      {(status.running ||
-        status.pending ||
-        status.skipped ||
-        status.failed) && (
+      {status.progressVisible && (
         <ProgressBar
           value={status.progress}
-          indeterminate={status.running && status.totalCount === 0}
+          indeterminate={status.progressIndeterminate}
         />
       )}
 
@@ -203,7 +188,7 @@ function SessionSelfEnrollmentStatusPopover({
         </div>
       )}
 
-      {(status.pending || status.failed || status.skipped) && (
+      {status.startVisible && (
         <div className="flex flex-wrap justify-end gap-2">
           <Button
             type="button"
@@ -217,9 +202,9 @@ function SessionSelfEnrollmentStatusPopover({
             {busy ?
               <Spinner size="sm" />
             : <LuRotateCw className="h-3.5 w-3.5" aria-hidden="true" />}
-            {status.failed || status.skipped ? 'Retry' : 'Connect'}
+            {status.startLabel}
           </Button>
-          {status.generationKey && !status.skipped && (
+          {status.skipVisible && (
             <Button
               type="button"
               variant="ghost"
