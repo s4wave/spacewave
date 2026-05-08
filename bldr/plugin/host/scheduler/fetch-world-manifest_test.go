@@ -328,6 +328,105 @@ func TestWatchWorldManifestUsesStartupManifestRefsAndSkipsBadCandidate(t *testin
 	}
 }
 
+func TestWatchWorldManifestExecutesBootstrapManifestAndRecordsUnreadableRetainedRef(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const objKey = "plugin-host"
+	if _, err := bldr_manifest_world.CreateManifestStore(ctx, ws, objKey); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	bootstrapRef, bootstrapRefKey := storeTestWorldManifest(t, ctx, ws, "spacewave-core", "desktop/darwin/arm64", 7)
+	if err := ws.SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad(objKey, bootstrapRefKey, "spacewave-core")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	retainedRef := newTestStoredManifestRef(t, ctx, tb, "other-plugin", "desktop/darwin/arm64", 9)
+	const retainedRefKey = "plugin-host/ref/unreadable-retained"
+	storeTestManifestRefObject(t, ctx, ws, retainedRefKey, retainedRef)
+	corruptTestWorldObjectRoot(t, ctx, ws, retainedRefKey)
+	if err := ws.SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad(objKey, retainedRefKey, "")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	host := &testPluginHost{id: "desktop/darwin/arm64"}
+	ctrl := &Controller{
+		conf:   &Config{},
+		objKey: objKey,
+		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
+			&PluginStatusSnapshot{},
+			pluginStatusSnapshotEqual,
+		),
+		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
+	}
+	pi := &pluginInstance{
+		c:                       ctrl,
+		le:                      le,
+		pluginID:                "spacewave-core",
+		downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.ManifestSnapshot](le),
+		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
+	}
+
+	obj, ok, err := ws.GetObject(ctx, objKey)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !ok {
+		t.Fatal("expected plugin host object")
+	}
+
+	wait, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
+		pluginHosts: []bldr_plugin_host.PluginHost{host},
+	}, ws, obj)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !wait {
+		t.Fatal("expected watch loop to wait for changes")
+	}
+
+	execState := pi.executePluginRoutine.GetState()
+	if execState == nil || execState.manifestSnapshot == nil {
+		t.Fatal("expected execute state from readable bootstrap manifest")
+	}
+	if execState.pluginHost != host {
+		t.Fatal("expected execute state to use matching plugin host")
+	}
+	if !execState.manifestSnapshot.GetManifestRef().EqualVT(bootstrapRef.GetManifestRef()) {
+		t.Fatal("expected unreadable retained ref not to clear the bootstrap execute candidate")
+	}
+
+	status := ctrl.GetPluginStatusCtr().GetValue()
+	if len(status.Plugins) != 1 {
+		t.Fatalf("expected one plugin status, got %d", len(status.Plugins))
+	}
+	lastError := status.Plugins[0].GetLastErrorMessage()
+	if !strings.Contains(lastError, "startup manifest refs: 1 skipped startup manifest ref(s)") {
+		t.Fatalf("unexpected retained-ref diagnostic: %q", lastError)
+	}
+	if !strings.Contains(lastError, retainedRefKey) {
+		t.Fatalf("retained-ref diagnostic %q does not mention ref key %q", lastError, retainedRefKey)
+	}
+}
+
 func TestWatchWorldManifestRecordsCompactSkippedRefStatusWhenNoCandidate(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
@@ -1104,6 +1203,35 @@ func storeTestManifestRefObject(
 		bcs.SetBlock(ref.CloneVT(), true)
 		return nil
 	}); err != nil {
+		t.Fatal(err.Error())
+	}
+}
+
+func corruptTestWorldObjectRoot(
+	t *testing.T,
+	ctx context.Context,
+	ws world.WorldState,
+	objKey string,
+) {
+	t.Helper()
+
+	obj, ok, err := ws.GetObject(ctx, objKey)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !ok {
+		t.Fatalf("expected object %q", objKey)
+	}
+	ref, _, err := obj.GetRootRef(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if ref == nil || ref.GetRootRef().GetEmpty() {
+		t.Fatalf("expected object %q root ref", objKey)
+	}
+	corruptRef := ref.CloneVT()
+	corruptRef.RootRef.Hash.Hash[0] ^= 0xff
+	if _, err := obj.SetRootRef(ctx, corruptRef); err != nil {
 		t.Fatal(err.Error())
 	}
 }

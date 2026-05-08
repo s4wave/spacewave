@@ -89,16 +89,14 @@ func (t *pluginInstance) processManifestWorldState(
 	skipSummary := summarizeStartupManifestSkips(manifestErrs)
 	if skipSummary != "" {
 		le.WithField("skipped-startup-manifest-refs", skipSummary).Warn("skipped startup manifest refs")
+		t.c.recordPluginStatusError(
+			t.pluginID,
+			t.instanceKey,
+			"startup manifest refs",
+			errors.New(skipSummary),
+		)
 	}
 	if len(manifests) == 0 {
-		if skipSummary != "" {
-			t.c.recordPluginStatusError(
-				t.pluginID,
-				t.instanceKey,
-				"startup manifest refs",
-				errors.New(skipSummary),
-			)
-		}
 		// When store is disabled, the fetch handler may drive
 		// execute/download directly from fetched ManifestRefs.
 		// Don't clear states that the fetch handler set.
