@@ -166,6 +166,63 @@ func TestCollectStartupManifestsSkipsUnreadableLinkedRef(t *testing.T) {
 	}
 }
 
+func TestCollectManifestsReportsUnreadableManifestObject(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const storeKey = "plugin-host"
+	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	badRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 9).GetManifestRef().CloneVT()
+	badRef.RootRef.Hash.Hash[0] ^= 0xff
+	const badManifestKey = "plugin-host/manifest/bad"
+	if _, _, err := SetManifest(ctx, ws, peer.ID("test"), badManifestKey, badRef); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, badManifestKey, "spacewave-web")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	got, errs, err := CollectManifestsForManifestID(
+		ctx,
+		ws,
+		"spacewave-web",
+		[]string{"js"},
+		storeKey,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(got) != 0 {
+		t.Fatalf("manifest count = %d", len(got))
+	}
+	if len(errs) != 1 {
+		t.Fatalf("manifest errors = %v", errs)
+	}
+	if !strings.Contains(errs[0].Error(), badManifestKey) {
+		t.Fatalf("manifest error %q does not mention bad manifest key %q", errs[0].Error(), badManifestKey)
+	}
+}
+
 func TestCollectDirectManifestForManifestID(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())

@@ -133,6 +133,32 @@ func TestVerifyImportedManifestsRejectsMissingImport(t *testing.T) {
 	}
 }
 
+func TestVerifyImportedManifestsRejectsSkippedNormalManifest(t *testing.T) {
+	ctx := context.Background()
+	dest, meta, tuple := importTestManifestPack(t, ctx)
+
+	badRef := storeTestManifest(t, ctx, dest, tuple, false, false).GetManifestRef().CloneVT()
+	badRef.RootRef.Hash.Hash[0] ^= 0xff
+	const badManifestKey = "ci/manifest-pack/bad"
+	if _, _, err := bldr_manifest_world.SetManifest(ctx, dest, peer.ID("test"), badManifestKey, badRef); err != nil {
+		t.Fatal(err)
+	}
+	if err := dest.SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad(tuple.GetLinkObjectKeys()[0], badManifestKey, tuple.GetManifestId())); err != nil {
+		t.Fatal(err)
+	}
+
+	err := VerifyImportedManifests(ctx, dest, meta)
+	if err == nil {
+		t.Fatal("VerifyImportedManifests accepted skipped normal manifest")
+	}
+	if !strings.Contains(err.Error(), "had skipped manifests") {
+		t.Fatalf("VerifyImportedManifests error = %v", err)
+	}
+	if !strings.Contains(err.Error(), badManifestKey) {
+		t.Fatalf("VerifyImportedManifests error %q does not mention bad manifest key %q", err.Error(), badManifestKey)
+	}
+}
+
 func TestImportManifestPackRejectsCorruptPackDigest(t *testing.T) {
 	meta := testManifestPackMetadata(t)
 	err := ImportManifestPack(context.Background(), nil, peer.ID("test"), meta, []byte("corrupt"))
