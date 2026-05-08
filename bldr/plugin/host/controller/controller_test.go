@@ -58,6 +58,9 @@ func TestControllerOwnsProcessLifetimeHostRoot(t *testing.T) {
 	if root.GetDesktopTray() == nil {
 		t.Fatal("expected desktop tray registry")
 	}
+	if root.GetStructuredLogs() == nil {
+		t.Fatal("expected structured log hub")
+	}
 	mux := root.GetMux()
 	query, ok := mux.(srpc.QueryableInvoker)
 	if !ok {
