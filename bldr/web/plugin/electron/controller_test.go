@@ -4,17 +4,23 @@ import (
 	"context"
 	"errors"
 	"os/exec"
+	"sync/atomic"
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/core"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/blang/semver/v4"
 	desktop_tray "github.com/s4wave/spacewave/bldr/desktop/tray"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host_resource "github.com/s4wave/spacewave/bldr/plugin/host/resource"
 	plugin_host_root "github.com/s4wave/spacewave/bldr/plugin/host/root"
+	bldr_resource "github.com/s4wave/spacewave/bldr/resource"
+	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
+	web_document "github.com/s4wave/spacewave/bldr/web/document"
+	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
 )
@@ -103,6 +109,111 @@ func TestOpenPluginHostDesktopTrayUsesPluginHostResourceBoundary(t *testing.T) {
 	}
 }
 
+func TestDesktopTrayReconcilerPublishesHostTrayToElectronMainWithoutRenderer(t *testing.T) {
+	ctx := t.Context()
+	le := logrus.NewEntry(logrus.New())
+	b, _, err := core.NewCoreBus(ctx, le)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	hostRoot := plugin_host_root.NewRoot()
+	pluginRoot := plugin_host_resource.NewPluginHostRoot(
+		le,
+		b,
+		"web",
+		"main",
+		nil,
+		nil,
+		nil,
+		hostRoot,
+		"state-atoms",
+		bldr_plugin.PluginVolumeID,
+	)
+	defer pluginRoot.Release()
+
+	hostMux := srpc.NewMux()
+	resourceServer := resource_server.NewResourceServer(pluginRoot.GetMux())
+	if err := resourceServer.Register(hostMux); err != nil {
+		t.Fatal(err)
+	}
+	hostClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(hostMux)))
+	rpcCtrl := bifrost_rpc.NewClientController(
+		le,
+		b,
+		controller.NewInfo("test/plugin-host-resource-client", semver.MustParse("0.0.1"), ""),
+		hostClient,
+		[]string{bldr_plugin.HostServiceIDPrefix},
+	)
+	rel, err := b.AddController(ctx, rpcCtrl, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rel()
+
+	source, err := openPluginHostDesktopTray(ctx, b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer source.Release()
+	_, err = source.tray.RegisterDesktopTrayEntry(ctx, &desktop_tray.RegisterDesktopTrayEntryRequest{
+		Entry: &desktop_tray.DesktopTrayEntry{
+			Id:      "status-runtime",
+			Kind:    desktop_tray.DesktopTrayEntryKind_DESKTOP_TRAY_ENTRY_KIND_STATUS,
+			Label:   "CLI reachable - no renderer window",
+			Enabled: false,
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	targetTray := desktop_tray.NewDesktopTray()
+	targetDirect := desktop_tray.NewSRPCDesktopTrayResourceServiceClient(
+		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(targetTray.GetMux()))),
+	)
+	watchCtx, watchCancel := context.WithCancel(ctx)
+	defer watchCancel()
+	targetStream, err := targetDirect.WatchDesktopTray(watchCtx, &desktop_tray.WatchDesktopTrayRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if state := recvDesktopTrayState(t, targetStream); len(state.GetEntries()) != 0 {
+		t.Fatalf("target tray initial entries = %d, want 0", len(state.GetEntries()))
+	}
+
+	runtime := newDesktopRuntimeOnlyWebRuntime(t, targetTray)
+	ctrl := &Controller{le: le, bus: b}
+	reconcileCtx, reconcileCancel := context.WithCancel(ctx)
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- ctrl.reconcileDesktopTray(reconcileCtx, runtime)
+	}()
+
+	state := recvDesktopTrayState(t, targetStream)
+	if len(state.GetEntries()) != 1 {
+		reconcileCancel()
+		t.Fatalf("target tray entries after reconcile = %d, want 1", len(state.GetEntries()))
+	}
+	if state.GetEntries()[0].GetLabel() != "CLI reachable - no renderer window" {
+		reconcileCancel()
+		t.Fatalf("target tray label = %q", state.GetEntries()[0].GetLabel())
+	}
+	if runtime.connectCount.Load() != 1 {
+		reconcileCancel()
+		t.Fatalf("desktop runtime resource connections = %d, want 1", runtime.connectCount.Load())
+	}
+	if runtime.createWebDocumentCount.Load() != 0 {
+		reconcileCancel()
+		t.Fatalf("renderer window creates = %d, want 0", runtime.createWebDocumentCount.Load())
+	}
+
+	reconcileCancel()
+	if err := <-errCh; err != context.Canceled {
+		t.Fatalf("expected reconciler to stop on context cancel, got %v", err)
+	}
+}
+
 func recvDesktopTrayState(
 	t *testing.T,
 	strm desktop_tray.SRPCDesktopTrayResourceService_WatchDesktopTrayClient,
@@ -113,6 +224,90 @@ func recvDesktopTrayState(
 		t.Fatalf("recv desktop tray state: %v", err)
 	}
 	return resp.GetState()
+}
+
+type desktopRuntimeOnlyWebRuntime struct {
+	resourceService        bldr_resource.SRPCResourceServiceClient
+	statusCtr              *ccontainer.CContainer[*web_runtime.WebRuntimeStatus]
+	connectCount           atomic.Int32
+	createWebDocumentCount atomic.Int32
+}
+
+func newDesktopRuntimeOnlyWebRuntime(
+	t *testing.T,
+	tray *desktop_tray.DesktopTray,
+) *desktopRuntimeOnlyWebRuntime {
+	t.Helper()
+
+	server := resource_server.NewResourceServer(tray.GetMux())
+	mux := srpc.NewMux()
+	if err := server.Register(mux); err != nil {
+		t.Fatalf("register desktop runtime resource server: %v", err)
+	}
+	service := bldr_resource.NewSRPCResourceServiceClient(
+		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux))),
+	)
+	return &desktopRuntimeOnlyWebRuntime{
+		resourceService: service,
+		statusCtr:       ccontainer.NewCContainerVT(&web_runtime.WebRuntimeStatus{}),
+	}
+}
+
+func (r *desktopRuntimeOnlyWebRuntime) Execute(ctx context.Context) error {
+	<-ctx.Done()
+	return ctx.Err()
+}
+
+func (r *desktopRuntimeOnlyWebRuntime) GetWebRuntimeStatusCtr() *ccontainer.CContainer[*web_runtime.WebRuntimeStatus] {
+	return r.statusCtr
+}
+
+func (r *desktopRuntimeOnlyWebRuntime) GetWebDocuments(ctx context.Context) (map[string]web_document.WebDocument, error) {
+	return map[string]web_document.WebDocument{}, nil
+}
+
+func (r *desktopRuntimeOnlyWebRuntime) GetWebDocument(
+	ctx context.Context,
+	webDocumentID string,
+	wait bool,
+) (web_document.WebDocument, error) {
+	return nil, nil
+}
+
+func (r *desktopRuntimeOnlyWebRuntime) GetWebDocumentOpenStream(webDocumentID string) srpc.OpenStreamFunc {
+	return unavailableRendererOpenStream
+}
+
+func (r *desktopRuntimeOnlyWebRuntime) WaitReady(ctx context.Context) error {
+	return nil
+}
+
+func (r *desktopRuntimeOnlyWebRuntime) WaitFirstWebDocument(ctx context.Context) (web_document.WebDocument, error) {
+	return nil, errors.New("renderer window is unavailable")
+}
+
+func (r *desktopRuntimeOnlyWebRuntime) ConnectDesktopRuntimeResourceClient(
+	ctx context.Context,
+) (*resource_client.Client, error) {
+	r.connectCount.Add(1)
+	return resource_client.NewClient(ctx, r.resourceService)
+}
+
+func (r *desktopRuntimeOnlyWebRuntime) CreateWebDocument(ctx context.Context, webViewID string) (bool, error) {
+	r.createWebDocumentCount.Add(1)
+	return false, errors.New("renderer window is unavailable")
+}
+
+func (r *desktopRuntimeOnlyWebRuntime) GetWebWorkerOpenStream(webWorkerID string) srpc.OpenStreamFunc {
+	return unavailableRendererOpenStream
+}
+
+func unavailableRendererOpenStream(
+	ctx context.Context,
+	msgHandler srpc.PacketDataHandler,
+	closeHandler srpc.CloseHandler,
+) (srpc.PacketWriter, error) {
+	return nil, errors.New("renderer window is unavailable")
 }
 
 func TestShouldExitWithoutRestart(t *testing.T) {
@@ -132,3 +327,6 @@ func TestShouldExitWithoutRestart(t *testing.T) {
 		t.Fatal("expected unexpected disconnect to keep restart behavior")
 	}
 }
+
+// _ is a type assertion
+var _ web_runtime.WebRuntime = (*desktopRuntimeOnlyWebRuntime)(nil)
