@@ -23,7 +23,11 @@ Spacewave operations:
 go build -o ~/bin/spacewave ./cmd/spacewave
 ```
 
-The CLI connects to a running Spacewave daemon over a Unix socket. Start the daemon before using other commands.
+The CLI connects to a running Spacewave daemon over the configured local
+socket. In desktop builds, Electron main owns the tray-backed process lifetime:
+closing every renderer window leaves the runtime alive, and the installed
+`spacewave` command continues to connect to the socket while the menu-bar or
+notification-area item is present.
 
 ## Core Commands
 
@@ -34,6 +38,11 @@ spacewave serve        # Start the daemon
 spacewave start        # Start the daemon inline (foreground)
 spacewave status       # Show daemon health
 ```
+
+Client commands connect to an existing daemon by default. Use `--socket-path`
+to target the exact desktop runtime socket shown on the Command Line settings
+page. Use `--autostart` only when a CLI-owned daemon should be started if no
+desktop or CLI daemon is reachable.
 
 **Space operations:**
 
@@ -60,13 +69,21 @@ URI format: `/u/{session-index}/so/{space-id}/-/{object-key}/-/{path}`
 
 ## Running a Local Instance
 
-Start a local Spacewave instance for development:
+Start a local Spacewave daemon for development:
 
 ```bash
 spacewave serve
 ```
 
-The daemon listens on a Unix socket and serves all RPC operations locally. The browser UI connects to this daemon for development and testing. Multiple CLI sessions can connect to the same daemon simultaneously.
+The daemon listens on the configured socket and serves all RPC operations
+locally. The browser UI connects to this daemon for development and testing.
+Multiple CLI sessions can connect to the same daemon simultaneously.
+
+For desktop lifecycle checks, prefer the Electron harness. It starts the
+desktop runtime with an isolated short state root under `.bldr/e2e-electron`,
+installs `spacewave` into a temporary `GOBIN`, closes every renderer window,
+and verifies that `spacewave status --socket-path <desktop-socket>` still
+reaches the running runtime.
 
 ## Plugin Development Commands
 

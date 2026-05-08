@@ -23,7 +23,7 @@ func TestDesktopDaemonConsoleKeepsCLIReachableWithoutWindows(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	cliBin := buildSpacewaveCLI(t, ctx, h.RepoRoot())
+	installSpacewaveCLI(t, ctx, h.RepoRoot())
 	if _, err := h.WaitForPage(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +47,7 @@ func TestDesktopDaemonConsoleKeepsCLIReachableWithoutWindows(t *testing.T) {
 		t.Fatalf("electron runtime should stay alive after closing windows: %v", err)
 	}
 
-	stdout, stderr, err := runSpacewaveStatus(ctx, cliBin, h.RepoRoot(), h.CLISocketPath())
+	stdout, stderr, err := runSpacewaveStatus(ctx, h.RepoRoot(), h.CLISocketPath())
 	if err != nil {
 		t.Fatalf("spacewave status failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 	}
@@ -59,33 +59,39 @@ func TestDesktopDaemonConsoleKeepsCLIReachableWithoutWindows(t *testing.T) {
 	}
 
 	// Native tray menu clicks are covered by Electron-main unit tests. The CDP
-	// harness only sees renderer pages, so this e2e proves the backing daemon
-	// and CLI contract while every renderer window is closed.
+	// harness only sees renderer pages, so this e2e proves the installed CLI
+	// command and backing daemon contract while every renderer window is closed.
 }
 
-func buildSpacewaveCLI(t *testing.T, ctx context.Context, repoRoot string) string {
+func installSpacewaveCLI(t *testing.T, ctx context.Context, repoRoot string) {
 	t.Helper()
 
-	bin := filepath.Join(t.TempDir(), "spacewave")
-	cmd := exec.CommandContext(ctx, "go", "build", "-tags", "skip_e2e", "-o", bin, "./cmd/spacewave")
+	binDir := t.TempDir()
+	cmd := exec.CommandContext(ctx, "go", "install", "-tags", "skip_e2e", "./cmd/spacewave")
 	cmd.Dir = repoRoot
-	cmd.Env = os.Environ()
+	cmd.Env = append(os.Environ(), "GOBIN="+binDir)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		t.Fatalf("build spacewave CLI: %v\n%s", err, out)
+		t.Fatalf("install spacewave CLI: %v\n%s", err, out)
 	}
-	return bin
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	installedPath, err := exec.LookPath("spacewave")
+	if err != nil {
+		t.Fatalf("installed spacewave command not found on PATH: %v", err)
+	}
+	if filepath.Dir(installedPath) != binDir {
+		t.Fatalf("spacewave command resolved to %q, want temp install dir %q", installedPath, binDir)
+	}
 }
 
 func runSpacewaveStatus(
 	ctx context.Context,
-	bin string,
 	repoRoot string,
 	socketPath string,
 ) (string, string, error) {
 	cmd := exec.CommandContext(
 		ctx,
-		bin,
+		"spacewave",
 		"--output",
 		"json",
 		"status",

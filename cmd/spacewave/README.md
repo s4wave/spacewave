@@ -76,6 +76,12 @@ plain `serve` fails instead of taking it over; use `serve --takeover` only when
 you intentionally want that runtime to yield. `start` runs the bus inline
 without a socket (for development and testing).
 
+In desktop builds, the Electron tray/menu-bar runtime also owns a daemon
+socket. Closing every renderer window leaves that runtime alive when
+tray-backed desktop presence is enabled, so installed CLI commands such as
+`spacewave status --socket-path <desktop-socket>` continue to connect until the
+user explicitly quits from the tray/menu or app.
+
 ### Auth
 
 Authentication, locking, and credential management.

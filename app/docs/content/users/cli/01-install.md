@@ -19,9 +19,11 @@ connection.
 ## What You Need
 
 - A modern macOS, Linux, or Windows machine.
-- The Spacewave desktop app installed and running, so the CLI has a session to
-  connect to. See [Install and Update](/docs/users/settings/install-and-update)
-  if you have not installed the desktop app yet.
+- The Spacewave desktop app installed and running, so the CLI has a local
+  runtime socket to connect to. The app window may be closed when the
+  tray/menu-bar runtime is still running. See
+  [Install and Update](/docs/users/settings/install-and-update) if you have
+  not installed the desktop app yet.
 
 The CLI is a single self-contained binary. There are no runtime dependencies.
 
@@ -63,10 +65,12 @@ After the install completes, open a new terminal and run:
 spacewave status
 ```
 
-You should see a status report describing the active session, the resolved
-socket path, and the connected client count. If `spacewave status` reports
-that it could not reach the desktop app, make sure the desktop app is open
-and the socket path matches the one shown on the
+You should see a status report describing the active session and the resolved
+socket path. If `spacewave status` reports that it could not reach the desktop
+app, make sure the desktop app is running. On macOS that can mean only the menu
+bar item is visible; on Windows it can mean only the notification-area icon is
+visible; on Linux it depends on the desktop environment's tray support. The
+socket path must match the one shown on the
 **Settings -> Command Line** page.
 
 ## Windows
@@ -96,10 +100,10 @@ is fine.
   picks up the updated PATH, or run the binary directly from its install
   location to confirm it is present.
 - **`status` reports the CLI cannot reach the desktop app.** Open the desktop
-  app, then open
-  **Settings -> Command Line** in the app to see the live socket path and
-  status. The page also shows the exact `spacewave status` command bound to
-  this session.
+  app, or confirm the tray/menu-bar runtime is still present after closing the
+  window. Then open **Settings -> Command Line** in the app to see the live
+  socket path and status. The page also shows the exact `spacewave status`
+  command bound to this session.
 - **Multiple machines.** Install the CLI on every machine you want to script
   from. Each install talks to the desktop app running on that same machine.
 

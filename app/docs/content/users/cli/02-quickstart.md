@@ -18,8 +18,10 @@ If you have not installed the CLI yet, start with
 ## Before You Start
 
 - Open the desktop app and pick the session you want the CLI to act as.
-- Leave the desktop app running. The CLI talks to its session over a local
-  socket, so the app must be live.
+- Leave the desktop runtime running. The CLI talks to its session over a local
+  socket, so the runtime must be live. With tray-backed desktop presence, the
+  main window can be closed while the menu-bar or notification-area runtime
+  continues serving CLI connections.
 - The desktop app's
   **Settings -> Command Line** page shows the same commands bound to your
   active session, with copy buttons. Use that page if you want to skip
@@ -34,9 +36,9 @@ spacewave status
 This prints a single status report: the resolved socket path, the active
 session index, the lock state, and the number of spaces in this session.
 
-If `status` errors out, the CLI could not reach the desktop app. Open the
-**Settings -> Command Line** page in the desktop app and confirm the socket
-shows as **Ready**.
+If `status` errors out, the CLI could not reach the desktop runtime. Open the
+window from the tray/menu-bar item, then open **Settings -> Command Line** and
+confirm the socket shows as **Ready**.
 
 ## Step 2: Who Am I
 

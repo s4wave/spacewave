@@ -39,6 +39,13 @@ Electron main owns the generic desktop runtime Resource SDK tree in `bldr/web/el
 
 Electron main preserves `mainWindowOpen` and `quitting` when `SetDesktopState` publishes runtime projection. This prevents background status publishers from accidentally reopening or un-quitting the app.
 
+The root resource is registered as an Electron main Resource SDK server
+extension. Tray consumers, projectors, and command handlers all enter through
+that resource tree instead of reaching into BrowserWindow state. This keeps the
+desktop daemon console process-lifetime scoped: renderer windows can come and
+go while `WatchDesktopState`, tray entries, and CLI listener status remain
+available in Electron main.
+
 ## Projection Flow
 
 Spacewave-specific interpretation lives in `core/resource/desktop/statusprojector`. The projector connects to the Electron-main Resource SDK tree through `ConnectDesktopRuntimeResourceClient`, accesses the root resource, and publishes `DesktopRuntimeState` with `SetDesktopState`.
@@ -110,5 +117,13 @@ The opt-in Electron e2e suite is heavier and only runs when enabled:
 ```bash
 ENABLE_E2E_ELECTRON=true GOFLAGS=-mod=mod go test -count=1 ./e2e/electron
 ```
+
+`TestDesktopDaemonConsoleKeepsCLIReachableWithoutWindows` installs
+`./cmd/spacewave` into a temporary `GOBIN`, invokes the command by name through
+`PATH`, closes every Electron renderer page, and runs
+`spacewave --output json status --socket-path <desktop-socket>`. The expected
+result is a running JSON status report containing the desktop socket path. This
+is the CLI-level proof that the installed command talks to the tray-backed
+runtime without an open window.
 
 For projector issues, inspect the status projector tests first. For native menu issues, inspect `desktop-tray.test.ts` before starting a full desktop harness.
