@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { analyzeManifest } from './build.js'
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
+import { analyzeManifest, buildConfig } from './build.js'
 import { promises as fs } from 'fs'
 import path from 'path'
 import os from 'os'
@@ -37,6 +37,19 @@ describe('Vite Build - Transitive Dependency Tracking', () => {
   })
 
   describe('analyzeManifest', () => {
+    it('does not write to stderr for missing optional config files', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      try {
+        await buildConfig(
+          { mode: 'development', command: 'build' },
+          path.join(testDir, 'missing-vite.config.ts'),
+        )
+        expect(warn).not.toHaveBeenCalled()
+      } finally {
+        warn.mockRestore()
+      }
+    })
+
     it('should track all transitive dependencies in chunk moduleIds', async () => {
       // Create a mock manifest
       const manifest = {
@@ -374,7 +387,14 @@ describe('Vite Build - Transitive Dependency Tracking', () => {
 
       expect(entryA.inputs).toContain('A.tsx')
       expect(entryA.inputs).toContain(
-        path.join('node_modules', '@aptre', 'it-ws', 'dist', 'src', 'duplex.js'),
+        path.join(
+          'node_modules',
+          '@aptre',
+          'it-ws',
+          'dist',
+          'src',
+          'duplex.js',
+        ),
       )
       expect(entryA.inputs).not.toContain(
         '../../../../../../../../node_modules/@aptre/it-ws/dist/src/duplex.js',
@@ -432,7 +452,6 @@ describe('Vite Build - Transitive Dependency Tracking', () => {
       // Note: This will actually run Vite build, which requires proper setup
       // For now, we'll test the analysis part with mocked data
       // In a real scenario, you'd need a complete vite setup
-
       // TODO: Add full integration test that actually runs Vite build
       // and verifies the complete flow including transitive dependencies
     })

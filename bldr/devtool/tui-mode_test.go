@@ -99,6 +99,40 @@ func TestDevtoolArgsBuildFlagsIncludesNoTUI(t *testing.T) {
 	t.Fatal("expected no-tui flag")
 }
 
+func TestDevtoolArgsWriteBannerSkipsTUI(t *testing.T) {
+	args := NewDevtoolArgs()
+	args.terminalDetector = func() bool { return true }
+
+	err := args.runStatusCommand(context.Background(), func(ctx context.Context) error {
+		var out bytes.Buffer
+		args.writeBannerTo(&out)
+		if out.Len() != 0 {
+			t.Fatalf("expected tui mode to suppress banner output, got %q", out.String())
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestDevtoolArgsWriteBannerUsesPlainMode(t *testing.T) {
+	args := NewDevtoolArgs()
+	args.terminalDetector = func() bool { return false }
+
+	err := args.runStatusCommand(context.Background(), func(ctx context.Context) error {
+		var out bytes.Buffer
+		args.writeBannerTo(&out)
+		if !strings.Contains(out.String(), "Welcome, user") {
+			t.Fatalf("expected plain mode banner output, got %q", out.String())
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestDevtoolArgsInitRepoRootRoutesConsoleLogsToFileInTUIMode(t *testing.T) {
 	dir := t.TempDir()
 	logPath := filepath.Join(dir, "logs", "devtool.log")

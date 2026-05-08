@@ -66,8 +66,9 @@ func TestBuildDevtoolTUIDashboardElementIncludesDashboardPanes(t *testing.T) {
 		"Controllers",
 		"Recent Errors / Attention",
 		"Controls",
-		"current: start web running",
-		"health: running=1 requested=0 errored=0 unknown=0",
+		"progress: [====>-------------] 4 active",
+		"now: start web running",
+		"health: running 1 | waiting 0 | errored 0 | unknown 0",
 		"start web",
 		"browser/wasm",
 		"port already in use",
@@ -161,10 +162,11 @@ func TestBuildDevtoolTUIDashboardElementPolishesStatusDetails(t *testing.T) {
 
 	text := collectDevtoolTUIText(BuildDevtoolTUIDashboardElement(snapshot))
 	for _, want := range []string{
-		"current: build running | fetch alpha queued | fetch zeta running | build zeta running | +2 more",
+		"progress: [====>-------------] 6 active",
+		"now: build running | fetch alpha queued | fetch zeta running | build zeta running | +2 more",
 		"log: .bldr/logs/20260508.log",
 		"logs: .bldr/logs/20260508.log",
-		"health: running=1 requested=0 errored=1 unknown=0",
+		"health: running 1 | waiting 0 | errored 1 | unknown 0",
 		"manifest dependency changed: core",
 		"7",
 		"download plugin manifest: copy failed",
@@ -177,6 +179,52 @@ func TestBuildDevtoolTUIDashboardElementPolishesStatusDetails(t *testing.T) {
 
 	assertTextOrder(t, text, "alpha", "zeta")
 	assertTextOrder(t, text, "plugin needs attention", "slow rebuild")
+}
+
+func TestBuildDevtoolTUIDashboardElementAnimatesProgressBar(t *testing.T) {
+	snapshot := devtool_status.NewBldrDevtoolStatus(
+		devtool_status.BldrDevtoolCommandStatus{
+			Name:  "build",
+			State: devtool_status.BldrDevtoolCommandStateRunning,
+		},
+		nil,
+		[]devtool_status.BldrDevtoolManifestBuildRow{{
+			ID:           "build:web",
+			BuildTargets: "web",
+			State:        devtool_status.BldrDevtoolManifestStateRunning,
+		}},
+		nil,
+		nil,
+		nil,
+	)
+
+	first := collectDevtoolTUIText(buildDevtoolTUIDashboardElement(snapshot, 0))
+	second := collectDevtoolTUIText(buildDevtoolTUIDashboardElement(snapshot, 3))
+	text := first + second
+	for _, want := range []string{
+		"progress: [====>-------------] 2 active",
+		"progress: [---====>----------] 2 active",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("dashboard text missing progress frame %q:\n%s", want, text)
+		}
+	}
+
+	done := devtool_status.NewBldrDevtoolStatus(
+		devtool_status.BldrDevtoolCommandStatus{
+			Name:  "build",
+			State: devtool_status.BldrDevtoolCommandStateDone,
+		},
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+	)
+	doneText := collectDevtoolTUIText(buildDevtoolTUIDashboardElement(done, 3))
+	if !strings.Contains(doneText, "progress: [==================] done") {
+		t.Fatalf("dashboard text missing done progress:\n%s", doneText)
+	}
 }
 
 func TestBuildDevtoolTUIDashboardElementRendersLivePanes(t *testing.T) {
@@ -221,8 +269,8 @@ func TestBuildDevtoolTUIDashboardElementRendersLivePanes(t *testing.T) {
 	)
 
 	el := BuildDevtoolTUIDashboardElement(snapshot)
-	buf := tui.NewBuffer(140, 40)
-	el.Calculate(140, 40)
+	buf := tui.NewBuffer(140, 44)
+	el.Calculate(140, 44)
 	tui.RenderTree(buf, el)
 
 	text := collectDevtoolTUIBufferText(buf)
@@ -248,7 +296,8 @@ func TestBuildDevtoolTUIDashboardElementShowsEmptyStates(t *testing.T) {
 		"no plugins requested",
 		"no controller activity",
 		"no recent errors or attention",
-		"current: no active work",
+		"progress: [------------------] idle",
+		"now: no active work",
 		"q: quit",
 		".bldr/logs",
 	} {

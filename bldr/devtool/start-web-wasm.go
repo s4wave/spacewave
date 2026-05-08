@@ -89,6 +89,7 @@ func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) (err error) {
 
 	buildType := bldr_manifest.BuildType(a.BuildType)
 	d.setCommandRunningWithLogFile("start web", "wasm web runtime active on "+a.WebListenAddr, commandLogFile)
+	a.writeBannerTo(os.Stderr)
 	return d.ExecuteWebWasm(
 		ctx,
 		repoRoot,
@@ -350,9 +351,6 @@ func (d *DevtoolBus) ExecuteWebWasm(
 
 		entrySrv.ServeHTTP(rw, req)
 	}
-
-	// write the banner
-	writeBanner()
 
 	le.Infof("listening on: %s", listenAddr)
 	server := &http.Server{Addr: listenAddr, Handler: http.HandlerFunc(serveFn), ReadHeaderTimeout: time.Second * 30}

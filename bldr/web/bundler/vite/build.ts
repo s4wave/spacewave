@@ -1,5 +1,12 @@
 import { loadConfigFromFile, mergeConfig, build as viteBuild } from 'vite'
-import type { InlineConfig, Rollup, UserConfig } from 'vite'
+import type {
+  InlineConfig,
+  LogErrorOptions,
+  LogOptions,
+  Logger,
+  Rollup,
+  UserConfig,
+} from 'vite'
 import { existsSync } from 'node:fs'
 import { promises as fs } from 'node:fs'
 import path from 'path'
@@ -29,17 +36,49 @@ export function isRollupError(err: unknown): err is Rollup.RollupError {
   )
 }
 
+export function createSilentViteLogger(): Logger {
+  return {
+    hasWarned: false,
+    info(msg: string, options?: LogOptions): void {
+      void msg
+      void options
+    },
+    warn(_msg: string, _options?: LogOptions): void {
+      this.hasWarned = true
+    },
+    warnOnce(_msg: string, _options?: LogOptions): void {
+      this.hasWarned = true
+    },
+    error(msg: string, options?: LogErrorOptions): void {
+      void msg
+      void options
+    },
+    clearScreen(type: 'error' | 'warn' | 'info'): void {
+      void type
+    },
+    hasErrorLogged(error: Error | Rollup.RollupError): boolean {
+      void error
+      return false
+    },
+  }
+}
+
 // Load and merge configuration from a specified path if it exists
 async function loadOptionalConfig(
   configEnv: ConfigEnv,
   configPath: string,
 ): Promise<UserConfig | null> {
   if (!existsSync(configPath)) {
-    console.warn('[vite] ignoring not-existing config file: ' + configPath)
     return null
   }
 
-  const loadedConfig = await loadConfigFromFile(configEnv, configPath)
+  const loadedConfig = await loadConfigFromFile(
+    configEnv,
+    configPath,
+    undefined,
+    'silent',
+    createSilentViteLogger(),
+  )
   return loadedConfig?.config || null
 }
 
@@ -383,18 +422,14 @@ export async function runBuild(
   configFile: string,
   mode: string = 'development',
 ) {
-  try {
-    return await viteBuild({
-      configFile,
-      mode,
-      build: {
-        watch: null,
-      },
-    })
-  } catch (e) {
-    console.error(e)
-    throw e
-  }
+  return await viteBuild({
+    configFile,
+    customLogger: createSilentViteLogger(),
+    mode,
+    build: {
+      watch: null,
+    },
+  })
 }
 
 // Build and analyze the output
@@ -409,6 +444,7 @@ export async function buildAndAnalyze(
       watch: null,
     },
     ...config,
+    customLogger: config.customLogger ?? createSilentViteLogger(),
   }
 
   const viteOutput = (await viteBuild(buildOptions)) as

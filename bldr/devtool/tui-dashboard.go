@@ -14,6 +14,10 @@ import (
 
 // BuildDevtoolTUIDashboardElement constructs the static Bldr devtool dashboard tree.
 func BuildDevtoolTUIDashboardElement(snapshot *devtool_status.BldrDevtoolStatus) *tui.Element {
+	return buildDevtoolTUIDashboardElement(snapshot, 0)
+}
+
+func buildDevtoolTUIDashboardElement(snapshot *devtool_status.BldrDevtoolStatus, frame int) *tui.Element {
 	if snapshot == nil {
 		snapshot = devtool_status.EmptyBldrDevtoolStatus()
 	}
@@ -24,7 +28,7 @@ func BuildDevtoolTUIDashboardElement(snapshot *devtool_status.BldrDevtoolStatus)
 		tui.WithGap(1),
 		tui.WithTextStyle(tui.NewStyle().Foreground(tui.White)),
 	)
-	root.AddChild(buildDevtoolTUICommandHeader(snapshot))
+	root.AddChild(buildDevtoolTUICommandHeader(snapshot, frame))
 
 	body := tui.New(
 		tui.WithDisplay(tui.DisplayFlex),
@@ -41,13 +45,16 @@ func BuildDevtoolTUIDashboardElement(snapshot *devtool_status.BldrDevtoolStatus)
 	return root
 }
 
-func buildDevtoolTUICommandHeader(snapshot *devtool_status.BldrDevtoolStatus) *tui.Element {
+func buildDevtoolTUICommandHeader(snapshot *devtool_status.BldrDevtoolStatus, frame int) *tui.Element {
 	command := snapshot.GetCommand()
+	stateText := command.State.String()
+	if command.Name != "" {
+		stateText = command.Name + " " + stateText
+	}
 	lines := []string{
 		"bldr devtool",
-		"command: " + emptyDash(command.Name) +
-			"  state: " + command.State.String() +
-			"  manifests: " + strconv.Itoa(len(snapshot.GetManifestFetchRows())) +
+		stateText + "  progress: " + devtoolTUIProgressText(snapshot, frame),
+		"manifests: " + strconv.Itoa(len(snapshot.GetManifestFetchRows())) +
 			" fetch / " + strconv.Itoa(len(snapshot.GetManifestBuildRows())) +
 			" build  plugins: " + strconv.Itoa(len(snapshot.GetPluginRows())) +
 			"  attention: " + strconv.Itoa(len(snapshot.GetAttentionRows())),
@@ -56,7 +63,7 @@ func buildDevtoolTUICommandHeader(snapshot *devtool_status.BldrDevtoolStatus) *t
 		lines = append(lines, "summary: "+cleanTUIText(command.Summary))
 	}
 	if current := currentDevtoolTUIWorkText(snapshot); current != "" {
-		lines = append(lines, "current: "+current)
+		lines = append(lines, "now: "+current)
 	}
 	if command.LogFile != "" {
 		lines = append(lines, "log: "+compactDevtoolTUILogFile(command.LogFile))
@@ -74,15 +81,8 @@ func buildDevtoolTUIManifestPane(snapshot *devtool_status.BldrDevtoolStatus) *tu
 		lines = append(lines, "  no manifest fetches")
 	}
 	if len(fetchRows) > 0 {
-		lines = append(lines, "  state     manifest                platform       refs     summary")
 		for _, row := range fetchRows {
-			lines = append(lines, "  "+rowText(
-				tuiColumn{value: row.State.String(), width: 9},
-				tuiColumn{value: row.ManifestID, width: 22},
-				tuiColumn{value: row.PlatformID, width: 14},
-				tuiColumn{value: manifestFetchReadyText(row), width: 8},
-				tuiColumn{value: manifestFetchSummaryText(row), width: 42},
-			))
+			lines = append(lines, "  "+manifestFetchLineText(row))
 		}
 	}
 
@@ -92,17 +92,8 @@ func buildDevtoolTUIManifestPane(snapshot *devtool_status.BldrDevtoolStatus) *tu
 		lines = append(lines, "  no manifest builds")
 	}
 	if len(buildRows) > 0 {
-		lines = append(lines, "  state     target       platform       type     mode    watched reason/error")
 		for _, row := range buildRows {
-			lines = append(lines, "  "+rowText(
-				tuiColumn{value: row.State.String(), width: 9},
-				tuiColumn{value: firstNonEmpty(row.BuildTargets, row.ManifestID), width: 12},
-				tuiColumn{value: firstNonEmpty(row.PlatformID, row.TargetPlatformIDs), width: 14},
-				tuiColumn{value: row.BuildType, width: 8},
-				tuiColumn{value: manifestBuildModeText(row), width: 7},
-				tuiColumn{value: watchedFileCountText(row.WatchedFileCount), width: 7},
-				tuiColumn{value: manifestBuildReasonText(row), width: 34},
-			))
+			lines = append(lines, "  "+manifestBuildLineText(row))
 		}
 	}
 	return buildDevtoolTUIPanel("Manifest Fetch / Build", lines, tui.WithFlexGrow(2))
@@ -115,15 +106,8 @@ func buildDevtoolTUIPluginPane(snapshot *devtool_status.BldrDevtoolStatus) *tui.
 		lines = append(lines, "no plugins requested")
 	}
 	if len(rows) > 0 {
-		lines = append(lines, "state      health   plugin                         instance       summary")
 		for _, row := range rows {
-			lines = append(lines, rowText(
-				tuiColumn{value: row.State.String(), width: 10},
-				tuiColumn{value: pluginHealthText(row), width: 8},
-				tuiColumn{value: row.PluginID, width: 30},
-				tuiColumn{value: row.InstanceKey, width: 14},
-				tuiColumn{value: pluginSummaryText(row), width: 36},
-			))
+			lines = append(lines, pluginLineText(row))
 		}
 	}
 
@@ -133,14 +117,8 @@ func buildDevtoolTUIPluginPane(snapshot *devtool_status.BldrDevtoolStatus) *tui.
 		lines = append(lines, "no controller activity")
 	}
 	if len(controllerRows) > 0 {
-		lines = append(lines, "state      kind     controller                    summary")
 		for _, row := range controllerRows {
-			lines = append(lines, rowText(
-				tuiColumn{value: row.State.String(), width: 10},
-				tuiColumn{value: row.Kind, width: 8},
-				tuiColumn{value: row.ControllerID, width: 30},
-				tuiColumn{value: firstNonEmpty(row.Error, row.Summary), width: 36},
-			))
+			lines = append(lines, controllerLineText(row))
 		}
 	}
 	return buildDevtoolTUIPanel("Plugins / Controllers", lines, tui.WithFlexGrow(1))
@@ -247,6 +225,17 @@ func manifestFetchSummaryText(row devtool_status.BldrDevtoolManifestFetchRow) st
 	return row.Summary
 }
 
+func manifestFetchLineText(row devtool_status.BldrDevtoolManifestFetchRow) string {
+	return rowText(
+		tuiColumn{value: manifestStateMark(row.State), width: 2},
+		tuiColumn{value: row.State.String(), width: 8},
+		tuiColumn{value: firstNonEmpty(row.ManifestID, row.ID), width: 18},
+		tuiColumn{value: "@ " + emptyDash(row.PlatformID), width: 18},
+		tuiColumn{value: manifestFetchReadyText(row), width: 8},
+		tuiColumn{value: manifestFetchSummaryText(row), width: 46},
+	)
+}
+
 func manifestBuildModeText(row devtool_status.BldrDevtoolManifestBuildRow) string {
 	switch {
 	case row.CacheHit:
@@ -258,6 +247,18 @@ func manifestBuildModeText(row devtool_status.BldrDevtoolManifestBuildRow) strin
 	default:
 		return "-"
 	}
+}
+
+func manifestBuildLineText(row devtool_status.BldrDevtoolManifestBuildRow) string {
+	return rowText(
+		tuiColumn{value: manifestStateMark(row.State), width: 2},
+		tuiColumn{value: row.State.String(), width: 8},
+		tuiColumn{value: firstNonEmpty(row.BuildTargets, row.ManifestID, row.ID), width: 18},
+		tuiColumn{value: "@ " + emptyDash(firstNonEmpty(row.PlatformID, row.TargetPlatformIDs)), width: 18},
+		tuiColumn{value: firstNonEmpty(row.BuildType, "-") + "/" + manifestBuildModeText(row), width: 11},
+		tuiColumn{value: "watch " + watchedFileCountText(row.WatchedFileCount), width: 9},
+		tuiColumn{value: manifestBuildReasonText(row), width: 38},
+	)
 }
 
 func manifestBuildReasonText(row devtool_status.BldrDevtoolManifestBuildRow) string {
@@ -274,6 +275,23 @@ func manifestBuildReasonText(row devtool_status.BldrDevtoolManifestBuildRow) str
 		return firstNonEmpty(row.Summary, "full rebuild")
 	default:
 		return row.Summary
+	}
+}
+
+func manifestStateMark(state devtool_status.BldrDevtoolManifestState) string {
+	switch state {
+	case devtool_status.BldrDevtoolManifestStateQueued:
+		return "."
+	case devtool_status.BldrDevtoolManifestStateRunning:
+		return ">"
+	case devtool_status.BldrDevtoolManifestStateReady:
+		return "ok"
+	case devtool_status.BldrDevtoolManifestStateError:
+		return "!!"
+	case devtool_status.BldrDevtoolManifestStateCanceled:
+		return "xx"
+	default:
+		return "??"
 	}
 }
 
@@ -298,10 +316,10 @@ func pluginHealthSummaryText(rows []devtool_status.BldrDevtoolPluginRow) string 
 			unknown++
 		}
 	}
-	return "health: running=" + strconv.Itoa(running) +
-		" requested=" + strconv.Itoa(requested) +
-		" errored=" + strconv.Itoa(errored) +
-		" unknown=" + strconv.Itoa(unknown)
+	return "health: running " + strconv.Itoa(running) +
+		" | waiting " + strconv.Itoa(requested) +
+		" | errored " + strconv.Itoa(errored) +
+		" | unknown " + strconv.Itoa(unknown)
 }
 
 func pluginHealthText(row devtool_status.BldrDevtoolPluginRow) string {
@@ -325,7 +343,124 @@ func pluginSummaryText(row devtool_status.BldrDevtoolPluginRow) string {
 	return summary
 }
 
+func pluginLineText(row devtool_status.BldrDevtoolPluginRow) string {
+	return rowText(
+		tuiColumn{value: pluginStateMark(row.State), width: 2},
+		tuiColumn{value: row.State.String(), width: 9},
+		tuiColumn{value: pluginHealthText(row), width: 8},
+		tuiColumn{value: pluginTargetText(row), width: 30},
+		tuiColumn{value: pluginSummaryText(row), width: 48},
+	)
+}
+
+func pluginStateMark(state devtool_status.BldrDevtoolPluginState) string {
+	switch state {
+	case devtool_status.BldrDevtoolPluginStateRequested:
+		return "."
+	case devtool_status.BldrDevtoolPluginStateRunning:
+		return ">"
+	case devtool_status.BldrDevtoolPluginStateErrored:
+		return "!!"
+	default:
+		return "??"
+	}
+}
+
+func pluginTargetText(row devtool_status.BldrDevtoolPluginRow) string {
+	if row.InstanceKey == "" {
+		return row.PluginID
+	}
+	return row.PluginID + "/" + row.InstanceKey
+}
+
+func controllerLineText(row devtool_status.BldrDevtoolControllerRow) string {
+	return rowText(
+		tuiColumn{value: controllerStateMark(row.State), width: 2},
+		tuiColumn{value: row.State.String(), width: 9},
+		tuiColumn{value: row.Kind, width: 8},
+		tuiColumn{value: row.ControllerID, width: 30},
+		tuiColumn{value: firstNonEmpty(row.Error, row.Summary), width: 48},
+	)
+}
+
+func controllerStateMark(state devtool_status.BldrDevtoolControllerState) string {
+	switch state {
+	case devtool_status.BldrDevtoolControllerStateRequested:
+		return "."
+	case devtool_status.BldrDevtoolControllerStateRunning:
+		return ">"
+	case devtool_status.BldrDevtoolControllerStateIdle:
+		return "ok"
+	case devtool_status.BldrDevtoolControllerStateError:
+		return "!!"
+	default:
+		return "??"
+	}
+}
+
 func currentDevtoolTUIWorkText(snapshot *devtool_status.BldrDevtoolStatus) string {
+	entries := activeDevtoolTUIWorkEntries(snapshot)
+	if len(entries) == 0 {
+		return "no active work"
+	}
+	if len(entries) > 4 {
+		entries = append(entries[:4], "+"+strconv.Itoa(len(entries)-4)+" more")
+	}
+	return strings.Join(entries, " | ")
+}
+
+func devtoolTUIProgressText(snapshot *devtool_status.BldrDevtoolStatus, frame int) string {
+	command := snapshot.GetCommand()
+	if command.IsTerminal() {
+		return devtoolTUIProgressBar(command.State, frame, false) + " " + command.State.String()
+	}
+	entries := activeDevtoolTUIWorkEntries(snapshot)
+	state := command.State
+	bar := devtoolTUIProgressBar(state, frame, len(entries) > 0)
+	if len(entries) > 0 {
+		return bar + " " + strconv.Itoa(len(entries)) + " active"
+	}
+	return bar + " idle"
+}
+
+func devtoolTUIProgressBar(
+	state devtool_status.BldrDevtoolCommandState,
+	frame int,
+	active bool,
+) string {
+	const width = 18
+	const segment = 5
+
+	if state == devtool_status.BldrDevtoolCommandStateDone {
+		return "[" + strings.Repeat("=", width) + "]"
+	}
+	if state == devtool_status.BldrDevtoolCommandStateError {
+		return "[" + strings.Repeat("!", width) + "]"
+	}
+	if !active {
+		return "[" + strings.Repeat("-", width) + "]"
+	}
+
+	span := width - segment + 1
+	start := max(frame%span, 0)
+	var b strings.Builder
+	b.WriteByte('[')
+	for idx := range width {
+		if idx >= start && idx < start+segment {
+			if idx == start+segment-1 {
+				b.WriteByte('>')
+				continue
+			}
+			b.WriteByte('=')
+			continue
+		}
+		b.WriteByte('-')
+	}
+	b.WriteByte(']')
+	return b.String()
+}
+
+func activeDevtoolTUIWorkEntries(snapshot *devtool_status.BldrDevtoolStatus) []string {
 	var entries []string
 	command := snapshot.GetCommand()
 	if command.Name != "" && !command.IsTerminal() {
@@ -355,13 +490,7 @@ func currentDevtoolTUIWorkText(snapshot *devtool_status.BldrDevtoolStatus) strin
 			entries = append(entries, "controller "+firstNonEmpty(row.ControllerID, row.ID)+" "+row.State.String())
 		}
 	}
-	if len(entries) == 0 {
-		return "no active work"
-	}
-	if len(entries) > 4 {
-		entries = append(entries[:4], "+"+strconv.Itoa(len(entries)-4)+" more")
-	}
-	return strings.Join(entries, " | ")
+	return entries
 }
 
 func attentionSourceText(kind, id string) string {

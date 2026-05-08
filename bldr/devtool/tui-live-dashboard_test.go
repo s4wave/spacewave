@@ -36,7 +36,7 @@ func TestBldrDevtoolTUIDashboardWatchesStatusChannel(t *testing.T) {
 	statusCh := make(chan *devtool_status.BldrDevtoolStatus)
 	dashboard := NewBldrDevtoolTUIDashboard(initial, statusCh)
 	watchers := dashboard.Watchers()
-	if len(watchers) != 1 {
+	if len(watchers) != 2 {
 		t.Fatalf("expected status watcher, got %d", len(watchers))
 	}
 	eventQueue := make(chan func(), 1)
@@ -61,6 +61,30 @@ func TestBldrDevtoolTUIDashboardWatchesStatusChannel(t *testing.T) {
 	text := collectDevtoolTUIText(dashboard.Render(nil))
 	if !strings.Contains(text, "web runtime active") {
 		t.Fatalf("expected updated dashboard text, got:\n%s", text)
+	}
+}
+
+func TestBldrDevtoolTUIDashboardAdvancesProgressFrame(t *testing.T) {
+	initial := devtool_status.NewBldrDevtoolStatus(
+		devtool_status.BldrDevtoolCommandStatus{
+			Name:  "build",
+			State: devtool_status.BldrDevtoolCommandStateRunning,
+		},
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+	)
+	dashboard := NewBldrDevtoolTUIDashboard(initial, nil)
+	before := collectDevtoolTUIText(dashboard.Render(nil))
+	dashboard.advanceFrame()
+	after := collectDevtoolTUIText(dashboard.Render(nil))
+	if !strings.Contains(before, "progress: [====>-------------] 1 active") {
+		t.Fatalf("expected initial progress frame, got:\n%s", before)
+	}
+	if !strings.Contains(after, "progress: [-====>------------] 1 active") {
+		t.Fatalf("expected advanced progress frame, got:\n%s", after)
 	}
 }
 

@@ -4,6 +4,7 @@ package devtool
 
 import (
 	"context"
+	"os"
 	"strings"
 
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
@@ -44,7 +45,7 @@ func (a *DevtoolArgs) BuildProject(ctx context.Context) (err error) {
 	}
 
 	// write the banner
-	writeBanner()
+	a.writeBannerTo(os.Stderr)
 
 	// execute the project controller
 	// compiles the plugins and stores them in the devtool bus world

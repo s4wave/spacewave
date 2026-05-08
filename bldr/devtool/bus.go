@@ -395,10 +395,16 @@ func (d *DevtoolBus) SyncDistSources(bldrVersion, bldrSum, bldrSrcPath string) e
 		le.Infof("bldr sources: running go mod %s", cmd)
 		goVendorCmd := exec.NewCmd(ctx, "go", "mod", cmd)
 		goVendorCmd.Dir = d.distSrcRoot
-		goVendorCmd.Stderr = os.Stderr
-		goVendorCmd.Stdout = os.Stderr
+		goModWriter := le.WriterLevel(logrus.DebugLevel)
+		goVendorCmd.Stderr = goModWriter
+		goVendorCmd.Stdout = goModWriter
 		goVendorCmd.Env = os.Environ()
-		return goVendorCmd.Run()
+		runErr := goVendorCmd.Run()
+		closeErr := goModWriter.Close()
+		if runErr != nil {
+			return runErr
+		}
+		return closeErr
 	}
 
 	// Read the live repo-root module files. In the monorepo layout, go.mod and

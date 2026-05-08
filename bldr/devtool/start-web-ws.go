@@ -65,7 +65,7 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) (err error) {
 	}
 
 	// write the banner
-	writeBanner()
+	a.writeBannerTo(os.Stderr)
 
 	// start the plugin storage volume
 	pluginVolumeID := bldr_plugin.PluginVolumeID
