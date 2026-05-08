@@ -47,6 +47,7 @@ type browserReleaseShellAssets struct {
 type harness struct {
 	artifactDir string
 	baseURL     string
+	browserName string
 	server      *http.Server
 	pw          *playwright.Playwright
 	browser     playwright.Browser
@@ -95,9 +96,14 @@ func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 	}
 	baseURL := "http://127.0.0.1:" + port
 	artifactDir := filepath.Join(repoRoot, ".bldr", "e2e-releasewasm", "artifacts")
+	browserName, err := releaseWasmBrowserName()
+	if err != nil {
+		return nil, err
+	}
 	h := &harness{
 		artifactDir: artifactDir,
 		baseURL:     baseURL,
+		browserName: browserName,
 	}
 	defer func() {
 		if retErr != nil {
@@ -119,9 +125,9 @@ func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 		return nil, errors.Wrap(err, "wait for release server")
 	}
 
-	le.Info("installing playwright chromium driver")
+	le.WithField("browser", browserName).Info("installing playwright driver")
 	if err := playwright.Install(&playwright.RunOptions{
-		Browsers: []string{"chromium"},
+		Browsers: []string{browserName},
 		Stdout:   os.Stdout,
 		Stderr:   os.Stderr,
 	}); err != nil {
@@ -134,15 +140,23 @@ func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 	}
 	h.pw = pw
 
-	browser, err := pw.Chromium.Launch(playwright.BrowserTypeLaunchOptions{
+	browserType, err := playwrightBrowserType(pw, browserName)
+	if err != nil {
+		return nil, err
+	}
+
+	launchOpts := playwright.BrowserTypeLaunchOptions{
 		Headless: new(true),
-		Args: []string{
+	}
+	if browserName == "chromium" {
+		launchOpts.Args = []string{
 			"--allow-loopback-in-peer-connection",
 			"--disable-features=WebRtcHideLocalIpsWithMdns",
-		},
-	})
+		}
+	}
+	browser, err := browserType.Launch(launchOpts)
 	if err != nil {
-		return nil, errors.Wrap(err, "launch chromium")
+		return nil, errors.Wrapf(err, "launch %s", browserName)
 	}
 	h.browser = browser
 
@@ -150,6 +164,33 @@ func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 }
 
 func (h *harness) getBaseURL() string { return h.baseURL }
+
+func releaseWasmBrowserName() (string, error) {
+	name := strings.ToLower(strings.TrimSpace(os.Getenv("E2E_RELEASE_WASM_BROWSER")))
+	switch name {
+	case "", "chromium":
+		return "chromium", nil
+	case "firefox":
+		return "firefox", nil
+	case "webkit":
+		return "webkit", nil
+	default:
+		return "", errors.Errorf("unsupported E2E_RELEASE_WASM_BROWSER %q", name)
+	}
+}
+
+func playwrightBrowserType(pw *playwright.Playwright, browserName string) (playwright.BrowserType, error) {
+	switch browserName {
+	case "chromium":
+		return pw.Chromium, nil
+	case "firefox":
+		return pw.Firefox, nil
+	case "webkit":
+		return pw.WebKit, nil
+	default:
+		return nil, errors.Errorf("unsupported E2E_RELEASE_WASM_BROWSER %q", browserName)
+	}
+}
 
 func (h *harness) quickstartSmokeArtifactPath(t testing.TB) string {
 	t.Helper()

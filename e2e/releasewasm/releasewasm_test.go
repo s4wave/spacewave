@@ -336,6 +336,62 @@ func collectQuickstartSmokeArtifact(
 ) ([]byte, error) {
 	raw, err := page.Evaluate(`async (args) => {
 		const startupPrefix = 'spacewave.startup.'
+		const roundMs = (value) =>
+			typeof value === 'number' && Number.isFinite(value) ?
+				Math.round(value * 1000) / 1000
+			: null
+		const stableAliases = new Map()
+		const stableAlias = (kind, value) => {
+			if (typeof value !== 'string' || value === '') return value ?? null
+			const existingAliases = stableAliases.get(kind)
+			const aliases = existingAliases ?? new Map()
+			if (!existingAliases) {
+				stableAliases.set(kind, aliases)
+			}
+			const existingAlias = aliases.get(value)
+			if (existingAlias) {
+				return existingAlias
+			}
+			const alias = kind + '-' + (aliases.size + 1)
+			aliases.set(value, alias)
+			return alias
+		}
+		const normalizeDetailValue = (key, value) => {
+			if (key === 'documentId') return stableAlias('document', value)
+			if (key === 'from') return stableAlias('sender', value)
+			if (key === 'path') return stableAlias('asset-path', value)
+			if (key === 'workerId') return stableAlias('worker', value)
+			if (Array.isArray(value)) {
+				return value.map((item) => normalizeDetailValue(key, item))
+			}
+			if (value && typeof value === 'object') {
+				return Object.fromEntries(
+					Object.keys(value)
+						.sort()
+						.map((childKey) => [
+							childKey,
+							normalizeDetailValue(childKey, value[childKey]),
+						]),
+				)
+			}
+			return value ?? null
+		}
+		const normalizeDetail = (detail) => {
+			if (!detail || typeof detail !== 'object') return null
+			return Object.fromEntries(
+				Object.keys(detail)
+					.sort()
+					.map((key) => [key, normalizeDetailValue(key, detail[key])]),
+			)
+		}
+		const detectBrowserFamily = () => {
+			const ua = navigator.userAgent
+			if (ua.includes('Firefox/')) return 'firefox'
+			if (ua.includes('Edg/')) return 'edge'
+			if (ua.includes('Chrome/') || ua.includes('Chromium/')) return 'chromium'
+			if (ua.includes('Safari/')) return 'webkit'
+			return 'unknown'
+		}
 		const detectWorkerComms = async () => {
 			const caps = {
 				crossOriginIsolated: !!globalThis.crossOriginIsolated,
@@ -371,13 +427,34 @@ func collectQuickstartSmokeArtifact(
 		const startupMarks = performance
 			.getEntriesByType('mark')
 			.filter((entry) => entry.name.startsWith(startupPrefix))
-			.map((entry) => ({
-				name: entry.name,
-				label: entry.name.slice(startupPrefix.length),
-				startTimeMs: Math.round(entry.startTime),
-				detail: entry.detail ?? null,
-			}))
-			.sort((a, b) => a.startTimeMs - b.startTimeMs)
+			.map((entry, index) => {
+				const detail = normalizeDetail(entry.detail)
+				return {
+					name: entry.name,
+					label: entry.name.slice(startupPrefix.length),
+					startTimeMs: roundMs(entry.startTime),
+					collectionOrdinal: index + 1,
+					sequence:
+						typeof detail?.sequence === 'number' ? detail.sequence : null,
+					detail,
+					_sortStartTimeMs: entry.startTime,
+				}
+			})
+			.sort(
+				(a, b) =>
+					a._sortStartTimeMs - b._sortStartTimeMs ||
+					(a.sequence ?? Number.MAX_SAFE_INTEGER) -
+						(b.sequence ?? Number.MAX_SAFE_INTEGER) ||
+					a.collectionOrdinal - b.collectionOrdinal ||
+					a.name.localeCompare(b.name),
+			)
+			.map((mark, index) => {
+				const { _sortStartTimeMs: _, ...stableMark } = mark
+				return {
+					...stableMark,
+					timelineOrdinal: index + 1,
+				}
+			})
 		const labels = new Set(startupMarks.map((mark) => mark.label))
 		const expectedStartupMarks = [
 			'shell.entrypoint-loaded',
@@ -425,16 +502,17 @@ func collectQuickstartSmokeArtifact(
 		const navigation =
 			nav ?
 				{
-					startTimeMs: Math.round(nav.startTime),
-					responseEndMs: Math.round(nav.responseEnd),
-					domInteractiveMs: Math.round(nav.domInteractive),
-					domContentLoadedEventEndMs: Math.round(nav.domContentLoadedEventEnd),
-					loadEventEndMs: Math.round(nav.loadEventEnd),
+					type: nav.type,
+					startTimeMs: roundMs(nav.startTime),
+					responseEndMs: roundMs(nav.responseEnd),
+					domInteractiveMs: roundMs(nav.domInteractive),
+					domContentLoadedEventEndMs: roundMs(nav.domContentLoadedEventEnd),
+					loadEventEndMs: roundMs(nav.loadEventEnd),
 				}
 			: null
 		const paint = performance.getEntriesByType('paint').map((entry) => ({
 			name: entry.name,
-			startTimeMs: Math.round(entry.startTime),
+			startTimeMs: roundMs(entry.startTime),
 		}))
 		const brands =
 			navigator.userAgentData?.brands?.map((brand) => ({
@@ -559,7 +637,7 @@ func collectQuickstartSmokeArtifact(
 				)
 			: null
 		const artifact = {
-			schemaVersion: 1,
+			schemaVersion: 2,
 			scenario: 'quickstart-drive-production-smoke',
 			collectedAt: new Date().toISOString(),
 			baseURL: args.baseURL,
@@ -567,9 +645,14 @@ func collectQuickstartSmokeArtifact(
 			release: args.release,
 			source: args.source,
 			browser: {
-				family: 'chromium',
+				family: detectBrowserFamily(),
+				harnessName: args.browserName,
 				userAgent: navigator.userAgent,
 				brands,
+			},
+			page: {
+				visibilityState: document.visibilityState,
+				focused: document.hasFocus(),
 			},
 			workerComms: await detectWorkerComms(),
 			storage: {
@@ -583,12 +666,28 @@ func collectQuickstartSmokeArtifact(
 				estimate: storageEstimate,
 			},
 			timing: {
-				browserNowMs: Math.round(performance.now()),
+				browserNowMs: roundMs(performance.now()),
 				driveShellVisibleMs: args.driveShellVisibleMs,
 				driveReadyMs: args.driveReadyMs,
 				quickstart: quickstartTiming,
 				navigation,
 				paint,
+			},
+			timeline: {
+				base: 'navigation.startTimeMs',
+				unit: 'ms',
+				ordering: [
+					'performance.mark.startTime',
+					'detail.sequence',
+					'collectionOrdinal',
+					'name',
+				],
+				normalizedVolatileDetailFields: [
+					'documentId',
+					'from',
+					'path',
+					'workerId',
+				],
 			},
 			readiness: {
 				frameReadyMs: args.driveShellVisibleMs,
@@ -615,6 +714,7 @@ func collectQuickstartSmokeArtifact(
 		return JSON.stringify(artifact, null, 2)
 	}`, map[string]any{
 		"baseURL":             testHarness.getBaseURL(),
+		"browserName":         testHarness.browserName,
 		"driveShellVisibleMs": driveShellVisibleMs,
 		"driveReadyMs":        driveReadyMs,
 		"release": map[string]any{
