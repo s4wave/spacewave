@@ -292,6 +292,84 @@ func TestCollectStartupManifestsSkipsUnavailableBucketRef(t *testing.T) {
 	}
 }
 
+func TestCollectStartupManifestsForManifestIDNarrowsLabelsAndKeepsLegacyEmpty(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const storeKey = "plugin-host"
+	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	exactRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 7)
+	const exactRefKey = "plugin-host/ref/exact"
+	storeTestManifestRefObject(t, ctx, ws, exactRefKey, exactRef)
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, exactRefKey, "spacewave-web")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	legacyRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 5)
+	const legacyRefKey = "plugin-host/ref/legacy-empty"
+	storeTestManifestRefObject(t, ctx, ws, legacyRefKey, legacyRef)
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, legacyRefKey, "")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	unrelatedRef := createTestManifestRef(t, ctx, tb, "other-plugin", "js", 11)
+	unrelatedRef.ManifestRef.RootRef.Hash.Hash[0] ^= 0xff
+	const unrelatedRefKey = "plugin-host/ref/unrelated"
+	storeTestManifestRefObject(t, ctx, ws, unrelatedRefKey, unrelatedRef)
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, unrelatedRefKey, "other-plugin")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	got, errs, err := CollectStartupManifestsForManifestID(
+		ctx,
+		ws,
+		"spacewave-web",
+		[]string{"js"},
+		storeKey,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(errs) != 0 {
+		t.Fatalf("manifest errors = %v", errs)
+	}
+	if len(got) != 2 {
+		t.Fatalf("manifest count = %d", len(got))
+	}
+	if got[0].GetRev() != 7 {
+		t.Fatalf("exact manifest rev = %d", got[0].GetRev())
+	}
+	if got[1].GetRev() != 5 {
+		t.Fatalf("legacy manifest rev = %d", got[1].GetRev())
+	}
+	if !got[0].ManifestRef.EqualVT(exactRef.GetManifestRef()) {
+		t.Fatalf("exact manifest ref was not preserved")
+	}
+	if !got[1].ManifestRef.EqualVT(legacyRef.GetManifestRef()) {
+		t.Fatalf("legacy manifest ref was not preserved")
+	}
+}
+
 func TestStartupManifestSkipErrorIncludesBucketDiagnostics(t *testing.T) {
 	err := newStartupManifestSkipError(
 		"plugin-host/ref/missing-bucket",

@@ -208,6 +208,102 @@ func ListManifestCandidates(ctx context.Context, w world.WorldState, startObjKey
 	)
 }
 
+// ListStartupManifestCandidatesWithID lists startup manifest candidates for a manifest ID.
+//
+// Exact-label edges are followed before legacy empty-label edges at each
+// recursion step. Empty-label edges remain eligible for retained worlds written
+// before manifest labels were persisted.
+func ListStartupManifestCandidatesWithID(ctx context.Context, w world.WorldState, manifestID string, startObjKeys ...string) ([]string, error) {
+	if manifestID == "" {
+		return ListManifestCandidates(ctx, w, startObjKeys...)
+	}
+	return listManifestCandidatesByLabels(ctx, w, []string{
+		quad.IRI(manifestID).String(),
+		"",
+	}, startObjKeys...)
+}
+
+func listManifestCandidatesByLabels(
+	ctx context.Context,
+	w world.WorldState,
+	labels []string,
+	startObjKeys ...string,
+) ([]string, error) {
+	if len(startObjKeys) == 0 {
+		return nil, nil
+	}
+
+	queued := make(map[string]struct{}, len(startObjKeys))
+	frontier := make([]string, 0, len(startObjKeys))
+	for _, objKey := range startObjKeys {
+		if objKey == "" {
+			continue
+		}
+		if _, ok := queued[objKey]; ok {
+			continue
+		}
+		queued[objKey] = struct{}{}
+		frontier = append(frontier, objKey)
+	}
+
+	var output []string
+	outputSeen := make(map[string]struct{})
+	for depth := 0; depth < 50 && len(frontier) != 0; depth++ {
+		var next []string
+		for _, objKey := range frontier {
+			for _, label := range labels {
+				linkedKeys, err := listManifestCandidateEdgesWithLabel(ctx, w, objKey, label)
+				if err != nil {
+					return nil, err
+				}
+				for _, linkedKey := range linkedKeys {
+					if _, ok := outputSeen[linkedKey]; !ok {
+						outputSeen[linkedKey] = struct{}{}
+						output = append(output, linkedKey)
+					}
+					if _, ok := queued[linkedKey]; ok {
+						continue
+					}
+					queued[linkedKey] = struct{}{}
+					next = append(next, linkedKey)
+				}
+			}
+		}
+		frontier = next
+	}
+	return output, nil
+}
+
+func listManifestCandidateEdgesWithLabel(
+	ctx context.Context,
+	w world.WorldState,
+	objKey string,
+	label string,
+) ([]string, error) {
+	quads, err := w.LookupGraphQuads(
+		ctx,
+		world.NewGraphQuadWithKeys(objKey, PredManifest.String(), "", ""),
+		0,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	linkedKeys := make([]string, 0, len(quads))
+	for _, q := range quads {
+		if q.GetLabel() != label {
+			continue
+		}
+		linkedKey, err := world.GraphValueToKey(q.GetObj())
+		if err != nil {
+			return nil, err
+		}
+		linkedKeys = append(linkedKeys, linkedKey)
+	}
+	sort.Strings(linkedKeys)
+	return linkedKeys, nil
+}
+
 // ListManifestsWithID lists all manifests recursively linked to the given object(s).
 // Filters to the given manifest ID.
 func ListManifestsWithID(ctx context.Context, w world.WorldState, startObjKeys ...string) ([]string, error) {
@@ -363,7 +459,15 @@ func CollectStartupManifests(
 	if err != nil {
 		return nil, nil, err
 	}
+	return collectStartupManifestsFromCandidates(ctx, ws, manifestObjKeys, filterPlatformIDs)
+}
 
+func collectStartupManifestsFromCandidates(
+	ctx context.Context,
+	ws world.WorldState,
+	manifestObjKeys []string,
+	filterPlatformIDs []string,
+) (map[string][]*CollectedManifest, []error, error) {
 	var manifestErrors []error
 	manifestMap := make(map[string][]*CollectedManifest)
 
@@ -684,7 +788,11 @@ func CollectStartupManifestsForManifestID(
 	filterPlatformIDs []string,
 	objKeys ...string,
 ) ([]*CollectedManifest, []error, error) {
-	manifests, manifestErrs, err := CollectStartupManifests(ctx, ws, filterPlatformIDs, objKeys...)
+	manifestObjKeys, err := ListStartupManifestCandidatesWithID(ctx, ws, manifestID, objKeys...)
+	if err != nil {
+		return nil, nil, err
+	}
+	manifests, manifestErrs, err := collectStartupManifestsFromCandidates(ctx, ws, manifestObjKeys, filterPlatformIDs)
 	if err != nil {
 		return nil, manifestErrs, err
 	}
