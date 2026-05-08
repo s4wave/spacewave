@@ -2,6 +2,8 @@ import {
   type CSSProperties,
   type SyntheticEvent,
   useCallback,
+  useEffect,
+  useRef,
   useState,
 } from 'react'
 import { LuTriangleAlert } from 'react-icons/lu'
@@ -30,6 +32,7 @@ const mediaErrAborted = 1
 const mediaErrNetwork = 2
 const mediaErrDecode = 3
 const mediaErrSrcNotSupported = 4
+const mediaHaveMetadata = 1
 
 interface VideoPreviewState {
   status: 'loading' | 'ready' | 'error'
@@ -89,6 +92,7 @@ function UnixFSVideoPlayerSurface({
   title,
   inlineFileURL,
 }: UnixFSVideoFileViewerProps) {
+  const mediaRef = useRef<HTMLVideoElement | null>(null)
   const [state, setState] = useState<VideoPreviewState>(
     initialVideoPreviewState,
   )
@@ -102,6 +106,15 @@ function UnixFSVideoPlayerSurface({
         status: 'ready',
         buffering: false,
       }
+    })
+  }, [])
+
+  const handleLoadStart = useCallback(() => {
+    setState((prev) => {
+      if (prev.status === 'loading' && !prev.buffering) {
+        return prev
+      }
+      return initialVideoPreviewState
     })
   }, [])
 
@@ -126,6 +139,23 @@ function UnixFSVideoPlayerSurface({
   const handleError = useCallback((event: SyntheticEvent<HTMLVideoElement>) => {
     setState(buildVideoErrorState(event.currentTarget.error))
   }, [])
+
+  const handleVideoRef = useCallback(
+    (node: HTMLVideoElement | null) => {
+      mediaRef.current = node
+      if (node && node.readyState >= mediaHaveMetadata) {
+        handleReady()
+      }
+    },
+    [handleReady],
+  )
+
+  useEffect(() => {
+    const node = mediaRef.current
+    if (node && node.readyState >= mediaHaveMetadata) {
+      handleReady()
+    }
+  }, [handleReady, inlineFileURL])
 
   const showLoading = state.status === 'loading'
   const showBuffering = state.status === 'ready' && state.buffering
@@ -189,12 +219,14 @@ function UnixFSVideoPlayerSurface({
             onCanPlay={handleReady}
             onError={handleError}
             onLoadedMetadata={handleReady}
+            onLoadStart={handleLoadStart}
             onPlaying={handleReady}
             onSeeked={handleReady}
             onSeeking={handleBuffering}
             onWaiting={handleBuffering}
             playsInline
             preload="metadata"
+            ref={handleVideoRef}
             src={inlineFileURL}
           />
         </VideoSkin>

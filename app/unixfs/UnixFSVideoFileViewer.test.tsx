@@ -24,6 +24,7 @@ vi.mock('@videojs/react/video', () => ({
 describe('UnixFSVideoFileViewer', () => {
   afterEach(() => {
     cleanup()
+    vi.restoreAllMocks()
   })
 
   it('relies on the video.js chrome instead of native video controls', () => {
@@ -51,6 +52,38 @@ describe('UnixFSVideoFileViewer', () => {
     const video = screen.getByTestId('unixfs-video-element')
     fireEvent(video, new Event('loadedmetadata'))
 
+    expect(screen.queryByText('Loading preview')).toBeNull()
+  })
+
+  it('treats restored video metadata as ready on mount', () => {
+    vi.spyOn(HTMLMediaElement.prototype, 'readyState', 'get').mockReturnValue(1)
+
+    render(
+      <UnixFSVideoFileViewer
+        title="demo.mp4"
+        inlineFileURL="/p/spacewave-core/fs/u/1/so/space-test/-/docs/demo/-/nested/demo.mp4?inline=1"
+      />,
+    )
+
+    expect(screen.queryByText('Loading preview')).toBeNull()
+  })
+
+  it('returns to loading when the browser starts loading the media again', () => {
+    render(
+      <UnixFSVideoFileViewer
+        title="demo.mp4"
+        inlineFileURL="/p/spacewave-core/fs/u/1/so/space-test/-/docs/demo/-/nested/demo.mp4?inline=1"
+      />,
+    )
+
+    const video = screen.getByTestId('unixfs-video-element')
+    fireEvent(video, new Event('loadedmetadata'))
+    expect(screen.queryByText('Loading preview')).toBeNull()
+
+    fireEvent(video, new Event('loadstart'))
+    expect(screen.getByText('Loading preview')).toBeDefined()
+
+    fireEvent(video, new Event('loadedmetadata'))
     expect(screen.queryByText('Loading preview')).toBeNull()
   })
 
