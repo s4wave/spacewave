@@ -2,6 +2,7 @@ import type { BlockRef } from '@go/github.com/s4wave/spacewave/db/block/block.pb
 import type { ObjectRef } from '@go/github.com/s4wave/spacewave/db/bucket/bucket.pb.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import type { IObjectState } from '@s4wave/sdk/world/object-state.js'
+import { accessObjectRootWorldState } from '@s4wave/sdk/world/utils.js'
 
 function buildObjectRootRef(
   currentRef: ObjectRef | undefined,
@@ -36,7 +37,7 @@ export async function setObjectBlockData(
   data: Uint8Array,
   abortSignal?: AbortSignal,
 ): Promise<void> {
-  using cursor = await objectState.accessWorldState(undefined, abortSignal)
+  using cursor = await accessObjectRootWorldState(objectState, abortSignal)
   const { transaction, cursor: blockCursor } = await cursor.buildTransaction(
     {},
     abortSignal,

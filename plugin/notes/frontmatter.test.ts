@@ -50,6 +50,23 @@ describe('parseNote', () => {
     expect(result.frontmatter.url).toBe('https://example.com')
     expect(result.body).toContain('# Article Title')
   })
+
+  it('normalizes scalar list fields', () => {
+    const content = [
+      '---',
+      'tags: welcome',
+      'author: spacewave',
+      'topics: onboarding',
+      '---',
+      '',
+      '# Hello',
+    ].join('\n')
+    const result = parseNote(content)
+
+    expect(result.frontmatter.tags).toEqual(['welcome'])
+    expect(result.frontmatter.author).toEqual(['spacewave'])
+    expect(result.frontmatter.topics).toEqual(['onboarding'])
+  })
 })
 
 describe('reassembleNote', () => {

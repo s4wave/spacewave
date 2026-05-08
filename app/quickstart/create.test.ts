@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { SET_SPACE_SETTINGS_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
 import {
@@ -27,16 +27,19 @@ import {
 } from '@s4wave/sdk/chat/init-chat-demo.js'
 import { InitForgeQuickstartOp } from '@s4wave/core/forge/dashboard/dashboard.pb.js'
 import { INIT_FORGE_QUICKSTART_OP_ID } from '@s4wave/sdk/forge/dashboard/init-forge-quickstart.js'
+import { BLOG_OBJECT_KEY } from '../../plugin/notes/proto/create-blog.js'
 import { InitDriveOp } from '@s4wave/sdk/space/drive/drive.pb.js'
 import {
   DRIVE_OBJECT_KEY,
   INIT_DRIVE_OP_ID,
 } from '@s4wave/sdk/space/drive/drive.js'
 import { UnixFSTypeID } from '@s4wave/web/hooks/useUnixFSHandle.js'
+import type { RegisterCleanup } from '@aptre/bldr-sdk/hooks/useResource.js'
 
 import type { QuickstartSpaceCreateId } from './options.js'
 import {
   approveSpacePlugins,
+  createLocalSession,
   createDrive,
   createSpaceSettingsObject,
   executeDynamicQuickstart,
@@ -55,6 +58,10 @@ const quickstartRegistryMocks = vi.hoisted(() => ({
   ExecuteQuickstart: vi.fn(),
 }))
 
+const localProviderMocks = vi.hoisted(() => ({
+  createAccount: vi.fn(),
+}))
+
 vi.mock('../../plugin/notes/blog-seed.js', () => ({
   createBlogClientSide: seedMocks.createBlogClientSide,
 }))
@@ -67,6 +74,12 @@ vi.mock('../../plugin/notes/content-seed.js', () => ({
 vi.mock('@s4wave/sdk/quickstart/registry/registry_srpc.pb.js', () => ({
   QuickstartRegistryResourceServiceClient: vi.fn(function () {
     return quickstartRegistryMocks
+  }),
+}))
+
+vi.mock('@s4wave/sdk/provider/local/local.js', () => ({
+  LocalProvider: vi.fn(function () {
+    return localProviderMocks
   }),
 }))
 
@@ -118,6 +131,116 @@ function getSettingsIndexPath(applyWorldOp: ReturnType<typeof vi.fn>) {
 }
 
 describe('quickstart create', () => {
+  beforeEach(() => {
+    vi.unstubAllGlobals()
+    localProviderMocks.createAccount.mockReset()
+  })
+
+  it('skips existing session lookup when local storage has no session hint', async () => {
+    const storage = new Map<string, string>()
+    const localStorage = {
+      getItem: vi.fn((key: string) => storage.get(key) ?? null),
+      setItem: vi.fn((key: string, value: string) => {
+        storage.set(key, value)
+      }),
+      removeItem: vi.fn((key: string) => {
+        storage.delete(key)
+      }),
+    }
+    vi.stubGlobal('localStorage', localStorage)
+    localProviderMocks.createAccount.mockResolvedValue({
+      sessionListEntry: {
+        sessionIndex: 7,
+        sessionRef: { providerResourceRef: { providerId: 'local' } },
+      },
+    })
+    const root = {
+      listSessions: vi.fn().mockResolvedValue({ sessions: [] }),
+      lookupProvider: vi.fn().mockResolvedValue({
+        resourceRef: { providerId: 'local' },
+        release: vi.fn(),
+        [Symbol.dispose]: vi.fn(),
+      }),
+      mountSessionByIdx: vi.fn(),
+      mountSession: vi.fn().mockResolvedValue({
+        release: vi.fn(),
+        [Symbol.dispose]: vi.fn(),
+      }),
+    }
+    const cleanup = vi.fn<RegisterCleanup>((value) => value)
+
+    await createLocalSession(
+      root as never,
+      new AbortController().signal,
+      cleanup,
+    )
+
+    expect(root.listSessions).not.toHaveBeenCalled()
+    expect(root.lookupProvider).toHaveBeenCalledWith('local')
+    expect(localProviderMocks.createAccount).toHaveBeenCalled()
+    expect(root.mountSession).toHaveBeenCalledWith(
+      {
+        sessionRef: { providerResourceRef: { providerId: 'local' } },
+      },
+      expect.any(AbortSignal),
+    )
+  })
+
+  it('mounts the first local session when first-run create account aborts after side effects', async () => {
+    vi.stubGlobal('localStorage', {
+      getItem: vi.fn(() => null),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+    })
+    const sessionRef = { providerResourceRef: { providerId: 'local' } }
+    localProviderMocks.createAccount.mockRejectedValue(
+      new Error('ERR_RPC_ABORT'),
+    )
+    const session = {
+      release: vi.fn(),
+      [Symbol.dispose]: vi.fn(),
+    }
+    const root = {
+      listSessions: vi.fn().mockResolvedValue({
+        sessions: [
+          {
+            sessionIndex: 8,
+            sessionRef,
+          },
+        ],
+      }),
+      lookupProvider: vi.fn().mockResolvedValue({
+        resourceRef: { providerId: 'local' },
+        release: vi.fn(),
+        [Symbol.dispose]: vi.fn(),
+      }),
+      mountSessionByIdx: vi.fn().mockResolvedValue({
+        session,
+        sessionRef,
+      }),
+      mountSession: vi.fn().mockResolvedValue({
+        release: vi.fn(),
+        [Symbol.dispose]: vi.fn(),
+      }),
+    }
+    const cleanup = vi.fn<RegisterCleanup>((value) => value)
+
+    const setup = await createLocalSession(
+      root as never,
+      new AbortController().signal,
+      cleanup,
+    )
+
+    expect(setup.sessionIndex).toBe(1)
+    expect(localProviderMocks.createAccount).toHaveBeenCalledTimes(1)
+    expect(root.listSessions).not.toHaveBeenCalled()
+    expect(root.mountSessionByIdx).toHaveBeenCalledWith(
+      { sessionIdx: 1 },
+      expect.any(AbortSignal),
+    )
+    expect(root.mountSession).not.toHaveBeenCalled()
+  })
+
   it('executes dynamic quickstarts through the registry and applies returned routing', async () => {
     quickstartRegistryMocks.ExecuteQuickstart.mockResolvedValue({
       indexPath: 'glados/org-chart',
@@ -340,10 +463,10 @@ describe('quickstart create', () => {
       seedMocks.createBlogClientSide.mockClear()
       const { world, applyWorldOp } = buildQuickstartWorld()
       await populateSpace('blog', { spaceWorld: world } as never)
-      expect(getSettingsIndexPath(applyWorldOp)).toBe('blog')
+      expect(getSettingsIndexPath(applyWorldOp)).toBe(BLOG_OBJECT_KEY)
       expect(seedMocks.createBlogClientSide).toHaveBeenCalledWith(
         world,
-        'blog',
+        BLOG_OBJECT_KEY,
         'Blog',
         '',
         '',

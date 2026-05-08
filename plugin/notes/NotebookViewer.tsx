@@ -190,9 +190,11 @@ function NotebookViewer({
 
   return (
     <ViewerStatusShell
-      resource={resource}
+      resource={state}
       state={state}
       loadingText="Loading notebook..."
+      emptyText="No sources configured for this notebook"
+      sources={sources}
     >
       <div className="bg-background-primary flex h-full w-full overflow-hidden">
         {/* Mobile hamburger toggle */}

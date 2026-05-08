@@ -29,9 +29,9 @@ func (h *Harness) connectSessionResources(ctx context.Context, s *TestSession) e
 	le := logrus.WithField("component", "harness")
 
 	var lastErr error
-	attemptTimeout := 10 * time.Second
+	attemptTimeout := 15 * time.Second
 	maxBackoff := 5 * time.Second
-	maxStartupRetry := 15 * time.Second
+	maxStartupRetry := 75 * time.Second
 
 	for {
 		le.Info("waiting for new browser peer")
@@ -66,8 +66,14 @@ func (h *Harness) connectSessionResources(ctx context.Context, s *TestSession) e
 
 			lastErr = err
 			entry := le.WithField("peer", browserPeer.String()).WithError(err)
-			if isBrowserPeerStartupErr(err) && time.Since(peerStart) < maxStartupRetry {
-				entry.Info("resource connection hit startup race, retrying same peer")
+			if isBrowserPeerStartupErr(err) {
+				if time.Since(peerStart) < maxStartupRetry {
+					entry.Info("resource connection hit startup race, retrying same peer")
+				} else {
+					h.releaseBrowserPeerLease(s, browserPeer)
+					entry.Info("resource connection startup window expired, waiting for another peer")
+					break
+				}
 			} else if shouldAbandonBrowserPeer(err) {
 				h.releaseBrowserPeerLease(s, browserPeer)
 				entry.Info("resource connection failed on stale browser peer, waiting for another")
@@ -183,12 +189,13 @@ func shouldAbandonBrowserPeer(err error) bool {
 		strings.Contains(msg, "failed to get reader") ||
 		strings.Contains(msg, "StatusGoingAway") ||
 		strings.Contains(msg, "ERR_STREAM_IDLE") ||
-		strings.Contains(msg, "context canceled") ||
-		strings.Contains(msg, "context deadline exceeded")
+		strings.Contains(msg, "context canceled")
 }
 
 func isBrowserPeerStartupErr(err error) bool {
-	return strings.Contains(err.Error(), "disconnected before registering")
+	msg := err.Error()
+	return strings.Contains(msg, "disconnected before registering") ||
+		strings.Contains(msg, "context deadline exceeded")
 }
 
 // getPeerWatcher returns the shared PeerWatcher, creating it on the first

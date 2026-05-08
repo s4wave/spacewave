@@ -17,8 +17,13 @@ import {
   UnmarshalRequest,
   UnmarshalResponse,
 } from './lookup.pb.js'
+import type { BlockRef } from '../../../db/block/block.pb.js'
 import { BlockCursor } from '../../block/cursor/cursor.js'
 import { BlockTransaction } from '../../block/transaction/transaction.js'
+
+function hasBlockRef(ref: BlockRef | undefined): boolean {
+  return !!ref?.hash?.hash?.length
+}
 
 // BucketLookupCursor provides access to bucket lookup operations.
 export class BucketLookupCursor extends Resource {
@@ -53,6 +58,13 @@ export class BucketLookupCursor extends Resource {
     req: GetBlockRequest,
     abortSignal?: AbortSignal,
   ): Promise<GetBlockResponse> {
+    if (!hasBlockRef(req.ref)) {
+      const refResp = await this.getRef(abortSignal)
+      return await this.service.GetBlock(
+        { ...req, ref: refResp.ref?.rootRef },
+        abortSignal,
+      )
+    }
     return await this.service.GetBlock(req, abortSignal)
   }
 

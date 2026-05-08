@@ -19,6 +19,7 @@ func CreateDriveScenario(t testing.TB, h *Harness, session *TestSession) *DriveS
 
 	page := session.Page()
 	WaitForApp(t, page)
+	EnableQuickstartTimingLogs(t, page)
 	NavigateHash(t, h, page, "#/quickstart/drive")
 	WaitForDriveShell(t, page)
 

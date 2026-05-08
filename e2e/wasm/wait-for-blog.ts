@@ -21,13 +21,17 @@ export default async function (args: {
         return
       }
       if (Date.now() > deadline) {
+        const timing =
+          globalThis.__s4waveQuickstartTiming ??
+          globalThis.__s4wave_debug?.quickstartTiming ??
+          null
         const body =
           document.body?.innerText
             ?.replace(/\s+/g, ' ')
             .slice(0, 240) ?? ''
         reject(
           new Error(
-            `blog quickstart did not reach the blog viewer (hash=${window.location.hash}, body=${body})`,
+            `blog quickstart did not reach the blog viewer (hash=${window.location.hash}, timing=${JSON.stringify(timing)}, body=${body})`,
           ),
         )
         return

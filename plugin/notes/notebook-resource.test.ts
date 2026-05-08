@@ -60,6 +60,11 @@ function createMockObjectState(
     Array.isArray(cursor) ? cursor : [cursor ?? createMockCursor()]
   let idx = 0
   return {
+    getRootRef: vi.fn(() =>
+      Promise.resolve({
+        rootRef: { bucketId: 'test', rootRef: { hash: { hash: new Uint8Array([1]) } } },
+      }),
+    ),
     accessWorldState: vi.fn(() => {
       const current = cursors[Math.min(idx, cursors.length - 1)]
       idx++
@@ -178,7 +183,7 @@ describe('NotebookResource', () => {
       )
       expect(tx.getObject).toHaveBeenCalledWith('my-notebook', ac.signal)
       expect(objectState.accessWorldState).toHaveBeenCalledWith(
-        undefined,
+        { bucketId: 'test', rootRef: { hash: { hash: new Uint8Array([1]) } } },
         ac.signal,
       )
       expect(cursor.getBlock).toHaveBeenCalledWith({}, ac.signal)

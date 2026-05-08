@@ -9,6 +9,17 @@ import { type IObjectState } from './object-state.js'
 // The block transaction will be written automatically after the callback completes.
 export type AccessObjectCallback = (cursor: BlockCursor) => Promise<void>
 
+// accessObjectRootWorldState opens a cursor at an object's current root ref.
+// Passing undefined over RPC can encode as an empty ObjectRef, so callers that
+// need the object root should pass the root ref explicitly.
+export async function accessObjectRootWorldState(
+  obj: IObjectState,
+  abortSignal?: AbortSignal,
+): Promise<BucketLookupCursor> {
+  const root = await obj.getRootRef(abortSignal)
+  return obj.accessWorldState(root.rootRef, abortSignal)
+}
+
 // accessObject accesses or creates an ObjectRef using the provided callback.
 // If ref is undefined or has an empty rootRef, creates a new empty object.
 // The block transaction is written upon completion and the updated ObjectRef is returned.

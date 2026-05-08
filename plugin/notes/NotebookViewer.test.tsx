@@ -96,7 +96,7 @@ describe('NotebookViewer', () => {
     vi.clearAllMocks()
   })
 
-  it('renders loading state when notebook resource is loading', () => {
+  it('renders loading state when notebook state is loading', () => {
     vi.mocked(useAccessTypedHandle).mockReturnValue({
       value: null,
       loading: true,
@@ -107,31 +107,33 @@ describe('NotebookViewer', () => {
     expect(screen.getByText('Loading notebook...')).toBeDefined()
   })
 
-  it('renders loading state when notebook state is loading', () => {
+  it('renders content while notebook mutation handle is loading', () => {
     vi.mocked(useAccessTypedHandle).mockReturnValue({
-      value: {},
-      loading: false,
+      value: null,
+      loading: true,
       error: null,
       retry: vi.fn(),
-    } as never)
+    })
     mockUseWorldObjectMessageState.mockReturnValue({
       state: {
-        value: null,
-        loading: true,
+        value: {
+          sources: [{ name: 'Docs', ref: 'key/-/docs' }],
+        },
+        loading: false,
         error: null,
         retry: vi.fn(),
       },
-      sources: [],
+      sources: [{ name: 'Docs', ref: 'key/-/docs' }],
     })
 
     renderViewer()
-    expect(screen.getByText('Loading notebook...')).toBeDefined()
+    expect(screen.getByText('Docs')).toBeDefined()
   })
 
-  it('renders error state when notebook resource has error', () => {
+  it('renders error state when notebook state has error', () => {
     vi.mocked(useAccessTypedHandle).mockReturnValue({
       value: null,
-      loading: false,
+      loading: true,
       error: new Error('Connection refused'),
       retry: vi.fn(),
     })
@@ -139,7 +141,7 @@ describe('NotebookViewer', () => {
       state: {
         value: null,
         loading: false,
-        error: null,
+        error: new Error('Connection refused'),
         retry: vi.fn(),
       },
       sources: [],

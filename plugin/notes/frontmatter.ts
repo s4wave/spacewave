@@ -1,4 +1,4 @@
-import matter from 'gray-matter'
+import { parse as parseYaml } from 'yaml'
 
 // Frontmatter contains parsed YAML frontmatter fields.
 export interface Frontmatter {
@@ -24,19 +24,35 @@ export interface ParsedNote {
 
 // parseNote separates YAML frontmatter from markdown body.
 export function parseNote(content: string): ParsedNote {
-  const parsed = matter(content)
-  const data = parsed.data as Frontmatter
-
-  // Reconstruct raw frontmatter string for round-trip.
-  let rawFrontmatter = ''
-  if (parsed.matter && parsed.matter.trim()) {
-    rawFrontmatter = '---\n' + parsed.matter + '\n---\n'
+  const normalized = content.replace(/\r\n/g, '\n')
+  if (!normalized.startsWith('---\n')) {
+    return {
+      frontmatter: {},
+      rawFrontmatter: '',
+      body: content,
+    }
   }
 
+  const closeIdx = normalized.indexOf('\n---', 4)
+  if (closeIdx === -1) {
+    return {
+      frontmatter: {},
+      rawFrontmatter: '',
+      body: content,
+    }
+  }
+
+  const raw = normalized.slice(4, closeIdx)
+  const after = normalized.slice(closeIdx + 4)
+  const body = after.startsWith('\n') ? after.slice(1) : after
+  const parsed: unknown = parseYaml(raw)
+  const frontmatter =
+    parsed && typeof parsed === 'object' ? (parsed as Frontmatter) : {}
+
   return {
-    frontmatter: data,
-    rawFrontmatter,
-    body: parsed.content,
+    frontmatter: normalizeFrontmatter(frontmatter),
+    rawFrontmatter: '---\n' + raw + '\n---\n',
+    body,
   }
 }
 
@@ -77,4 +93,40 @@ export function normalizeFrontmatterStatus(
 ): string | undefined {
   const value = status?.trim().toLowerCase()
   return value || undefined
+}
+
+function normalizeFrontmatter(frontmatter: Frontmatter): Frontmatter {
+  return {
+    ...frontmatter,
+    tags: normalizeStringArray(frontmatter.tags),
+    categories: normalizeStringArray(frontmatter.categories),
+    aliases: normalizeStringArray(frontmatter.aliases),
+    author: normalizeStringArray(frontmatter.author),
+    topics: normalizeStringArray(frontmatter.topics),
+  }
+}
+
+function normalizeStringArray(value: unknown): string[] | undefined {
+  if (value === undefined || value === null) return undefined
+  if (Array.isArray(value)) {
+    const values = value
+      .map(normalizeStringValue)
+      .filter((item): item is string => !!item)
+    return values.length > 0 ? values : undefined
+  }
+  const text = normalizeStringValue(value)
+  if (!text) return undefined
+  return [text]
+}
+
+function normalizeStringValue(value: unknown): string | undefined {
+  if (typeof value === 'string') return value.trim()
+  if (
+    typeof value === 'number' ||
+    typeof value === 'boolean' ||
+    typeof value === 'bigint'
+  ) {
+    return String(value).trim()
+  }
+  return undefined
 }

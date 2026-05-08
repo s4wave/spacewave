@@ -30,6 +30,7 @@ import {
   normalizeFrontmatterStatus,
   parseNote,
 } from './frontmatter.js'
+import { readFileText } from './read-file.js'
 
 interface NoteListEntry {
   name: string
@@ -114,10 +115,9 @@ function NoteList({
         if (signal.aborted) return entries
 
         const child = await handle.lookup(entry.name, signal)
-        const result = await child
-          .readAt(0n, 0n, signal)
-          .finally(() => child.release())
-        const text = new TextDecoder().decode(result.data)
+        const text = await readFileText(child, signal).finally(() =>
+          child.release(),
+        )
         const note = parseNote(text)
         entries.push({
           name: entry.name,

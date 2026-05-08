@@ -77,6 +77,7 @@ export function buildSeedBlogPost(blogName: string, date: string): string {
 export async function ensureBlogCompanionNotebook(
   worldState: IWorldState,
   blogObjectKey: string,
+  unixfsObjectKey: string,
   blogName: string,
   abortSignal?: AbortSignal,
 ): Promise<void> {
@@ -89,7 +90,7 @@ export async function ensureBlogCompanionNotebook(
 
   const notebook: Notebook = {
     name: blogName + ' Notes',
-    sources: [{ name: 'Posts', ref: blogObjectKey + '-fs/-/' }],
+    sources: [{ name: 'Posts', ref: unixfsObjectKey + '/-/' }],
   }
   await runBlogSeedStep('create companion notebook object', async () => {
     await createObjectWithBlockData(
@@ -110,6 +111,13 @@ export async function ensureBlogCompanionNotebook(
   })
 }
 
+export function buildBlogUnixfsObjectKey(blogObjectKey: string): string {
+  if (blogObjectKey.startsWith('blog/')) {
+    return blogObjectKey.replace(/^blog\//, 'fs/blog/')
+  }
+  return blogObjectKey + '-fs'
+}
+
 export async function createBlogClientSide(
   worldState: IWorldState,
   blogObjectKey: string,
@@ -120,7 +128,7 @@ export async function createBlogClientSide(
   abortSignal?: AbortSignal,
 ): Promise<void> {
   await withWritableBlogState(worldState, abortSignal, async (writeState) => {
-    const unixfsKey = blogObjectKey + '-fs'
+    const unixfsKey = buildBlogUnixfsObjectKey(blogObjectKey)
 
     await runBlogSeedStep('initialize blog unixfs root', async () => {
       await writeState.applyWorldOp(
@@ -178,6 +186,7 @@ export async function createBlogClientSide(
     await ensureBlogCompanionNotebook(
       writeState,
       blogObjectKey,
+      unixfsKey,
       blogName,
       abortSignal,
     )

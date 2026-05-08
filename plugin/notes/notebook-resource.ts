@@ -1,4 +1,5 @@
 import { Engine } from '@s4wave/sdk/world/engine.js'
+import type { IObjectState } from '@s4wave/sdk/world/object-state.js'
 import { Notebook } from './proto/notebook.pb.js'
 import type { ClientResourceRef } from '@aptre/bldr-sdk/resource/client.js'
 import type { MessageStream } from 'starpc'
@@ -13,6 +14,7 @@ import type {
   ReorderSourcesResponse,
 } from './sdk/notebook.pb.js'
 import type { NotebookResourceService } from './sdk/notebook_srpc.pb.js'
+import { accessObjectRootWorldState } from '@s4wave/sdk/world/utils.js'
 import { setObjectBlockData } from './object-block.js'
 
 // NotebookResource serves NotebookResourceService for a single notebook
@@ -74,8 +76,8 @@ class NotebookResource implements NotebookResourceService {
       const objectState = await tx.getObject(this.objectKey, abortSignal)
       if (!objectState) return null
       try {
-        const cursor = await objectState.accessWorldState(
-          undefined,
+        const cursor = await accessObjectRootWorldState(
+          objectState,
           abortSignal,
         )
         try {
@@ -136,21 +138,10 @@ class NotebookResource implements NotebookResourceService {
 
   // readNotebookObject reads the notebook block through an object state handle.
   private async readNotebookObject(
-    objectState: {
-      accessWorldState(
-        ref?: undefined,
-        abortSignal?: AbortSignal,
-      ): Promise<{
-        getBlock(
-          req: {},
-          abortSignal?: AbortSignal,
-        ): Promise<{ found?: boolean; data?: Uint8Array }>
-        release(): void
-      }>
-    },
+    objectState: IObjectState,
     abortSignal?: AbortSignal,
   ): Promise<Notebook | null> {
-    const cursor = await objectState.accessWorldState(undefined, abortSignal)
+    const cursor = await accessObjectRootWorldState(objectState, abortSignal)
     try {
       const blockResp = await cursor.getBlock({}, abortSignal)
       if (!blockResp.found || !blockResp.data) return null

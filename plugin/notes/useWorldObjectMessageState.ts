@@ -5,6 +5,7 @@ import {
   type Resource,
 } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
+import { accessObjectRootWorldState } from '@s4wave/sdk/world/utils.js'
 
 // useWorldObjectMessageState reads a typed notes object block directly from the
 // world and exposes the parsed message plus its sources.
@@ -22,7 +23,7 @@ export function useWorldObjectMessageState<
       const objectState = await world.getObject(objectKey, signal)
       if (!objectState) return null
       using _ = objectState
-      using cursor = await objectState.accessWorldState(undefined, signal)
+      using cursor = await accessObjectRootWorldState(objectState, signal)
       const blockResp = await cursor.getBlock({}, signal)
       if (!blockResp.found || !blockResp.data) return null
       return parse(blockResp.data)

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"runtime"
 	"slices"
 	"strconv"
 	"time"
@@ -38,6 +39,8 @@ type Controller struct {
 	bcast         broadcast.Broadcast
 	volumeID      string
 	objectStoreID string
+	sessionCache  map[uint32]*session.SessionListEntry
+	metaCache     map[uint32]*session.SessionMetadata
 }
 
 // sessionListPrefix is the key prefix for items in the session list.
@@ -75,6 +78,8 @@ func NewFactory(b bus.Bus) controller.Factory {
 				BusController: base,
 				objectStoreID: objectStoreID,
 				volumeID:      volumeID,
+				sessionCache:  make(map[uint32]*session.SessionListEntry),
+				metaCache:     make(map[uint32]*session.SessionMetadata),
 			}, nil
 		},
 	)
@@ -104,6 +109,20 @@ func (c *Controller) GetSessionBroadcast() *broadcast.Broadcast {
 // GetSessionByIdx looks up the given session index.
 // Returns nil, nil if not found.
 func (c *Controller) GetSessionByIdx(ctx context.Context, idx uint32) (*session.SessionListEntry, error) {
+	if runtime.GOOS == "js" {
+		rel, err := c.mtx.Lock(ctx)
+		if err != nil {
+			return nil, err
+		}
+		defer rel()
+
+		entry := c.sessionCache[idx]
+		if entry == nil {
+			return nil, nil
+		}
+		return entry.CloneVT(), nil
+	}
+
 	objStore, objStoreRel, err := c.buildObjectStore(ctx)
 	if err != nil {
 		return nil, err
@@ -140,6 +159,26 @@ func (c *Controller) GetSessionByIdx(ctx context.Context, idx uint32) (*session.
 
 // ListSessions lists the sessions in storage.
 func (c *Controller) ListSessions(ctx context.Context) ([]*session.SessionListEntry, error) {
+	if runtime.GOOS == "js" {
+		rel, err := c.mtx.Lock(ctx)
+		if err != nil {
+			return nil, err
+		}
+		defer rel()
+
+		if len(c.sessionCache) == 0 {
+			return nil, nil
+		}
+		entries := make([]*session.SessionListEntry, 0, len(c.sessionCache))
+		for _, entry := range c.sessionCache {
+			entries = append(entries, entry.CloneVT())
+		}
+		slices.SortFunc(entries, func(a, b *session.SessionListEntry) int {
+			return int(a.GetSessionIndex()) - int(b.GetSessionIndex())
+		})
+		return entries, nil
+	}
+
 	objStore, objStoreRel, err := c.buildObjectStore(ctx)
 	if err != nil {
 		return nil, err
@@ -195,6 +234,42 @@ func sessionMetaKey(idx uint32) []byte {
 // RegisterSession registers a session ref in storage or returns the existing matching entry.
 // If metadata is non-nil, it is written to the session controller ObjectStore.
 func (c *Controller) RegisterSession(ctx context.Context, ref *session.SessionRef, metadata *session.SessionMetadata) (*session.SessionListEntry, error) {
+	if runtime.GOOS == "js" {
+		rel, err := c.mtx.Lock(ctx)
+		if err != nil {
+			return nil, err
+		}
+		defer rel()
+
+		var matchedEntry *session.SessionListEntry
+		var maxSessionIndex uint32
+		for idx, entry := range c.sessionCache {
+			if entry.GetSessionRef().EqualVT(ref) {
+				matchedEntry = entry
+			}
+			maxSessionIndex = max(maxSessionIndex, idx)
+		}
+		if matchedEntry == nil {
+			matchedEntry = &session.SessionListEntry{
+				SessionIndex: maxSessionIndex + 1,
+				SessionRef:   ref.CloneVT(),
+			}
+			c.sessionCache[matchedEntry.GetSessionIndex()] = matchedEntry
+		}
+		if metadata != nil {
+			meta := metadata.CloneVT()
+			if meta.GetCreatedAt() == 0 {
+				meta.CreatedAt = time.Now().UnixMilli()
+			}
+			c.metaCache[matchedEntry.GetSessionIndex()] = meta
+		}
+
+		c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			broadcast()
+		})
+		return matchedEntry.CloneVT(), nil
+	}
+
 	objStore, objStoreRel, err := c.buildObjectStore(ctx)
 	if err != nil {
 		return nil, err
@@ -300,6 +375,20 @@ func (c *Controller) RegisterSession(ctx context.Context, ref *session.SessionRe
 // GetSessionMetadata returns the metadata for a session by index.
 // Returns nil, nil if not found.
 func (c *Controller) GetSessionMetadata(ctx context.Context, idx uint32) (*session.SessionMetadata, error) {
+	if runtime.GOOS == "js" {
+		rel, err := c.mtx.Lock(ctx)
+		if err != nil {
+			return nil, err
+		}
+		defer rel()
+
+		meta := c.metaCache[idx]
+		if meta == nil {
+			return nil, nil
+		}
+		return meta.CloneVT(), nil
+	}
+
 	objStore, objStoreRel, err := c.buildObjectStore(ctx)
 	if err != nil {
 		return nil, err
@@ -337,6 +426,25 @@ func (c *Controller) GetSessionMetadata(ctx context.Context, idx uint32) (*sessi
 // UpdateSessionMetadata updates the metadata for a session by ref.
 // Creates the metadata entry if it does not exist.
 func (c *Controller) UpdateSessionMetadata(ctx context.Context, ref *session.SessionRef, metadata *session.SessionMetadata) error {
+	if runtime.GOOS == "js" {
+		rel, err := c.mtx.Lock(ctx)
+		if err != nil {
+			return err
+		}
+		defer rel()
+
+		for idx, entry := range c.sessionCache {
+			if entry.GetSessionRef().EqualVT(ref) {
+				c.metaCache[idx] = metadata.CloneVT()
+				c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+					broadcast()
+				})
+				return nil
+			}
+		}
+		return nil
+	}
+
 	objStore, objStoreRel, err := c.buildObjectStore(ctx)
 	if err != nil {
 		return err
@@ -396,6 +504,26 @@ func (c *Controller) UpdateSessionMetadata(ctx context.Context, ref *session.Ses
 // DeleteSession removes the matching session ref from the list.
 // Returns nil if not found.
 func (c *Controller) DeleteSession(ctx context.Context, ref *session.SessionRef) error {
+	if runtime.GOOS == "js" {
+		rel, err := c.mtx.Lock(ctx)
+		if err != nil {
+			return err
+		}
+		defer rel()
+
+		for idx, entry := range c.sessionCache {
+			if entry.GetSessionRef().EqualVT(ref) {
+				delete(c.sessionCache, idx)
+				delete(c.metaCache, idx)
+				c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+					broadcast()
+				})
+				return nil
+			}
+		}
+		return nil
+	}
+
 	objStore, objStoreRel, err := c.buildObjectStore(ctx)
 	if err != nil {
 		return err

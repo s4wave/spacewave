@@ -58,6 +58,11 @@ function makeDirectoryHandle(files: Record<string, string> = {}) {
   return {
     lookup: vi.fn((name: string) =>
       Promise.resolve({
+        getSize: vi.fn(() =>
+          Promise.resolve(
+            BigInt(new TextEncoder().encode(files[name] ?? '').length),
+          ),
+        ),
         readAt: vi.fn(() =>
           Promise.resolve({
             data: new TextEncoder().encode(files[name] ?? ''),

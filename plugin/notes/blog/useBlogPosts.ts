@@ -8,6 +8,7 @@ import type { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
 import type { FileEntry } from '@s4wave/web/editors/file-browser/types.js'
 
 import { parseNote } from '../frontmatter.js'
+import { readFileText } from '../read-file.js'
 import type { BlogPostData } from './types.js'
 
 // useBlogPosts reads all .md file entries from a UnixFS root handle,
@@ -32,9 +33,9 @@ export function useBlogPosts(
       for (const entry of mdEntries) {
         if (signal.aborted) return results
         const child = await root.lookup(entry.name, signal)
-        const result = await child.readAt(0n, 0n, signal)
-        child.release()
-        const text = new TextDecoder().decode(result.data)
+        const text = await readFileText(child, signal).finally(() =>
+          child.release(),
+        )
         const parsed = parseNote(text)
         const fm = parsed.frontmatter as Record<string, unknown>
 

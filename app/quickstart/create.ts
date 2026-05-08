@@ -48,6 +48,7 @@ import {
   createDocsClientSide,
   createNotebookClientSide,
 } from '../../plugin/notes/content-seed.js'
+import { BLOG_OBJECT_KEY } from '../../plugin/notes/proto/create-blog.js'
 import { UnixFSTypeID } from '@s4wave/web/hooks/useUnixFSHandle.js'
 import { V86WizardConfig } from '@s4wave/sdk/vm/v86-wizard.pb.js'
 import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
@@ -96,6 +97,10 @@ function nowMs(): number {
 
 function getErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err)
+}
+
+function isQuickstartRpcAbort(err: unknown): boolean {
+  return getErrorMessage(err).includes('ERR_RPC_ABORT')
 }
 
 function startQuickstartTiming(
@@ -173,6 +178,36 @@ async function timeQuickstartPhase<T>(
   }
 }
 
+function makeQuickstartAttemptSignal(
+  abortSignal: AbortSignal | undefined,
+  timeoutMs: number,
+): AbortSignal {
+  const timeoutSignal = AbortSignal.timeout(timeoutMs)
+  if (!abortSignal) return timeoutSignal
+  return AbortSignal.any([abortSignal, timeoutSignal])
+}
+
+async function retryQuickstartRpc<T>(
+  abortSignal: AbortSignal | undefined,
+  timeoutMs: number,
+  cb: (signal: AbortSignal) => Promise<T>,
+): Promise<T> {
+  let lastErr: unknown
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (abortSignal?.aborted) {
+      throw new DOMException('Aborted', 'AbortError')
+    }
+    const signal = makeQuickstartAttemptSignal(abortSignal, timeoutMs)
+    try {
+      return await cb(signal)
+    } catch (err) {
+      lastErr = err
+      if (abortSignal?.aborted) throw err
+    }
+  }
+  throw lastErr
+}
+
 // findMostRecentLocalSession returns the most recent local session from the
 // current session list, or undefined if none exist.
 async function findMostRecentLocalSession(
@@ -185,7 +220,9 @@ async function findMostRecentLocalSession(
     }
   | undefined
 > {
-  const resp = await root.listSessions(abortSignal)
+  const resp = await retryQuickstartRpc(abortSignal, 15000, (signal) =>
+    root.listSessions(signal),
+  )
   const sessions = resp.sessions ?? []
   let best: (typeof sessions)[number] | undefined
   for (const s of sessions) {
@@ -201,6 +238,11 @@ async function findMostRecentLocalSession(
     }
   }
   return undefined
+}
+
+function hasStoredLocalSessionHint(): boolean {
+  if (typeof localStorage === 'undefined') return true
+  return localStorage.getItem('spacewave-has-session') === '1'
 }
 
 export function getQuickstartSpaceName(
@@ -240,7 +282,8 @@ export async function createLocalSession(
   timing?: QuickstartSetupTiming,
 ): Promise<LocalSessionSetup> {
   // Check for an existing local session to reuse.
-  if (!forceNew) {
+  const hasLocalSessionHint = hasStoredLocalSessionHint()
+  if (!forceNew && hasLocalSessionHint) {
     const existing = await timeQuickstartPhase(
       timing,
       'find-existing-local-session',
@@ -264,11 +307,43 @@ export async function createLocalSession(
     () => root.lookupProvider('local'),
   )
   const lp = new LocalProvider(provider.resourceRef)
-  const accountResp = await timeQuickstartPhase(
-    timing,
-    'create-local-account',
-    () => lp.createAccount(abortSignal),
-  )
+  let accountResp: CreateAccountResponse
+  try {
+    accountResp = await timeQuickstartPhase(
+      timing,
+      'create-local-account',
+      () => lp.createAccount(makeQuickstartAttemptSignal(abortSignal, 30000)),
+    )
+  } catch (err) {
+    if (!isQuickstartRpcAbort(err)) throw err
+    if (!forceNew && !hasLocalSessionHint) {
+      const mounted = await timeQuickstartPhase(
+        timing,
+        'mount-created-local-session-by-index',
+        () => root.mountSessionByIdx({ sessionIdx: 1 }, abortSignal),
+      )
+      if (mounted) {
+        const session = cleanup(mounted.session)
+        markInteracted()
+        return { sessionIndex: 1, session }
+      }
+    }
+    const existing = await timeQuickstartPhase(
+      timing,
+      'recover-created-local-session',
+      () => findMostRecentLocalSession(root, abortSignal),
+    )
+    if (existing) {
+      const session = cleanup(
+        await timeQuickstartPhase(timing, 'mount-recovered-local-session', () =>
+          root.mountSession({ sessionRef: existing.sessionRef }, abortSignal),
+        ),
+      )
+      markInteracted()
+      return { sessionIndex: existing.sessionIndex, session }
+    }
+    throw err
+  }
   const sessionIndex = accountResp.sessionListEntry?.sessionIndex ?? 1
 
   // Mount the session using the account's session reference.
@@ -776,13 +851,12 @@ async function initBlogQuickstart(
   spaceWorld: EngineWorldState,
   abortSignal?: AbortSignal,
 ): Promise<void> {
-  const objectKey = 'blog'
   const timestamp = new Date()
   await withWritableWorldState(spaceWorld, abortSignal, async (writeState) => {
     await runQuickstartStep('init blog content', async () => {
       await createBlogClientSide(
         writeState,
-        objectKey,
+        BLOG_OBJECT_KEY,
         'Blog',
         '',
         '',
@@ -791,7 +865,7 @@ async function initBlogQuickstart(
       )
     })
     await runQuickstartStep('configure blog space settings', async () => {
-      await createSpaceSettingsObject(writeState, abortSignal, objectKey)
+      await createSpaceSettingsObject(writeState, abortSignal, BLOG_OBJECT_KEY)
     })
   })
 }

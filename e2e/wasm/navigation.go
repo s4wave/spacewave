@@ -72,6 +72,7 @@ func WaitForDriveShell(t testing.TB, page playwright.Page) {
 		debug, debugErr := page.Evaluate(`() => JSON.stringify({
 			hash: window.location.hash,
 			hasDebugRoot: !!globalThis.__s4wave_debug?.root,
+			quickstartTiming: globalThis.__s4waveQuickstartTiming ?? globalThis.__s4wave_debug?.quickstartTiming ?? null,
 			bodyHtml: document.body.innerHTML.slice(0, 3000),
 			text: document.body.textContent?.slice(0, 1000) ?? '',
 			links: Array.from(document.querySelectorAll('link')).map((link) => ({
@@ -94,6 +95,19 @@ func WaitForDriveShell(t testing.TB, page playwright.Page) {
 			trimPageText(body),
 			debug,
 		)
+	}
+}
+
+// EnableQuickstartTimingLogs asks the browser quickstart flow to log each
+// phase and publish phase timing for timeout diagnostics.
+func EnableQuickstartTimingLogs(t testing.TB, page playwright.Page) {
+	t.Helper()
+
+	_, err := page.Evaluate(`() => {
+		globalThis.__s4waveLogQuickstartTiming = true
+	}`)
+	if err != nil {
+		t.Fatalf("enable quickstart timing logs: %v", err)
 	}
 }
 

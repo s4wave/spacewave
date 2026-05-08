@@ -1,4 +1,5 @@
 import { Engine } from '@s4wave/sdk/world/engine.js'
+import { accessObjectRootWorldState } from '@s4wave/sdk/world/utils.js'
 import { Blog } from './proto/blog.pb.js'
 import type { ClientResourceRef } from '@aptre/bldr-sdk/resource/client.js'
 import type { MessageStream } from 'starpc'
@@ -67,8 +68,8 @@ class BlogResource implements BlogResourceService {
       const objectState = await tx.getObject(this.objectKey, abortSignal)
       if (!objectState) return null
       try {
-        const cursor = await objectState.accessWorldState(
-          undefined,
+        const cursor = await accessObjectRootWorldState(
+          objectState,
           abortSignal,
         )
         try {

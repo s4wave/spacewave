@@ -43,7 +43,7 @@ describe('createBlogClientSide', () => {
 
     expect(h.mockUploadSeedTree).toHaveBeenCalledWith(
       worldState,
-      'blog/site-fs',
+      'fs/blog/site',
       expect.arrayContaining([
         expect.objectContaining({
           path: 'hello-world.md',

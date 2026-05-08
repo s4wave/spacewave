@@ -21,6 +21,7 @@ func createBlogScenario(t testing.TB, h *Harness, session *TestSession) *blogSce
 
 	page := session.Page()
 	WaitForApp(t, page)
+	EnableQuickstartTimingLogs(t, page)
 	t.Log("navigate to blog quickstart")
 	NavigateHash(t, h, page, "#/quickstart/blog")
 	_, err := page.Evaluate(h.Script("wait-for-blog.ts"), map[string]any{
@@ -61,7 +62,29 @@ func waitForBlogReady(t testing.TB, page playwright.Page, title string) {
 		return
 	}
 	if err := page.Locator("text=" + title).First().WaitFor(); err != nil {
-		t.Fatalf("wait for blog title %q: %v", title, err)
+		body, bodyErr := page.Locator("body").TextContent()
+		if bodyErr != nil {
+			body = "failed to read body text: " + bodyErr.Error()
+		}
+		debug, debugErr := page.Evaluate(`() => JSON.stringify({
+			url: window.location.href,
+			hash: window.location.hash,
+			hasDebugRoot: !!globalThis.__s4wave_debug?.root,
+			quickstartTiming: globalThis.__s4waveQuickstartTiming ?? globalThis.__s4wave_debug?.quickstartTiming ?? null,
+			appText: document.querySelector('#bldr-root')?.textContent?.replace(/\s+/g, ' ').slice(0, 1600) ?? '',
+			buttons: Array.from(document.querySelectorAll('button')).map((button) => ({
+				title: button.getAttribute('title'),
+				text: button.textContent?.replace(/\s+/g, ' ').slice(0, 80) ?? '',
+			})),
+			testIds: Array.from(document.querySelectorAll('[data-testid]')).map((el) => ({
+				testid: el.getAttribute('data-testid'),
+				text: el.textContent?.replace(/\s+/g, ' ').slice(0, 120) ?? '',
+			})),
+		})`)
+		if debugErr != nil {
+			debug = "failed to collect blog debug: " + debugErr.Error()
+		}
+		t.Fatalf("wait for blog title %q: %v\nbody: %s\ndebug: %v", title, err, trimPageText(body), debug)
 	}
 }
 
@@ -69,7 +92,23 @@ func waitForNotebookReady(t testing.TB, page playwright.Page, noteTitle string) 
 	t.Helper()
 
 	if err := page.Locator("input[placeholder='Search notes...']").First().WaitFor(); err != nil {
-		t.Fatalf("wait for notebook search: %v", err)
+		debug, debugErr := page.Evaluate(`() => JSON.stringify({
+			url: window.location.href,
+			hash: window.location.hash,
+			appText: document.querySelector('#bldr-root')?.textContent?.replace(/\s+/g, ' ').slice(0, 1600) ?? '',
+			inputs: Array.from(document.querySelectorAll('input')).map((input) => ({
+				placeholder: input.getAttribute('placeholder'),
+				value: input.value,
+			})),
+			buttons: Array.from(document.querySelectorAll('button')).map((button) => ({
+				title: button.getAttribute('title'),
+				text: button.textContent?.replace(/\s+/g, ' ').slice(0, 80) ?? '',
+			})),
+		})`)
+		if debugErr != nil {
+			debug = "failed to collect notebook debug: " + debugErr.Error()
+		}
+		t.Fatalf("wait for notebook search: %v\ndebug: %v", err, debug)
 	}
 	if noteTitle == "" {
 		return
@@ -117,7 +156,7 @@ func writeSourceNote(t testing.TB, page playwright.Page, content string) {
 }
 
 func TestBlogCoexistenceScenario(t *testing.T) {
-	sess := testHarness.NewSession(t)
+	sess := testHarness.NewPageSession(t)
 	scenario := createBlogScenario(t, testHarness, sess)
 	page := sess.Page()
 
@@ -148,6 +187,9 @@ func TestBlogCoexistenceScenario(t *testing.T) {
 		t.Log("return to blog reader")
 		NavigateHash(t, testHarness, page, scenario.objectHash("blog/site"))
 		waitForBlogReady(t, page, "Shared Update")
+		if err := page.Locator("text=Shared Update").First().Click(); err != nil {
+			t.Fatalf("open updated blog post: %v", err)
+		}
 		if err := page.Locator("text=Notebook edits reach the blog reading view.").First().WaitFor(); err != nil {
 			t.Fatalf("wait for updated blog body: %v", err)
 		}
@@ -194,7 +236,7 @@ func TestBlogCoexistenceScenario(t *testing.T) {
 	t.Run("non-blog files stay out of reading view but appear in blog editing mode", func(t *testing.T) {
 		t.Log("create plain notebook note")
 		NavigateHash(t, testHarness, page, scenario.objectHash("blog/site-notebook"))
-		waitForNotebookReady(t, page, "Shared Update")
+		waitForNotebookReady(t, page, "")
 
 		newNoteBtn := page.Locator("button[title='New note']").First()
 		if err := newNoteBtn.Click(); err != nil {
@@ -204,7 +246,20 @@ func TestBlogCoexistenceScenario(t *testing.T) {
 
 		t.Log("verify plain note hidden in reading mode")
 		NavigateHash(t, testHarness, page, scenario.objectHash("blog/site"))
-		waitForBlogReady(t, page, "Shared Update")
+		if err := page.Locator("button[title='Reading mode']").First().Click(); err != nil {
+			t.Fatalf("switch blog to reading mode for plain note check: %v", err)
+		}
+		backToPosts := page.Locator("button:has-text('Back to posts')").First()
+		backToPostsCount, err := backToPosts.Count()
+		if err != nil {
+			t.Fatalf("count back to posts button: %v", err)
+		}
+		if backToPostsCount > 0 {
+			if err := backToPosts.Click(); err != nil {
+				t.Fatalf("return to blog post index: %v", err)
+			}
+		}
+		waitForBlogReady(t, page, "Second Post")
 
 		count, err := page.Locator("text=untitled").Count()
 		if err != nil {

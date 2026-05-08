@@ -14,6 +14,11 @@ function createMockCursor(blockData?: Uint8Array) {
 
 function createMockObjectState(cursor?: ReturnType<typeof createMockCursor>) {
   return {
+    getRootRef: vi.fn(() =>
+      Promise.resolve({
+        rootRef: { bucketId: 'test', rootRef: { hash: { hash: new Uint8Array([1]) } } },
+      }),
+    ),
     accessWorldState: vi.fn(() => Promise.resolve(cursor ?? createMockCursor())),
     release: vi.fn(),
   }
@@ -125,7 +130,7 @@ describe('BlogResource', () => {
       )
       expect(tx.getObject).toHaveBeenCalledWith('my-blog', ac.signal)
       expect(objectState.accessWorldState).toHaveBeenCalledWith(
-        undefined,
+        { bucketId: 'test', rootRef: { hash: { hash: new Uint8Array([1]) } } },
         ac.signal,
       )
       expect(cursor.getBlock).toHaveBeenCalledWith({}, ac.signal)

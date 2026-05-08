@@ -65,9 +65,17 @@ export function BlogReadingView({
     onSelectPost(null)
   }, [onSelectPost])
 
-  // Post view mode: show selected post.
-  if (selectedPost) {
-    const idx = publishedPosts.findIndex((p) => p.name === selectedPost.name)
+  const selectedPublishedPost =
+    selectedPost &&
+    publishedPosts.some((post) => post.name === selectedPost.name) ?
+      selectedPost
+    : null
+
+  // Post view mode: show selected published post.
+  if (selectedPublishedPost) {
+    const idx = publishedPosts.findIndex(
+      (p) => p.name === selectedPublishedPost.name,
+    )
     const prevPost = idx < publishedPosts.length - 1
       ? publishedPosts[idx + 1]
       : undefined
@@ -76,7 +84,7 @@ export function BlogReadingView({
     return (
       <div className="h-full overflow-y-auto">
         <BlogPostView
-          post={selectedPost}
+          post={selectedPublishedPost}
           prevPost={prevPost}
           nextPost={nextPost}
           onSelectPost={onSelectPost}

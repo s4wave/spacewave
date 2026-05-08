@@ -78,7 +78,7 @@ func (h *Harness) NewPageSession(t testing.TB) *TestSession {
 	t.Helper()
 
 	s := h.NewBlankSession(t)
-	if err := s.LoadApp(); err != nil {
+	if err := h.loadAppPageURL(s, h.baseURL+"/#/"); err != nil {
 		t.Fatalf("load app: %v", err)
 	}
 

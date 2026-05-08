@@ -1,10 +1,12 @@
-import matter from 'gray-matter'
+import { parse as parseYaml } from 'yaml'
 
 import {
   useResource,
   type Resource,
 } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
+
+import { readFileText } from '../read-file.js'
 
 // AuthorInfo represents a single author's display data.
 export interface AuthorInfo {
@@ -24,12 +26,13 @@ export type AuthorRegistry = Record<string, AuthorInfo>
 // parseAuthorRegistry parses YAML content into an AuthorRegistry.
 // Uses gray-matter to parse YAML by wrapping content in frontmatter delimiters.
 export function parseAuthorRegistry(yamlContent: string): AuthorRegistry {
-  const wrapped = '---\n' + yamlContent + '\n---\n'
-  const parsed = matter(wrapped).data
+  const parsed: unknown = parseYaml(yamlContent)
   if (!parsed || typeof parsed !== 'object') return {}
 
   const registry: AuthorRegistry = {}
-  for (const [slug, value] of Object.entries(parsed)) {
+  for (const [slug, value] of Object.entries(
+    parsed as Record<string, unknown>,
+  )) {
     if (!value || typeof value !== 'object') continue
     const entry = value as Record<string, unknown>
     registry[slug] = {
@@ -56,9 +59,9 @@ export function useAuthorRegistry(
       if (!root) return {}
       try {
         const child = await root.lookup(path, signal)
-        const result = await child.readAt(0n, 0n, signal)
-        child.release()
-        const text = new TextDecoder().decode(result.data)
+        const text = await readFileText(child, signal).finally(() =>
+          child.release(),
+        )
         return parseAuthorRegistry(text)
       } catch {
         // File not found or unreadable, return empty registry.
