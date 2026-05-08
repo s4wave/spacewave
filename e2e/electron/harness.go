@@ -31,11 +31,12 @@ type Harness struct {
 
 	cancel context.CancelFunc
 
-	repoRoot  string
-	stateRoot string
-	cdpPort   int
-	bldrSrc   string
-	le        *logrus.Entry
+	repoRoot    string
+	stateRoot   string
+	cdpPort     int
+	controlPort int
+	bldrSrc     string
+	le          *logrus.Entry
 
 	done    chan struct{}
 	doneErr error
@@ -65,6 +66,10 @@ func Boot(ctx context.Context, le *logrus.Entry) (_ *Harness, retErr error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "find CDP port")
 	}
+	controlPort, err := findFreePort()
+	if err != nil {
+		return nil, errors.Wrap(err, "find Electron e2e control port")
+	}
 
 	bldrSrcPath, err := filepath.Rel(filepath.Join(stateRoot, "src"), repoRoot)
 	if err != nil {
@@ -73,14 +78,15 @@ func Boot(ctx context.Context, le *logrus.Entry) (_ *Harness, retErr error) {
 
 	hctx, cancel := context.WithCancel(ctx)
 	h := &Harness{
-		ctx:       ctx,
-		cancel:    cancel,
-		repoRoot:  repoRoot,
-		stateRoot: stateRoot,
-		cdpPort:   port,
-		bldrSrc:   bldrSrcPath,
-		le:        le,
-		done:      make(chan struct{}),
+		ctx:         ctx,
+		cancel:      cancel,
+		repoRoot:    repoRoot,
+		stateRoot:   stateRoot,
+		cdpPort:     port,
+		controlPort: controlPort,
+		bldrSrc:     bldrSrcPath,
+		le:          le,
+		done:        make(chan struct{}),
 	}
 	defer func() {
 		if retErr != nil {
@@ -90,6 +96,7 @@ func Boot(ctx context.Context, le *logrus.Entry) (_ *Harness, retErr error) {
 
 	h.restoreEnv = append(h.restoreEnv,
 		setEnv("BLDR_ELECTRON_REMOTE_DEBUGGING_PORT", strconv.Itoa(port)),
+		setEnv("BLDR_ELECTRON_E2E_CONTROL_PORT", strconv.Itoa(controlPort)),
 		setEnv("BLDR_PLUGIN_STATE_PATH", filepath.Join(stateRoot, "electron-user-data")),
 	)
 
@@ -142,6 +149,11 @@ func (h *Harness) CDPEndpoint() string {
 	return "http://127.0.0.1:" + strconv.Itoa(h.cdpPort)
 }
 
+// ControlEndpoint returns the local Electron main e2e control endpoint.
+func (h *Harness) ControlEndpoint() string {
+	return "http://127.0.0.1:" + strconv.Itoa(h.controlPort)
+}
+
 // StateRoot returns the isolated Bldr state root used by the harness.
 func (h *Harness) StateRoot() string { return h.stateRoot }
 
@@ -163,6 +175,9 @@ func (h *Harness) WaitForPage(ctx context.Context) (playwright.Page, error) {
 	for {
 		for _, browserCtx := range h.browser.Contexts() {
 			for _, page := range browserCtx.Pages() {
+				if page.IsClosed() {
+					continue
+				}
 				if strings.HasPrefix(page.URL(), "app://") {
 					return page, nil
 				}
@@ -186,6 +201,9 @@ func (h *Harness) AppPages() []playwright.Page {
 	var pages []playwright.Page
 	for _, browserCtx := range h.browser.Contexts() {
 		for _, page := range browserCtx.Pages() {
+			if page.IsClosed() {
+				continue
+			}
 			if strings.HasPrefix(page.URL(), "app://") {
 				pages = append(pages, page)
 			}
@@ -232,6 +250,52 @@ func (h *Harness) WaitForAppPages(
 		case <-ticker.C:
 		}
 	}
+}
+
+// WaitForAppPageCount waits until exactly count renderer pages are visible.
+func (h *Harness) WaitForAppPageCount(
+	ctx context.Context,
+	count int,
+) ([]playwright.Page, error) {
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		pages := h.AppPages()
+		if len(pages) == count {
+			return pages, nil
+		}
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-h.done:
+			return nil, h.desktopRuntimeErr("desktop runtime exited before renderer page count matched")
+		case <-ticker.C:
+		}
+	}
+}
+
+// ActivateApp triggers the Electron app activation path through the opt-in e2e
+// control endpoint.
+func (h *Harness) ActivateApp(ctx context.Context) error {
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		h.ControlEndpoint()+"/activate",
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	_, _ = io.Copy(io.Discard, resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return errors.Errorf("activate app returned HTTP %d", resp.StatusCode)
+	}
+	return nil
 }
 
 // Release stops Playwright, cancels the Bldr desktop runtime, and restores env.

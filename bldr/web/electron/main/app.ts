@@ -1,5 +1,6 @@
 import os from 'os'
 import path from 'path'
+import http from 'http'
 import electron, { dialog, ipcMain, nativeTheme, shell } from 'electron'
 import { Client as SRPCClient, OpenStreamCtr, StreamConn } from 'starpc'
 import type { Message } from '@aptre/protobuf-es-lite'
@@ -62,6 +63,8 @@ export class BldrElectronApp {
   public readonly desktopRuntimeResource: DesktopRuntimeResource
   // desktopTrayController owns the process-lifetime native status icon.
   private desktopTrayController?: DesktopTrayController
+  // e2eControlServer exposes narrow test-only lifecycle triggers.
+  private e2eControlServer?: http.Server
 
   // browserWindows contains the list of created browser windows.
   private browserWindows: Record<string, electron.BrowserWindow> = {}
@@ -213,6 +216,8 @@ export class BldrElectronApp {
     this.setupWebRuntimeClientPort()
     // setup native filesystem picker ipc
     this.setupNativeDirectoryPicker()
+    // setup opt-in e2e lifecycle controls
+    this.setupE2EControlServer()
 
     if (this.hasTrayBackgroundPresence()) {
       this.desktopTrayController = new DesktopTrayController({
@@ -243,6 +248,47 @@ export class BldrElectronApp {
       }
       return result.filePaths[0] ?? null
     })
+  }
+
+  private setupE2EControlServer() {
+    const rawPort = process.env.BLDR_ELECTRON_E2E_CONTROL_PORT
+    if (
+      !rawPort ||
+      !process.env.BLDR_ELECTRON_REMOTE_DEBUGGING_PORT ||
+      this.e2eControlServer
+    ) {
+      return
+    }
+    const port = Number.parseInt(rawPort, 10)
+    if (!Number.isInteger(port) || port <= 0) {
+      return
+    }
+
+    this.e2eControlServer = http.createServer((req, res) => {
+      const finish = (status: number, body: string) => {
+        res.writeHead(status, {
+          'content-type': 'text/plain; charset=utf-8',
+          'cache-control': 'no-store',
+        })
+        res.end(body)
+      }
+      if (req.method !== 'POST') {
+        finish(405, 'method not allowed\n')
+        return
+      }
+
+      const url = new URL(req.url ?? '/', 'http://127.0.0.1')
+      switch (url.pathname) {
+        case '/activate':
+          this.app.emit('activate')
+          finish(200, 'activated\n')
+          return
+        default:
+          finish(404, 'not found\n')
+      }
+    })
+    this.e2eControlServer.listen(port, '127.0.0.1')
+    this.e2eControlServer.unref()
   }
 
   private setupWebRuntimeClientPort() {

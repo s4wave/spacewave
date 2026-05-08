@@ -11,8 +11,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	playwright "github.com/playwright-community/playwright-go"
 )
 
 // TIER: nightly
@@ -77,16 +75,6 @@ func buildSpacewaveCLI(t *testing.T, ctx context.Context, repoRoot string) strin
 		t.Fatalf("build spacewave CLI: %v\n%s", err, out)
 	}
 	return bin
-}
-
-func closeAppPages(t *testing.T, pages []playwright.Page) {
-	t.Helper()
-
-	for _, page := range pages {
-		if err := page.Close(); err != nil {
-			t.Fatalf("close app page: %v", err)
-		}
-	}
 }
 
 func runSpacewaveStatus(
