@@ -13,6 +13,7 @@ import {
 import { ClientToWebRuntime, WebRuntimeToClient } from '../runtime/runtime.js'
 import { timeoutPromise } from './timeout.js'
 import { WebRuntimeClientChannelStreamOpts } from './web-runtime.js'
+import { markStartupBoundary } from './startup-marks.js'
 
 // OpenChannelFn opens the MessagePort to the WebRuntime.
 export type OpenChannelFn = (init: WebRuntimeClientInit) => Promise<MessagePort>
@@ -125,6 +126,12 @@ export class WebRuntimeClient {
       clientType: this.clientType,
       disableWebLocks: this.disableWebLocks,
     })
+    markStartupBoundary('runtime.client-channel-opened', {
+      source: 'browser',
+      runtimeId: this.webRuntimeId,
+      clientId: this.clientId,
+      clientType: this.clientType,
+    })
 
     // Wait for connected ack from the runtime before treating the port as live.
     // The ack is the first message sent by WebRuntimeClientInstance after
@@ -148,6 +155,12 @@ export class WebRuntimeClient {
         `WebRuntimeClient: ${this.clientId}: timeout waiting for runtime connected ack`,
       )
     }
+    markStartupBoundary('runtime.client-channel-acked', {
+      source: 'browser',
+      runtimeId: this.webRuntimeId,
+      clientId: this.clientId,
+      clientType: this.clientType,
+    })
 
     // Ack received. Switch to normal message handler and cache the port.
     port.onmessage = (ev) => {

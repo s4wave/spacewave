@@ -20,6 +20,7 @@ import { isCrossTabMessage, handleCrossTabMessage } from './cross-tab-broker.js'
 import { randomId } from './random-id.js'
 import { ServiceWorkerFetchTracker } from './service-worker-fetch-tracker.js'
 import { WebDocumentTracker } from './web-document-tracker.js'
+import { markStartupBoundary } from './startup-marks.js'
 
 declare let BLDR_DEBUG: boolean
 
@@ -80,9 +81,11 @@ export interface BrowserIndexRefreshMessage {
 export function resetServiceWorkerTestState(): void {
   CACHES[controlCacheName] = undefined
   browserReleaseSyncInFlight = null
+  firstWebDocumentMessageMarked = false
 }
 
 let browserReleaseSyncInFlight: Promise<BrowserReleaseState> | null = null
+let firstWebDocumentMessageMarked = false
 
 function buildCacheRequest(path: string): Request {
   return new Request(new URL(path, baseURL).toString())
@@ -593,15 +596,31 @@ const swHost = new ServiceWorkerHostClient(swHostClient)
 // setup resources such as offline caches.
 // note: does not activate until some time after this returns.
 async function swInstall() {
+  markStartupBoundary('service-worker.install-start', {
+    source: 'service-worker',
+    serviceWorkerId,
+  })
   await self.skipWaiting()
+  markStartupBoundary('service-worker.install-ready', {
+    source: 'service-worker',
+    serviceWorkerId,
+  })
 }
 
 // swActivate is called when the service worker becomes active.
 async function swActivate() {
+  markStartupBoundary('service-worker.activate-start', {
+    source: 'service-worker',
+    serviceWorkerId,
+  })
   // Claim all clients.
   await self.clients.claim()
   await getControlCache()
   await syncLatestBrowserRelease()
+  markStartupBoundary('service-worker.activate-ready', {
+    source: 'service-worker',
+    serviceWorkerId,
+  })
 }
 
 // handleServiceWorkerMessage routes a page message to the ServiceWorker owner.
@@ -644,6 +663,13 @@ export function handleServiceWorkerMessage(
     return
   }
   deps.webDocumentTracker.handleWebDocumentMessage(ev.data)
+  if (!firstWebDocumentMessageMarked) {
+    firstWebDocumentMessageMarked = true
+    markStartupBoundary('service-worker.first-document-message', {
+      source: 'service-worker',
+      serviceWorkerId,
+    })
+  }
 }
 
 function isBrowserReleaseSyncMessage(

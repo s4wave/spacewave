@@ -14,6 +14,7 @@ import {
 } from '@s4wave/app/prerender/boot-status.js'
 
 import { initBrowserReleaseAutoReload } from '../bldr/browser-release-update.js'
+import { markStartupBoundary } from '../bldr/startup-marks.js'
 
 declare global {
   var __swDeferBoot: boolean | undefined
@@ -66,6 +67,7 @@ if (
 const bldrRootProps: IBldrRootProps = { webDocumentOpts }
 
 initBrowserReleaseAutoReload()
+markStartupBoundary('shell.entrypoint-loaded', { source: 'browser' })
 
 function setBrowserBootStatus(
   phase: string,
@@ -121,6 +123,7 @@ if (typeof BLDR_STARTUP_JS === 'string') {
 }
 
 function resolveDeferredBootReady() {
+  markStartupBoundary('shell.deferred-boot-ready', { source: 'browser' })
   const resolve = globalThis.__swReadyResolve
   if (!resolve) {
     return
@@ -130,10 +133,12 @@ function resolveDeferredBootReady() {
 }
 
 function waitForWebRuntime(webDocument: BldrWebDocument) {
+  markStartupBoundary('runtime.wait-start', { source: 'browser' })
   setBrowserBootStatus('runtime', 'Connecting runtime...')
   void webDocument
     .waitConn()
     .then(() => {
+      markStartupBoundary('runtime.wait-ready', { source: 'browser' })
       setBrowserBootStatus('ready', 'Application ready.')
       resolveDeferredBootReady()
     })
@@ -148,6 +153,11 @@ function waitForWebRuntime(webDocument: BldrWebDocument) {
 const container = document.getElementById('bldr-root')
 const deferBoot =
   !!container?.hasAttribute('data-prerendered') && !!globalThis.__swDeferBoot
+markStartupBoundary('shell.container-resolved', {
+  source: 'browser',
+  deferred: deferBoot,
+  prerendered: !!container?.hasAttribute('data-prerendered'),
+})
 
 if (container && deferBoot) {
   const webDocument = new BldrWebDocument(webDocumentOpts)
@@ -179,6 +189,7 @@ if (container && deferBoot) {
   }
 
   globalThis.__swBoot = (hash: string) => {
+    markStartupBoundary('shell.boot-requested', { source: 'browser' })
     setBrowserBootStatus('app', 'Opening application...')
     setAppPath(hash)
     renderBootedRoot()

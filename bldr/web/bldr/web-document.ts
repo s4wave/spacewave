@@ -78,6 +78,7 @@ import { ItState } from './it-state.js'
 import { randomId } from './random-id.js'
 import { SimpleEventEmitter } from './simple-event-emitter.js'
 import { WebRuntimeClient } from './web-runtime-client.js'
+import { markStartupBoundary } from './startup-marks.js'
 
 // CreateWebViewFunc is a function to create a WebView.
 export type CreateWebViewFunc = (
@@ -159,6 +160,15 @@ class WebDocumentWebWorker {
     }
 
     this.workerType = workerType
+    markStartupBoundary('worker.construct-start', {
+      source: 'browser',
+      documentId: webDocumentUuid,
+      workerId: id,
+      path,
+      shared,
+      workerType,
+      plugin: !!initData,
+    })
 
     const { port1: localPort, port2: workerPort } = new MessageChannel()
     const init: WebDocumentToWorker = {
@@ -184,11 +194,27 @@ class WebDocumentWebWorker {
           name: workerName,
           type: 'module',
         })
+        markStartupBoundary('worker.shared-created', {
+          source: 'browser',
+          documentId: webDocumentUuid,
+          workerId: id,
+          path,
+          shared: true,
+          workerType,
+        })
         this.sharedWorker.port.postMessage(init, [workerPort])
       } else {
         this.worker = new Worker(workerURL.toString(), {
           name: workerName,
           type: 'module',
+        })
+        markStartupBoundary('worker.shared-fallback-created', {
+          source: 'browser',
+          documentId: webDocumentUuid,
+          workerId: id,
+          path,
+          shared: false,
+          workerType,
         })
         this.worker.postMessage(init, [workerPort])
       }
@@ -206,6 +232,14 @@ class WebDocumentWebWorker {
       this.worker = new Worker(workerURL.toString(), {
         name: `${id}?${workerParams}`,
         type: 'module',
+      })
+      markStartupBoundary('worker.dedicated-created', {
+        source: 'browser',
+        documentId: webDocumentUuid,
+        workerId: id,
+        path,
+        shared: false,
+        workerType,
       })
       this.worker.postMessage(init, [workerPort])
     }
@@ -232,6 +266,13 @@ class WebDocumentWebWorker {
     this.port = localPort
     this.port.addEventListener('message', onWebWorkerMessage)
     this.port.start()
+    markStartupBoundary('worker.port-started', {
+      source: 'browser',
+      documentId: webDocumentUuid,
+      workerId: id,
+      shared: this.isShared,
+      workerType,
+    })
   }
 
   // close closes our connection to the worker.
@@ -566,6 +607,10 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   private pluginSingletonReady: Promise<void> = Promise.resolve()
   // singletonAbort aborts the singleton lock request on close.
   private singletonAbort?: AbortController
+  // firstWorkerCreationMarked records the first worker boundary once per document.
+  private firstWorkerCreationMarked = false
+  // firstWorkerReadyMarked records the first ready boundary once per document.
+  private firstWorkerReadyMarked = false
 
   // isClosed checks if the web document is closed
   public get isClosed(): boolean | Error {
@@ -580,7 +625,17 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   // waitConn waits for the WebRuntime connection to become ready.
   public async waitConn(): Promise<void> {
     try {
+      markStartupBoundary('runtime.wait-conn-start', {
+        source: 'browser',
+        documentId: this.webDocumentUuid,
+        runtimeId: this.webRuntimeId,
+      })
       await this.webRuntimeClient.waitConn()
+      markStartupBoundary('runtime.wait-conn-ready', {
+        source: 'browser',
+        documentId: this.webDocumentUuid,
+        runtimeId: this.webRuntimeId,
+      })
       return
     } catch {
       // fall through and wait for the runtimeconnected event below
@@ -589,6 +644,11 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     await new Promise<void>((resolve, reject) => {
       const onConnected = () => {
         this.removeListener('runtimeconnected', onConnected)
+        markStartupBoundary('runtime.event-connected', {
+          source: 'browser',
+          documentId: this.webDocumentUuid,
+          runtimeId: this.webRuntimeId,
+        })
         resolve()
       }
       this.once('runtimeconnected', onConnected)
@@ -603,6 +663,11 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     super()
     this.webRuntimeId = opts?.webRuntimeId || 'default'
     this.webDocumentUuid = opts?.webDocumentId || randomId()
+    markStartupBoundary('web-document.construct-start', {
+      source: 'browser',
+      documentId: this.webDocumentUuid,
+      runtimeId: this.webRuntimeId,
+    })
     this.hidden = false
     if (isElectron) {
       this.isElectron = true
@@ -733,6 +798,12 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     // Forced by option, or when SharedWorker is unavailable (e.g. Chrome Android).
     const useDedicatedRuntime =
       this.forceDedicatedWorkers || typeof SharedWorker === 'undefined'
+    markStartupBoundary('runtime.mode-selected', {
+      source: 'browser',
+      documentId: this.webDocumentUuid,
+      runtimeId: this.webRuntimeId,
+      mode: useDedicatedRuntime ? 'dedicated-worker' : 'shared-worker',
+    })
 
     // setup the runtime worker
     if (this.isElectron) {
@@ -778,15 +849,39 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         // Transfer one port to the Worker for communication (same pattern
         // as SharedWorker's built-in port). Each tab gets its own Worker.
         console.log('WebDocument: using dedicated Worker for runtime')
+        markStartupBoundary('runtime.worker-create-start', {
+          source: 'browser',
+          documentId: this.webDocumentUuid,
+          runtimeId: this.webRuntimeId,
+          mode: 'dedicated-worker',
+        })
         this.runtimeWorker = new Worker(runtimeJsURL, workerOptions)
         const { port1, port2 } = new MessageChannel()
         this.webRuntimePort = port1
         this.runtimeWorker.postMessage(initMsg, [port2])
+        markStartupBoundary('runtime.worker-created', {
+          source: 'browser',
+          documentId: this.webDocumentUuid,
+          runtimeId: this.webRuntimeId,
+          mode: 'dedicated-worker',
+        })
       } else {
         // SharedWorker mode: all tabs share a single Worker.
+        markStartupBoundary('runtime.worker-create-start', {
+          source: 'browser',
+          documentId: this.webDocumentUuid,
+          runtimeId: this.webRuntimeId,
+          mode: 'shared-worker',
+        })
         this.worker = new SharedWorker(runtimeJsURL, workerOptions)
         this.webRuntimePort = this.worker.port!
         this.webRuntimePort.postMessage(initMsg)
+        markStartupBoundary('runtime.worker-created', {
+          source: 'browser',
+          documentId: this.webDocumentUuid,
+          runtimeId: this.webRuntimeId,
+          mode: 'shared-worker',
+        })
       }
     }
 
@@ -796,6 +891,11 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     // process. The lock is held until this document closes.
     if (useDedicatedRuntime && !this.isElectron && 'locks' in navigator) {
       this.singletonAbort = new AbortController()
+      markStartupBoundary('singleton-lock.request-start', {
+        source: 'browser',
+        documentId: this.webDocumentUuid,
+        runtimeId: this.webRuntimeId,
+      })
       this.pluginSingletonReady = new Promise<void>((resolve, reject) => {
         navigator.locks
           .request(
@@ -803,6 +903,11 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
             { signal: this.singletonAbort!.signal },
             () => {
               console.log('WebDocument: acquired plugin singleton lock')
+              markStartupBoundary('singleton-lock.acquired', {
+                source: 'browser',
+                documentId: this.webDocumentUuid,
+                runtimeId: this.webRuntimeId,
+              })
               resolve()
               return new Promise<void>(() => {})
             },
@@ -828,6 +933,11 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         new URL(opts.serviceWorkerPath, baseURL).toString()
       : '/sw.mjs'
     console.log('WebDocument: registering service worker', swUrl)
+    markStartupBoundary('service-worker.register-start', {
+      source: 'browser',
+      documentId: this.webDocumentUuid,
+      runtimeId: this.webRuntimeId,
+    })
     const wb = new Workbox(swUrl) // Not supported in Firefox: {type: 'module'}
     this.serviceWorker = wb
     this.initServiceWorker(wb, swUrl)
@@ -989,7 +1099,19 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     if (request.initData) {
       try {
         console.log('WebDocument: waiting for plugin singleton lock')
+        markStartupBoundary('singleton-lock.wait-start', {
+          source: 'browser',
+          documentId: this.webDocumentUuid,
+          runtimeId: this.webRuntimeId,
+          workerId: request.id,
+        })
         await this.pluginSingletonReady
+        markStartupBoundary('singleton-lock.wait-ready', {
+          source: 'browser',
+          documentId: this.webDocumentUuid,
+          runtimeId: this.webRuntimeId,
+          workerId: request.id,
+        })
       } catch {
         return { created: false, shared: false }
       }
@@ -1008,6 +1130,17 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     // All workers use the same sharedWorkerPath, with workerType passed in URL
     const workerType = request.workerType ?? WebWorkerType.NATIVE
     const detect = await this.workerCommsDetect
+    if (!this.firstWorkerCreationMarked) {
+      this.firstWorkerCreationMarked = true
+      markStartupBoundary('worker.first-create-start', {
+        source: 'browser',
+        documentId: this.webDocumentUuid,
+        runtimeId: this.webRuntimeId,
+        workerId: request.id,
+        workerType,
+        plugin: !!request.initData,
+      })
+    }
 
     const workerMode = request.workerMode ?? WebWorkerMode.WORKER_MODE_DEFAULT
     let shared: boolean
@@ -1065,6 +1198,15 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     this.webWorkers[request.id] = worker
 
     const createdShared = worker.isShared
+    markStartupBoundary('worker.create-ready', {
+      source: 'browser',
+      documentId: this.webDocumentUuid,
+      runtimeId: this.webRuntimeId,
+      workerId: request.id,
+      shared: createdShared,
+      workerType,
+      plugin: !!request.initData,
+    })
     this.notifyWebWorkerUpdated(request.id, false, createdShared, worker.ready)
     return { created: true, shared: createdShared }
   }
@@ -1215,10 +1357,20 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
 
     // register the service worker
     const wbReg = await wb.register() // ({ immediate: true })
+    markStartupBoundary('service-worker.register-ready', {
+      source: 'browser',
+      documentId: this.webDocumentUuid,
+      runtimeId: this.webRuntimeId,
+    })
 
     // wait for the service worker to finish startup
     // await wb.active()
     await wb.update()
+    markStartupBoundary('service-worker.update-ready', {
+      source: 'browser',
+      documentId: this.webDocumentUuid,
+      runtimeId: this.webRuntimeId,
+    })
     await registerUpdatedServiceWorker(swUrl, wbReg)
 
     // workaround for ctrl + shift + r disabling service workers
@@ -1234,6 +1386,11 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     const sw = await wb.controlling
 
     console.log('WebDocument: service worker is controlling this page', sw)
+    markStartupBoundary('service-worker.control-ready', {
+      source: 'browser',
+      documentId: this.webDocumentUuid,
+      runtimeId: this.webRuntimeId,
+    })
     navigator.serviceWorker.addEventListener('message', swMessageCallback)
     this.initServiceWorkerPort(sw)
 
@@ -1309,11 +1466,21 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     localPort.onmessage = this.onWebDocumentClientMessage.bind(this)
     localPort.start()
     this.serviceWorkerPort = localPort
+    markStartupBoundary('service-worker.port-started', {
+      source: 'browser',
+      documentId: this.webDocumentUuid,
+      runtimeId: this.webRuntimeId,
+    })
     const msg: WebDocumentToWorker = {
       from: this.webDocumentUuid,
       initPort: clientPort,
     }
     sw.postMessage(msg, [clientPort])
+    markStartupBoundary('service-worker.port-sent', {
+      source: 'browser',
+      documentId: this.webDocumentUuid,
+      runtimeId: this.webRuntimeId,
+    })
   }
 
   // openWebRuntimeClient attempts to open a message port with the WebRuntime.
@@ -1322,6 +1489,12 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     init: WebRuntimeClientInit,
   ): Promise<MessagePort> {
     const { port1: localPort, port2: remotePort } = new MessageChannel()
+    markStartupBoundary('runtime.client-open-start', {
+      source: 'browser',
+      documentId: this.webDocumentUuid,
+      runtimeId: this.webRuntimeId,
+      clientType: init.clientType,
+    })
     this.sendWebRuntimeOpenClient(
       this.webDocumentUuid,
       WebRuntimeClientInit.toBinary(init),
@@ -1348,6 +1521,12 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       },
     }
     this.webRuntimePort.postMessage(msg, [remotePort])
+    markStartupBoundary('runtime.client-open-sent', {
+      source: 'browser',
+      documentId: this.webDocumentUuid,
+      runtimeId: this.webRuntimeId,
+      from,
+    })
   }
 
   // handleWebRuntimeOpenStream handles the web runtime opening a rpc stream.
@@ -1420,6 +1599,25 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
 
     if (data.ready && !worker.ready) {
       worker.ready = true
+      if (!this.firstWorkerReadyMarked) {
+        this.firstWorkerReadyMarked = true
+        markStartupBoundary('worker.first-ready', {
+          source: 'browser',
+          documentId: this.webDocumentUuid,
+          runtimeId: this.webRuntimeId,
+          workerId: workerID,
+          shared: worker.isShared,
+          workerType: worker.workerType,
+        })
+      }
+      markStartupBoundary('worker.ready', {
+        source: 'browser',
+        documentId: this.webDocumentUuid,
+        runtimeId: this.webRuntimeId,
+        workerId: workerID,
+        shared: worker.isShared,
+        workerType: worker.workerType,
+      })
       this.notifyWebWorkerUpdated(workerID, false, worker.isShared, true)
       return
     }
@@ -1436,6 +1634,12 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     const connectWebRuntime = data.connectWebRuntime
     const port = connectWebRuntime?.port ?? event.ports?.[0]
     if (connectWebRuntime?.init && port) {
+      markStartupBoundary('runtime.client-connect-request', {
+        source: 'browser',
+        documentId: this.webDocumentUuid,
+        runtimeId: this.webRuntimeId,
+        from: data.from,
+      })
       this.handleClientConnectWebRuntime(
         data.from,
         connectWebRuntime.init,
@@ -1495,6 +1699,12 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     port: MessagePort,
   ) {
     console.log(`WebDocument: connecting client to WebRuntime: ${from}`)
+    markStartupBoundary('runtime.client-connect-start', {
+      source: 'browser',
+      documentId: this.webDocumentUuid,
+      runtimeId: this.webRuntimeId,
+      from,
+    })
     port.start()
 
     // Ack we are opening the channel and pass the MessagePort to use.
@@ -1505,6 +1715,12 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     }
     port.postMessage(ack, [clientPort])
     port.close()
+    markStartupBoundary('runtime.client-connect-ack', {
+      source: 'browser',
+      documentId: this.webDocumentUuid,
+      runtimeId: this.webRuntimeId,
+      from,
+    })
 
     // Send the MessagePort to the WebRuntime to complete the connection.
     this.sendWebRuntimeOpenClient(from, init, webRuntimePort)
@@ -1521,6 +1737,11 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
           if (this.closed) {
             return
           }
+          markStartupBoundary('runtime.connected', {
+            source: 'browser',
+            documentId: this.webDocumentUuid,
+            runtimeId: this.webRuntimeId,
+          })
           this.emit('runtimeconnected')
         },
         (err) => {
