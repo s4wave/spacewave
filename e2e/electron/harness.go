@@ -6,6 +6,7 @@ package electron
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -31,12 +32,16 @@ type Harness struct {
 
 	cancel context.CancelFunc
 
-	repoRoot    string
-	stateRoot   string
-	cdpPort     int
-	controlPort int
-	bldrSrc     string
-	le          *logrus.Entry
+	repoRoot          string
+	stateRoot         string
+	artifactDir       string
+	spacewaveDataRoot string
+	cdpPort           int
+	controlPort       int
+	bldrSrc           string
+	le                *logrus.Entry
+	startSeq          int
+	logFiles          []string
 
 	done    chan struct{}
 	doneErr error
@@ -61,6 +66,14 @@ func Boot(ctx context.Context, le *logrus.Entry) (_ *Harness, retErr error) {
 	if err := os.MkdirAll(stateRoot, 0o755); err != nil {
 		return nil, errors.Wrap(err, "create electron e2e state root")
 	}
+	artifactDir := filepath.Join(stateRoot, "artifacts", "runtime")
+	if err := os.MkdirAll(artifactDir, 0o755); err != nil {
+		return nil, errors.Wrap(err, "create electron e2e artifact dir")
+	}
+	spacewaveDataRoot := filepath.Join(stateRoot, "sw")
+	if err := os.MkdirAll(spacewaveDataRoot, 0o755); err != nil {
+		return nil, errors.Wrap(err, "create electron e2e spacewave data root")
+	}
 
 	port, err := findFreePort()
 	if err != nil {
@@ -78,15 +91,17 @@ func Boot(ctx context.Context, le *logrus.Entry) (_ *Harness, retErr error) {
 
 	hctx, cancel := context.WithCancel(ctx)
 	h := &Harness{
-		ctx:         ctx,
-		cancel:      cancel,
-		repoRoot:    repoRoot,
-		stateRoot:   stateRoot,
-		cdpPort:     port,
-		controlPort: controlPort,
-		bldrSrc:     bldrSrcPath,
-		le:          le,
-		done:        make(chan struct{}),
+		ctx:               ctx,
+		cancel:            cancel,
+		repoRoot:          repoRoot,
+		stateRoot:         stateRoot,
+		artifactDir:       artifactDir,
+		spacewaveDataRoot: spacewaveDataRoot,
+		cdpPort:           port,
+		controlPort:       controlPort,
+		bldrSrc:           bldrSrcPath,
+		le:                le,
+		done:              make(chan struct{}),
 	}
 	defer func() {
 		if retErr != nil {
@@ -98,6 +113,7 @@ func Boot(ctx context.Context, le *logrus.Entry) (_ *Harness, retErr error) {
 		setEnv("BLDR_ELECTRON_REMOTE_DEBUGGING_PORT", strconv.Itoa(port)),
 		setEnv("BLDR_ELECTRON_E2E_CONTROL_PORT", strconv.Itoa(controlPort)),
 		setEnv("BLDR_PLUGIN_STATE_PATH", filepath.Join(stateRoot, "electron-user-data")),
+		setEnv("SPACEWAVE_DATA_DIR", spacewaveDataRoot),
 	)
 
 	if err := h.startDesktopRuntime(ctx, hctx, cancel); err != nil {
@@ -161,6 +177,20 @@ func (h *Harness) ControlEndpoint() string {
 
 // StateRoot returns the isolated Bldr state root used by the harness.
 func (h *Harness) StateRoot() string { return h.stateRoot }
+
+// ArtifactDir returns the E2E artifact directory.
+func (h *Harness) ArtifactDir() string { return h.artifactDir }
+
+// SpacewaveDataRoot returns the short scratch SPACEWAVE_DATA_DIR.
+func (h *Harness) SpacewaveDataRoot() string { return h.spacewaveDataRoot }
+
+// LastLogFilePath returns the devtool log path for the latest runtime start.
+func (h *Harness) LastLogFilePath() string {
+	if len(h.logFiles) == 0 {
+		return ""
+	}
+	return h.logFiles[len(h.logFiles)-1]
+}
 
 // RepoRoot returns the project repository root used by the harness.
 func (h *Harness) RepoRoot() string { return h.repoRoot }
@@ -330,6 +360,12 @@ func (h *Harness) startDesktopRuntime(
 	args.WebRenderer = "electron"
 	args.BldrSrcPath = h.bldrSrc
 	args.MinifyEntrypoint = false
+	h.startSeq++
+	logPath := filepath.Join(h.artifactDir, fmt.Sprintf("devtool-start-%02d.log", h.startSeq))
+	if err := args.LogFiles.Set("level=DEBUG;path=" + logPath); err != nil {
+		return err
+	}
+	h.logFiles = append(h.logFiles, logPath)
 
 	go func() {
 		h.doneErr = args.ExecuteNativeProject(hctx)
