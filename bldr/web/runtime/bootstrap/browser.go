@@ -77,6 +77,7 @@ func StartRuntimeStack(
 		WebRuntime: rt,
 		rels:       []func(){webRuntimeRef.Release},
 	}
+	triggerBrowserIndexCacheRefresh(le)
 
 	return stack, nil
 }

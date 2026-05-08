@@ -37,6 +37,7 @@ const baseURL = new URL(self.location.toString())
 const controlCacheName = 'bldr-control'
 const browserReleasePath = '/browser-release.json'
 const bootAssetPath = '/boot.mjs'
+const browserIndexPath = '/b/__index.html'
 const browserReleaseStatePath = '/__bldr/browser-release-state.json'
 
 // CACHES is the list of fixed caches.
@@ -381,6 +382,33 @@ async function matchStableBootAsset(
   return responseForMethod(request, response)
 }
 
+async function matchBrowserIndexCache(
+  request: Request,
+): Promise<Response | null> {
+  const cacheRequest = buildCacheRequest(browserIndexPath)
+  if (!canCacheRequest(cacheRequest)) {
+    return null
+  }
+  const cache = await getControlCache()
+  const response = await cache.match(cacheRequest)
+  if (!response) {
+    return null
+  }
+  return responseForMethod(request, response)
+}
+
+async function cacheBrowserIndexResponse(response: Response): Promise<void> {
+  if (!response.ok) {
+    return
+  }
+  const request = buildCacheRequest(browserIndexPath)
+  if (!canCacheRequest(request)) {
+    return
+  }
+  const cache = await getControlCache()
+  await cache.put(request, response.clone())
+}
+
 async function matchPromotedGenerationResponse(
   request: Request,
 ): Promise<Response | null> {
@@ -715,8 +743,22 @@ export async function swFetch(
       request.url.toString(),
     )
   }
+  if (requestPath === browserIndexPath) {
+    const response = await proxyFetch(swHost, request, ev.clientId || '', {
+      headerTimeoutMs: proxyFetchHeaderTimeoutMs,
+    })
+    if (response.ok) {
+      await cacheBrowserIndexResponse(response)
+      return response
+    }
+    const cached = await matchBrowserIndexCache(request)
+    if (cached) {
+      return cached
+    }
+    return response
+  }
   if (!ev.clientId) {
-    return proxyFetch(swHost, request, ev.clientId, {
+    return proxyFetch(swHost, request, ev.clientId || '', {
       headerTimeoutMs: proxyFetchHeaderTimeoutMs,
     })
   }

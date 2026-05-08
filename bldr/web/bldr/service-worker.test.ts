@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { proxyFetch } from '../fetch/fetch.js'
 import { createEmptyBrowserReleaseState } from './browser-release-state.js'
 import type {
   BrowserReleaseDescriptor,
@@ -11,6 +12,14 @@ import {
   resetServiceWorkerTestState,
   swFetch,
 } from './service-worker.js'
+
+vi.mock('../fetch/fetch.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../fetch/fetch.js')>()
+  return {
+    ...actual,
+    proxyFetch: vi.fn(),
+  }
+})
 
 class FakeCache {
   private readonly entries = new Map<string, Response>()
@@ -342,6 +351,21 @@ describe('service worker fetch release cache routing', () => {
 
     expect(await response.text()).toBe('network')
     expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('caches the runtime browser index and falls back to it on refresh failure', async () => {
+    vi.mocked(proxyFetch)
+      .mockResolvedValueOnce(new Response('runtime index', { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response('runtime unavailable', { status: 503 }),
+      )
+
+    const firstResponse = await swFetch(buildFetchOnlyEvent('/b/__index.html'))
+    const secondResponse = await swFetch(buildFetchOnlyEvent('/b/__index.html'))
+
+    expect(await firstResponse.text()).toBe('runtime index')
+    expect(await secondResponse.text()).toBe('runtime index')
+    expect(proxyFetch).toHaveBeenCalledTimes(2)
   })
 })
 
