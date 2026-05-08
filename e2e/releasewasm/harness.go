@@ -45,10 +45,11 @@ type browserReleaseShellAssets struct {
 }
 
 type harness struct {
-	baseURL string
-	server  *http.Server
-	pw      *playwright.Playwright
-	browser playwright.Browser
+	artifactDir string
+	baseURL     string
+	server      *http.Server
+	pw          *playwright.Playwright
+	browser     playwright.Browser
 }
 
 func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
@@ -93,7 +94,11 @@ func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 		return nil, errors.Wrap(err, "find free port")
 	}
 	baseURL := "http://127.0.0.1:" + port
-	h := &harness{baseURL: baseURL}
+	artifactDir := filepath.Join(repoRoot, ".bldr", "e2e-releasewasm", "artifacts")
+	h := &harness{
+		artifactDir: artifactDir,
+		baseURL:     baseURL,
+	}
 	defer func() {
 		if retErr != nil {
 			h.release(le)
@@ -145,6 +150,14 @@ func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 }
 
 func (h *harness) getBaseURL() string { return h.baseURL }
+
+func (h *harness) quickstartSmokeArtifactPath(t testing.TB) string {
+	t.Helper()
+
+	name := strings.ReplaceAll(t.Name(), "/", "_")
+	name = strings.ReplaceAll(name, " ", "_")
+	return filepath.Join(h.artifactDir, name+".json")
+}
 
 func (h *harness) newPage(t testing.TB) playwright.Page {
 	t.Helper()

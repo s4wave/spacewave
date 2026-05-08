@@ -5,11 +5,14 @@ package releasewasm
 import (
 	"context"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/pkg/errors"
 	playwright "github.com/playwright-community/playwright-go"
 	"github.com/sirupsen/logrus"
 )
@@ -141,6 +144,15 @@ func TestProductionRuntimeMatchesReleaseDescriptor(t *testing.T) {
 }
 
 func TestQuickstartPrerenderAutoBootsProductionWasmBundle(t *testing.T) {
+	desc, err := testHarness.browserRelease(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := testHarness.quickstartSmokeArtifactPath(t)
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		t.Fatalf("remove previous quickstart smoke artifact: %v", err)
+	}
+	source := sourceRevision(t)
 	page := testHarness.newPage(t)
 	if _, err := page.Goto(testHarness.getBaseURL() + "/quickstart/drive"); err != nil {
 		t.Fatalf("goto quickstart drive: %v", err)
@@ -151,14 +163,32 @@ func TestQuickstartPrerenderAutoBootsProductionWasmBundle(t *testing.T) {
 	waitForBootFunction(t, page)
 	waitForLiveApp(t, page)
 	waitForCanonicalQuickstartURL(t, page)
-	err := page.Locator("[data-testid='unixfs-browser']").WaitFor(
+	err = page.Locator("[data-testid='unixfs-browser']").WaitFor(
 		playwright.LocatorWaitForOptions{Timeout: playwright.Float(browserWaitMS)},
 	)
 	if err != nil {
 		dumpPageState(t, page)
 		t.Fatalf("wait for quickstart drive shell: %v", err)
 	}
+	driveShellVisibleMs := browserNowMs(t, page)
+	err = page.Locator("text=getting-started.md").First().WaitFor(
+		playwright.LocatorWaitForOptions{Timeout: playwright.Float(browserWaitMS)},
+	)
+	if err != nil {
+		dumpPageState(t, page)
+		t.Fatalf("wait for quickstart drive content: %v", err)
+	}
+	driveReadyMs := browserNowMs(t, page)
 	logQuickstartTiming(t, page)
+
+	data, err := collectQuickstartSmokeArtifact(page, desc, source, driveShellVisibleMs, driveReadyMs)
+	if err != nil {
+		t.Fatalf("collect quickstart smoke artifact: %v", err)
+	}
+	if err := writeQuickstartSmokeArtifact(path, data); err != nil {
+		t.Fatalf("write quickstart smoke artifact: %v", err)
+	}
+	t.Logf("quickstart smoke artifact written to %s (%d bytes)", path, len(data))
 }
 
 func waitForCanonicalQuickstartURL(t *testing.T, page playwright.Page) {
@@ -277,4 +307,205 @@ func logQuickstartTiming(t *testing.T, page playwright.Page) {
 		return
 	}
 	t.Logf("quickstart timing: %v", timing)
+}
+
+func browserNowMs(t *testing.T, page playwright.Page) int {
+	t.Helper()
+
+	raw, err := page.Evaluate(`() => Math.round(performance.now())`)
+	if err != nil {
+		t.Fatalf("read browser performance.now: %v", err)
+	}
+	val, ok := raw.(int)
+	if ok {
+		return val
+	}
+	fval, ok := raw.(float64)
+	if !ok {
+		t.Fatalf("unexpected performance.now value %T", raw)
+	}
+	return int(fval)
+}
+
+func collectQuickstartSmokeArtifact(
+	page playwright.Page,
+	desc *browserReleaseDescriptor,
+	source map[string]any,
+	driveShellVisibleMs int,
+	driveReadyMs int,
+) ([]byte, error) {
+	raw, err := page.Evaluate(`async (args) => {
+		const startupPrefix = 'spacewave.startup.'
+		const detectWorkerComms = async () => {
+			const caps = {
+				crossOriginIsolated: !!globalThis.crossOriginIsolated,
+				sabAvailable: false,
+				opfsAvailable: false,
+				webLocksAvailable: !!navigator.locks,
+				broadcastChannelAvailable: typeof BroadcastChannel === 'function',
+			}
+			try {
+				const buf = new SharedArrayBuffer(8)
+				caps.sabAvailable = buf.byteLength === 8
+			} catch {}
+			try {
+				if (navigator.storage?.getDirectory) {
+					await navigator.storage.getDirectory()
+					caps.opfsAvailable = true
+				}
+			} catch {}
+			const config =
+				!caps.crossOriginIsolated || !caps.sabAvailable ? 'A'
+				: caps.opfsAvailable && caps.webLocksAvailable ? 'C'
+				: 'B'
+			return { config, caps }
+		}
+		const storageEstimate =
+			navigator.storage?.estimate ?
+				await navigator.storage.estimate().catch(() => null)
+			: null
+		const persisted =
+			navigator.storage?.persisted ?
+				await navigator.storage.persisted().catch(() => null)
+			: null
+		const startupMarks = performance
+			.getEntriesByType('mark')
+			.filter((entry) => entry.name.startsWith(startupPrefix))
+			.map((entry) => ({
+				name: entry.name,
+				label: entry.name.slice(startupPrefix.length),
+				startTimeMs: Math.round(entry.startTime),
+				detail: entry.detail ?? null,
+			}))
+			.sort((a, b) => a.startTimeMs - b.startTimeMs)
+		const labels = new Set(startupMarks.map((mark) => mark.label))
+		const expectedStartupMarks = [
+			'shell.entrypoint-loaded',
+			'web-document.construct-start',
+			'worker-comms.detected',
+			'storage.mode-detected',
+			'runtime.mode-selected',
+			'runtime.worker-created',
+			'service-worker.register-ready',
+			'runtime.connected',
+			'worker.first-ready',
+		]
+		const nav = performance.getEntriesByType('navigation')[0]
+		const navigation =
+			nav ?
+				{
+					startTimeMs: Math.round(nav.startTime),
+					responseEndMs: Math.round(nav.responseEnd),
+					domInteractiveMs: Math.round(nav.domInteractive),
+					domContentLoadedEventEndMs: Math.round(nav.domContentLoadedEventEnd),
+					loadEventEndMs: Math.round(nav.loadEventEnd),
+				}
+			: null
+		const paint = performance.getEntriesByType('paint').map((entry) => ({
+			name: entry.name,
+			startTimeMs: Math.round(entry.startTime),
+		}))
+		const brands =
+			navigator.userAgentData?.brands?.map((brand) => ({
+				brand: brand.brand,
+				version: brand.version,
+			})) ?? []
+		const quickstartTiming =
+			globalThis.__s4waveQuickstartTiming ??
+			globalThis.__s4wave_debug?.quickstartTiming ??
+			null
+		const artifact = {
+			schemaVersion: 1,
+			scenario: 'quickstart-drive-production-smoke',
+			collectedAt: new Date().toISOString(),
+			baseURL: args.baseURL,
+			finalURL: window.location.href,
+			release: args.release,
+			source: args.source,
+			browser: {
+				family: 'chromium',
+				userAgent: navigator.userAgent,
+				brands,
+			},
+			workerComms: await detectWorkerComms(),
+			storage: {
+				mode:
+					navigator.storage?.getDirectory ?
+						'browser-opfs-indexeddb'
+					: 'browser-indexeddb',
+				persistSupported: !!navigator.storage?.persist,
+				persistedSupported: !!navigator.storage?.persisted,
+				persisted,
+				estimate: storageEstimate,
+			},
+			timing: {
+				browserNowMs: Math.round(performance.now()),
+				driveShellVisibleMs: args.driveShellVisibleMs,
+				driveReadyMs: args.driveReadyMs,
+				quickstart: quickstartTiming,
+				navigation,
+				paint,
+			},
+			startupMarks,
+			missingStartupMarks: expectedStartupMarks.filter((label) => !labels.has(label)),
+		}
+		return JSON.stringify(artifact, null, 2)
+	}`, map[string]any{
+		"baseURL":             testHarness.getBaseURL(),
+		"driveShellVisibleMs": driveShellVisibleMs,
+		"driveReadyMs":        driveReadyMs,
+		"release": map[string]any{
+			"generationId": desc.GenerationID,
+			"shellAssets": map[string]any{
+				"entrypoint":    desc.ShellAssets.Entrypoint,
+				"serviceWorker": desc.ShellAssets.ServiceWorker,
+				"sharedWorker":  desc.ShellAssets.SharedWorker,
+				"wasm":          desc.ShellAssets.Wasm,
+				"css":           desc.ShellAssets.CSS,
+			},
+			"prerenderedRoutes":    desc.PrerenderedRoutes,
+			"requiredStaticAssets": desc.RequiredStaticAssets,
+		},
+		"source": source,
+	})
+	if err != nil {
+		return nil, err
+	}
+	data, ok := raw.(string)
+	if !ok {
+		return nil, errors.Errorf("unexpected artifact payload %T", raw)
+	}
+	return []byte(data + "\n"), nil
+}
+
+func writeQuickstartSmokeArtifact(path string, data []byte) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(path, data, 0o644)
+}
+
+func sourceRevision(t testing.TB) map[string]any {
+	t.Helper()
+
+	headCmd := exec.Command("git", "rev-parse", "HEAD")
+	headRaw, err := headCmd.Output()
+	if err != nil {
+		t.Fatalf("read git HEAD: %v", err)
+	}
+	statusCmd := exec.Command("git", "status", "--short")
+	statusRaw, err := statusCmd.Output()
+	if err != nil {
+		t.Fatalf("read git status: %v", err)
+	}
+	status := strings.TrimSpace(string(statusRaw))
+	statusLines := []string{}
+	if status != "" {
+		statusLines = strings.Split(status, "\n")
+	}
+	return map[string]any{
+		"head":        strings.TrimSpace(string(headRaw)),
+		"dirty":       len(statusLines) != 0,
+		"statusShort": statusLines,
+	}
 }

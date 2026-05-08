@@ -703,6 +703,13 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     this.workerCommsDetect = detectWorkerCommsConfig()
     this.workerCommsDetect.then((result) => {
       const desc = configDescription(result.config)
+      markStartupBoundary('worker-comms.detected', {
+        source: 'browser',
+        documentId: this.webDocumentUuid,
+        runtimeId: this.webRuntimeId,
+        config: result.config,
+        ...result.caps,
+      })
       console.log(
         '%cbldr%c %s config %s %s',
         'color:#ff3838;font-weight:bold',
@@ -812,12 +819,34 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       handleElectronWorkerPort(workerChannel.port1)
     } else {
       // request persistent storage
+      markStartupBoundary('storage.mode-detected', {
+        source: 'browser',
+        documentId: this.webDocumentUuid,
+        runtimeId: this.webRuntimeId,
+        mode:
+          typeof navigator.storage?.getDirectory === 'function' ?
+            'browser-opfs-indexeddb'
+          : 'browser-indexeddb',
+        persistSupported: typeof navigator.storage?.persist === 'function',
+        persistedSupported: typeof navigator.storage?.persisted === 'function',
+      })
       if (
         !this.disableStoragePersist &&
         'storage' in navigator &&
         'persist' in navigator.storage
       ) {
+        markStartupBoundary('storage.persist-request-start', {
+          source: 'browser',
+          documentId: this.webDocumentUuid,
+          runtimeId: this.webRuntimeId,
+        })
         navigator.storage.persist().then((persistent) => {
+          markStartupBoundary('storage.persist-ready', {
+            source: 'browser',
+            documentId: this.webDocumentUuid,
+            runtimeId: this.webRuntimeId,
+            persistent,
+          })
           if (persistent) {
             console.log(
               'WebDocument: user approved persist, storage will not be cleared except by explicit user action.',
