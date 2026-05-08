@@ -427,6 +427,108 @@ func TestWatchWorldManifestExecutesBootstrapManifestAndRecordsUnreadableRetained
 	}
 }
 
+func TestWatchWorldManifestExecutesReadableLauncherWithUnavailableRetainedReleaseCdnCandidate(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const objKey = "spacewave/launcher"
+	if _, err := bldr_manifest_world.CreateManifestStore(ctx, ws, objKey); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	launcherRef, launcherRefKey := storeTestWorldManifest(t, ctx, ws, "spacewave-launcher", "desktop/darwin/arm64", 12)
+	if err := ws.SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad(objKey, launcherRefKey, "spacewave-launcher")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	retainedRef := newTestStoredManifestRef(t, ctx, tb, "spacewave-launcher", "desktop/darwin/arm64", 13)
+	retainedRef.GetManifestRef().BucketId = "spacewave-cdn-release-retained"
+	const retainedRefKey = "release/manifests/spacewave-launcher/desktop/darwin/arm64/cdn-retained"
+	storeTestManifestRefObject(t, ctx, ws, retainedRefKey, retainedRef)
+	if err := ws.SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad(objKey, retainedRefKey, "")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	host := &testPluginHost{id: "desktop/darwin/arm64"}
+	ctrl := &Controller{
+		conf:   &Config{},
+		objKey: objKey,
+		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
+			&PluginStatusSnapshot{},
+			pluginStatusSnapshotEqual,
+		),
+		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
+	}
+	pi := &pluginInstance{
+		c:                       ctrl,
+		le:                      le,
+		pluginID:                "spacewave-launcher",
+		downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.ManifestSnapshot](le),
+		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
+	}
+
+	obj, ok, err := ws.GetObject(ctx, objKey)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !ok {
+		t.Fatal("expected launcher manifest store object")
+	}
+
+	wait, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
+		pluginHosts: []bldr_plugin_host.PluginHost{host},
+	}, ws, obj)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !wait {
+		t.Fatal("expected watch loop to wait for changes")
+	}
+
+	execState := pi.executePluginRoutine.GetState()
+	if execState == nil || execState.manifestSnapshot == nil {
+		t.Fatal("expected execute state from readable launcher candidate")
+	}
+	if execState.pluginHost != host {
+		t.Fatal("expected execute state to use matching plugin host")
+	}
+	if !execState.manifestSnapshot.GetManifestRef().EqualVT(launcherRef.GetManifestRef()) {
+		t.Fatal("expected unavailable retained release/CDN candidate not to replace the readable launcher candidate")
+	}
+
+	status := ctrl.GetPluginStatusCtr().GetValue()
+	if len(status.Plugins) != 1 {
+		t.Fatalf("expected one plugin status, got %d", len(status.Plugins))
+	}
+	lastError := status.Plugins[0].GetLastErrorMessage()
+	if !strings.Contains(lastError, "startup manifest refs: 1 skipped startup manifest ref(s)") {
+		t.Fatalf("unexpected retained release/CDN diagnostic: %q", lastError)
+	}
+	if !strings.Contains(lastError, retainedRefKey) {
+		t.Fatalf("retained release/CDN diagnostic %q does not mention ref key %q", lastError, retainedRefKey)
+	}
+	if !strings.Contains(lastError, "bucket=spacewave-cdn-release-retained") {
+		t.Fatalf("retained release/CDN diagnostic %q does not mention missing CDN bucket", lastError)
+	}
+}
+
 func TestWatchWorldManifestRecordsCompactSkippedRefStatusWhenNoCandidate(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
