@@ -1,0 +1,142 @@
+syntax = "proto3";
+package plugin.host.logs;
+
+import "google/protobuf/timestamp.proto";
+
+// StructuredLogLevel is the severity of a structured plugin log event.
+enum StructuredLogLevel {
+  // STRUCTURED_LOG_LEVEL_UNSPECIFIED preserves the proto3 default.
+  STRUCTURED_LOG_LEVEL_UNSPECIFIED = 0;
+  // STRUCTURED_LOG_LEVEL_TRACE is the most detailed diagnostic level.
+  STRUCTURED_LOG_LEVEL_TRACE = 1;
+  // STRUCTURED_LOG_LEVEL_DEBUG is for development diagnostics.
+  STRUCTURED_LOG_LEVEL_DEBUG = 2;
+  // STRUCTURED_LOG_LEVEL_INFO is for normal operational messages.
+  STRUCTURED_LOG_LEVEL_INFO = 3;
+  // STRUCTURED_LOG_LEVEL_WARN is for recoverable problems.
+  STRUCTURED_LOG_LEVEL_WARN = 4;
+  // STRUCTURED_LOG_LEVEL_ERROR is for failed operations.
+  STRUCTURED_LOG_LEVEL_ERROR = 5;
+  // STRUCTURED_LOG_LEVEL_FATAL is for terminal plugin failures.
+  STRUCTURED_LOG_LEVEL_FATAL = 6;
+}
+
+// StructuredLogStream identifies where an event came from.
+enum StructuredLogStream {
+  // STRUCTURED_LOG_STREAM_UNSPECIFIED preserves the proto3 default.
+  STRUCTURED_LOG_STREAM_UNSPECIFIED = 0;
+  // STRUCTURED_LOG_STREAM_LOGGER is an application logger event.
+  STRUCTURED_LOG_STREAM_LOGGER = 1;
+  // STRUCTURED_LOG_STREAM_STDOUT is captured stdout.
+  STRUCTURED_LOG_STREAM_STDOUT = 2;
+  // STRUCTURED_LOG_STREAM_STDERR is captured stderr.
+  STRUCTURED_LOG_STREAM_STDERR = 3;
+}
+
+// StructuredLogEvent is one log event emitted by a plugin instance.
+message StructuredLogEvent {
+  // Sequence is assigned by the log owner and is monotonically increasing
+  // within that owner.
+  uint64 sequence = 1;
+  // Timestamp is when the event was observed by the log owner.
+  google.protobuf.Timestamp timestamp = 2;
+  // PluginId is the manifest plugin identifier.
+  string plugin_id = 3;
+  // InstanceKey is the optional key for instanced plugins.
+  string instance_key = 4;
+  // Stream identifies the source stream for the event.
+  StructuredLogStream stream = 5;
+  // Level is the event severity.
+  StructuredLogLevel level = 6;
+  // Message is the human-readable log text.
+  string message = 7;
+  // Fields are structured key/value attributes attached to the event.
+  map<string, string> fields = 8;
+}
+
+// StructuredLogFilter selects a subset of structured plugin log events.
+message StructuredLogFilter {
+  // PluginIds restricts events to the listed plugin identifiers.
+  repeated string plugin_ids = 1;
+  // InstanceKeys restricts events to the listed plugin instance keys.
+  repeated string instance_keys = 2;
+  // Streams restricts events to the listed streams.
+  repeated StructuredLogStream streams = 3;
+  // MinLevel restricts events to this severity and above.
+  StructuredLogLevel min_level = 4;
+  // SearchText restricts events to messages or fields containing this text.
+  string search_text = 5;
+  // Fields restricts events to exact key/value field matches.
+  map<string, string> fields = 6;
+}
+
+// StructuredLogRange selects a sequence window.
+message StructuredLogRange {
+  // AfterSequence starts the window after this sequence. Zero starts at the
+  // beginning of retained events unless Tail is set.
+  uint64 after_sequence = 1;
+  // Limit is the maximum number of retained events to return.
+  uint32 limit = 2;
+  // Tail selects the newest retained events before following updates.
+  bool tail = 3;
+  // Follow keeps the stream open for new events after the retained window.
+  bool follow = 4;
+}
+
+// StructuredLogState is the current snapshot for an open structured-log view.
+message StructuredLogState {
+  // Filter is the active filter.
+  StructuredLogFilter filter = 1;
+  // Range is the active sequence window.
+  StructuredLogRange range = 2;
+  // Events are the retained events currently visible in the view.
+  repeated StructuredLogEvent events = 3;
+  // DroppedEventCount is the number of matching events dropped before Events.
+  uint64 dropped_event_count = 4;
+  // Closed indicates the producer will not emit more events for this view.
+  bool closed = 5;
+}
+
+// OpenStructuredLogsRequest opens a structured-log view.
+message OpenStructuredLogsRequest {
+  // Filter selects the events included in the view.
+  StructuredLogFilter filter = 1;
+  // Range selects the initial retained window and follow behavior.
+  StructuredLogRange range = 2;
+}
+
+// OpenStructuredLogsResponse returns the resource and initial view state.
+message OpenStructuredLogsResponse {
+  // ResourceId is the resource ID for the opened structured-log view.
+  uint32 resource_id = 1;
+  // State is the initial state of the opened view.
+  StructuredLogState state = 2;
+}
+
+// SetStructuredLogViewRequest updates an open structured-log view.
+message SetStructuredLogViewRequest {
+  // Filter selects the events included in the view.
+  StructuredLogFilter filter = 1;
+  // Range selects the retained window and follow behavior.
+  StructuredLogRange range = 2;
+}
+
+// SetStructuredLogViewResponse returns the updated view state.
+message SetStructuredLogViewResponse {
+  // State is the current state after applying the view change.
+  StructuredLogState state = 1;
+}
+
+// EmitStructuredLogRequest appends a structured log event.
+message EmitStructuredLogRequest {
+  // Event is the structured event to append.
+  StructuredLogEvent event = 1;
+}
+
+// EmitStructuredLogResponse returns the owner-assigned event metadata.
+message EmitStructuredLogResponse {
+  // Sequence is the assigned event sequence.
+  uint64 sequence = 1;
+  // Timestamp is the assigned observation timestamp.
+  google.protobuf.Timestamp timestamp = 2;
+}

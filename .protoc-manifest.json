@@ -293,6 +293,17 @@
       ],
       "protoFiles": ["bldr/plugin/host/configset/config.proto"]
     },
+    "github.com/s4wave/spacewave/bldr/plugin/host/logs": {
+      "hash": "3214612d49d35f92b13e311e00a337752f62f6c19137a694a532ef1045523bc4",
+      "generatedFiles": [
+        "bldr/plugin/host/logs/logs.pb.cc",
+        "bldr/plugin/host/logs/logs.pb.go",
+        "bldr/plugin/host/logs/logs.pb.h",
+        "bldr/plugin/host/logs/logs.pb.rs",
+        "bldr/plugin/host/logs/logs.pb.ts"
+      ],
+      "protoFiles": ["bldr/plugin/host/logs/logs.proto"]
+    },
     "github.com/s4wave/spacewave/bldr/plugin/host/process": {
       "hash": "777f640773172648118f4515536376e9bca7efe88948bd86d2e627f18b909b56",
       "generatedFiles": [
