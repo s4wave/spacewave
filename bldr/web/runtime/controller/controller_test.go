@@ -3,7 +3,9 @@ package web_runtime_controller
 import (
 	"context"
 	"io"
+	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -19,6 +21,38 @@ import (
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
 	"github.com/sirupsen/logrus"
 )
+
+func TestServeServiceWorkerHTTPServesBrowserIndexSeed(t *testing.T) {
+	rtCtrl := &Controller{
+		le: logrus.NewEntry(logrus.New()),
+	}
+	rw := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/b/__index.html", nil)
+
+	rtCtrl.ServeServiceWorkerHTTP(rw, req)
+
+	res := rw.Result()
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("status code = %d, want 200", res.StatusCode)
+	}
+	if got := res.Header.Get("Content-Type"); got != "text/html; charset=utf-8" {
+		t.Fatalf("content type = %q, want text/html; charset=utf-8", got)
+	}
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	text := string(body)
+	if !strings.Contains(text, "<!doctype html>") || !strings.Contains(text, `<html lang="en">`) {
+		t.Fatalf("index HTML missing document shell: %s", text)
+	}
+	if !strings.Contains(text, `<script type="module" src="/boot.mjs"></script>`) {
+		t.Fatalf("index HTML missing absolute boot entrypoint wiring: %s", text)
+	}
+	if !strings.Contains(text, `id="bldr-root"`) {
+		t.Fatalf("index HTML missing bldr root: %s", text)
+	}
+}
 
 func TestServePluginAssetsFsHTTPRebindsPendingFrontendAssets(t *testing.T) {
 	ctx := t.Context()

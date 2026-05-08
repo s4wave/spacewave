@@ -15,6 +15,7 @@ import (
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host_wazero_quickjs "github.com/s4wave/spacewave/bldr/plugin/host/wazero-quickjs"
 	web_document "github.com/s4wave/spacewave/bldr/web/document"
+	web_entrypoint_index "github.com/s4wave/spacewave/bldr/web/entrypoint/index"
 	fetch "github.com/s4wave/spacewave/bldr/web/fetch"
 	web_pkg_http "github.com/s4wave/spacewave/bldr/web/pkg/http"
 	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
@@ -236,6 +237,11 @@ func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Re
 			return
 		}
 
+		if rpath == "/b/__index.html" {
+			c.ServeBrowserIndexHTML(rw, req)
+			return
+		}
+
 		// /b/qjs/ is for QuickJS runtime files (WASM binary and boot harness)
 		bQjsPrefix := bldr_plugin.QuickJSHttpPrefix
 		if strings.HasPrefix(rpath, bQjsPrefix) && len(rpath) > len(bQjsPrefix) {
@@ -384,6 +390,30 @@ func (c *Controller) ServeWebModuleHTTP(pkgPath string, rw http.ResponseWriter, 
 	// setNoCacheHeaders(rw.Header())
 
 	c.pkgServer.ServeWebModuleHTTP(pkgPath, rw, req)
+}
+
+// ServeBrowserIndexHTML serves the browser root document from the Go runtime.
+func (c *Controller) ServeBrowserIndexHTML(rw http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet && req.Method != http.MethodHead {
+		http.Error(rw, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	indexHTML, err := web_entrypoint_index.RenderIndexHTML(web_entrypoint_index.IndexData{
+		ImportMap:      web_entrypoint_index.ImportMap{Imports: map[string]string{}},
+		EntrypointPath: "/boot.mjs",
+	})
+	if err != nil {
+		http.Error(rw, "bldr: render browser index failed: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	rw.Header().Set("Content-Type", "text/html; charset=utf-8")
+	rw.Header().Set("Content-Length", strconv.Itoa(len(indexHTML)))
+	rw.WriteHeader(http.StatusOK)
+	if req.Method != http.MethodHead {
+		if _, err := rw.Write([]byte(indexHTML)); err != nil && c.le != nil {
+			c.le.WithError(err).Debug("write browser index response failed")
+		}
+	}
 }
 
 // HandleWebDocument handles an incoming WebDocument.
