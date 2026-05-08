@@ -12,6 +12,7 @@ import (
 	plugin_host_root "github.com/s4wave/spacewave/bldr/plugin/host/root"
 	"github.com/s4wave/spacewave/db/block"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_access "github.com/s4wave/spacewave/db/unixfs/access"
 	volume_rpc_server "github.com/s4wave/spacewave/db/volume/rpc/server"
@@ -53,6 +54,8 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 	if args == nil || args.manifestSnapshot == nil {
 		return nil
 	}
+	ctx, task := trace.NewTask(ctx, "bldr/plugin-host-scheduler/execute-plugin")
+	defer task.End()
 	defer func() {
 		if rerr != nil {
 			t.c.recordPluginStatusError(t.pluginID, t.instanceKey, "execute plugin", rerr)
@@ -63,6 +66,9 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 
 	pluginManifest := args.manifestSnapshot
 	pluginID, le := t.pluginID, t.le
+	trace.Log(ctx, "plugin-id", pluginID)
+	trace.Log(ctx, "instance-key", t.instanceKey)
+	trace.Log(ctx, "manifest-ref", pluginManifest.GetManifestRef().MarshalString())
 
 	// build proxy volume
 	hostVol, err := t.c.hostVolumeCtr.WaitValue(ctx, nil)

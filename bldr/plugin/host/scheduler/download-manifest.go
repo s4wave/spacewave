@@ -7,6 +7,7 @@ import (
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	block_copy "github.com/s4wave/spacewave/db/block/copy"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	trace "github.com/s4wave/spacewave/db/traceutil"
 )
 
 // execDownloadManifest copies manifest blocks from the source bucket to the world bucket.
@@ -22,12 +23,17 @@ func (t *pluginInstance) execDownloadManifest(
 		return nil
 	}
 
+	ctx, task := trace.NewTask(ctx, "bldr/plugin-host-scheduler/download-manifest")
+	defer task.End()
+
 	le := t.le
 	ref := manifestSnapshot.GetManifestRef()
 	blockRef := ref.GetRootRef()
 	if blockRef.GetEmpty() {
 		return errors.New("manifest ref has empty root block ref")
 	}
+	trace.Log(ctx, "plugin-id", t.pluginID)
+	trace.Log(ctx, "manifest-ref", ref.MarshalString())
 
 	ws, err := t.c.worldStateCtr.WaitValue(ctx, nil)
 	if err != nil {

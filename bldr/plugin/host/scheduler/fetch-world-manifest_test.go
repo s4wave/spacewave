@@ -13,6 +13,7 @@ import (
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 	"github.com/s4wave/spacewave/db/bucket"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/unixfs"
 	"github.com/s4wave/spacewave/db/world"
@@ -220,6 +221,106 @@ func TestFetchManifestValueStorerRepairsMissingManifestLink(t *testing.T) {
 	}
 }
 
+func TestProcessManifestWorldStateRunsDownloadAndExecuteForRemoteManifest(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const objKey = "plugin-host"
+	if _, err := bldr_manifest_world.CreateManifestStore(ctx, ws, objKey); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const remoteBucketID = "remote-manifest-bucket"
+	if _, _, _, err := tb.Volume.ApplyBucketConfig(ctx, &bucket.Config{
+		Id:  remoteBucketID,
+		Rev: 1,
+	}); err != nil {
+		t.Fatal(err.Error())
+	}
+	ref := newTestStoredManifestRefInBucket(t, ctx, tb, remoteBucketID, "spacewave-core", "desktop/darwin/arm64", 2)
+	var worldBucketID string
+	if err := ws.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
+		worldBucketID = cursor.GetOpArgs().GetBucketId()
+		return nil
+	}); err != nil {
+		t.Fatal(err.Error())
+	}
+	if ref.GetManifestRef().GetBucketId() == worldBucketID {
+		t.Fatal("test manifest must start in a non-local bucket")
+	}
+
+	manifestKey := bldr_manifest.NewManifestKey(objKey, ref.GetMeta())
+	if err := bldr_manifest_world.ExStoreManifestOp(ctx, ws, peer.ID("test"), manifestKey, []string{objKey}, ref); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	obj, ok, err := ws.GetObject(ctx, objKey)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !ok {
+		t.Fatal("expected plugin host manifest store object")
+	}
+
+	host := &testPluginHost{id: "desktop/darwin/arm64"}
+	pi := &pluginInstance{
+		c: &Controller{
+			conf:   &Config{},
+			objKey: objKey,
+		},
+		le:                      le,
+		pluginID:                "spacewave-core",
+		downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.ManifestSnapshot](le),
+		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
+	}
+
+	waitForChanges, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
+		pluginHosts: []bldr_plugin_host.PluginHost{host},
+	}, ws, obj)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !waitForChanges {
+		t.Fatal("expected world manifest watch to continue")
+	}
+
+	downloadState := pi.downloadManifestRoutine.GetState()
+	if downloadState == nil {
+		t.Fatal("expected remote manifest to schedule background DAG copy")
+	}
+	if !downloadState.GetManifestRef().EqualVT(ref.GetManifestRef()) {
+		t.Fatal("download manifest ref changed")
+	}
+
+	execState := pi.executePluginRoutine.GetState()
+	if execState == nil || execState.manifestSnapshot == nil {
+		t.Fatal("expected remote manifest to be executable while copy runs")
+	}
+	if execState.pluginHost != host {
+		t.Fatal("expected execute state to use matching plugin host")
+	}
+	if !execState.manifestSnapshot.GetManifestRef().EqualVT(ref.GetManifestRef()) {
+		t.Fatal("execute manifest ref changed")
+	}
+}
+
 func newTestManifestRef(manifestID, platformID string, rev uint64, bucketID string) *bldr_manifest.ManifestRef {
 	return bldr_manifest.NewManifestRef(
 		bldr_manifest.NewManifestMeta(manifestID, bldr_manifest.BuildType_DEV, platformID, rev),
@@ -236,9 +337,31 @@ func newTestStoredManifestRef(
 	rev uint64,
 ) *bldr_manifest.ManifestRef {
 	t.Helper()
+	return newTestStoredManifestRefInBucket(t, ctx, tb, tb.BucketId, manifestID, platformID, rev)
+}
+
+func newTestStoredManifestRefInBucket(
+	t *testing.T,
+	ctx context.Context,
+	tb *testbed.Testbed,
+	bucketID,
+	manifestID,
+	platformID string,
+	rev uint64,
+) *bldr_manifest.ManifestRef {
+	t.Helper()
 
 	meta := bldr_manifest.NewManifestMeta(manifestID, bldr_manifest.BuildType_RELEASE, platformID, rev)
-	oc, err := tb.BuildEmptyCursor(ctx)
+	oc, _, err := bucket_lookup.BuildEmptyCursor(
+		ctx,
+		tb.Bus,
+		tb.Logger,
+		tb.StepFactorySet,
+		bucketID,
+		tb.Volume.GetID(),
+		nil,
+		nil,
+	)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
