@@ -123,6 +123,7 @@ class WebDocumentWebWorker {
   public readonly port: MessagePort
   // workerType is the type of worker
   public readonly workerType: WebWorkerType
+  public readonly plugin: boolean
   // ready indicates the worker finished startup and runtime registration.
   public ready = false
   private closed = false
@@ -160,6 +161,7 @@ class WebDocumentWebWorker {
     }
 
     this.workerType = workerType
+    this.plugin = !!initData
     markStartupBoundary('worker.construct-start', {
       source: 'browser',
       documentId: webDocumentUuid,
@@ -167,7 +169,7 @@ class WebDocumentWebWorker {
       path,
       shared,
       workerType,
-      plugin: !!initData,
+      plugin: this.plugin,
     })
 
     const { port1: localPort, port2: workerPort } = new MessageChannel()
@@ -201,6 +203,7 @@ class WebDocumentWebWorker {
           path,
           shared: true,
           workerType,
+          plugin: this.plugin,
         })
         this.sharedWorker.port.postMessage(init, [workerPort])
       } else {
@@ -215,6 +218,7 @@ class WebDocumentWebWorker {
           path,
           shared: false,
           workerType,
+          plugin: this.plugin,
         })
         this.worker.postMessage(init, [workerPort])
       }
@@ -240,6 +244,7 @@ class WebDocumentWebWorker {
         path,
         shared: false,
         workerType,
+        plugin: this.plugin,
       })
       this.worker.postMessage(init, [workerPort])
     }
@@ -272,6 +277,7 @@ class WebDocumentWebWorker {
       workerId: id,
       shared: this.isShared,
       workerType,
+      plugin: this.plugin,
     })
   }
 
@@ -1637,6 +1643,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
           workerId: workerID,
           shared: worker.isShared,
           workerType: worker.workerType,
+          plugin: worker.plugin,
         })
       }
       markStartupBoundary('worker.ready', {
@@ -1646,7 +1653,19 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         workerId: workerID,
         shared: worker.isShared,
         workerType: worker.workerType,
+        plugin: worker.plugin,
       })
+      if (worker.plugin) {
+        markStartupBoundary('plugin.running', {
+          source: 'browser',
+          documentId: this.webDocumentUuid,
+          runtimeId: this.webRuntimeId,
+          workerId: workerID,
+          shared: worker.isShared,
+          workerType: worker.workerType,
+          plugin: true,
+        })
+      }
       this.notifyWebWorkerUpdated(workerID, false, worker.isShared, true)
       return
     }

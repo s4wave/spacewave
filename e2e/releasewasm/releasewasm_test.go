@@ -389,6 +389,7 @@ func collectQuickstartSmokeArtifact(
 			'service-worker.register-ready',
 			'runtime.connected',
 			'worker.first-ready',
+			'plugin.running',
 		]
 		const markMatches = (mark, label, predicate) =>
 			mark.label === label && (!predicate || predicate(mark))
@@ -408,6 +409,12 @@ func collectQuickstartSmokeArtifact(
 		const lastPluginReady =
 			lastMark('worker.ready', isPluginMark) ??
 			lastMark('worker.first-ready', isPluginMark)
+		const firstWorkerReady =
+			firstMark('worker.first-ready') ??
+			firstMark('worker.ready')
+		const pluginRunning =
+			firstMark('plugin.running', isPluginMark) ??
+			lastPluginReady
 		const firstPluginStart =
 			firstMark('worker.first-create-start', isPluginMark) ??
 			firstMark('worker.construct-start', isPluginMark)
@@ -449,6 +456,41 @@ func collectQuickstartSmokeArtifact(
 			attribution,
 			evidence,
 		})
+		const makeReadinessMark = (name, timestampMs, evidence, sourceMark) => ({
+			name,
+			timestampMs: timestampMs ?? null,
+			evidence,
+			sourceMark: sourceMark ?? null,
+		})
+		const readinessTimeline = [
+			makeReadinessMark(
+				'worker-ready',
+				firstWorkerReady?.startTimeMs,
+				[firstWorkerReady?.label ?? 'worker.ready'],
+				firstWorkerReady,
+			),
+			makeReadinessMark(
+				'plugin-running',
+				pluginRunning?.startTimeMs,
+				[pluginRunning?.label ?? 'plugin.running'],
+				pluginRunning,
+			),
+			makeReadinessMark(
+				'frame-ready',
+				args.driveShellVisibleMs,
+				['driveShellVisibleMs', "[data-testid='unixfs-browser']"],
+				null,
+			),
+			makeReadinessMark(
+				'content-ready',
+				args.driveReadyMs,
+				['driveReadyMs', 'getting-started.md'],
+				null,
+			),
+		]
+		const missingReadinessMarks = readinessTimeline
+			.filter((mark) => typeof mark.timestampMs !== 'number')
+			.map((mark) => mark.name)
 		const startupAttributionSegments = [
 			makeSegment(
 				'navigation-to-entrypoint',
@@ -547,6 +589,14 @@ func collectQuickstartSmokeArtifact(
 				quickstart: quickstartTiming,
 				navigation,
 				paint,
+			},
+			readiness: {
+				frameReadyMs: args.driveShellVisibleMs,
+				contentReadyMs: args.driveReadyMs,
+				workerReadyMs: firstWorkerReady?.startTimeMs ?? null,
+				pluginRunningMs: pluginRunning?.startTimeMs ?? null,
+				missingReadinessMarks,
+				timeline: readinessTimeline,
 			},
 			startupMarks,
 			missingStartupMarks: expectedStartupMarks.filter((label) => !labels.has(label)),
