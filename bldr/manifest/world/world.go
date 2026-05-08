@@ -459,13 +459,14 @@ func CollectStartupManifests(
 	if err != nil {
 		return nil, nil, err
 	}
-	return collectStartupManifestsFromCandidates(ctx, ws, manifestObjKeys, filterPlatformIDs)
+	return collectStartupManifestsFromCandidates(ctx, ws, manifestObjKeys, "", filterPlatformIDs)
 }
 
 func collectStartupManifestsFromCandidates(
 	ctx context.Context,
 	ws world.WorldState,
 	manifestObjKeys []string,
+	expectedManifestID string,
 	filterPlatformIDs []string,
 ) (map[string][]*CollectedManifest, []error, error) {
 	var manifestErrors []error
@@ -484,7 +485,14 @@ func collectStartupManifestsFromCandidates(
 			continue
 		}
 
-		manifest, manifestRef, skip, err := collectStartupManifestCandidate(ctx, ws, objKey, objType)
+		manifest, manifestRef, skip, err := collectStartupManifestCandidate(
+			ctx,
+			ws,
+			objKey,
+			objType,
+			expectedManifestID,
+			filterPlatformIDs,
+		)
 		if skip {
 			continue
 		}
@@ -495,7 +503,14 @@ func collectStartupManifestsFromCandidates(
 			manifestErrors = append(manifestErrors, newStartupManifestSkipError(objKey, manifestRef, err))
 			continue
 		}
+		if err := manifest.Validate(); err != nil {
+			manifestErrors = append(manifestErrors, newStartupManifestSkipError(objKey, manifestRef, err))
+			continue
+		}
 		manifestID := manifest.GetMeta().GetManifestId()
+		if expectedManifestID != "" && manifestID != expectedManifestID {
+			continue
+		}
 		platformID := manifest.GetMeta().GetPlatformId()
 		if len(filterPlatformIDs) != 0 && !slices.Contains(filterPlatformIDs, platformID) {
 			continue
@@ -519,6 +534,8 @@ func collectStartupManifestCandidate(
 	ws world.WorldState,
 	objKey string,
 	objType string,
+	expectedManifestID string,
+	filterPlatformIDs []string,
 ) (*bldr_manifest.Manifest, *bucket.ObjectRef, bool, error) {
 	if objType == ManifestTypeID {
 		manifest, manifestRef, err := LookupManifest(ctx, ws, objKey)
@@ -541,6 +558,13 @@ func collectStartupManifestCandidate(
 	manifestObjRef := manifestRef.GetManifestRef()
 	if err := manifestRef.Validate(); err != nil {
 		return nil, manifestObjRef, false, err
+	}
+	refMeta := manifestRef.GetMeta()
+	if expectedManifestID != "" && refMeta.GetManifestId() != expectedManifestID {
+		return nil, manifestObjRef, true, nil
+	}
+	if len(filterPlatformIDs) != 0 && !slices.Contains(filterPlatformIDs, refMeta.GetPlatformId()) {
+		return nil, manifestObjRef, true, nil
 	}
 
 	var manifest *bldr_manifest.Manifest
@@ -792,7 +816,7 @@ func CollectStartupManifestsForManifestID(
 	if err != nil {
 		return nil, nil, err
 	}
-	manifests, manifestErrs, err := collectStartupManifestsFromCandidates(ctx, ws, manifestObjKeys, filterPlatformIDs)
+	manifests, manifestErrs, err := collectStartupManifestsFromCandidates(ctx, ws, manifestObjKeys, manifestID, filterPlatformIDs)
 	if err != nil {
 		return nil, manifestErrs, err
 	}

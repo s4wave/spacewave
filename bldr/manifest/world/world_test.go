@@ -370,6 +370,189 @@ func TestCollectStartupManifestsForManifestIDNarrowsLabelsAndKeepsLegacyEmpty(t 
 	}
 }
 
+func TestCollectStartupManifestsForManifestIDSkipsRefMetadataMismatchesBeforeOpen(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const storeKey = "plugin-host"
+	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	goodRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 7)
+	const goodRefKey = "plugin-host/ref/good"
+	storeTestManifestRefObject(t, ctx, ws, goodRefKey, goodRef)
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, goodRefKey, "spacewave-web")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	wrongIDRef := createTestManifestRef(t, ctx, tb, "other-plugin", "js", 11)
+	wrongIDRef.ManifestRef.RootRef.Hash.Hash[0] ^= 0xff
+	const wrongIDRefKey = "plugin-host/ref/wrong-id"
+	storeTestManifestRefObject(t, ctx, ws, wrongIDRefKey, wrongIDRef)
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, wrongIDRefKey, "spacewave-web")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	wrongPlatformRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "desktop/linux/amd64", 13)
+	wrongPlatformRef.ManifestRef.RootRef.Hash.Hash[0] ^= 0xff
+	const wrongPlatformRefKey = "plugin-host/ref/wrong-platform"
+	storeTestManifestRefObject(t, ctx, ws, wrongPlatformRefKey, wrongPlatformRef)
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, wrongPlatformRefKey, "spacewave-web")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	got, errs, err := CollectStartupManifestsForManifestID(
+		ctx,
+		ws,
+		"spacewave-web",
+		[]string{"js"},
+		storeKey,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(errs) != 0 {
+		t.Fatalf("manifest errors = %v", errs)
+	}
+	if len(got) != 1 {
+		t.Fatalf("manifest count = %d", len(got))
+	}
+	if !got[0].ManifestRef.EqualVT(goodRef.GetManifestRef()) {
+		t.Fatalf("selected manifest ref = %v, want good ref", got[0].ManifestRef)
+	}
+}
+
+func TestCollectStartupManifestsForManifestIDRejectsDecodedMetadataMismatch(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const storeKey = "plugin-host"
+	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	decodedOtherRef := createTestManifestRef(t, ctx, tb, "other-plugin", "js", 11)
+	refHint := manifest.NewManifestRef(
+		&manifest.ManifestMeta{
+			ManifestId: "spacewave-web",
+			BuildType:  "production",
+			PlatformId: "js",
+			Rev:        11,
+		},
+		decodedOtherRef.GetManifestRef(),
+	)
+	const refHintKey = "plugin-host/ref/decoded-mismatch"
+	storeTestManifestRefObject(t, ctx, ws, refHintKey, refHint)
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, refHintKey, "spacewave-web")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	got, errs, err := CollectStartupManifestsForManifestID(
+		ctx,
+		ws,
+		"spacewave-web",
+		[]string{"js"},
+		storeKey,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(got) != 0 {
+		t.Fatalf("manifest count = %d", len(got))
+	}
+	if len(errs) != 1 {
+		t.Fatalf("manifest errors = %v", errs)
+	}
+	if !strings.Contains(errs[0].Error(), "manifest ref meta does not match manifest meta") {
+		t.Fatalf("manifest error = %v, want decoded metadata mismatch", errs[0])
+	}
+}
+
+func TestCollectStartupManifestsRejectsInvalidDecodedMetadata(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const storeKey = "plugin-host"
+	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	invalidRef := createTestManifestRef(t, ctx, tb, "Spacewave-Web", "js", 11)
+	const invalidManifestKey = "plugin-host/manifest/invalid"
+	if _, _, err := SetManifest(ctx, ws, peer.ID("test"), invalidManifestKey, invalidRef.GetManifestRef()); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, invalidManifestKey, "")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	got, errs, err := CollectStartupManifests(ctx, ws, []string{"js"}, storeKey)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(got) != 0 {
+		t.Fatalf("manifest set count = %d", len(got))
+	}
+	if len(errs) != 1 {
+		t.Fatalf("manifest errors = %v", errs)
+	}
+	if !strings.Contains(errs[0].Error(), "manifest_id") {
+		t.Fatalf("manifest error = %v, want invalid manifest metadata", errs[0])
+	}
+}
+
 func TestStartupManifestSkipErrorIncludesBucketDiagnostics(t *testing.T) {
 	err := newStartupManifestSkipError(
 		"plugin-host/ref/missing-bucket",
