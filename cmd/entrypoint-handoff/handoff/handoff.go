@@ -25,6 +25,9 @@ import (
 	"github.com/pkg/errors"
 	bldr_devtool "github.com/s4wave/spacewave/bldr/devtool"
 	bldr_manifest_pack "github.com/s4wave/spacewave/bldr/manifest/pack"
+	"github.com/s4wave/spacewave/bldr/util/packedmsg"
+	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 
@@ -32,6 +35,9 @@ const (
 	usageText                    = "usage: entrypoint-handoff --version X.Y.Z --platforms p1,p2 [--include-browser|--browser-only] --out-dir /path/to/out"
 	manifestPackFilename         = "manifest.pack.kvf"
 	manifestPackMetadataFilename = "manifest-pack.bin"
+	distConfigSeedFilename       = "dist-config.packedmsg"
+	stagingDistConfigSignerID    = "12D3KooWQX8wpcKG2Gnp9GCaBnKGDqHsSqBC4trA8WLvzQM79jp5"
+	prodDistConfigSignerID       = "12D3KooWL2DEcvqSXXrrCmUxMdPbqFcqzhHBvqseZWHwjAt7aXfW"
 )
 
 // Args contains entrypoint handoff command flags.
@@ -160,6 +166,11 @@ func Run(ctx context.Context, args *Args) error {
 		}); err != nil {
 			return err
 		}
+		if err := runPhase(le, "verify-browser-artifacts", func() error {
+			return validateBrowserBundleArtifacts(repoDir)
+		}); err != nil {
+			return err
+		}
 		if err := runPhase(le, "stage-browser-outputs", func() error {
 			return stageBrowserOutputs(repoDir, args.OutDir)
 		}); err != nil {
@@ -228,6 +239,11 @@ func Run(ctx context.Context, args *Args) error {
 			return err
 		}
 	}
+	if err := runPhase(le, "verify-build-artifacts", func() error {
+		return validatePlatformBundleInputs(repoDir, platforms)
+	}); err != nil {
+		return err
+	}
 	if args.StageBuildInputs {
 		if err := runPhase(le, "stage-build-inputs", func() error {
 			return stageBuildInputsTree(repoDir, args.OutDir, platforms)
@@ -258,9 +274,19 @@ func Run(ctx context.Context, args *Args) error {
 	}); err != nil {
 		return err
 	}
+	if err := runPhase(le, "verify-package-artifacts", func() error {
+		return validatePackagedArtifacts(repoDir, platforms)
+	}); err != nil {
+		return err
+	}
 	if args.IncludeBrowser {
 		if err := runPhase(le, "build-browser", func() error {
 			return buildBrowser(ctx, repoDir, args.ReactDev)
+		}); err != nil {
+			return err
+		}
+		if err := runPhase(le, "verify-browser-artifacts", func() error {
+			return validateBrowserBundleArtifacts(repoDir)
 		}); err != nil {
 			return err
 		}
@@ -1153,6 +1179,177 @@ func packageInstallers(repoDir, version string, platforms []string, skipNotarize
 		default:
 			return errors.New("unknown platform " + platform)
 		}
+	}
+	return nil
+}
+
+func validatePlatformBundleInputs(repoDir string, platforms []string) error {
+	for _, platform := range platforms {
+		goos, goarch := splitPlatform(platform)
+		binName := "spacewave"
+		helperName := "spacewave-helper"
+		if goos == "windows" {
+			binName += ".exe"
+			helperName += ".exe"
+		}
+
+		if err := requireNonEmptyFile(
+			filepath.Join(repoDir, ".tmp", "dist", platform, binName),
+			"runtime binary "+platform,
+		); err != nil {
+			return err
+		}
+		if err := requireNonEmptyFile(
+			filepath.Join(repoDir, ".tmp", "dist-cli", platform, binName),
+			"cli runtime binary "+platform,
+		); err != nil {
+			return err
+		}
+		if err := requireNonEmptyFile(
+			filepath.Join(repoDir, "dist", "helper", platform, helperName),
+			"helper binary "+platform,
+		); err != nil {
+			return err
+		}
+
+		switch goos {
+		case "darwin":
+			if err := requireNonEmptyFile(filepath.Join(repoDir, ".tmp", "icons", "icon.icns"), "macOS app icon"); err != nil {
+				return err
+			}
+		case "linux":
+			if err := requireNonEmptyFile(filepath.Join(repoDir, ".tmp", "icons", "icon-256.png"), "Linux app icon"); err != nil {
+				return err
+			}
+			if err := requireNonEmptyFile(filepath.Join(repoDir, ".tmp", "spacewave.desktop"), "Linux desktop file"); err != nil {
+				return err
+			}
+		case "windows":
+			for _, iconName := range []string{"icon.ico", "icon-48.png", "icon-128.png", "icon-256.png"} {
+				if err := requireNonEmptyFile(filepath.Join(repoDir, ".tmp", "icons", iconName), "Windows icon "+iconName); err != nil {
+					return err
+				}
+			}
+		default:
+			return errors.New("unknown platform " + platform)
+		}
+
+		if goarch != "amd64" && goarch != "arm64" {
+			return errors.Errorf("unsupported arch for %s: %s", platform, goarch)
+		}
+	}
+	return nil
+}
+
+func validatePackagedArtifacts(repoDir string, platforms []string) error {
+	for _, platform := range platforms {
+		goos, goarch := splitPlatform(platform)
+		if err := requireNonEmptyFile(
+			filepath.Join(repoDir, ".tmp", "dist", "bundles", archiveName(goos, platform)),
+			"runtime bundle "+platform,
+		); err != nil {
+			return err
+		}
+		if err := requireNonEmptyFile(
+			filepath.Join(repoDir, "dist", "cli", cliArchiveName(goos, platform)),
+			"cli archive "+platform,
+		); err != nil {
+			return err
+		}
+
+		installersDir := filepath.Join(repoDir, "dist", "installers")
+		switch goos {
+		case "darwin":
+			if err := requireNonEmptyFile(filepath.Join(installersDir, "spacewave-macos-"+goarch+".dmg"), "macOS installer "+platform); err != nil {
+				return err
+			}
+		case "linux":
+			if err := requireNonEmptyFile(filepath.Join(installersDir, "spacewave-linux-"+goarch+".AppImage"), "Linux installer "+platform); err != nil {
+				return err
+			}
+		case "windows":
+			for _, ext := range []string{"msix", "zip"} {
+				if err := requireNonEmptyFile(filepath.Join(installersDir, "spacewave-windows-"+goarch+"."+ext), "Windows installer "+platform+" "+ext); err != nil {
+					return err
+				}
+			}
+		default:
+			return errors.New("unknown platform " + platform)
+		}
+	}
+	return nil
+}
+
+func validateBrowserBundleArtifacts(repoDir string) error {
+	signerIDs, err := releaseDistConfigSignerIDs()
+	if err != nil {
+		return err
+	}
+	return validateBrowserBundleArtifactsWithSigners(repoDir, signerIDs)
+}
+
+func validateBrowserBundleArtifactsWithSigners(repoDir string, signerIDs []peer.ID) error {
+	if len(signerIDs) == 0 {
+		return errors.New("dist config signer ids cannot be empty")
+	}
+	seedPath := filepath.Join(repoDir, "staging", "dist", distConfigSeedFilename)
+	if err := requireNonEmptyFile(seedPath, "signed DistConfig seed"); err != nil {
+		return err
+	}
+	raw, err := os.ReadFile(seedPath)
+	if err != nil {
+		return errors.Wrap(err, "read signed DistConfig seed")
+	}
+	packedMsgs, packedMsgsSrc := packedmsg.FindPackedMessages(string(raw))
+	if len(packedMsgs) != 1 || len(packedMsgsSrc) != 1 {
+		return errors.Errorf("signed DistConfig seed must contain exactly one packed message: %s", seedPath)
+	}
+	distConf, _, signerID, err := spacewave_launcher.ParseDistConfigPackedMsg(logrus.NewEntry(logrus.StandardLogger()), raw, signerIDs, "spacewave")
+	if err != nil {
+		return errors.Wrap(err, "parse signed DistConfig seed")
+	}
+	if err := distConf.Validate(); err != nil {
+		return errors.Wrap(err, "validate signed DistConfig seed")
+	}
+	if distConf.GetProjectId() != "spacewave" {
+		return errors.Errorf("signed DistConfig seed project id = %q, want spacewave", distConf.GetProjectId())
+	}
+	if distConf.GetChannelKey() != spacewave_launcher.ChannelStable {
+		return errors.Errorf("signed DistConfig seed channel = %q, want %q", distConf.GetChannelKey(), spacewave_launcher.ChannelStable)
+	}
+	if signerID == "" {
+		return errors.New("signed DistConfig seed signer is empty")
+	}
+	return nil
+}
+
+func releaseDistConfigSignerIDs() ([]peer.ID, error) {
+	var signerID string
+	switch strings.TrimSpace(os.Getenv("SPACEWAVE_RELEASE_ENV")) {
+	case "", "staging":
+		signerID = stagingDistConfigSignerID
+	case "prod", "production":
+		signerID = prodDistConfigSignerID
+	default:
+		return nil, errors.New("unknown SPACEWAVE_RELEASE_ENV")
+	}
+	decoded, err := peer.IDB58Decode(signerID)
+	if err != nil {
+		return nil, errors.Wrap(err, "decode DistConfig signer id")
+	}
+	return []peer.ID{decoded}, nil
+}
+
+func requireNonEmptyFile(path, label string) error {
+	info, err := os.Stat(path)
+	if err != nil {
+		return errors.Wrap(err, "missing "+label)
+	}
+	if !info.Mode().IsRegular() {
+		return errors.Errorf("%s is not a regular file: %s", label, path)
+	}
+	if info.Size() == 0 {
+		return errors.Errorf("%s is empty: %s", label, path)
 	}
 	return nil
 }

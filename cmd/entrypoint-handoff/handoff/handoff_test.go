@@ -3,9 +3,14 @@
 package handoff
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/s4wave/spacewave/bldr/util/packedmsg"
+	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
 func TestNeedsBuilderImage(t *testing.T) {
@@ -193,5 +198,125 @@ func TestValidateRemoteHandoffManifestAcceptsArtifactRestoredSymlink(t *testing.
 	}
 	if err := validateRemoteHandoffManifest(dir, identity); err != nil {
 		t.Fatalf("validateRemoteHandoffManifest artifact-restored symlink = %v", err)
+	}
+}
+
+func TestValidatePlatformBundleInputsAcceptsCompleteMatrix(t *testing.T) {
+	dir := t.TempDir()
+	platforms := []string{"darwin-arm64", "linux-amd64", "windows-arm64"}
+	for _, platform := range platforms {
+		goos, _ := splitPlatform(platform)
+		binName := "spacewave"
+		helperName := "spacewave-helper"
+		if goos == "windows" {
+			binName += ".exe"
+			helperName += ".exe"
+		}
+		writeTestFile(t, filepath.Join(dir, ".tmp", "dist", platform, binName))
+		writeTestFile(t, filepath.Join(dir, ".tmp", "dist-cli", platform, binName))
+		writeTestFile(t, filepath.Join(dir, "dist", "helper", platform, helperName))
+	}
+	for _, iconName := range []string{
+		"icon.icns",
+		"icon.ico",
+		"icon-48.png",
+		"icon-128.png",
+		"icon-256.png",
+	} {
+		writeTestFile(t, filepath.Join(dir, ".tmp", "icons", iconName))
+	}
+	writeTestFile(t, filepath.Join(dir, ".tmp", "spacewave.desktop"))
+
+	if err := validatePlatformBundleInputs(dir, platforms); err != nil {
+		t.Fatalf("validatePlatformBundleInputs complete matrix = %v", err)
+	}
+}
+
+func TestValidatePlatformBundleInputsRejectsMissingHelper(t *testing.T) {
+	dir := t.TempDir()
+	writeTestFile(t, filepath.Join(dir, ".tmp", "dist", "linux-amd64", "spacewave"))
+	writeTestFile(t, filepath.Join(dir, ".tmp", "dist-cli", "linux-amd64", "spacewave"))
+	writeTestFile(t, filepath.Join(dir, ".tmp", "icons", "icon-256.png"))
+	writeTestFile(t, filepath.Join(dir, ".tmp", "spacewave.desktop"))
+
+	if err := validatePlatformBundleInputs(dir, []string{"linux-amd64"}); err == nil {
+		t.Fatal("validatePlatformBundleInputs accepted missing helper")
+	}
+}
+
+func TestValidatePackagedArtifactsAcceptsCompleteMatrix(t *testing.T) {
+	dir := t.TempDir()
+	platforms := []string{"darwin-arm64", "linux-amd64", "windows-arm64"}
+	for _, platform := range platforms {
+		goos, goarch := splitPlatform(platform)
+		writeTestFile(t, filepath.Join(dir, ".tmp", "dist", "bundles", archiveName(goos, platform)))
+		writeTestFile(t, filepath.Join(dir, "dist", "cli", cliArchiveName(goos, platform)))
+		switch goos {
+		case "darwin":
+			writeTestFile(t, filepath.Join(dir, "dist", "installers", "spacewave-macos-"+goarch+".dmg"))
+		case "linux":
+			writeTestFile(t, filepath.Join(dir, "dist", "installers", "spacewave-linux-"+goarch+".AppImage"))
+		case "windows":
+			writeTestFile(t, filepath.Join(dir, "dist", "installers", "spacewave-windows-"+goarch+".msix"))
+			writeTestFile(t, filepath.Join(dir, "dist", "installers", "spacewave-windows-"+goarch+".zip"))
+		}
+	}
+
+	if err := validatePackagedArtifacts(dir, platforms); err != nil {
+		t.Fatalf("validatePackagedArtifacts complete matrix = %v", err)
+	}
+}
+
+func TestValidateBrowserBundleArtifactsChecksSignedDistConfigSeed(t *testing.T) {
+	dir := t.TempDir()
+	signerPeer, err := peer.NewPeer(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	signerPriv, err := signerPeer.GetPrivKey(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	encoded, err := spacewave_launcher.EncodeSignedDistConfig(
+		signerPriv,
+		&spacewave_launcher.DistConfig{
+			ProjectId:  "spacewave",
+			Rev:        17,
+			ChannelKey: spacewave_launcher.ChannelStable,
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeTestFileBytes(
+		t,
+		filepath.Join(dir, "staging", "dist", distConfigSeedFilename),
+		[]byte(packedmsg.EncodePackedMessage(encoded)),
+	)
+
+	if err := validateBrowserBundleArtifactsWithSigners(dir, []peer.ID{signerPeer.GetPeerID()}); err != nil {
+		t.Fatalf("validateBrowserBundleArtifactsWithSigners valid seed = %v", err)
+	}
+	otherPeer, err := peer.NewPeer(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := validateBrowserBundleArtifactsWithSigners(dir, []peer.ID{otherPeer.GetPeerID()}); err == nil {
+		t.Fatal("validateBrowserBundleArtifactsWithSigners accepted wrong signer")
+	}
+}
+
+func writeTestFile(t *testing.T, path string) {
+	t.Helper()
+	writeTestFileBytes(t, path, []byte("artifact"))
+}
+
+func writeTestFileBytes(t *testing.T, path string, data []byte) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, data, 0o755); err != nil {
+		t.Fatal(err)
 	}
 }
