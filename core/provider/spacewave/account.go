@@ -15,11 +15,11 @@ import (
 	storage_volume "github.com/s4wave/spacewave/bldr/storage/volume"
 	"github.com/s4wave/spacewave/core/bstore"
 	provider "github.com/s4wave/spacewave/core/provider"
+	provider_gccleanup "github.com/s4wave/spacewave/core/provider/gccleanup"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/object"
 	"github.com/s4wave/spacewave/db/volume"
@@ -94,6 +94,8 @@ type ProviderAccount struct {
 	sessionPresentationReconcile *routine.StateRoutineContainer[*sessionPresentationReconcileState]
 	// gcCleanup runs block GC cleanup after foreground delete paths unroot data.
 	gcCleanup *routine.RoutineContainer
+	// gcCleanupRunner serializes provider-account cleanup sweeps.
+	gcCleanupRunner *provider_gccleanup.Runner
 	// accountFetcherRoutine owns account-state refetches for this account.
 	accountFetcherRoutine *routine.RoutineContainer
 	// orgProcessors watches org SO membership and runs org processors.
@@ -131,12 +133,8 @@ type ProviderAccount struct {
 	syncTelemetryBcast broadcast.Broadcast
 	// syncTelemetry stores sync activity snapshots keyed by block store id.
 	syncTelemetry map[string]*syncTelemetryState
-	// gcCleanupBcast guards gcCleanupGeneration.
-	gcCleanupBcast broadcast.Broadcast
-	// gcCleanupGeneration increments when provider-account GC cleanup is needed.
-	gcCleanupGeneration uint64
 	// gcCleanupCollect overrides cleanup collection in tests.
-	gcCleanupCollect func(context.Context) (*block_gc.Stats, error)
+	gcCleanupCollect provider_gccleanup.CollectFunc
 
 	// orgBcast fires when org list changes.
 	// Guards orgList, orgListValid, and orgSnapshotRcs.
@@ -390,11 +388,16 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		routine.WithRetry(providerBackoff),
 	)
 	acc.sessionPresentationReconcile.SetStateRoutine(acc.runSessionPresentationReconcile)
+	acc.gcCleanupRunner = provider_gccleanup.NewRunner(
+		le.WithField("component", "gc-cleanup-runner"),
+		"GC swept nodes after provider account cleanup",
+		acc.collectGCRootlessBlocks,
+	)
 	acc.gcCleanup = routine.NewRoutineContainerWithLogger(
 		le.WithField("component", "gc-cleanup-runner"),
 		routine.WithRetry(providerBackoff),
 	)
-	acc.gcCleanup.SetRoutine(acc.runGCCleanup)
+	acc.gcCleanup.SetRoutine(acc.gcCleanupRunner.Run)
 	acc.accountFetcherRoutine = routine.NewRoutineContainerWithLogger(
 		le.WithField("component", "account-fetcher"),
 		routine.WithExitCb(func(err error) {

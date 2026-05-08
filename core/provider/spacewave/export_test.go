@@ -7,6 +7,7 @@ import (
 
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/refcount"
+	provider_gccleanup "github.com/s4wave/spacewave/core/provider/gccleanup"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/sirupsen/logrus"
 )
@@ -35,6 +36,11 @@ func NewTestProviderAccount(t *testing.T, endpoint string) *ProviderAccount {
 		sfs:           prov.sfs,
 		soListCtr:     ccontainer.NewCContainer[*sobject.SharedObjectList](nil),
 	}
+	acc.gcCleanupRunner = provider_gccleanup.NewRunner(
+		le.WithField("component", "gc-cleanup-runner"),
+		"GC swept nodes after provider account cleanup",
+		acc.collectGCRootlessBlocks,
+	)
 	acc.soListRc = refcount.NewRefCount(nil, true, nil, nil, acc.resolveSharedObjectList)
 	acc.managedBAsRc = refcount.NewRefCountWithOptions(
 		context.Background(),

@@ -14,9 +14,9 @@ import (
 	storage_volume "github.com/s4wave/spacewave/bldr/storage/volume"
 	"github.com/s4wave/spacewave/core/bstore"
 	provider "github.com/s4wave/spacewave/core/provider"
+	provider_gccleanup "github.com/s4wave/spacewave/core/provider/gccleanup"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/volume"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
@@ -72,14 +72,10 @@ type ProviderAccount struct {
 	orgProcessors *routine.RoutineContainer
 	// gcCleanup runs block GC cleanup after foreground delete paths unroot data.
 	gcCleanup *routine.RoutineContainer
-	// gcCleanupBcast guards gcCleanupGeneration.
-	gcCleanupBcast broadcast.Broadcast
-	// gcCleanupGeneration increments when account GC cleanup is needed.
-	gcCleanupGeneration uint64
-	// gcCleanupCompletedGeneration tracks the last completed cleanup generation.
-	gcCleanupCompletedGeneration uint64
+	// gcCleanupRunner serializes provider-account cleanup sweeps.
+	gcCleanupRunner *provider_gccleanup.Runner
 	// gcCleanupCollect overrides cleanup collection in tests.
-	gcCleanupCollect func(context.Context) (*block_gc.Stats, error)
+	gcCleanupCollect provider_gccleanup.CollectFunc
 	// pairing tracks an active pairing flow, nil when not active.
 	pairing *pairingState
 	// pairingCtx is the ProviderAccount lifecycle context for pairing routines.
@@ -222,6 +218,7 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		routine.WithRetry(providerBackoff),
 	)
 	providerAcc.orgProcessors.SetRoutine(providerAcc.watchOrgProcessors)
+	providerAcc.gcCleanupRunner = providerAcc.newGCCleanupRunner()
 	providerAcc.gcCleanup = routine.NewRoutineContainerWithLogger(
 		le.WithField("routine", "gc-cleanup-runner"),
 		routine.WithRetry(providerBackoff),
