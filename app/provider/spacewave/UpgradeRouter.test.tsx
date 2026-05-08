@@ -12,6 +12,7 @@ const mockUseSessionInfo = vi.hoisted(() =>
 const mockUseContextSafe = vi.hoisted(() => vi.fn())
 const mockCloudConfirmationPage = vi.hoisted(() => vi.fn())
 const mockNavigate = vi.hoisted(() => vi.fn())
+const mockPath = vi.hoisted(() => ({ value: '/u/0/plan/upgrade' }))
 
 vi.mock('@aptre/bldr-sdk/hooks/useResource.js', () => ({
   useResourceValue: () => mockSessionResource.value,
@@ -32,6 +33,7 @@ vi.mock('@s4wave/web/hooks/useSessionInfo.js', () => ({
 
 vi.mock('@s4wave/web/router/router.js', () => ({
   useNavigate: () => mockNavigate,
+  usePath: () => mockPath.value,
 }))
 
 vi.mock('@s4wave/web/router/Redirect.js', () => ({
@@ -94,6 +96,7 @@ describe('UpgradeRouter', () => {
       providerId: 'spacewave',
       isCloud: true,
     })
+    mockPath.value = '/u/0/plan/upgrade'
   })
 
   it('renders nothing until the cloud account snapshot is loaded', () => {

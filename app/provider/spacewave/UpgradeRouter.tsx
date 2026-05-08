@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
-import { useNavigate } from '@s4wave/web/router/router.js'
+import { useNavigate, usePath } from '@s4wave/web/router/router.js'
 import { Redirect } from '@s4wave/web/router/Redirect.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { SpacewaveOnboardingContext } from '@s4wave/web/contexts/SpacewaveOnboardingContext.js'
@@ -27,6 +27,7 @@ export function UpgradeRouter() {
   const ctx = SpacewaveOnboardingContext.useContextSafe()
   const onboarding = ctx?.onboarding ?? null
   const navigate = useNavigate()
+  const path = usePath()
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const cloudProviderConfig = useCloudProviderConfig()
   const checkoutResultBaseUrl = getCheckoutResultBaseUrl(cloudProviderConfig)
@@ -75,12 +76,10 @@ export function UpgradeRouter() {
   useEffect(() => {
     if (checkoutStatus === CheckoutStatus.CheckoutStatus_COMPLETED) {
       navigate({
-        path: window.location.hash
-          .replace(/^#/, '')
-          .replace(/\/plan(\/.*)?$/, '/setup'),
+        path: path.replace(/\/plan(\/.*)?$/, '/setup'),
       })
     }
-  }, [checkoutStatus, navigate])
+  }, [checkoutStatus, navigate, path])
 
   // Create or resume a Stripe checkout session.
   // Retries on "released" errors (session resource still mounting after creation).
@@ -101,9 +100,7 @@ export function UpgradeRouter() {
 
         if (resp.status === CheckoutStatus.CheckoutStatus_COMPLETED) {
           navigate({
-            path: window.location.hash
-              .replace(/^#/, '')
-              .replace(/\/plan(\/.*)?$/, '/setup'),
+            path: path.replace(/\/plan(\/.*)?$/, '/setup'),
           })
           return
         }
@@ -138,7 +135,7 @@ export function UpgradeRouter() {
         return
       }
     }
-  }, [checkoutResultBaseUrl, session, navigate])
+  }, [checkoutResultBaseUrl, session, navigate, path])
 
   // Auto-start Stripe once Onboarding Status confirms the caller has no
   // subscription. Holding until account_status is loaded prevents firing a
@@ -172,16 +169,14 @@ export function UpgradeRouter() {
         const resp = await sw.cancelCheckoutSession()
         if (resp.status === CheckoutStatus.CheckoutStatus_COMPLETED) {
           navigate({
-            path: window.location.hash
-              .replace(/^#/, '')
-              .replace(/\/plan(\/.*)?$/, '/setup'),
+            path: path.replace(/\/plan(\/.*)?$/, '/setup'),
           })
         }
       })()
     }
     // Navigate back to plan selection.
     navigate({ path: '../' })
-  }, [session, navigate, retryTimerRef])
+  }, [session, navigate, retryTimerRef, path])
 
   const handleRetry = useCallback(() => {
     void handleStartCloud()

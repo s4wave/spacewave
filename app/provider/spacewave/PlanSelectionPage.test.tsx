@@ -2,8 +2,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, cleanup, fireEvent, screen, act } from '@testing-library/react'
 import { PlanSelectionPage } from './PlanSelectionPage.js'
 
+const mockPath = vi.hoisted(() => ({ value: '/u/0/plan' }))
+
 vi.mock('@s4wave/web/router/router.js', () => ({
   useNavigate: vi.fn(() => vi.fn()),
+  usePath: () => mockPath.value,
   useParams: vi.fn(() => ({ sessionIndex: '0' })),
 }))
 
@@ -117,6 +120,7 @@ describe('PlanSelectionPage', () => {
     vi.spyOn(window, 'open').mockReturnValue({} as Window)
 
     window.location.hash = '#/u/0/plan'
+    mockPath.value = '/u/0/plan'
   })
 
   afterEach(() => {
@@ -191,6 +195,22 @@ describe('PlanSelectionPage', () => {
     })
 
     it('navigates to upgrade page when Start with Cloud is clicked', () => {
+      render(<PlanSelectionPage />)
+      const button = screen.getByText('Start with Cloud').closest('button')
+
+      act(() => {
+        fireEvent.click(button!)
+      })
+
+      expect(mockNavigate).toHaveBeenCalledWith({
+        path: '/u/0/plan/upgrade',
+      })
+    })
+
+    it('uses the panel route instead of the shell hash when split', () => {
+      window.location.hash = '#/g/encoded-shell-layout'
+      mockPath.value = '/u/0/plan'
+
       render(<PlanSelectionPage />)
       const button = screen.getByText('Start with Cloud').closest('button')
 

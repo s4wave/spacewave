@@ -17,7 +17,7 @@ import {
   OVERAGE_READ_PER_MILLION,
 } from '@s4wave/app/provider/spacewave/pricing.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
-import { useNavigate } from '@s4wave/web/router/router.js'
+import { useNavigate, usePath } from '@s4wave/web/router/router.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import {
@@ -189,6 +189,7 @@ export function PlanSelectionPage({
   const sessionResource = SessionContext.useContext()
   const session = useResourceValue(sessionResource)
   const navigate = useNavigate()
+  const path = usePath()
   const sessionIdx = useSessionIndex()
   const metadata = useSessionMetadata(sessionIdx)
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -234,12 +235,10 @@ export function PlanSelectionPage({
   useEffect(() => {
     if (checkoutStatus === CheckoutStatus.CheckoutStatus_COMPLETED) {
       navigate({
-        path: window.location.hash
-          .replace(/^#/, '')
-          .replace(/\/plan(\/.*)?$/, ''),
+        path: path.replace(/\/plan(\/.*)?$/, ''),
       })
     }
-  }, [checkoutStatus, navigate])
+  }, [checkoutStatus, navigate, path])
 
   // Cloud path: create or resume checkout in a single atomic call.
   const handleStartCloud = useCallback(async () => {
@@ -256,9 +255,7 @@ export function PlanSelectionPage({
 
       if (resp.status === CheckoutStatus.CheckoutStatus_COMPLETED) {
         navigate({
-          path: window.location.hash
-            .replace(/^#/, '')
-            .replace(/\/plan(\/.*)?$/, ''),
+          path: path.replace(/\/plan(\/.*)?$/, ''),
         })
         return
       }
@@ -288,7 +285,7 @@ export function PlanSelectionPage({
         err instanceof Error ? err.message : 'Failed to create checkout'
       dispatch({ type: 'checkout_error', error: msg })
     }
-  }, [checkoutResultBaseUrl, session, navigate])
+  }, [checkoutResultBaseUrl, session, navigate, path])
 
   // Auto-start Stripe when entering expanded view or when the session
   // resource becomes available after a release/retry cycle.
@@ -315,17 +312,16 @@ export function PlanSelectionPage({
 
   // Free local path: navigate to the free local setup screen.
   // PlanSelectionPage renders at both /plan and /plan/upgrade, so derive the
-  // plan base from the current hash to build the correct sibling path.
+  // plan base from the current panel route to build the correct sibling path.
   const handleFreeLocal = useCallback(() => {
-    const hashPath = window.location.hash.replace(/^#/, '')
-    const sessionBase = hashPath.replace(/\/plan(\/.*)?$/, '')
+    const sessionBase = path.replace(/\/plan(\/.*)?$/, '')
     if (metadata?.providerId === 'local') {
       navigate({ path: `${sessionBase}/setup` })
       return
     }
-    const planBase = hashPath.replace(/\/plan(\/.*)?$/, '/plan')
+    const planBase = path.replace(/\/plan(\/.*)?$/, '/plan')
     navigate({ path: planBase + '/free' })
-  }, [metadata?.providerId, navigate])
+  }, [metadata?.providerId, navigate, path])
 
   if (state.cloudExpanded) {
     return (
@@ -348,9 +344,7 @@ export function PlanSelectionPage({
                 const resp = await sw.cancelCheckoutSession()
                 if (resp.status === CheckoutStatus.CheckoutStatus_COMPLETED) {
                   navigate({
-                    path: window.location.hash
-                      .replace(/^#/, '')
-                      .replace(/\/plan(\/.*)?$/, ''),
+                    path: path.replace(/\/plan(\/.*)?$/, ''),
                   })
                 }
               } catch {
@@ -395,9 +389,7 @@ export function PlanSelectionPage({
         <button
           onClick={() =>
             navigate({
-              path: window.location.hash
-                .replace(/^#/, '')
-                .replace(/\/plan(\/.*)?$/, '/plan/upgrade'),
+              path: path.replace(/\/plan(\/.*)?$/, '/plan/upgrade'),
             })
           }
           disabled={state.loading || !session}
