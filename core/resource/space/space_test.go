@@ -8,10 +8,39 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/util/ccontainer"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/s4wave/spacewave/core/sobject"
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 )
+
+func TestSpaceResourceResolveHostPluginIDUsesStoredResourceOwner(t *testing.T) {
+	ctx := bldr_plugin.WithPluginContextInfo(
+		context.Background(),
+		bldr_plugin.NewPluginContextInfo(
+			bldr_plugin.NewPluginMeta("spacewave", "context-plugin", "desktop/darwin/arm64", "dev"),
+		),
+	)
+
+	r := &SpaceResource{hostPluginID: "spacewave-core"}
+	if got := r.resolveHostPluginID(ctx); got != "spacewave-core" {
+		t.Fatalf("expected stored host plugin id, got %q", got)
+	}
+}
+
+func TestSpaceResourceResolveHostPluginIDFallsBackToContext(t *testing.T) {
+	ctx := bldr_plugin.WithPluginContextInfo(
+		context.Background(),
+		bldr_plugin.NewPluginContextInfo(
+			bldr_plugin.NewPluginMeta("spacewave", "context-plugin", "desktop/darwin/arm64", "dev"),
+		),
+	)
+
+	r := &SpaceResource{}
+	if got := r.resolveHostPluginID(ctx); got != "context-plugin" {
+		t.Fatalf("expected context host plugin id, got %q", got)
+	}
+}
 
 // TestSharingWatchStateCoalescesNearSimultaneousChanges asserts that two
 // source updates that land while the loop is mid-emission coalesce into a

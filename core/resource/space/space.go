@@ -32,6 +32,7 @@ type SpaceResource struct {
 	mux           srpc.Invoker
 	space         space.SpaceSharedObjectBody
 	sessionPeerID string
+	hostPluginID  string
 }
 
 // NewSpaceResource creates a new SpaceResource.
@@ -47,7 +48,25 @@ func NewSpaceResourceWithSessionPeerID(
 	sp space.SpaceSharedObjectBody,
 	sessionPeerID string,
 ) *SpaceResource {
-	spaceResource := &SpaceResource{le: le, b: b, space: sp, sessionPeerID: sessionPeerID}
+	return NewSpaceResourceWithSessionPeerIDAndHostPluginID(le, b, sp, sessionPeerID, "")
+}
+
+// NewSpaceResourceWithSessionPeerIDAndHostPluginID creates a SpaceResource
+// with the mounted local session peer ID and owning host plugin ID.
+func NewSpaceResourceWithSessionPeerIDAndHostPluginID(
+	le *logrus.Entry,
+	b bus.Bus,
+	sp space.SpaceSharedObjectBody,
+	sessionPeerID string,
+	hostPluginID string,
+) *SpaceResource {
+	spaceResource := &SpaceResource{
+		le:            le,
+		b:             b,
+		space:         sp,
+		sessionPeerID: sessionPeerID,
+		hostPluginID:  hostPluginID,
+	}
 	spaceResource.mux = resource_server.NewResourceMux(func(mux srpc.Mux) error {
 		if err := s4wave_space.SRPCRegisterSpaceResourceService(mux, spaceResource); err != nil {
 			return err
@@ -56,6 +75,16 @@ func NewSpaceResourceWithSessionPeerID(
 		return s4wave_wizard.SRPCRegisterObjectWizardRegistryResourceService(mux, wizardResource)
 	})
 	return spaceResource
+}
+
+func (r *SpaceResource) resolveHostPluginID(ctx context.Context) string {
+	if r.hostPluginID != "" {
+		return r.hostPluginID
+	}
+	if info := bldr_plugin.GetPluginContextInfo(ctx); info != nil {
+		return info.GetPluginMeta().GetPluginId()
+	}
+	return ""
 }
 
 // GetMux returns the rpc mux.
@@ -289,10 +318,7 @@ func (r *SpaceResource) MountSpaceContents(
 	// Resolve the host plugin id from the request context. The Space resource
 	// runs inside a plugin host; cloud block store forwarding registers under
 	// that host's plugin service prefix.
-	var hostPluginID string
-	if info := bldr_plugin.GetPluginContextInfo(ctx); info != nil {
-		hostPluginID = info.GetPluginMeta().GetPluginId()
-	}
+	hostPluginID := r.resolveHostPluginID(ctx)
 
 	worldBucketID := r.space.GetWorldEngineBucketID()
 	if worldBucketID != "" && hostPluginID == "" {

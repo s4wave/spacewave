@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver/v4"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_command "github.com/s4wave/spacewave/core/resource/command"
@@ -154,6 +155,9 @@ func NewFactory(b bus.Bus) controller.Factory {
 func (c *Controller) Execute(ctx context.Context) error {
 	b := c.GetBus()
 	le := c.GetLogger()
+	if info := bldr_plugin.GetPluginContextInfo(ctx); info != nil {
+		c.rootResource.SetHostPluginID(info.GetPluginMeta().GetPluginId())
+	}
 	var releases []func()
 	releaseAll := func() {
 		for _, v := range slices.Backward(releases) {

@@ -42,11 +42,12 @@ import (
 // The lifecycle context ctx scopes any background work owned by this
 // resource. It is canceled by Close when the mount is released.
 type SessionResource struct {
-	le          *logrus.Entry
-	b           bus.Bus
-	mux         srpc.Invoker
-	session     session.Session
-	transferMgr transferManager
+	le           *logrus.Entry
+	b            bus.Bus
+	mux          srpc.Invoker
+	session      session.Session
+	hostPluginID string
+	transferMgr  transferManager
 
 	// ctx is the lifecycle context for background work owned by this
 	// resource. Canceled by Close.
@@ -80,13 +81,25 @@ type SessionResource struct {
 
 // NewSessionResource creates a new SessionResource.
 func NewSessionResource(le *logrus.Entry, b bus.Bus, sess session.Session) *SessionResource {
+	return NewSessionResourceWithHostPluginID(le, b, sess, "")
+}
+
+// NewSessionResourceWithHostPluginID creates a new SessionResource with the
+// plugin id that owns the resource root.
+func NewSessionResourceWithHostPluginID(
+	le *logrus.Entry,
+	b bus.Bus,
+	sess session.Session,
+	hostPluginID string,
+) *SessionResource {
 	ctx, ctxCancel := context.WithCancel(context.Background())
 	sessResource := &SessionResource{
-		le:        le,
-		b:         b,
-		session:   sess,
-		ctx:       ctx,
-		ctxCancel: ctxCancel,
+		le:           le,
+		b:            b,
+		session:      sess,
+		hostPluginID: hostPluginID,
+		ctx:          ctx,
+		ctxCancel:    ctxCancel,
 	}
 
 	statusRes := NewStatusResource(b)
@@ -448,13 +461,14 @@ func (r *SessionResource) MountSharedObject(
 		return nil, err
 	}
 
-	soResource := resource_sobject.NewSharedObjectResource(
+	soResource := resource_sobject.NewSharedObjectResourceWithHostPluginID(
 		r.le,
 		r.b,
 		mountedSo,
 		soListEntry.GetMeta(),
 		soRef,
 		r.session.GetPeerId().String(),
+		r.hostPluginID,
 	)
 	id, err := resourceCtx.AddResource(soResource.GetMux(), mountedSoRef.Release)
 	if err != nil {
@@ -491,13 +505,14 @@ func (r *SessionResource) mountCdnSharedObject(
 		return nil, err
 	}
 
-	soResource := resource_sobject.NewSharedObjectResource(
+	soResource := resource_sobject.NewSharedObjectResourceWithHostPluginID(
 		r.le,
 		r.b,
 		cdnSO,
 		meta,
 		soRef,
 		r.session.GetPeerId().String(),
+		r.hostPluginID,
 	)
 	id, err := resourceCtx.AddResource(soResource.GetMux(), func() {})
 	if err != nil {

@@ -22,6 +22,8 @@ type CoreRootServer struct {
 	le *logrus.Entry
 	// b is the bus to look up and perform actions on
 	b bus.Bus
+	// hostPluginID is the plugin id that owns this resource root.
+	hostPluginID string
 	// stateAtomMgr manages state atom stores
 	stateAtomMgr *resource_state.StateAtomManager
 	// spaceRootAliasBcast broadcasts configured root registry changes.
@@ -48,6 +50,11 @@ func NewCoreRootServer(le *logrus.Entry, b bus.Bus) *CoreRootServer {
 	s.cdnRegistry = resource_cdn.NewRegistry(le, b)
 	s.webListeners = newWebListenerRegistry(le)
 	return s
+}
+
+// SetHostPluginID records the plugin id that owns this resource root.
+func (s *CoreRootServer) SetHostPluginID(pluginID string) {
+	s.hostPluginID = pluginID
 }
 
 // Close releases process-owned root resources.

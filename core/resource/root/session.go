@@ -35,7 +35,7 @@ func (s *CoreRootServer) MountSession(
 	}
 
 	le := sess.GetSessionRef().GetLogger(s.le)
-	sessResource := resource_session.NewSessionResource(le, s.b, sess)
+	sessResource := resource_session.NewSessionResourceWithHostPluginID(le, s.b, sess, s.hostPluginID)
 	sessResource.SetCdnRootChangedHook(func(spaceID string) {
 		s.cdnRegistry.NotifyRootChanged(spaceID)
 	})
@@ -83,7 +83,7 @@ func (s *CoreRootServer) MountSessionByIdx(
 	}
 
 	le := sess.GetSessionRef().GetLogger(s.le)
-	sessResource := resource_session.NewSessionResource(le, s.b, sess)
+	sessResource := resource_session.NewSessionResourceWithHostPluginID(le, s.b, sess, s.hostPluginID)
 	sessResource.SetCdnRootChangedHook(func(spaceID string) {
 		s.cdnRegistry.NotifyRootChanged(spaceID)
 	})

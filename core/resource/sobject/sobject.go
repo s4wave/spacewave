@@ -26,6 +26,7 @@ type SharedObjectResource struct {
 	meta          *sobject.SharedObjectMeta
 	ref           *sobject.SharedObjectRef
 	sessionPeerID string
+	hostPluginID  string
 }
 
 // NewSharedObjectResource creates a new SharedObjectResource.
@@ -37,6 +38,20 @@ func NewSharedObjectResource(
 	ref *sobject.SharedObjectRef,
 	sessionPeerID string,
 ) *SharedObjectResource {
+	return NewSharedObjectResourceWithHostPluginID(le, b, so, meta, ref, sessionPeerID, "")
+}
+
+// NewSharedObjectResourceWithHostPluginID creates a new SharedObjectResource
+// with the plugin id that owns the resource root.
+func NewSharedObjectResourceWithHostPluginID(
+	le *logrus.Entry,
+	b bus.Bus,
+	so sobject.SharedObject,
+	meta *sobject.SharedObjectMeta,
+	ref *sobject.SharedObjectRef,
+	sessionPeerID string,
+	hostPluginID string,
+) *SharedObjectResource {
 	soResource := &SharedObjectResource{
 		le:            le,
 		b:             b,
@@ -44,6 +59,7 @@ func NewSharedObjectResource(
 		meta:          meta,
 		ref:           ref,
 		sessionPeerID: sessionPeerID,
+		hostPluginID:  hostPluginID,
 	}
 	soResource.mux = resource_server.NewResourceMux(func(mux srpc.Mux) error {
 		return s4wave_sobject.SRPCRegisterSharedObjectResourceService(mux, soResource)
@@ -136,11 +152,12 @@ func (r *SharedObjectResource) MountSharedObjectBody(ctx context.Context, req *s
 			)
 		}
 
-		spaceResource := resource_space.NewSpaceResourceWithSessionPeerID(
+		spaceResource := resource_space.NewSpaceResourceWithSessionPeerIDAndHostPluginID(
 			r.le,
 			r.b,
 			mountedSpace.GetSharedObjectBody(),
 			r.sessionPeerID,
+			r.hostPluginID,
 		)
 		resource, relResource = spaceResource.GetMux(), mountedSpaceRef.Release
 		resourceValue = spaceResource
@@ -157,7 +174,13 @@ func (r *SharedObjectResource) MountSharedObjectBody(ctx context.Context, req *s
 			)
 		}
 		body := cdn_sharedobject.NewCdnSpaceBody(cdnSO, we)
-		spaceResource := resource_space.NewSpaceResource(r.le, r.b, body)
+		spaceResource := resource_space.NewSpaceResourceWithSessionPeerIDAndHostPluginID(
+			r.le,
+			r.b,
+			body,
+			"",
+			r.hostPluginID,
+		)
 		resource, relResource = spaceResource.GetMux(), we.Release
 		resourceValue = spaceResource
 	case "":
