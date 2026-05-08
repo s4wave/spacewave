@@ -6,6 +6,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_chksum "github.com/s4wave/spacewave/db/block/transform/chksum"
@@ -298,6 +299,27 @@ func (c *Cursor) FollowRefWithOpArgs(
 	objRef *bucket.ObjectRef,
 	opArgs *bucket.BucketOpArgs,
 ) (*Cursor, error) {
+	return c.followRefWithOpArgs(ctx, objRef, opArgs, false, false)
+}
+
+// FollowRefWithOpArgsReadOnly attempts to follow a object reference through
+// lookup-only bucket handles.
+func (c *Cursor) FollowRefWithOpArgsReadOnly(
+	ctx context.Context,
+	objRef *bucket.ObjectRef,
+	opArgs *bucket.BucketOpArgs,
+	returnIfIdle bool,
+) (*Cursor, error) {
+	return c.followRefWithOpArgs(ctx, objRef, opArgs, true, returnIfIdle)
+}
+
+func (c *Cursor) followRefWithOpArgs(
+	ctx context.Context,
+	objRef *bucket.ObjectRef,
+	opArgs *bucket.BucketOpArgs,
+	readOnly bool,
+	returnIfIdle bool,
+) (*Cursor, error) {
 	var rel func()
 	bkt, xfrm := c.bkt, c.xfrm
 	transformConf := c.transformConf
@@ -311,11 +333,27 @@ func (c *Cursor) FollowRefWithOpArgs(
 	if orBkId := opArgs.GetBucketId(); orBkId != "" && c.opArgs.GetBucketId() != orBkId {
 		// acquire the new bucket handle
 		var err error
-		bkt, rel, err = StartBucketRWOperation(
-			ctx,
-			c.bus,
-			opArgs.CloneVT(),
-		)
+		if readOnly {
+			var handle Handle
+			var handleRel directive.Reference
+			handle, _, handleRel, err = StartBucketLookupOperation(ctx, c.bus, returnIfIdle, opArgs.CloneVT())
+			if err == nil && handle == nil {
+				err = bucket.ErrBucketNotFound
+			}
+			if err == nil {
+				bkt = NewBucketFromHandle(handle)
+				if handleRel != nil {
+					rel = handleRel.Release
+				}
+			}
+		}
+		if !readOnly {
+			bkt, rel, err = StartBucketRWOperation(
+				ctx,
+				c.bus,
+				opArgs.CloneVT(),
+			)
+		}
 		if err != nil {
 			return nil, err
 		}

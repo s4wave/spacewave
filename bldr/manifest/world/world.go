@@ -13,6 +13,7 @@ import (
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/s4wave/spacewave/net/peer"
@@ -148,13 +149,34 @@ func LookupManifest(ctx context.Context, ws world.WorldState, objKey string) (*b
 	return manifest, ref, err
 }
 
+// LookupManifestRef looks up a ManifestRef object in the world.
+func LookupManifestRef(ctx context.Context, ws world.WorldState, objKey string) (*bldr_manifest.ManifestRef, *bucket.ObjectRef, error) {
+	obj, err := world.MustGetObject(ctx, ws, objKey)
+	if err != nil {
+		return nil, nil, err
+	}
+	var manifestRef *bldr_manifest.ManifestRef
+	ref, _, err := world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
+		var err error
+		manifestRef, err = bldr_manifest.UnmarshalManifestRef(ctx, bcs)
+		return err
+	})
+	return manifestRef, ref, err
+}
+
 // NewListManifestPath creates a Path that selects all Manifest
 // recursively linked with <manifest>.
 func NewListManifestPath(p *cayley.Path) *cayley.Path {
 	return world_types.LimitNodesToTypes(
-		p.FollowRecursive(PredManifest, 50, nil),
+		NewListManifestCandidatePath(p),
 		ManifestTypeID,
 	)
+}
+
+// NewListManifestCandidatePath creates a Path that selects all objects
+// recursively linked with <manifest>.
+func NewListManifestCandidatePath(p *cayley.Path) *cayley.Path {
+	return p.FollowRecursive(PredManifest, 50, nil)
 }
 
 // ListManifests lists all manifests recursively linked to the given object(s).
@@ -167,6 +189,20 @@ func ListManifests(ctx context.Context, w world.WorldState, startObjKeys ...stri
 			// Follow <manifest> references, collecting nodes.
 			// Limit those objects to the ones that have type manifest.
 			return NewListManifestPath(p), nil
+		},
+	)
+}
+
+// ListManifestCandidates lists all objects recursively linked with <manifest>
+// from the given object(s). Candidates may be Manifest objects, ManifestRef
+// objects, or intermediate bundle/store objects.
+func ListManifestCandidates(ctx context.Context, w world.WorldState, startObjKeys ...string) ([]string, error) {
+	return world.CollectPathWithKeys(
+		ctx,
+		w,
+		startObjKeys,
+		func(p *cayley.Path) (*cayley.Path, error) {
+			return NewListManifestCandidatePath(p), nil
 		},
 	)
 }
@@ -199,6 +235,31 @@ type CollectedManifest struct {
 // GetRev returns the revision.
 func (c *CollectedManifest) GetRev() uint64 {
 	return c.Manifest.GetMeta().GetRev()
+}
+
+// StartupManifestSkipError describes a startup manifest candidate that was skipped.
+type StartupManifestSkipError struct {
+	ObjectKey string
+	Err       error
+}
+
+// Error returns the startup manifest skip message.
+func (e *StartupManifestSkipError) Error() string {
+	if e == nil {
+		return ""
+	}
+	if e.Err == nil {
+		return "startup manifest candidate[" + e.ObjectKey + "] unavailable"
+	}
+	return "startup manifest candidate[" + e.ObjectKey + "]: " + e.Err.Error()
+}
+
+// Unwrap returns the underlying skip cause.
+func (e *StartupManifestSkipError) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+	return e.Err
 }
 
 // CollectManifests collects all Manifest linked to by the given object(s).
@@ -249,6 +310,151 @@ func CollectManifests(
 	}
 
 	return manifestMap, manifestErrors, nil
+}
+
+// CollectStartupManifests collects readable startup manifest candidates linked
+// to the given object(s).
+//
+// Unlike CollectManifests, this accepts ManifestRef candidate objects and
+// treats optional candidate lookup failures as skip errors.
+func CollectStartupManifests(
+	ctx context.Context,
+	ws world.WorldState,
+	filterPlatformIDs []string,
+	objKeys ...string,
+) (map[string][]*CollectedManifest, []error, error) {
+	manifestObjKeys, err := ListManifestCandidates(ctx, ws, objKeys...)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var manifestErrors []error
+	manifestMap := make(map[string][]*CollectedManifest)
+
+	for _, objKey := range manifestObjKeys {
+		objType, err := world_types.GetObjectType(ctx, ws, objKey)
+		if err != nil {
+			cause := errors.Cause(err)
+			if cause == context.Canceled || cause == context.DeadlineExceeded {
+				return nil, manifestErrors, cause
+			}
+			manifestErrors = append(manifestErrors, &StartupManifestSkipError{ObjectKey: objKey, Err: err})
+			continue
+		}
+		if objType == ManifestStoreTypeID || objType == ManifestBundleTypeID {
+			continue
+		}
+
+		manifest, manifestRef, skip, err := collectStartupManifestCandidate(ctx, ws, objKey, objType)
+		if skip {
+			continue
+		}
+		if err != nil {
+			cause := errors.Cause(err)
+			if cause == context.Canceled || cause == context.DeadlineExceeded {
+				return nil, manifestErrors, cause
+			}
+			manifestErrors = append(manifestErrors, &StartupManifestSkipError{ObjectKey: objKey, Err: err})
+			continue
+		}
+		manifestID := manifest.GetMeta().GetManifestId()
+		platformID := manifest.GetMeta().GetPlatformId()
+		if len(filterPlatformIDs) != 0 && !slices.Contains(filterPlatformIDs, platformID) {
+			continue
+		}
+		manifestList := append(manifestMap[manifestID], &CollectedManifest{
+			Manifest:    manifest,
+			ManifestRef: manifestRef,
+			ManifestKey: objKey,
+		})
+		sort.SliceStable(manifestList, func(i, j int) bool {
+			return manifestList[i].GetRev() > manifestList[j].GetRev()
+		})
+		manifestMap[manifestID] = manifestList
+	}
+
+	return manifestMap, manifestErrors, nil
+}
+
+func collectStartupManifestCandidate(
+	ctx context.Context,
+	ws world.WorldState,
+	objKey string,
+	objType string,
+) (*bldr_manifest.Manifest, *bucket.ObjectRef, bool, error) {
+	if objType == ManifestTypeID {
+		manifest, manifestRef, err := LookupManifest(ctx, ws, objKey)
+		return manifest, manifestRef, false, err
+	}
+
+	manifestRef, _, err := LookupManifestRef(ctx, ws, objKey)
+	if err != nil {
+		if objType == "" {
+			manifest, manifestRef, manifestErr := LookupManifest(ctx, ws, objKey)
+			if manifestErr == nil && manifest != nil && manifest.Validate() == nil {
+				return manifest, manifestRef, false, nil
+			}
+			if _, _, bundleErr := LookupManifestBundle(ctx, ws, objKey); bundleErr == nil {
+				return nil, nil, true, nil
+			}
+		}
+		return nil, nil, false, err
+	}
+	if err := manifestRef.Validate(); err != nil {
+		return nil, nil, false, err
+	}
+
+	var manifest *bldr_manifest.Manifest
+	manifest, err = lookupStartupManifestObjectRef(ctx, ws, manifestRef.GetManifestRef())
+	if err != nil {
+		return nil, nil, false, err
+	}
+	if !manifest.GetMeta().EqualVT(manifestRef.GetMeta()) {
+		return nil, nil, false, errors.New("manifest ref meta does not match manifest meta")
+	}
+	return manifest, manifestRef.GetManifestRef(), false, nil
+}
+
+func lookupStartupManifestObjectRef(
+	ctx context.Context,
+	ws world.WorldState,
+	ref *bucket.ObjectRef,
+) (*bldr_manifest.Manifest, error) {
+	if ref == nil || ref.GetEmpty() {
+		return nil, errors.New("manifest object ref is empty")
+	}
+
+	var manifest *bldr_manifest.Manifest
+	err := ws.AccessWorldState(ctx, nil, func(root *bucket_lookup.Cursor) error {
+		manifestCursor, err := followStartupManifestRef(ctx, root, ref)
+		if err != nil {
+			return err
+		}
+		defer manifestCursor.Release()
+
+		_, bcs := manifestCursor.BuildTransaction(nil)
+		manifest, err = bldr_manifest.UnmarshalManifest(ctx, bcs)
+		if err != nil {
+			return err
+		}
+		return manifest.Validate()
+	})
+	return manifest, err
+}
+
+func followStartupManifestRef(
+	ctx context.Context,
+	root *bucket_lookup.Cursor,
+	ref *bucket.ObjectRef,
+) (*bucket_lookup.Cursor, error) {
+	opArgs := root.GetOpArgs()
+	if refBucketID := ref.GetBucketId(); refBucketID != "" {
+		opArgs.BucketId = refBucketID
+	}
+	if opArgs.GetBucketId() != root.GetOpArgs().GetBucketId() {
+		opArgs.VolumeId = ""
+	}
+	return root.FollowRefWithOpArgsReadOnly(ctx, ref, opArgs, true)
 }
 
 // FilterCollectedManifestsMapByPlatformID filters the result of CollectManifests by a platform id list.
@@ -429,6 +635,21 @@ func CollectManifestsForManifestID(
 	// - Unsure how to implement this with cayley currently.
 	// - For now, just filter after the fact.
 	manifests, manifestErrs, err := CollectManifests(ctx, ws, filterPlatformIDs, objKeys...)
+	if err != nil {
+		return nil, manifestErrs, err
+	}
+	return manifests[manifestID], manifestErrs, nil
+}
+
+// CollectStartupManifestsForManifestID collects startup Manifest candidates for a specific manifest ID.
+func CollectStartupManifestsForManifestID(
+	ctx context.Context,
+	ws world.WorldState,
+	manifestID string,
+	filterPlatformIDs []string,
+	objKeys ...string,
+) ([]*CollectedManifest, []error, error) {
+	manifests, manifestErrs, err := CollectStartupManifests(ctx, ws, filterPlatformIDs, objKeys...)
 	if err != nil {
 		return nil, manifestErrs, err
 	}
