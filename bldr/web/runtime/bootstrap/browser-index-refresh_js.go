@@ -12,6 +12,20 @@ const browserIndexPath = "/b/__index.html"
 
 func triggerBrowserIndexCacheRefresh(le *logrus.Entry) {
 	global := js.Global()
+	navigator := global.Get("navigator")
+	if !navigator.IsUndefined() && !navigator.IsNull() {
+		serviceWorker := navigator.Get("serviceWorker")
+		if !serviceWorker.IsUndefined() && !serviceWorker.IsNull() {
+			controller := serviceWorker.Get("controller")
+			if !controller.IsUndefined() && !controller.IsNull() {
+				controller.Call("postMessage", map[string]interface{}{
+					"bldrRefreshBrowserIndex": true,
+				})
+				return
+			}
+		}
+	}
+
 	fetchFn := global.Get("fetch")
 	if fetchFn.IsUndefined() || fetchFn.IsNull() {
 		return

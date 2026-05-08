@@ -38,6 +38,7 @@ const controlCacheName = 'bldr-control'
 const browserReleasePath = '/browser-release.json'
 const bootAssetPath = '/boot.mjs'
 const browserIndexPath = '/b/__index.html'
+const rootNavigationPath = '/'
 const browserReleaseStatePath = '/__bldr/browser-release-state.json'
 
 // CACHES is the list of fixed caches.
@@ -57,6 +58,7 @@ export interface ServiceWorkerMessageDeps {
   fetchTracker: Pick<ServiceWorkerFetchTracker, 'abortClient'>
   webDocumentTracker: Pick<WebDocumentTracker, 'handleWebDocumentMessage'>
   syncLatestBrowserRelease(): Promise<BrowserReleaseState>
+  refreshBrowserIndexCache(clientId: string): Promise<Response>
   handleCrossTabMessage(
     clients: Clients,
     senderId: string,
@@ -67,6 +69,11 @@ export interface ServiceWorkerMessageDeps {
 // BrowserReleaseSyncMessage asks the SW to refresh the release manifest.
 export interface BrowserReleaseSyncMessage {
   bldrSyncManifest?: boolean
+}
+
+// BrowserIndexRefreshMessage asks the SW to refresh the runtime browser shell.
+export interface BrowserIndexRefreshMessage {
+  bldrRefreshBrowserIndex?: boolean
 }
 
 // resetServiceWorkerTestState clears module-level cache handles for unit tests.
@@ -401,12 +408,27 @@ async function cacheBrowserIndexResponse(response: Response): Promise<void> {
   if (!response.ok) {
     return
   }
-  const request = buildCacheRequest(browserIndexPath)
-  if (!canCacheRequest(request)) {
-    return
-  }
   const cache = await getControlCache()
-  await cache.put(request, response.clone())
+  for (const path of [browserIndexPath, rootNavigationPath]) {
+    const request = buildCacheRequest(path)
+    if (canCacheRequest(request)) {
+      await cache.put(request, response.clone())
+    }
+  }
+}
+
+// refreshBrowserIndexCache fetches and stores the runtime browser shell.
+export async function refreshBrowserIndexCache(
+  clientId: string,
+): Promise<Response> {
+  const request = buildCacheRequest(browserIndexPath)
+  const response = await proxyFetch(swHost, request, clientId, {
+    headerTimeoutMs: proxyFetchHeaderTimeoutMs,
+  })
+  if (response.ok) {
+    await cacheBrowserIndexResponse(response)
+  }
+  return response
 }
 
 async function matchPromotedGenerationResponse(
@@ -601,6 +623,12 @@ export function handleServiceWorkerMessage(
     return
   }
 
+  if (isBrowserIndexRefreshMessage(ev.data)) {
+    const senderId = (ev.source as Client)?.id || ''
+    ev.waitUntil(deps.refreshBrowserIndexCache(senderId))
+    return
+  }
+
   // Cross-tab channel broker: handle hello/goodbye before WebDocument messages.
   if (isCrossTabMessage(ev.data)) {
     const senderId = (ev.source as Client)?.id
@@ -625,6 +653,15 @@ function isBrowserReleaseSyncMessage(
     return false
   }
   return (data as BrowserReleaseSyncMessage).bldrSyncManifest === true
+}
+
+function isBrowserIndexRefreshMessage(
+  data: unknown,
+): data is BrowserIndexRefreshMessage {
+  if (!data || typeof data !== 'object') {
+    return false
+  }
+  return (data as BrowserIndexRefreshMessage).bldrRefreshBrowserIndex === true
 }
 
 // isSwOrigin checks if the given origin matches the local origin.
@@ -803,6 +840,7 @@ function initServiceWorker() {
       fetchTracker: serviceWorkerFetchTracker,
       webDocumentTracker,
       syncLatestBrowserRelease,
+      refreshBrowserIndexCache,
       handleCrossTabMessage,
     })
   })

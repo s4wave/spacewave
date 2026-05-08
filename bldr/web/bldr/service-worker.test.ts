@@ -9,6 +9,7 @@ import type {
 import {
   handleBrowserReleaseRequest,
   handleServiceWorkerMessage,
+  refreshBrowserIndexCache,
   resetServiceWorkerTestState,
   swFetch,
 } from './service-worker.js'
@@ -128,6 +129,9 @@ async function writeGenerationCacheResponse(
 function buildMessageEvent(data: unknown): ExtendableMessageEvent {
   return {
     data,
+    source: {
+      id: 'client-a',
+    },
     waitUntil: vi.fn(),
   } as unknown as ExtendableMessageEvent
 }
@@ -374,6 +378,11 @@ describe('service worker messages', () => {
     resetServiceWorkerTestState()
   })
 
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
   it('runs one sync per in-flight window for bldrSyncManifest messages', async () => {
     const firstSync = newDeferred<BrowserReleaseState>()
     const secondSync = newDeferred<BrowserReleaseState>()
@@ -390,6 +399,7 @@ describe('service worker messages', () => {
         handleWebDocumentMessage: vi.fn(),
       },
       syncLatestBrowserRelease,
+      refreshBrowserIndexCache: vi.fn(),
       handleCrossTabMessage: vi.fn(),
     }
 
@@ -417,5 +427,50 @@ describe('service worker messages', () => {
 
     secondSync.resolve(createEmptyBrowserReleaseState())
     await vi.mocked(rearmedEv.waitUntil).mock.calls[0][0]
+  })
+
+  it('refreshes the runtime browser index cache from a message', async () => {
+    vi.stubGlobal('BLDR_DEBUG', false)
+    vi.stubGlobal('caches', new FakeCacheStorage())
+    vi.mocked(proxyFetch).mockResolvedValue(
+      new Response('runtime index', { status: 200 }),
+    )
+    const deps = {
+      clients: {} as Clients,
+      fetchTracker: {
+        abortClient: vi.fn(),
+      },
+      webDocumentTracker: {
+        handleWebDocumentMessage: vi.fn(),
+      },
+      syncLatestBrowserRelease: vi.fn(),
+      refreshBrowserIndexCache,
+      handleCrossTabMessage: vi.fn(),
+    }
+
+    const ev = buildMessageEvent({ bldrRefreshBrowserIndex: true })
+    handleServiceWorkerMessage(ev, deps)
+
+    expect(ev.waitUntil).toHaveBeenCalledWith(expect.any(Promise))
+    await vi.mocked(ev.waitUntil).mock.calls[0][0]
+
+    const cache = await (globalThis.caches as unknown as FakeCacheStorage).open(
+      'bldr-control',
+    )
+    const rootResponse = await cache.match(
+      new Request(new URL('/', self.location.href)),
+    )
+    const indexResponse = await cache.match(
+      new Request(new URL('/b/__index.html', self.location.href)),
+    )
+
+    expect(await rootResponse?.text()).toBe('runtime index')
+    expect(await indexResponse?.text()).toBe('runtime index')
+    expect(proxyFetch).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.any(Request),
+      'client-a',
+      expect.objectContaining({ headerTimeoutMs: 30_000 }),
+    )
   })
 })
