@@ -664,6 +664,15 @@ function isBrowserIndexRefreshMessage(
   return (data as BrowserIndexRefreshMessage).bldrRefreshBrowserIndex === true
 }
 
+function isNavigationRequest(request: Request): boolean {
+  const accept = request.headers.get('Accept') ?? ''
+  return (
+    request.mode === 'navigate' ||
+    request.destination === 'document' ||
+    accept.includes('text/html')
+  )
+}
+
 // isSwOrigin checks if the given origin matches the local origin.
 function isSwOrigin(origin: string): boolean {
   return origin === self.location.origin
@@ -712,6 +721,13 @@ export async function swFetch(
       await matchPromotedCurrentGenerationResponse(request)
     if (promotedResponse) {
       return promotedResponse
+    }
+
+    if (requestPath === rootNavigationPath && isNavigationRequest(request)) {
+      const cachedBrowserIndex = await matchBrowserIndexCache(request)
+      if (cachedBrowserIndex) {
+        return cachedBrowserIndex
+      }
     }
 
     // Check the cache (for e.x. index.html)

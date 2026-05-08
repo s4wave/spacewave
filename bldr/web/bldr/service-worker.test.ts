@@ -126,6 +126,15 @@ async function writeGenerationCacheResponse(
   await cache.put(new Request(new URL(path, self.location.href)), response)
 }
 
+async function writeControlCacheResponse(
+  caches: FakeCacheStorage,
+  path: string,
+  response: Response,
+): Promise<void> {
+  const cache = await caches.open('bldr-control')
+  await cache.put(new Request(new URL(path, self.location.href)), response)
+}
+
 function buildMessageEvent(data: unknown): ExtendableMessageEvent {
   return {
     data,
@@ -136,9 +145,9 @@ function buildMessageEvent(data: unknown): ExtendableMessageEvent {
   } as unknown as ExtendableMessageEvent
 }
 
-function buildFetchOnlyEvent(path: string): FetchEvent {
+function buildFetchOnlyEvent(path: string, init?: RequestInit): FetchEvent {
   return {
-    request: new Request(new URL(path, self.location.href)),
+    request: new Request(new URL(path, self.location.href), init),
   } as FetchEvent
 }
 
@@ -288,6 +297,7 @@ describe('service worker browser release requests', () => {
 describe('service worker fetch release cache routing', () => {
   beforeEach(() => {
     resetServiceWorkerTestState()
+    vi.clearAllMocks()
     vi.stubGlobal('BLDR_DEBUG', false)
     vi.stubGlobal('caches', new FakeCacheStorage())
     vi.stubGlobal('fetch', vi.fn())
@@ -370,6 +380,41 @@ describe('service worker fetch release cache routing', () => {
     expect(await firstResponse.text()).toBe('runtime index')
     expect(await secondResponse.text()).toBe('runtime index')
     expect(proxyFetch).toHaveBeenCalledTimes(2)
+  })
+
+  it('serves root navigation requests from the cached runtime browser index', async () => {
+    await writeControlCacheResponse(
+      globalThis.caches as unknown as FakeCacheStorage,
+      '/b/__index.html',
+      new Response('runtime index', { status: 200 }),
+    )
+    vi.mocked(fetch).mockResolvedValue(new Response('network', { status: 200 }))
+
+    const response = await swFetch(
+      buildFetchOnlyEvent('/', {
+        headers: { Accept: 'text/html' },
+      }),
+    )
+
+    expect(await response.text()).toBe('runtime index')
+    expect(fetch).not.toHaveBeenCalled()
+    expect(proxyFetch).not.toHaveBeenCalled()
+  })
+
+  it('uses native fetch for root navigation requests on runtime browser index cache miss', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      new Response('network root', { status: 200 }),
+    )
+
+    const response = await swFetch(
+      buildFetchOnlyEvent('/', {
+        headers: { Accept: 'text/html' },
+      }),
+    )
+
+    expect(await response.text()).toBe('network root')
+    expect(fetch).toHaveBeenCalledTimes(1)
+    expect(proxyFetch).not.toHaveBeenCalled()
   })
 })
 
