@@ -1,7 +1,9 @@
 import { EventEmitter } from 'events'
+import { createHandler } from 'starpc'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { Client as ResourceClient } from '../../../sdk/resource/client.js'
+import { newResourceMux } from '../../../sdk/resource/server/index.js'
 import {
   DesktopTrayActionKind,
   DesktopTrayEntryKind,
@@ -10,7 +12,11 @@ import {
   type WatchDesktopTrayResponse,
   type DesktopTrayEntry,
 } from '@go/github.com/s4wave/spacewave/bldr/desktop/tray/tray.pb.js'
-import { DesktopTrayResourceServiceClient } from '@go/github.com/s4wave/spacewave/bldr/desktop/tray/tray_srpc.pb.js'
+import {
+  DesktopTrayActionHandlerServiceDefinition,
+  DesktopTrayResourceServiceClient,
+  type DesktopTrayActionHandlerService,
+} from '@go/github.com/s4wave/spacewave/bldr/desktop/tray/tray_srpc.pb.js'
 import {
   DesktopRuntimeActionKind,
   DesktopRuntimeHealth,
@@ -50,6 +56,7 @@ const mockResource = {
   QuitDesktopRuntime: vi.fn(() => Promise.resolve({})),
   desktopTrayResource: {
     WatchDesktopTray: vi.fn(),
+    InvokeDesktopTrayEntry: vi.fn(() => Promise.resolve({})),
     getState: vi.fn(() => defaultTrayState()),
   },
 }
@@ -636,6 +643,91 @@ describe('DesktopTrayController', () => {
 
     expect(mockResource.OpenOrFocusMainWindow).toHaveBeenCalledTimes(2)
     expect(mockResource.QuitDesktopRuntime).toHaveBeenCalledTimes(1)
+  })
+
+  it('dispatches attached-handler tray entries through the tray resource', async () => {
+    emitTrayState({
+      statusText: 'Running',
+      iconState: DesktopTrayIconState.NORMAL,
+      entries: [
+        {
+          id: 'copy-diagnostics',
+          kind: DesktopTrayEntryKind.ACTION,
+          label: 'Copy Diagnostics',
+          enabled: true,
+          action: {
+            kind: DesktopTrayActionKind.ATTACHED_HANDLER,
+            value: 'diagnostics',
+          },
+        },
+      ],
+    })
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+    controller.init()
+
+    await clickMenuItem('Copy Diagnostics')
+
+    expect(
+      mockResource.desktopTrayResource.InvokeDesktopTrayEntry,
+    ).toHaveBeenCalledWith({
+      entryId: 'copy-diagnostics',
+    })
+  })
+
+  it('invokes Electron-scoped attached action handler resources', async () => {
+    const resource = new DesktopRuntimeResource({
+      openOrFocusMainWindow: vi.fn(),
+      quitDesktopRuntime: vi.fn(),
+    })
+    const abort = new AbortController()
+    const resourceClient = new ResourceClient(
+      resource.resourceServer,
+      abort.signal,
+    )
+    const rootRef = await resourceClient.accessRootResource()
+    const tray = new DesktopTrayResourceServiceClient(rootRef.client)
+    const handler: DesktopTrayActionHandlerService = {
+      HandleDesktopTrayAction: vi.fn(async () => ({})),
+    }
+    const handlerMux = newResourceMux(
+      createHandler(DesktopTrayActionHandlerServiceDefinition, handler),
+    )
+    const attached = await resourceClient.attachRawInvoker(
+      'tray-action',
+      handlerMux.lookupMethod.bind(handlerMux),
+    )
+
+    await tray.RegisterDesktopTrayEntry({
+      attachedActionResourceId: attached.resourceId,
+      entry: {
+        id: 'copy-diagnostics',
+        kind: DesktopTrayEntryKind.ACTION,
+        label: 'Copy Diagnostics',
+        enabled: true,
+        action: {
+          kind: DesktopTrayActionKind.ATTACHED_HANDLER,
+          value: 'diagnostics',
+        },
+      },
+    })
+    await tray.InvokeDesktopTrayEntry({ entryId: 'copy-diagnostics' })
+
+    expect(handler.HandleDesktopTrayAction).toHaveBeenCalledWith({
+      entryId: 'copy-diagnostics',
+      action: {
+        kind: DesktopTrayActionKind.ATTACHED_HANDLER,
+        value: 'diagnostics',
+      },
+    })
+
+    attached.cleanup()
+    rootRef.release()
+    resourceClient.dispose()
+    abort.abort()
   })
 
   it('preserves the entry-backed menu contract for ordering and lifecycle actions', async () => {

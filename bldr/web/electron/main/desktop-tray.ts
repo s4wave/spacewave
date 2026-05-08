@@ -25,7 +25,7 @@ interface DesktopTrayResource {
   getState: DesktopRuntimeResource['getState']
   desktopTrayResource: Pick<
     DesktopRuntimeResource['desktopTrayResource'],
-    'WatchDesktopTray' | 'getState'
+    'WatchDesktopTray' | 'InvokeDesktopTrayEntry' | 'getState'
   >
 }
 
@@ -251,6 +251,13 @@ export class DesktopTrayController {
             void this.quitDesktopRuntime()
           },
         }
+      case DesktopTrayActionKind.ATTACHED_HANDLER:
+        return {
+          label: entry.label,
+          click: () => {
+            void this.invokeAttachedTrayEntry(entry.id)
+          },
+        }
       default:
         return disabledItem(entry.label || '')
     }
@@ -287,6 +294,12 @@ export class DesktopTrayController {
 
   private revealPath(path: string): void {
     electron.shell.showItemInFolder(path)
+  }
+
+  private async invokeAttachedTrayEntry(entryId?: string): Promise<void> {
+    await this.opts.resource.desktopTrayResource.InvokeDesktopTrayEntry({
+      entryId,
+    })
   }
 
   private async quitDesktopRuntime(): Promise<void> {

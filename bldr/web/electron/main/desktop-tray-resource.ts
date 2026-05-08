@@ -4,15 +4,19 @@ import type { MessageStream, Mux } from 'starpc'
 import { ItState } from '../../bldr/it-state.js'
 import {
   constructChildResource,
+  getCurrentResourceClient,
   newResourceMux,
+  type RemoteResourceClient,
 } from '../../../sdk/resource/server/index.js'
 import {
   DesktopTrayEntryResourceServiceDefinition,
+  DesktopTrayActionHandlerServiceClient,
   DesktopTrayResourceServiceDefinition,
   type DesktopTrayEntryResourceService,
   type DesktopTrayResourceService,
 } from '@go/github.com/s4wave/spacewave/bldr/desktop/tray/tray_srpc.pb.js'
 import {
+  DesktopTrayActionKind,
   DesktopTrayEntryKind,
   DesktopTrayIconState,
   type DesktopTrayEntry,
@@ -30,11 +34,11 @@ import {
   type WatchDesktopTrayRequest,
   type WatchDesktopTrayResponse,
 } from '@go/github.com/s4wave/spacewave/bldr/desktop/tray/tray.pb.js'
-
 interface DesktopTrayRegistration {
   resourceId: number
   entry: DesktopTrayEntry
   attachedActionResourceId: number
+  client: RemoteResourceClient
 }
 
 // DesktopTrayResource owns an Electron-scoped desktop tray entry registry.
@@ -55,6 +59,7 @@ export class DesktopTrayResource implements DesktopTrayResourceService {
     if (this.hasEntryId(entry.id, 0)) {
       throw new Error('desktop tray entry already registered')
     }
+    const client = getCurrentResourceClient()
 
     const resource = new DesktopTrayEntryResource(this)
     let resourceId = 0
@@ -75,6 +80,7 @@ export class DesktopTrayResource implements DesktopTrayResourceService {
       resourceId,
       entry: cloneEntry(entry),
       attachedActionResourceId: request.attachedActionResourceId ?? 0,
+      client,
     })
     this.pushState()
     return Promise.resolve({ resourceId })
@@ -88,10 +94,42 @@ export class DesktopTrayResource implements DesktopTrayResourceService {
   }
 
   public InvokeDesktopTrayEntry(
-    _request: InvokeDesktopTrayEntryRequest,
-    _abortSignal?: AbortSignal,
+    request: InvokeDesktopTrayEntryRequest,
+    abortSignal?: AbortSignal,
   ): Promise<InvokeDesktopTrayEntryResponse> {
-    throw new Error('desktop tray entry is not invokable')
+    const entryId = request.entryId || ''
+    if (!entryId) throw new Error('desktop tray entry id is required')
+
+    const reg = this.findEntry(entryId)
+    if (!reg) throw new Error('desktop tray entry not found')
+
+    const entry = reg.entry
+    if (
+      entry.kind !== DesktopTrayEntryKind.ACTION ||
+      !(entry.enabled ?? false)
+    ) {
+      throw new Error('desktop tray entry is not invokable')
+    }
+
+    const action = entry.action
+    if (action?.kind !== DesktopTrayActionKind.ATTACHED_HANDLER) {
+      throw new Error('desktop tray entry is not invokable')
+    }
+    if (!reg.attachedActionResourceId) {
+      throw new Error('desktop tray action handler is required')
+    }
+
+    const client = reg.client.getRawAttachedClient(reg.attachedActionResourceId)
+    const handler = new DesktopTrayActionHandlerServiceClient(client)
+    return handler
+      .HandleDesktopTrayAction(
+        {
+          entryId: entry.id,
+          action,
+        },
+        abortSignal,
+      )
+      .then(() => ({}))
   }
 
   public setEntry(resourceId: number, entry: DesktopTrayEntry): void {
@@ -143,6 +181,13 @@ export class DesktopTrayResource implements DesktopTrayResourceService {
       if (reg.entry.id === entryId) return true
     }
     return false
+  }
+
+  private findEntry(entryId: string): DesktopTrayRegistration | undefined {
+    for (const reg of this.registrations.values()) {
+      if (reg.entry.id === entryId) return reg
+    }
+    return undefined
   }
 
   private buildStateResponse(): WatchDesktopTrayResponse {

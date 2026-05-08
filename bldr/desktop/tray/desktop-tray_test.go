@@ -91,6 +91,18 @@ func (c *testActionClient) NewStream(
 	return nil, resource.ErrResourceNotFound
 }
 
+type testActionHandler struct {
+	requests []*HandleDesktopTrayActionRequest
+}
+
+func (h *testActionHandler) HandleDesktopTrayAction(
+	ctx context.Context,
+	req *HandleDesktopTrayActionRequest,
+) (*HandleDesktopTrayActionResponse, error) {
+	h.requests = append(h.requests, req.CloneVT())
+	return &HandleDesktopTrayActionResponse{}, nil
+}
+
 type testWatchStream struct {
 	ctx context.Context
 
@@ -503,6 +515,81 @@ func TestReconcileDesktopTrayMirrorsEntriesToTargetResource(t *testing.T) {
 	state = recvTrayState(t, targetStream)
 	if len(state.GetEntries()) != 0 {
 		t.Fatalf("target entries after source release = %d, want 0", len(state.GetEntries()))
+	}
+
+	cancel()
+	if err := <-errCh; err == nil {
+		t.Fatalf("expected reconciler to stop on context cancel")
+	}
+}
+
+func TestReconcileDesktopTrayForwardsAttachedActionHandlers(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	sourceClient, source, sourceRelease := newTestDesktopTrayResourceClient(t)
+	defer sourceRelease()
+	targetClient, target, targetRelease := newTestDesktopTrayResourceClient(t)
+	defer targetRelease()
+
+	handler := &testActionHandler{}
+	handlerMux := srpc.NewMux()
+	if err := SRPCRegisterDesktopTrayActionHandlerService(handlerMux, handler); err != nil {
+		t.Fatalf("register action handler: %v", err)
+	}
+	attachedActionResourceID, err := sourceClient.AttachRawInvoker(ctx, "test-tray-action", handlerMux)
+	if err != nil {
+		t.Fatalf("attach source action handler: %v", err)
+	}
+	defer func() {
+		_ = sourceClient.DetachResource(context.Background(), attachedActionResourceID)
+	}()
+
+	_, err = source.RegisterDesktopTrayEntry(ctx, &RegisterDesktopTrayEntryRequest{
+		AttachedActionResourceId: attachedActionResourceID,
+		Entry: &DesktopTrayEntry{
+			Id:      "copy-diagnostics",
+			Kind:    DesktopTrayEntryKind_DESKTOP_TRAY_ENTRY_KIND_ACTION,
+			Label:   "Copy Diagnostics",
+			Enabled: true,
+			Action: &DesktopTrayAction{
+				Kind:  DesktopTrayActionKind_DESKTOP_TRAY_ACTION_KIND_ATTACHED_HANDLER,
+				Value: "diagnostics",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("register source entry: %v", err)
+	}
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- ReconcileDesktopTray(ctx, source, target, targetClient)
+	}()
+
+	targetStream, err := target.WatchDesktopTray(ctx, &WatchDesktopTrayRequest{})
+	if err != nil {
+		t.Fatalf("watch target tray: %v", err)
+	}
+	state := recvTrayState(t, targetStream)
+	if len(state.GetEntries()) == 0 {
+		state = recvTrayState(t, targetStream)
+	}
+	if len(state.GetEntries()) != 1 || state.GetEntries()[0].GetId() != "copy-diagnostics" {
+		t.Fatalf("target entries = %#v", state.GetEntries())
+	}
+
+	_, err = target.InvokeDesktopTrayEntry(ctx, &InvokeDesktopTrayEntryRequest{
+		EntryId: "copy-diagnostics",
+	})
+	if err != nil {
+		t.Fatalf("invoke target attached entry: %v", err)
+	}
+	if len(handler.requests) != 1 {
+		t.Fatalf("source handler requests = %d, want 1", len(handler.requests))
+	}
+	if handler.requests[0].GetEntryId() != "copy-diagnostics" {
+		t.Fatalf("source handler entry id = %q", handler.requests[0].GetEntryId())
 	}
 
 	cancel()
