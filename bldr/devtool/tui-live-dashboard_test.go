@@ -80,10 +80,10 @@ func TestBldrDevtoolTUIDashboardAdvancesProgressFrame(t *testing.T) {
 	before := collectDevtoolTUIText(dashboard.Render(nil))
 	dashboard.advanceFrame()
 	after := collectDevtoolTUIText(dashboard.Render(nil))
-	if !strings.Contains(before, "progress: [====>-------------] 1 active") {
+	if !strings.Contains(before, "[====>-------------] 1 active") {
 		t.Fatalf("expected initial progress frame, got:\n%s", before)
 	}
-	if !strings.Contains(after, "progress: [-====>------------] 1 active") {
+	if !strings.Contains(after, "[-====>------------] 1 active") {
 		t.Fatalf("expected advanced progress frame, got:\n%s", after)
 	}
 }

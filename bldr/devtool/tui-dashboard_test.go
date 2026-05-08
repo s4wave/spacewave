@@ -60,19 +60,17 @@ func TestBuildDevtoolTUIDashboardElementIncludesDashboardPanes(t *testing.T) {
 
 	text := collectDevtoolTUIText(BuildDevtoolTUIDashboardElement(snapshot))
 	for _, want := range []string{
-		"Command",
-		"Manifest Fetch / Build",
-		"Plugins",
-		"Controllers",
-		"Recent Errors / Attention",
-		"Controls",
-		"progress: [====>-------------] 4 active",
-		"now: start web running",
-		"health: running 1 | waiting 0 | errored 0 | unknown 0",
-		"start web",
-		"browser/wasm",
+		"devtool",
+		"bldr run start web running",
+		"[====>-------------] 4 active",
+		"manifest 0/1 fetched, 1/1 built | active 4 | plugins 1 ok, 0 err | attention 1",
+		"activity",
+		"controls",
 		"port already in use",
-		"q: quit",
+		"run command start web serving web runtime",
+		"run fetch app fetching manifest",
+		"run plugin web/default plugin running",
+		"q quit",
 	} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("dashboard text missing %q:\n%s", want, text)
@@ -162,23 +160,19 @@ func TestBuildDevtoolTUIDashboardElementPolishesStatusDetails(t *testing.T) {
 
 	text := collectDevtoolTUIText(BuildDevtoolTUIDashboardElement(snapshot))
 	for _, want := range []string{
-		"progress: [====>-------------] 6 active",
-		"now: build running | fetch alpha queued | fetch zeta running | build zeta running | +2 more",
-		"log: .bldr/logs/20260508.log",
-		"logs: .bldr/logs/20260508.log",
-		"health: running 1 | waiting 0 | errored 1 | unknown 0",
-		"manifest dependency changed: core",
-		"7",
+		"[====>-------------] 6 active",
+		"manifest 0/2 fetched, 1/2 built | active 6 | plugins 1 ok, 1 err | attention 2",
+		"logs .bldr/logs/20260508.log",
 		"download plugin manifest: copy failed",
 		"controller load failed",
+		"plugin needs attention",
 	} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("dashboard text missing polished detail %q:\n%s", want, text)
 		}
 	}
 
-	assertTextOrder(t, text, "alpha", "zeta")
-	assertTextOrder(t, text, "plugin needs attention", "slow rebuild")
+	assertTextOrder(t, text, "download plugin manifest: copy failed", "controller load failed")
 }
 
 func TestBuildDevtoolTUIDashboardElementAnimatesProgressBar(t *testing.T) {
@@ -202,8 +196,8 @@ func TestBuildDevtoolTUIDashboardElementAnimatesProgressBar(t *testing.T) {
 	second := collectDevtoolTUIText(buildDevtoolTUIDashboardElement(snapshot, 3))
 	text := first + second
 	for _, want := range []string{
-		"progress: [====>-------------] 2 active",
-		"progress: [---====>----------] 2 active",
+		"[====>-------------] 2 active",
+		"[---====>----------] 2 active",
 	} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("dashboard text missing progress frame %q:\n%s", want, text)
@@ -222,7 +216,7 @@ func TestBuildDevtoolTUIDashboardElementAnimatesProgressBar(t *testing.T) {
 		nil,
 	)
 	doneText := collectDevtoolTUIText(buildDevtoolTUIDashboardElement(done, 3))
-	if !strings.Contains(doneText, "progress: [==================] done") {
+	if !strings.Contains(doneText, "[==================] done") {
 		t.Fatalf("dashboard text missing done progress:\n%s", doneText)
 	}
 }
@@ -275,12 +269,11 @@ func TestBuildDevtoolTUIDashboardElementRendersLivePanes(t *testing.T) {
 
 	text := collectDevtoolTUIBufferText(buf)
 	for _, want := range []string{
-		"Manifest Fetch / Build",
-		"Plugins / Controllers",
-		"Recent Errors / Attention",
+		"devtool",
+		"activity",
 		"web-controller",
 		"controller failed",
-		"logs: .bldr/logs/20260508.log",
+		"logs .bldr/logs/20260508.log",
 	} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("rendered dashboard missing %q:\n%s", want, text)
@@ -291,19 +284,41 @@ func TestBuildDevtoolTUIDashboardElementRendersLivePanes(t *testing.T) {
 func TestBuildDevtoolTUIDashboardElementShowsEmptyStates(t *testing.T) {
 	text := collectDevtoolTUIText(BuildDevtoolTUIDashboardElement(nil))
 	for _, want := range []string{
-		"no manifest fetches",
-		"no manifest builds",
-		"no plugins requested",
-		"no controller activity",
-		"no recent errors or attention",
-		"progress: [------------------] idle",
-		"now: no active work",
-		"q: quit",
+		"[------------------] idle",
+		"manifest 0/0 fetched, 0/0 built | active 0 | plugins 0 ok, 0 err | attention 0",
+		"clean - waiting for work",
+		"q quit",
 		".bldr/logs",
 	} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("dashboard text missing empty state %q:\n%s", want, text)
 		}
+	}
+}
+
+func TestDevtoolTUIShouldUseColorHonorsDisableEnv(t *testing.T) {
+	t.Setenv("TERM", "xterm-256color")
+	t.Setenv("NO_COLOR", "")
+	t.Setenv("CLICOLOR", "")
+	if !devtoolTUIShouldUseColor() {
+		t.Fatal("expected color when terminal is not explicitly disabled")
+	}
+
+	t.Setenv("NO_COLOR", "1")
+	if devtoolTUIShouldUseColor() {
+		t.Fatal("expected NO_COLOR to disable color")
+	}
+
+	t.Setenv("NO_COLOR", "")
+	t.Setenv("CLICOLOR", "0")
+	if devtoolTUIShouldUseColor() {
+		t.Fatal("expected CLICOLOR=0 to disable color")
+	}
+
+	t.Setenv("CLICOLOR", "")
+	t.Setenv("TERM", "dumb")
+	if devtoolTUIShouldUseColor() {
+		t.Fatal("expected TERM=dumb to disable color")
 	}
 }
 
