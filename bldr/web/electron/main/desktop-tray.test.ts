@@ -387,7 +387,7 @@ describe('DesktopTrayController', () => {
       'Uploading changes - 2 sync items',
       '---',
       'Quick Actions',
-      'Copy CLI Socket',
+      'Copy Socket Path',
       'Copy Diagnostics',
       'Copy diagnostics - CLI socket',
       '---',
@@ -405,6 +405,7 @@ describe('DesktopTrayController', () => {
         {
           label: 'coolguy@spacewave.app',
           route: '/u/2/',
+          active: true,
         },
       ] satisfies DesktopRuntimeNavigationItem[],
       spaces: [
@@ -452,7 +453,7 @@ describe('DesktopTrayController', () => {
       route: '/u/2/',
     })
     expect(mockResource.OpenOrFocusMainWindow).toHaveBeenNthCalledWith(6, {
-      route: '/settings',
+      route: '/u/2/settings/cli',
     })
     expect(mockResource.OpenOrFocusMainWindow).toHaveBeenNthCalledWith(7, {
       route: '/about',
@@ -490,7 +491,7 @@ describe('DesktopTrayController', () => {
     })
     controller.init()
 
-    await clickMenuItem('Copy CLI Socket')
+    await clickMenuItem('Copy Socket Path')
     await clickMenuItem('Copy Diagnostics')
     await clickMenuItem('Copy custom diagnostics')
     await clickMenuItem('Reveal State Root')
@@ -684,11 +685,8 @@ describe('DesktopTrayController', () => {
       'Spaces',
       'Drive - Open',
       '---',
-      'Activity',
-      'No recent activity',
-      '---',
       'Quick Actions',
-      'Copy CLI Socket',
+      'Copy Socket Path',
       'Copy Diagnostics',
       '---',
       'Settings...',

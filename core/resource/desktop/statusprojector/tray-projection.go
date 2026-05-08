@@ -33,7 +33,7 @@ func buildHealthyTrayEntries(state *desktop_runtime.DesktopRuntimeState) []*desk
 		buildActionTraySection(state),
 		[]*desktop_tray.DesktopTrayEntry{
 			separatorTrayEntry("app-separator"),
-			actionTrayEntry("settings", "Settings...", desktop_tray.DesktopTrayActionKind_DESKTOP_TRAY_ACTION_KIND_OPEN_ROUTE, "/settings", "", true),
+			actionTrayEntry("settings", "Settings...", desktop_tray.DesktopTrayActionKind_DESKTOP_TRAY_ACTION_KIND_OPEN_ROUTE, settingsTrayRoute(state), "", true),
 			actionTrayEntry("about", "About Spacewave", desktop_tray.DesktopTrayActionKind_DESKTOP_TRAY_ACTION_KIND_OPEN_ROUTE, "/about", "", true),
 			separatorTrayEntry("quit-separator"),
 			actionTrayEntry("quit", "Quit", desktop_tray.DesktopTrayActionKind_DESKTOP_TRAY_ACTION_KIND_QUIT, "", "", true),
@@ -119,6 +119,9 @@ func buildNavigationTraySection(
 func buildActivityTraySection(
 	items []*desktop_runtime.DesktopRuntimeActivityItem,
 ) []*desktop_tray.DesktopTrayEntry {
+	if len(items) == 0 {
+		return nil
+	}
 	entries := []*desktop_tray.DesktopTrayEntry{
 		separatorTrayEntry("activity-separator"),
 		sectionTrayEntry("activity-section", "Activity"),
@@ -130,15 +133,15 @@ func buildActivityTraySection(
 		label := compactTrayLabel(item.GetLabel(), item.GetDetail())
 		entries = append(entries, statusTrayEntry("activity-"+fallbackTrayID(item.GetId(), label), label))
 	}
-	if len(items) == 0 {
-		entries = append(entries, statusTrayEntry("activity-empty", "No recent activity"))
-	}
 	return entries
 }
 
 func buildActionTraySection(state *desktop_runtime.DesktopRuntimeState) []*desktop_tray.DesktopTrayEntry {
 	items := buildSyntheticTrayActions(state)
 	items = append(items, state.GetActions()...)
+	if len(items) == 0 {
+		return nil
+	}
 
 	entries := []*desktop_tray.DesktopTrayEntry{
 		separatorTrayEntry("quick-actions-separator"),
@@ -149,9 +152,6 @@ func buildActionTraySection(state *desktop_runtime.DesktopRuntimeState) []*deskt
 			continue
 		}
 		entries = append(entries, buildActionTrayItem(item))
-	}
-	if len(items) == 0 {
-		entries = append(entries, statusTrayEntry("quick-actions-empty", "No quick actions"))
 	}
 	return entries
 }
@@ -179,6 +179,32 @@ func buildNavigationTrayItem(item *desktop_runtime.DesktopRuntimeNavigationItem)
 	)
 }
 
+func settingsTrayRoute(state *desktop_runtime.DesktopRuntimeState) string {
+	session := selectSettingsSession(state.GetSessions())
+	if session == nil || session.GetRoute() == "" {
+		return "/settings"
+	}
+	return strings.TrimRight(session.GetRoute(), "/") + "/settings/cli"
+}
+
+func selectSettingsSession(
+	items []*desktop_runtime.DesktopRuntimeNavigationItem,
+) *desktop_runtime.DesktopRuntimeNavigationItem {
+	var fallback *desktop_runtime.DesktopRuntimeNavigationItem
+	for _, item := range items {
+		if item == nil || item.GetRoute() == "" {
+			continue
+		}
+		if fallback == nil {
+			fallback = item
+		}
+		if item.GetActive() {
+			return item
+		}
+	}
+	return fallback
+}
+
 func buildSyntheticTrayActions(state *desktop_runtime.DesktopRuntimeState) []*desktop_runtime.DesktopRuntimeActionItem {
 	socketPath := state.GetListener().GetSocketPath()
 	if socketPath == "" {
@@ -188,7 +214,7 @@ func buildSyntheticTrayActions(state *desktop_runtime.DesktopRuntimeState) []*de
 		{
 			Id:      "copy-cli-socket",
 			Kind:    desktop_runtime.DesktopRuntimeActionKind_DESKTOP_RUNTIME_ACTION_KIND_COPY_TEXT,
-			Label:   "Copy CLI Socket",
+			Label:   "Copy Socket Path",
 			Value:   socketPath,
 			Enabled: true,
 		},

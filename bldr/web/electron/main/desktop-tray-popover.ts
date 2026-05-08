@@ -267,15 +267,11 @@ function renderListenerSection(
   if (!listener) {
     return renderSection('Status', '<div class="empty">Runtime starting</div>')
   }
-  const socket =
-    listener.socketPath ?
-      `<div class="detail">${escapeHtml(listener.socketPath)}</div>`
-    : ''
   return renderSection(
     'Status',
     `<div class="row"><div><div class="label">${escapeHtml(
       listener.label || 'CLI listener',
-    )}</div><div class="detail">${escapeHtml(listener.detail || '')}</div>${socket}</div></div>`,
+    )}</div><div class="detail">${escapeHtml(listener.detail || '')}</div></div></div>`,
   )
 }
 

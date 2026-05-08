@@ -34,6 +34,20 @@ func TestBuildDesktopRuntimeStateFromListenerReachable(t *testing.T) {
 	}
 }
 
+func TestBuildDesktopRuntimeStateFromListenerReachableWithoutClientsStaysCompact(t *testing.T) {
+	state := BuildDesktopRuntimeStateFromListener(resource_listener.ListenerStatus{
+		SocketPath: "/run/spacewave.sock",
+		Listening:  true,
+	})
+	listener := state.GetListener()
+	if listener.GetDetail() != "Ready" {
+		t.Fatalf("listener detail = %q, want Ready", listener.GetDetail())
+	}
+	if listener.GetSocketPath() != "/run/spacewave.sock" {
+		t.Fatalf("listener socket = %q, want configured path", listener.GetSocketPath())
+	}
+}
+
 func TestBuildDesktopRuntimeStateFromListenerStarting(t *testing.T) {
 	state := BuildDesktopRuntimeStateFromListener(resource_listener.ListenerStatus{
 		SocketPath: "/run/spacewave.sock",
@@ -108,6 +122,37 @@ func TestBuildDesktopTrayEntriesFromRuntimeStateIncludesNavigationRows(t *testin
 	}
 }
 
+func TestBuildDesktopTrayEntriesFromRuntimeStateRoutesSettingsToActiveSession(t *testing.T) {
+	state := BuildDesktopRuntimeState(resource_listener.ListenerStatus{
+		SocketPath: "/run/spacewave.sock",
+		Listening:  true,
+	}, &SessionProjection{
+		Sessions: []*desktop_runtime.DesktopRuntimeNavigationItem{
+			{
+				Id:     "session-1",
+				Label:  "first@example.com",
+				Route:  "/u/1/",
+				Active: false,
+			},
+			{
+				Id:     "session-2",
+				Label:  "active@example.com",
+				Route:  "/u/2/",
+				Active: true,
+			},
+		},
+	})
+
+	entries := BuildDesktopTrayEntriesFromRuntimeState(state)
+	entry := findTrayEntryByID(entries, "settings")
+	if entry == nil {
+		t.Fatalf("expected settings tray entry")
+	}
+	if entry.GetAction().GetRoute() != "/u/2/settings/cli" {
+		t.Fatalf("settings route = %q, want active session cli settings", entry.GetAction().GetRoute())
+	}
+}
+
 func TestBuildDesktopTrayEntriesFromRuntimeStateOrdersMenuSections(t *testing.T) {
 	state := BuildDesktopRuntimeStateFromListener(resource_listener.ListenerStatus{
 		SocketPath: "/run/spacewave.sock",
@@ -128,6 +173,9 @@ func TestBuildDesktopTrayEntriesFromRuntimeStateOrdersMenuSections(t *testing.T)
 		if entries[idx].GetOrder() != int32(idx) {
 			t.Fatalf("entry %d order = %d, want %d", idx, entries[idx].GetOrder(), idx)
 		}
+	}
+	if hasTrayEntryLabel(entries, "/run/spacewave.sock") {
+		t.Fatalf("did not expect socket path in visible tray labels")
 	}
 }
 
@@ -276,4 +324,13 @@ func hasTrayEntryLabel(entries []*desktop_tray.DesktopTrayEntry, label string) b
 		}
 	}
 	return false
+}
+
+func findTrayEntryByID(entries []*desktop_tray.DesktopTrayEntry, id string) *desktop_tray.DesktopTrayEntry {
+	for _, entry := range entries {
+		if entry.GetId() == id {
+			return entry
+		}
+	}
+	return nil
 }

@@ -40,7 +40,7 @@ function buildHealthyEntries(state: DesktopRuntimeState): DesktopTrayEntry[] {
     ...buildActionSection(state),
     separatorEntry('app-separator'),
     actionEntry('settings', 'Settings...', DesktopTrayActionKind.OPEN_ROUTE, {
-      route: '/settings',
+      route: settingsRoute(state),
     }),
     actionEntry('about', 'About Spacewave', DesktopTrayActionKind.OPEN_ROUTE, {
       route: '/about',
@@ -108,6 +108,9 @@ function buildNavigationSection(
 function buildActivitySection(
   items: DesktopRuntimeActivityItem[] | undefined,
 ): DesktopTrayEntry[] {
+  if (!items?.length) {
+    return []
+  }
   return [
     separatorEntry('activity-separator'),
     sectionEntry('activity-section', 'Activity'),
@@ -117,21 +120,18 @@ function buildActivitySection(
         compactLabel([item.label, item.detail]),
       ),
     ),
-    ...(items?.length ?
-      []
-    : [statusEntry('activity-empty', 'No recent activity')]),
   ]
 }
 
 function buildActionSection(state: DesktopRuntimeState): DesktopTrayEntry[] {
   const items = [...buildSyntheticActions(state), ...nonEmpty(state.actions)]
+  if (!items.length) {
+    return []
+  }
   return [
     separatorEntry('quick-actions-separator'),
     sectionEntry('quick-actions-section', 'Quick Actions'),
     ...items.map((item) => buildActionItem(item)),
-    ...(items.length ?
-      []
-    : [statusEntry('quick-actions-empty', 'No quick actions')]),
   ]
 }
 
@@ -152,6 +152,30 @@ function buildNavigationItem(
   )
 }
 
+function settingsRoute(state: DesktopRuntimeState): string {
+  const session = selectSettingsSession(state.sessions)
+  if (!session?.route) {
+    return '/settings'
+  }
+  return `${session.route.replace(/\/+$/, '')}/settings/cli`
+}
+
+function selectSettingsSession(
+  items: DesktopRuntimeNavigationItem[] | undefined,
+): DesktopRuntimeNavigationItem | undefined {
+  let fallback: DesktopRuntimeNavigationItem | undefined
+  for (const item of items ?? []) {
+    if (!item.route) {
+      continue
+    }
+    fallback ??= item
+    if (item.active) {
+      return item
+    }
+  }
+  return fallback
+}
+
 function buildSyntheticActions(
   state: DesktopRuntimeState,
 ): DesktopRuntimeActionItem[] {
@@ -163,7 +187,7 @@ function buildSyntheticActions(
     {
       id: 'copy-cli-socket',
       kind: DesktopRuntimeActionKind.COPY_TEXT,
-      label: 'Copy CLI Socket',
+      label: 'Copy Socket Path',
       value: socketPath,
       enabled: true,
     },

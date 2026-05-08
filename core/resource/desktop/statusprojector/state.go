@@ -317,7 +317,7 @@ func buildDesktopRuntimeListenerStatus(status resource_listener.ListenerStatus) 
 func listenerReachableDetail(status resource_listener.ListenerStatus) string {
 	switch status.ConnectedClients {
 	case 0:
-		return status.SocketPath
+		return "Ready"
 	case 1:
 		return "1 CLI client connected"
 	default:
