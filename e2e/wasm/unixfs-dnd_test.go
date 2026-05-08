@@ -63,6 +63,25 @@ func waitForDriveBody(t testing.TB, pageText func() (string, error)) string {
 	return strings.TrimSpace(body)
 }
 
+func assertDriveRoute(t testing.TB, page playwright.Page, sessionIndex uint32, spaceID string) {
+	t.Helper()
+
+	gotSessionIndex, gotSpaceID, err := parseQuickstartRoute(page.URL())
+	if err != nil {
+		t.Fatalf("parse drive route after navigate up: %v", err)
+	}
+	if gotSessionIndex != sessionIndex || gotSpaceID != spaceID {
+		t.Fatalf(
+			"expected drive route to remain session %d space %q, got session %d space %q at %s",
+			sessionIndex,
+			spaceID,
+			gotSessionIndex,
+			gotSpaceID,
+			page.URL(),
+		)
+	}
+}
+
 func openDriveDir(t testing.TB, open func(name string), name string) {
 	t.Helper()
 
@@ -140,5 +159,20 @@ func TestQuickstartDriveSingleEntryRowMove(t *testing.T) {
 	t.Logf("target body after drag: %q", testBody)
 	if !strings.Contains(testBody, "hello.txt") {
 		t.Fatalf("expected hello.txt inside /test after move, got %q", testBody)
+	}
+
+	if err := page.Locator("button[title='Up']").First().Click(); err != nil {
+		t.Fatalf("click up from target directory: %v", err)
+	}
+	assertDriveRoute(t, page, scenario.GetSessionIndex(), scenario.GetSpaceID())
+	waitForDriveEntry(t, page, gettingStartedFileName)
+	waitForDriveEntry(t, page, "test")
+	upBody := waitForDriveBody(t, bodyText)
+	t.Logf("root body after navigate up: %q", upBody)
+	if !containsAll(upBody, gettingStartedFileName, "test") {
+		t.Fatalf("expected navigate up to return to owned-drive root listing, got %q", upBody)
+	}
+	if strings.Contains(upBody, "hello.txt") {
+		t.Fatalf("expected moved file to remain outside root after navigate up, got %q", upBody)
 	}
 }
