@@ -149,9 +149,14 @@ func (h *Harness) CDPEndpoint() string {
 	return "http://127.0.0.1:" + strconv.Itoa(h.cdpPort)
 }
 
+// E2EControlEndpoint returns the local Electron-main e2e control endpoint.
+func (h *Harness) E2EControlEndpoint() string {
+	return "http://127.0.0.1:" + strconv.Itoa(h.controlPort)
+}
+
 // ControlEndpoint returns the local Electron main e2e control endpoint.
 func (h *Harness) ControlEndpoint() string {
-	return "http://127.0.0.1:" + strconv.Itoa(h.controlPort)
+	return h.E2EControlEndpoint()
 }
 
 // StateRoot returns the isolated Bldr state root used by the harness.

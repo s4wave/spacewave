@@ -1,6 +1,10 @@
 import os from 'os'
 import path from 'path'
-import http from 'http'
+import http, {
+  type IncomingMessage,
+  type Server,
+  type ServerResponse,
+} from 'http'
 import electron, { dialog, ipcMain, nativeTheme, shell } from 'electron'
 import { Client as SRPCClient, OpenStreamCtr, StreamConn } from 'starpc'
 import type { Message } from '@aptre/protobuf-es-lite'
@@ -39,6 +43,7 @@ export const isDebug = BLDR_DEBUG ?? false
 const proxyFetchHeaderTimeoutMs = 30_000
 const logRendererEvents =
   isDebug && process.env.BLDR_ELECTRON_LOG_RENDERER === '1'
+const e2eControlPortEnv = 'BLDR_ELECTRON_E2E_CONTROL_PORT'
 
 // BldrElectronApp manages the main process for an Electron app.
 export class BldrElectronApp {
@@ -63,8 +68,8 @@ export class BldrElectronApp {
   public readonly desktopRuntimeResource: DesktopRuntimeResource
   // desktopTrayController owns the process-lifetime native status icon.
   private desktopTrayController?: DesktopTrayController
-  // e2eControlServer exposes narrow test-only lifecycle triggers.
-  private e2eControlServer?: http.Server
+  // e2eControlServer exposes test-only desktop runtime controls on loopback.
+  private e2eControlServer?: Server
 
   // browserWindows contains the list of created browser windows.
   private browserWindows: Record<string, electron.BrowserWindow> = {}
@@ -216,7 +221,7 @@ export class BldrElectronApp {
     this.setupWebRuntimeClientPort()
     // setup native filesystem picker ipc
     this.setupNativeDirectoryPicker()
-    // setup opt-in e2e lifecycle controls
+    // setup test-only control surface for windowless Electron e2e assertions
     this.setupE2EControlServer()
 
     if (this.hasTrayBackgroundPresence()) {
@@ -251,44 +256,67 @@ export class BldrElectronApp {
   }
 
   private setupE2EControlServer() {
-    const rawPort = process.env.BLDR_ELECTRON_E2E_CONTROL_PORT
-    if (
-      !rawPort ||
-      !process.env.BLDR_ELECTRON_REMOTE_DEBUGGING_PORT ||
-      this.e2eControlServer
-    ) {
+    const portRaw = process.env[e2eControlPortEnv]?.trim()
+    if (!portRaw || this.e2eControlServer) {
       return
     }
-    const port = Number.parseInt(rawPort, 10)
-    if (!Number.isInteger(port) || port <= 0) {
+    const port = Number(portRaw)
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+      console.error(`${e2eControlPortEnv} must be a TCP port, got ${portRaw}`)
       return
     }
 
     this.e2eControlServer = http.createServer((req, res) => {
-      const finish = (status: number, body: string) => {
-        res.writeHead(status, {
-          'content-type': 'text/plain; charset=utf-8',
-          'cache-control': 'no-store',
-        })
-        res.end(body)
-      }
-      if (req.method !== 'POST') {
-        finish(405, 'method not allowed\n')
-        return
-      }
-
-      const url = new URL(req.url ?? '/', 'http://127.0.0.1')
-      switch (url.pathname) {
-        case '/activate':
-          this.app.emit('activate')
-          finish(200, 'activated\n')
-          return
-        default:
-          finish(404, 'not found\n')
-      }
+      void this.handleE2EControlRequest(req, res)
+    })
+    this.e2eControlServer.on('error', (err) => {
+      console.error('electron e2e control server failed', err)
     })
     this.e2eControlServer.listen(port, '127.0.0.1')
     this.e2eControlServer.unref()
+  }
+
+  private async handleE2EControlRequest(
+    req: IncomingMessage,
+    res: ServerResponse,
+  ) {
+    try {
+      const url = new URL(req.url ?? '/', 'http://127.0.0.1')
+      if (req.method === 'GET' && url.pathname === '/desktop-state') {
+        sendE2EJSON(res, 200, this.desktopRuntimeResource.getState())
+        return
+      }
+      if (req.method === 'GET' && url.pathname === '/tray-state') {
+        sendE2EJSON(
+          res,
+          200,
+          this.desktopRuntimeResource.desktopTrayResource.getState(),
+        )
+        return
+      }
+      if (req.method === 'POST' && url.pathname === '/open-or-focus') {
+        await this.desktopRuntimeResource.OpenOrFocusMainWindow({
+          route: url.searchParams.get('route') || undefined,
+        })
+        sendE2EJSON(res, 200, { ok: true })
+        return
+      }
+      if (req.method === 'POST' && url.pathname === '/activate') {
+        this.app.emit('activate')
+        sendE2EJSON(res, 200, { ok: true })
+        return
+      }
+      if (req.method === 'POST' && url.pathname === '/quit') {
+        await this.desktopRuntimeResource.QuitDesktopRuntime({})
+        sendE2EJSON(res, 200, { ok: true })
+        return
+      }
+      sendE2EJSON(res, 404, { error: 'not found' })
+    } catch (err) {
+      sendE2EJSON(res, 500, {
+        error: err instanceof Error ? err.message : String(err),
+      })
+    }
   }
 
   private setupWebRuntimeClientPort() {
@@ -611,4 +639,14 @@ export class BldrElectronApp {
     doc.close()
     return { removed: true }
   }
+}
+
+function sendE2EJSON(res: ServerResponse, statusCode: number, value: unknown) {
+  res.statusCode = statusCode
+  res.setHeader('content-type', 'application/json')
+  res.end(
+    JSON.stringify(value, (_key, val) =>
+      typeof val === 'bigint' ? val.toString() : val,
+    ),
+  )
 }
