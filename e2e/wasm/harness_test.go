@@ -747,30 +747,14 @@ func TestDriveScenarioSequence(t *testing.T) {
 
 	t.Run("open-file", func(t *testing.T) {
 		WaitForDriveReady(t, testHarness, page)
-
-		row := page.Locator("[role='row']").Locator("text=getting-started.md").First()
-		err := row.WaitFor()
-		if err != nil {
-			t.Fatalf("wait for getting-started row: %v", err)
-		}
-
-		if err := row.Dblclick(); err != nil {
-			t.Fatalf("DblClick getting-started row: %v", err)
-		}
-
-		content := page.Locator("[data-testid='unixfs-browser']").Locator("text=Welcome to your new drive").First()
-		if err := content.WaitFor(); err != nil {
-			t.Fatalf("wait for getting-started content: %v", err)
-		}
+		openGettingStartedFile(t, page)
 
 		t.Logf("opened getting-started file in owned drive scenario, page URL: %s", page.URL())
 	})
 
 	t.Run("navigate-up", func(t *testing.T) {
-		content := page.Locator("[data-testid='unixfs-browser']").Locator("text=Welcome to your new drive").First()
-		if err := content.WaitFor(); err != nil {
-			t.Fatalf("wait for getting-started content: %v", err)
-		}
+		waitForGettingStartedContentView(t, page)
+		content := page.Locator("[data-testid='unixfs-browser'] pre").First()
 
 		if err := page.Locator("button[title='Up']").Click(); err != nil {
 			t.Fatalf("click up: %v", err)
@@ -778,7 +762,7 @@ func TestDriveScenarioSequence(t *testing.T) {
 
 		WaitForDriveReady(t, testHarness, page)
 
-		if err := page.Locator("[role='row']").Locator("text=getting-started.md").First().WaitFor(); err != nil {
+		if err := page.Locator("[role='row']").Locator("text=" + gettingStartedFileName).First().WaitFor(); err != nil {
 			t.Fatalf("wait for getting-started row after up: %v", err)
 		}
 

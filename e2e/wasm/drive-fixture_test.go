@@ -3,9 +3,15 @@
 package wasm
 
 import (
+	"strings"
 	"testing"
 
 	playwright "github.com/playwright-community/playwright-go"
+)
+
+const (
+	gettingStartedFileName    = "getting-started.md"
+	gettingStartedWelcomeText = "Welcome to your new drive"
 )
 
 func createDriveFolder(t testing.TB, page playwright.Page, name string) {
@@ -36,5 +42,37 @@ func waitForDriveSettled(t testing.TB, page playwright.Page) {
 		State: playwright.WaitForSelectorStateHidden,
 	}); err != nil {
 		t.Fatalf("wait for drive loading state to clear: %v", err)
+	}
+}
+
+func openGettingStartedFile(t testing.TB, page playwright.Page) {
+	t.Helper()
+
+	waitForDriveEntry(t, page, gettingStartedFileName)
+	row := page.Locator("[data-testid='unixfs-browser'] [role='row']:has-text('" + gettingStartedFileName + "')").First()
+	if err := row.Dblclick(); err != nil {
+		t.Fatalf("open %s row: %v", gettingStartedFileName, err)
+	}
+	waitForGettingStartedContentView(t, page)
+}
+
+func waitForGettingStartedContentView(t testing.TB, page playwright.Page) {
+	t.Helper()
+
+	content := page.Locator("[data-testid='unixfs-browser'] pre").First()
+	if err := content.WaitFor(); err != nil {
+		t.Fatalf("wait for %s content view: %v", gettingStartedFileName, err)
+	}
+	text, err := content.TextContent()
+	if err != nil {
+		t.Fatalf("read %s content view: %v", gettingStartedFileName, err)
+	}
+	if !strings.Contains(text, gettingStartedWelcomeText) {
+		t.Fatalf(
+			"expected %s content view to include %q, got %q",
+			gettingStartedFileName,
+			gettingStartedWelcomeText,
+			strings.TrimSpace(text),
+		)
 	}
 }
