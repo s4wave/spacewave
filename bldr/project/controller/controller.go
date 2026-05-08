@@ -41,6 +41,12 @@ type Controller struct {
 	remotes *keyed.KeyedRefCount[string, *remoteTracker]
 	// startup manages the set of "start" plugins listed in the config.
 	startup *routine.StateRoutineContainer[*bldr_project.StartConfig]
+	// statusSinkMtx guards status sinks and build target metadata
+	statusSinkMtx sync.Mutex
+	// manifestBuilderStatusSink receives manifest build status events
+	manifestBuilderStatusSink ManifestBuilderStatusSink
+	// manifestBuilderBuildTargets records finite build targets by manifest builder key
+	manifestBuilderBuildTargets map[string][]string
 	// mtx guards writing below fields
 	mtx sync.Mutex
 	// conf is the current controller config
@@ -57,6 +63,7 @@ func NewController(le *logrus.Entry, bus bus.Bus, cc *Config) *Controller {
 	buildBackoff := cc.GetBuildBackoff()
 	ctrl.manifestBuilders = keyed.NewKeyedRefCountWithLogger(ctrl.newManifestBuilderTracker, le, keyed.WithRetry[string, *manifestBuilderTracker](buildBackoff))
 	ctrl.remotes = keyed.NewKeyedRefCountWithLogger(ctrl.newRemoteTracker, le, keyed.WithRetry[string, *remoteTracker](buildBackoff))
+	ctrl.manifestBuilderBuildTargets = make(map[string][]string)
 	ctrl.startup = routine.NewStateRoutineContainerWithLoggerVT[*bldr_project.StartConfig](le, routine.WithRetry(buildBackoff))
 	ctrl.startup.SetStateRoutine(ctrl.executeStartup)
 	return ctrl
@@ -65,6 +72,17 @@ func NewController(le *logrus.Entry, bus bus.Bus, cc *Config) *Controller {
 // GetConfig returns the current config.
 func (c *Controller) GetConfig() *Config {
 	return c.conf.Load()
+}
+
+// SetManifestBuilderStatusSink sets the manifest builder status sink.
+func (c *Controller) SetManifestBuilderStatusSink(sink ManifestBuilderStatusSink) {
+	c.statusSinkMtx.Lock()
+	c.manifestBuilderStatusSink = sink
+	c.statusSinkMtx.Unlock()
+
+	for _, builder := range c.getRunningManifestBuilders() {
+		builder.tracker.publishManifestBuilderStatus()
+	}
 }
 
 // GetControllerInfo returns information about the controller.
@@ -227,19 +245,22 @@ func (c *Controller) AddManifestBuilderRef(conf *ManifestBuilderConfig) (*Manife
 	}
 
 	c.mtx.Lock()
-	defer c.mtx.Unlock()
 
 	projConf := c.conf.Load().GetProjectConfig()
 	_, ok := projConf.GetManifests()[conf.GetManifestId()]
 	if !ok {
+		c.mtx.Unlock()
 		return nil, bldr_project.ErrManifestConfNotFound
 	}
 	_, ok = projConf.GetRemotes()[conf.GetRemoteId()]
 	if !ok {
+		c.mtx.Unlock()
 		return nil, bldr_project.ErrRemoteNotFound
 	}
 
 	ref, tracker, _ := c.manifestBuilders.AddKeyRef(conf.MarshalB58())
+	c.mtx.Unlock()
+	tracker.refreshManifestBuilderStatusMeta()
 	return newManifestBuilderRef(ref, tracker), nil
 }
 

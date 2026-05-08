@@ -8,6 +8,7 @@ import {
   createMessageType,
   ScalarType,
 } from '@aptre/protobuf-es-lite'
+import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import { ManifestRef } from '../manifest/manifest.pb.js'
 import { VolumeInfo } from '@go/github.com/s4wave/spacewave/db/volume/volume.pb.js'
 
@@ -78,6 +79,18 @@ export interface PluginStatus {
    * @generated from field: bldr.plugin.PluginState state = 4;
    */
   state?: PluginState
+  /**
+   * LastErrorMessage is the most recent plugin execution error summary.
+   *
+   * @generated from field: string last_error_message = 5;
+   */
+  lastErrorMessage?: string
+  /**
+   * LastErrorAt is when LastErrorMessage was recorded.
+   *
+   * @generated from field: google.protobuf.Timestamp last_error_at = 6;
+   */
+  lastErrorAt?: Date
 }
 
 // PluginStatus contains the message type declaration for PluginStatus.
@@ -88,6 +101,8 @@ export const PluginStatus: MessageType<PluginStatus> = createMessageType({
     { no: 2, name: 'running', kind: 'scalar', T: ScalarType.BOOL },
     { no: 3, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
     { no: 4, name: 'state', kind: 'enum', T: PluginState_Enum },
+    { no: 5, name: 'last_error_message', kind: 'scalar', T: ScalarType.STRING },
+    { no: 6, name: 'last_error_at', kind: 'message', T: () => Timestamp },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

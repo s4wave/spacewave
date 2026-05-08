@@ -15,6 +15,12 @@ pub struct PluginStatus {
     /// State is the scheduler state for this plugin instance.
     #[prost(enumeration="PluginState", tag="4")]
     pub state: i32,
+    /// LastErrorMessage is the most recent plugin execution error summary.
+    #[prost(string, tag="5")]
+    pub last_error_message: ::prost::alloc::string::String,
+    /// LastErrorAt is when LastErrorMessage was recorded.
+    #[prost(message, optional, tag="6")]
+    pub last_error_at: ::core::option::Option<::prost_types::Timestamp>,
 }
 /// GetPluginInfoRequest is a request to return the information for the current plugin.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]

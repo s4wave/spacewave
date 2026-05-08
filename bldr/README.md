@@ -232,6 +232,23 @@ bun run bldr:start:web:release
 bun run bldr:build:release:cross
 ```
 
+### Terminal Status and Logs
+
+When `bldr start` or `bldr build` runs in an interactive terminal, bldr shows a
+terminal dashboard with command state, manifest fetch/build status, plugin
+health, controller activity, and recent errors. Full diagnostic logs still go
+to `.bldr/logs/`; use the dashboard for scan-level status and the log file for
+build, scheduler, plugin-host, and controller detail.
+
+When output is redirected or piped, bldr keeps plain text output and does not
+start the terminal dashboard. To force plain output in an interactive terminal,
+pass the global `--no-tui` flag before the command:
+
+```bash
+bldr --no-tui start desktop
+bldr --no-tui build --build web --targets desktop
+```
+
 ### Start Plugins
 
 The `bldr start` command accepts a `--plugins` flag to load additional plugins

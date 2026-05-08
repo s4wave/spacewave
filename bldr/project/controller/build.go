@@ -93,6 +93,7 @@ func (c *Controller) BuildTargets(ctx context.Context, remote string, targets []
 				if override := manifestOverrides[manifestID]; override != nil {
 					mbc.BuilderConfigOverride = override.CloneVT()
 				}
+				c.addManifestBuilderBuildTarget(mbc, target)
 				manifestBuilderConfs = append(manifestBuilderConfs, mbc)
 				return true, nil
 			},

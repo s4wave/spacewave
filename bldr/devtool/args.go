@@ -3,7 +3,9 @@
 package devtool
 
 import (
+	"context"
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime/debug"
@@ -60,6 +62,8 @@ type DevtoolArgs struct {
 	WebListenAddr string
 	// WebUseWasm runs the entire runtime in the browser with wasm.
 	WebUseWasm bool
+	// NoTUI disables the interactive devtool terminal UI.
+	NoTUI bool
 
 	// BuildCsv is the list of builds to build.
 	BuildCsv string
@@ -85,8 +89,18 @@ type DevtoolArgs struct {
 
 	// LogFiles is the list of log file specs.
 	LogFiles cli.StringSlice
+	// TUIRunner renders interactive command status when terminal UI mode is active.
+	TUIRunner DevtoolTUIRunner
+	// activeLogFile is the primary resolved log file path for the active command.
+	activeLogFile string
 	// logFileCleanup closes log file hooks on shutdown.
 	logFileCleanup func()
+	// terminalDetector reports whether the current process can use a terminal UI.
+	terminalDetector func() bool
+	// resolvedUIMode is set by status-command entrypoints before execution.
+	resolvedUIMode DevtoolUIMode
+	// hasResolvedUIMode indicates resolvedUIMode is set.
+	hasResolvedUIMode bool
 }
 
 // NewDevtoolArgs constructs new default arguments.
@@ -116,6 +130,9 @@ func (a *DevtoolArgs) FillDefaults() {
 	a.WebListenAddr = "127.0.0.1:8080"
 	a.MinifyEntrypoint = true
 	a.Watch = true
+	if a.TUIRunner == nil {
+		a.TUIRunner = NewDevtoolTUIRunner()
+	}
 
 	if buildInfo, ok := debug.ReadBuildInfo(); ok && buildInfo.Main.Version != "(devel)" {
 		a.BldrVersion = buildInfo.Main.Version
@@ -237,6 +254,13 @@ func (a *DevtoolArgs) BuildFlags() []cli.Flag {
 			Value:       a.DisableCleanup,
 			Destination: &a.DisableCleanup,
 		},
+		&cli.BoolFlag{
+			Name:        "no-tui",
+			Usage:       "disable the interactive terminal UI",
+			EnvVars:     []string{"BLDR_NO_TUI"},
+			Value:       a.NoTUI,
+			Destination: &a.NoTUI,
+		},
 		logfile.BuildLogFileFlag(&a.LogFiles),
 	}
 }
@@ -341,7 +365,7 @@ func (a *DevtoolArgs) BuildStartCommands() []*cli.Command {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				return a.ExecuteNativeProject(c.Context)
+				return a.runStatusCommand(c.Context, a.ExecuteNativeProject)
 			},
 		},
 		{
@@ -364,10 +388,12 @@ func (a *DevtoolArgs) BuildStartCommands() []*cli.Command {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				if a.WebUseWasm {
-					return a.ExecuteWebWasmProject(c.Context)
-				}
-				return a.ExecuteWebWsProject(c.Context)
+				return a.runStatusCommand(c.Context, func(ctx context.Context) error {
+					if a.WebUseWasm {
+						return a.ExecuteWebWasmProject(ctx)
+					}
+					return a.ExecuteWebWsProject(ctx)
+				})
 			},
 		},
 	}
@@ -396,7 +422,7 @@ func (a *DevtoolArgs) BuildBuildCommand() *cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			return a.BuildProject(c.Context)
+			return a.runStatusCommand(c.Context, a.BuildProject)
 		},
 	}
 }
@@ -480,6 +506,11 @@ func (a *DevtoolArgs) InitRepoRoot() (
 ) {
 	a.applyLogLevel()
 
+	repoRoot, err = a.FindRepoRoot()
+	if err != nil {
+		return
+	}
+
 	// Auto-enable file logging in dev mode when no --log-file flags are set.
 	if a.BuildType == "dev" && len(a.LogFiles.Value()) == 0 {
 		a.LogFiles.Set("level=DEBUG;path=.bldr/logs/{ts}.log")
@@ -494,19 +525,23 @@ func (a *DevtoolArgs) InitRepoRoot() (
 			return
 		}
 		if len(specs) != 0 {
+			for i := range specs {
+				if !filepath.IsAbs(specs[i].Path) {
+					specs[i].Path = filepath.Join(repoRoot, specs[i].Path)
+				}
+			}
+			a.activeLogFile = specs[0].Path
 			cleanup, attachErr := logfile.AttachLogFiles(a.Logger.Logger, specs)
 			if attachErr != nil {
 				err = attachErr
 				return
 			}
 			a.logFileCleanup = cleanup
+			if a.ShouldUseTUI() {
+				a.Logger.Logger.SetOutput(io.Discard)
+			}
 			logfile.EnsureLoggerLevel(a.Logger.Logger, specs)
 		}
-	}
-
-	repoRoot, err = a.FindRepoRoot()
-	if err != nil {
-		return
 	}
 
 	stateRoot = a.GetStateRoot(repoRoot)
@@ -530,6 +565,11 @@ func (a *DevtoolArgs) CloseLogFiles() {
 		a.logFileCleanup()
 		a.logFileCleanup = nil
 	}
+	a.activeLogFile = ""
+}
+
+func (a *DevtoolArgs) commandLogFile() string {
+	return a.activeLogFile
 }
 
 // GetOutputRoot returns the output path root relative to the project root.

@@ -16,11 +16,11 @@ import (
 type buildManifestHost struct {
 	c             *Controller
 	builderConfig *bldr_manifest_builder.BuilderConfig
-	restartFn     func()
+	restartFn     func(string)
 }
 
 // newBuildManifestHost builds a new buildManifestHost.
-func newBuildManifestHost(c *Controller, builderConfig *bldr_manifest_builder.BuilderConfig, restartFn func()) *buildManifestHost {
+func newBuildManifestHost(c *Controller, builderConfig *bldr_manifest_builder.BuilderConfig, restartFn func(string)) *buildManifestHost {
 	return &buildManifestHost{c: c, builderConfig: builderConfig, restartFn: restartFn}
 }
 

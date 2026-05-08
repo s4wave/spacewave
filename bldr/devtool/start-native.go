@@ -6,6 +6,7 @@ import (
 	"context"
 	"os"
 
+	devtool_status "github.com/s4wave/spacewave/bldr/devtool/status"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
@@ -14,7 +15,7 @@ import (
 )
 
 // ExecuteNativeProject starts the project as a native app.
-func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) error {
+func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) (err error) {
 	// init repo root and storage directories
 	le := a.Logger
 	repoRoot, stateDir, err := a.InitRepoRoot()
@@ -43,9 +44,19 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) error {
 		return err
 	}
 	defer b.Release()
+	commandLogFile := a.commandLogFile()
+	b.setCommandStartingWithLogFile("start desktop", "initializing desktop runtime", commandLogFile)
+	stopTUI, err := a.startTUIRunner(ctx, b.GetStatusProducer())
+	if err != nil {
+		return err
+	}
+	defer func() {
+		b.finishCommandThenStopTUI(ctx, "start desktop", commandLogFile, err, stopTUI)
+	}()
 
 	// sync dist sources
-	if err := b.SyncDistSources(a.BldrVersion, a.BldrVersionSum, a.BldrSrcPath); err != nil {
+	err = b.SyncDistSources(a.BldrVersion, a.BldrVersionSum, a.BldrSrcPath)
+	if err != nil {
 		return err
 	}
 
@@ -90,19 +101,20 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) error {
 	startPlugins := projCtrl.GetConfig().GetProjectConfig().GetStart().GetPlugins()
 	if len(startPlugins) != 0 {
 		le.WithField("plugin-count", len(startPlugins)).Info("preflighting startup manifests")
-		if _, _, err := projCtrl.BuildManifests(
+		_, _, err = projCtrl.BuildManifests(
 			ctx,
 			preflightRemote,
 			startPlugins,
 			bldr_manifest.BuildType(a.BuildType),
 			nil,
-		); err != nil {
+		)
+		if err != nil {
 			return err
 		}
 	}
 
 	// build the plugin scheduler
-	_, relSched, err := plugin_host_default.StartPluginScheduler(
+	sched, relSched, err := plugin_host_default.StartPluginScheduler(
 		ctx,
 		b.GetBus(),
 		b.GetWorldEngineID(),
@@ -116,6 +128,7 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	devtool_status.AttachPluginStatus(ctx, b.GetStatusProducer(), sched)
 	defer relSched()
 
 	// build the plugin host controller
@@ -134,6 +147,7 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) error {
 	}
 
 	projCtrl.StartStartup(ctx)
+	b.setCommandRunningWithLogFile("start desktop", "desktop runtime active", commandLogFile)
 
 	<-b.GetContext().Done()
 	return nil

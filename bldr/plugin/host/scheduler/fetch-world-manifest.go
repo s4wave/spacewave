@@ -25,7 +25,11 @@ type directFetchCandidate struct {
 }
 
 // execute executes the tracker.
-func (t *pluginInstance) execFetchWorldManifest(ctx context.Context, hosts *pluginHostSet) error {
+func (t *pluginInstance) execFetchWorldManifest(ctx context.Context, hosts *pluginHostSet) (rerr error) {
+	defer func() {
+		t.c.recordPluginStatusError(t.pluginID, t.instanceKey, "fetch plugin manifest", rerr)
+	}()
+
 	// wait for hosts set
 	if hosts == nil {
 		return nil
@@ -78,7 +82,7 @@ func (t *pluginInstance) execFetchWorldManifest(ctx context.Context, hosts *plug
 		handler = t.newDirectFetchHandler(hosts)
 	}
 
-	_, ref, err := t.c.bus.AddDirective(
+	di, ref, err := t.c.bus.AddDirective(
 		bldr_manifest.NewFetchManifest(
 			// use pluginID as manifest id
 			t.pluginID,
@@ -95,8 +99,20 @@ func (t *pluginInstance) execFetchWorldManifest(ctx context.Context, hosts *plug
 		return err
 	}
 
+	releaseIdle := di.AddIdleCallback(func(isIdle bool, errs []error) {
+		if !isIdle {
+			return
+		}
+		for _, err := range errs {
+			t.c.recordPluginStatusError(t.pluginID, t.instanceKey, "fetch plugin manifest", err)
+		}
+	})
+
 	// we are done
-	_ = context.AfterFunc(ctx, ref.Release)
+	_ = context.AfterFunc(ctx, func() {
+		releaseIdle()
+		ref.Release()
+	})
 	return nil
 }
 
@@ -113,7 +129,16 @@ func (t *pluginInstance) newManifestFetchValueStorer(key storeFetchedManifestsKe
 }
 
 // execFetchManifestValueStorer executes storing the FetchManifest value in storage.
-func (t *fetchManifestValueStorer) execFetchManifestValueStorer(ctx context.Context) error {
+func (t *fetchManifestValueStorer) execFetchManifestValueStorer(ctx context.Context) (rerr error) {
+	defer func() {
+		t.pi.c.recordPluginStatusError(
+			t.pi.pluginID,
+			t.pi.instanceKey,
+			"store fetched plugin manifest",
+			rerr,
+		)
+	}()
+
 	fetchManifestValue, err := t.value.Await(ctx)
 	if err != nil {
 		return err

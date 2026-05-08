@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"sync/atomic"
 
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
@@ -39,6 +40,10 @@ type manifestBuilderTracker struct {
 	remoteConf atomic.Pointer[bldr_project.RemoteConfig]
 	// resultPromiseCtr contains the result of the compilation.
 	resultPromiseCtr *promise.PromiseContainer[*ManifestBuilderResult]
+	// statusMtx guards status
+	statusMtx sync.Mutex
+	// status is the latest build status
+	status ManifestBuilderStatus
 }
 
 // NewManifestBuilderConfig constructs a new ManifestBuilderConfig.
@@ -114,21 +119,50 @@ func (c *Controller) newManifestBuilderTracker(key string) (keyed.Routine, *mani
 		conf:             conf,
 		resultPromiseCtr: promise.NewPromiseContainer[*ManifestBuilderResult](),
 	}
+	tr.status = tr.newStatus(ManifestBuilderStatusStateQueued, "queued", "")
 	return tr.execute, tr
 }
 
 // failWithError marks the tracker as failed with an error.
 func (t *manifestBuilderTracker) failWithError(err error) {
+	t.setManifestBuilderStatus(ManifestBuilderStatusStateError, "builder removed", err)
 	t.resultPromiseCtr.SetResult(nil, err)
+}
+
+// SetManifestBuilderLifecycleStatus applies builder-controller lifecycle status.
+func (t *manifestBuilderTracker) SetManifestBuilderLifecycleStatus(
+	status manifest_builder_controller.ManifestBuilderLifecycleStatus,
+) {
+	next := t.currentManifestBuilderStatus()
+	next.CacheHit = status.CacheHit
+	next.FullRebuild = status.FullRebuild
+	next.HotRebuild = status.HotRebuild
+	next.WatchedFileCount = status.WatchedFileCount
+	next.DependencyRebuildReason = status.DependencyRebuildReason
+	next.Summary = status.Summary
+	next.Error = status.Error
+	switch status.State {
+	case manifest_builder_controller.ManifestBuilderLifecycleStateQueued:
+		next.State = ManifestBuilderStatusStateQueued
+	case manifest_builder_controller.ManifestBuilderLifecycleStateRunning:
+		next.State = ManifestBuilderStatusStateRunning
+	case manifest_builder_controller.ManifestBuilderLifecycleStateDone:
+		next.State = ManifestBuilderStatusStateDone
+	case manifest_builder_controller.ManifestBuilderLifecycleStateError:
+		next.State = ManifestBuilderStatusStateError
+	}
+	t.storeManifestBuilderStatus(next)
 }
 
 // execute executes the tracker.
 func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 	t.resultPromiseCtr.SetPromise(nil)
+	t.setManifestBuilderStatus(ManifestBuilderStatusStateRunning, "resolving remote", nil)
 
 	// build remote handle
 	worldEng, remoteRef, err := t.c.WaitRemote(ctx, t.conf.GetRemoteId())
 	if err != nil {
+		t.setManifestBuilderStatus(ManifestBuilderStatusStateError, "resolve remote", err)
 		return err
 	}
 	defer remoteRef.Release()
@@ -144,13 +178,16 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 	manifestID := meta.GetManifestId()
 
 	if manifestID == "" {
+		t.setManifestBuilderStatus(ManifestBuilderStatusStateError, "validate manifest", bldr_manifest.ErrEmptyManifestID)
 		return bldr_manifest.ErrEmptyManifestID
 	}
 
 	// ensure that the platform id is clean
 	platformIDPath := path.Clean(meta.GetPlatformId())
 	if strings.HasPrefix(platformIDPath, "..") {
-		return errors.Errorf("invalid platform id: %s", meta.GetPlatformId())
+		err := errors.Errorf("invalid platform id: %s", meta.GetPlatformId())
+		t.setManifestBuilderStatus(ManifestBuilderStatusStateError, "validate platform", err)
+		return err
 	}
 
 	// ctrlConf is the current controller config
@@ -164,9 +201,11 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 	projectConfig := ctrlConf.GetProjectConfig()
 	manifestConfig := projectConfig.GetManifests()[manifestID].CloneVT()
 	if manifestConfig == nil {
+		t.setManifestBuilderStatus(ManifestBuilderStatusStateError, "load manifest config", bldr_project.ErrManifestConfNotFound)
 		return bldr_project.ErrManifestConfNotFound
 	}
 	if err := applyBuilderConfigOverride(manifestConfig, manifestID, t.conf.GetBuilderConfigOverride()); err != nil {
+		t.setManifestBuilderStatus(ManifestBuilderStatusStateError, "apply builder config override", err)
 		return err
 	}
 	t.manifestConf.Store(manifestConfig)
@@ -181,6 +220,7 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 
 	tx, err := worldEng.NewTransaction(ctx, true)
 	if err != nil {
+		t.setManifestBuilderStatus(ManifestBuilderStatusStateError, "open world transaction", err)
 		return err
 	}
 
@@ -188,12 +228,14 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 	createdStore, err := bldr_manifest_world.CreateManifestStore(ctx, tx, storeObjKey)
 	if err != nil {
 		tx.Discard()
+		t.setManifestBuilderStatus(ManifestBuilderStatusStateError, "create manifest store", err)
 		return err
 	}
 
 	var existingManifests []*bldr_manifest_world.CollectedManifest
 	if createdStore {
 		if err := tx.Commit(ctx); err != nil {
+			t.setManifestBuilderStatus(ManifestBuilderStatusStateError, "commit manifest store", err)
 			return err
 		}
 	} else {
@@ -206,6 +248,7 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 		)
 		if err != nil {
 			tx.Discard()
+			t.setManifestBuilderStatus(ManifestBuilderStatusStateError, "collect manifests", err)
 			return err
 		}
 		if len(existingManifests) != 0 {
@@ -278,6 +321,7 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 		builderConf.WatchManifestIds = watchIDs
 	}
 
+	t.setManifestBuilderStatus(ManifestBuilderStatusStateRunning, "starting builder controller", nil)
 	builderCtrl, _, ctrlRef, err := loader.WaitExecControllerRunningTyped[*manifest_builder_controller.Controller](
 		ctx,
 		t.c.bus,
@@ -285,10 +329,12 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 		nil,
 	)
 	if err != nil {
+		t.setManifestBuilderStatus(ManifestBuilderStatusStateError, "start builder controller", err)
 		t.resultPromiseCtr.SetResult(nil, err)
 		return err
 	}
 	defer ctrlRef.Release()
+	builderCtrl.SetManifestBuilderLifecycleSink(t)
 
 	for {
 		resultPromiseCtr := builderCtrl.GetResultPromise()
@@ -297,18 +343,22 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 		if resultPromise != nil {
 			result, err := resultPromise.Await(ctx)
 			if err != nil {
+				t.setManifestBuilderTerminalStatus(ctx, "build failed", err)
 				t.resultPromiseCtr.SetResult(nil, err)
 				return err
 			}
+			t.setManifestBuilderStatus(ManifestBuilderStatusStateDone, "build complete", nil)
 			t.resultPromiseCtr.SetResult(NewManifestBuilderResult(manifestBuilderConf, result), nil)
 		}
 		if resultPromise == nil {
 			// No result yet.
+			t.setManifestBuilderStatus(ManifestBuilderStatusStateQueued, "waiting for builder result", nil)
 			t.resultPromiseCtr.SetPromise(nil)
 		}
 
 		select {
 		case <-ctx.Done():
+			t.setManifestBuilderStatus(ManifestBuilderStatusStateCanceled, "build canceled", ctx.Err())
 			return context.Canceled
 		case <-resultPromiseChanged:
 			// re-check (manifest was rebuilt)
@@ -346,3 +396,110 @@ func applyBuilderConfigOverride(
 	}
 	return nil
 }
+
+func (t *manifestBuilderTracker) setManifestBuilderStatus(
+	state ManifestBuilderStatusState,
+	summary string,
+	err error,
+) {
+	next := t.currentManifestBuilderStatus()
+	next.State = state
+	next.Summary = summary
+	if err != nil {
+		next.Error = err.Error()
+	} else {
+		next.Error = ""
+	}
+	t.storeManifestBuilderStatus(next)
+}
+
+func (t *manifestBuilderTracker) setManifestBuilderTerminalStatus(
+	ctx context.Context,
+	summary string,
+	err error,
+) {
+	if ctx.Err() != nil {
+		t.setManifestBuilderStatus(ManifestBuilderStatusStateCanceled, "build canceled", ctx.Err())
+		return
+	}
+	t.setManifestBuilderStatus(ManifestBuilderStatusStateError, summary, err)
+}
+
+func (t *manifestBuilderTracker) currentManifestBuilderStatus() ManifestBuilderStatus {
+	t.statusMtx.Lock()
+	status := t.status
+	t.statusMtx.Unlock()
+	return status
+}
+
+func (t *manifestBuilderTracker) refreshManifestBuilderStatusMeta() {
+	next := t.currentManifestBuilderStatus()
+	next.BuildTargetIDs = t.c.getManifestBuilderBuildTargets(t.conf.MarshalB58())
+	next.TargetPlatformIDs = slices.Clone(t.conf.GetTargetPlatformIds())
+	t.storeManifestBuilderStatus(next)
+}
+
+func (t *manifestBuilderTracker) storeManifestBuilderStatus(status ManifestBuilderStatus) {
+	t.statusMtx.Lock()
+	t.status = status
+	t.statusMtx.Unlock()
+	t.publishManifestBuilderStatus()
+}
+
+func (t *manifestBuilderTracker) publishManifestBuilderStatus() {
+	status := t.currentManifestBuilderStatus()
+	t.c.statusSinkMtx.Lock()
+	sink := t.c.manifestBuilderStatusSink
+	t.c.statusSinkMtx.Unlock()
+	if sink != nil {
+		sink.SetManifestBuilderStatus(status)
+	}
+}
+
+func (t *manifestBuilderTracker) newStatus(
+	state ManifestBuilderStatusState,
+	summary string,
+	errText string,
+) ManifestBuilderStatus {
+	buildTargetIDs := t.c.getManifestBuilderBuildTargets(t.conf.MarshalB58())
+	return ManifestBuilderStatus{
+		ID:                t.conf.MarshalB58(),
+		BuildTargetIDs:    buildTargetIDs,
+		ManifestID:        t.conf.GetManifestId(),
+		PlatformID:        t.conf.GetPlatformId(),
+		TargetPlatformIDs: slices.Clone(t.conf.GetTargetPlatformIds()),
+		BuildType:         t.conf.GetBuildType(),
+		RemoteID:          t.conf.GetRemoteId(),
+		State:             state,
+		Summary:           summary,
+		Error:             errText,
+	}
+}
+
+func (c *Controller) addManifestBuilderBuildTarget(conf *ManifestBuilderConfig, target string) {
+	target = strings.TrimSpace(target)
+	if target == "" {
+		return
+	}
+	key := conf.MarshalB58()
+	c.statusSinkMtx.Lock()
+	c.manifestBuilderBuildTargets[key] = appendUniqueString(c.manifestBuilderBuildTargets[key], target)
+	c.statusSinkMtx.Unlock()
+}
+
+func (c *Controller) getManifestBuilderBuildTargets(key string) []string {
+	c.statusSinkMtx.Lock()
+	targets := slices.Clone(c.manifestBuilderBuildTargets[key])
+	c.statusSinkMtx.Unlock()
+	return targets
+}
+
+func appendUniqueString(values []string, value string) []string {
+	if slices.Contains(values, value) {
+		return values
+	}
+	return append(values, value)
+}
+
+// _ is a type assertion
+var _ manifest_builder_controller.ManifestBuilderLifecycleSink = ((*manifestBuilderTracker)(nil))

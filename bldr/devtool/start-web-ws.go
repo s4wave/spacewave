@@ -15,6 +15,7 @@ import (
 	"github.com/aperturerobotics/go-websocket"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver/v4"
+	devtool_status "github.com/s4wave/spacewave/bldr/devtool/status"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
@@ -31,7 +32,7 @@ var DevtoolWsVersion = semver.MustParse("0.0.1")
 
 // ExecuteWebWsProject starts the devtool bus and project as a web server with a
 // WebSocket. Plugins run as native binaries under the devtool process.
-func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) error {
+func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) (err error) {
 	// init repo root and storage directories
 	le := a.Logger
 	repoRoot, stateDir, err := a.InitRepoRoot()
@@ -48,8 +49,18 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) error {
 		return err
 	}
 	defer d.Release()
+	commandLogFile := a.commandLogFile()
+	d.setCommandStartingWithLogFile("start web", "initializing web runtime", commandLogFile)
+	stopTUI, err := a.startTUIRunner(ctx, d.GetStatusProducer())
+	if err != nil {
+		return err
+	}
+	defer func() {
+		d.finishCommandThenStopTUI(ctx, "start web", commandLogFile, err, stopTUI)
+	}()
 
-	if err := d.SyncDistSources(a.BldrVersion, a.BldrVersionSum, a.BldrSrcPath); err != nil {
+	err = d.SyncDistSources(a.BldrVersion, a.BldrVersionSum, a.BldrSrcPath)
+	if err != nil {
 		return err
 	}
 
@@ -96,19 +107,20 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) error {
 	startPlugins := currProjCtrl.GetConfig().GetProjectConfig().GetStart().GetPlugins()
 	if len(startPlugins) != 0 {
 		le.WithField("plugin-count", len(startPlugins)).Info("preflighting startup manifests")
-		if _, _, err := currProjCtrl.BuildManifests(
+		_, _, err = currProjCtrl.BuildManifests(
 			ctx,
 			preflightRemote,
 			startPlugins,
 			bldr_manifest.BuildType(a.BuildType),
 			nil,
-		); err != nil {
+		)
+		if err != nil {
 			return err
 		}
 	}
 
 	// build the plugin host scheduler
-	_, relPluginSched, err := plugin_host_default.StartPluginScheduler(
+	sched, relPluginSched, err := plugin_host_default.StartPluginScheduler(
 		ctx,
 		d.GetBus(),
 		d.GetWorldEngineID(),
@@ -122,6 +134,7 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	devtool_status.AttachPluginStatus(ctx, d.GetStatusProducer(), sched)
 	if relPluginSched != nil {
 		defer relPluginSched()
 	}
@@ -141,6 +154,7 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) error {
 		defer relPluginHost()
 	}
 
+	d.setCommandRunningWithLogFile("start web", "web runtime active on "+a.WebListenAddr, commandLogFile)
 	return d.ExecuteWebWs(ctx, repoRoot, a.MinifyEntrypoint, buildType.IsDev(), a.WebListenAddr, webStartupSrcPath)
 }
 

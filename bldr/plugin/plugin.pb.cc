@@ -29,38 +29,6 @@ namespace _fl = ::google::protobuf::internal::field_layout;
 namespace bldr {
 namespace plugin {
 
-inline constexpr PluginStatus::Impl_::Impl_(
-    ::_pbi::ConstantInitialized) noexcept
-      : _cached_size_{0},
-        plugin_id_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
-        instance_key_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
-        running_{false},
-        state_{static_cast< ::bldr::plugin::PluginState >(0)} {}
-
-template <typename>
-PROTOBUF_CONSTEXPR PluginStatus::PluginStatus(::_pbi::ConstantInitialized)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(PluginStatus_class_data_.base()),
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(),
-#endif  // PROTOBUF_CUSTOM_VTABLE
-      _impl_(::_pbi::ConstantInitialized()) {
-}
-struct PluginStatusDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR PluginStatusDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~PluginStatusDefaultTypeInternal() {}
-  union {
-    PluginStatus _instance;
-  };
-};
-
-PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 PluginStatusDefaultTypeInternal _PluginStatus_default_instance_;
-
 inline constexpr PluginStartInfo::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -178,6 +146,42 @@ struct GetPluginInfoRequestDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GetPluginInfoRequestDefaultTypeInternal _GetPluginInfoRequest_default_instance_;
 
+inline constexpr PluginStatus::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        plugin_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        instance_key_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        last_error_message_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        last_error_at_{nullptr},
+        running_{false},
+        state_{static_cast< ::bldr::plugin::PluginState >(0)} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR PluginStatus::PluginStatus(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(PluginStatus_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct PluginStatusDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR PluginStatusDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~PluginStatusDefaultTypeInternal() {}
+  union {
+    PluginStatus _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 PluginStatusDefaultTypeInternal _PluginStatus_default_instance_;
+
 inline constexpr PluginContextInfo::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -267,14 +271,18 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::PluginStatus, _impl_._has_bits_),
-        7, // hasbit index offset
+        9, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::PluginStatus, _impl_.plugin_id_),
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::PluginStatus, _impl_.running_),
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::PluginStatus, _impl_.instance_key_),
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::PluginStatus, _impl_.state_),
+        PROTOBUF_FIELD_OFFSET(::bldr::plugin::PluginStatus, _impl_.last_error_message_),
+        PROTOBUF_FIELD_OFFSET(::bldr::plugin::PluginStatus, _impl_.last_error_at_),
         0,
-        2,
+        4,
         1,
+        5,
+        2,
         3,
         0x000, // bitmap
         0x081, // bitmap
@@ -328,13 +336,13 @@ const ::uint32_t
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::bldr::plugin::PluginStatus)},
-        {11, sizeof(::bldr::plugin::GetPluginInfoRequest)},
-        {12, sizeof(::bldr::plugin::GetPluginInfoResponse)},
-        {21, sizeof(::bldr::plugin::LoadPluginRequest)},
-        {28, sizeof(::bldr::plugin::LoadPluginResponse)},
-        {33, sizeof(::bldr::plugin::PluginMeta)},
-        {44, sizeof(::bldr::plugin::PluginStartInfo)},
-        {53, sizeof(::bldr::plugin::PluginContextInfo)},
+        {15, sizeof(::bldr::plugin::GetPluginInfoRequest)},
+        {16, sizeof(::bldr::plugin::GetPluginInfoResponse)},
+        {25, sizeof(::bldr::plugin::LoadPluginRequest)},
+        {32, sizeof(::bldr::plugin::LoadPluginResponse)},
+        {37, sizeof(::bldr::plugin::PluginMeta)},
+        {48, sizeof(::bldr::plugin::PluginStartInfo)},
+        {57, sizeof(::bldr::plugin::PluginContextInfo)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bldr::plugin::_PluginStatus_default_instance_._instance,
@@ -355,57 +363,61 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2f
     "ollerbus/controller/exec/exec.proto\0322git"
     "hub.com/s4wave/spacewave/db/volume/volum"
     "e.proto\032<github.com/aperturerobotics/sta"
-    "rpc/rpcstream/rpcstream.proto\"q\n\014PluginS"
-    "tatus\022\021\n\tplugin_id\030\001 \001(\t\022\017\n\007running\030\002 \001("
-    "\010\022\024\n\014instance_key\030\003 \001(\t\022\'\n\005state\030\004 \001(\0162\030"
-    ".bldr.plugin.PluginState\"\026\n\024GetPluginInf"
-    "oRequest\"\212\001\n\025GetPluginInfoResponse\022\021\n\tpl"
-    "ugin_id\030\001 \001(\t\0220\n\014manifest_ref\030\002 \001(\0132\032.bl"
-    "dr.manifest.ManifestRef\022,\n\020host_volume_i"
-    "nfo\030\003 \001(\0132\022.volume.VolumeInfo\"<\n\021LoadPlu"
-    "ginRequest\022\021\n\tplugin_id\030\001 \001(\t\022\024\n\014instanc"
-    "e_key\030\002 \001(\t\"F\n\022LoadPluginResponse\0220\n\rplu"
-    "gin_status\030\001 \001(\0132\031.bldr.plugin.PluginSta"
-    "tus\"\\\n\nPluginMeta\022\022\n\nproject_id\030\001 \001(\t\022\021\n"
-    "\tplugin_id\030\002 \001(\t\022\023\n\013platform_id\030\003 \001(\t\022\022\n"
-    "\nbuild_type\030\004 \001(\t\"O\n\017PluginStartInfo\022\023\n\013"
-    "instance_id\030\001 \001(\t\022\021\n\tplugin_id\030\002 \001(\t\022\024\n\014"
-    "instance_key\030\003 \001(\t\"A\n\021PluginContextInfo\022"
-    ",\n\013plugin_meta\030\001 \001(\0132\027.bldr.plugin.Plugi"
-    "nMeta*Z\n\013PluginState\022\027\n\023PluginState_UNKN"
-    "OWN\020\000\022\031\n\025PluginState_REQUESTED\020\001\022\027\n\023Plug"
-    "inState_RUNNING\020\0022\264\003\n\nPluginHost\022X\n\rGetP"
-    "luginInfo\022!.bldr.plugin.GetPluginInfoReq"
-    "uest\032\".bldr.plugin.GetPluginInfoResponse"
-    "\"\000\022e\n\016ExecController\022&.controller.exec.E"
-    "xecControllerRequest\032\'.controller.exec.E"
-    "xecControllerResponse\"\0000\001\022Q\n\nLoadPlugin\022"
-    "\036.bldr.plugin.LoadPluginRequest\032\037.bldr.p"
-    "lugin.LoadPluginResponse\"\0000\001\022G\n\tPluginRp"
-    "c\022\032.rpcstream.RpcStreamPacket\032\032.rpcstrea"
-    "m.RpcStreamPacket(\0010\001\022I\n\013PluginFsRpc\022\032.r"
-    "pcstream.RpcStreamPacket\032\032.rpcstream.Rpc"
-    "StreamPacket(\0010\0012Q\n\006Plugin\022G\n\tPluginRpc\022"
-    "\032.rpcstream.RpcStreamPacket\032\032.rpcstream."
-    "RpcStreamPacket(\0010\001b\006proto3"
+    "rpc/rpcstream/rpcstream.proto\032\037google/pr"
+    "otobuf/timestamp.proto\"\300\001\n\014PluginStatus\022"
+    "\021\n\tplugin_id\030\001 \001(\t\022\017\n\007running\030\002 \001(\010\022\024\n\014i"
+    "nstance_key\030\003 \001(\t\022\'\n\005state\030\004 \001(\0162\030.bldr."
+    "plugin.PluginState\022\032\n\022last_error_message"
+    "\030\005 \001(\t\0221\n\rlast_error_at\030\006 \001(\0132\032.google.p"
+    "rotobuf.Timestamp\"\026\n\024GetPluginInfoReques"
+    "t\"\212\001\n\025GetPluginInfoResponse\022\021\n\tplugin_id"
+    "\030\001 \001(\t\0220\n\014manifest_ref\030\002 \001(\0132\032.bldr.mani"
+    "fest.ManifestRef\022,\n\020host_volume_info\030\003 \001"
+    "(\0132\022.volume.VolumeInfo\"<\n\021LoadPluginRequ"
+    "est\022\021\n\tplugin_id\030\001 \001(\t\022\024\n\014instance_key\030\002"
+    " \001(\t\"F\n\022LoadPluginResponse\0220\n\rplugin_sta"
+    "tus\030\001 \001(\0132\031.bldr.plugin.PluginStatus\"\\\n\n"
+    "PluginMeta\022\022\n\nproject_id\030\001 \001(\t\022\021\n\tplugin"
+    "_id\030\002 \001(\t\022\023\n\013platform_id\030\003 \001(\t\022\022\n\nbuild_"
+    "type\030\004 \001(\t\"O\n\017PluginStartInfo\022\023\n\013instanc"
+    "e_id\030\001 \001(\t\022\021\n\tplugin_id\030\002 \001(\t\022\024\n\014instanc"
+    "e_key\030\003 \001(\t\"A\n\021PluginContextInfo\022,\n\013plug"
+    "in_meta\030\001 \001(\0132\027.bldr.plugin.PluginMeta*Z"
+    "\n\013PluginState\022\027\n\023PluginState_UNKNOWN\020\000\022\031"
+    "\n\025PluginState_REQUESTED\020\001\022\027\n\023PluginState"
+    "_RUNNING\020\0022\264\003\n\nPluginHost\022X\n\rGetPluginIn"
+    "fo\022!.bldr.plugin.GetPluginInfoRequest\032\"."
+    "bldr.plugin.GetPluginInfoResponse\"\000\022e\n\016E"
+    "xecController\022&.controller.exec.ExecCont"
+    "rollerRequest\032\'.controller.exec.ExecCont"
+    "rollerResponse\"\0000\001\022Q\n\nLoadPlugin\022\036.bldr."
+    "plugin.LoadPluginRequest\032\037.bldr.plugin.L"
+    "oadPluginResponse\"\0000\001\022G\n\tPluginRpc\022\032.rpc"
+    "stream.RpcStreamPacket\032\032.rpcstream.RpcSt"
+    "reamPacket(\0010\001\022I\n\013PluginFsRpc\022\032.rpcstrea"
+    "m.RpcStreamPacket\032\032.rpcstream.RpcStreamP"
+    "acket(\0010\0012Q\n\006Plugin\022G\n\tPluginRpc\022\032.rpcst"
+    "ream.RpcStreamPacket\032\032.rpcstream.RpcStre"
+    "amPacket(\0010\001b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto_deps[4] = {
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto_deps[5] = {
         &::descriptor_table_github_2ecom_2faperturerobotics_2fcontrollerbus_2fcontroller_2fexec_2fexec_2eproto,
         &::descriptor_table_github_2ecom_2faperturerobotics_2fstarpc_2frpcstream_2frpcstream_2eproto,
         &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto,
         &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fvolume_2eproto,
+        &::descriptor_table_google_2fprotobuf_2ftimestamp_2eproto,
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto = {
     false,
     false,
-    1587,
+    1700,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto,
     "github.com/s4wave/spacewave/bldr/plugin/plugin.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto_deps,
-    4,
+    5,
     8,
     schemas,
     file_default_instances,
@@ -431,6 +443,12 @@ class PluginStatus::_Internal {
       8 * PROTOBUF_FIELD_OFFSET(PluginStatus, _impl_._has_bits_);
 };
 
+void PluginStatus::clear_last_error_at() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.last_error_at_ != nullptr) _impl_.last_error_at_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
 PluginStatus::PluginStatus(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
     : ::google::protobuf::Message(arena, PluginStatus_class_data_.base()) {
@@ -447,7 +465,8 @@ PROTOBUF_NDEBUG_INLINE PluginStatus::Impl_::Impl_(
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
         plugin_id_(arena, from.plugin_id_),
-        instance_key_(arena, from.instance_key_) {}
+        instance_key_(arena, from.instance_key_),
+        last_error_message_(arena, from.last_error_message_) {}
 
 PluginStatus::PluginStatus(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -462,6 +481,10 @@ PluginStatus::PluginStatus(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.last_error_at_ = (CheckHasBit(cached_has_bits, 0x00000008U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.last_error_at_)
+                : nullptr;
   ::memcpy(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, running_),
            reinterpret_cast<const char*>(&from._impl_) +
@@ -477,15 +500,16 @@ PROTOBUF_NDEBUG_INLINE PluginStatus::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
         plugin_id_(arena),
-        instance_key_(arena) {}
+        instance_key_(arena),
+        last_error_message_(arena) {}
 
 inline void PluginStatus::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
   ::memset(reinterpret_cast<char*>(&_impl_) +
-               offsetof(Impl_, running_),
+               offsetof(Impl_, last_error_at_),
            0,
            offsetof(Impl_, state_) -
-               offsetof(Impl_, running_) +
+               offsetof(Impl_, last_error_at_) +
                sizeof(Impl_::state_));
 }
 PluginStatus::~PluginStatus() {
@@ -501,6 +525,8 @@ inline void PluginStatus::SharedDtor(MessageLite& self) {
   ABSL_DCHECK(this_.GetArena() == nullptr);
   this_._impl_.plugin_id_.Destroy();
   this_._impl_.instance_key_.Destroy();
+  this_._impl_.last_error_message_.Destroy();
+  delete this_._impl_.last_error_at_;
   this_._impl_.~Impl_();
 }
 
@@ -547,18 +573,18 @@ PluginStatus::GetClassData() const {
   return PluginStatus_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<2, 4, 0, 54, 2>
+const ::_pbi::TcParseTable<3, 6, 1, 72, 2>
 PluginStatus::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(PluginStatus, _impl_._has_bits_),
     0, // no _extensions_
-    4, 24,  // max_field_number, fast_idx_mask
+    6, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967280,  // skipmap
+    4294967232,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    4,  // num_field_entries
-    0,  // num_aux_entries
-    offsetof(decltype(_table_), field_names),  // no aux_entries
+    6,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
     PluginStatus_class_data_.base(),
     nullptr,  // post_loop_handler
     ::_pbi::TcParser::GenericFallback,  // fallback
@@ -566,40 +592,57 @@ PluginStatus::_table_ = {
     ::_pbi::TcParser::GetTable<::bldr::plugin::PluginStatus>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // .bldr.plugin.PluginState state = 4;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(PluginStatus, _impl_.state_), 3>(),
-     {32, 3, 0,
-      PROTOBUF_FIELD_OFFSET(PluginStatus, _impl_.state_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // string plugin_id = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
       PROTOBUF_FIELD_OFFSET(PluginStatus, _impl_.plugin_id_)}},
     // bool running = 2;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(PluginStatus, _impl_.running_), 2>(),
-     {16, 2, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(PluginStatus, _impl_.running_), 4>(),
+     {16, 4, 0,
       PROTOBUF_FIELD_OFFSET(PluginStatus, _impl_.running_)}},
     // string instance_key = 3;
     {::_pbi::TcParser::FastUS1,
      {26, 1, 0,
       PROTOBUF_FIELD_OFFSET(PluginStatus, _impl_.instance_key_)}},
+    // .bldr.plugin.PluginState state = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(PluginStatus, _impl_.state_), 5>(),
+     {32, 5, 0,
+      PROTOBUF_FIELD_OFFSET(PluginStatus, _impl_.state_)}},
+    // string last_error_message = 5;
+    {::_pbi::TcParser::FastUS1,
+     {42, 2, 0,
+      PROTOBUF_FIELD_OFFSET(PluginStatus, _impl_.last_error_message_)}},
+    // .google.protobuf.Timestamp last_error_at = 6;
+    {::_pbi::TcParser::FastMtS1,
+     {50, 3, 0,
+      PROTOBUF_FIELD_OFFSET(PluginStatus, _impl_.last_error_at_)}},
+    {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
   }}, {{
     // string plugin_id = 1;
     {PROTOBUF_FIELD_OFFSET(PluginStatus, _impl_.plugin_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // bool running = 2;
-    {PROTOBUF_FIELD_OFFSET(PluginStatus, _impl_.running_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(PluginStatus, _impl_.running_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // string instance_key = 3;
     {PROTOBUF_FIELD_OFFSET(PluginStatus, _impl_.instance_key_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // .bldr.plugin.PluginState state = 4;
-    {PROTOBUF_FIELD_OFFSET(PluginStatus, _impl_.state_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    {PROTOBUF_FIELD_OFFSET(PluginStatus, _impl_.state_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // string last_error_message = 5;
+    {PROTOBUF_FIELD_OFFSET(PluginStatus, _impl_.last_error_message_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .google.protobuf.Timestamp last_error_at = 6;
+    {PROTOBUF_FIELD_OFFSET(PluginStatus, _impl_.last_error_at_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
-  // no aux_entries
   {{
-    "\30\11\0\14\0\0\0\0"
+      {::_pbi::TcParser::GetTable<::google::protobuf::Timestamp>()},
+  }},
+  {{
+    "\30\11\0\14\0\22\0\0"
     "bldr.plugin.PluginStatus"
     "plugin_id"
     "instance_key"
+    "last_error_message"
   }},
 };
 PROTOBUF_NOINLINE void PluginStatus::Clear() {
@@ -610,15 +653,22 @@ PROTOBUF_NOINLINE void PluginStatus::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       _impl_.plugin_id_.ClearNonDefaultToEmpty();
     }
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       _impl_.instance_key_.ClearNonDefaultToEmpty();
     }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.last_error_message_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(_impl_.last_error_at_ != nullptr);
+      _impl_.last_error_at_->Clear();
+    }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000cU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000030U)) {
     ::memset(&_impl_.running_, 0, static_cast<::size_t>(
         reinterpret_cast<char*>(&_impl_.state_) -
         reinterpret_cast<char*>(&_impl_.running_)) + sizeof(_impl_.state_));
@@ -657,7 +707,7 @@ PROTOBUF_NOINLINE void PluginStatus::Clear() {
   }
 
   // bool running = 2;
-  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
     if (this_._internal_running() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
@@ -676,12 +726,29 @@ PROTOBUF_NOINLINE void PluginStatus::Clear() {
   }
 
   // .bldr.plugin.PluginState state = 4;
-  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
     if (this_._internal_state() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteEnumToArray(
           4, this_._internal_state(), target);
     }
+  }
+
+  // string last_error_message = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_last_error_message().empty()) {
+      const ::std::string& _s = this_._internal_last_error_message();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.plugin.PluginStatus.last_error_message");
+      target = stream->WriteStringMaybeAliased(5, _s, target);
+    }
+  }
+
+  // .google.protobuf.Timestamp last_error_at = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        6, *this_._impl_.last_error_at_, this_._impl_.last_error_at_->GetCachedSize(), target,
+        stream);
   }
 
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
@@ -709,7 +776,7 @@ PROTOBUF_NOINLINE void PluginStatus::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
     // string plugin_id = 1;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_plugin_id().empty()) {
@@ -724,14 +791,26 @@ PROTOBUF_NOINLINE void PluginStatus::Clear() {
                                         this_._internal_instance_key());
       }
     }
-    // bool running = 2;
+    // string last_error_message = 5;
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_last_error_message().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_last_error_message());
+      }
+    }
+    // .google.protobuf.Timestamp last_error_at = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.last_error_at_);
+    }
+    // bool running = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (this_._internal_running() != 0) {
         total_size += 2;
       }
     }
     // .bldr.plugin.PluginState state = 4;
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       if (this_._internal_state() != 0) {
         total_size += 1 +
                       ::_pbi::WireFormatLite::EnumSize(this_._internal_state());
@@ -750,13 +829,14 @@ void PluginStatus::MergeImpl(::google::protobuf::MessageLite& to_msg,
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     from.CheckHasBitConsistency();
   }
+  ::google::protobuf::Arena* arena = _this->GetArena();
   // @@protoc_insertion_point(class_specific_merge_from_start:bldr.plugin.PluginStatus)
   ABSL_DCHECK_NE(&from, _this);
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!from._internal_plugin_id().empty()) {
         _this->_internal_set_plugin_id(from._internal_plugin_id());
@@ -776,11 +856,28 @@ void PluginStatus::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_last_error_message().empty()) {
+        _this->_internal_set_last_error_message(from._internal_last_error_message());
+      } else {
+        if (_this->_impl_.last_error_message_.IsDefault()) {
+          _this->_internal_set_last_error_message("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(from._impl_.last_error_at_ != nullptr);
+      if (_this->_impl_.last_error_at_ == nullptr) {
+        _this->_impl_.last_error_at_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.last_error_at_);
+      } else {
+        _this->_impl_.last_error_at_->MergeFrom(*from._impl_.last_error_at_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (from._internal_running() != 0) {
         _this->_impl_.running_ = from._impl_.running_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       if (from._internal_state() != 0) {
         _this->_impl_.state_ = from._impl_.state_;
       }
@@ -807,12 +904,13 @@ void PluginStatus::InternalSwap(PluginStatus* PROTOBUF_RESTRICT PROTOBUF_NONNULL
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.plugin_id_, &other->_impl_.plugin_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.instance_key_, &other->_impl_.instance_key_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.last_error_message_, &other->_impl_.last_error_message_, arena);
   ::google::protobuf::internal::memswap<
       PROTOBUF_FIELD_OFFSET(PluginStatus, _impl_.state_)
       + sizeof(PluginStatus::_impl_.state_)
-      - PROTOBUF_FIELD_OFFSET(PluginStatus, _impl_.running_)>(
-          reinterpret_cast<char*>(&_impl_.running_),
-          reinterpret_cast<char*>(&other->_impl_.running_));
+      - PROTOBUF_FIELD_OFFSET(PluginStatus, _impl_.last_error_at_)>(
+          reinterpret_cast<char*>(&_impl_.last_error_at_),
+          reinterpret_cast<char*>(&other->_impl_.last_error_at_));
 }
 
 ::google::protobuf::Metadata PluginStatus::GetMetadata() const {

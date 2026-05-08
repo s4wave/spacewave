@@ -36,7 +36,7 @@ type subManifestBuilderTracker struct {
 	// call after discarding the current result IF the result was returned already
 	// makes sure we re-run BuildManifest if any sub-manifests changed after we returned a value
 	// may be nil
-	restartFn func()
+	restartFn func(string)
 	// resultPc is the result promise container that is returned from BuildSubManifest
 	// this pointer does not change
 	resultPc *promise.PromiseContainer[*bldr_manifest_builder.BuilderResult]
@@ -70,7 +70,7 @@ func (t *subManifestBuilderTracker) execute(ctx context.Context) error {
 
 // setManifestConfig updates the manifest config and clears the result if needed
 // returns an error if ManifestConfig != current, current was set, and a result was already returned
-func (t *subManifestBuilderTracker) setManifestConfig(manifestConf *bldr_project.ManifestConfig, restartFn func()) (*promise.PromiseContainer[*bldr_manifest_builder.BuilderResult], error) {
+func (t *subManifestBuilderTracker) setManifestConfig(manifestConf *bldr_project.ManifestConfig, restartFn func(string)) (*promise.PromiseContainer[*bldr_manifest_builder.BuilderResult], error) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
@@ -99,7 +99,7 @@ func (t *subManifestBuilderTracker) setResultLocked(val *bldr_manifest_builder.B
 	// check if the result was already set & returned
 	if t.resultPcObserved && (t.result != nil || t.resultErr != nil) {
 		if t.restartFn != nil {
-			t.restartFn()
+			t.restartFn("sub-manifest changed: " + t.subManifestID)
 			t.restartFn = nil
 		}
 		t.resultPcObserved = false

@@ -24,6 +24,7 @@ import (
 	bldr "github.com/s4wave/spacewave/bldr"
 	"github.com/s4wave/spacewave/bldr/core"
 	core_devtool "github.com/s4wave/spacewave/bldr/core/devtool"
+	devtool_status "github.com/s4wave/spacewave/bldr/devtool/status"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	bldr_project_controller "github.com/s4wave/spacewave/bldr/project/controller"
@@ -97,6 +98,8 @@ type DevtoolBus struct {
 	worldEngine world.Engine
 	// worldState is the world state instance.
 	worldState world.WorldState
+	// statusProducer publishes devtool status snapshots.
+	statusProducer *devtool_status.BldrDevtoolStatusProducer
 	// rels are the release funcs
 	rels []func()
 }
@@ -123,6 +126,15 @@ func BuildDevtoolBus(
 		rel()
 		return nil, err
 	}
+
+	statusProducer := devtool_status.NewBldrDevtoolStatusProducer(nil)
+	statusObserver := devtool_status.NewBldrDevtoolStatusObserver(b, statusProducer)
+	relStatusObserver, err := b.AddController(ctx, statusObserver, nil)
+	if err != nil {
+		rel()
+		return nil, err
+	}
+	rels = append(rels, relStatusObserver)
 
 	// add controller factories
 	core_devtool.AddFactories(b, sr)
@@ -348,6 +360,7 @@ func BuildDevtoolBus(
 		peerID:              vol.GetPeerID(),
 		worldEngine:         eng,
 		worldState:          worldState,
+		statusProducer:      statusProducer,
 		rels:                rels,
 	}, nil
 }
@@ -584,6 +597,18 @@ func (d *DevtoolBus) GetWorldState() world.WorldState {
 	return d.worldState
 }
 
+// GetStatusProducer returns the devtool status producer.
+func (d *DevtoolBus) GetStatusProducer() *devtool_status.BldrDevtoolStatusProducer {
+	return d.statusProducer
+}
+
+// SetCommandStatus publishes the current devtool command lifecycle status.
+func (d *DevtoolBus) SetCommandStatus(command devtool_status.BldrDevtoolCommandStatus) {
+	d.statusProducer.UpdateStatus(func(current *devtool_status.BldrDevtoolStatus) *devtool_status.BldrDevtoolStatus {
+		return current.WithCommand(command)
+	})
+}
+
 // GetPluginHostObjectKey returns the object key for the plugin host.
 func (d *DevtoolBus) GetPluginHostObjectKey() string {
 	return d.pluginHostObjectKey
@@ -705,7 +730,14 @@ func (d *DevtoolBus) StartProjectControllerWithStartup(
 		return nil, nil, err
 	}
 
-	return ctrl.(*bldr_project_watcher.Controller), ctrlRef, nil
+	projWatcher := ctrl.(*bldr_project_watcher.Controller)
+	projCtrl, err := projWatcher.GetProjectController().WaitValue(ctx, nil)
+	if err != nil {
+		ctrlRef.Release()
+		return nil, nil, err
+	}
+	devtool_status.AttachManifestBuildStatus(d.statusProducer, projCtrl)
+	return projWatcher, ctrlRef, nil
 }
 
 // Release releases the devtool bus.

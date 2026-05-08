@@ -6,6 +6,7 @@ import (
 	"context"
 	"path/filepath"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -48,6 +49,13 @@ type Controller struct {
 	resultPromise *promise.PromiseContainer[*bldr_manifest_builder.BuilderResult]
 	// subManifestBuilderTrackers track building sub-manifests
 	subManifestBuilderTrackers *keyed.Keyed[string, *subManifestBuilderTracker]
+
+	// lifecycleMtx guards lifecycle status fields
+	lifecycleMtx sync.Mutex
+	// lifecycleSink consumes lifecycle status events
+	lifecycleSink ManifestBuilderLifecycleSink
+	// lifecycleStatus is the last lifecycle status
+	lifecycleStatus ManifestBuilderLifecycleStatus
 }
 
 // NewController constructs a new controller.
@@ -81,12 +89,27 @@ func (c *Controller) GetResultPromise() *promise.PromiseContainer[*bldr_manifest
 	return c.resultPromise
 }
 
+// SetManifestBuilderLifecycleSink sets the lifecycle status sink.
+func (c *Controller) SetManifestBuilderLifecycleSink(sink ManifestBuilderLifecycleSink) {
+	c.lifecycleMtx.Lock()
+	c.lifecycleSink = sink
+	status := c.lifecycleStatus
+	c.lifecycleMtx.Unlock()
+	if sink != nil {
+		sink.SetManifestBuilderLifecycleStatus(status)
+	}
+}
+
 // Execute executes the controller goroutine.
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
 	c.subManifestBuilderTrackers.SetContext(ctx, true)
 	c.resultPromise.SetPromise(nil)
+	c.setLifecycleStatus(ManifestBuilderLifecycleStatus{
+		State:   ManifestBuilderLifecycleStateQueued,
+		Summary: "queued",
+	})
 
 	builderConfig := c.GetConfig().GetBuilderConfig()
 	meta := builderConfig.GetManifestMeta()
@@ -95,8 +118,17 @@ func (c *Controller) Execute(ctx context.Context) error {
 	controllerConfig := c.GetConfig().GetControllerConfig()
 
 	le.Debugf("starting manifest build controller: %s", manifestID)
+	c.setLifecycleStatus(ManifestBuilderLifecycleStatus{
+		State:   ManifestBuilderLifecycleStateRunning,
+		Summary: "starting builder controller",
+	})
 	conf, err := controllerConfig.Resolve(ctx, c.bus)
 	if err != nil {
+		c.setLifecycleStatus(ManifestBuilderLifecycleStatus{
+			State:   ManifestBuilderLifecycleStateError,
+			Summary: "resolve builder controller config",
+			Error:   err.Error(),
+		})
 		c.resultPromise.SetResult(nil, err)
 		return err
 	}
@@ -108,6 +140,11 @@ func (c *Controller) Execute(ctx context.Context) error {
 			"config must implement bldr_manifest_builder.ControllerConfig interface: %s",
 			conf.GetConfig().GetConfigID(),
 		)
+		c.setLifecycleStatus(ManifestBuilderLifecycleStatus{
+			State:   ManifestBuilderLifecycleStateError,
+			Summary: "resolve builder controller config",
+			Error:   err.Error(),
+		})
 		c.resultPromise.SetResult(nil, err)
 		return err
 	}
@@ -136,6 +173,11 @@ func (c *Controller) Execute(ctx context.Context) error {
 		},
 	)
 	if err != nil {
+		c.setLifecycleStatus(ManifestBuilderLifecycleStatus{
+			State:   ManifestBuilderLifecycleStateError,
+			Summary: "start builder controller",
+			Error:   err.Error(),
+		})
 		c.resultPromise.SetResult(nil, err)
 		return err
 	}
@@ -144,6 +186,11 @@ func (c *Controller) Execute(ctx context.Context) error {
 	builderCtrl, ok := builderCtrlInter.(bldr_manifest_builder.Controller)
 	if !ok {
 		err := errors.Errorf("builder must implement bldr_manifest_builder.Controller: %#v", builderCtrlInter)
+		c.setLifecycleStatus(ManifestBuilderLifecycleStatus{
+			State:   ManifestBuilderLifecycleStateError,
+			Summary: "start builder controller",
+			Error:   err.Error(),
+		})
 		c.resultPromise.SetResult(nil, err)
 		return err
 	}
@@ -152,6 +199,19 @@ func (c *Controller) Execute(ctx context.Context) error {
 	var prevErr error
 	var changedFiles []*bldr_manifest_builder.InputManifest_File
 	var startupValidated bool
+	var rebuildReason string
+	var rebuildReasonMtx sync.Mutex
+	setRebuildReason := func(reason string) {
+		rebuildReasonMtx.Lock()
+		rebuildReason = reason
+		rebuildReasonMtx.Unlock()
+	}
+	getRebuildReason := func() string {
+		rebuildReasonMtx.Lock()
+		reason := rebuildReason
+		rebuildReasonMtx.Unlock()
+		return reason
+	}
 
 	// manifestDepSnapshot holds the last-seen refs for watched manifest deps.
 	// Passed as an immutable snapshot to the watcher goroutine.
@@ -170,17 +230,29 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 		var result *bldr_manifest_builder.BuilderResult
 		var err error
+		cacheHit := false
 
 		if !startupValidated {
 			startupValidated = true
 			startupValidationResult, startupErr := c.validateStartupBuilderResult(ctx, le, builderCtrl)
 			if startupErr != nil {
+				c.setLifecycleStatus(ManifestBuilderLifecycleStatus{
+					State:   ManifestBuilderLifecycleStateError,
+					Summary: "validate startup cache",
+					Error:   startupErr.Error(),
+				})
 				c.resultPromise.SetResult(nil, startupErr)
 				return startupErr
 			}
 			if startupValidationResult.builderResult != nil {
 				result = startupValidationResult.builderResult
 				manifestDepSnapshot = startupValidationResult.manifestDepSnapshot
+				cacheHit = true
+				c.setLifecycleStatus(ManifestBuilderLifecycleStatus{
+					State:    ManifestBuilderLifecycleStateDone,
+					CacheHit: true,
+					Summary:  "startup cache hit",
+				})
 				le.WithField("startup-cache", true).Info("reused cached startup manifest build")
 			}
 			if startupValidationResult.builderResult == nil {
@@ -189,20 +261,30 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 
 		buildCtx, buildCtxCancel := context.WithCancel(ctx)
+		var restarted atomic.Bool
+		restartFn := func(reason string) {
+			setRebuildReason(reason)
+			if !restarted.Swap(true) {
+				buildCtxCancel()
+			}
+		}
+		fullRebuild := false
+		hotRebuild := false
 		if result == nil {
+			fullRebuild = prevResult == nil
+			hotRebuild = prevResult != nil
+			c.setLifecycleStatus(ManifestBuilderLifecycleStatus{
+				State:                   ManifestBuilderLifecycleStateRunning,
+				FullRebuild:             fullRebuild,
+				HotRebuild:              hotRebuild,
+				DependencyRebuildReason: getRebuildReason(),
+				Summary:                 rebuildSummary(fullRebuild, hotRebuild),
+			})
 			args := &bldr_manifest_builder.BuildManifestArgs{
 				BuilderConfig: builderConfig,
 
 				PrevBuilderResult: prevResult,
 				ChangedFiles:      changedFiles,
-			}
-
-			// restartFn forces restarting BuildManifest (once)
-			var restarted atomic.Bool
-			restartFn := func() {
-				if !restarted.Swap(true) {
-					buildCtxCancel()
-				}
 			}
 
 			// construct the builder host which will set the restartFn when necessary
@@ -276,8 +358,24 @@ func (c *Controller) Execute(ctx context.Context) error {
 			}
 			resultPromise.SetResult(result, nil)
 			prevResult = result
+			c.setLifecycleStatus(ManifestBuilderLifecycleStatus{
+				State:                   ManifestBuilderLifecycleStateDone,
+				CacheHit:                cacheHit,
+				FullRebuild:             fullRebuild,
+				HotRebuild:              hotRebuild,
+				DependencyRebuildReason: getRebuildReason(),
+				Summary:                 "build complete",
+			})
 		} else {
 			resultPromise.SetResult(nil, err)
+			c.setLifecycleStatus(ManifestBuilderLifecycleStatus{
+				State:                   ManifestBuilderLifecycleStateError,
+				FullRebuild:             fullRebuild,
+				HotRebuild:              hotRebuild,
+				DependencyRebuildReason: getRebuildReason(),
+				Summary:                 "build failed",
+				Error:                   err.Error(),
+			})
 		}
 		prevErr = err
 
@@ -317,6 +415,15 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 		if len(watchedFiles) == 0 {
 			le.Debug("builder provided no files to watch")
+			c.setLifecycleStatus(ManifestBuilderLifecycleStatus{
+				State:                   ManifestBuilderLifecycleStateDone,
+				CacheHit:                cacheHit,
+				FullRebuild:             fullRebuild,
+				HotRebuild:              hotRebuild,
+				WatchedFileCount:        0,
+				DependencyRebuildReason: getRebuildReason(),
+				Summary:                 "watching for rebuild triggers",
+			})
 
 			if subManifestCount == 0 && !hasManifestDeps {
 				// nothing to wait for, return.
@@ -326,7 +433,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 			// Start manifest dep watcher if we have deps.
 			if hasManifestDeps {
-				go c.watchManifestDeps(buildCtx, le, watchManifestIDs, manifestDepSnapshot, buildCtxCancel)
+				go c.watchManifestDeps(buildCtx, le, watchManifestIDs, manifestDepSnapshot, restartFn)
 			}
 
 			// wait for sub-manifests/manifest-deps to change or ctx to cancel
@@ -383,10 +490,19 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 		// Start manifest dep watcher concurrently with file watcher.
 		if hasManifestDeps {
-			go c.watchManifestDeps(buildCtx, le, watchManifestIDs, manifestDepSnapshot, buildCtxCancel)
+			go c.watchManifestDeps(buildCtx, le, watchManifestIDs, manifestDepSnapshot, restartFn)
 		}
 
 		le.Debugf("watching for changes in %d files and %d directories and %d sub-manifests and %d manifest deps", len(watchedFiles), len(watchedSourceDirs), subManifestCount, len(watchManifestIDs))
+		c.setLifecycleStatus(ManifestBuilderLifecycleStatus{
+			State:                   ManifestBuilderLifecycleStateDone,
+			CacheHit:                cacheHit,
+			FullRebuild:             fullRebuild,
+			HotRebuild:              hotRebuild,
+			WatchedFileCount:        len(watchedFiles),
+			DependencyRebuildReason: getRebuildReason(),
+			Summary:                 "watching for changes",
+		})
 		happened, err := debounce_fswatcher.DebounceFSWatcherEvents(
 			buildCtx,
 			watcher,
@@ -428,6 +544,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 
 		le.Infof("re-building after %d filesystem events with %d changed files", len(happened), len(changedFiles))
+		setRebuildReason(changedFilesSummary(len(changedFiles)))
 		buildCtxCancel()
 	}
 }
@@ -508,14 +625,14 @@ func (c *Controller) resolveManifestDeps(
 }
 
 // watchManifestDeps watches the world for changes to manifest dependencies.
-// Calls cancelFn when any watched manifest's ref changes from the snapshot.
+// Calls restartFn when a watched manifest's ref changes from the snapshot.
 // The snapshot is an immutable copy; this function does not write to shared state.
 func (c *Controller) watchManifestDeps(
 	ctx context.Context,
 	le *logrus.Entry,
 	watchManifestIDs []string,
 	snapshot map[string]*bucket.ObjectRef,
-	cancelFn func(),
+	restartFn func(string),
 ) {
 	le.WithField("watch-manifest-ids", watchManifestIDs).
 		WithField("snapshot-size", len(snapshot)).
@@ -544,7 +661,7 @@ func (c *Controller) watchManifestDeps(
 				if prev == nil || !curr.EqualVT(prev) {
 					le.WithField("changed-manifest", id).
 						Info("manifest dependency changed, triggering rebuild")
-					cancelFn()
+					restartFn("manifest dependency changed: " + id)
 					return false, nil
 				}
 			}
@@ -576,3 +693,34 @@ func (c *Controller) Close() error {
 
 // _ is a type assertion
 var _ controller.Controller = ((*Controller)(nil))
+
+func (c *Controller) setLifecycleStatus(status ManifestBuilderLifecycleStatus) {
+	c.lifecycleMtx.Lock()
+	c.lifecycleStatus = status
+	sink := c.lifecycleSink
+	c.lifecycleMtx.Unlock()
+	if sink != nil {
+		sink.SetManifestBuilderLifecycleStatus(status)
+	}
+}
+
+func rebuildSummary(fullRebuild, hotRebuild bool) string {
+	if hotRebuild {
+		return "hot rebuild"
+	}
+	if fullRebuild {
+		return "full rebuild"
+	}
+	return "build"
+}
+
+func changedFilesSummary(count int) string {
+	switch count {
+	case 0:
+		return "filesystem change"
+	case 1:
+		return "filesystem change: 1 changed file"
+	default:
+		return "filesystem change: multiple changed files"
+	}
+}

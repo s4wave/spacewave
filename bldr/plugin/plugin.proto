@@ -5,6 +5,7 @@ import "github.com/s4wave/spacewave/bldr/manifest/manifest.proto";
 import "github.com/aperturerobotics/controllerbus/controller/exec/exec.proto";
 import "github.com/s4wave/spacewave/db/volume/volume.proto";
 import "github.com/aperturerobotics/starpc/rpcstream/rpcstream.proto";
+import "google/protobuf/timestamp.proto";
 
 // PluginState is the scheduler state for a plugin instance.
 enum PluginState {
@@ -26,6 +27,10 @@ message PluginStatus {
   string instance_key = 3;
   // State is the scheduler state for this plugin instance.
   PluginState state = 4;
+  // LastErrorMessage is the most recent plugin execution error summary.
+  string last_error_message = 5;
+  // LastErrorAt is when LastErrorMessage was recorded.
+  google.protobuf.Timestamp last_error_at = 6;
 }
 
 // PluginHost is the service exposed by the plugin host.

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	manifest_builder_controller "github.com/s4wave/spacewave/bldr/manifest/builder/controller"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
 )
 
@@ -152,4 +153,117 @@ func TestBuildTargetsOverrideSelection(t *testing.T) {
 	if gotOverride == override {
 		t.Fatal("override should be cloned, not aliased")
 	}
+}
+
+func TestManifestBuilderBuildTargetStatusMetadata(t *testing.T) {
+	ctrl := &Controller{
+		manifestBuilderBuildTargets: make(map[string][]string),
+	}
+	mbc := NewManifestBuilderConfigWithTargetPlatforms(
+		"spacewave-dist",
+		"release",
+		"desktop/darwin/arm64",
+		"devtool",
+		[]string{"desktop/darwin/arm64", "desktop/linux/amd64"},
+	)
+
+	ctrl.addManifestBuilderBuildTarget(mbc, "desktop")
+	ctrl.addManifestBuilderBuildTarget(mbc, "desktop")
+	ctrl.addManifestBuilderBuildTarget(mbc, "release")
+
+	targets := ctrl.getManifestBuilderBuildTargets(mbc.MarshalB58())
+	if len(targets) != 2 || targets[0] != "desktop" || targets[1] != "release" {
+		t.Fatalf("unexpected build target metadata: %#v", targets)
+	}
+
+	tr := &manifestBuilderTracker{
+		c:    ctrl,
+		conf: mbc,
+	}
+	status := tr.newStatus(ManifestBuilderStatusStateQueued, "queued", "")
+	if len(status.BuildTargetIDs) != 2 || status.BuildTargetIDs[0] != "desktop" || status.BuildTargetIDs[1] != "release" {
+		t.Fatalf("unexpected build target ids: %#v", status.BuildTargetIDs)
+	}
+	if len(status.TargetPlatformIDs) != 2 || status.TargetPlatformIDs[0] != "desktop/darwin/arm64" || status.TargetPlatformIDs[1] != "desktop/linux/amd64" {
+		t.Fatalf("unexpected target platform ids: %#v", status.TargetPlatformIDs)
+	}
+}
+
+func TestManifestBuilderTrackerLifecycleStatusPreservesFiniteBuildMetadata(t *testing.T) {
+	ctrl := &Controller{
+		manifestBuilderBuildTargets: make(map[string][]string),
+	}
+	mbc := NewManifestBuilderConfigWithTargetPlatforms(
+		"spacewave-dist",
+		"release",
+		"desktop/darwin/arm64",
+		"devtool",
+		[]string{"desktop/darwin/arm64"},
+	)
+	ctrl.addManifestBuilderBuildTarget(mbc, "desktop")
+
+	sink := &recordingManifestBuilderStatusSink{}
+	ctrl.manifestBuilderStatusSink = sink
+	tr := &manifestBuilderTracker{
+		c:    ctrl,
+		conf: mbc,
+	}
+	tr.status = tr.newStatus(ManifestBuilderStatusStateQueued, "queued", "")
+
+	tr.SetManifestBuilderLifecycleStatus(manifest_builder_controller.ManifestBuilderLifecycleStatus{
+		State:    manifest_builder_controller.ManifestBuilderLifecycleStateDone,
+		CacheHit: true,
+		Summary:  "startup cache hit",
+	})
+	cacheHit := sink.last(t)
+	if cacheHit.State != ManifestBuilderStatusStateDone || !cacheHit.CacheHit || cacheHit.Summary != "startup cache hit" {
+		t.Fatalf("unexpected cache-hit status: %#v", cacheHit)
+	}
+	if len(cacheHit.BuildTargetIDs) != 1 || cacheHit.BuildTargetIDs[0] != "desktop" {
+		t.Fatalf("cache-hit status lost finite build targets: %#v", cacheHit.BuildTargetIDs)
+	}
+
+	tr.SetManifestBuilderLifecycleStatus(manifest_builder_controller.ManifestBuilderLifecycleStatus{
+		State:       manifest_builder_controller.ManifestBuilderLifecycleStateRunning,
+		FullRebuild: true,
+		Summary:     "full rebuild",
+	})
+	fullRebuild := sink.last(t)
+	if fullRebuild.State != ManifestBuilderStatusStateRunning || !fullRebuild.FullRebuild || fullRebuild.HotRebuild {
+		t.Fatalf("unexpected full rebuild status: %#v", fullRebuild)
+	}
+
+	tr.SetManifestBuilderLifecycleStatus(manifest_builder_controller.ManifestBuilderLifecycleStatus{
+		State:                   manifest_builder_controller.ManifestBuilderLifecycleStateRunning,
+		HotRebuild:              true,
+		WatchedFileCount:        2,
+		DependencyRebuildReason: "manifest dependency changed: web",
+		Summary:                 "hot rebuild",
+	})
+	hotRebuild := sink.last(t)
+	if hotRebuild.State != ManifestBuilderStatusStateRunning || !hotRebuild.HotRebuild || hotRebuild.FullRebuild {
+		t.Fatalf("unexpected hot rebuild status: %#v", hotRebuild)
+	}
+	if hotRebuild.DependencyRebuildReason != "manifest dependency changed: web" || hotRebuild.WatchedFileCount != 2 {
+		t.Fatalf("unexpected dependency rebuild metadata: %#v", hotRebuild)
+	}
+	if len(hotRebuild.TargetPlatformIDs) != 1 || hotRebuild.TargetPlatformIDs[0] != "desktop/darwin/arm64" {
+		t.Fatalf("hot rebuild status lost target platform ids: %#v", hotRebuild.TargetPlatformIDs)
+	}
+}
+
+type recordingManifestBuilderStatusSink struct {
+	statuses []ManifestBuilderStatus
+}
+
+func (s *recordingManifestBuilderStatusSink) SetManifestBuilderStatus(status ManifestBuilderStatus) {
+	s.statuses = append(s.statuses, status)
+}
+
+func (s *recordingManifestBuilderStatusSink) last(t *testing.T) ManifestBuilderStatus {
+	t.Helper()
+	if len(s.statuses) == 0 {
+		t.Fatal("expected recorded status")
+	}
+	return s.statuses[len(s.statuses)-1]
 }

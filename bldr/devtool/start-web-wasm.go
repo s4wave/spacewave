@@ -31,7 +31,7 @@ import (
 )
 
 // ExecuteWebWasmProject starts the project as a web server in Wasm mode.
-func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) error {
+func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) (err error) {
 	// init repo root and storage directories
 	le := a.Logger
 	repoRoot, stateDir, err := a.InitRepoRoot()
@@ -46,8 +46,18 @@ func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) error {
 		return err
 	}
 	defer d.Release()
+	commandLogFile := a.commandLogFile()
+	d.setCommandStartingWithLogFile("start web", "initializing wasm web runtime", commandLogFile)
+	stopTUI, err := a.startTUIRunner(ctx, d.GetStatusProducer())
+	if err != nil {
+		return err
+	}
+	defer func() {
+		d.finishCommandThenStopTUI(ctx, "start web", commandLogFile, err, stopTUI)
+	}()
 
-	if err := d.SyncDistSources(a.BldrVersion, a.BldrVersionSum, a.BldrSrcPath); err != nil {
+	err = d.SyncDistSources(a.BldrVersion, a.BldrVersionSum, a.BldrSrcPath)
+	if err != nil {
 		return err
 	}
 
@@ -78,6 +88,7 @@ func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) error {
 	webStartupSrcPath, _ := startConf.ParseWebStartupPath()
 
 	buildType := bldr_manifest.BuildType(a.BuildType)
+	d.setCommandRunningWithLogFile("start web", "wasm web runtime active on "+a.WebListenAddr, commandLogFile)
 	return d.ExecuteWebWasm(
 		ctx,
 		repoRoot,

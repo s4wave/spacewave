@@ -49,10 +49,18 @@ func executePluginArgsEqual(a, b *executePluginArgs) bool {
 }
 
 // execPlugin executes the plugin.
-func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs) error {
+func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs) (rerr error) {
 	if args == nil || args.manifestSnapshot == nil {
 		return nil
 	}
+	defer func() {
+		if rerr != nil {
+			t.c.recordPluginStatusError(t.pluginID, t.instanceKey, "execute plugin", rerr)
+			return
+		}
+		t.c.clearPluginStatusError(t.pluginID, t.instanceKey)
+	}()
+
 	pluginManifest := args.manifestSnapshot
 	pluginID, le := t.pluginID, t.le
 
@@ -169,7 +177,6 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 				return context.Canceled
 			}
 
-			// TODO: track this error in PluginStatus
 			le.WithError(execErr).Error("plugin execution errored")
 			return execErr
 		}
@@ -199,7 +206,7 @@ func (t *pluginInstance) updateRpcClient(client srpc.Client) {
 			return nil
 		}
 		t.le.Debug("plugin rpc client is ready")
-		t.c.setPluginStatus(
+		t.c.setPluginStatusClearingError(
 			t.pluginID,
 			t.instanceKey,
 			bldr_plugin.PluginState_PluginState_RUNNING,

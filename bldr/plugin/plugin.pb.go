@@ -6,17 +6,17 @@ package bldr_plugin
 
 import (
 	fmt "fmt"
+	_ "github.com/aperturerobotics/controllerbus/controller/exec"
+	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
+	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	_ "github.com/aperturerobotics/starpc/rpcstream"
+	manifest "github.com/s4wave/spacewave/bldr/manifest"
+	volume "github.com/s4wave/spacewave/db/volume"
 	io "io"
 	slices "slices"
 	strconv "strconv"
 	strings "strings"
-
-	_ "github.com/aperturerobotics/controllerbus/controller/exec"
-	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
-	json "github.com/aperturerobotics/protobuf-go-lite/json"
-	_ "github.com/aperturerobotics/starpc/rpcstream"
-	manifest "github.com/s4wave/spacewave/bldr/manifest"
-	volume "github.com/s4wave/spacewave/db/volume"
 )
 
 // PluginState is the scheduler state for a plugin instance.
@@ -70,6 +70,10 @@ type PluginStatus struct {
 	InstanceKey string `protobuf:"bytes,3,opt,name=instance_key,json=instanceKey,proto3" json:"instanceKey,omitempty"`
 	// State is the scheduler state for this plugin instance.
 	State PluginState `protobuf:"varint,4,opt,name=state,proto3" json:"state,omitempty"`
+	// LastErrorMessage is the most recent plugin execution error summary.
+	LastErrorMessage string `protobuf:"bytes,5,opt,name=last_error_message,json=lastErrorMessage,proto3" json:"lastErrorMessage,omitempty"`
+	// LastErrorAt is when LastErrorMessage was recorded.
+	LastErrorAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=last_error_at,json=lastErrorAt,proto3" json:"lastErrorAt,omitempty"`
 }
 
 func (x *PluginStatus) Reset() {
@@ -104,6 +108,20 @@ func (x *PluginStatus) GetState() PluginState {
 		return x.State
 	}
 	return PluginState_PluginState_UNKNOWN
+}
+
+func (x *PluginStatus) GetLastErrorMessage() string {
+	if x != nil {
+		return x.LastErrorMessage
+	}
+	return ""
+}
+
+func (x *PluginStatus) GetLastErrorAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LastErrorAt
+	}
+	return nil
 }
 
 // GetPluginInfoRequest is a request to return the information for the current plugin.
@@ -328,6 +346,10 @@ func (m *PluginStatus) CloneVT() *PluginStatus {
 	r.Running = m.Running
 	r.InstanceKey = m.InstanceKey
 	r.State = m.State
+	r.LastErrorMessage = m.LastErrorMessage
+	if rhs := m.LastErrorAt; rhs != nil {
+		r.LastErrorAt = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -479,6 +501,12 @@ func (this *PluginStatus) EqualVT(that *PluginStatus) bool {
 	if this.State != that.State {
 		return false
 	}
+	if this.LastErrorMessage != that.LastErrorMessage {
+		return false
+	}
+	if !this.LastErrorAt.EqualVT(that.LastErrorAt) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -489,7 +517,6 @@ func (this *PluginStatus) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
-
 func (this *GetPluginInfoRequest) EqualVT(that *GetPluginInfoRequest) bool {
 	if this == that {
 		return true
@@ -506,7 +533,6 @@ func (this *GetPluginInfoRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
-
 func (this *GetPluginInfoResponse) EqualVT(that *GetPluginInfoResponse) bool {
 	if this == that {
 		return true
@@ -532,7 +558,6 @@ func (this *GetPluginInfoResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
-
 func (this *LoadPluginRequest) EqualVT(that *LoadPluginRequest) bool {
 	if this == that {
 		return true
@@ -555,7 +580,6 @@ func (this *LoadPluginRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
-
 func (this *LoadPluginResponse) EqualVT(that *LoadPluginResponse) bool {
 	if this == that {
 		return true
@@ -575,7 +599,6 @@ func (this *LoadPluginResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
-
 func (this *PluginMeta) EqualVT(that *PluginMeta) bool {
 	if this == that {
 		return true
@@ -604,7 +627,6 @@ func (this *PluginMeta) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
-
 func (this *PluginStartInfo) EqualVT(that *PluginStartInfo) bool {
 	if this == that {
 		return true
@@ -630,7 +652,6 @@ func (this *PluginStartInfo) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
-
 func (this *PluginContextInfo) EqualVT(that *PluginContextInfo) bool {
 	if this == that {
 		return true
@@ -719,6 +740,16 @@ func (x *PluginStatus) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("state")
 		x.State.MarshalProtoJSON(s)
 	}
+	if x.LastErrorMessage != "" || s.HasField("lastErrorMessage") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("lastErrorMessage")
+		s.WriteString(x.LastErrorMessage)
+	}
+	if x.LastErrorAt != nil || s.HasField("lastErrorAt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("lastErrorAt")
+		x.LastErrorAt.MarshalProtoJSON(s.WithField("lastErrorAt"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -748,6 +779,16 @@ func (x *PluginStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "state":
 			s.AddField("state")
 			x.State.UnmarshalProtoJSON(s)
+		case "last_error_message", "lastErrorMessage":
+			s.AddField("last_error_message")
+			x.LastErrorMessage = s.ReadString()
+		case "last_error_at", "lastErrorAt":
+			if s.ReadNil() {
+				x.LastErrorAt = nil
+				return
+			}
+			x.LastErrorAt = &timestamppb.Timestamp{}
+			x.LastErrorAt.UnmarshalProtoJSON(s.WithField("last_error_at", true))
 		}
 	})
 }
@@ -1149,6 +1190,23 @@ func (m *PluginStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.LastErrorAt != nil {
+		size, err := m.LastErrorAt.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x32
+	}
+	if len(m.LastErrorMessage) > 0 {
+		i -= len(m.LastErrorMessage)
+		copy(dAtA[i:], m.LastErrorMessage)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.LastErrorMessage)))
+		i--
+		dAtA[i] = 0x2a
+	}
 	if m.State != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.State))
 		i--
@@ -1542,6 +1600,14 @@ func (m *PluginStatus) SizeVT() (n int) {
 	if m.State != 0 {
 		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.State))
 	}
+	l = len(m.LastErrorMessage)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.LastErrorAt != nil {
+		l = m.LastErrorAt.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1675,7 +1741,6 @@ func (m *PluginContextInfo) SizeVT() (n int) {
 func (x PluginState) MarshalProtoText() string {
 	return x.String()
 }
-
 func (x *PluginStatus) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("PluginStatus {")
@@ -1709,6 +1774,20 @@ func (x *PluginStatus) MarshalProtoText() string {
 		sb.WriteString(PluginState(x.State).String())
 		sb.WriteString("\"")
 	}
+	if x.LastErrorMessage != "" {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("last_error_message: ")
+		sb.WriteString(strconv.Quote(x.LastErrorMessage))
+	}
+	if x.LastErrorAt != nil {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("last_error_at: ")
+		sb.WriteString(x.LastErrorAt.MarshalProtoText())
+	}
 	sb.WriteString("}")
 	return sb.String()
 }
@@ -1716,7 +1795,6 @@ func (x *PluginStatus) MarshalProtoText() string {
 func (x *PluginStatus) String() string {
 	return x.MarshalProtoText()
 }
-
 func (x *GetPluginInfoRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("GetPluginInfoRequest {")
@@ -1727,7 +1805,6 @@ func (x *GetPluginInfoRequest) MarshalProtoText() string {
 func (x *GetPluginInfoRequest) String() string {
 	return x.MarshalProtoText()
 }
-
 func (x *GetPluginInfoResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("GetPluginInfoResponse {")
@@ -1759,7 +1836,6 @@ func (x *GetPluginInfoResponse) MarshalProtoText() string {
 func (x *GetPluginInfoResponse) String() string {
 	return x.MarshalProtoText()
 }
-
 func (x *LoadPluginRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("LoadPluginRequest {")
@@ -1784,7 +1860,6 @@ func (x *LoadPluginRequest) MarshalProtoText() string {
 func (x *LoadPluginRequest) String() string {
 	return x.MarshalProtoText()
 }
-
 func (x *LoadPluginResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("LoadPluginResponse {")
@@ -1802,7 +1877,6 @@ func (x *LoadPluginResponse) MarshalProtoText() string {
 func (x *LoadPluginResponse) String() string {
 	return x.MarshalProtoText()
 }
-
 func (x *PluginMeta) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("PluginMeta {")
@@ -1841,7 +1915,6 @@ func (x *PluginMeta) MarshalProtoText() string {
 func (x *PluginMeta) String() string {
 	return x.MarshalProtoText()
 }
-
 func (x *PluginStartInfo) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("PluginStartInfo {")
@@ -1873,7 +1946,6 @@ func (x *PluginStartInfo) MarshalProtoText() string {
 func (x *PluginStartInfo) String() string {
 	return x.MarshalProtoText()
 }
-
 func (x *PluginContextInfo) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("PluginContextInfo {")
@@ -1891,7 +1963,6 @@ func (x *PluginContextInfo) MarshalProtoText() string {
 func (x *PluginContextInfo) String() string {
 	return x.MarshalProtoText()
 }
-
 func (m *PluginStatus) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1979,6 +2050,56 @@ func (m *PluginStatus) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LastErrorMessage", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.LastErrorMessage = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LastErrorAt", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.LastErrorAt == nil {
+				m.LastErrorAt = &timestamppb.Timestamp{}
+			}
+			if err := m.LastErrorAt.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -2001,7 +2122,6 @@ func (m *PluginStatus) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
-
 func (m *GetPluginInfoRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2044,7 +2164,6 @@ func (m *GetPluginInfoRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
-
 func (m *GetPluginInfoResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2165,7 +2284,6 @@ func (m *GetPluginInfoResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
-
 func (m *LoadPluginRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2252,7 +2370,6 @@ func (m *LoadPluginRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
-
 func (m *LoadPluginResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2323,7 +2440,6 @@ func (m *LoadPluginResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
-
 func (m *PluginMeta) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2454,7 +2570,6 @@ func (m *PluginMeta) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
-
 func (m *PluginStartInfo) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2563,7 +2678,6 @@ func (m *PluginStartInfo) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
-
 func (m *PluginContextInfo) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

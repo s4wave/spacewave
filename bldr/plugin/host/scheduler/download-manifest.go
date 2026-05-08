@@ -10,7 +10,14 @@ import (
 )
 
 // execDownloadManifest copies manifest blocks from the source bucket to the world bucket.
-func (t *pluginInstance) execDownloadManifest(ctx context.Context, manifestSnapshot *bldr_manifest.ManifestSnapshot) error {
+func (t *pluginInstance) execDownloadManifest(
+	ctx context.Context,
+	manifestSnapshot *bldr_manifest.ManifestSnapshot,
+) (rerr error) {
+	defer func() {
+		t.c.recordPluginStatusError(t.pluginID, t.instanceKey, "download plugin manifest", rerr)
+	}()
+
 	if t.c.conf.GetDisableCopyManifest() {
 		return nil
 	}
