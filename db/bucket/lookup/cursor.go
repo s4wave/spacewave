@@ -259,6 +259,16 @@ func (c *Cursor) Clone() *Cursor {
 	return c.clone()
 }
 
+// CloneWithLocalOnlyReads clones the cursor and disables network lookup reads
+// for lookup-backed buckets.
+func (c *Cursor) CloneWithLocalOnlyReads() *Cursor {
+	nc := c.clone()
+	if lb, ok := nc.bkt.(*lookupBucket); ok {
+		nc.bkt = &lookupBucket{h: lb.h, localOnly: true}
+	}
+	return nc
+}
+
 // BuildTransaction builds a block transaction at the cursor location.
 // putOpts is optional
 func (c *Cursor) BuildTransaction(putOpts *block.PutOpts) (*block.Transaction, *block.Cursor) {

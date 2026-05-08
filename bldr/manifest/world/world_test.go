@@ -5,12 +5,20 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/cayley/quad"
+	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/controller/configset"
+	"github.com/aperturerobotics/controllerbus/directive"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/blang/semver/v4"
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/bucket/lookup/concurrent"
+	"github.com/s4wave/spacewave/db/dex"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
@@ -290,6 +298,109 @@ func TestCollectStartupManifestsSkipsUnavailableBucketRef(t *testing.T) {
 	}
 	if !got[0].ManifestRef.EqualVT(goodRef.GetManifestRef()) {
 		t.Fatalf("manifest ref was not preserved")
+	}
+}
+
+func TestCollectStartupManifestsSkipsUnavailableLookupBucketBlockWithoutNetworkWait(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ctrlRel, err := tb.Bus.AddController(ctx, startupManifestBlockingLookupController{}, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ctrlRel()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const storeKey = "plugin-host"
+	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	goodRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 7)
+	const goodRefKey = "plugin-host/ref/good"
+	storeTestManifestRefObject(t, ctx, ws, goodRefKey, goodRef)
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, goodRefKey, "spacewave-web")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const lookupBucketID = "startup-lookup-bucket"
+	bucketLkConfig, err := bucket.NewLookupConfig(configset.NewControllerConfig(1, &lookup_concurrent.Config{
+		NotFoundBehavior: lookup_concurrent.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE,
+	}))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	bucketConf, err := bucket.NewConfig(lookupBucketID, 1, nil, bucketLkConfig)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	_, _, _, err = tb.Volume.ApplyBucketConfig(ctx, bucketConf)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	waitCtx, waitCancel := context.WithTimeout(ctx, time.Second)
+	lookupHandle, _, lookupHandleRef, err := bucket_lookup.ExBuildBucketLookup(waitCtx, tb.Bus, false, lookupBucketID, nil)
+	waitCancel()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer lookupHandleRef.Release()
+	if lookupHandle.GetBucketConfig() == nil {
+		t.Fatal("lookup bucket config was not loaded")
+	}
+
+	badRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 9)
+	badRef.GetManifestRef().BucketId = lookupBucketID
+	badRef.GetManifestRef().RootRef.Hash.Hash[0] ^= 0xff
+	const badRefKey = "plugin-host/ref/lookup-bucket-missing-block"
+	storeTestManifestRefObject(t, ctx, ws, badRefKey, badRef)
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, badRefKey, "spacewave-web")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	collectCtx, cancel := context.WithTimeout(ctx, 200*time.Millisecond)
+	defer cancel()
+	got, errs, err := CollectStartupManifestsForManifestID(
+		collectCtx,
+		ws,
+		"spacewave-web",
+		[]string{"js"},
+		storeKey,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(errs) != 1 {
+		t.Fatalf("manifest errors = %v", errs)
+	}
+	if !errors.Is(errs[0], block.ErrNotFound) {
+		t.Fatalf("manifest error = %v, want block not found", errs[0])
+	}
+	if strings.Contains(errs[0].Error(), context.DeadlineExceeded.Error()) {
+		t.Fatalf("manifest error waited for network lookup: %v", errs[0])
+	}
+	if len(got) != 1 {
+		t.Fatalf("manifest count = %d", len(got))
+	}
+	if got[0].GetRev() != 7 {
+		t.Fatalf("manifest rev = %d", got[0].GetRev())
 	}
 }
 
@@ -1024,4 +1135,43 @@ func storeTestManifestRefObject(
 	}); err != nil {
 		t.Fatal(err.Error())
 	}
+}
+
+type startupManifestBlockingLookupController struct{}
+
+func (startupManifestBlockingLookupController) Execute(ctx context.Context) error {
+	<-ctx.Done()
+	return context.Canceled
+}
+
+func (startupManifestBlockingLookupController) GetControllerInfo() *controller.Info {
+	return controller.NewInfo(
+		"test/startup-manifest-blocking-lookup",
+		semver.MustParse("0.0.1"),
+		"",
+	)
+}
+
+func (startupManifestBlockingLookupController) HandleDirective(
+	_ context.Context,
+	di directive.Instance,
+) ([]directive.Resolver, error) {
+	if _, ok := di.GetDirective().(dex.LookupBlockFromNetwork); !ok {
+		return nil, nil
+	}
+	return directive.R(startupManifestBlockingLookupResolver{}, nil)
+}
+
+func (startupManifestBlockingLookupController) Close() error {
+	return nil
+}
+
+type startupManifestBlockingLookupResolver struct{}
+
+func (startupManifestBlockingLookupResolver) Resolve(
+	ctx context.Context,
+	_ directive.ResolverHandler,
+) error {
+	<-ctx.Done()
+	return context.Canceled
 }

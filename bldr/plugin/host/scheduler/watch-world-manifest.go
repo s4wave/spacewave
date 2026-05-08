@@ -109,6 +109,8 @@ func (t *pluginInstance) processManifestWorldState(
 			"startup manifest refs",
 			errors.New(skipSummary),
 		)
+	} else {
+		t.c.clearPluginStatusErrorStage(t.pluginID, t.instanceKey, "startup manifest refs")
 	}
 	if len(manifests) == 0 {
 		// When store is disabled, the fetch handler may drive

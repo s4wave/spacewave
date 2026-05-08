@@ -462,7 +462,8 @@ func TestWatchWorldManifestExecutesReadableLauncherWithUnavailableRetainedReleas
 	retainedRef.GetManifestRef().BucketId = "spacewave-cdn-release-retained"
 	const retainedRefKey = "release/manifests/spacewave-launcher/desktop/darwin/arm64/cdn-retained"
 	storeTestManifestRefObject(t, ctx, ws, retainedRefKey, retainedRef)
-	if err := ws.SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad(objKey, retainedRefKey, "")); err != nil {
+	retainedEdge := bldr_manifest_world.NewManifestQuad(objKey, retainedRefKey, "")
+	if err := ws.SetGraphQuad(ctx, retainedEdge); err != nil {
 		t.Fatal(err.Error())
 	}
 
@@ -526,6 +527,41 @@ func TestWatchWorldManifestExecutesReadableLauncherWithUnavailableRetainedReleas
 	}
 	if !strings.Contains(lastError, "bucket=spacewave-cdn-release-retained") {
 		t.Fatalf("retained release/CDN diagnostic %q does not mention missing CDN bucket", lastError)
+	}
+
+	if err := ws.DeleteGraphQuad(ctx, retainedEdge); err != nil {
+		t.Fatal(err.Error())
+	}
+	deleted, err := ws.DeleteObject(ctx, retainedRefKey)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !deleted {
+		t.Fatal("expected retained release ref object to be deleted")
+	}
+
+	wait, err = pi.processManifestWorldState(ctx, le, &pluginHostSet{
+		pluginHosts: []bldr_plugin_host.PluginHost{host},
+	}, ws, obj)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !wait {
+		t.Fatal("expected watch loop to wait for changes after pruning")
+	}
+	execState = pi.executePluginRoutine.GetState()
+	if execState == nil || execState.manifestSnapshot == nil {
+		t.Fatal("expected readable launcher candidate to remain selected after pruning")
+	}
+	if !execState.manifestSnapshot.GetManifestRef().EqualVT(launcherRef.GetManifestRef()) {
+		t.Fatal("expected pruned scan to keep the readable launcher candidate")
+	}
+	status = ctrl.GetPluginStatusCtr().GetValue()
+	if len(status.Plugins) != 1 {
+		t.Fatalf("expected existing plugin status to remain, got %d", len(status.Plugins))
+	}
+	if lastError = status.Plugins[0].GetLastErrorMessage(); lastError != "" {
+		t.Fatalf("expected startup manifest skip status to clear after pruning, got %q", lastError)
 	}
 }
 

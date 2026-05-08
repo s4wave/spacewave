@@ -595,7 +595,7 @@ func lookupStartupManifestObjectRef(
 		}
 		defer manifestCursor.Release()
 
-		_, bcs := manifestCursor.BuildTransaction(nil)
+		_, bcs := manifestCursor.CloneWithLocalOnlyReads().BuildTransaction(nil)
 		manifest, err = bldr_manifest.UnmarshalManifest(ctx, bcs)
 		if err != nil {
 			return err

@@ -3,6 +3,7 @@ package plugin_host_scheduler
 import (
 	"context"
 	"slices"
+	"strings"
 
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/util/ccontainer"
@@ -70,6 +71,20 @@ func (c *Controller) clearPluginStatusError(pluginID, instanceKey string) {
 		false,
 		true,
 	)
+}
+
+func (c *Controller) clearPluginStatusErrorStage(pluginID, instanceKey, stage string) {
+	key := pluginInstanceKey(pluginID, instanceKey)
+	c.pluginStatusMtx.Lock()
+	current := c.pluginStatus[key]
+	c.pluginStatusMtx.Unlock()
+	if current == nil {
+		return
+	}
+	if stage != "" && !strings.HasPrefix(current.GetLastErrorMessage(), stage+": ") {
+		return
+	}
+	c.clearPluginStatusError(pluginID, instanceKey)
 }
 
 func (c *Controller) updatePluginStatus(

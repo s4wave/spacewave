@@ -14,7 +14,8 @@ var ErrNotImplemented = errors.New("operation not implemented by lookup controll
 
 // lookupBucket implements bucket.Bucket with a lookup handle.
 type lookupBucket struct {
-	h Handle
+	h         Handle
+	localOnly bool
 }
 
 // NewBucketFromHandle implements the Bucket api with a Lookup handle.
@@ -101,6 +102,9 @@ func (l *lookupBucket) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byt
 	}
 	if lb == nil {
 		return nil, false, bucket.ErrBucketNotFound
+	}
+	if l.localOnly {
+		return lb.LookupBlock(ctx, ref, WithLocalOnly())
 	}
 	return lb.LookupBlock(ctx, ref)
 }
