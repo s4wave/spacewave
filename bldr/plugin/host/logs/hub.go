@@ -72,7 +72,7 @@ func (h *Hub) Emit(event *StructuredLogEvent) (*EmitStructuredLogResponse, error
 	assigned.Sequence = h.nextSequence
 	assigned.Timestamp = timestamppb.New(h.now())
 
-	if h.retainedEventLimit != 0 {
+	if h.retainedEventLimit != 0 && len(h.views) != 0 {
 		h.retained = append(h.retained, assigned)
 		if uint32(len(h.retained)) > h.retainedEventLimit {
 			copy(h.retained, h.retained[1:])
@@ -229,6 +229,10 @@ func (v *View) Release() {
 	delete(v.hub.views, v)
 	if v.rangeSnapshot.GetFollow() {
 		v.hub.followViewCount--
+	}
+	if len(v.hub.views) == 0 {
+		clear(v.hub.retained)
+		v.hub.retained = nil
 	}
 	close(v.updates)
 }

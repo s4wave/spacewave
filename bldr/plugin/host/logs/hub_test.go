@@ -10,6 +10,8 @@ func TestHubAssignsMonotonicSequencesAndBoundsRetainedHistory(t *testing.T) {
 		WithRetainedEventLimit(3),
 		WithClock(func() time.Time { return time.Unix(123, 0) }),
 	)
+	view := hub.OpenView(nil, nil)
+	defer view.Release()
 
 	for i := uint64(1); i <= 5; i++ {
 		resp, err := hub.Emit(&StructuredLogEvent{
@@ -37,6 +39,9 @@ func TestHubAssignsMonotonicSequencesAndBoundsRetainedHistory(t *testing.T) {
 
 func TestHubEvaluatesStructuredLogFilters(t *testing.T) {
 	hub := NewHub(WithRetainedEventLimit(10))
+	view := hub.OpenView(nil, nil)
+	defer view.Release()
+
 	events := []*StructuredLogEvent{
 		{
 			PluginId:    "runner",
@@ -113,6 +118,9 @@ func TestHubEvaluatesStructuredLogFilters(t *testing.T) {
 
 func TestHubRangeTailLimitAndDroppedCount(t *testing.T) {
 	hub := NewHub(WithRetainedEventLimit(10))
+	view := hub.OpenView(nil, nil)
+	defer view.Release()
+
 	for range 5 {
 		if _, err := hub.Emit(&StructuredLogEvent{
 			PluginId: "plugin-a",
@@ -133,6 +141,59 @@ func TestHubRangeTailLimitAndDroppedCount(t *testing.T) {
 	}
 	if state.GetDroppedEventCount() != 3 {
 		t.Fatalf("dropped count = %d, want 3", state.GetDroppedEventCount())
+	}
+}
+
+func TestHubRetainsHistoryOnlyWhileViewsAreOpen(t *testing.T) {
+	hub := NewHub(WithRetainedEventLimit(10))
+
+	resp, err := hub.Emit(&StructuredLogEvent{PluginId: "runner"})
+	if err != nil {
+		t.Fatalf("Emit without view: %v", err)
+	}
+	if resp.GetSequence() != 1 {
+		t.Fatalf("sequence without view = %d, want 1", resp.GetSequence())
+	}
+	if got := len(hub.Snapshot(nil, nil).GetEvents()); got != 0 {
+		t.Fatalf("retained events without view = %d, want 0", got)
+	}
+
+	view := hub.OpenView(nil, nil)
+	secondView := hub.OpenView(nil, nil)
+
+	for range 2 {
+		if _, err := hub.Emit(&StructuredLogEvent{PluginId: "runner"}); err != nil {
+			t.Fatalf("Emit with view: %v", err)
+		}
+	}
+	got := eventSequences(hub.Snapshot(nil, nil).GetEvents())
+	want := []uint64{2, 3}
+	if !equalSequences(got, want) {
+		t.Fatalf("retained sequences with views = %v, want %v", got, want)
+	}
+
+	view.Release()
+	got = eventSequences(hub.Snapshot(nil, nil).GetEvents())
+	if !equalSequences(got, want) {
+		t.Fatalf("retained sequences with second view = %v, want %v", got, want)
+	}
+
+	secondView.Release()
+	if got := len(hub.Snapshot(nil, nil).GetEvents()); got != 0 {
+		t.Fatalf("retained events after last release = %d, want 0", got)
+	}
+
+	resp, err = hub.Emit(&StructuredLogEvent{PluginId: "runner"})
+	if err != nil {
+		t.Fatalf("Emit after last release: %v", err)
+	}
+	if resp.GetSequence() != 4 {
+		t.Fatalf("sequence after last release = %d, want 4", resp.GetSequence())
+	}
+	reopenedView := hub.OpenView(nil, nil)
+	defer reopenedView.Release()
+	if got := len(reopenedView.Snapshot().GetEvents()); got != 0 {
+		t.Fatalf("retained events after reopening = %d, want 0", got)
 	}
 }
 
