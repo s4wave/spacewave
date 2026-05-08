@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
-import { useNavigate } from '@s4wave/web/router/router.js'
+import { useNavigate, usePath } from '@s4wave/web/router/router.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { LuRefreshCw, LuX } from 'react-icons/lu'
 import { BillingStatus } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
@@ -8,27 +8,17 @@ import { useBillingAccountCheckout } from '../provider/spacewave/useBillingAccou
 import { useBillingStateContext } from './BillingStateProvider.js'
 import { isStatusActive } from './billing-utils.js'
 
-function hasAutoReactivateIntent(): boolean {
-  const hash =
-    window.location.hash.startsWith('#') ?
-      window.location.hash.slice(1)
-    : window.location.hash
-  const query = hash.split('?')[1] ?? ''
+function hasAutoReactivateIntent(path: string): boolean {
+  const query = path.split('?')[1] ?? ''
   return new URLSearchParams(query).get('reactivate') === '1'
 }
 
-function clearAutoReactivateIntent(): void {
-  const hash =
-    window.location.hash.startsWith('#') ?
-      window.location.hash.slice(1)
-    : window.location.hash
-  const [path] = hash.split('?')
-  const nextHash = path ? `#${path}` : '#/'
-  window.history.replaceState(
-    window.history.state,
-    '',
-    `${window.location.pathname}${window.location.search}${nextHash}`,
-  )
+function clearAutoReactivateIntent(
+  path: string,
+  navigate: (to: { path: string; replace?: boolean }) => void,
+): void {
+  const [cleanPath] = path.split('?')
+  navigate({ path: cleanPath || '/', replace: true })
 }
 
 // PlanControls provides cancel and reactivate actions.
@@ -40,8 +30,9 @@ export function PlanControls(props: {
   const session = SessionContext.useContext().value
   const billingState = useBillingStateContext()
   const navigate = useNavigate()
+  const path = usePath()
   const checkout = useBillingAccountCheckout()
-  const autoReactivate = useRef(hasAutoReactivateIntent())
+  const autoReactivate = useRef(hasAutoReactivateIntent(path))
   const autoTriggered = useRef(false)
 
   const [action, setAction] = useState<'idle' | 'reactivating'>('idle')
@@ -82,7 +73,7 @@ export function PlanControls(props: {
     if (!props.showSelfService || !isCanceled) return
     if (!session || !billingState.billingAccountId || action !== 'idle') return
     autoTriggered.current = true
-    clearAutoReactivateIntent()
+    clearAutoReactivateIntent(path, navigate)
     queueMicrotask(() => {
       void handleReactivate()
     })
@@ -91,6 +82,8 @@ export function PlanControls(props: {
     billingState.billingAccountId,
     handleReactivate,
     isCanceled,
+    navigate,
+    path,
     props.showSelfService,
     session,
   ])

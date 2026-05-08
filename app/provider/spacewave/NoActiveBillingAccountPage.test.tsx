@@ -10,7 +10,8 @@ const mockUseStreamingResource = vi.hoisted(() => vi.fn())
 const mockUseSessionInfo = vi.hoisted(() => vi.fn())
 const mockUseSessionMetadata = vi.hoisted(() => vi.fn())
 const mockUseSessionIndex = vi.hoisted(() => vi.fn(() => 1))
-const mockOrgListUseContextSafe = vi.hoisted(() => vi.fn(() => null))
+const mockOrgListUseContextSafe = vi.hoisted(() => vi.fn())
+const mockPath = vi.hoisted(() => ({ value: '/u/1/plan/no-active' }))
 const mockUseCloudProviderConfig = vi.hoisted(() =>
   vi.fn(() => ({
     accountBaseUrl: 'https://account.spacewave.example',
@@ -75,6 +76,10 @@ vi.mock('./CloudConfirmationPage.js', () => ({
 
 vi.mock('@s4wave/web/router/Redirect.js', () => ({
   Redirect: ({ to }: { to: string }) => <div data-testid="redirect">{to}</div>,
+}))
+
+vi.mock('@s4wave/web/router/router.js', () => ({
+  usePath: () => mockPath.value,
 }))
 
 vi.mock('@s4wave/sdk/provider/spacewave/spacewave.pb.js', () => ({
@@ -145,6 +150,7 @@ describe('NoActiveBillingAccountPage', () => {
     mockUseSessionMetadata.mockReturnValue({ displayName: 'Casey' })
     mockUseSessionIndex.mockReturnValue(1)
     mockOrgListUseContextSafe.mockReturnValue(null)
+    mockPath.value = '/u/1/plan/no-active'
     mockUseCloudProviderConfig.mockReturnValue({
       accountBaseUrl: 'https://account.spacewave.example',
       publicBaseUrl: 'https://spacewave.example',
@@ -277,5 +283,17 @@ describe('NoActiveBillingAccountPage', () => {
     render(<NoActiveBillingAccountPage />)
 
     expect(screen.getByTestId('redirect').textContent).toBe('../../setup')
+  })
+
+  it('uses the panel route query for organization billing target in split mode', () => {
+    window.location.hash = '#/g/encoded-shell-layout'
+    mockPath.value = '/u/1/plan/no-active?ownerType=organization&ownerId=org_1'
+    mockOrgListUseContextSafe.mockReturnValue({
+      organizations: [{ id: 'org_1', displayName: 'Aperture Team' }],
+    })
+
+    render(<NoActiveBillingAccountPage />)
+
+    expect(screen.getByText('Aperture Team')).toBeTruthy()
   })
 })

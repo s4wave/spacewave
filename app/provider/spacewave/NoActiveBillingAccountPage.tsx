@@ -15,6 +15,7 @@ import { usePromise } from '@s4wave/web/hooks/usePromise.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import { SpacewaveOrgListContext } from '@s4wave/web/contexts/SpacewaveOrgListContext.js'
 import { Redirect } from '@s4wave/web/router/Redirect.js'
+import { usePath } from '@s4wave/web/router/router.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { useSessionMetadata } from '@s4wave/app/hooks/useSessionMetadata.js'
 import type { ManagedBillingAccount } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
@@ -33,15 +34,11 @@ interface BillingSetupTarget {
   label: string
 }
 
-function getNoActiveBillingTargetOverride(): {
+function getNoActiveBillingTargetOverride(path: string): {
   ownerType: 'account' | 'organization'
   ownerId: string
 } | null {
-  const hash =
-    window.location.hash.startsWith('#') ?
-      window.location.hash.slice(1)
-    : window.location.hash
-  const query = hash.split('?')[1] ?? ''
+  const query = path.split('?')[1] ?? ''
   const params = new URLSearchParams(query)
   const ownerType = params.get('ownerType')
   const ownerId = params.get('ownerId')
@@ -70,6 +67,7 @@ export function NoActiveBillingAccountPage() {
   const session = useResourceValue(sessionResource)
   const navigateSession = useSessionNavigate()
   const sessionIdx = useSessionIndex() || null
+  const path = usePath()
   const sessionMetadata = useSessionMetadata(sessionIdx)
   const { accountId: callerAccountId } = useSessionInfo(session)
   const orgListCtx = SpacewaveOrgListContext.useContextSafe()
@@ -96,7 +94,10 @@ export function NoActiveBillingAccountPage() {
     [data?.accounts],
   )
   const hasAccounts = accounts.length > 0
-  const targetOverride = getNoActiveBillingTargetOverride()
+  const targetOverride = useMemo(
+    () => getNoActiveBillingTargetOverride(path),
+    [path],
+  )
   const target = useMemo<BillingSetupTarget>(() => {
     if (targetOverride?.ownerType === 'organization') {
       const org = (orgListCtx?.organizations ?? []).find(

@@ -16,6 +16,7 @@ const mockStartCheckout = vi.hoisted(() => vi.fn())
 const mockBillingState = vi.hoisted(() => ({
   billingAccountId: 'ba_test',
 }))
+const mockPath = vi.hoisted(() => ({ value: '/u/1/billing/ba_test' }))
 
 vi.mock('@s4wave/web/contexts/contexts.js', () => ({
   SessionContext: {
@@ -31,6 +32,7 @@ vi.mock('@s4wave/web/contexts/contexts.js', () => ({
 
 vi.mock('@s4wave/web/router/router.js', () => ({
   useNavigate: () => mockNavigate,
+  usePath: () => mockPath.value,
 }))
 
 vi.mock('../provider/spacewave/useBillingAccountCheckout.js', () => ({
@@ -67,6 +69,7 @@ describe('PlanControls', () => {
     mockReactivateSubscription.mockReset()
     mockStartCheckout.mockReset()
     window.location.hash = '#/u/1/billing/ba_test'
+    mockPath.value = '/u/1/billing/ba_test'
   })
 
   afterEach(() => {
@@ -90,7 +93,7 @@ describe('PlanControls', () => {
 
   it('auto-starts reactivation once when the billing page carries a reactivate intent', async () => {
     mockReactivateSubscription.mockResolvedValue({ needsCheckout: true })
-    window.location.hash = '#/u/1/billing/ba_test?reactivate=1'
+    mockPath.value = '/u/1/billing/ba_test?reactivate=1'
 
     render(<PlanControls status={5} showSelfService={true} />)
 
@@ -98,6 +101,26 @@ describe('PlanControls', () => {
       expect(mockReactivateSubscription).toHaveBeenCalledWith('ba_test'),
     )
     expect(mockStartCheckout).toHaveBeenCalledWith('ba_test')
-    expect(window.location.hash).toBe('#/u/1/billing/ba_test')
+    expect(mockNavigate).toHaveBeenCalledWith({
+      path: '/u/1/billing/ba_test',
+      replace: true,
+    })
+  })
+
+  it('uses the panel route query for auto-reactivation in split mode', async () => {
+    mockReactivateSubscription.mockResolvedValue({ needsCheckout: true })
+    window.location.hash = '#/g/encoded-shell-layout'
+    mockPath.value = '/u/1/billing/ba_test?reactivate=1'
+
+    render(<PlanControls status={5} showSelfService={true} />)
+
+    await waitFor(() =>
+      expect(mockReactivateSubscription).toHaveBeenCalledWith('ba_test'),
+    )
+    expect(mockStartCheckout).toHaveBeenCalledWith('ba_test')
+    expect(mockNavigate).toHaveBeenCalledWith({
+      path: '/u/1/billing/ba_test',
+      replace: true,
+    })
   })
 })
