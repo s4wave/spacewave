@@ -75,7 +75,7 @@ describe('UnixFSVideoFileViewer', () => {
     ).toBeDefined()
   })
 
-  it('resets player chrome when the projected file url changes', () => {
+  it('resets player chrome without replacing the viewer shell when the projected file url changes', () => {
     const { rerender } = render(
       <UnixFSVideoFileViewer
         title="demo.mp4"
@@ -83,6 +83,7 @@ describe('UnixFSVideoFileViewer', () => {
       />,
     )
 
+    const shell = screen.getByTestId('unixfs-video-viewer')
     const firstVideo = screen.getByTestId('unixfs-video-element')
     fireEvent(firstVideo, new Event('loadedmetadata'))
     expect(screen.queryByText('Loading preview')).toBeNull()
@@ -95,7 +96,9 @@ describe('UnixFSVideoFileViewer', () => {
     )
 
     expect(screen.getByText('Loading preview')).toBeDefined()
+    expect(screen.getByTestId('unixfs-video-viewer')).toBe(shell)
     const secondVideo = screen.getByTestId('unixfs-video-element')
+    expect(secondVideo).not.toBe(firstVideo)
     expect(secondVideo.getAttribute('src')).toBe(
       '/p/spacewave-core/fs/u/1/so/space-test/-/docs/demo/-/nested/demo.webm?inline=1',
     )

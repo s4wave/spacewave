@@ -131,81 +131,86 @@ function UnixFSVideoPlayerSurface({
   const showBuffering = state.status === 'ready' && state.buffering
 
   return (
-    <div className="flex min-h-0 flex-1 overflow-hidden">
-      <div className="relative flex min-h-0 flex-1 items-center justify-center bg-black/80">
-        {showLoading && (
-          <div
-            data-testid="unixfs-video-loading"
-            className="bg-background/72 absolute inset-0 z-20 flex items-center justify-center p-6 backdrop-blur-sm"
-          >
-            <div className="w-full max-w-sm">
-              <LoadingCard
-                view={{
-                  state: 'active',
-                  title: 'Loading preview',
-                  detail: 'Waiting for video metadata.',
-                }}
-              />
-            </div>
-          </div>
-        )}
-
-        {state.status === 'error' && (
-          <div
-            data-testid="unixfs-video-error"
-            className="bg-background/82 absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 p-6 text-center backdrop-blur-sm"
-          >
-            <div className="bg-destructive/10 text-destructive flex h-10 w-10 items-center justify-center rounded-full">
-              <LuTriangleAlert className="h-5 w-5" />
-            </div>
-            <div className="text-foreground text-sm font-semibold">
-              {state.unsupported ?
-                'Video preview unavailable'
-              : 'Video playback failed'}
-            </div>
-            <div className="text-foreground-alt max-w-md text-xs">
-              {state.message}
-            </div>
-          </div>
-        )}
-
-        {showBuffering && (
-          <div className="border-foreground/10 bg-background/78 absolute top-4 right-4 z-20 flex items-center rounded-full border px-3 py-1.5 backdrop-blur-sm">
-            <LoadingInline label="Buffering preview" tone="muted" size="sm" />
-          </div>
-        )}
-
-        <Player.Provider>
-          <VideoSkin
-            className="flex h-full min-h-0 w-full items-center justify-center rounded-none"
-            style={videoSkinStyle}
-          >
-            <Video
-              aria-label={title}
-              className={cn(
-                'h-full max-h-full w-full max-w-full bg-black object-contain',
-                state.status === 'error' && 'opacity-20',
-              )}
-              data-testid="unixfs-video-element"
-              onCanPlay={handleReady}
-              onError={handleError}
-              onLoadedMetadata={handleReady}
-              onPlaying={handleReady}
-              onSeeked={handleReady}
-              onSeeking={handleBuffering}
-              onWaiting={handleBuffering}
-              playsInline
-              preload="metadata"
-              src={inlineFileURL}
+    <div className="relative flex min-h-0 flex-1 items-center justify-center bg-black/80">
+      {showLoading && (
+        <div
+          data-testid="unixfs-video-loading"
+          className="bg-background/72 absolute inset-0 z-20 flex items-center justify-center p-6 backdrop-blur-sm"
+        >
+          <div className="w-full max-w-sm">
+            <LoadingCard
+              view={{
+                state: 'active',
+                title: 'Loading preview',
+                detail: 'Waiting for video metadata.',
+              }}
             />
-          </VideoSkin>
-        </Player.Provider>
-      </div>
+          </div>
+        </div>
+      )}
+
+      {state.status === 'error' && (
+        <div
+          data-testid="unixfs-video-error"
+          className="bg-background/82 absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 p-6 text-center backdrop-blur-sm"
+        >
+          <div className="bg-destructive/10 text-destructive flex h-10 w-10 items-center justify-center rounded-full">
+            <LuTriangleAlert className="h-5 w-5" />
+          </div>
+          <div className="text-foreground text-sm font-semibold">
+            {state.unsupported ?
+              'Video preview unavailable'
+            : 'Video playback failed'}
+          </div>
+          <div className="text-foreground-alt max-w-md text-xs">
+            {state.message}
+          </div>
+        </div>
+      )}
+
+      {showBuffering && (
+        <div className="border-foreground/10 bg-background/78 absolute top-4 right-4 z-20 flex items-center rounded-full border px-3 py-1.5 backdrop-blur-sm">
+          <LoadingInline label="Buffering preview" tone="muted" size="sm" />
+        </div>
+      )}
+
+      <Player.Provider>
+        <VideoSkin
+          className="flex h-full min-h-0 w-full items-center justify-center rounded-none"
+          style={videoSkinStyle}
+        >
+          <Video
+            aria-label={title}
+            className={cn(
+              'h-full max-h-full w-full max-w-full bg-black object-contain',
+              state.status === 'error' && 'opacity-20',
+            )}
+            data-testid="unixfs-video-element"
+            onCanPlay={handleReady}
+            onError={handleError}
+            onLoadedMetadata={handleReady}
+            onPlaying={handleReady}
+            onSeeked={handleReady}
+            onSeeking={handleBuffering}
+            onWaiting={handleBuffering}
+            playsInline
+            preload="metadata"
+            src={inlineFileURL}
+          />
+        </VideoSkin>
+      </Player.Provider>
     </div>
   )
 }
 
 // UnixFSVideoFileViewer renders a dedicated inline preview surface for video files.
 export function UnixFSVideoFileViewer(props: UnixFSVideoFileViewerProps) {
-  return <UnixFSVideoPlayerSurface key={props.inlineFileURL} {...props} />
+  return (
+    <div
+      data-testid="unixfs-video-viewer"
+      className="flex min-h-0 flex-1 overflow-hidden"
+    >
+      <UnixFSVideoPlayerSurface key={props.inlineFileURL} {...props} />
+    </div>
+  )
 }
