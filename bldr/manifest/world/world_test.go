@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/cayley/quad"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -367,6 +368,206 @@ func TestCollectStartupManifestsForManifestIDNarrowsLabelsAndKeepsLegacyEmpty(t 
 	}
 	if !got[1].ManifestRef.EqualVT(legacyRef.GetManifestRef()) {
 		t.Fatalf("legacy manifest ref was not preserved")
+	}
+}
+
+func TestCollectStartupManifestsForManifestIDCoverageMatrix(t *testing.T) {
+	type setupFunc func(
+		t *testing.T,
+		ctx context.Context,
+		tb *testbed.Testbed,
+		ws world.WorldState,
+		storeKey string,
+	) (*manifest.ManifestRef, string)
+
+	cases := []struct {
+		name  string
+		setup setupFunc
+	}{
+		{
+			name: "direct manifest exact-label edge",
+			setup: func(
+				t *testing.T,
+				ctx context.Context,
+				tb *testbed.Testbed,
+				ws world.WorldState,
+				storeKey string,
+			) (*manifest.ManifestRef, string) {
+				ref := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 31)
+				const manifestKey = "plugin-host/direct/exact"
+				if _, _, err := SetManifest(ctx, ws, peer.ID("test"), manifestKey, ref.GetManifestRef()); err != nil {
+					t.Fatal(err.Error())
+				}
+				if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, manifestKey, "spacewave-web")); err != nil {
+					t.Fatal(err.Error())
+				}
+				return ref, manifestKey
+			},
+		},
+		{
+			name: "direct manifest legacy empty-label edge",
+			setup: func(
+				t *testing.T,
+				ctx context.Context,
+				tb *testbed.Testbed,
+				ws world.WorldState,
+				storeKey string,
+			) (*manifest.ManifestRef, string) {
+				ref := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 32)
+				const manifestKey = "plugin-host/direct/legacy-empty"
+				if _, _, err := SetManifest(ctx, ws, peer.ID("test"), manifestKey, ref.GetManifestRef()); err != nil {
+					t.Fatal(err.Error())
+				}
+				if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, manifestKey, "")); err != nil {
+					t.Fatal(err.Error())
+				}
+				return ref, manifestKey
+			},
+		},
+		{
+			name: "release-world manifest exact-label edge",
+			setup: func(
+				t *testing.T,
+				ctx context.Context,
+				tb *testbed.Testbed,
+				ws world.WorldState,
+				storeKey string,
+			) (*manifest.ManifestRef, string) {
+				ref := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 33)
+				const manifestKey = "release/manifests/spacewave-web/js"
+				if err := ExStoreManifestOp(ctx, ws, peer.ID("test"), manifestKey, []string{storeKey}, ref); err != nil {
+					t.Fatal(err.Error())
+				}
+				return ref, manifestKey
+			},
+		},
+		{
+			name: "release-world manifest legacy empty-label edge",
+			setup: func(
+				t *testing.T,
+				ctx context.Context,
+				tb *testbed.Testbed,
+				ws world.WorldState,
+				storeKey string,
+			) (*manifest.ManifestRef, string) {
+				ref := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 34)
+				const manifestKey = "release/manifests/spacewave-web/js/legacy-empty"
+				if _, _, err := SetManifest(ctx, ws, peer.ID("test"), manifestKey, ref.GetManifestRef()); err != nil {
+					t.Fatal(err.Error())
+				}
+				if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, manifestKey, "")); err != nil {
+					t.Fatal(err.Error())
+				}
+				return ref, manifestKey
+			},
+		},
+		{
+			name: "bundle manifest exact-label edge",
+			setup: func(
+				t *testing.T,
+				ctx context.Context,
+				tb *testbed.Testbed,
+				ws world.WorldState,
+				storeKey string,
+			) (*manifest.ManifestRef, string) {
+				ref := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 35)
+				const manifestKey = "plugin-host/bundle/exact/manifest"
+				if _, _, err := SetManifest(ctx, ws, peer.ID("test"), manifestKey, ref.GetManifestRef()); err != nil {
+					t.Fatal(err.Error())
+				}
+				const bundleKey = "plugin-host/bundle/exact"
+				if _, _, err := CreateManifestBundle(ctx, ws, bundleKey, []string{manifestKey}, timestamp.Now()); err != nil {
+					t.Fatal(err.Error())
+				}
+				if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, bundleKey, "spacewave-web")); err != nil {
+					t.Fatal(err.Error())
+				}
+				return ref, manifestKey
+			},
+		},
+		{
+			name: "bundle manifest legacy empty-label edge",
+			setup: func(
+				t *testing.T,
+				ctx context.Context,
+				tb *testbed.Testbed,
+				ws world.WorldState,
+				storeKey string,
+			) (*manifest.ManifestRef, string) {
+				ref := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 36)
+				const manifestKey = "plugin-host/bundle/legacy-empty/manifest"
+				if _, _, err := SetManifest(ctx, ws, peer.ID("test"), manifestKey, ref.GetManifestRef()); err != nil {
+					t.Fatal(err.Error())
+				}
+				const bundleKey = "plugin-host/bundle/legacy-empty"
+				if _, _, err := CreateManifestBundle(ctx, ws, bundleKey, []string{manifestKey}, timestamp.Now()); err != nil {
+					t.Fatal(err.Error())
+				}
+				if err := ws.DeleteGraphQuad(ctx, NewManifestQuad(bundleKey, manifestKey, "spacewave-web")); err != nil {
+					t.Fatal(err.Error())
+				}
+				if err := ws.SetGraphQuad(ctx, NewManifestQuad(bundleKey, manifestKey, "")); err != nil {
+					t.Fatal(err.Error())
+				}
+				if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, bundleKey, "")); err != nil {
+					t.Fatal(err.Error())
+				}
+				return ref, manifestKey
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			le := logrus.NewEntry(logrus.New())
+
+			tb, err := testbed.NewTestbed(ctx, le)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+			defer tb.Release()
+
+			ocs, err := tb.BuildEmptyCursor(ctx)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+			defer ocs.Release()
+
+			ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+
+			const storeKey = "plugin-host"
+			if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
+				t.Fatal(err.Error())
+			}
+
+			wantRef, wantManifestKey := tc.setup(t, ctx, tb, ws, storeKey)
+			got, errs, err := CollectStartupManifestsForManifestID(
+				ctx,
+				ws,
+				"spacewave-web",
+				[]string{"js"},
+				storeKey,
+			)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+			if len(errs) != 0 {
+				t.Fatalf("manifest errors = %v", errs)
+			}
+			if len(got) != 1 {
+				t.Fatalf("manifest count = %d", len(got))
+			}
+			if got[0].ManifestKey != wantManifestKey {
+				t.Fatalf("manifest key = %q, want %q", got[0].ManifestKey, wantManifestKey)
+			}
+			if !got[0].ManifestRef.EqualVT(wantRef.GetManifestRef()) {
+				t.Fatalf("manifest ref was not preserved")
+			}
+		})
 	}
 }
 
