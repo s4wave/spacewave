@@ -9,10 +9,14 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
 	controller_exec "github.com/aperturerobotics/controllerbus/controller/exec"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver/v4"
+	"github.com/go-git/go-billy/v6/memfs"
 	"github.com/pkg/errors"
 	bldr_core "github.com/s4wave/spacewave/bldr/core"
+	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
+	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host_configset "github.com/s4wave/spacewave/bldr/plugin/host/configset"
 	"github.com/s4wave/spacewave/db/block"
@@ -21,6 +25,8 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	node_controller "github.com/s4wave/spacewave/db/node/controller"
+	"github.com/s4wave/spacewave/db/unixfs"
+	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/hash"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
@@ -87,6 +93,30 @@ func TestRunCloudBlockStoreForwardingExposesHostBucket(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	const entrypoint = "plugin.js"
+	distFS := memfs.New()
+	entrypointFile, err := distFS.Create(entrypoint)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := entrypointFile.Write([]byte("console.log('plugin ok')\n")); err != nil {
+		t.Fatal(err)
+	}
+	if err := entrypointFile.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	manifestTx, manifestCursor := block.NewTransaction(store, nil, nil, nil)
+	manifestMeta := bldr_manifest.NewManifestMeta("glados-web", bldr_manifest.BuildType_DEV, "desktop/darwin/arm64", 1)
+	if _, err := bldr_manifest.CreateManifestWithBilly(ctx, manifestCursor, manifestMeta, entrypoint, distFS, nil, timestamp.Now()); err != nil {
+		t.Fatal(err)
+	}
+	manifestRootRef, _, err := manifestTx.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifestObjRef := &bucket.ObjectRef{BucketId: bucketID, RootRef: manifestRootRef}
+
 	forwarder := NewCloudBlockStoreForwarder(
 		le,
 		pluginBus,
@@ -135,6 +165,47 @@ func TestRunCloudBlockStoreForwardingExposesHostBucket(t *testing.T) {
 	}
 	if string(got) != string(body) {
 		t.Fatalf("expected lookup block body %q, got %q", string(body), string(got))
+	}
+
+	hostRootCursor := bucket_lookup.NewCursor(
+		ctx,
+		hostBus,
+		le,
+		nil,
+		bucket_lookup.NewBucketFromHandle(hostLookup),
+		nil,
+		&bucket.ObjectRef{BucketId: bucketID},
+		&bucket.BucketOpArgs{BucketId: bucketID},
+		nil,
+	)
+	defer hostRootCursor.Release()
+	err = bldr_manifest_world.AccessManifest(
+		ctx,
+		le,
+		world.NewAccessWorldStateFunc(hostRootCursor),
+		manifestObjRef,
+		func(
+			ctx context.Context,
+			_ *bucket_lookup.Cursor,
+			_ *block.Cursor,
+			manifest *bldr_manifest.Manifest,
+			distFS *unixfs.FSHandle,
+			_ *unixfs.FSHandle,
+		) error {
+			if got := manifest.GetEntrypoint(); got != entrypoint {
+				t.Fatalf("expected manifest entrypoint %q, got %q", entrypoint, got)
+			}
+			entrypointHandle, _, err := distFS.LookupPath(ctx, entrypoint)
+			if err != nil {
+				return err
+			}
+			defer entrypointHandle.Release()
+			_, err = entrypointHandle.GetFileInfo(ctx)
+			return err
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
