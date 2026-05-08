@@ -49,6 +49,9 @@ func TestShellTabSelectionIsWindowLocal(t *testing.T) {
 	if popoutPage == nil {
 		t.Fatalf("expected popout page at #/docs, got %v", appPageURLs(pages))
 	}
+	t.Cleanup(func() {
+		closePageIfOpen(t, popoutPage)
+	})
 	if err := waitForSelectedShellTab(popoutPage, "Docs"); err != nil {
 		t.Fatal(err)
 	}
@@ -99,6 +102,7 @@ func TestShellTabsSurviveElectronRelaunch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	closeOtherAppPages(t, h, page)
 	if err := seedShellTabs(page); err != nil {
 		t.Fatal(err)
 	}
@@ -141,6 +145,28 @@ func waitForShellPage(ctx context.Context, h *Harness) (playwright.Page, error) 
 	}
 }
 
+func closeOtherAppPages(t *testing.T, h *Harness, keep playwright.Page) {
+	t.Helper()
+
+	for _, page := range h.AppPages() {
+		if page == keep {
+			continue
+		}
+		closePageIfOpen(t, page)
+	}
+}
+
+func closePageIfOpen(t *testing.T, page playwright.Page) {
+	t.Helper()
+
+	if page.IsClosed() {
+		return
+	}
+	if err := page.Close(); err != nil {
+		t.Fatalf("close app page: %v", err)
+	}
+}
+
 func pageHasShellTabs(page playwright.Page) (bool, error) {
 	raw, err := page.Evaluate(
 		`() => document.querySelectorAll('.shell-flexlayout .flexlayout__tab_button').length > 0`,
@@ -159,16 +185,17 @@ func seedShellTabs(page playwright.Page) error {
 			{ id: 'docs', name: 'Docs', path: '/docs' },
 			{ id: 'changelog', name: 'Changelog', path: '/changelog' },
 		]
+		const nextState = JSON.stringify({ tabs, activeTabId: 'home' })
 		localStorage.setItem(
 			'shell-tabs-state',
-			JSON.stringify({ tabs, activeTabId: 'home' }),
+			nextState,
 		)
 		localStorage.removeItem('shell-tabs-layout')
-		window.location.hash = '#/'
+		window.dispatchEvent(new StorageEvent('storage', {
+			key: 'shell-tabs-state',
+			newValue: nextState,
+		}))
 	}`); err != nil {
-		return err
-	}
-	if _, err := page.Reload(); err != nil {
 		return err
 	}
 	_, err := page.WaitForFunction(
