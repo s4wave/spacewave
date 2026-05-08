@@ -350,6 +350,19 @@ func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, stateDir stri
 			cmdPath += ".cmd"
 		}
 		cmd := exec.NewCmd(ctx, cmdPath)
+		if _, statErr := os.Stat(cmdPath); statErr != nil {
+			if !os.IsNotExist(statErr) {
+				return errors.Wrap(statErr, "stat install electron binary")
+			}
+			installPath := filepath.Join(nodeModulesPath, npmPkgName, "install.js")
+			if _, installErr := os.Stat(installPath); installErr != nil {
+				if os.IsNotExist(installErr) {
+					return errors.Errorf("install electron binary missing: %s", cmdPath)
+				}
+				return errors.Wrap(installErr, "stat electron install script")
+			}
+			cmd = exec.NewCmd(ctx, "node", installPath)
+		}
 		cmd.Dir = npmDir
 		cmd.Env = append(cmd.Env, extraEnv...)
 		if err := exec.StartAndWait(ctx, le, cmd); err != nil {
