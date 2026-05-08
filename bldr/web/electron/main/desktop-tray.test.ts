@@ -261,6 +261,49 @@ describe('DesktopTrayController', () => {
     )
   })
 
+  it('does not rebuild the native menu for duplicate tray snapshots', async () => {
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+    controller.init()
+
+    const state: DesktopTrayState = {
+      statusText: 'Stable',
+      iconState: DesktopTrayIconState.NORMAL,
+      entries: [
+        {
+          id: 'title',
+          kind: DesktopTrayEntryKind.STATUS,
+          label: 'Spacewave: Stable',
+        },
+        {
+          id: 'open',
+          kind: DesktopTrayEntryKind.ACTION,
+          label: 'Open Spacewave',
+          enabled: true,
+          action: { kind: DesktopTrayActionKind.OPEN_ROUTE },
+        },
+      ],
+    }
+
+    emitTrayState(state)
+    await Promise.resolve()
+    emitTrayState({
+      ...state,
+      entries: state.entries?.map((entry) => ({ ...entry })),
+    })
+    await Promise.resolve()
+
+    expect(trayInstances[0]?.setContextMenu).toHaveBeenCalledTimes(2)
+    expect(menuTemplates).toHaveLength(2)
+    expect(templateLabels(menuTemplates[1])).toEqual([
+      'Spacewave: Stable',
+      'Open Spacewave',
+    ])
+  })
+
   it('records the tray resource to native menu path', async () => {
     const resource = new DesktopRuntimeResource({
       openOrFocusMainWindow: vi.fn(),

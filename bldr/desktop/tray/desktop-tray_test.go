@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/bldr/resource"
@@ -625,6 +626,125 @@ func TestReconcileDesktopTrayForwardsAttachedActionHandlers(t *testing.T) {
 	}
 }
 
+func TestReconcileDesktopTrayReplacesEntryWhenAttachedHandlerModeChanges(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	sourceClient, source, sourceRelease := newTestDesktopTrayResourceClient(t)
+	defer sourceRelease()
+	targetClient, target, targetRelease := newTestDesktopTrayResourceClient(t)
+	defer targetRelease()
+
+	handler := &testActionHandler{}
+	handlerMux := srpc.NewMux()
+	if err := SRPCRegisterDesktopTrayActionHandlerService(handlerMux, handler); err != nil {
+		t.Fatalf("register action handler: %v", err)
+	}
+	attachedActionResourceID, err := sourceClient.AttachRawInvoker(ctx, "test-dynamic-tray-action", handlerMux)
+	if err != nil {
+		t.Fatalf("attach source action handler: %v", err)
+	}
+	defer func() {
+		_ = sourceClient.DetachResource(context.Background(), attachedActionResourceID)
+	}()
+
+	first, err := source.RegisterDesktopTrayEntry(ctx, &RegisterDesktopTrayEntryRequest{
+		AttachedActionResourceId: attachedActionResourceID,
+		Entry: &DesktopTrayEntry{
+			Id:      "dynamic",
+			Kind:    DesktopTrayEntryKind_DESKTOP_TRAY_ENTRY_KIND_ACTION,
+			Label:   "Run Dynamic Action",
+			Enabled: true,
+			Action: &DesktopTrayAction{
+				Kind:  DesktopTrayActionKind_DESKTOP_TRAY_ACTION_KIND_ATTACHED_HANDLER,
+				Value: "dynamic",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("register source entry: %v", err)
+	}
+	firstRef := sourceClient.CreateResourceReference(first.GetResourceId())
+	defer firstRef.Release()
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- ReconcileDesktopTray(ctx, source, target, targetClient)
+	}()
+
+	watchCtx, watchCancel := context.WithTimeout(ctx, 5*time.Second)
+	defer watchCancel()
+	targetStream, err := target.WatchDesktopTray(watchCtx, &WatchDesktopTrayRequest{})
+	if err != nil {
+		t.Fatalf("watch target tray: %v", err)
+	}
+	state := recvTrayStateWithActionKind(
+		t,
+		targetStream,
+		"dynamic",
+		DesktopTrayActionKind_DESKTOP_TRAY_ACTION_KIND_ATTACHED_HANDLER,
+	)
+	if len(state.GetEntries()) != 1 {
+		t.Fatalf("target initial entry = %#v", state.GetEntries())
+	}
+
+	_, err = target.InvokeDesktopTrayEntry(ctx, &InvokeDesktopTrayEntryRequest{
+		EntryId: "dynamic",
+	})
+	if err != nil {
+		t.Fatalf("invoke initial target entry: %v", err)
+	}
+	if len(handler.requests) != 1 {
+		t.Fatalf("initial source handler requests = %d, want 1", len(handler.requests))
+	}
+
+	firstClient, err := firstRef.GetClient()
+	if err != nil {
+		t.Fatalf("source entry client: %v", err)
+	}
+	firstEntry := NewSRPCDesktopTrayEntryResourceServiceClient(firstClient)
+	_, err = firstEntry.SetDesktopTrayEntry(ctx, &SetDesktopTrayEntryRequest{
+		Entry: &DesktopTrayEntry{
+			Id:      "dynamic",
+			Kind:    DesktopTrayEntryKind_DESKTOP_TRAY_ENTRY_KIND_ACTION,
+			Label:   "Open Spacewave",
+			Enabled: true,
+			Action: &DesktopTrayAction{
+				Kind:  DesktopTrayActionKind_DESKTOP_TRAY_ACTION_KIND_OPEN_ROUTE,
+				Route: "/u/1/",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("update source entry: %v", err)
+	}
+
+	state = recvTrayStateWithActionKind(
+		t,
+		targetStream,
+		"dynamic",
+		DesktopTrayActionKind_DESKTOP_TRAY_ACTION_KIND_OPEN_ROUTE,
+	)
+	if len(state.GetEntries()) != 1 {
+		t.Fatalf("target updated entry = %#v", state.GetEntries())
+	}
+
+	_, err = target.InvokeDesktopTrayEntry(ctx, &InvokeDesktopTrayEntryRequest{
+		EntryId: "dynamic",
+	})
+	if err == nil {
+		t.Fatal("expected replaced route entry to be non-invokable through attached handler path")
+	}
+	if len(handler.requests) != 1 {
+		t.Fatalf("source handler requests after replace = %d, want 1", len(handler.requests))
+	}
+
+	cancel()
+	if err := <-errCh; err == nil {
+		t.Fatalf("expected reconciler to stop on context cancel")
+	}
+}
+
 func TestReconcileDesktopTrayMirrorsExistingEntriesAcrossTargetReconnect(t *testing.T) {
 	_, source, sourceRelease := newTestDesktopTrayResourceClient(t)
 	defer sourceRelease()
@@ -744,6 +864,26 @@ func recvTrayState(
 		t.Fatalf("recv tray state: %v", err)
 	}
 	return resp.GetState()
+}
+
+func recvTrayStateWithActionKind(
+	t *testing.T,
+	strm SRPCDesktopTrayResourceService_WatchDesktopTrayClient,
+	entryID string,
+	kind DesktopTrayActionKind,
+) *DesktopTrayState {
+	t.Helper()
+
+	for range 16 {
+		state := recvTrayState(t, strm)
+		for _, entry := range state.GetEntries() {
+			if entry.GetId() == entryID && entry.GetAction().GetKind() == kind {
+				return state
+			}
+		}
+	}
+	t.Fatalf("did not receive entry %q with action kind %v", entryID, kind)
+	return nil
 }
 
 // _ is a type assertion
