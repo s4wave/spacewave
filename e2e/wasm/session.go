@@ -26,6 +26,8 @@ type TestSession struct {
 	page       playwright.Page
 	workersMu  sync.Mutex
 	workers    []playwright.Worker
+	consoleMu  sync.Mutex
+	console    map[chan string]struct{}
 
 	browserClient srpc.Client
 	resClient     *resource_client.Client
@@ -91,6 +93,29 @@ func (s *TestSession) Page() playwright.Page { return s.page }
 // BrowserContext returns the Playwright BrowserContext for this session.
 func (s *TestSession) BrowserContext() playwright.BrowserContext { return s.browserCtx }
 
+// WatchConsole returns browser and worker console messages emitted after it is
+// called.
+func (s *TestSession) WatchConsole() (<-chan string, func()) {
+	ch := make(chan string, 64)
+
+	s.consoleMu.Lock()
+	if s.console == nil {
+		s.console = make(map[chan string]struct{})
+	}
+	s.console[ch] = struct{}{}
+	s.consoleMu.Unlock()
+
+	stop := func() {
+		s.consoleMu.Lock()
+		if _, ok := s.console[ch]; ok {
+			delete(s.console, ch)
+			close(ch)
+		}
+		s.consoleMu.Unlock()
+	}
+	return ch, stop
+}
+
 // LoadApp loads the app base URL into the session page.
 func (s *TestSession) LoadApp() error {
 	return s.h.loadAppPage(s)
@@ -107,6 +132,17 @@ func (s *TestSession) addWorker(w playwright.Worker) {
 	s.workersMu.Lock()
 	defer s.workersMu.Unlock()
 	s.workers = append(s.workers, w)
+}
+
+func (s *TestSession) emitConsole(text string) {
+	s.consoleMu.Lock()
+	defer s.consoleMu.Unlock()
+	for ch := range s.console {
+		select {
+		case ch <- text:
+		default:
+		}
+	}
 }
 
 // removeWorker removes a tracked worker after close.
@@ -165,6 +201,13 @@ func (s *TestSession) MountSessionByIdx(ctx context.Context, idx uint32) (*s4wav
 
 // release tears down the session's browser context and resource connections.
 func (s *TestSession) release() {
+	s.consoleMu.Lock()
+	for ch := range s.console {
+		delete(s.console, ch)
+		close(ch)
+	}
+	s.consoleMu.Unlock()
+
 	s.h.releaseBrowserPeerLease(s, s.browserPeer)
 	s.browserPeer = ""
 	if s.root != nil {

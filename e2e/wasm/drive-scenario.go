@@ -2,9 +2,7 @@
 
 package wasm
 
-import (
-	"testing"
-)
+import "testing"
 
 // DriveScenario records the owned drive created by the quickstart flow.
 type DriveScenario struct {

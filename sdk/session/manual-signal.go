@@ -172,7 +172,11 @@ func (m *ManualSignalTransport) AcceptAnswer(answerSDP string) error {
 // WaitLink waits for the datachannel to open and establishes a bifrost QUIC
 // link over the WebRTC datachannel. The offerer listens for QUIC and the
 // answerer dials, matching the bifrost convention.
-func (m *ManualSignalTransport) WaitLink(ctx context.Context, remotePeerID peer.ID) (*transport_quic.Link, error) {
+func (m *ManualSignalTransport) WaitLink(
+	ctx context.Context,
+	linkCtx context.Context,
+	remotePeerID peer.ID,
+) (*transport_quic.Link, error) {
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
@@ -209,7 +213,7 @@ func (m *ManualSignalTransport) WaitLink(ctx context.Context, remotePeerID peer.
 	}
 
 	lnk, err := transport_quic.NewLink(
-		ctx,
+		linkCtx,
 		m.le,
 		&transport_quic.Opts{},
 		0, // no registered transport UUID

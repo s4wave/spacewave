@@ -167,7 +167,7 @@ describe('quickstart create', () => {
         [Symbol.dispose]: vi.fn(),
       }),
     }
-    const cleanup = vi.fn<RegisterCleanup>((value) => value)
+    const cleanup: RegisterCleanup = (value) => value
 
     await createLocalSession(
       root as never,
@@ -223,7 +223,7 @@ describe('quickstart create', () => {
         [Symbol.dispose]: vi.fn(),
       }),
     }
-    const cleanup = vi.fn<RegisterCleanup>((value) => value)
+    const cleanup: RegisterCleanup = (value) => value
 
     const setup = await createLocalSession(
       root as never,

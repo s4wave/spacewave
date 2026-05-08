@@ -426,8 +426,13 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 	defer t.sessionProm.SetPromise(nil)
 	t.a.setLinkedCloudAccountID(t.cloudAccountID)
 
-	// Always start the session transport so this peer is reachable on signaling.
-	signalingURL := t.a.lookupCloudEndpoint(ctx)
+	// Always start the session transport. Only cloud-linked local accounts
+	// need the cloud signaling controller; no-cloud accounts can run direct
+	// manual links through the same session bus.
+	signalingURL := ""
+	if t.cloudAccountID != "" {
+		signalingURL = t.a.lookupCloudEndpoint(ctx)
+	}
 	sts, created, err := t.a.ensureSessionTransport(ctx, sessionPriv, signalingURL)
 	if created {
 		defer t.a.stopSessionTransportState(sts)

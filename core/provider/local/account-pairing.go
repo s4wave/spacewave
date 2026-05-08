@@ -61,6 +61,8 @@ type pairingState struct {
 	localConfirmed bool
 	// confirmCh receives the local user's confirmation decision (true = confirmed, false = rejected).
 	confirmCh chan bool
+	// direct is true when the active pairing flow uses a direct manual-signal link.
+	direct bool
 }
 
 // setPairingContext updates the lifecycle context used for pairing routines.
@@ -89,6 +91,7 @@ func (a *ProviderAccount) SetPairingCode(code string, sessionKey crypto.PrivKey)
 		}
 		a.pairing.code = code
 		a.pairing.sessionKey = sessionKey
+		a.pairing.direct = false
 		a.pairing.status = PairingStatusCodeGenerated
 		a.startExchangeRoutine()
 		bcast()
@@ -154,6 +157,7 @@ func (a *ProviderAccount) SetPairingRemotePeer(ctx context.Context, remotePeerID
 		a.pairing.sessionKey = sessionKey
 		a.pairing.linkDiRef = diRef
 		a.pairing.linkCh = linkCh
+		a.pairing.direct = false
 		a.pairing.status = PairingStatusWaitingForPeer
 		bcast()
 	})
@@ -220,6 +224,7 @@ func (a *ProviderAccount) OnDirectPairingConnected(
 		}
 		a.pairing.remotePeerID = remotePeerID
 		a.pairing.sessionKey = sessionKey
+		a.pairing.direct = true
 		a.pairing.status = PairingStatusPeerConnected
 
 		if a.pairing.exchangeRc != nil {
@@ -279,7 +284,14 @@ func (a *ProviderAccount) SetPairingFailed(msg string) {
 
 // SetPairingSignalingFailed marks the pairing as failed due to signaling.
 func (a *ProviderAccount) SetPairingSignalingFailed(msg string) {
-	a.setPairingError(PairingStatusSignalingFailed, msg)
+	a.pairingBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		if a.pairing == nil || a.pairing.direct {
+			return
+		}
+		a.pairing.status = PairingStatusSignalingFailed
+		a.pairing.errMsg = msg
+		bcast()
+	})
 }
 
 // setPairingError sets the pairing to an error status with a message.

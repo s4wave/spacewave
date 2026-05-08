@@ -64,10 +64,12 @@ func (h *Harness) newBrowserContext(s *TestSession) (playwright.Page, error) {
 
 	// Forward browser console output to the test log.
 	page.On("console", func(msg playwright.ConsoleMessage) {
+		text := msg.Text()
+		s.emitConsole(text)
 		logrus.WithFields(logrus.Fields{
 			"type":    msg.Type(),
 			"browser": true,
-		}).Info(msg.Text())
+		}).Info(text)
 	})
 	// Forward worker console output (SharedWorkers, dedicated workers).
 	page.OnWorker(func(w playwright.Worker) {
@@ -75,17 +77,19 @@ func (h *Harness) newBrowserContext(s *TestSession) (playwright.Page, error) {
 		s.addWorker(w)
 		logrus.WithField("worker", url).Debug("worker spawned")
 		w.OnConsole(func(msg playwright.ConsoleMessage) {
+			text := msg.Text()
+			s.emitConsole(text)
 			le := logrus.WithFields(logrus.Fields{
 				"type":   msg.Type(),
 				"worker": url,
 			})
 			switch msg.Type() {
 			case "error":
-				le.Error(msg.Text())
+				le.Error(text)
 			case "warning":
-				le.Warn(msg.Text())
+				le.Warn(text)
 			default:
-				le.Info(msg.Text())
+				le.Info(text)
 			}
 		})
 		w.OnClose(func(_ playwright.Worker) {

@@ -22,6 +22,9 @@ const ConfirmProtocolID = protocol.ID("alpha/pairing-confirm")
 // confirmationTimeout is the maximum time to wait for remote confirmation.
 const confirmationTimeout = 120 * time.Second
 
+// directConfirmPreamble wakes the accepting side before packetized confirmation starts.
+const directConfirmPreamble = byte(0)
+
 // runPairingConfirmExchange runs the mutual SAS confirmation exchange over
 // a solicit stream on the session transport's child bus. Both the generator
 // and joiner call this: the generator starts it immediately (solicit waits
@@ -116,6 +119,9 @@ func (a *ProviderAccount) runDirectConfirmExchange(ctx context.Context, lnk link
 		strm, _, err = lnk.AcceptStream()
 	} else {
 		strm, err = lnk.OpenStream(stream.OpenOpts{})
+		if err == nil {
+			_, err = strm.Write([]byte{directConfirmPreamble})
+		}
 	}
 	if err != nil {
 		le.WithError(err).Warn("failed to open/accept confirm stream")
@@ -123,6 +129,14 @@ func (a *ProviderAccount) runDirectConfirmExchange(ctx context.Context, lnk link
 		return
 	}
 	defer strm.Close()
+	if isOfferer {
+		var buf [1]byte
+		if _, err := io.ReadFull(strm, buf[:]); err != nil {
+			le.WithError(err).Warn("failed to read direct confirm preamble")
+			a.SetPairingFailed("failed to establish confirmation channel")
+			return
+		}
+	}
 
 	remotePeerID := lnk.GetRemotePeer()
 	le = le.WithField("remote-peer", remotePeerID.String()[:8])

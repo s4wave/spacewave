@@ -13,15 +13,17 @@ import (
 	forge_job "github.com/s4wave/spacewave/forge/job"
 	forge_pass "github.com/s4wave/spacewave/forge/pass"
 	forge_task "github.com/s4wave/spacewave/forge/task"
+	s4wave_sobject "github.com/s4wave/spacewave/sdk/sobject"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 )
 
 type mountedForgeSpace struct {
-	engine      *s4wave_world.Engine
-	spaceRef    resource_client.ResourceRef
-	contentsRef resource_client.ResourceRef
-	contentsSvc s4wave_space.SRPCSpaceContentsResourceServiceClient
+	engine          *s4wave_world.Engine
+	sharedObjectRef resource_client.ResourceRef
+	spaceRef        resource_client.ResourceRef
+	contentsRef     resource_client.ResourceRef
+	contentsSvc     s4wave_space.SRPCSpaceContentsResourceServiceClient
 }
 
 func mountForgeSpace(
@@ -44,10 +46,25 @@ func mountForgeSpace(
 		t.Fatalf("MountSharedObject: %v", err)
 	}
 
-	spaceRef := sess.ResourceClient().CreateResourceReference(mountResp.GetResourceId())
+	sharedObjectRef := sess.ResourceClient().CreateResourceReference(mountResp.GetResourceId())
+	sharedObjectSrpcClient, err := sharedObjectRef.GetClient()
+	if err != nil {
+		sharedObjectRef.Release()
+		t.Fatalf("GetClient(shared object): %v", err)
+	}
+
+	sharedObjectSvc := s4wave_sobject.NewSRPCSharedObjectResourceServiceClient(sharedObjectSrpcClient)
+	bodyResp, err := sharedObjectSvc.MountSharedObjectBody(ctx, &s4wave_sobject.MountSharedObjectBodyRequest{})
+	if err != nil {
+		sharedObjectRef.Release()
+		t.Fatalf("MountSharedObjectBody: %v", err)
+	}
+
+	spaceRef := sess.ResourceClient().CreateResourceReference(bodyResp.GetResourceId())
 	spaceSrpcClient, err := spaceRef.GetClient()
 	if err != nil {
 		spaceRef.Release()
+		sharedObjectRef.Release()
 		t.Fatalf("GetClient(space): %v", err)
 	}
 
@@ -55,6 +72,7 @@ func mountForgeSpace(
 	accessWorldResp, err := spaceSvc.AccessWorld(ctx, &s4wave_space.AccessWorldRequest{})
 	if err != nil {
 		spaceRef.Release()
+		sharedObjectRef.Release()
 		t.Fatalf("AccessWorld: %v", err)
 	}
 
@@ -63,6 +81,7 @@ func mountForgeSpace(
 	if err != nil {
 		engineRef.Release()
 		spaceRef.Release()
+		sharedObjectRef.Release()
 		t.Fatalf("NewEngine: %v", err)
 	}
 
@@ -70,6 +89,7 @@ func mountForgeSpace(
 	if err != nil {
 		engine.Release()
 		spaceRef.Release()
+		sharedObjectRef.Release()
 		t.Fatalf("MountSpaceContents: %v", err)
 	}
 
@@ -79,14 +99,16 @@ func mountForgeSpace(
 		contentsRef.Release()
 		engine.Release()
 		spaceRef.Release()
+		sharedObjectRef.Release()
 		t.Fatalf("GetClient(contents): %v", err)
 	}
 
 	return &mountedForgeSpace{
-		engine:      engine,
-		spaceRef:    spaceRef,
-		contentsRef: contentsRef,
-		contentsSvc: s4wave_space.NewSRPCSpaceContentsResourceServiceClient(contentsSrpcClient),
+		engine:          engine,
+		sharedObjectRef: sharedObjectRef,
+		spaceRef:        spaceRef,
+		contentsRef:     contentsRef,
+		contentsSvc:     s4wave_space.NewSRPCSpaceContentsResourceServiceClient(contentsSrpcClient),
 	}
 }
 
@@ -99,6 +121,9 @@ func (m *mountedForgeSpace) Release() {
 	}
 	if m.spaceRef != nil {
 		m.spaceRef.Release()
+	}
+	if m.sharedObjectRef != nil {
+		m.sharedObjectRef.Release()
 	}
 }
 

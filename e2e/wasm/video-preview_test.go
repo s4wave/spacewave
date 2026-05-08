@@ -23,7 +23,7 @@ func readVideoFixture(t testing.TB, name string) []byte {
 func waitForDriveEntry(t testing.TB, page playwright.Page, name string) {
 	t.Helper()
 
-	err := page.Locator("[role='row']").Locator("text=" + name).First().WaitFor()
+	err := page.Locator("[data-testid='unixfs-browser'] [role='row']:has-text('" + name + "')").First().WaitFor()
 	if err != nil {
 		t.Fatalf("wait for drive entry %q: %v", name, err)
 	}
@@ -32,11 +32,28 @@ func waitForDriveEntry(t testing.TB, page playwright.Page, name string) {
 func openDriveEntry(t testing.TB, page playwright.Page, name string) {
 	t.Helper()
 
-	row := page.Locator("[role='row']").Locator("text=" + name).First()
+	row := page.Locator("[data-testid='unixfs-browser'] [role='row']:has-text('" + name + "')").First()
 	if err := row.WaitFor(); err != nil {
 		t.Fatalf("wait for %s row: %v", name, err)
 	}
-	if err := row.Dblclick(); err != nil {
+	_, err := page.Evaluate(`({name}) => {
+		const browser = document.querySelector('[data-testid="unixfs-browser"]')
+		if (!(browser instanceof HTMLElement)) {
+			throw new Error('drive browser not found')
+		}
+		const row = Array.from(browser.querySelectorAll('[role="row"]')).find((el) => {
+			return el instanceof HTMLElement && el.textContent?.includes(name)
+		})
+		if (!(row instanceof HTMLElement)) {
+			throw new Error('drive entry row not found: ' + name)
+		}
+		row.dispatchEvent(new MouseEvent('dblclick', {
+			bubbles: true,
+			cancelable: true,
+			view: window,
+		}))
+	}`, map[string]any{"name": name})
+	if err != nil {
 		t.Fatalf("open %s row: %v", name, err)
 	}
 }
@@ -191,6 +208,7 @@ func TestQuickstartDriveVideoPreview(t *testing.T) {
 		t.Fatalf("click up from mp4 preview: %v", err)
 	}
 	WaitForDriveReady(t, testHarness, page)
+	waitForDriveEntry(t, page, webmName)
 	openDriveEntry(t, page, webmName)
 
 	webmState := waitForVideoState(t, page, webmName)
@@ -209,6 +227,13 @@ func TestQuickstartDriveVideoPreview(t *testing.T) {
 	}
 
 	if err := page.Locator("button[title='Back']").First().Click(); err != nil {
+		t.Fatalf("click back to drive root: %v", err)
+	}
+	WaitForDriveReady(t, testHarness, page)
+	waitForDriveEntry(t, page, mp4Name)
+	waitForDriveEntry(t, page, webmName)
+
+	if err := page.Locator("button[title='Back']").First().Click(); err != nil {
 		t.Fatalf("click back to mp4 preview: %v", err)
 	}
 	backState := waitForVideoState(t, page, mp4Name)
@@ -219,6 +244,13 @@ func TestQuickstartDriveVideoPreview(t *testing.T) {
 	if currentTime := numberValue(t, "back mp4 currentTime", backState["currentTime"]); currentTime > 0.1 {
 		t.Fatalf("expected remounted mp4 preview to reset playback, got %f", currentTime)
 	}
+
+	if err := page.Locator("button[title='Forward']").First().Click(); err != nil {
+		t.Fatalf("click forward to drive root: %v", err)
+	}
+	WaitForDriveReady(t, testHarness, page)
+	waitForDriveEntry(t, page, mp4Name)
+	waitForDriveEntry(t, page, webmName)
 
 	if err := page.Locator("button[title='Forward']").First().Click(); err != nil {
 		t.Fatalf("click forward to webm preview: %v", err)

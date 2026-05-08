@@ -243,7 +243,7 @@ func (r *SessionResource) waitLocalPairingLink(
 	ctx, cancel := context.WithTimeout(parentCtx, localPairingLinkTimeout)
 	defer cancel()
 
-	lnk, err := tpt.WaitLink(ctx, remotePeerID)
+	lnk, err := tpt.WaitLink(ctx, parentCtx, remotePeerID)
 	if err != nil {
 		if parentCtx.Err() != nil {
 			return

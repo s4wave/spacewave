@@ -261,7 +261,7 @@ func TestBlogCoexistenceScenario(t *testing.T) {
 		}
 		waitForBlogReady(t, page, "Second Post")
 
-		count, err := page.Locator("text=untitled").Count()
+		count, err := page.Locator("article h3:has-text('untitled')").Count()
 		if err != nil {
 			t.Fatalf("count untitled entries in reading mode: %v", err)
 		}
