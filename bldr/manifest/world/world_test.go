@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aperturerobotics/cayley/quad"
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -15,6 +16,21 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
+
+func TestNewManifestQuadLabelsConcreteManifestID(t *testing.T) {
+	gq := NewManifestQuad("plugin-host", "plugin-host/ref/spacewave-web", "spacewave-web")
+	want := quad.IRI("spacewave-web").String()
+	if gq.GetLabel() != want {
+		t.Fatalf("manifest quad label = %q, want %q", gq.GetLabel(), want)
+	}
+}
+
+func TestNewManifestQuadKeepsEmptyBundleLabel(t *testing.T) {
+	gq := NewManifestQuad("plugin-host", "plugin-host/bundle", "")
+	if gq.GetLabel() != "" {
+		t.Fatalf("manifest quad label = %q, want empty bundle/store label", gq.GetLabel())
+	}
+}
 
 func TestCollectReleaseWorldManifestsForManifestID(t *testing.T) {
 	ctx := context.Background()
@@ -52,6 +68,26 @@ func TestCollectReleaseWorldManifestsForManifestID(t *testing.T) {
 		ref,
 	); err != nil {
 		t.Fatal(err.Error())
+	}
+	quads, err := ws.LookupGraphQuads(
+		ctx,
+		world.NewGraphQuadWithKeys(
+			releaseManifestKey,
+			PredManifest.String(),
+			"release/manifests/spacewave-web/js",
+			"",
+		),
+		1,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(quads) != 1 {
+		t.Fatalf("manifest graph edge count = %d", len(quads))
+	}
+	wantLabel := quad.IRI("spacewave-web").String()
+	if quads[0].GetLabel() != wantLabel {
+		t.Fatalf("manifest graph edge label = %q, want %q", quads[0].GetLabel(), wantLabel)
 	}
 
 	got, errs, err := CollectManifestsForManifestID(

@@ -44,7 +44,7 @@ const (
 func NewManifestQuad(srcObjKey, destObjKey, manifestID string) world.GraphQuad {
 	var value string
 	if manifestID != "" {
-		value = quad.IRI(value).String()
+		value = quad.IRI(manifestID).String()
 	}
 	return world.NewGraphQuadWithKeys(
 		srcObjKey,
