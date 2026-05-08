@@ -498,6 +498,10 @@ separate.
 Components inside the session tree use React contexts instead of parsing URLs.
 
 - Use `useSessionIndex()` from `web/contexts/` to get the session index.
+- Use `usePath()` / router context for the active panel route. Do not derive
+  in-panel navigation or query params from `window.location.hash` or
+  `getAppPath()`: in split/grid mode the global hash is the encoded shell route
+  (`#/g/...`), not the active panel's `/u/<idx>/...` route.
 - Use relative navigation such as `./free` and `../setup` for subtree-local
   moves.
 - Use `useSessionNavigate()` for session-root navigation such as `join`,

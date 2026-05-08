@@ -389,11 +389,12 @@ export default async function main(
     })
   }
 
+  // Start frontend handlers before backend registrations so first paint is not
+  // gated on cross-plugin backend RPC readiness.
+  loadWebPlugin(backendAPI, pluginId, abortSignal)
+
   // Load and execute backend entrypoints.
   await loadBackendEntrypoints(backendAPI, abortSignal)
-
-  // Process frontend entrypoints (currently just logs them).
-  loadWebPlugin(backendAPI, pluginId, abortSignal)
 
   console.info('Bldr JS plugin entrypoint finished initialization.')
 }
