@@ -309,6 +309,184 @@ func TestWatchWorldManifestUsesStartupManifestRefsAndSkipsBadCandidate(t *testin
 	}
 }
 
+func TestWatchWorldManifestPrefersLocalExecutableOverNewerDownload(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const objKey = "plugin-host"
+	if _, err := bldr_manifest_world.CreateManifestStore(ctx, ws, objKey); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	remoteRef := newTestStoredManifestRefInBucket(t, ctx, tb, "remote-bucket", "spacewave-core", "desktop/darwin/arm64", 9)
+	const remoteRefKey = "plugin-host/ref/remote-newer"
+	storeTestManifestRefObject(t, ctx, ws, remoteRefKey, remoteRef)
+	if err := ws.SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad(objKey, remoteRefKey, "spacewave-core")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	localRef, localRefKey := storeTestWorldManifest(t, ctx, ws, "spacewave-core", "desktop/darwin/arm64", 7)
+	if err := ws.SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad(objKey, localRefKey, "spacewave-core")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	host := &testPluginHost{id: "desktop/darwin/arm64"}
+	pi := &pluginInstance{
+		c: &Controller{
+			conf:   &Config{},
+			objKey: objKey,
+		},
+		le:                      le,
+		pluginID:                "spacewave-core",
+		downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.ManifestSnapshot](le),
+		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
+	}
+
+	obj, ok, err := ws.GetObject(ctx, objKey)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !ok {
+		t.Fatal("expected plugin host object")
+	}
+
+	wait, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
+		pluginHosts: []bldr_plugin_host.PluginHost{host},
+	}, ws, obj)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !wait {
+		t.Fatal("expected watch loop to wait for changes")
+	}
+
+	downloadState := pi.downloadManifestRoutine.GetState()
+	if downloadState == nil {
+		t.Fatal("expected newer remote manifest to be queued for download")
+	}
+	if !downloadState.GetManifestRef().EqualVT(remoteRef.GetManifestRef()) {
+		t.Fatal("expected download state to use newest remote manifest")
+	}
+
+	execState := pi.executePluginRoutine.GetState()
+	if execState == nil || execState.manifestSnapshot == nil {
+		t.Fatal("expected execute state from local manifest")
+	}
+	if execState.pluginHost != host {
+		t.Fatal("expected execute state to use matching plugin host")
+	}
+	if !execState.manifestSnapshot.GetManifestRef().EqualVT(localRef.GetManifestRef()) {
+		t.Fatal("expected local executable manifest to remain selected while newer remote downloads")
+	}
+}
+
+func TestWatchWorldManifestFallsBackToBestDownloadWhenNoLocalExecutable(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const objKey = "plugin-host"
+	if _, err := bldr_manifest_world.CreateManifestStore(ctx, ws, objKey); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	newerRef := newTestStoredManifestRefInBucket(t, ctx, tb, "remote-bucket", "spacewave-core", "desktop/darwin/arm64", 9)
+	const newerRefKey = "plugin-host/ref/remote-newer"
+	storeTestManifestRefObject(t, ctx, ws, newerRefKey, newerRef)
+	if err := ws.SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad(objKey, newerRefKey, "spacewave-core")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	olderRef := newTestStoredManifestRefInBucket(t, ctx, tb, "remote-bucket", "spacewave-core", "desktop/darwin/arm64", 7)
+	const olderRefKey = "plugin-host/ref/remote-older"
+	storeTestManifestRefObject(t, ctx, ws, olderRefKey, olderRef)
+	if err := ws.SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad(objKey, olderRefKey, "spacewave-core")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	host := &testPluginHost{id: "desktop/darwin/arm64"}
+	pi := &pluginInstance{
+		c: &Controller{
+			conf:   &Config{},
+			objKey: objKey,
+		},
+		le:                      le,
+		pluginID:                "spacewave-core",
+		downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.ManifestSnapshot](le),
+		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
+	}
+
+	obj, ok, err := ws.GetObject(ctx, objKey)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !ok {
+		t.Fatal("expected plugin host object")
+	}
+
+	wait, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
+		pluginHosts: []bldr_plugin_host.PluginHost{host},
+	}, ws, obj)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !wait {
+		t.Fatal("expected watch loop to wait for changes")
+	}
+
+	downloadState := pi.downloadManifestRoutine.GetState()
+	if downloadState == nil {
+		t.Fatal("expected remote manifest to be queued for download")
+	}
+	if !downloadState.GetManifestRef().EqualVT(newerRef.GetManifestRef()) {
+		t.Fatal("expected newest remote manifest to be queued for download")
+	}
+
+	execState := pi.executePluginRoutine.GetState()
+	if execState == nil || execState.manifestSnapshot == nil {
+		t.Fatal("expected execute state to fall back to downloadable manifest")
+	}
+	if execState.pluginHost != host {
+		t.Fatal("expected execute state to use matching plugin host")
+	}
+	if !execState.manifestSnapshot.GetManifestRef().EqualVT(newerRef.GetManifestRef()) {
+		t.Fatal("expected no-local fallback to select newest downloadable manifest")
+	}
+}
+
 func TestProcessManifestWorldStateRunsDownloadAndExecuteForRemoteManifest(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
@@ -684,6 +862,12 @@ func newTestStoredManifestRefInBucket(
 	t.Helper()
 
 	meta := bldr_manifest.NewManifestMeta(manifestID, bldr_manifest.BuildType_RELEASE, platformID, rev)
+	if _, _, _, err := tb.Volume.ApplyBucketConfig(ctx, &bucket.Config{
+		Id:  bucketID,
+		Rev: 1,
+	}); err != nil {
+		t.Fatal(err.Error())
+	}
 	oc, _, err := bucket_lookup.BuildEmptyCursor(
 		ctx,
 		tb.Bus,
@@ -708,6 +892,42 @@ func newTestStoredManifestRefInBucket(
 	ref := oc.GetRef()
 	ref.RootRef = rootRef
 	return bldr_manifest.NewManifestRef(meta, ref)
+}
+
+func storeTestWorldManifest(
+	t *testing.T,
+	ctx context.Context,
+	ws world.WorldState,
+	manifestID,
+	platformID string,
+	rev uint64,
+) (*bldr_manifest.ManifestRef, string) {
+	t.Helper()
+
+	meta := bldr_manifest.NewManifestMeta(manifestID, bldr_manifest.BuildType_RELEASE, platformID, rev)
+	var ref *bucket.ObjectRef
+	err := ws.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
+		btx, bcs := bls.BuildTransaction(nil)
+		bcs.SetBlock(bldr_manifest.NewManifest(meta, "entrypoint"), true)
+		rootRef, _, err := btx.Write(ctx, true)
+		if err != nil {
+			return err
+		}
+		ref = &bucket.ObjectRef{
+			BucketId: bls.GetOpArgs().GetBucketId(),
+			RootRef:  rootRef,
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	objKey := "plugin-host/manifest/" + manifestID + "/" + platformID
+	if _, _, err := bldr_manifest_world.SetManifest(ctx, ws, peer.ID("test"), objKey, ref); err != nil {
+		t.Fatal(err.Error())
+	}
+	return bldr_manifest.NewManifestRef(meta, ref), objKey
 }
 
 func newTestStoredManifestRefWithDistInBucket(

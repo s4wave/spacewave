@@ -58,7 +58,7 @@ func (t *pluginInstance) processManifestWorldState(
 		ws = world_vlogger.NewWorldState(le, ws)
 	}
 
-	// Lookup the latest PluginManifests matching our plugin linked to PluginHost.
+	// Lookup PluginManifests matching our plugin linked to PluginHost.
 	platformIDsMap := hosts.toPlatformIDsMap()
 	platformIDs := slices.Collect(maps.Keys(platformIDsMap))
 	slices.Sort(platformIDs)
@@ -102,10 +102,6 @@ func (t *pluginInstance) processManifestWorldState(
 		return true, nil
 	}
 
-	// sort by rev and platform id
-	// the resulting slice will be sorted by ManifestID, then by Rev (descending), then by PlatformID.
-	manifests = bldr_manifest_world.FilterCollectedManifestsByLatestRev(manifests)
-
 	// return the result of this + true to keep waiting
 	return true, ws.AccessWorldState(
 		ctx,
@@ -121,8 +117,8 @@ func (t *pluginInstance) processManifestWorldState(
 			var downloadManifest, executeManifest *bldr_manifest.ManifestSnapshot
 			var downloadManifestHost, executeManifestHost plugin_host.PluginHost
 
-			// prefer the manifest with highest revision and corresponding plugin host
-			// the slice is sorted this way
+			// Prefer candidates in descending revision order, but keep looking
+			// for an already-local manifest after recording the best download.
 			for _, manifest := range manifests {
 				// find the corresponding plugin host
 				manifestPlatformID := manifest.Manifest.GetMeta().GetPlatformId()
