@@ -20,15 +20,7 @@ import (
 
 type sessionAccountProjection struct {
 	status         provider.ProviderAccountStatus
-	selfEnrollment *sessionSelfEnrollmentProjection
-}
-
-type sessionSelfEnrollmentProjection struct {
-	count              uint32
-	credentialRequired bool
-	running            bool
-	skipped            bool
-	failed             bool
+	selfEnrollment *provider_spacewave.SelfEnrollmentProjection
 }
 
 type sessionRuntimeProjection struct {
@@ -157,33 +149,15 @@ func snapshotSpacewaveSessionAccountProjection(
 	acc *provider_spacewave.ProviderAccount,
 ) (sessionAccountProjection, []<-chan struct{}) {
 	proj := sessionAccountProjection{}
-	var accountCh <-chan struct{}
-	var summary *provider_spacewave.SelfEnrollmentSummary
-	var skippedKey string
 	acc.GetAccountBroadcast().HoldLock(func(
 		_ func(),
-		getWaitCh func() <-chan struct{},
+		_ func() <-chan struct{},
 	) {
-		accountCh = getWaitCh()
 		proj.status = acc.GetAccountStatus()
-		summary = acc.GetSelfEnrollmentSummary()
-		skippedKey = acc.GetSelfEnrollmentSkippedGenerationKey()
 	})
 
-	run, runCh := acc.WatchSelfEnrollmentRunSnapshot()
-	store := acc.GetEntityKeyStore()
-	var entityCh <-chan struct{}
-	unlockedCount := 0
-	if store != nil {
-		unlockedCount, entityCh = store.WatchUnlockedCount()
-	}
-	proj.selfEnrollment = buildSessionSelfEnrollmentProjection(
-		summary,
-		run,
-		skippedKey,
-		store != nil,
-		unlockedCount,
-	)
+	selfEnrollment, watch := acc.WatchSelfEnrollmentProjection()
+	proj.selfEnrollment = selfEnrollment
 
 	waitChs := make([]<-chan struct{}, 0, 3)
 	appendWaitCh := func(ch <-chan struct{}) {
@@ -191,34 +165,10 @@ func snapshotSpacewaveSessionAccountProjection(
 			waitChs = append(waitChs, ch)
 		}
 	}
-	appendWaitCh(accountCh)
-	appendWaitCh(runCh)
-	appendWaitCh(entityCh)
+	appendWaitCh(watch.AccountCh)
+	appendWaitCh(watch.RunCh)
+	appendWaitCh(watch.EntityKeyCh)
 	return proj, waitChs
-}
-
-func buildSessionSelfEnrollmentProjection(
-	summary *provider_spacewave.SelfEnrollmentSummary,
-	run *provider_spacewave.SelfEnrollmentRunSnapshot,
-	skippedKey string,
-	hasEntityKeyStore bool,
-	unlockedCount int,
-) *sessionSelfEnrollmentProjection {
-	if summary == nil && run == nil {
-		return nil
-	}
-	proj := &sessionSelfEnrollmentProjection{}
-	if summary != nil {
-		proj.count = summary.GetCount()
-		proj.credentialRequired = summary.GetCount() != 0 &&
-			(!hasEntityKeyStore || unlockedCount == 0)
-		proj.skipped = skippedKey != "" && skippedKey == summary.GetGenerationKey()
-	}
-	if run != nil {
-		proj.running = run.Running
-		proj.failed = len(run.Failures) != 0
-	}
-	return proj
 }
 
 func snapshotSessionSpaces(

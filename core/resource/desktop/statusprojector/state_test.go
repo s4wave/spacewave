@@ -6,6 +6,7 @@ import (
 	desktop_tray "github.com/s4wave/spacewave/bldr/desktop/tray"
 	desktop_runtime "github.com/s4wave/spacewave/bldr/web/electron/desktop-runtime"
 	"github.com/s4wave/spacewave/core/provider"
+	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
 	"github.com/s4wave/spacewave/core/session"
 )
@@ -242,9 +243,9 @@ func TestBuildSessionProjectionFlagsStepUp(t *testing.T) {
 				CreatedAt:           7,
 			},
 			accountStatus: provider.ProviderAccountStatus_ProviderAccountStatus_READY,
-			selfEnrollment: &sessionSelfEnrollmentProjection{
-				count:              2,
-				credentialRequired: true,
+			selfEnrollment: &provider_spacewave.SelfEnrollmentProjection{
+				Count:              2,
+				CredentialRequired: true,
 			},
 		},
 	})
@@ -266,6 +267,53 @@ func TestBuildSessionProjectionFlagsStepUp(t *testing.T) {
 	}
 	if attention.GetRoute() != "/u/7/" {
 		t.Fatalf("attention route = %q, want session route", attention.GetRoute())
+	}
+}
+
+func TestBuildSessionProjectionUsesSharedSelfEnrollmentProjection(t *testing.T) {
+	tests := []struct {
+		name       string
+		projection *provider_spacewave.SelfEnrollmentProjection
+		wantStatus string
+	}{
+		{
+			name: "failure",
+			projection: &provider_spacewave.SelfEnrollmentProjection{
+				Failures: []*provider_spacewave.SelfEnrollmentRunFailure{{SharedObjectID: "so-1"}},
+			},
+			wantStatus: "Space connection failed",
+		},
+		{
+			name:       "running",
+			projection: &provider_spacewave.SelfEnrollmentProjection{Running: true},
+			wantStatus: "Connecting spaces",
+		},
+		{
+			name: "skipped",
+			projection: &provider_spacewave.SelfEnrollmentProjection{
+				Count:   1,
+				Skipped: true,
+			},
+			wantStatus: "Connection skipped",
+		},
+		{
+			name:       "pending",
+			projection: &provider_spacewave.SelfEnrollmentProjection{Count: 1},
+			wantStatus: "Spaces pending",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			row := &sessionProjectionRow{
+				entry:          testSessionEntry(1, "spacewave", "acct-1"),
+				metadata:       &session.SessionMetadata{},
+				accountStatus:  provider.ProviderAccountStatus_ProviderAccountStatus_READY,
+				selfEnrollment: tt.projection,
+			}
+			if got := sessionStatusText(row); got != tt.wantStatus {
+				t.Fatalf("status = %q, want %q", got, tt.wantStatus)
+			}
+		})
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 
 	desktop_runtime "github.com/s4wave/spacewave/bldr/web/electron/desktop-runtime"
 	"github.com/s4wave/spacewave/core/provider"
+	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
 	"github.com/s4wave/spacewave/core/session"
 )
@@ -25,7 +26,7 @@ type sessionProjectionRow struct {
 	entry          *session.SessionListEntry
 	metadata       *session.SessionMetadata
 	accountStatus  provider.ProviderAccountStatus
-	selfEnrollment *sessionSelfEnrollmentProjection
+	selfEnrollment *provider_spacewave.SelfEnrollmentProjection
 }
 
 // BuildDesktopRuntimeStateFromListener maps listener status into tray status state.
@@ -163,7 +164,7 @@ func buildSessionAttentionItem(row *sessionProjectionRow) *desktop_runtime.Deskt
 			Kind:     desktop_runtime.DesktopRuntimeAttentionKind_DESKTOP_RUNTIME_ATTENTION_KIND_STEP_UP_REQUIRED,
 			Severity: desktop_runtime.DesktopRuntimeSeverity_DESKTOP_RUNTIME_SEVERITY_WARNING,
 			Label:    "Unlock session key",
-			Detail:   spaceNeedSessionKeyDetail(row.selfEnrollment.count),
+			Detail:   spaceNeedSessionKeyDetail(row.selfEnrollment.Count),
 			Route:    sessionRoute(row.entry.GetSessionIndex()),
 		}
 	}
@@ -229,19 +230,19 @@ func sessionStatusText(row *sessionProjectionRow) string {
 		return accountStatusText(row.accountStatus)
 	}
 	if row.selfEnrollment != nil {
-		if row.selfEnrollment.failed {
+		if len(row.selfEnrollment.Failures) != 0 {
 			return "Space connection failed"
 		}
-		if row.selfEnrollment.running {
+		if row.selfEnrollment.Running {
 			return "Connecting spaces"
 		}
-		if row.selfEnrollment.skipped {
+		if row.selfEnrollment.Skipped {
 			return "Connection skipped"
 		}
 		if isSessionStepUpRequired(row) {
 			return "Unlock required"
 		}
-		if row.selfEnrollment.count != 0 {
+		if row.selfEnrollment.Count != 0 {
 			return "Spaces pending"
 		}
 	}
@@ -271,10 +272,10 @@ func isSessionStepUpRequired(row *sessionProjectionRow) bool {
 	if row == nil || row.selfEnrollment == nil {
 		return false
 	}
-	return row.selfEnrollment.count != 0 &&
-		row.selfEnrollment.credentialRequired &&
-		!row.selfEnrollment.running &&
-		!row.selfEnrollment.skipped
+	return row.selfEnrollment.Count != 0 &&
+		row.selfEnrollment.CredentialRequired &&
+		!row.selfEnrollment.Running &&
+		!row.selfEnrollment.Skipped
 }
 
 func formatSpaceCount(count uint32) string {
