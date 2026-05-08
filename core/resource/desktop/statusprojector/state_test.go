@@ -272,9 +272,10 @@ func TestBuildSessionProjectionFlagsStepUp(t *testing.T) {
 
 func TestBuildSessionProjectionUsesSharedSelfEnrollmentProjection(t *testing.T) {
 	tests := []struct {
-		name       string
-		projection *provider_spacewave.SelfEnrollmentProjection
-		wantStatus string
+		name              string
+		projection        *provider_spacewave.SelfEnrollmentProjection
+		wantStatus        string
+		wantAttentionKind desktop_runtime.DesktopRuntimeAttentionKind
 	}{
 		{
 			name: "failure",
@@ -301,6 +302,20 @@ func TestBuildSessionProjectionUsesSharedSelfEnrollmentProjection(t *testing.T) 
 			projection: &provider_spacewave.SelfEnrollmentProjection{Count: 1},
 			wantStatus: "Spaces pending",
 		},
+		{
+			name: "waiting-for-step-up",
+			projection: &provider_spacewave.SelfEnrollmentProjection{
+				Count:              1,
+				CredentialRequired: true,
+			},
+			wantStatus:        "Unlock required",
+			wantAttentionKind: desktop_runtime.DesktopRuntimeAttentionKind_DESKTOP_RUNTIME_ATTENTION_KIND_STEP_UP_REQUIRED,
+		},
+		{
+			name:       "ready",
+			projection: &provider_spacewave.SelfEnrollmentProjection{},
+			wantStatus: "Ready",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -310,8 +325,24 @@ func TestBuildSessionProjectionUsesSharedSelfEnrollmentProjection(t *testing.T) 
 				accountStatus:  provider.ProviderAccountStatus_ProviderAccountStatus_READY,
 				selfEnrollment: tt.projection,
 			}
-			if got := sessionStatusText(row); got != tt.wantStatus {
+			projection := buildSessionProjection([]*sessionProjectionRow{row})
+			if len(projection.Sessions) != 1 {
+				t.Fatalf("session rows = %d, want 1", len(projection.Sessions))
+			}
+			if got := projection.Sessions[0].GetStatusText(); got != tt.wantStatus {
 				t.Fatalf("status = %q, want %q", got, tt.wantStatus)
+			}
+			if tt.wantAttentionKind == desktop_runtime.DesktopRuntimeAttentionKind_DESKTOP_RUNTIME_ATTENTION_KIND_UNSPECIFIED {
+				if len(projection.AttentionItems) != 0 {
+					t.Fatalf("attention items = %d, want 0", len(projection.AttentionItems))
+				}
+				return
+			}
+			if len(projection.AttentionItems) != 1 {
+				t.Fatalf("attention items = %d, want 1", len(projection.AttentionItems))
+			}
+			if got := projection.AttentionItems[0].GetKind(); got != tt.wantAttentionKind {
+				t.Fatalf("attention kind = %v, want %v", got, tt.wantAttentionKind)
 			}
 		})
 	}

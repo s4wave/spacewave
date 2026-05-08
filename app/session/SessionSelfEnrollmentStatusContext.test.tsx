@@ -3,6 +3,135 @@ import { describe, expect, it } from 'vitest'
 import { buildSessionSelfEnrollmentStatusView } from './SessionSelfEnrollmentStatusContext.js'
 
 describe('buildSessionSelfEnrollmentStatusView', () => {
+  it.each([
+    {
+      name: 'pending',
+      snapshot: {
+        count: 2,
+        sharedObjectIds: ['so-1', 'so-2'],
+        completedSharedObjectIds: ['so-1'],
+        generationKey: 'gen-pending',
+      },
+      visualState: 'pending',
+      summaryLabel: 'Spaces need this session',
+      detailLabel: '2 spaces can connect in the background.',
+      visible: true,
+      progress: 50,
+      startLabel: 'Connect',
+      skipVisible: true,
+    },
+    {
+      name: 'running',
+      snapshot: {
+        count: 2,
+        running: true,
+        sharedObjectIds: ['so-1', 'so-2'],
+        completedSharedObjectIds: ['so-1'],
+        generationKey: 'gen-running',
+      },
+      visualState: 'running',
+      summaryLabel: 'Connecting spaces',
+      detailLabel: 'Connecting 2 spaces.',
+      visible: true,
+      progress: 50,
+      startLabel: 'Connect',
+      skipVisible: true,
+    },
+    {
+      name: 'waiting-for-step-up',
+      snapshot: {
+        count: 1,
+        credentialRequired: true,
+        sharedObjectIds: ['so-1'],
+        generationKey: 'gen-step-up',
+      },
+      visualState: 'waiting-for-step-up',
+      summaryLabel: 'Spaces need this session key',
+      detailLabel:
+        '1 space needs an account unlock before this session can connect.',
+      visible: true,
+      progress: 0,
+      startLabel: 'Connect',
+      skipVisible: true,
+    },
+    {
+      name: 'skipped',
+      snapshot: {
+        count: 1,
+        skipped: true,
+        sharedObjectIds: ['so-1'],
+        generationKey: 'gen-skipped',
+      },
+      visualState: 'skipped',
+      summaryLabel: 'Space connection skipped',
+      detailLabel: 'This generation will stay skipped for now.',
+      visible: true,
+      progress: 0,
+      startLabel: 'Retry',
+      skipVisible: false,
+    },
+    {
+      name: 'failed',
+      snapshot: {
+        count: 1,
+        sharedObjectIds: ['so-1'],
+        generationKey: 'gen-failed',
+        failures: [{ sharedObjectId: 'so-1', message: 'not a participant' }],
+      },
+      visualState: 'failed',
+      summaryLabel: 'Some spaces need attention',
+      detailLabel: '1 space failed to connect.',
+      visible: true,
+      progress: 0,
+      startLabel: 'Retry',
+      skipVisible: true,
+    },
+    {
+      name: 'ready',
+      snapshot: {
+        count: 0,
+        generationKey: 'gen-ready',
+      },
+      visualState: 'ready',
+      summaryLabel: '',
+      detailLabel: '',
+      visible: false,
+      progress: 0,
+      startLabel: 'Connect',
+      skipVisible: true,
+    },
+  ])(
+    'maps shared projection agreement state $name',
+    ({
+      snapshot,
+      visualState,
+      summaryLabel,
+      detailLabel,
+      visible,
+      progress,
+      startLabel,
+      skipVisible,
+    }) => {
+      const view = buildSessionSelfEnrollmentStatusView(
+        null,
+        snapshot,
+        false,
+        null,
+      )
+
+      expect(view.visualState).toBe(visualState)
+      expect(view.summaryLabel).toBe(summaryLabel)
+      expect(view.detailLabel).toBe(detailLabel)
+      expect(view.visible).toBe(visible)
+      expect(view.progress).toBe(progress)
+      expect(view.startLabel).toBe(startLabel)
+      expect(view.skipVisible).toBe(skipVisible)
+      expect(view.ariaLabel).toBe(
+        `Session self-enrollment status: ${summaryLabel || 'ready'}`,
+      )
+    },
+  )
+
   it('maps pending projection state to local labels and affordances', () => {
     const view = buildSessionSelfEnrollmentStatusView(
       null,
