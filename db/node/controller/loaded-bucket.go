@@ -118,6 +118,9 @@ func (b *loadedBucket) execute(ctx context.Context) error {
 
 		b.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 			waitCh = getWaitCh()
+			if b.lastState == nil {
+				stDirty = true
+			}
 			if !st.info.GetConfig().EqualVT(b.bucketConf) {
 				stDirty = true
 				st.info = bucket.NewBucketInfo(b.bucketConf)

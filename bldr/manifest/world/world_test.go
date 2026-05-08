@@ -182,6 +182,80 @@ func TestCollectStartupManifestsSkipsUnreadableLinkedRef(t *testing.T) {
 	}
 }
 
+func TestCollectStartupManifestsSkipsUnavailableBucketRef(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const storeKey = "plugin-host"
+	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	goodRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 7)
+	const goodRefKey = "plugin-host/ref/good"
+	storeTestManifestRefObject(t, ctx, ws, goodRefKey, goodRef)
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, goodRefKey, "spacewave-web")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	badRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 9)
+	badRef.GetManifestRef().BucketId = "missing-bucket"
+	const badRefKey = "plugin-host/ref/missing-bucket"
+	storeTestManifestRefObject(t, ctx, ws, badRefKey, badRef)
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, badRefKey, "spacewave-web")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	got, errs, err := CollectStartupManifestsForManifestID(
+		ctx,
+		ws,
+		"spacewave-web",
+		[]string{"js"},
+		storeKey,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(errs) != 1 {
+		t.Fatalf("manifest errors = %v", errs)
+	}
+	if !errors.Is(errs[0], bucket.ErrBucketNotFound) {
+		t.Fatalf("manifest error = %v, want bucket not found", errs[0])
+	}
+	if !strings.Contains(errs[0].Error(), badRefKey) {
+		t.Fatalf("manifest error %q does not mention bad ref key %q", errs[0].Error(), badRefKey)
+	}
+	if !strings.Contains(errs[0].Error(), "bucket=missing-bucket") {
+		t.Fatalf("manifest error %q does not mention missing bucket", errs[0].Error())
+	}
+	if len(got) != 1 {
+		t.Fatalf("manifest count = %d", len(got))
+	}
+	if got[0].GetRev() != 7 {
+		t.Fatalf("manifest rev = %d", got[0].GetRev())
+	}
+	if !got[0].ManifestRef.EqualVT(goodRef.GetManifestRef()) {
+		t.Fatalf("manifest ref was not preserved")
+	}
+}
+
 func TestStartupManifestSkipErrorIncludesBucketDiagnostics(t *testing.T) {
 	err := newStartupManifestSkipError(
 		"plugin-host/ref/missing-bucket",

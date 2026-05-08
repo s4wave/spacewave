@@ -73,6 +73,11 @@ func (r *buildBucketLookupResolver) Resolve(
 			if currState.disposed {
 				break
 			}
+			if currState.info.GetConfig() == nil {
+				handler.MarkIdle(true)
+				continue
+			}
+			handler.MarkIdle(false)
 			_, _ = handler.AddValue(newBucketLookupHandle(bh, currState))
 		}
 

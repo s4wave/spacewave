@@ -340,11 +340,17 @@ func (c *Cursor) followRefWithOpArgs(
 			if err == nil && handle == nil {
 				err = bucket.ErrBucketNotFound
 			}
+			if err == nil && returnIfIdle && handle.GetBucketConfig() == nil {
+				err = bucket.ErrBucketNotFound
+			}
 			if err == nil {
 				bkt = NewBucketFromHandle(handle)
 				if handleRel != nil {
 					rel = handleRel.Release
 				}
+			}
+			if err != nil && handleRel != nil {
+				handleRel.Release()
 			}
 		}
 		if !readOnly {
