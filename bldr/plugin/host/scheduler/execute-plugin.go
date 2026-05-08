@@ -34,7 +34,14 @@ func executePluginArgsEqual(a, b *executePluginArgs) bool {
 	manifestEqual := (a.manifestSnapshot == nil) == (b.manifestSnapshot == nil)
 	if manifestEqual && a.manifestSnapshot != nil {
 		// Compare the manifest references for equality
-		manifestEqual = a.manifestSnapshot.GetManifestRef().EqualVT(b.manifestSnapshot.GetManifestRef())
+		aRef := a.manifestSnapshot.GetManifestRef()
+		bRef := b.manifestSnapshot.GetManifestRef()
+		if aRef == nil || bRef == nil {
+			manifestEqual = aRef == bRef
+		}
+		if aRef != nil && bRef != nil {
+			manifestEqual = aRef.EqualVT(bRef)
+		}
 	}
 	if !manifestEqual {
 		return false
@@ -51,7 +58,10 @@ func executePluginArgsEqual(a, b *executePluginArgs) bool {
 
 // execPlugin executes the plugin.
 func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs) (rerr error) {
-	if args == nil || args.manifestSnapshot == nil {
+	if args == nil ||
+		args.manifestSnapshot == nil ||
+		args.manifestSnapshot.GetManifestRef() == nil ||
+		args.pluginHost == nil {
 		return nil
 	}
 	ctx, task := trace.NewTask(ctx, "bldr/plugin-host-scheduler/execute-plugin")

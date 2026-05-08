@@ -70,3 +70,20 @@ func TestPluginStatusSnapshotEqualIncludesLastError(t *testing.T) {
 		t.Fatal("expected snapshots with different last errors to differ")
 	}
 }
+
+func TestPluginStatusUpdateToleratesUninitializedController(t *testing.T) {
+	ctrl := &Controller{}
+
+	ctrl.recordPluginStatusError("notes", "", "startup manifest refs", errors.New("skipped"))
+
+	if len(ctrl.pluginStatus) != 1 {
+		t.Fatalf("expected one plugin status, got %d", len(ctrl.pluginStatus))
+	}
+	status := ctrl.buildPluginStatusSnapshotLocked()
+	if len(status.Plugins) != 1 {
+		t.Fatalf("expected one plugin in snapshot, got %d", len(status.Plugins))
+	}
+	if status.Plugins[0].GetLastErrorMessage() != "startup manifest refs: skipped" {
+		t.Fatalf("unexpected last error: %q", status.Plugins[0].GetLastErrorMessage())
+	}
+}

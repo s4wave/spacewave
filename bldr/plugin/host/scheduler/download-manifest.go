@@ -20,7 +20,7 @@ func (t *pluginInstance) execDownloadManifest(
 		t.c.recordPluginStatusError(t.pluginID, t.instanceKey, "download plugin manifest", rerr)
 	}()
 
-	if t.c.conf.GetDisableCopyManifest() {
+	if t.c.conf.GetDisableCopyManifest() || manifestSnapshot == nil || manifestSnapshot.GetManifestRef() == nil {
 		return nil
 	}
 

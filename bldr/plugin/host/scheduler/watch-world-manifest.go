@@ -4,7 +4,10 @@ import (
 	"context"
 	"maps"
 	"slices"
+	"strconv"
+	"strings"
 
+	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
@@ -83,10 +86,19 @@ func (t *pluginInstance) processManifestWorldState(
 	if ctx.Err() != nil {
 		return true, context.Canceled
 	}
-	for _, manifestErr := range manifestErrs {
-		le.WithError(manifestErr).Warn("skipping manifest due to error")
+	skipSummary := summarizeStartupManifestSkips(manifestErrs)
+	if skipSummary != "" {
+		le.WithField("skipped-startup-manifest-refs", skipSummary).Warn("skipped startup manifest refs")
 	}
 	if len(manifests) == 0 {
+		if skipSummary != "" {
+			t.c.recordPluginStatusError(
+				t.pluginID,
+				t.instanceKey,
+				"startup manifest refs",
+				errors.New(skipSummary),
+			)
+		}
 		// When store is disabled, the fetch handler may drive
 		// execute/download directly from fetched ManifestRefs.
 		// Don't clear states that the fetch handler set.
@@ -199,14 +211,8 @@ func (t *pluginInstance) processManifestWorldState(
 
 			if anyChanged {
 				fields := logrus.Fields{}
-				if downloadManifest != nil {
-					fields["download-manifest-rev"] = downloadManifest.GetManifest().GetMeta().GetRev()
-					fields["download-manifest-ref"] = downloadManifest.GetManifestRef().MarshalB58()
-				}
-				if executeManifest != nil {
-					fields["execute-manifest-ref"] = executeManifest.GetManifestRef().MarshalB58()
-					fields["execute-manifest-rev"] = executeManifest.GetManifest().GetMeta().GetRev()
-				}
+				addManifestSelectionFields(fields, "download", downloadManifest)
+				addManifestSelectionFields(fields, "execute", executeManifest)
 				le.WithFields(fields).Debug("selected download and execute manifests for plugin")
 			}
 
@@ -214,4 +220,71 @@ func (t *pluginInstance) processManifestWorldState(
 			return nil
 		},
 	)
+}
+
+const maxStartupManifestSkipSummaryItems = 3
+
+func summarizeStartupManifestSkips(errs []error) string {
+	if len(errs) == 0 {
+		return ""
+	}
+
+	items := make([]string, 0, min(len(errs), maxStartupManifestSkipSummaryItems))
+	for _, err := range errs {
+		if len(items) >= maxStartupManifestSkipSummaryItems {
+			break
+		}
+		items = append(items, startupManifestSkipSummaryItem(err))
+	}
+
+	summary := strings.Join(items, "; ")
+	if remaining := len(errs) - len(items); remaining > 0 {
+		summary += "; +" + strconv.Itoa(remaining) + " more"
+	}
+	return strconv.Itoa(len(errs)) + " skipped startup manifest ref(s): " + summary
+}
+
+func startupManifestSkipSummaryItem(err error) string {
+	var skipErr *bldr_manifest_world.StartupManifestSkipError
+	if errors.As(err, &skipErr) && skipErr != nil {
+		parts := []string{skipErr.ObjectKey}
+		if skipErr.ObjectRef != nil {
+			if bucketID := skipErr.ObjectRef.GetBucketId(); bucketID != "" {
+				parts = append(parts, "bucket="+bucketID)
+			}
+			if rootRef := skipErr.ObjectRef.GetRootRef(); rootRef != nil && !rootRef.GetEmpty() {
+				parts = append(parts, "root="+rootRef.MarshalString())
+			}
+		}
+		if skipErr.Err != nil {
+			parts = append(parts, "err="+skipErr.Err.Error())
+		}
+		return strings.Join(parts, " ")
+	}
+	if err == nil {
+		return "<nil>"
+	}
+	return err.Error()
+}
+
+func addManifestSelectionFields(
+	fields logrus.Fields,
+	prefix string,
+	manifest *bldr_manifest.ManifestSnapshot,
+) {
+	if manifest == nil {
+		fields[prefix+"-manifest"] = "none"
+		return
+	}
+	ref := manifest.GetManifestRef()
+	if ref == nil {
+		fields[prefix+"-manifest-ref"] = "none"
+	}
+	if ref != nil {
+		fields[prefix+"-manifest-ref"] = ref.MarshalB58()
+	}
+	if manifest.GetManifest() == nil || manifest.GetManifest().GetMeta() == nil {
+		return
+	}
+	fields[prefix+"-manifest-rev"] = manifest.GetManifest().GetMeta().GetRev()
 }

@@ -138,6 +138,25 @@ func TestDirectFetchHandlerPrefersCurrentStateAcrossEqualRevOverlap(t *testing.T
 	}
 }
 
+func TestExecutePluginArgsEqualHandlesNilManifestRefs(t *testing.T) {
+	if !executePluginArgsEqual(
+		&executePluginArgs{manifestSnapshot: &bldr_manifest.ManifestSnapshot{}},
+		&executePluginArgs{manifestSnapshot: &bldr_manifest.ManifestSnapshot{}},
+	) {
+		t.Fatal("expected args with nil manifest refs to compare equal")
+	}
+
+	withRef := &executePluginArgs{
+		manifestSnapshot: &bldr_manifest.ManifestSnapshot{
+			ManifestRef: &bucket.ObjectRef{BucketId: "bucket"},
+		},
+	}
+	withoutRef := &executePluginArgs{manifestSnapshot: &bldr_manifest.ManifestSnapshot{}}
+	if executePluginArgsEqual(withRef, withoutRef) {
+		t.Fatal("expected args with one nil manifest ref to differ")
+	}
+}
+
 func TestFetchManifestValueStorerRepairsMissingManifestLink(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
@@ -306,6 +325,95 @@ func TestWatchWorldManifestUsesStartupManifestRefsAndSkipsBadCandidate(t *testin
 	}
 	if !execState.manifestSnapshot.GetManifestRef().EqualVT(goodRef.GetManifestRef()) {
 		t.Fatal("expected skipped bad ref not to clear the good execute candidate")
+	}
+}
+
+func TestWatchWorldManifestRecordsCompactSkippedRefStatusWhenNoCandidate(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const objKey = "plugin-host"
+	if _, err := bldr_manifest_world.CreateManifestStore(ctx, ws, objKey); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	badRef := newTestStoredManifestRef(t, ctx, tb, "spacewave-core", "desktop/darwin/arm64", 9)
+	badRef.GetManifestRef().RootRef.Hash.Hash[0] ^= 0xff
+	const badRefKey = "plugin-host/ref/missing"
+	storeTestManifestRefObject(t, ctx, ws, badRefKey, badRef)
+	if err := ws.SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad(objKey, badRefKey, "spacewave-core")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	host := &testPluginHost{id: "desktop/darwin/arm64"}
+	ctrl := &Controller{
+		conf:   &Config{},
+		objKey: objKey,
+		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
+			&PluginStatusSnapshot{},
+			pluginStatusSnapshotEqual,
+		),
+		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
+	}
+	pi := &pluginInstance{
+		c:                       ctrl,
+		le:                      le,
+		pluginID:                "spacewave-core",
+		downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.ManifestSnapshot](le),
+		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
+	}
+
+	obj, ok, err := ws.GetObject(ctx, objKey)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !ok {
+		t.Fatal("expected plugin host object")
+	}
+
+	wait, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
+		pluginHosts: []bldr_plugin_host.PluginHost{host},
+	}, ws, obj)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !wait {
+		t.Fatal("expected watch loop to wait for changes")
+	}
+	if pi.executePluginRoutine.GetState() != nil {
+		t.Fatal("expected execute state to remain unset")
+	}
+	if pi.downloadManifestRoutine.GetState() != nil {
+		t.Fatal("expected download state to remain unset")
+	}
+
+	status := ctrl.GetPluginStatusCtr().GetValue()
+	if len(status.Plugins) != 1 {
+		t.Fatalf("expected one plugin status, got %d", len(status.Plugins))
+	}
+	lastError := status.Plugins[0].GetLastErrorMessage()
+	if !strings.Contains(lastError, "1 skipped startup manifest ref(s)") {
+		t.Fatalf("unexpected compact skip status: %q", lastError)
+	}
+	if !strings.Contains(lastError, badRefKey) {
+		t.Fatalf("compact skip status %q does not mention bad ref key %q", lastError, badRefKey)
 	}
 }
 

@@ -83,6 +83,9 @@ func (c *Controller) updatePluginStatus(
 ) {
 	key := pluginInstanceKey(pluginID, instanceKey)
 	c.pluginStatusMtx.Lock()
+	if c.pluginStatus == nil {
+		c.pluginStatus = make(map[string]*bldr_plugin.PluginStatus)
+	}
 	current := c.pluginStatus[key]
 	if state == bldr_plugin.PluginState_PluginState_UNKNOWN && !recordError && !clearError {
 		delete(c.pluginStatus, key)
@@ -116,12 +119,17 @@ func (c *Controller) updatePluginStatus(
 	}
 	snapshot := c.buildPluginStatusSnapshotLocked()
 	c.pluginStatusMtx.Unlock()
-	c.pluginStatusCtr.SetValue(snapshot)
+	if c.pluginStatusCtr != nil {
+		c.pluginStatusCtr.SetValue(snapshot)
+	}
 }
 
 func (c *Controller) buildPluginStatusSnapshotLocked() *PluginStatusSnapshot {
 	plugins := make([]*bldr_plugin.PluginStatus, 0, len(c.pluginStatus))
 	for _, plugin := range c.pluginStatus {
+		if plugin == nil {
+			continue
+		}
 		plugins = append(plugins, &bldr_plugin.PluginStatus{
 			PluginId:         plugin.PluginId,
 			InstanceKey:      plugin.InstanceKey,
