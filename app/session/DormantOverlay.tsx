@@ -71,7 +71,7 @@ export function DormantOverlay({ metadata }: DormantOverlayProps) {
       <div className="relative z-10 flex w-full max-w-sm flex-col gap-6">
         <div className="flex flex-col items-center gap-2">
           <AnimatedLogo followMouse={false} />
-          <h1 className="text-foreground mt-2 text-xl font-bold tracking-wide">
+          <h1 className="text-foreground mt-2 text-xl font-semibold tracking-wide">
             Subscription inactive
           </h1>
           {entityId && (
@@ -89,8 +89,8 @@ export function DormantOverlay({ metadata }: DormantOverlayProps) {
         <div className="border-foreground/20 bg-background-get-started relative overflow-hidden rounded-lg border shadow-lg backdrop-blur-sm">
           <div className="space-y-4 p-6">
             <div className="flex flex-col items-center gap-2">
-              <div className="bg-warning/10 flex h-12 w-12 items-center justify-center rounded-full">
-                <LuMoon className="text-warning h-6 w-6" />
+              <div className="bg-warning/10 flex size-12 items-center justify-center rounded-full">
+                <LuMoon className="text-warning size-6" />
               </div>
             </div>
 
@@ -111,7 +111,7 @@ export function DormantOverlay({ metadata }: DormantOverlayProps) {
                 'flex h-10 items-center justify-center gap-2',
               )}
             >
-              <LuSparkles className="h-4 w-4" />
+              <LuSparkles className="size-4" />
               <span className="text-foreground text-sm">
                 {resolving ? 'Opening billing...' : 'Reactivate subscription'}
               </span>
@@ -131,7 +131,7 @@ export function DormantOverlay({ metadata }: DormantOverlayProps) {
                 'flex h-10 items-center justify-center gap-2',
               )}
             >
-              <LuUser className="h-4 w-4" />
+              <LuUser className="size-4" />
               <span className="text-foreground text-sm">
                 Open a local session
               </span>

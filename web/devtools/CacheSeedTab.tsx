@@ -73,7 +73,7 @@ export function CacheSeedTab({ rootResource }: CacheSeedTabProps) {
     return (
       <div className="text-foreground-alt/60 p-3 text-xs">
         <div className="flex items-center gap-2">
-          <LuRadar className="h-4 w-4" />
+          <LuRadar className="size-4" />
           <span>Cache-seed inspector unavailable.</span>
         </div>
         <div className="mt-1 opacity-60">{error}</div>

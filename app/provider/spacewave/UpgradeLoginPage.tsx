@@ -34,14 +34,14 @@ export function UpgradeLoginPage() {
           onClick={handleBack}
           className="text-foreground-alt hover:text-brand flex items-center gap-2 text-sm transition-colors"
         >
-          <LuArrowLeft className="h-4 w-4" />
+          <LuArrowLeft className="size-4" />
           <span className="select-none">Back to plan selection</span>
         </button>
       }
       intro={
         <>
           <AnimatedLogo followMouse={false} />
-          <h1 className="mt-2 text-xl font-bold tracking-wide">
+          <h1 className="mt-2 text-xl font-semibold tracking-wide">
             Create a Cloud Account
           </h1>
         </>

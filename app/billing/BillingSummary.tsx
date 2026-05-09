@@ -44,8 +44,8 @@ export function BillingSummary() {
       onClick={handleManage}
       className="border-foreground/10 bg-foreground/5 hover:border-brand/30 hover:bg-brand/5 group flex w-full cursor-pointer items-center gap-3 rounded-md border p-2.5 text-left transition-colors"
     >
-      <div className="bg-foreground/10 group-hover:bg-brand/10 flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors">
-        <LuCreditCard className="text-foreground-alt group-hover:text-brand h-3.5 w-3.5 transition-colors" />
+      <div className="bg-foreground/10 group-hover:bg-brand/10 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors">
+        <LuCreditCard className="text-foreground-alt group-hover:text-brand size-3.5 transition-colors" />
       </div>
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-center gap-2">

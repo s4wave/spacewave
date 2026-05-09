@@ -274,7 +274,7 @@ export function PasskeyPage() {
     return (
       <div className="bg-background-landing relative flex flex-1 flex-col items-center justify-center p-6">
         <div className="relative z-10 flex flex-col items-center gap-4 text-center">
-          <LuCircleAlert className="text-destructive h-12 w-12" />
+          <LuCircleAlert className="text-destructive size-12" />
           <h2 className="text-foreground text-lg font-semibold">
             Passkey sign-in failed
           </h2>
@@ -334,7 +334,7 @@ export function PasskeyPage() {
               'bg-brand text-brand-foreground hover:bg-brand/90',
             )}
           >
-            <LuFingerprint className="h-4 w-4" />
+            <LuFingerprint className="size-4" />
             Sign in with Passkey
           </button>
           <button
@@ -344,7 +344,7 @@ export function PasskeyPage() {
               'flex w-full items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors',
             )}
           >
-            <LuFingerprint className="h-4 w-4" />
+            <LuFingerprint className="size-4" />
             Create New Passkey Account
           </button>
           <button
@@ -419,7 +419,7 @@ export function PasskeyPage() {
               'disabled:cursor-not-allowed disabled:opacity-50',
             )}
           >
-            <LuFingerprint className="h-4 w-4" />
+            <LuFingerprint className="size-4" />
             Continue
           </button>
 
@@ -439,7 +439,7 @@ export function PasskeyPage() {
       <div className="relative z-10 flex flex-col items-center gap-4 text-center">
         <AnimatedLogo followMouse={false} />
         {state.step === 'complete' ?
-          <LuCheck className="text-brand h-6 w-6" />
+          <LuCheck className="text-brand size-6" />
         : <Spinner size="md" className="text-foreground-alt" />}
         <p className="text-foreground-alt text-sm">{statusMessage}</p>
       </div>

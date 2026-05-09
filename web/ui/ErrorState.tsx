@@ -27,14 +27,14 @@ export function ErrorState({
         className={cn(
           'flex items-center justify-center rounded-full',
           variant === 'fullscreen' ?
-            'bg-error-bg h-16 w-16'
-          : 'bg-error-bg h-10 w-10',
+            'bg-error-bg size-16'
+          : 'bg-error-bg size-10',
         )}
       >
         <LuCircleAlert
           className={cn(
             'text-error',
-            variant === 'fullscreen' ? 'h-8 w-8' : 'h-5 w-5',
+            variant === 'fullscreen' ? 'size-8' : 'size-5',
           )}
         />
       </div>
@@ -71,7 +71,7 @@ export function ErrorState({
             variant === 'fullscreen' ? 'mt-6' : 'mt-4',
           )}
         >
-          <LuRefreshCw className="mr-2 h-4 w-4" />
+          <LuRefreshCw className="mr-2 size-4" />
           Retry
         </Button>
       )}
@@ -87,7 +87,7 @@ export function ErrorState({
           className,
         )}
       >
-        <LuCircleAlert className="text-error h-4 w-4 shrink-0" />
+        <LuCircleAlert className="text-error size-4 shrink-0" />
         <p className="text-error-text text-sm">{message}</p>
         {onRetry && (
           <Button
@@ -96,7 +96,7 @@ export function ErrorState({
             onClick={onRetry}
             className="text-error hover:bg-error-bg ml-auto shrink-0"
           >
-            <LuRefreshCw className="h-3 w-3" />
+            <LuRefreshCw className="size-3" />
           </Button>
         )}
       </div>

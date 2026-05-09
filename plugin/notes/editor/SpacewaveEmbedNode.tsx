@@ -70,7 +70,7 @@ export class SpacewaveEmbedNode extends DecoratorNode<JSX.Element> {
     return (
       <div className="bg-card border-border flex items-center gap-3 rounded-lg border p-3">
         <div className="text-brand flex items-center">
-          <LuLayers className="h-5 w-5" />
+          <LuLayers className="size-5" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="text-foreground truncate text-xs font-medium">

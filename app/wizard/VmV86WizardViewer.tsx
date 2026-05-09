@@ -579,7 +579,7 @@ export function VmV86WizardViewer({
       <WizardShell
         title={
           <>
-            <LuMonitor className="mr-2 h-4 w-4 shrink-0" />
+            <LuMonitor className="mr-2 size-4 shrink-0" />
             New V86 VM
           </>
         }
@@ -660,8 +660,8 @@ function SourcePickerStep({
         )}
         onClick={() => onSelectInSpace(existingDefault.imageKey)}
       >
-        <span className="bg-foreground/5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md">
-          <LuRefreshCcw className="text-foreground-alt/50 h-3.5 w-3.5" />
+        <span className="bg-foreground/5 flex size-7 shrink-0 items-center justify-center rounded-md">
+          <LuRefreshCcw className="text-foreground-alt/50 size-3.5" />
         </span>
         <div className="min-w-0">
           <div className="text-foreground text-xs font-medium">
@@ -678,7 +678,7 @@ function SourcePickerStep({
     <section>
       <div className="mb-2 flex items-center justify-between">
         <h3 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-          <LuMonitor className="h-3.5 w-3.5" />
+          <LuMonitor className="size-3.5" />
           Choose a VM image
         </h3>
       </div>
@@ -696,8 +696,8 @@ function SourcePickerStep({
             )}
             onClick={() => onSelectInSpace(entry.objectKey)}
           >
-            <span className="bg-foreground/5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md">
-              <LuHardDrive className="text-foreground-alt/50 h-3.5 w-3.5" />
+            <span className="bg-foreground/5 flex size-7 shrink-0 items-center justify-center rounded-md">
+              <LuHardDrive className="text-foreground-alt/50 size-3.5" />
             </span>
             <div className="min-w-0">
               <div className="text-foreground text-xs font-medium">
@@ -718,8 +718,8 @@ function SourcePickerStep({
           )}
           onClick={onOpenCdnPicker}
         >
-          <span className="bg-brand/10 flex h-7 w-7 shrink-0 items-center justify-center rounded-md">
-            <LuCloud className="text-brand h-3.5 w-3.5" />
+          <span className="bg-brand/10 flex size-7 shrink-0 items-center justify-center rounded-md">
+            <LuCloud className="text-brand size-3.5" />
           </span>
           <div className="min-w-0">
             <div className="text-foreground text-xs font-medium">
@@ -742,7 +742,7 @@ function SourcePickerStep({
       )}
       {!pending && inSpaceImages.length === 0 && !existingDefault?.imageKey && (
         <div className="border-foreground/6 bg-background-card/30 text-foreground-alt/40 mt-2 flex items-center gap-2 rounded-lg border px-3.5 py-3 text-xs">
-          <LuHardDrive className="h-3.5 w-3.5 shrink-0" />
+          <LuHardDrive className="size-3.5 shrink-0" />
           No V86Images exist in this Space yet. Copy one from the CDN to
           continue.
         </div>
@@ -774,7 +774,7 @@ function ConfigStep({
       <section>
         <div className="mb-2 flex items-center justify-between">
           <h3 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-            <LuCpu className="h-3.5 w-3.5" />
+            <LuCpu className="size-3.5" />
             Memory
           </h3>
         </div>
@@ -795,8 +795,8 @@ function ConfigStep({
         </div>
       </section>
       <div className="border-foreground/6 bg-background-card/30 flex items-start gap-3 rounded-lg border p-3.5">
-        <span className="bg-foreground/5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md">
-          <LuCpu className="text-foreground-alt/50 h-3.5 w-3.5" />
+        <span className="bg-foreground/5 flex size-7 shrink-0 items-center justify-center rounded-md">
+          <LuCpu className="text-foreground-alt/50 size-3.5" />
         </span>
         <div className="flex flex-col gap-0.5">
           <div className="text-foreground text-xs font-medium select-none">

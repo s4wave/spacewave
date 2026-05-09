@@ -67,7 +67,7 @@ function GalleryTile({
             src={item.previewURL}
           />
         : <div className="text-foreground-alt/40 flex h-full w-full items-center justify-center">
-            <LuImage className="h-8 w-8" />
+            <LuImage className="size-8" />
           </div>
         }
       </div>
@@ -171,8 +171,8 @@ export function UnixFSGalleryViewer({
     >
       <div className="border-foreground/8 flex shrink-0 items-center justify-between border-b px-4 py-2">
         <div className="flex items-center gap-2">
-          <div className="bg-brand/10 text-brand flex h-8 w-8 items-center justify-center rounded-lg">
-            <LuImage className="h-4 w-4" />
+          <div className="bg-brand/10 text-brand flex size-8 items-center justify-center rounded-lg">
+            <LuImage className="size-4" />
           </div>
           <div>
             <div className="text-foreground text-sm font-semibold tracking-tight">
@@ -208,7 +208,7 @@ export function UnixFSGalleryViewer({
         {!galleryState.error && !hasItems && isScanning && (
           <div className="flex h-full min-h-48 items-center justify-center">
             <div className="border-foreground/6 bg-background-card/30 flex max-w-xs flex-col items-center gap-2 rounded-lg border px-4 py-5 text-center">
-              <LuImage className="text-foreground-alt h-5 w-5" />
+              <LuImage className="text-foreground-alt size-5" />
               <div className="text-foreground text-sm font-semibold">
                 Scanning for images
               </div>
@@ -222,7 +222,7 @@ export function UnixFSGalleryViewer({
         {!galleryState.error && !hasItems && !isScanning && (
           <div className="flex h-full min-h-48 items-center justify-center">
             <div className="border-foreground/6 bg-background-card/30 flex max-w-xs flex-col items-center gap-3 rounded-lg border px-4 py-5 text-center">
-              <LuImage className="text-foreground-alt h-5 w-5" />
+              <LuImage className="text-foreground-alt size-5" />
               <div className="text-foreground text-sm font-semibold">
                 No images under this path
               </div>
@@ -232,7 +232,7 @@ export function UnixFSGalleryViewer({
               </div>
               {browserViewer && (
                 <DashboardButton
-                  icon={<LuFolderOpen className="h-3.5 w-3.5" />}
+                  icon={<LuFolderOpen className="size-3.5" />}
                   onClick={() => objectViewer?.onSelectComponent(browserViewer)}
                 >
                   Switch to Browser
@@ -264,7 +264,7 @@ export function UnixFSGalleryViewer({
                     }
                     title="Open In Browser"
                   >
-                    <LuExternalLink className="h-4 w-4" />
+                    <LuExternalLink className="size-4" />
                   </button>
                   <button
                     type="button"
@@ -282,7 +282,7 @@ export function UnixFSGalleryViewer({
                     }
                     title="Download"
                   >
-                    <LuDownload className="h-4 w-4" />
+                    <LuDownload className="size-4" />
                   </button>
                 </div>
               )

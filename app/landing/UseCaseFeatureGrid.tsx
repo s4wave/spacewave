@@ -45,8 +45,8 @@ function UseCaseFeatureCard({
       style={{ transitionDelay: `${index * 80}ms` }}
     >
       <div className="mb-3 flex items-center gap-3">
-        <div className="bg-brand/8 group-hover:bg-brand/15 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors">
-          <Icon className="text-brand h-4 w-4" />
+        <div className="bg-brand/8 group-hover:bg-brand/15 flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors">
+          <Icon className="text-brand size-4" />
         </div>
         <h3 className="text-foreground text-sm font-semibold">
           {feature.title}

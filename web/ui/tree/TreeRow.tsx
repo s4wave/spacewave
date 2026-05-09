@@ -165,12 +165,12 @@ export function TreeRow<T = void>({
             .join(' ')}
         >
           {isExpanded ?
-            <LuChevronDown className="h-4 w-4" aria-hidden="true" />
-          : <LuChevronRight className="h-4 w-4" aria-hidden="true" />}
+            <LuChevronDown className="size-4" aria-hidden="true" />
+          : <LuChevronRight className="size-4" aria-hidden="true" />}
         </button>
       : <span className="w-4 flex-shrink-0" />}
       {node.icon && (
-        <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center">
+        <span className="flex size-4 flex-shrink-0 items-center justify-center">
           {node.icon}
         </span>
       )}

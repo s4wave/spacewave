@@ -204,8 +204,8 @@ function NotebookViewer({
           onClick={() => setSidebarOpen(!sidebarOpen)}
         >
           {sidebarOpen ?
-            <LuX className="h-5 w-5" />
-          : <LuMenu className="h-5 w-5" />}
+            <LuX className="size-5" />
+          : <LuMenu className="size-5" />}
         </button>
 
         {/* Sidebar - responsive: hidden on mobile unless toggled */}

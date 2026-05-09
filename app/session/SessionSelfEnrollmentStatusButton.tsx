@@ -83,15 +83,15 @@ function SessionSelfEnrollmentStatusGlyph({
     return <Spinner size="sm" />
   }
   if (status.failed) {
-    return <LuCircleAlert className="h-3.5 w-3.5" aria-hidden="true" />
+    return <LuCircleAlert className="size-3.5" aria-hidden="true" />
   }
   if (status.credentialRequired) {
-    return <LuKeyRound className="h-3.5 w-3.5" aria-hidden="true" />
+    return <LuKeyRound className="size-3.5" aria-hidden="true" />
   }
   if (status.skipped) {
-    return <LuSkipForward className="h-3.5 w-3.5" aria-hidden="true" />
+    return <LuSkipForward className="size-3.5" aria-hidden="true" />
   }
-  return <LuCircleCheck className="h-3.5 w-3.5" aria-hidden="true" />
+  return <LuCircleCheck className="size-3.5" aria-hidden="true" />
 }
 
 function SessionSelfEnrollmentStatusPopover({
@@ -134,7 +134,7 @@ function SessionSelfEnrollmentStatusPopover({
       <div className="flex items-start gap-3">
         <div
           className={cn(
-            'flex h-8 w-8 shrink-0 items-center justify-center rounded-md',
+            'flex size-8 shrink-0 items-center justify-center rounded-md',
             status.failed && 'bg-destructive/10 text-destructive',
             status.running && 'bg-brand/10 text-brand',
             status.credentialRequired && 'bg-warning/10 text-warning',
@@ -201,7 +201,7 @@ function SessionSelfEnrollmentStatusPopover({
           >
             {busy ?
               <Spinner size="sm" />
-            : <LuRotateCw className="h-3.5 w-3.5" aria-hidden="true" />}
+            : <LuRotateCw className="size-3.5" aria-hidden="true" />}
             {status.startLabel}
           </Button>
           {status.skipVisible && (
@@ -214,7 +214,7 @@ function SessionSelfEnrollmentStatusPopover({
                 void handleSkip()
               }}
             >
-              <LuSkipForward className="h-3.5 w-3.5" aria-hidden="true" />
+              <LuSkipForward className="size-3.5" aria-hidden="true" />
               Skip
             </Button>
           )}

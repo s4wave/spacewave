@@ -273,12 +273,12 @@ export function TransferWizard() {
           disabled={step === 'progress' || step === 'complete'}
           className="text-foreground-alt hover:text-foreground mb-6 flex items-center gap-1.5 text-sm transition-colors disabled:opacity-50"
         >
-          <LuArrowLeft className="h-4 w-4" />
+          <LuArrowLeft className="size-4" />
           {step === 'select' ? 'Back to dashboard' : 'Back'}
         </button>
 
         <div className="mb-6">
-          <h1 className="text-foreground text-lg font-bold tracking-wide">
+          <h1 className="text-foreground text-lg font-semibold tracking-wide">
             Transfer Sessions
           </h1>
           <p className="text-foreground-alt mt-1 text-sm">
@@ -336,7 +336,7 @@ export function TransferWizard() {
                 )}
               >
                 Next
-                <LuArrowRight className="h-3.5 w-3.5" />
+                <LuArrowRight className="size-3.5" />
               </button>
             )}
 
@@ -351,7 +351,7 @@ export function TransferWizard() {
                   'disabled:cursor-not-allowed disabled:opacity-50',
                 )}
               >
-                <LuMerge className="h-3.5 w-3.5" />
+                <LuMerge className="size-3.5" />
                 Start Transfer
               </button>
             )}
@@ -365,7 +365,7 @@ export function TransferWizard() {
                   'hover:bg-destructive/10',
                 )}
               >
-                <LuX className="h-3.5 w-3.5" />
+                <LuX className="size-3.5" />
                 Cancel
               </button>
             )}
@@ -379,7 +379,7 @@ export function TransferWizard() {
                   'hover:bg-brand/20',
                 )}
               >
-                <LuCheck className="h-3.5 w-3.5" />
+                <LuCheck className="size-3.5" />
                 Go to Session
               </button>
             )}
@@ -462,21 +462,21 @@ function SelectStep({
           <RadioOption
             selected={mode === TransferMode.TransferMode_MERGE}
             onSelect={() => onModeChange(TransferMode.TransferMode_MERGE)}
-            icon={<LuMerge className="h-4 w-4" />}
+            icon={<LuMerge className="size-4" />}
             label="Merge"
             description="Move all spaces to the target and delete the source session"
           />
           <RadioOption
             selected={mode === TransferMode.TransferMode_MIGRATE}
             onSelect={() => onModeChange(TransferMode.TransferMode_MIGRATE)}
-            icon={<LuMoveRight className="h-4 w-4" />}
+            icon={<LuMoveRight className="size-4" />}
             label="Migrate"
             description="Move all spaces to a different provider and transfer the keypair"
           />
           <RadioOption
             selected={mode === TransferMode.TransferMode_MIRROR}
             onSelect={() => onModeChange(TransferMode.TransferMode_MIRROR)}
-            icon={<LuCopy className="h-4 w-4" />}
+            icon={<LuCopy className="size-4" />}
             label="Mirror"
             description="Copy all spaces to the target without deleting the source"
           />
@@ -537,10 +537,10 @@ function InventoryStep({
                 checked ? 'bg-brand/5' : 'bg-background/20 opacity-60',
               )}
             >
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded">
+              <div className="flex size-8 shrink-0 items-center justify-center rounded">
                 {checked ?
-                  <LuSquareCheck className="text-brand h-5 w-5" />
-                : <LuSquare className="text-foreground-alt h-5 w-5" />}
+                  <LuSquareCheck className="text-brand size-5" />
+                : <LuSquare className="text-foreground-alt size-5" />}
               </div>
               <p className="text-foreground text-sm">{name}</p>
             </button>
@@ -605,10 +605,10 @@ function ProgressStep({
             <Spinner className="text-brand" />
           )}
         {phase === TransferPhase.TransferPhase_COMPLETE && (
-          <LuCheck className="text-brand h-4 w-4" />
+          <LuCheck className="text-brand size-4" />
         )}
         {phase === TransferPhase.TransferPhase_FAILED && (
-          <LuX className="text-destructive h-4 w-4" />
+          <LuX className="text-destructive size-4" />
         )}
         <p className="text-foreground text-sm font-medium">
           {phaseLabel(phase)}
@@ -657,8 +657,8 @@ function ProgressStep({
 function CompleteStep({ spaceCount }: { spaceCount: number }) {
   return (
     <div className="flex flex-col items-center py-6">
-      <div className="bg-brand/10 mb-4 flex h-12 w-12 items-center justify-center rounded-full">
-        <LuCheck className="text-brand h-6 w-6" />
+      <div className="bg-brand/10 mb-4 flex size-12 items-center justify-center rounded-full">
+        <LuCheck className="text-brand size-6" />
       </div>
       <p className="text-foreground text-sm font-medium">Transfer complete</p>
       <p className="text-foreground-alt mt-1 text-xs">

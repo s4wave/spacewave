@@ -65,7 +65,7 @@ export function CloudSetupWizard({
       <div className="relative z-10 my-auto flex w-full max-w-lg flex-col gap-4">
         <div className="flex flex-col items-center gap-2">
           <AnimatedLogo followMouse={false} />
-          <h1 className="mt-2 text-xl font-bold tracking-wide">
+          <h1 className="mt-2 text-xl font-semibold tracking-wide">
             Welcome to Spacewave Cloud!
           </h1>
           <p className="text-foreground-alt text-center text-sm">
@@ -77,8 +77,8 @@ export function CloudSetupWizard({
         {/* Perks card */}
         <div className="border-brand/30 bg-background-card/50 overflow-hidden rounded-lg border p-6 backdrop-blur-sm">
           <div className="mb-4 flex items-center gap-3">
-            <div className="bg-brand/10 flex h-10 w-10 items-center justify-center rounded-lg">
-              <LuCloud className="text-brand h-5 w-5" />
+            <div className="bg-brand/10 flex size-10 items-center justify-center rounded-lg">
+              <LuCloud className="text-brand size-5" />
             </div>
             <div>
               <h2 className="text-foreground font-semibold">
@@ -92,7 +92,7 @@ export function CloudSetupWizard({
           <div className="grid grid-cols-2 gap-3">
             {CLOUD_PERKS.map(({ text }) => (
               <div key={text} className="flex items-start gap-2">
-                <LuCheck className="text-brand mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <LuCheck className="text-brand mt-0.5 size-3.5 shrink-0" />
                 <span className="text-foreground-alt text-xs">{text}</span>
               </div>
             ))}
@@ -109,13 +109,13 @@ export function CloudSetupWizard({
           >
             <div
               className={cn(
-                'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
+                'flex size-8 shrink-0 items-center justify-center rounded-lg',
                 backupDone ? 'bg-brand/20' : 'bg-brand/10',
               )}
             >
               {backupDone ?
-                <LuCheck className="text-brand h-4 w-4" />
-              : <LuShieldCheck className="text-brand h-4 w-4" />}
+                <LuCheck className="text-brand size-4" />
+              : <LuShieldCheck className="text-brand size-4" />}
             </div>
             <div className="flex-1 text-left">
               <h3 className="text-foreground text-sm font-medium">
@@ -132,7 +132,7 @@ export function CloudSetupWizard({
             </div>
             <LuChevronDown
               className={cn(
-                'text-foreground-alt h-4 w-4 shrink-0 transition-transform duration-200',
+                'text-foreground-alt size-4 shrink-0 transition-transform duration-200',
                 expandedCard === 'backup' && 'rotate-180',
               )}
             />
@@ -165,7 +165,7 @@ export function CloudSetupWizard({
                   'flex h-10 items-center justify-center gap-2',
                 )}
               >
-                <LuDownload className="text-foreground h-4 w-4" />
+                <LuDownload className="text-foreground size-4" />
                 <span className="text-foreground text-sm">
                   {wiz.downloading ?
                     'Generating key...'
@@ -189,13 +189,13 @@ export function CloudSetupWizard({
           >
             <div
               className={cn(
-                'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
+                'flex size-8 shrink-0 items-center justify-center rounded-lg',
                 pinDone ? 'bg-brand/20' : 'bg-brand/10',
               )}
             >
               {pinDone ?
-                <LuCheck className="text-brand h-4 w-4" />
-              : <LuLock className="text-brand h-4 w-4" />}
+                <LuCheck className="text-brand size-4" />
+              : <LuLock className="text-brand size-4" />}
             </div>
             <div className="flex-1 text-left">
               <h3 className="text-foreground text-sm font-medium">
@@ -212,7 +212,7 @@ export function CloudSetupWizard({
             </div>
             <LuChevronDown
               className={cn(
-                'text-foreground-alt h-4 w-4 shrink-0 transition-transform duration-200',
+                'text-foreground-alt size-4 shrink-0 transition-transform duration-200',
                 expandedCard === 'pin' && 'rotate-180',
               )}
             />
@@ -223,14 +223,14 @@ export function CloudSetupWizard({
                 <RadioOption
                   selected={wiz.lockMode === 'auto'}
                   onSelect={() => wiz.setLockMode('auto')}
-                  icon={<LuLockOpen className="h-4 w-4" />}
+                  icon={<LuLockOpen className="size-4" />}
                   label="Auto-unlock"
                   description="Key stored on disk. No PIN needed."
                 />
                 <RadioOption
                   selected={wiz.lockMode === 'pin'}
                   onSelect={() => wiz.setLockMode('pin')}
-                  icon={<LuLock className="h-4 w-4" />}
+                  icon={<LuLock className="size-4" />}
                   label="PIN lock"
                   description="Enter PIN on each app launch."
                 />
@@ -285,7 +285,7 @@ export function CloudSetupWizard({
                   {wiz.saving ? 'Saving...' : 'Set lock mode'}
                 </span>
                 {!wiz.saving && (
-                  <LuArrowRight className="text-foreground-alt h-4 w-4" />
+                  <LuArrowRight className="text-foreground-alt size-4" />
                 )}
               </button>
             </div>
@@ -301,7 +301,7 @@ export function CloudSetupWizard({
           )}
         >
           Continue to app
-          <LuArrowRight className="h-4 w-4" />
+          <LuArrowRight className="size-4" />
         </button>
       </div>
     </div>

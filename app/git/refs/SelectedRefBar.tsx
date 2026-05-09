@@ -67,7 +67,7 @@ export function SelectedRefBar({
           onClick={onClickTree}
           title="Browse files"
         >
-          <LuFolder className="h-3 w-3" />
+          <LuFolder className="size-3" />
         </button>
       )}
       {onClickLog && (
@@ -76,7 +76,7 @@ export function SelectedRefBar({
           onClick={onClickLog}
           title="View commit log"
         >
-          <LuHistory className="h-3 w-3" />
+          <LuHistory className="size-3" />
         </button>
       )}
     </div>

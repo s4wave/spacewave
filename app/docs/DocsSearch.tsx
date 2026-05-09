@@ -51,7 +51,7 @@ export function DocsSearch({ docs, onSelect }: DocsSearchProps) {
   return (
     <div className="relative">
       <div className="relative">
-        <LuSearch className="text-foreground-alt/40 absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+        <LuSearch className="text-foreground-alt/40 absolute top-1/2 left-3 size-4 -translate-y-1/2" />
         <input
           ref={inputRef}
           type="text"

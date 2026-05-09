@@ -50,7 +50,7 @@ export function HeroCard({ post, onSelectPost, onSelectTag, authorRegistry }: He
 
           <div className="text-brand flex items-center gap-2 text-sm font-medium opacity-0 transition-all duration-300 group-hover:opacity-100">
             Read post
-            <LuArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+            <LuArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" />
           </div>
         </div>
 
@@ -60,7 +60,7 @@ export function HeroCard({ post, onSelectPost, onSelectTag, authorRegistry }: He
             <img
               src={author.avatar}
               alt={author.name}
-              className="h-8 w-8 rounded-full object-cover"
+              className="size-8 rounded-full object-cover"
             />
           )}
           <div className="@lg:text-right">

@@ -78,7 +78,7 @@ export function DocsSidebar({
 
         {categories.map((cat) => (
           <div key={cat.name} className="mb-5">
-            <h2 className="text-foreground-alt/40 mb-2 text-[10px] font-bold tracking-widest uppercase">
+            <h2 className="text-foreground-alt/40 mb-2 text-[10px] font-semibold tracking-widest uppercase">
               {cat.name}
             </h2>
             {cat.sections.map((section) => (
@@ -114,14 +114,14 @@ export function DocsSidebar({
           href={githubUrl}
           className="text-foreground-alt/50 hover:text-foreground-alt flex items-center gap-1.5 text-xs transition-colors"
         >
-          <LuExternalLink className="h-3 w-3" />
+          <LuExternalLink className="size-3" />
           View on GitHub
         </ExternalLink>
         <button
           onClick={currentSlug ? goToIndex : goHome}
           className="text-foreground-alt/50 hover:text-foreground-alt flex cursor-pointer items-center gap-1.5 text-left text-xs transition-colors"
         >
-          <LuArrowLeft className="h-3 w-3" />
+          <LuArrowLeft className="size-3" />
           {currentSlug ? 'Back to Documentation' : 'Back to Home'}
         </button>
       </div>

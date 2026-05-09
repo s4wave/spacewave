@@ -44,8 +44,8 @@ const GetStartedItem = ({ item }: { item: (typeof COMMAND_ITEMS)[number] }) => {
       className="text-foreground-alt flex cursor-pointer items-center gap-3 px-4 py-1.5"
       onSelect={handleClick}
     >
-      <div className="bg-foreground/5 flex h-9 w-9 items-center justify-center rounded-md transition-colors">
-        <item.icon className="h-5 w-5 stroke-[1.5]" />
+      <div className="bg-foreground/5 flex size-9 items-center justify-center rounded-md transition-colors">
+        <item.icon className="size-5 stroke-[1.5]" />
       </div>
       <div>
         <div className="text-sm font-medium">{item.name}</div>
@@ -67,8 +67,8 @@ function AddStateRootItem() {
       disabled={!canAddRootAlias}
       onSelect={handleClick}
     >
-      <div className="bg-foreground/5 flex h-9 w-9 items-center justify-center rounded-md transition-colors">
-        <LuFolderOpen className="h-5 w-5 stroke-[1.5]" />
+      <div className="bg-foreground/5 flex size-9 items-center justify-center rounded-md transition-colors">
+        <LuFolderOpen className="size-5 stroke-[1.5]" />
       </div>
       <div>
         <div className="text-sm font-medium">Open a local state root</div>
@@ -107,8 +107,8 @@ function SessionItem({ session }: { session: SessionListEntry }) {
       className="text-foreground-alt flex cursor-pointer items-center gap-3 px-4 py-1.5"
       onSelect={handleClick}
     >
-      <div className="bg-foreground/5 flex h-9 w-9 items-center justify-center rounded-md transition-colors">
-        <LuUser className="h-5 w-5 stroke-[1.5]" />
+      <div className="bg-foreground/5 flex size-9 items-center justify-center rounded-md transition-colors">
+        <LuUser className="size-5 stroke-[1.5]" />
       </div>
       <div>
         <div className="text-sm font-medium">Account: {accountName}</div>
@@ -165,8 +165,8 @@ function StaticGetStarted({ className }: { className?: string }) {
                 href={getStaticQuickstartHref(item)}
                 className="text-foreground-alt flex items-center gap-3 px-4 py-1.5 no-underline"
               >
-                <div className="bg-foreground/5 flex h-9 w-9 items-center justify-center rounded-md">
-                  <item.icon className="h-5 w-5 stroke-[1.5]" />
+                <div className="bg-foreground/5 flex size-9 items-center justify-center rounded-md">
+                  <item.icon className="size-5 stroke-[1.5]" />
                 </div>
                 <div>
                   <div className="text-sm font-medium">{item.name}</div>

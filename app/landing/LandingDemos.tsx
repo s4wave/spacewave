@@ -237,8 +237,8 @@ function DemoFrame({
   return (
     <div className="border-foreground/8 bg-background-card/40 overflow-hidden rounded-lg border backdrop-blur-sm">
       <div className="border-foreground/8 flex items-center gap-3 border-b px-4 py-3">
-        <div className="bg-brand/8 flex h-9 w-9 items-center justify-center rounded-lg">
-          <Icon className="text-brand h-4 w-4" />
+        <div className="bg-brand/8 flex size-9 items-center justify-center rounded-lg">
+          <Icon className="text-brand size-4" />
         </div>
         <div className="min-w-0">
           <h3 className="text-foreground text-sm font-semibold">{title}</h3>
@@ -325,10 +325,10 @@ export function DriveLandingDemo() {
               aria-label="Go to parent folder"
               className="text-foreground-alt hover:text-foreground disabled:text-foreground-alt/40"
             >
-              <LuArrowLeft className="h-3.5 w-3.5" />
+              <LuArrowLeft className="size-3.5" />
             </button>
             <span className="text-foreground-alt">swarm://team-space</span>
-            <LuChevronRight className="text-foreground-alt h-3 w-3" />
+            <LuChevronRight className="text-foreground-alt size-3" />
             <span className="text-foreground truncate">{currentPath}</span>
           </div>
           <div className="h-72 overflow-hidden">
@@ -628,7 +628,7 @@ ${code.trim()}
         <div className="flex min-h-80 flex-col gap-3 p-3">
           <div className="border-foreground/8 bg-background/40 rounded-lg border p-3">
             <div className="mb-2 flex items-center gap-2">
-              <LuPlay className="text-brand h-4 w-4" />
+              <LuPlay className="text-brand size-4" />
               <span className="text-foreground text-sm font-semibold">
                 Derived preview
               </span>

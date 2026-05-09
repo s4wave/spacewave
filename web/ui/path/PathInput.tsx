@@ -131,12 +131,12 @@ export function PathInput({
         )}
         aria-label="Navigate to root"
       >
-        <LuHouse className="h-3.5 w-3.5" />
+        <LuHouse className="size-3.5" />
       </button>
 
       {pathSegments.map((segment, index) => (
         <div key={index} className="flex items-center">
-          <LuChevronRight className="text-foreground-alt h-3 w-3" />
+          <LuChevronRight className="text-foreground-alt size-3" />
           <button
             onClick={(e) => {
               e.stopPropagation()

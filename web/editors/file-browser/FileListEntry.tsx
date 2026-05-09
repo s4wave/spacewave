@@ -242,14 +242,14 @@ export function FileListEntry({
       : entry.isDir ?
         <LuFolder
           className={cn(
-            'h-4 w-4 shrink-0',
+            'size-4 shrink-0',
             selected ? 'text-brand' : 'text-foreground-alt/80',
           )}
           style={iconStyle}
         />
       : <LuFile
           className={cn(
-            'h-4 w-4 shrink-0',
+            'size-4 shrink-0',
             selected ? 'text-foreground' : 'text-foreground-alt/60',
           )}
           style={iconStyle}
@@ -289,7 +289,7 @@ export function FileListEntry({
         }}
         onContextMenu={handleDotsClick}
       >
-        <LuEllipsis className="text-foreground-alt h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100" />
+        <LuEllipsis className="text-foreground-alt size-4 opacity-0 transition-opacity group-hover:opacity-100" />
       </div>
     </>
   )

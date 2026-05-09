@@ -32,7 +32,7 @@ export function OptionalPinLock(props: OptionalPinLockProps) {
   return (
     <div className="flex w-full flex-col gap-2">
       <div className="flex items-center gap-2">
-        <LuLock className="text-foreground-alt h-4 w-4" />
+        <LuLock className="text-foreground-alt size-4" />
         <label
           htmlFor={pinInputId}
           className="text-foreground text-sm font-medium"

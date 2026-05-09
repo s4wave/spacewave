@@ -160,7 +160,7 @@ export function PasskeySection({
         <div className="space-y-3">
           {status === 'idle' && (
             <DashboardButton
-              icon={<LuFingerprint className="h-4 w-4" />}
+              icon={<LuFingerprint className="size-4" />}
               onClick={() => void handleRegister()}
               className="w-full justify-center"
             >
@@ -185,7 +185,7 @@ export function PasskeySection({
           {status === 'success' && (
             <div className="space-y-2">
               <div className="flex items-center gap-2 py-2">
-                <LuFingerprint className="h-5 w-5 text-green-500" />
+                <LuFingerprint className="size-5 text-green-500" />
                 <span className="text-foreground text-sm font-medium">
                   Passkey registered
                 </span>
@@ -200,8 +200,8 @@ export function PasskeySection({
                   )}
                 >
                   {prfResult ?
-                    <LuShieldCheck className="h-4 w-4 shrink-0 text-green-500" />
-                  : <LuShieldAlert className="h-4 w-4 shrink-0 text-yellow-500" />
+                    <LuShieldCheck className="size-4 shrink-0 text-green-500" />
+                  : <LuShieldAlert className="size-4 shrink-0 text-yellow-500" />
                   }
                   <span className="text-foreground-alt text-xs">
                     {prfResult ?
@@ -225,7 +225,7 @@ export function PasskeySection({
             <div className="space-y-2">
               <p className="text-destructive text-xs">{error}</p>
               <DashboardButton
-                icon={<LuFingerprint className="h-4 w-4" />}
+                icon={<LuFingerprint className="size-4" />}
                 onClick={() => void handleRegister()}
                 className="w-full justify-center"
               >

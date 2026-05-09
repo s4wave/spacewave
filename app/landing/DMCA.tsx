@@ -13,7 +13,7 @@ export const metadata = {
 export function DMCA() {
   return (
     <LegalPageLayout
-      icon={<LuShield className="h-10 w-10" />}
+      icon={<LuShield className="size-10" />}
       title="DMCA Policy"
     >
       <section className="relative z-10 mx-auto w-full max-w-4xl px-4 pb-16 @lg:px-8">

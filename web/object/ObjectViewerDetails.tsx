@@ -41,7 +41,7 @@ export function ObjectViewerDetails({
     <div className="bg-background-primary flex h-full w-full flex-col overflow-auto">
       <div className="border-foreground/8 flex h-9 shrink-0 items-center justify-between border-b px-4">
         <div className="text-foreground flex items-center gap-2 text-sm font-semibold select-none">
-          <RxCube className="h-4 w-4" />
+          <RxCube className="size-4" />
           <span className="tracking-tight">{objectKey}</span>
           <span className="text-foreground-alt">· Object</span>
         </div>
@@ -49,7 +49,7 @@ export function ObjectViewerDetails({
           <Tooltip>
             <TooltipTrigger asChild>
               <DashboardButton
-                icon={<LuX className="h-4 w-4" />}
+                icon={<LuX className="size-4" />}
                 onClick={onCloseClick}
               />
             </TooltipTrigger>
@@ -63,7 +63,7 @@ export function ObjectViewerDetails({
           <section>
             <div className="mb-2 flex items-center justify-between">
               <h2 className="text-foreground flex items-center gap-1.5 text-xs select-none">
-                <LuInfo className="h-3.5 w-3.5" />
+                <LuInfo className="size-3.5" />
                 Details
               </h2>
             </div>
@@ -83,7 +83,7 @@ export function ObjectViewerDetails({
             <section>
               <div className="mb-2 flex items-center justify-between">
                 <h2 className="text-foreground flex items-center gap-1.5 text-xs select-none">
-                  <LuEye className="h-3.5 w-3.5" />
+                  <LuEye className="size-3.5" />
                   Viewer Components
                 </h2>
               </div>
@@ -138,7 +138,7 @@ function ExportDataSection({ exportUrl }: { exportUrl: string }) {
     <section>
       <div className="mb-2 flex items-center justify-between">
         <h2 className="text-foreground flex items-center gap-1.5 text-xs select-none">
-          <LuDownload className="h-3.5 w-3.5" />
+          <LuDownload className="size-3.5" />
           Data
         </h2>
       </div>
@@ -147,8 +147,8 @@ function ExportDataSection({ exportUrl }: { exportUrl: string }) {
         onClick={handleExport}
         className="border-foreground/8 hover:border-foreground/12 hover:bg-foreground/5 flex w-full cursor-pointer items-center gap-3 rounded-lg border p-2.5 text-left transition-colors"
       >
-        <div className="bg-foreground/5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md">
-          <LuDownload className="text-foreground h-3.5 w-3.5" />
+        <div className="bg-foreground/5 flex size-8 shrink-0 items-center justify-center rounded-md">
+          <LuDownload className="text-foreground size-3.5" />
         </div>
         <div className="flex min-w-0 flex-1 flex-col">
           <h4 className="text-foreground text-xs select-none">Export Data</h4>

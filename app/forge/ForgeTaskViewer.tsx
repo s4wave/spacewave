@@ -148,9 +148,7 @@ export function ForgeTaskViewer({
               detail={`Current nonce ${task?.passNonce?.toString() ?? '0'}`}
             />
             <InfoCard
-              icon={
-                <LuActivity className="text-foreground-alt/60 h-3.5 w-3.5" />
-              }
+              icon={<LuActivity className="text-foreground-alt/60 size-3.5" />}
               title="Current Execution"
             >
               {!currentPass && (
@@ -226,7 +224,7 @@ export function ForgeTaskViewer({
               <ForgeEntityList
                 entities={passes}
                 loading={passesLoading || decodedPassesLoading}
-                icon={<LuPlay className="h-3 w-3 shrink-0" />}
+                icon={<LuPlay className="size-3 shrink-0" />}
                 loadingLabel="Loading passes..."
                 emptyLabel="No passes yet"
               />
@@ -297,7 +295,7 @@ export function ForgeTaskViewer({
 
   return (
     <ForgeViewerShell
-      icon={<LuListTodo className="h-4 w-4" />}
+      icon={<LuListTodo className="size-4" />}
       title={task?.name || 'Task'}
       state={task?.taskState ?? 0}
       stateLabels={taskStateLabels}

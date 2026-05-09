@@ -37,14 +37,14 @@ export function EmptyState({
       <div
         className={cn(
           'bg-muted/50 flex items-center justify-center rounded-full',
-          isCompact ? 'h-10 w-10' : 'h-14 w-14',
+          isCompact ? 'size-10' : 'size-14',
         )}
       >
         {icon ?? (
           <LuFolderOpen
             className={cn(
               'text-foreground-alt',
-              isCompact ? 'h-5 w-5' : 'h-7 w-7',
+              isCompact ? 'size-5' : 'size-7',
             )}
           />
         )}
@@ -74,7 +74,7 @@ export function EmptyState({
           onClick={action.onClick}
           className={isCompact ? 'mt-3' : 'mt-4'}
         >
-          <LuPlus className="mr-1.5 h-4 w-4" />
+          <LuPlus className="mr-1.5 size-4" />
           {action.label}
         </Button>
       )}

@@ -82,8 +82,8 @@ export function StatusSection({
         onClick={toggle}
       >
         {collapsed ?
-          <LuChevronRight className="h-3.5 w-3.5 shrink-0" />
-        : <LuChevronDown className="h-3.5 w-3.5 shrink-0" />}
+          <LuChevronRight className="size-3.5 shrink-0" />
+        : <LuChevronDown className="size-3.5 shrink-0" />}
         <span>
           {title} ({entries.length})
         </span>

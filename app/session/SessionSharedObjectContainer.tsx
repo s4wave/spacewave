@@ -408,11 +408,11 @@ function SharedObjectHealthCard({
           <div className="flex flex-col items-center gap-3 text-center">
             <div
               className={cn(
-                'flex h-12 w-12 shrink-0 items-center justify-center rounded-full',
+                'flex size-12 shrink-0 items-center justify-center rounded-full',
                 tone.iconWrap,
               )}
             >
-              <tone.Icon className={cn('h-6 w-6', tone.iconColor)} />
+              <tone.Icon className={cn('size-6', tone.iconColor)} />
             </div>
             <span
               className={cn(
@@ -433,7 +433,7 @@ function SharedObjectHealthCard({
           <div className="mt-5 space-y-3">
             <div className="border-foreground/8 bg-background-card/30 rounded-lg border p-3">
               <div className="flex items-center gap-1.5">
-                <LuCircleAlert className="text-foreground-alt/60 h-3.5 w-3.5" />
+                <LuCircleAlert className="text-foreground-alt/60 size-3.5" />
                 <span className="text-foreground text-xs font-medium select-none">
                   Issue
                 </span>
@@ -451,7 +451,7 @@ function SharedObjectHealthCard({
 
             <div className="border-foreground/8 bg-background-card/30 rounded-lg border p-3">
               <div className="flex items-center gap-1.5">
-                <LuArrowRight className="text-foreground-alt/60 h-3.5 w-3.5" />
+                <LuArrowRight className="text-foreground-alt/60 size-3.5" />
                 <span className="text-foreground text-xs font-medium select-none">
                   Next step
                 </span>
@@ -469,14 +469,14 @@ function SharedObjectHealthCard({
               <div className="mt-3 flex flex-wrap gap-2">
                 {showRetry ?
                   <DashboardButton
-                    icon={<LuRotateCcw className="h-3.5 w-3.5" />}
+                    icon={<LuRotateCcw className="size-3.5" />}
                     onClick={onRetry}
                   >
                     Retry
                   </DashboardButton>
                 : null}
                 <RemediationActionButton
-                  icon={<LuRefreshCw className="h-3.5 w-3.5" />}
+                  icon={<LuRefreshCw className="size-3.5" />}
                   label="Repair"
                   onClick={() => {
                     setConfirmingRepair(true)
@@ -490,7 +490,7 @@ function SharedObjectHealthCard({
                   active={selectedAction === 'repair'}
                 />
                 <RemediationActionButton
-                  icon={<LuShieldAlert className="h-3.5 w-3.5" />}
+                  icon={<LuShieldAlert className="size-3.5" />}
                   label="Reinitialize"
                   onClick={() => setConfirmingReinitialize(true)}
                   disabledReason={
@@ -506,7 +506,7 @@ function SharedObjectHealthCard({
               {confirmingRepair ?
                 <div className="border-destructive/20 bg-destructive/5 mt-3 rounded-md border p-3">
                   <div className="flex items-center gap-1.5">
-                    <LuTriangleAlert className="text-destructive h-3.5 w-3.5" />
+                    <LuTriangleAlert className="text-destructive size-3.5" />
                     <span className="text-destructive text-xs font-medium select-none">
                       Confirm repair
                     </span>
@@ -518,13 +518,13 @@ function SharedObjectHealthCard({
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <DashboardButton
-                      icon={<LuRotateCcw className="h-3.5 w-3.5" />}
+                      icon={<LuRotateCcw className="size-3.5" />}
                       onClick={() => setConfirmingRepair(false)}
                     >
                       Cancel
                     </DashboardButton>
                     <DashboardButton
-                      icon={<LuTriangleAlert className="h-3.5 w-3.5" />}
+                      icon={<LuTriangleAlert className="size-3.5" />}
                       onClick={() => {
                         setSelectedAction('repair')
                         setConfirmingRepair(false)
@@ -542,7 +542,7 @@ function SharedObjectHealthCard({
               {confirmingReinitialize ?
                 <div className="border-destructive/20 bg-destructive/5 mt-3 rounded-md border p-3">
                   <div className="flex items-center gap-1.5">
-                    <LuShieldAlert className="text-destructive h-3.5 w-3.5" />
+                    <LuShieldAlert className="text-destructive size-3.5" />
                     <span className="text-destructive text-xs font-medium select-none">
                       Confirm reinitialize
                     </span>
@@ -555,13 +555,13 @@ function SharedObjectHealthCard({
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <DashboardButton
-                      icon={<LuRotateCcw className="h-3.5 w-3.5" />}
+                      icon={<LuRotateCcw className="size-3.5" />}
                       onClick={() => setConfirmingReinitialize(false)}
                     >
                       Cancel
                     </DashboardButton>
                     <DashboardButton
-                      icon={<LuShieldAlert className="h-3.5 w-3.5" />}
+                      icon={<LuShieldAlert className="size-3.5" />}
                       onClick={() => {
                         setSelectedAction('reinitialize')
                         setConfirmingReinitialize(false)

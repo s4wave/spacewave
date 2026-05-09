@@ -17,7 +17,7 @@ export function BottomBarBreadcrumbSeparator({
 
   return (
     <div className="flex items-center">
-      <RxChevronRight className="h-3 w-3 opacity-50" aria-hidden="true" />
+      <RxChevronRight className="size-3 opacity-50" aria-hidden="true" />
     </div>
   )
 }

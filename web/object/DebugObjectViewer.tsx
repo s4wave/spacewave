@@ -41,7 +41,7 @@ export function DebugObjectViewer({
     <div className="bg-background-primary flex h-full w-full flex-col overflow-auto">
       <div className="border-foreground/8 flex h-9 shrink-0 items-center border-b px-4">
         <div className="text-foreground flex items-center gap-2 text-sm font-semibold select-none">
-          <LuBug className="h-4 w-4" />
+          <LuBug className="size-4" />
           <span className="tracking-tight">Debug Viewer</span>
         </div>
       </div>
@@ -50,8 +50,8 @@ export function DebugObjectViewer({
         <div className="mx-auto max-w-3xl space-y-3">
           {untyped && (
             <div className="border-foreground/6 bg-background-card/30 flex items-start gap-3 rounded-lg border p-3.5 backdrop-blur-sm">
-              <div className="bg-foreground/5 text-foreground-alt flex h-8 w-8 shrink-0 items-center justify-center rounded-md">
-                <LuCircleAlert className="h-4 w-4" />
+              <div className="bg-foreground/5 text-foreground-alt flex size-8 shrink-0 items-center justify-center rounded-md">
+                <LuCircleAlert className="size-4" />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-foreground text-sm font-semibold tracking-tight select-none">
@@ -69,7 +69,7 @@ export function DebugObjectViewer({
           <section>
             <div className="mb-2 flex items-center gap-1.5">
               <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-                <LuBug className="h-3.5 w-3.5" />
+                <LuBug className="size-3.5" />
                 Object Info
               </h2>
             </div>

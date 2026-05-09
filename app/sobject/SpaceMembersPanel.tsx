@@ -212,7 +212,7 @@ export function SpaceMembersPanel() {
 
       {empty && (
         <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
-          <LuUsers className="h-3.5 w-3.5 shrink-0" />
+          <LuUsers className="size-3.5 shrink-0" />
           <span>No users added yet</span>
         </div>
       )}
@@ -320,7 +320,7 @@ function MemberRow(props: {
       data-testid="space-member-row"
       data-member-id={props.memberId}
     >
-      <LuShield className="text-foreground-alt/40 h-3 w-3 shrink-0" />
+      <LuShield className="text-foreground-alt/40 size-3 shrink-0" />
       <div className="min-w-0 flex-1">
         <div
           className="text-foreground truncate text-xs font-medium"
@@ -357,7 +357,7 @@ function MemberRow(props: {
         >
           {props.removing ?
             <Spinner size="sm" />
-          : <LuX className="h-3 w-3" />}
+          : <LuX className="size-3" />}
         </button>
       )}
     </div>
@@ -393,7 +393,7 @@ function InviteRow(props: {
         >
           {props.revoking ?
             <Spinner size="sm" />
-          : <LuTrash2 className="h-3 w-3" />}
+          : <LuTrash2 className="size-3" />}
         </button>
       )}
     </div>
@@ -437,13 +437,13 @@ function PendingRequestRow(props: {
             onClick={props.onAccept}
             className="text-foreground-alt/40 cursor-pointer transition-colors hover:text-green-500"
           >
-            <LuCheck className="h-3 w-3" />
+            <LuCheck className="size-3" />
           </button>
           <button
             onClick={props.onReject}
             className="text-foreground-alt/40 hover:text-destructive cursor-pointer transition-colors"
           >
-            <LuX className="h-3 w-3" />
+            <LuX className="size-3" />
           </button>
         </>
       }

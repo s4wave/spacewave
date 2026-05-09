@@ -30,10 +30,10 @@ function PhaseChecklistRow({ label, done, active }: PhaseChecklistItem) {
   return (
     <div className="flex items-center gap-2">
       {done ?
-        <LuCircleCheck className="text-brand h-4 w-4" />
+        <LuCircleCheck className="text-brand size-4" />
       : active ?
         <Spinner className="text-brand" />
-      : <div className="border-foreground/20 h-4 w-4 rounded-full border" />}
+      : <div className="border-foreground/20 size-4 rounded-full border" />}
       <span
         className={cn(
           'text-xs',

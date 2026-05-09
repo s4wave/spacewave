@@ -125,7 +125,7 @@ export function BlogReadingView({
                 onClick={handleClearFilter}
                 className="text-foreground-alt/50 hover:text-foreground flex items-center gap-1 text-xs transition-colors"
               >
-                <LuX className="h-3 w-3" />
+                <LuX className="size-3" />
                 Clear
               </button>
             )}

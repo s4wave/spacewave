@@ -133,8 +133,8 @@ function GraphNode({
       )}
     >
       <div className="flex items-center gap-2">
-        <div className="bg-brand/10 flex h-7 w-7 items-center justify-center rounded-md">
-          <LuGitBranch className="text-brand h-3.5 w-3.5" />
+        <div className="bg-brand/10 flex size-7 items-center justify-center rounded-md">
+          <LuGitBranch className="text-brand size-3.5" />
         </div>
         <span className="text-foreground text-xs font-semibold">{label}</span>
       </div>
@@ -204,7 +204,7 @@ function GraphLinkPill({
       )}
       {policy === 'protected' && !compact && (
         <span className="border-foreground/8 bg-foreground/5 text-foreground-alt/50 flex items-center gap-1 rounded px-1 py-0.5">
-          <LuLock className="h-2.5 w-2.5" />
+          <LuLock className="size-2.5" />
           protected
         </span>
       )}
@@ -215,8 +215,8 @@ function GraphLinkPill({
         disabled={hidden}
       >
         {loaded ?
-          <LuLocateFixed className="h-3 w-3" />
-        : <LuPlus className="h-3 w-3" />}
+          <LuLocateFixed className="size-3" />
+        : <LuPlus className="size-3" />}
         {!compact && (loaded ? 'Focus' : 'Load')}
       </button>
       <button
@@ -225,7 +225,7 @@ function GraphLinkPill({
         aria-label={`Hide ${fixture.predicate} link`}
         disabled={hidden}
       >
-        <LuEyeOff className="h-3 w-3" />
+        <LuEyeOff className="size-3" />
       </button>
       {policy === 'deletable' && (
         <button
@@ -233,7 +233,7 @@ function GraphLinkPill({
           className="text-destructive hover:bg-destructive/10 rounded-md p-0.5 transition-colors"
           aria-label={`Delete ${fixture.predicate} link`}
         >
-          <LuTrash2 className="h-3 w-3" />
+          <LuTrash2 className="size-3" />
         </button>
       )}
     </div>
@@ -394,7 +394,7 @@ export function CanvasGraphLinksDebug() {
           onClick={goBack}
           className="text-foreground-alt hover:text-foreground transition-colors"
         >
-          <LuArrowLeft className="h-4 w-4" />
+          <LuArrowLeft className="size-4" />
         </button>
         <span className="text-foreground text-sm font-semibold tracking-tight select-none">
           Canvas Graph Links

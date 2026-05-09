@@ -69,7 +69,7 @@ export function LoadingScreen({
       <div className="relative z-10 flex flex-col items-center space-y-6">
         {logo ?
           <div className="mb-4">{logo}</div>
-        : <div className="bg-brand/10 mb-4 flex h-12 w-12 items-center justify-center rounded-xl">
+        : <div className="bg-brand/10 mb-4 flex size-12 items-center justify-center rounded-xl">
             <Spinner size="xl" className="text-brand" />
           </div>
         }

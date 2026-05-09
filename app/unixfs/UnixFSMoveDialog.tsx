@@ -165,11 +165,11 @@ export function UnixFSMoveDialog({
                             className="flex min-w-0 flex-1 items-center gap-2"
                             style={{ paddingLeft: `${dir.depth * 12}px` }}
                           >
-                            <LuFolder className="text-file-folder-icon h-3.5 w-3.5 shrink-0" />
+                            <LuFolder className="text-file-folder-icon size-3.5 shrink-0" />
                             <span className="truncate">{dir.name}</span>
                           </div>
                           {isSelected && (
-                            <LuCheck className="text-brand h-3.5 w-3.5 shrink-0" />
+                            <LuCheck className="text-brand size-3.5 shrink-0" />
                           )}
                         </CommandItem>
                       )

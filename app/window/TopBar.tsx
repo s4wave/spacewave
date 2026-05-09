@@ -177,7 +177,7 @@ export function TopBar({
             className="bg-shell-tab-inactive hover:bg-shell-tab-active/50 text-shell-tab-text border-foreground/8 mr-0.5 mb-px flex h-5 shrink-0 items-center justify-center rounded-t-lg border border-b-0 px-1 transition-colors"
             title="Scroll left"
           >
-            <LuChevronLeft className="h-3 w-3" />
+            <LuChevronLeft className="size-3" />
           </button>
         )}
 
@@ -216,10 +216,10 @@ export function TopBar({
                     e.stopPropagation()
                     onWorkspaceClose(workspace.id)
                   }}
-                  className="text-shell-tab-text hover:text-shell-tab-text-active mr-1 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm opacity-0 transition-opacity group-hover:opacity-100"
+                  className="text-shell-tab-text hover:text-shell-tab-text-active mr-1 flex size-3.5 shrink-0 items-center justify-center rounded-sm opacity-0 transition-opacity group-hover:opacity-100"
                   title="Close tab"
                 >
-                  <LuX className="h-2.5 w-2.5" />
+                  <LuX className="size-2.5" />
                 </button>
               )}
             </div>
@@ -248,7 +248,7 @@ export function TopBar({
             className="bg-shell-tab-inactive hover:bg-shell-tab-active/50 text-shell-tab-text border-foreground/8 mb-px ml-0.5 flex h-5 shrink-0 items-center justify-center rounded-t-lg border border-b-0 px-1 transition-colors"
             title="Scroll right"
           >
-            <LuChevronRight className="h-3 w-3" />
+            <LuChevronRight className="size-3" />
           </button>
         )}
 

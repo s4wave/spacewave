@@ -72,31 +72,31 @@ export function CanvasContextMenu({
         }}
       >
         <DropdownMenuItem onSelect={onPaste}>
-          <LuClipboardPaste className="h-3.5 w-3.5" />
+          <LuClipboardPaste className="size-3.5" />
           Paste
           <DropdownMenuShortcut>Cmd+V</DropdownMenuShortcut>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onAddText}>
-          <LuType className="h-3.5 w-3.5" />
+          <LuType className="size-3.5" />
           Add Text Node Here
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onAddObject} disabled={!canAddObject}>
-          <LuSquare className="h-3.5 w-3.5" />
+          <LuSquare className="size-3.5" />
           Add Object to Canvas
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onFitView}>
-          <LuMaximize2 className="h-3.5 w-3.5" />
+          <LuMaximize2 className="size-3.5" />
           Fit View
           <DropdownMenuShortcut>Cmd+0</DropdownMenuShortcut>
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onZoomReset}>
-          <LuScan className="h-3.5 w-3.5" />
+          <LuScan className="size-3.5" />
           Zoom to 100%
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onSelectAll}>
-          <LuSquare className="h-3.5 w-3.5" />
+          <LuSquare className="size-3.5" />
           Select All
           <DropdownMenuShortcut>Cmd+A</DropdownMenuShortcut>
         </DropdownMenuItem>

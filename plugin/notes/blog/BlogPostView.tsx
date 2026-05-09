@@ -47,7 +47,7 @@ export function BlogPostView({
         onClick={onBack}
         className="text-foreground-alt/60 hover:text-foreground mb-6 flex items-center gap-1.5 text-xs transition-colors"
       >
-        <LuArrowLeft className="h-3 w-3" />
+        <LuArrowLeft className="size-3" />
         Back to posts
       </button>
 
@@ -89,7 +89,7 @@ export function BlogPostView({
               className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/30 group flex cursor-pointer flex-col items-start gap-1.5 rounded-xl border p-5 text-left transition-all duration-200"
             >
               <span className="text-foreground-alt/50 flex items-center gap-1.5 text-xs">
-                <LuArrowLeft className="h-3 w-3 transition-transform duration-200 group-hover:-translate-x-0.5" />
+                <LuArrowLeft className="size-3 transition-transform duration-200 group-hover:-translate-x-0.5" />
                 Previous
               </span>
               <span className="text-foreground group-hover:text-brand text-sm font-medium transition-colors duration-200">
@@ -105,7 +105,7 @@ export function BlogPostView({
             >
               <span className="text-foreground-alt/50 flex items-center gap-1.5 text-xs">
                 Next
-                <LuArrowRight className="h-3 w-3 transition-transform duration-200 group-hover:translate-x-0.5" />
+                <LuArrowRight className="size-3 transition-transform duration-200 group-hover:translate-x-0.5" />
               </span>
               <span className="text-foreground group-hover:text-brand text-sm font-medium transition-colors duration-200">
                 {nextPost.title}
@@ -135,7 +135,7 @@ function AuthorDisplay({ slug, registry }: AuthorDisplayProps) {
         <img
           src={author.avatar}
           alt={author.name}
-          className="h-8 w-8 rounded-full object-cover"
+          className="size-8 rounded-full object-cover"
         />
       )}
       <div className="flex flex-col">

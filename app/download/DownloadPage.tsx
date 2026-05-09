@@ -73,7 +73,7 @@ export function DownloadPage({ cliOnly = false }: { cliOnly?: boolean }) {
 
   return (
     <LegalPageLayout
-      icon={<LuDownload className="h-6 w-6" />}
+      icon={<LuDownload className="size-6" />}
       title={cliOnly ? 'Download Spacewave CLI' : 'Download Spacewave'}
       subtitle={
         cliOnly ?

@@ -137,7 +137,7 @@ export function BillingCancelPage() {
           onClick={handleBack}
           className="text-foreground-alt hover:text-brand flex cursor-pointer items-center gap-2 text-sm transition-colors"
         >
-          <LuArrowLeft className="h-4 w-4" />
+          <LuArrowLeft className="size-4" />
           Back to billing
         </button>
       }
@@ -145,14 +145,14 @@ export function BillingCancelPage() {
       <div className="flex flex-col items-center gap-2">
         <AnimatedLogo followMouse={false} />
         <div className="border-brand/25 bg-brand/8 text-brand mt-2 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium tracking-wide uppercase">
-          <LuCalendarX className="h-3.5 w-3.5" />
+          <LuCalendarX className="size-3.5" />
           {isCancelScheduled ?
             'Cancellation scheduled'
           : isGrace ?
             'Read-only export window'
           : 'End-of-period cancellation'}
         </div>
-        <h1 className="mt-2 text-center text-xl font-bold tracking-wide">
+        <h1 className="mt-2 text-center text-xl font-semibold tracking-wide">
           {title}
         </h1>
         <p className="text-foreground-alt max-w-xl text-center text-sm leading-relaxed">
@@ -162,8 +162,8 @@ export function BillingCancelPage() {
 
       <div className="border-brand/20 bg-background-card/55 overflow-hidden rounded-xl border p-8 backdrop-blur-sm">
         <div className="mb-6 flex items-start gap-3">
-          <div className="bg-brand/10 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg">
-            <LuCalendarX className="text-brand h-5 w-5" />
+          <div className="bg-brand/10 flex size-10 shrink-0 items-center justify-center rounded-lg">
+            <LuCalendarX className="text-brand size-5" />
           </div>
           <div className="space-y-2">
             <h2 className="text-foreground text-lg font-semibold">
@@ -192,8 +192,8 @@ export function BillingCancelPage() {
         <div className="mt-6 grid gap-3 sm:grid-cols-3">
           <div className="border-foreground/10 bg-background/45 rounded-lg border p-4">
             <div className="mb-2 flex items-center gap-2">
-              <div className="bg-brand/10 flex h-8 w-8 items-center justify-center rounded-md">
-                <LuClock3 className="text-brand h-4 w-4" />
+              <div className="bg-brand/10 flex size-8 items-center justify-center rounded-md">
+                <LuClock3 className="text-brand size-4" />
               </div>
               <h3 className="text-foreground text-sm font-semibold">
                 {isGrace ? 'Read-only access' : 'Full access'}
@@ -210,8 +210,8 @@ export function BillingCancelPage() {
           </div>
           <div className="border-foreground/10 bg-background/45 rounded-lg border p-4">
             <div className="mb-2 flex items-center gap-2">
-              <div className="bg-brand/10 flex h-8 w-8 items-center justify-center rounded-md">
-                <LuDownload className="text-brand h-4 w-4" />
+              <div className="bg-brand/10 flex size-8 items-center justify-center rounded-md">
+                <LuDownload className="text-brand size-4" />
               </div>
               <h3 className="text-foreground text-sm font-semibold">
                 30-day export window
@@ -224,8 +224,8 @@ export function BillingCancelPage() {
           </div>
           <div className="border-foreground/10 bg-background/45 rounded-lg border p-4">
             <div className="mb-2 flex items-center gap-2">
-              <div className="bg-brand/10 flex h-8 w-8 items-center justify-center rounded-md">
-                <LuShield className="text-brand h-4 w-4" />
+              <div className="bg-brand/10 flex size-8 items-center justify-center rounded-md">
+                <LuShield className="text-brand size-4" />
               </div>
               <h3 className="text-foreground text-sm font-semibold">
                 Easy to undo
@@ -244,8 +244,8 @@ export function BillingCancelPage() {
 
         <div className="border-foreground/10 bg-background/45 mt-6 rounded-lg border p-4">
           <div className="flex items-start gap-3">
-            <div className="bg-destructive/10 flex h-8 w-8 shrink-0 items-center justify-center rounded-md">
-              <LuTriangleAlert className="text-destructive h-4 w-4" />
+            <div className="bg-destructive/10 flex size-8 shrink-0 items-center justify-center rounded-md">
+              <LuTriangleAlert className="text-destructive size-4" />
             </div>
             <div className="space-y-1">
               <h3 className="text-foreground text-sm font-semibold">
@@ -256,7 +256,7 @@ export function BillingCancelPage() {
                 differently from standard end-of-period cancellation.
               </p>
               <div className="text-foreground-alt/80 flex items-center gap-2 pt-1 text-sm">
-                <LuTrash2 className="h-3.5 w-3.5" />
+                <LuTrash2 className="size-3.5" />
                 Go to account settings and choose{' '}
                 <span className="text-foreground font-medium">
                   Delete account
@@ -280,7 +280,7 @@ export function BillingCancelPage() {
             >
               <LuRefreshCw
                 className={cn(
-                  'h-4 w-4',
+                  'size-4',
                   action === 'reactivating' && 'animate-spin',
                 )}
               />
@@ -297,7 +297,7 @@ export function BillingCancelPage() {
                 'disabled:cursor-not-allowed disabled:opacity-50',
               )}
             >
-              <LuCalendarX className="h-4 w-4" />
+              <LuCalendarX className="size-4" />
               {action === 'canceling' ? 'Canceling...' : 'Cancel at period end'}
             </button>
           }
@@ -327,7 +327,7 @@ export function BillingCancelPage() {
         {checkout.polling && (
           <div className="border-brand/20 bg-brand/5 mt-4 rounded-lg border px-3 py-3 text-sm backdrop-blur-sm">
             <div className="flex items-center gap-2">
-              <LuRefreshCw className="text-brand h-4 w-4 animate-spin" />
+              <LuRefreshCw className="text-brand size-4 animate-spin" />
               <span className="text-foreground">
                 Reactivation is in progress. You will return to billing details
                 when Stripe confirms the checkout.
@@ -338,7 +338,7 @@ export function BillingCancelPage() {
                 onClick={checkout.continueCheckout}
                 className="border-brand/30 bg-brand/10 hover:bg-brand/20 text-foreground mt-3 inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors"
               >
-                <LuRefreshCw className="h-3.5 w-3.5" />
+                <LuRefreshCw className="size-3.5" />
                 <span>Continue with Stripe</span>
               </button>
             )}

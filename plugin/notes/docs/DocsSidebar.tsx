@@ -232,11 +232,11 @@ function FolderNode({
         onClick={handleToggle}
       >
         {expanded ?
-          <LuChevronDown className="h-3 w-3 shrink-0" />
-        : <LuChevronRight className="h-3 w-3 shrink-0" />}
+          <LuChevronDown className="size-3 shrink-0" />
+        : <LuChevronRight className="size-3 shrink-0" />}
         {expanded ?
-          <LuFolderOpen className="h-3 w-3 shrink-0" />
-        : <LuFolder className="h-3 w-3 shrink-0" />}
+          <LuFolderOpen className="size-3 shrink-0" />
+        : <LuFolder className="size-3 shrink-0" />}
         <span className="truncate">{name}</span>
       </button>
       {expanded && childEntries.value && (
@@ -285,7 +285,7 @@ function FileNode({ name, path, selected, onSelect, depth }: FileNodeProps) {
       style={{ paddingLeft }}
       onClick={handleClick}
     >
-      <LuFile className="h-3 w-3 shrink-0" />
+      <LuFile className="size-3 shrink-0" />
       <span className="truncate">{title}</span>
     </button>
   )

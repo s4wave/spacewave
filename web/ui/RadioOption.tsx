@@ -34,11 +34,11 @@ function RadioOption({
       <div className="flex items-center gap-3">
         <div
           className={cn(
-            'flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2',
+            'flex size-4 shrink-0 items-center justify-center rounded-full border-2',
             selected ? 'border-brand' : 'border-foreground/30',
           )}
         >
-          {selected && <div className="bg-brand h-2 w-2 rounded-full" />}
+          {selected && <div className="bg-brand size-2 rounded-full" />}
         </div>
         {icon && (
           <div className={cn('text-foreground-alt', selected && 'text-brand')}>

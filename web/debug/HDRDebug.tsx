@@ -177,11 +177,11 @@ export function HDRDebug() {
           onClick={goBack}
           className="text-foreground-alt hover:text-foreground mb-6 flex cursor-pointer items-center gap-2 transition-colors"
         >
-          <LuArrowLeft className="h-4 w-4" />
+          <LuArrowLeft className="size-4" />
           Back to home
         </button>
 
-        <h1 className="text-foreground mb-2 text-3xl font-bold">
+        <h1 className="text-foreground mb-2 text-3xl font-semibold">
           HDR Debug Lab
         </h1>
         <p className="text-foreground-alt mb-8 text-sm">

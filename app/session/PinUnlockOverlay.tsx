@@ -100,8 +100,8 @@ export function PinUnlockOverlay({
         <div className="border-foreground/20 bg-background-get-started relative overflow-hidden rounded-lg border shadow-lg backdrop-blur-sm">
           <div className="space-y-4 p-6">
             <div className="flex flex-col items-center gap-2">
-              <div className="bg-brand/10 flex h-12 w-12 items-center justify-center rounded-full">
-                <LuLock className="text-brand h-6 w-6" />
+              <div className="bg-brand/10 flex size-12 items-center justify-center rounded-full">
+                <LuLock className="text-brand size-6" />
               </div>
               <h2 className="text-foreground text-lg font-medium">
                 {metadata.displayName || 'Locked Session'}
@@ -151,7 +151,7 @@ export function PinUnlockOverlay({
                     'flex h-10 items-center justify-center gap-2',
                   )}
                 >
-                  <LuLockOpen className="h-4 w-4" />
+                  <LuLockOpen className="size-4" />
                   <span className="text-foreground text-sm">
                     {unlocking ? 'Unlocking...' : 'Unlock'}
                   </span>

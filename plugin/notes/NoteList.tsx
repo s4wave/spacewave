@@ -308,7 +308,7 @@ function NoteList({
     <div className="flex h-full flex-col overflow-y-auto">
       <div className="border-border flex items-center gap-1 border-b px-2 py-1.5">
         <div className="bg-muted flex flex-1 items-center gap-1.5 rounded px-2 py-1">
-          <LuSearch className="text-muted-foreground h-3 w-3 shrink-0" />
+          <LuSearch className="text-muted-foreground size-3 shrink-0" />
           <input
             type="text"
             placeholder="Search notes..."
@@ -323,7 +323,7 @@ function NoteList({
           onClick={() => void handleCreateFolder()}
           title="New folder"
         >
-          <LuFolderPlus className="h-3.5 w-3.5" />
+          <LuFolderPlus className="size-3.5" />
         </button>
         <button
           type="button"
@@ -331,7 +331,7 @@ function NoteList({
           onClick={() => void handleCreateNote()}
           title="New note"
         >
-          <LuPlus className="h-3.5 w-3.5" />
+          <LuPlus className="size-3.5" />
         </button>
       </div>
       {currentPath && (
@@ -342,7 +342,7 @@ function NoteList({
             onClick={() => onChangePath?.(getParentPath(currentPath))}
             title="Up one level"
           >
-            <LuChevronLeft className="h-3 w-3" />
+            <LuChevronLeft className="size-3" />
           </button>
           <span className="text-muted-foreground truncate">/{currentPath}</span>
         </div>
@@ -358,7 +358,7 @@ function NoteList({
               title="Clear tag filter"
             >
               {filterTag}
-              <LuX className="h-2.5 w-2.5" />
+              <LuX className="size-2.5" />
             </button>
           )}
           {filterStatus && (
@@ -369,7 +369,7 @@ function NoteList({
               title="Clear status filter"
             >
               {filterStatus}
-              <LuX className="h-2.5 w-2.5" />
+              <LuX className="size-2.5" />
             </button>
           )}
         </div>
@@ -400,7 +400,7 @@ function NoteList({
                   onChangePath?.(joinNotePath(currentPath, entry.name))
                 }
               >
-                <LuFolder className="h-3 w-3 shrink-0" />
+                <LuFolder className="size-3 shrink-0" />
                 <span className="min-w-0 flex-1 truncate">{entry.name}</span>
               </button>
             ))}
@@ -421,7 +421,7 @@ function NoteList({
                     className="hover:bg-list-hover-background flex min-w-0 flex-1 items-center gap-2 px-3 py-1.5 text-left text-xs"
                     onClick={() => onSelectNote(notePath)}
                   >
-                    <LuFile className="h-3 w-3 shrink-0" />
+                    <LuFile className="size-3 shrink-0" />
                     <span className="min-w-0 flex-1 truncate">
                       {entry.title}
                     </span>
@@ -433,7 +433,7 @@ function NoteList({
                     onClick={() => void handleRenameNote(entry.name)}
                     title="Rename note"
                   >
-                    <LuPenLine className="h-3 w-3" />
+                    <LuPenLine className="size-3" />
                   </button>
                   <button
                     type="button"
@@ -441,7 +441,7 @@ function NoteList({
                     onClick={() => void handleDeleteNote(entry.name)}
                     title="Delete note"
                   >
-                    <LuTrash2 className="h-3 w-3" />
+                    <LuTrash2 className="size-3" />
                   </button>
                 </div>
               )

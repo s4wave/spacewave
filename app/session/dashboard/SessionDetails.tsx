@@ -344,7 +344,7 @@ export function SessionDetails({
                 onClick={handleBackToDetails}
                 className="text-foreground-alt hover:text-brand flex items-center gap-2 text-sm transition-colors"
               >
-                <LuArrowLeft className="h-4 w-4" />
+                <LuArrowLeft className="size-4" />
                 <span className="select-none">Back</span>
               </button>
             }
@@ -354,7 +354,7 @@ export function SessionDetails({
           <div className="bg-background-primary flex h-full w-full flex-col overflow-hidden">
             <div className="border-foreground/8 flex min-h-9 shrink-0 items-center justify-between gap-3 border-b px-4 py-2">
               <div className="text-foreground flex min-w-0 flex-1 items-center gap-2 text-sm font-semibold select-none">
-                <RxPerson className="h-4 w-4" />
+                <RxPerson className="size-4" />
                 <span className="min-w-0 truncate tracking-tight">
                   {metadata?.displayName || peerId?.slice(-12) || 'Session'}
                 </span>
@@ -363,7 +363,7 @@ export function SessionDetails({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <DashboardButton
-                      icon={<LuUserCog className="h-4 w-4" />}
+                      icon={<LuUserCog className="size-4" />}
                       onClick={handleChangeAccount}
                     >
                       <span className="hidden md:inline">Change Account</span>
@@ -376,7 +376,7 @@ export function SessionDetails({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <DashboardButton
-                      icon={<LuLock className="h-4 w-4" />}
+                      icon={<LuLock className="size-4" />}
                       onClick={() => void handleLockClick()}
                       disabled={!lockState || locking}
                     >
@@ -391,7 +391,7 @@ export function SessionDetails({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <DashboardButton
-                        icon={<LuLogOut className="h-4 w-4" />}
+                        icon={<LuLogOut className="size-4" />}
                         className="text-destructive hover:bg-destructive/10"
                         onClick={handleLogoutClick}
                         disabled={loggingOut}
@@ -410,7 +410,7 @@ export function SessionDetails({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <DashboardButton
-                        icon={<LuX className="h-4 w-4" />}
+                        icon={<LuX className="size-4" />}
                         onClick={handleCloseDetails}
                       />
                     </TooltipTrigger>
@@ -427,7 +427,7 @@ export function SessionDetails({
                 {isLocal && (
                   <CollapsibleSection
                     title="Account"
-                    icon={<LuUserCog className="h-3.5 w-3.5" />}
+                    icon={<LuUserCog className="size-3.5" />}
                     open={openSection === 'account'}
                     onOpenChange={handleSectionOpenChange('account')}
                   >
@@ -461,7 +461,7 @@ export function SessionDetails({
                                   className="text-sm"
                                 />
                                 <DashboardButton
-                                  icon={<LuSave className="h-3 w-3" />}
+                                  icon={<LuSave className="size-3" />}
                                   onClick={() => void handleSaveDisplayName()}
                                   disabled={
                                     !displayNameChanged || savingDisplayName
@@ -470,7 +470,7 @@ export function SessionDetails({
                                   {savingDisplayName ? 'Saving...' : 'Save'}
                                 </DashboardButton>
                                 <DashboardButton
-                                  icon={<LuX className="h-3 w-3" />}
+                                  icon={<LuX className="size-3" />}
                                   onClick={handleCancelDisplayNameEdit}
                                   disabled={savingDisplayName}
                                 >
@@ -499,7 +499,7 @@ export function SessionDetails({
                                 {currentDisplayName || 'Unnamed account'}
                               </div>
                               <DashboardButton
-                                icon={<LuPencil className="h-3 w-3" />}
+                                icon={<LuPencil className="size-3" />}
                                 onClick={handleStartDisplayNameEdit}
                               >
                                 Edit
@@ -594,8 +594,8 @@ export function SessionDetails({
                           'border-foreground/10 bg-foreground/5 hover:border-brand/30 hover:bg-brand/5 group flex w-full cursor-pointer items-center gap-3 rounded-md border p-2.5 text-left transition-colors',
                         )}
                       >
-                        <div className="bg-foreground/10 group-hover:bg-brand/10 flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors">
-                          <LuCloud className="text-foreground-alt group-hover:text-brand h-3.5 w-3.5 transition-colors" />
+                        <div className="bg-foreground/10 group-hover:bg-brand/10 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors">
+                          <LuCloud className="text-foreground-alt group-hover:text-brand size-3.5 transition-colors" />
                         </div>
                         <div className="flex min-w-0 flex-1 flex-col">
                           <h4 className="text-foreground text-xs font-medium select-none">
@@ -614,8 +614,8 @@ export function SessionDetails({
                         'border-foreground/20 bg-foreground/5 hover:border-foreground/35 hover:bg-foreground/10 group flex w-full cursor-pointer items-center gap-3 rounded-md border p-2.5 text-left transition-colors',
                       )}
                     >
-                      <div className="bg-foreground/10 group-hover:bg-foreground/15 flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors">
-                        <LuTerminal className="text-foreground-alt h-3.5 w-3.5 transition-colors" />
+                      <div className="bg-foreground/10 group-hover:bg-foreground/15 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors">
+                        <LuTerminal className="text-foreground-alt size-3.5 transition-colors" />
                       </div>
                       <div className="flex min-w-0 flex-1 flex-col">
                         <h4 className="text-foreground text-xs font-medium select-none">
@@ -636,8 +636,8 @@ export function SessionDetails({
                           'border-foreground/20 bg-foreground/5 hover:border-foreground/35 hover:bg-foreground/10 group flex w-full cursor-pointer items-center gap-3 rounded-md border p-2.5 text-left transition-colors',
                         )}
                       >
-                        <div className="bg-foreground/10 group-hover:bg-foreground/15 flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors">
-                          <LuMerge className="text-foreground-alt h-3.5 w-3.5 transition-colors" />
+                        <div className="bg-foreground/10 group-hover:bg-foreground/15 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors">
+                          <LuMerge className="text-foreground-alt size-3.5 transition-colors" />
                         </div>
                         <div className="flex min-w-0 flex-1 flex-col">
                           <h4 className="text-foreground text-xs font-medium select-none">
@@ -659,8 +659,8 @@ export function SessionDetails({
                           loggingOut && 'cursor-not-allowed opacity-50',
                         )}
                       >
-                        <div className="bg-warning/20 group-hover:bg-warning/30 flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors">
-                          <LuLogOut className="text-warning h-3.5 w-3.5" />
+                        <div className="bg-warning/20 group-hover:bg-warning/30 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors">
+                          <LuLogOut className="text-warning size-3.5" />
                         </div>
                         <div className="flex min-w-0 flex-1 flex-col">
                           <h4 className="text-warning text-xs font-medium select-none">
@@ -687,8 +687,8 @@ export function SessionDetails({
                             !session && 'cursor-not-allowed opacity-50',
                           )}
                         >
-                          <div className="bg-destructive/10 group-hover:bg-destructive/15 flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors">
-                            <LuTrash2 className="text-destructive h-3.5 w-3.5 transition-colors" />
+                          <div className="bg-destructive/10 group-hover:bg-destructive/15 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors">
+                            <LuTrash2 className="text-destructive size-3.5 transition-colors" />
                           </div>
                           <div className="flex min-w-0 flex-1 flex-col">
                             <h4 className="text-destructive text-xs font-medium transition-colors select-none">
@@ -707,8 +707,8 @@ export function SessionDetails({
                             'border-destructive/30 bg-destructive/5 hover:border-destructive hover:bg-destructive hover:text-destructive-foreground group flex w-full cursor-pointer items-center gap-3 rounded-md border p-2.5 text-left transition-colors',
                           )}
                         >
-                          <div className="bg-destructive/20 group-hover:bg-destructive-foreground/20 flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors">
-                            <LuTrash2 className="text-destructive group-hover:text-destructive-foreground h-3.5 w-3.5 transition-colors" />
+                          <div className="bg-destructive/20 group-hover:bg-destructive-foreground/20 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors">
+                            <LuTrash2 className="text-destructive group-hover:text-destructive-foreground size-3.5 transition-colors" />
                           </div>
                           <div className="flex min-w-0 flex-1 flex-col">
                             <h4 className="text-destructive group-hover:text-destructive-foreground text-xs font-medium transition-colors select-none">

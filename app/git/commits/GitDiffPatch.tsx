@@ -108,8 +108,8 @@ export function GitDiffPatchFiles({
               onClick={() => toggle(section.path)}
             >
               {isCollapsed ?
-                <LuChevronRight className="text-foreground-alt/50 h-3.5 w-3.5 shrink-0" />
-              : <LuChevronDown className="text-foreground-alt/50 h-3.5 w-3.5 shrink-0" />
+                <LuChevronRight className="text-foreground-alt/50 size-3.5 shrink-0" />
+              : <LuChevronDown className="text-foreground-alt/50 size-3.5 shrink-0" />
               }
               <span className="text-foreground min-w-0 flex-1 truncate font-mono text-xs">
                 {section.path}

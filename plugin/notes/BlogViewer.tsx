@@ -212,7 +212,7 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
               )}
               title="Reading mode"
             >
-              <LuBookOpen className="h-3 w-3" />
+              <LuBookOpen className="size-3" />
               Read
             </button>
             <button
@@ -225,7 +225,7 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
               )}
               title="Editing mode"
             >
-              <LuPenLine className="h-3 w-3" />
+              <LuPenLine className="size-3" />
               Edit
             </button>
           </div>

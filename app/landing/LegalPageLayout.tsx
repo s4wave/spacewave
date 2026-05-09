@@ -30,7 +30,7 @@ export function LegalPageLayout({
           onClick={goBack}
           className="text-foreground-alt hover:text-foreground flex cursor-pointer items-center gap-2 text-sm transition-colors"
         >
-          <LuArrowLeft className="h-4 w-4" />
+          <LuArrowLeft className="size-4" />
           Back
         </button>
       </div>
@@ -41,7 +41,7 @@ export function LegalPageLayout({
             {icon}
           </div>
         )}
-        <h1 className="text-foreground mb-6 text-4xl font-bold tracking-tight @lg:text-5xl">
+        <h1 className="text-foreground mb-6 text-4xl font-semibold tracking-tight @lg:text-5xl">
           {title}
         </h1>
         {subtitle && (

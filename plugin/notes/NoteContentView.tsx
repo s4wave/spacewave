@@ -146,11 +146,11 @@ function NoteContentView({
         >
           {editing ?
             <>
-              <LuPenLine className="h-3 w-3" />
+              <LuPenLine className="size-3" />
               WYSIWYG
             </>
           : <>
-              <LuCode className="h-3 w-3" />
+              <LuCode className="size-3" />
               Source
             </>
           }

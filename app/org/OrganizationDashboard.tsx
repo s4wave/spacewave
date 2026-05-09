@@ -94,7 +94,7 @@ export function OrganizationDashboard() {
           className="border-destructive/20 bg-destructive/5 hover:bg-destructive/8 relative z-10 flex w-full items-center border-b text-left transition-colors"
         >
           <div className="flex min-w-0 flex-1 items-start gap-2 px-3 py-1.5">
-            <LuTriangleAlert className="text-destructive h-3.5 w-3.5 shrink-0" />
+            <LuTriangleAlert className="text-destructive size-3.5 shrink-0" />
             <div className="min-w-0">
               <p className="text-foreground/80 text-xs font-medium">
                 Organization root unavailable.
@@ -109,7 +109,7 @@ export function OrganizationDashboard() {
             <span className="text-foreground/70 group-hover:text-foreground text-xs font-medium transition-colors">
               Fix issue
             </span>
-            <LuArrowRight className="text-foreground-alt group-hover:text-foreground h-3 w-3 shrink-0 transition-colors" />
+            <LuArrowRight className="text-foreground-alt group-hover:text-foreground size-3 shrink-0 transition-colors" />
           </div>
         </button>
       )}
@@ -126,10 +126,10 @@ export function OrganizationDashboard() {
           <div
             className={cn(
               'bg-brand/10 text-brand mx-auto mb-3 flex items-center justify-center rounded-xl',
-              isEmpty ? 'h-12 w-12' : 'h-10 w-10',
+              isEmpty ? 'size-12' : 'size-10',
             )}
           >
-            <LuBuilding2 className={isEmpty ? 'h-6 w-6' : 'h-5 w-5'} />
+            <LuBuilding2 className={isEmpty ? 'size-6' : 'size-5'} />
           </div>
           <h1
             className={cn(
@@ -185,8 +185,8 @@ export function OrganizationDashboard() {
                       className="group mx-1 flex cursor-pointer items-center gap-3 rounded-md px-3 py-2.5"
                       onSelect={() => handleSpaceClick(space.id ?? '')}
                     >
-                      <div className="bg-brand/10 group-data-[selected=true]:bg-brand/20 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors">
-                        <LuLayers className="text-brand h-4 w-4" />
+                      <div className="bg-brand/10 group-data-[selected=true]:bg-brand/20 flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors">
+                        <LuLayers className="text-brand size-4" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="text-foreground truncate text-sm font-medium">
@@ -198,7 +198,7 @@ export function OrganizationDashboard() {
                           </div>
                         )}
                       </div>
-                      <LuChevronRight className="text-foreground-alt/40 group-data-[selected=true]:text-foreground-alt h-4 w-4 shrink-0 transition-colors" />
+                      <LuChevronRight className="text-foreground-alt/40 group-data-[selected=true]:text-foreground-alt size-4 shrink-0 transition-colors" />
                     </CommandItem>
                   ))}
                 </CommandGroup>
@@ -215,8 +215,8 @@ export function OrganizationDashboard() {
                     className="group mx-1 flex cursor-pointer items-center gap-3 rounded-md px-3 py-2.5"
                     onSelect={() => handleCreateSpace(opt.id)}
                   >
-                    <div className="bg-foreground/5 group-data-[selected=true]:bg-foreground/10 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors">
-                      <opt.icon className="text-foreground-alt h-4 w-4" />
+                    <div className="bg-foreground/5 group-data-[selected=true]:bg-foreground/10 flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors">
+                      <opt.icon className="text-foreground-alt size-4" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="text-foreground truncate text-sm font-medium">
@@ -226,7 +226,7 @@ export function OrganizationDashboard() {
                         {opt.description}
                       </div>
                     </div>
-                    <LuChevronRight className="text-foreground-alt/40 group-data-[selected=true]:text-foreground-alt h-4 w-4 shrink-0 transition-colors" />
+                    <LuChevronRight className="text-foreground-alt/40 group-data-[selected=true]:text-foreground-alt size-4 shrink-0 transition-colors" />
                   </CommandItem>
                 ))}
                 <CommandItem
@@ -234,8 +234,8 @@ export function OrganizationDashboard() {
                   className="group mx-1 flex cursor-pointer items-center gap-3 rounded-md px-3 py-2.5"
                   onSelect={handleJoinSpace}
                 >
-                  <div className="bg-foreground/5 group-data-[selected=true]:bg-foreground/10 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors">
-                    <LuLogIn className="text-foreground-alt h-4 w-4" />
+                  <div className="bg-foreground/5 group-data-[selected=true]:bg-foreground/10 flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors">
+                    <LuLogIn className="text-foreground-alt size-4" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="text-foreground truncate text-sm font-medium">
@@ -245,7 +245,7 @@ export function OrganizationDashboard() {
                       Join a shared space via invite code or link
                     </div>
                   </div>
-                  <LuChevronRight className="text-foreground-alt/40 group-data-[selected=true]:text-foreground-alt h-4 w-4 shrink-0 transition-colors" />
+                  <LuChevronRight className="text-foreground-alt/40 group-data-[selected=true]:text-foreground-alt size-4 shrink-0 transition-colors" />
                 </CommandItem>
               </CommandGroup>
             </CommandList>

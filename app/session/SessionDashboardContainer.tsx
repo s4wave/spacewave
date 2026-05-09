@@ -273,7 +273,7 @@ function PendingDeleteNotice(props: {
     <div className="border-warning/20 bg-warning/5 mx-auto mt-3 w-[calc(100%-1.5rem)] max-w-3xl rounded-lg border px-4 py-3">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="flex items-start gap-3">
-          <LuTriangleAlert className="text-warning mt-0.5 h-4 w-4 shrink-0" />
+          <LuTriangleAlert className="text-warning mt-0.5 size-4 shrink-0" />
           <div className="space-y-1">
             <p className="text-sm font-medium">
               Delete-now is active. This cloud account is read-only.

@@ -166,7 +166,7 @@ export function DeleteSpaceEscapeHatchDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <LuShieldAlert className="text-destructive h-4 w-4" />
+            <LuShieldAlert className="text-destructive size-4" />
             Delete a Space
           </DialogTitle>
           {step === 'select' && (
@@ -210,7 +210,7 @@ export function DeleteSpaceEscapeHatchDialog({
                 type="checkbox"
                 checked={acknowledged}
                 onChange={(e) => setAcknowledged(e.target.checked)}
-                className="accent-destructive mt-0.5 h-3.5 w-3.5 shrink-0"
+                className="accent-destructive mt-0.5 size-3.5 shrink-0"
                 aria-label="Confirm delete is permanent"
               />
               <span>
@@ -348,7 +348,7 @@ function SpaceSelectList({
   if (loading) {
     return (
       <div className="text-foreground-alt flex items-center gap-2 text-xs select-none">
-        <LuBoxes className="text-foreground-alt/40 h-3.5 w-3.5" />
+        <LuBoxes className="text-foreground-alt/40 size-3.5" />
         Loading spaces...
       </div>
     )
@@ -356,7 +356,7 @@ function SpaceSelectList({
   if (choices.length === 0) {
     return (
       <div className="text-foreground-alt flex items-center gap-2 text-xs select-none">
-        <LuBoxes className="text-foreground-alt/40 h-3.5 w-3.5" />
+        <LuBoxes className="text-foreground-alt/40 size-3.5" />
         No spaces in this session.
       </div>
     )
@@ -385,7 +385,7 @@ function SpaceSelectList({
           >
             <LuBoxes
               className={cn(
-                'mt-0.5 h-3.5 w-3.5 shrink-0 transition-colors',
+                'mt-0.5 size-3.5 shrink-0 transition-colors',
                 isSelected ? 'text-destructive' : 'text-foreground-alt',
               )}
             />
@@ -438,7 +438,7 @@ function HealthBadge({ health }: HealthBadgeProps) {
   if (status === SharedObjectHealthStatus.READY) {
     return (
       <div className="text-foreground-alt/70 mt-2 flex items-center gap-1.5 text-[0.65rem] select-none">
-        <LuCircleCheck className="text-foreground-alt/50 h-3 w-3" />
+        <LuCircleCheck className="text-foreground-alt/50 size-3" />
         Space is reachable.
       </div>
     )
@@ -446,7 +446,7 @@ function HealthBadge({ health }: HealthBadgeProps) {
   if (status === SharedObjectHealthStatus.LOADING) {
     return (
       <div className="text-foreground-alt/70 mt-2 flex items-center gap-1.5 text-[0.65rem] select-none">
-        <LuCircleAlert className="text-foreground-alt/50 h-3 w-3" />
+        <LuCircleAlert className="text-foreground-alt/50 size-3" />
         Checking status...
       </div>
     )
@@ -454,7 +454,7 @@ function HealthBadge({ health }: HealthBadgeProps) {
   if (status === SharedObjectHealthStatus.DEGRADED) {
     return (
       <div className="text-warning mt-2 flex items-center gap-1.5 text-[0.65rem] select-none">
-        <LuTriangleAlert className="h-3 w-3" />
+        <LuTriangleAlert className="size-3" />
         Degraded. Some data may be partially available.
       </div>
     )
@@ -462,7 +462,7 @@ function HealthBadge({ health }: HealthBadgeProps) {
   if (status === SharedObjectHealthStatus.CLOSED) {
     return (
       <div className="text-destructive mt-2 flex items-center gap-1.5 text-[0.65rem] select-none">
-        <LuShieldAlert className="h-3 w-3" />
+        <LuShieldAlert className="size-3" />
         Cannot mount. This space is broken and must be deleted from here.
       </div>
     )

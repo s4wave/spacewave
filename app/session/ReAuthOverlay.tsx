@@ -101,7 +101,7 @@ export function ReAuthOverlay({
       <div className="relative z-10 flex w-full max-w-sm flex-col gap-6">
         <div className="flex flex-col items-center gap-2">
           <AnimatedLogo followMouse={false} />
-          <h1 className="text-foreground mt-2 text-xl font-bold tracking-wide">
+          <h1 className="text-foreground mt-2 text-xl font-semibold tracking-wide">
             Session Expired
           </h1>
           {entityId && (
@@ -143,7 +143,7 @@ export function ReAuthOverlay({
                 'flex h-10 items-center justify-center gap-2',
               )}
             >
-              <LuKeyRound className="h-4 w-4" />
+              <LuKeyRound className="size-4" />
               <span className="text-foreground text-sm">
                 {submitting ? 'Reconnecting...' : 'Reconnect'}
               </span>
@@ -161,7 +161,7 @@ export function ReAuthOverlay({
                 onClick={() => setLogoutOpen(true)}
                 className="text-destructive/70 hover:text-destructive flex w-full items-center justify-center gap-2 text-center text-xs transition-colors"
               >
-                <LuLogOut className="h-3 w-3" />
+                <LuLogOut className="size-3" />
                 Log out
               </button>
             </div>

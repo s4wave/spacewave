@@ -12,10 +12,10 @@ export function CheckoutResultPage({ success }: { success?: boolean }) {
         <AnimatedLogo followMouse={false} />
         {success ?
           <>
-            <div className="bg-brand/10 flex h-16 w-16 items-center justify-center rounded-full">
-              <LuCheck className="text-brand h-8 w-8" />
+            <div className="bg-brand/10 flex size-16 items-center justify-center rounded-full">
+              <LuCheck className="text-brand size-8" />
             </div>
-            <h1 className="text-foreground text-xl font-bold">
+            <h1 className="text-foreground text-xl font-semibold">
               Subscription activated!
             </h1>
             <p className="text-foreground-alt text-sm">
@@ -23,10 +23,10 @@ export function CheckoutResultPage({ success }: { success?: boolean }) {
             </p>
           </>
         : <>
-            <div className="bg-destructive/10 flex h-16 w-16 items-center justify-center rounded-full">
-              <LuX className="text-destructive h-8 w-8" />
+            <div className="bg-destructive/10 flex size-16 items-center justify-center rounded-full">
+              <LuX className="text-destructive size-8" />
             </div>
-            <h1 className="text-foreground text-xl font-bold">
+            <h1 className="text-foreground text-xl font-semibold">
               Checkout canceled
             </h1>
             <p className="text-foreground-alt text-sm">

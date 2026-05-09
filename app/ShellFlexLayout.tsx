@@ -499,7 +499,7 @@ function ShellTabStripInner({ children }: ShellTabStripProps) {
   // Custom icons for close button
   const icons = useMemo(
     () => ({
-      close: <LuX className="h-2.5 w-2.5" />,
+      close: <LuX className="size-2.5" />,
     }),
     [],
   )
@@ -630,7 +630,7 @@ function ShellTabStripInner({ children }: ShellTabStripProps) {
           title="Close tab"
           disabled={tabs.length <= 1}
         >
-          <LuX className="h-2.5 w-2.5" />
+          <LuX className="size-2.5" />
         </button>,
         <button
           key="add-tab"
@@ -638,7 +638,7 @@ function ShellTabStripInner({ children }: ShellTabStripProps) {
           onClick={handleNewTab}
           title="New tab"
         >
-          <LuPlus className="h-2.5 w-2.5" />
+          <LuPlus className="size-2.5" />
         </button>,
         <button
           key="popout-tab"
@@ -646,7 +646,7 @@ function ShellTabStripInner({ children }: ShellTabStripProps) {
           onClick={handlePopoutTab}
           title="Open in new tab"
         >
-          <LuExternalLink className="h-2.5 w-2.5" />
+          <LuExternalLink className="size-2.5" />
         </button>,
       )
     },

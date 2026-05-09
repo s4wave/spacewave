@@ -96,7 +96,7 @@ function OrgMemberRow(props: {
       </div>
       {isOwner && !isMemberOwner && onRemove && (
         <DashboardButton
-          icon={<LuUserMinus className="h-3 w-3" />}
+          icon={<LuUserMinus className="size-3" />}
           onClick={() => void handleRemove()}
           disabled={removing}
           className="text-destructive hover:bg-destructive/10"

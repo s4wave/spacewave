@@ -61,7 +61,7 @@ export function MigrateDecisionPage() {
           onClick={handleBack}
           className="text-foreground-alt hover:text-foreground flex cursor-pointer items-center gap-2 text-sm transition-colors"
         >
-          <LuArrowLeft className="h-4 w-4" />
+          <LuArrowLeft className="size-4" />
           Back
         </button>
       }
@@ -69,7 +69,7 @@ export function MigrateDecisionPage() {
       {/* Header */}
       <div className="flex flex-col items-center gap-2">
         <AnimatedLogo followMouse={false} />
-        <h1 className="mt-2 text-xl font-bold tracking-wide">
+        <h1 className="mt-2 text-xl font-semibold tracking-wide">
           You have local data
         </h1>
         <p className="text-foreground-alt text-center text-sm">
@@ -88,11 +88,11 @@ export function MigrateDecisionPage() {
         )}
       >
         <div className="flex items-start gap-4">
-          <div className="bg-brand/10 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg">
-            <LuCloud className="text-brand h-5 w-5" />
+          <div className="bg-brand/10 flex size-10 shrink-0 items-center justify-center rounded-lg">
+            <LuCloud className="text-brand size-5" />
           </div>
           <div className="flex-1">
-            <h2 className="text-foreground text-sm font-bold">
+            <h2 className="text-foreground text-sm font-semibold">
               Migrate my data to Cloud
             </h2>
             <p className="text-foreground-alt mt-1 text-xs leading-relaxed">
@@ -100,7 +100,7 @@ export function MigrateDecisionPage() {
               will be synced across all your devices.
             </p>
           </div>
-          <LuArrowRight className="text-foreground-alt group-hover:text-brand mt-0.5 h-4 w-4 shrink-0 transition-colors" />
+          <LuArrowRight className="text-foreground-alt group-hover:text-brand mt-0.5 size-4 shrink-0 transition-colors" />
         </div>
       </button>
 
@@ -114,13 +114,13 @@ export function MigrateDecisionPage() {
         )}
       >
         <div className="flex items-start gap-4">
-          <div className="bg-foreground/5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg">
+          <div className="bg-foreground/5 flex size-10 shrink-0 items-center justify-center rounded-lg">
             {unlinking ?
               <Spinner size="md" className="text-foreground-alt" />
-            : <LuUnlink className="text-foreground-alt h-5 w-5" />}
+            : <LuUnlink className="text-foreground-alt size-5" />}
           </div>
           <div className="flex-1">
-            <h2 className="text-foreground text-sm font-bold">
+            <h2 className="text-foreground text-sm font-semibold">
               Keep sessions separate
             </h2>
             <p className="text-foreground-alt mt-1 text-xs leading-relaxed">
@@ -128,7 +128,7 @@ export function MigrateDecisionPage() {
               remain accessible independently.
             </p>
           </div>
-          <LuHardDrive className="text-foreground-alt group-hover:text-foreground mt-0.5 h-4 w-4 shrink-0 transition-colors" />
+          <LuHardDrive className="text-foreground-alt group-hover:text-foreground mt-0.5 size-4 shrink-0 transition-colors" />
         </div>
       </button>
 

@@ -59,7 +59,7 @@ export function ManifestViewer({
     <div className="bg-background-primary flex h-full w-full flex-col overflow-auto">
       <div className="border-foreground/8 flex h-9 shrink-0 items-center border-b px-4">
         <div className="text-foreground flex items-center gap-2 text-sm font-semibold select-none">
-          <LuPackage className="h-4 w-4" />
+          <LuPackage className="size-4" />
           <span className="tracking-tight">Manifest</span>
           {headerMeta && (
             <span className="text-foreground-alt/50 font-normal">
@@ -73,7 +73,7 @@ export function ManifestViewer({
           {isEmpty && (
             <InfoCard>
               <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
-                <LuPackage className="h-3.5 w-3.5 shrink-0" />
+                <LuPackage className="size-3.5 shrink-0" />
                 <span>No manifest data</span>
               </div>
             </InfoCard>
@@ -82,7 +82,7 @@ export function ManifestViewer({
             <section>
               <div className="mb-2 flex items-center justify-between">
                 <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-                  <LuTerminal className="h-3.5 w-3.5" />
+                  <LuTerminal className="size-3.5" />
                   Entrypoint
                 </h2>
               </div>
@@ -95,7 +95,7 @@ export function ManifestViewer({
             <section>
               <div className="mb-2 flex items-center justify-between">
                 <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-                  <LuFolderTree className="h-3.5 w-3.5" />
+                  <LuFolderTree className="size-3.5" />
                   Storage
                 </h2>
               </div>
@@ -115,7 +115,7 @@ export function ManifestViewer({
             <section>
               <div className="mb-2 flex items-center justify-between">
                 <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-                  <LuTag className="h-3.5 w-3.5" />
+                  <LuTag className="size-3.5" />
                   Metadata
                 </h2>
               </div>

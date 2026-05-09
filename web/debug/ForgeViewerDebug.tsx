@@ -33,7 +33,7 @@ export function ForgeViewerDebug() {
           className="text-foreground-alt hover:text-foreground transition-colors"
           aria-label="Back"
         >
-          <LuArrowLeft className="h-4 w-4" />
+          <LuArrowLeft className="size-4" />
         </button>
         <span className="text-foreground text-sm font-semibold tracking-tight select-none">
           Forge Viewer UI Prototype
@@ -247,7 +247,7 @@ const TONE_DOT: Record<StateTone, string> = {
 function DotBadge({ label, tone }: StateSpec) {
   return (
     <span className="text-foreground-alt/70 inline-flex items-center gap-1.5 text-[0.6rem] font-medium tracking-widest uppercase select-none">
-      <span className={cn('h-1.5 w-1.5 rounded-full', TONE_DOT[tone])} />
+      <span className={cn('size-1.5 rounded-full', TONE_DOT[tone])} />
       {label}
     </span>
   )
@@ -348,8 +348,8 @@ function GlassRow({ sample }: { sample: RowSample }) {
   return (
     <div className="group border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 flex items-center justify-between gap-3 rounded-lg border px-3.5 py-2.5 transition-all duration-150">
       <div className="flex min-w-0 items-center gap-2.5">
-        <span className="bg-foreground/5 group-hover:bg-foreground/8 flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors">
-          <LuListTodo className="text-foreground-alt/70 h-3.5 w-3.5" />
+        <span className="bg-foreground/5 group-hover:bg-foreground/8 flex size-7 shrink-0 items-center justify-center rounded-md transition-colors">
+          <LuListTodo className="text-foreground-alt/70 size-3.5" />
         </span>
         <div className="min-w-0">
           <div className="text-foreground truncate text-xs font-medium">
@@ -368,7 +368,7 @@ function GlassRow({ sample }: { sample: RowSample }) {
 function DenseRow({ sample }: { sample: RowSample }) {
   return (
     <div className="hover:bg-foreground/5 flex items-center gap-2.5 px-3 py-2 transition-colors">
-      <LuListTodo className="text-foreground-alt/50 h-3.5 w-3.5 shrink-0" />
+      <LuListTodo className="text-foreground-alt/50 size-3.5 shrink-0" />
       <span className="text-foreground min-w-0 flex-1 truncate text-xs font-medium">
         {sample.name}
       </span>
@@ -396,13 +396,13 @@ function StatTileSection() {
       >
         <div className="grid grid-cols-2 gap-3">
           <CurrentStatCard
-            icon={<LuListTodo className="h-3.5 w-3.5" />}
+            icon={<LuListTodo className="size-3.5" />}
             title="Tasks"
             value="6/12"
             detail="50% complete"
           />
           <CurrentStatCard
-            icon={<LuPlay className="h-3.5 w-3.5" />}
+            icon={<LuPlay className="size-3.5" />}
             title="Passes"
             value="4"
             detail="Current nonce 4"
@@ -493,7 +493,7 @@ function InlineStat({
 }) {
   return (
     <div className="group border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/60 flex items-center gap-3 rounded-lg border p-3 transition-all duration-150">
-      <div className="bg-brand/10 group-hover:bg-brand/15 flex h-9 w-9 shrink-0 items-center justify-center rounded transition-all duration-150">
+      <div className="bg-brand/10 group-hover:bg-brand/15 flex size-9 shrink-0 items-center justify-center rounded transition-all duration-150">
         <Icon className="text-brand h-4.5 w-4.5" />
       </div>
       <div className="min-w-0 flex-1">
@@ -531,7 +531,7 @@ function EmptyStateSection() {
       >
         <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
           <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
-            <LuListTodo className="h-3.5 w-3.5 shrink-0" />
+            <LuListTodo className="size-3.5 shrink-0" />
             <span>No tasks linked to this job yet</span>
           </div>
         </div>
@@ -684,7 +684,7 @@ function ViewerShellSection() {
       <div className="border-foreground/6 bg-background-card/30 overflow-hidden rounded-lg border backdrop-blur-sm">
         <div className="border-foreground/8 flex h-9 items-center justify-between border-b px-4">
           <div className="text-foreground flex items-center gap-2 text-sm font-semibold select-none">
-            <LuBriefcase className="h-4 w-4" />
+            <LuBriefcase className="size-4" />
             <span className="tracking-tight">Build pipeline</span>
             <TintedBadge label="RUNNING" tone="active" />
           </div>
@@ -757,7 +757,7 @@ function ViewerShellSection() {
           {tab === 2 && (
             <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
               <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
-                <LuPlay className="h-3.5 w-3.5 shrink-0" />
+                <LuPlay className="size-3.5 shrink-0" />
                 <span>No passes recorded yet</span>
               </div>
             </div>
@@ -765,9 +765,9 @@ function ViewerShellSection() {
         </div>
 
         <div className="border-foreground/8 flex h-10 items-center gap-2 border-t px-4">
-          <ShellAction icon={<LuCpu className="h-3.5 w-3.5" />} label="Run" />
+          <ShellAction icon={<LuCpu className="size-3.5" />} label="Run" />
           <ShellAction
-            icon={<LuTriangleAlert className="h-3.5 w-3.5" />}
+            icon={<LuTriangleAlert className="size-3.5" />}
             label="Cancel"
             variant="destructive"
           />
@@ -792,7 +792,7 @@ function MiniStat({
     <div className="border-foreground/6 bg-background/40 flex items-center gap-2 rounded-md border px-2.5 py-2">
       <span
         className={cn(
-          'flex h-6 w-6 shrink-0 items-center justify-center rounded',
+          'flex size-6 shrink-0 items-center justify-center rounded',
           tone === 'success' ? 'bg-emerald-400/10'
           : tone === 'error' ? 'bg-destructive/10'
           : 'bg-blue-400/10',
@@ -800,7 +800,7 @@ function MiniStat({
       >
         <Icon
           className={cn(
-            'h-3 w-3',
+            'size-3',
             tone === 'success' ? 'text-emerald-300'
             : tone === 'error' ? 'text-destructive'
             : 'text-blue-300',

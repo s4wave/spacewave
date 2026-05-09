@@ -86,7 +86,7 @@ export function DeleteBillingAccountSection({
 
   const button = (
     <DashboardButton
-      icon={<LuTrash2 className="h-3 w-3" />}
+      icon={<LuTrash2 className="size-3" />}
       onClick={() => handleOpenChange(true)}
       disabled={deleteDisabled}
       className="text-destructive hover:bg-destructive/10 hover:text-destructive disabled:hover:bg-transparent"

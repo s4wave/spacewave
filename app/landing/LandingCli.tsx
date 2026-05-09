@@ -89,7 +89,7 @@ export function LandingCli() {
 
   return (
     <LegalPageLayout
-      icon={<LuTerminal className="h-8 w-8" />}
+      icon={<LuTerminal className="size-8" />}
       title="Your swarm from the command line."
       subtitle="A terminal-first interface for your entire Spacewave system. Scriptable, composable, and built for automation."
     >
@@ -114,9 +114,9 @@ export function LandingCli() {
       <UseCaseSection>
         <div className="border-foreground/10 bg-background/60 overflow-hidden rounded-lg border backdrop-blur-sm">
           <div className="border-foreground/8 flex items-center gap-2 border-b px-4 py-2.5">
-            <div className="bg-destructive/60 h-3 w-3 rounded-full" />
-            <div className="bg-warning/60 h-3 w-3 rounded-full" />
-            <div className="bg-success/60 h-3 w-3 rounded-full" />
+            <div className="bg-destructive/60 size-3 rounded-full" />
+            <div className="bg-warning/60 size-3 rounded-full" />
+            <div className="bg-success/60 size-3 rounded-full" />
             <span className="text-foreground-alt ml-2 font-mono text-xs">
               spacewave
             </span>

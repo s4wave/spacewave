@@ -77,7 +77,7 @@ export function WizardShell({
           <Tooltip>
             <TooltipTrigger asChild>
               <DashboardButton
-                icon={<LuTrash2 className="h-3.5 w-3.5" />}
+                icon={<LuTrash2 className="size-3.5" />}
                 onClick={onCancel}
                 aria-label="Delete wizard"
                 className="hover:border-destructive/30 hover:bg-destructive/5 hover:text-destructive"
@@ -127,7 +127,7 @@ export function WizardShell({
           <div>
             {step > 0 && (
               <DashboardButton
-                icon={<LuArrowLeft className="h-3.5 w-3.5" />}
+                icon={<LuArrowLeft className="size-3.5" />}
                 onClick={onBack}
                 disabled={!canBack}
               >
@@ -153,7 +153,7 @@ export function WizardShell({
                 disabled={creating || !localName.trim() || !canFinalize}
                 className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground h-7 rounded-md border px-3 text-xs transition-all duration-150"
               >
-                <LuCheck className="h-3.5 w-3.5" />
+                <LuCheck className="size-3.5" />
                 {creating ? creatingLabel : createLabel}
               </Button>
             )}

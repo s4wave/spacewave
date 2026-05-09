@@ -14,7 +14,7 @@ export const metadata = {
 export function TermsOfService() {
   return (
     <LegalPageLayout
-      icon={<LuFileText className="h-10 w-10" />}
+      icon={<LuFileText className="size-10" />}
       title="Terms of Service"
       subtitle="Please review the terms and conditions for Spacewave."
       lastUpdated="Last updated: March 2026"

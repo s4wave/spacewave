@@ -58,7 +58,7 @@ export function BillingSection({
   return (
     <CollapsibleSection
       title="Billing"
-      icon={<LuCreditCard className="h-3.5 w-3.5" />}
+      icon={<LuCreditCard className="size-3.5" />}
       open={sectionOpen}
       onOpenChange={handleOpenChange}
       badge={

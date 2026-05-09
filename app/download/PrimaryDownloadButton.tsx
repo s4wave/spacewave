@@ -31,7 +31,7 @@ export function PrimaryDownloadButton({ entry }: PrimaryDownloadButtonProps) {
         'transition-all duration-300 hover:-translate-y-0.5 @lg:text-lg',
       )}
     >
-      <LuDownload className="h-5 w-5" />
+      <LuDownload className="size-5" />
       <span>
         Download for {entry.osLabel} ({entry.archLabel})
       </span>

@@ -106,7 +106,7 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
             {
               icon: (
                 <LuFolderOpen
-                  className={cn('h-3 w-3', isCurrentObject && 'opacity-30')}
+                  className={cn('size-3', isCurrentObject && 'opacity-30')}
                 />
               ),
               tooltip: isCurrentObject ? 'Already open' : 'Open',
@@ -114,7 +114,7 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
             },
             {
               icon: (
-                <LuHouse className={cn('h-3 w-3', isIndex && 'opacity-30')} />
+                <LuHouse className={cn('size-3', isIndex && 'opacity-30')} />
               ),
               tooltip:
                 isIndex ?
@@ -315,7 +315,7 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
               onSelect={(e) => e.preventDefault()}
               onClick={handleDeleteConfirmClick}
             >
-              <LuTrash2 className="h-3.5 w-3.5" />
+              <LuTrash2 className="size-3.5" />
               Confirm Delete
             </DropdownMenuItem>
           </>
@@ -329,7 +329,7 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
               onSelect={(e) => e.preventDefault()}
               onClick={handleIndexConfirmClick}
             >
-              <LuHouse className="h-3.5 w-3.5" />
+              <LuHouse className="size-3.5" />
               Confirm
             </DropdownMenuItem>
           </>
@@ -337,8 +337,8 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
           <div className="w-80 p-2">
             <div className="border-foreground/6 bg-background-card/30 overflow-hidden rounded-lg border backdrop-blur-sm">
               <div className="border-foreground/8 flex h-9 items-center gap-2 border-b px-3">
-                <span className="bg-brand/10 flex h-5 w-5 shrink-0 items-center justify-center rounded-md">
-                  <LuPencil className="text-brand h-3 w-3" />
+                <span className="bg-brand/10 flex size-5 shrink-0 items-center justify-center rounded-md">
+                  <LuPencil className="text-brand size-3" />
                 </span>
                 <div className="text-foreground text-xs font-medium tracking-tight select-none">
                   Rename object key
@@ -349,7 +349,7 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
                   <span className="border-foreground/6 bg-background/20 min-w-0 truncate rounded-md border px-2 py-1 font-mono">
                     {pendingRename}
                   </span>
-                  <LuArrowRight className="h-3 w-3 shrink-0" />
+                  <LuArrowRight className="size-3 shrink-0" />
                   <span className="text-foreground-alt/40 shrink-0">
                     new key
                   </span>
@@ -382,7 +382,7 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
               <div className="border-foreground/8 flex items-center justify-end gap-2 border-t px-3 py-2.5">
                 <DashboardButton
                   type="button"
-                  icon={<LuX className="h-3.5 w-3.5" />}
+                  icon={<LuX className="size-3.5" />}
                   onClick={handleRenameCancel}
                   disabled={renameSaving}
                 >
@@ -390,7 +390,7 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
                 </DashboardButton>
                 <DashboardButton
                   type="button"
-                  icon={<LuCheck className="h-3.5 w-3.5" />}
+                  icon={<LuCheck className="size-3.5" />}
                   onClick={handleRenameConfirmClick}
                   disabled={!renameValue.trim() || renameSaving}
                   className="border-brand/30 bg-brand/10 text-foreground hover:border-brand/50 hover:bg-brand/15 disabled:cursor-not-allowed disabled:opacity-50"
@@ -402,22 +402,22 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
           </div>
         : <>
             <DropdownMenuItem onClick={handleMenuOpen}>
-              <LuFolderOpen className="h-3.5 w-3.5" />
+              <LuFolderOpen className="size-3.5" />
               Open
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleSetAsIndex}>
-              <LuHouse className="h-3.5 w-3.5" />
+              <LuHouse className="size-3.5" />
               Set as Index
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleCopyKey}>
-              <LuCopy className="h-3.5 w-3.5" />
+              <LuCopy className="size-3.5" />
               Copy Object Key
             </DropdownMenuItem>
             <DropdownMenuItem
               onSelect={(e) => e.preventDefault()}
               onClick={handleRenameClick}
             >
-              <LuPencil className="h-3.5 w-3.5" />
+              <LuPencil className="size-3.5" />
               Rename Object Key
             </DropdownMenuItem>
             <DropdownMenuSeparator />
@@ -427,7 +427,7 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
                 openCommand('spacewave.create-object')
               }}
             >
-              <LuPlus className="h-3.5 w-3.5" />
+              <LuPlus className="size-3.5" />
               New Object
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -435,7 +435,7 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
               onSelect={(e) => e.preventDefault()}
               onClick={handleDeleteClick}
             >
-              <LuTrash2 className="h-3.5 w-3.5" />
+              <LuTrash2 className="size-3.5" />
               Delete
             </DropdownMenuItem>
           </>
@@ -457,12 +457,12 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
     <section>
       <div className="mb-2 flex items-center justify-between">
         <h2 className="text-foreground flex items-center gap-1.5 text-xs select-none">
-          <LuBox className="h-3.5 w-3.5" />
+          <LuBox className="size-3.5" />
           Objects
           <span className="text-foreground-alt">({objectCount})</span>
         </h2>
         <DashboardButton
-          icon={<LuPlus className="h-3.5 w-3.5" />}
+          icon={<LuPlus className="size-3.5" />}
           onClick={handleCreateObject}
         />
       </div>

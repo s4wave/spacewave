@@ -146,7 +146,7 @@ export function BillingPage() {
       </BackButton>
       <div className="w-full max-w-md px-4">
         <div className="mb-6 flex items-center gap-2">
-          <LuCreditCard className="text-foreground h-5 w-5 shrink-0" />
+          <LuCreditCard className="text-foreground size-5 shrink-0" />
           {renaming ?
             <div className="flex min-w-0 flex-1 items-center gap-2">
               <input
@@ -166,7 +166,7 @@ export function BillingPage() {
                 aria-label="Billing account name"
               />
               <DashboardButton
-                icon={<LuSave className="h-3 w-3" />}
+                icon={<LuSave className="size-3" />}
                 onClick={() => void handleRenameSave()}
                 disabled={
                   renameSaving ||
@@ -177,7 +177,7 @@ export function BillingPage() {
                 {renameSaving ? 'Saving...' : 'Save'}
               </DashboardButton>
               <DashboardButton
-                icon={<LuX className="h-3 w-3" />}
+                icon={<LuX className="size-3" />}
                 onClick={handleRenameCancel}
                 disabled={renameSaving}
               >
@@ -190,7 +190,7 @@ export function BillingPage() {
               </h1>
               {billing && baId && (
                 <DashboardButton
-                  icon={<LuPencil className="h-3 w-3" />}
+                  icon={<LuPencil className="size-3" />}
                   onClick={handleRenameStart}
                 >
                   Edit
@@ -259,7 +259,7 @@ export function BillingPage() {
                   icon={
                     <LuRefreshCw
                       className={cn(
-                        'h-3 w-3',
+                        'size-3',
                         refreshingUsage && 'animate-spin',
                       )}
                     />

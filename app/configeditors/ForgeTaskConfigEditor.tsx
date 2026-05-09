@@ -34,13 +34,13 @@ export function ForgeTaskConfigEditor({
     <section>
       <div className="mb-2 flex items-center justify-between">
         <h3 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-          <LuBriefcase className="h-3.5 w-3.5" />
+          <LuBriefcase className="size-3.5" />
           Target Job
         </h3>
       </div>
       {jobs.length === 0 && (
         <div className="border-foreground/6 bg-background-card/30 text-foreground-alt/40 flex items-center gap-2 rounded-lg border px-3.5 py-3 text-xs">
-          <LuBriefcase className="h-3.5 w-3.5 shrink-0" />
+          <LuBriefcase className="size-3.5 shrink-0" />
           {jobsResource.loading ?
             'Loading jobs...'
           : 'No jobs found. Create a job first.'}
@@ -57,8 +57,8 @@ export function ForgeTaskConfigEditor({
             )}
             onClick={() => handleSelectJob(jobKey)}
           >
-            <span className="bg-foreground/5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md">
-              <LuBriefcase className="text-foreground-alt/50 h-3.5 w-3.5" />
+            <span className="bg-foreground/5 flex size-7 shrink-0 items-center justify-center rounded-md">
+              <LuBriefcase className="text-foreground-alt/50 size-3.5" />
             </span>
             <span className="text-foreground text-xs font-medium">
               {jobKey}

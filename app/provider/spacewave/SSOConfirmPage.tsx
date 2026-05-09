@@ -206,7 +206,7 @@ export function SSOConfirmPage() {
               onClick={handleCancel}
               className="hover:text-brand flex items-center justify-center gap-1.5"
             >
-              <LuArrowLeft className="h-3 w-3" />
+              <LuArrowLeft className="size-3" />
               Back to login
             </AuthSecondaryActionButton>
           </div>
@@ -246,7 +246,7 @@ export function SSOConfirmPage() {
               onClick={handleCancel}
               className="hover:text-brand flex items-center justify-center gap-1.5"
             >
-              <LuArrowLeft className="h-3 w-3" />
+              <LuArrowLeft className="size-3" />
               Back to login
             </AuthSecondaryActionButton>
           </div>
@@ -329,10 +329,10 @@ export function SSOConfirmPage() {
         <AuthCard>
           {/* Provider context header */}
           <div className="mb-4 flex items-center gap-3">
-            <div className="bg-brand/10 flex h-10 w-10 items-center justify-center rounded-lg">
+            <div className="bg-brand/10 flex size-10 items-center justify-center rounded-lg">
               <ProviderIcon
                 provider={pendingState.provider}
-                className="h-5 w-5"
+                className="size-5"
               />
             </div>
             <div>
@@ -388,7 +388,7 @@ export function SSOConfirmPage() {
             <AuthPrimaryActionButton
               type="submit"
               disabled={!username || !!usernameError}
-              icon={<LuUserPlus className="text-foreground h-4 w-4" />}
+              icon={<LuUserPlus className="text-foreground size-4" />}
             >
               Create account
             </AuthPrimaryActionButton>
@@ -396,7 +396,7 @@ export function SSOConfirmPage() {
               onClick={handleCancel}
               className="hover:text-brand flex items-center justify-center gap-1.5"
             >
-              <LuArrowLeft className="h-3 w-3" />
+              <LuArrowLeft className="size-3" />
               Back to login
             </AuthSecondaryActionButton>
           </form>
@@ -406,7 +406,7 @@ export function SSOConfirmPage() {
         <div className="text-foreground-alt flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-xs">
           {SIGNUP_HIGHLIGHTS.map((text) => (
             <span key={text} className="flex items-center gap-1.5">
-              <LuCheck className="text-brand h-3.5 w-3.5" />
+              <LuCheck className="text-brand size-3.5" />
               {text}
             </span>
           ))}
@@ -433,7 +433,7 @@ export function SSOConfirmPage() {
           <div className="flex flex-col gap-2">
             <AuthPrimaryActionButton
               onClick={() => void handleCreateAccount()}
-              icon={<LuUserPlus className="text-foreground h-4 w-4" />}
+              icon={<LuUserPlus className="text-foreground size-4" />}
             >
               Confirm and create account
             </AuthPrimaryActionButton>
@@ -462,7 +462,7 @@ export function SSOConfirmPage() {
               onClick={handleCancelConfirm}
               className="hover:text-brand flex items-center justify-center gap-1.5"
             >
-              <LuArrowLeft className="h-3 w-3" />
+              <LuArrowLeft className="size-3" />
               Back to edit username
             </AuthSecondaryActionButton>
           </div>

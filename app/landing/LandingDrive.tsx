@@ -73,7 +73,7 @@ export function LandingDrive() {
 
   return (
     <LegalPageLayout
-      icon={<LuHardDrive className="h-8 w-8" />}
+      icon={<LuHardDrive className="size-8" />}
       title="Your files, your devices, synced."
       subtitle="Spacewave Drive gives you file sync that works offline, encrypts everything, and runs on any storage you choose."
     >

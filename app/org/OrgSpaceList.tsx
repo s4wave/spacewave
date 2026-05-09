@@ -9,7 +9,7 @@ export function OrgSpaceList(props: { orgId: string; spaces: OrgSpaceInfo[] }) {
     <div className="space-y-1">
       {props.spaces.length === 0 && (
         <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
-          <LuBox className="h-3.5 w-3.5 shrink-0" />
+          <LuBox className="size-3.5 shrink-0" />
           <span>No spaces yet</span>
         </div>
       )}
@@ -33,7 +33,7 @@ function OrgSpaceRow(props: { orgId: string; space: OrgSpaceInfo }) {
       onClick={handleClick}
       className="hover:bg-foreground/5 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors"
     >
-      <LuBox className="text-foreground-alt/50 h-3.5 w-3.5 shrink-0" />
+      <LuBox className="text-foreground-alt/50 size-3.5 shrink-0" />
       <div className="min-w-0 flex-1">
         <div className="text-foreground truncate text-xs font-medium">
           {space.displayName || space.id}

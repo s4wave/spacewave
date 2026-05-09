@@ -295,7 +295,7 @@ function AuthMutationWizardContent({
                   disabled={executing}
                   className="text-foreground-alt hover:text-foreground flex items-center gap-1 rounded-md px-3 py-2 text-sm transition-colors"
                 >
-                  <LuArrowLeft className="h-3 w-3" />
+                  <LuArrowLeft className="size-3" />
                   Back
                 </button>
               )}
@@ -321,7 +321,7 @@ function AuthMutationWizardContent({
                   )}
                 >
                   Next
-                  <LuArrowRight className="h-3 w-3" />
+                  <LuArrowRight className="size-3" />
                 </button>
               : <button
                   onClick={() => void handleExecute()}
@@ -341,11 +341,11 @@ function AuthMutationWizardContent({
                     </>
                   : mode === 'remove' ?
                     <>
-                      <LuTrash2 className="h-3 w-3" />
+                      <LuTrash2 className="size-3" />
                       Remove
                     </>
                   : <>
-                      <LuDownload className="h-3 w-3" />
+                      <LuDownload className="size-3" />
                       Generate and download
                     </>
                   }
@@ -446,7 +446,7 @@ function Step0Content({
     <div className="space-y-3">
       {addMethodType === 'pem' && (
         <div className="border-brand/20 bg-brand/5 flex items-start gap-2 rounded-md border p-3">
-          <LuKey className="text-brand mt-0.5 h-4 w-4 shrink-0" />
+          <LuKey className="text-brand mt-0.5 size-4 shrink-0" />
           <div>
             <p className="text-foreground text-sm font-medium">
               Backup key (.pem)
@@ -524,7 +524,7 @@ function Step1Unlock({
       </div>
 
       {loading && (
-        <p className="text-foreground-alt text-xs">Loading keypairs...</p>
+        <p className="text-foreground-alt text-xs">Loading keypairs…</p>
       )}
 
       {!loading && keypairs.length > 0 && (
@@ -596,7 +596,7 @@ function UnlockRow({
     return (
       <div className="border-foreground/10 flex items-center justify-between gap-2 rounded-md border px-3 py-2">
         <div className="flex min-w-0 items-center gap-2">
-          <LuLockOpen className="text-brand h-3.5 w-3.5 shrink-0" />
+          <LuLockOpen className="text-brand size-3.5 shrink-0" />
           <div className="min-w-0">
             <p className="text-foreground text-sm font-medium">
               {methodLabel(method)}
@@ -619,7 +619,7 @@ function UnlockRow({
   return (
     <div className="border-foreground/10 space-y-2 rounded-md border px-3 py-2">
       <div className="flex items-center gap-2">
-        <LuLock className="text-foreground-alt h-3.5 w-3.5 shrink-0" />
+        <LuLock className="text-foreground-alt size-3.5 shrink-0" />
         <div className="min-w-0 flex-1">
           <p className="text-foreground text-sm font-medium">
             {methodLabel(method)}
@@ -655,7 +655,7 @@ function UnlockRow({
                 'flex items-center gap-1.5',
               )}
             >
-              <LuUpload className="text-foreground-alt h-3 w-3 shrink-0" />
+              <LuUpload className="text-foreground-alt size-3 shrink-0" />
               <span
                 className={cn(!cred.pemFileName && 'text-foreground-alt/50')}
               >
@@ -718,8 +718,8 @@ function Step2Confirm({
       >
         <div className="flex items-center gap-2">
           {ready ?
-            <LuShieldCheck className="text-brand h-4 w-4 shrink-0" />
-          : <LuLock className="h-4 w-4 shrink-0 text-yellow-500" />}
+            <LuShieldCheck className="text-brand size-4 shrink-0" />
+          : <LuLock className="size-4 shrink-0 text-yellow-500" />}
           <p className="text-foreground text-sm font-medium">
             {ready ?
               'Ready to execute'
@@ -759,7 +759,7 @@ function Step2Confirm({
               const truncated = truncatePeerId(pid)
               return (
                 <div key={pid} className="flex items-center gap-2 text-xs">
-                  <LuCheck className="text-brand h-3 w-3 shrink-0" />
+                  <LuCheck className="text-brand size-3 shrink-0" />
                   <span className="text-foreground">
                     {methodLabel(kp.keypair?.authMethod ?? '')}
                   </span>
@@ -786,8 +786,8 @@ function CompleteView({
 }) {
   return (
     <div className="flex flex-col items-center gap-3 py-4">
-      <div className="bg-brand/10 flex h-10 w-10 items-center justify-center rounded-full">
-        <LuCheck className="text-brand h-5 w-5" />
+      <div className="bg-brand/10 flex size-10 items-center justify-center rounded-full">
+        <LuCheck className="text-brand size-5" />
       </div>
       <p className="text-foreground text-sm font-medium">
         {mode === 'add' ?

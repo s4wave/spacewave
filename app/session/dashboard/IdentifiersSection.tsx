@@ -36,7 +36,7 @@ export function IdentifiersSection({
   return (
     <CollapsibleSection
       title="Identifiers"
-      icon={<LuFingerprint className="h-3.5 w-3.5" />}
+      icon={<LuFingerprint className="size-3.5" />}
       open={sectionOpen}
       onOpenChange={handleOpenChange}
     >

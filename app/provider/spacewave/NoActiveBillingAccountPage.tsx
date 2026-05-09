@@ -212,10 +212,10 @@ export function NoActiveBillingAccountPage() {
     <PageWrapper>
       <div className="mt-4 flex w-full justify-start">
         <div className="border-foreground/10 bg-background-card/35 inline-flex items-center gap-3 rounded-xl border px-3 py-3 backdrop-blur-sm">
-          <div className="bg-brand/10 text-brand flex h-10 w-10 items-center justify-center rounded-xl">
+          <div className="bg-brand/10 text-brand flex size-10 items-center justify-center rounded-xl">
             {target.ownerType === 'organization' ?
-              <LuBuilding2 className="h-5 w-5" />
-            : <RxPerson className="h-5 w-5" />}
+              <LuBuilding2 className="size-5" />
+            : <RxPerson className="size-5" />}
           </div>
           <div className="min-w-0">
             <div className="text-foreground-alt/60 text-[11px] font-medium tracking-[0.18em] uppercase">
@@ -230,7 +230,7 @@ export function NoActiveBillingAccountPage() {
 
       <div className="flex flex-col items-center gap-2">
         <AnimatedLogo followMouse={false} />
-        <h1 className="mt-2 text-xl font-bold tracking-wide">{title}</h1>
+        <h1 className="mt-2 text-xl font-semibold tracking-wide">{title}</h1>
         <p className="text-foreground-alt max-w-md text-center text-sm">
           {subtitle}
         </p>
@@ -272,7 +272,7 @@ export function NoActiveBillingAccountPage() {
               onClick={checkout.continueCheckout}
               className="border-brand/30 bg-brand/10 hover:bg-brand/20 text-foreground mt-3 inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors"
             >
-              <LuZap className="h-3.5 w-3.5" />
+              <LuZap className="size-3.5" />
               <span>Continue with Stripe</span>
             </button>
           )}
@@ -320,7 +320,7 @@ export function NoActiveBillingAccountPage() {
                     onClick={() => handleManage(baId)}
                     className="text-foreground-alt hover:text-foreground flex cursor-pointer items-center gap-1.5 text-xs transition-colors"
                   >
-                    <LuSettings className="h-3.5 w-3.5" />
+                    <LuSettings className="size-3.5" />
                     <span className="select-none">Manage</span>
                   </button>
                   <button
@@ -334,7 +334,7 @@ export function NoActiveBillingAccountPage() {
                   >
                     {isBusy ?
                       <Spinner size="sm" />
-                    : <LuZap className="h-3.5 w-3.5" />}
+                    : <LuZap className="size-3.5" />}
                     <span>{isBusy ? 'Starting...' : activateLabel}</span>
                   </button>
                 </div>
@@ -358,7 +358,7 @@ export function NoActiveBillingAccountPage() {
         >
           {creating ?
             <Spinner />
-          : <LuPlus className="h-4 w-4" />}
+          : <LuPlus className="size-4" />}
           <span>{creating ? 'Creating...' : 'Create new billing account'}</span>
         </button>
       </div>

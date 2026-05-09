@@ -93,12 +93,12 @@ export function ResourceDetailsPanel({ resource }: ResourceDetailsPanelProps) {
           type="button"
           onClick={handleClose}
           className={cn(
-            'flex h-4 w-4 items-center justify-center rounded',
+            'flex size-4 items-center justify-center rounded',
             'text-foreground-alt hover:text-foreground hover:bg-pulldown-hover',
             'transition-colors duration-100',
           )}
         >
-          <LuX className="h-3 w-3" />
+          <LuX className="size-3" />
         </button>
       </div>
 

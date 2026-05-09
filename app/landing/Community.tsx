@@ -168,7 +168,7 @@ export function Community() {
           onClick={goBack}
           className="text-foreground-alt hover:text-foreground flex cursor-pointer items-center gap-2 text-sm transition-colors"
         >
-          <LuArrowLeft className="h-4 w-4" />
+          <LuArrowLeft className="size-4" />
           Back
         </button>
       </div>
@@ -176,9 +176,9 @@ export function Community() {
       {/* Hero */}
       <header className="mx-auto w-full max-w-3xl px-4 pt-14 pb-14 text-center @lg:px-8 @lg:pt-20 @lg:pb-16">
         <div className="text-brand mb-6 flex items-center justify-center gap-2">
-          <LuHeart className="h-5 w-5" />
+          <LuHeart className="size-5" />
         </div>
-        <h1 className="text-foreground mb-6 text-4xl font-bold tracking-tight @lg:text-5xl">
+        <h1 className="text-foreground mb-6 text-4xl font-semibold tracking-tight @lg:text-5xl">
           Built in the open,
           <br />
           <span className="text-brand">for&nbsp;everyone</span>
@@ -191,14 +191,14 @@ export function Community() {
             href={GITHUB_REPO_URL}
             className="border-foreground/20 hover:border-brand/40 hover:bg-brand/5 text-foreground inline-flex items-center gap-2.5 rounded-lg border px-6 py-3 text-sm font-medium transition-all"
           >
-            <LuGithub className="h-5 w-5" />
+            <LuGithub className="size-5" />
             View on GitHub
           </ExternalLink>
           <button
             onClick={handleEmailSupport}
             className="border-foreground/20 hover:border-brand/40 hover:bg-brand/5 text-foreground inline-flex cursor-pointer items-center gap-2.5 rounded-lg border px-6 py-3 text-sm font-medium transition-all"
           >
-            <LuMessageSquare className="h-5 w-5" />
+            <LuMessageSquare className="size-5" />
             Email Support
           </button>
         </div>
@@ -216,7 +216,7 @@ export function Community() {
               href={c.href}
               className="border-foreground/8 hover:border-foreground/15 bg-background-card/50 group flex flex-col gap-3 rounded-lg border p-5 backdrop-blur-sm transition-all hover:-translate-y-0.5"
             >
-              <c.icon className="text-foreground-alt group-hover:text-brand h-5 w-5 transition-colors" />
+              <c.icon className="text-foreground-alt group-hover:text-brand size-5 transition-colors" />
               <h3 className="text-foreground text-sm font-semibold">
                 {c.title}
               </h3>
@@ -225,7 +225,7 @@ export function Community() {
               </p>
               <span className="text-brand mt-auto flex items-center gap-1 text-sm font-medium">
                 {c.linkText}
-                <LuArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                <LuArrowRight className="size-3.5 transition-transform group-hover:translate-x-1" />
               </span>
             </ExternalLink>
           ))}
@@ -243,8 +243,8 @@ export function Community() {
         <div className="grid gap-x-8 gap-y-10 @lg:grid-cols-2">
           {PRINCIPLES.map((p) => (
             <div key={p.title} className="group flex items-center gap-4">
-              <div className="bg-brand/8 group-hover:bg-brand/12 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors">
-                <p.icon className="text-brand h-5 w-5" />
+              <div className="bg-brand/8 group-hover:bg-brand/12 flex size-10 shrink-0 items-center justify-center rounded-lg transition-colors">
+                <p.icon className="text-brand size-5" />
               </div>
               <div>
                 <h3 className="text-foreground mb-1 text-sm font-semibold">
@@ -284,7 +284,7 @@ export function Community() {
             >
               <span
                 className={cn(
-                  'h-3 w-3 rounded-sm border transition-colors',
+                  'size-3 rounded-sm border transition-colors',
                   showDev ? 'border-brand bg-brand' : 'border-foreground/20',
                 )}
               />
@@ -295,7 +295,7 @@ export function Community() {
         )}
         {!devCount && <div className="mb-6" />}
         <div className="relative mx-auto mb-8 max-w-md">
-          <LuSearch className="text-foreground-alt/30 pointer-events-none absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2" />
+          <LuSearch className="text-foreground-alt/30 pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2" />
           <input
             type="text"
             value={search}
@@ -434,7 +434,7 @@ export function Community() {
           href={GITHUB_REPO_URL}
           className="text-brand hover:text-brand-highlight mt-4 inline-flex items-center gap-2 text-sm underline"
         >
-          <LuGithub className="h-4 w-4" />
+          <LuGithub className="size-4" />
           Contribute to Spacewave
         </ExternalLink>
       </section>

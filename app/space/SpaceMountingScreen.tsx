@@ -60,7 +60,7 @@ export function SpaceMountingScreen({
       {onRetry && allowRetry ?
         <div className="mt-2 flex justify-center">
           <DashboardButton
-            icon={<LuRefreshCw className="h-3.5 w-3.5" />}
+            icon={<LuRefreshCw className="size-3.5" />}
             onClick={onRetry}
           >
             Retry
@@ -85,7 +85,7 @@ function SpaceMountStepper({ current }: { current: SpaceMountStage }) {
           <div key={entry.id} className="flex flex-col items-center gap-2">
             <span
               className={cn(
-                'relative h-2 w-2 rounded-full transition-colors duration-300',
+                'relative size-2 rounded-full transition-colors duration-300',
                 isComplete && 'bg-brand/60',
                 isActive && 'bg-brand',
                 !isComplete && !isActive && 'bg-foreground/15',

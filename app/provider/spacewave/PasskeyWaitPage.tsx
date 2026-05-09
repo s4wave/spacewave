@@ -192,13 +192,13 @@ export function PasskeyWaitPage() {
         }
       >
         <AuthStatusPanel
-          icon={<LuCircleAlert className="text-destructive h-10 w-10" />}
+          icon={<LuCircleAlert className="text-destructive size-10" />}
           message={state.message}
         >
           <div className="flex w-full flex-col gap-2">
             <AuthPrimaryActionButton
               onClick={handleRetry}
-              icon={<LuFingerprint className="h-4 w-4" />}
+              icon={<LuFingerprint className="size-4" />}
             >
               Open again
             </AuthPrimaryActionButton>
@@ -206,7 +206,7 @@ export function PasskeyWaitPage() {
               onClick={handleCancel}
               className="flex items-center justify-center gap-2"
             >
-              <LuArrowLeft className="h-4 w-4" />
+              <LuArrowLeft className="size-4" />
               Back to login
             </AuthSecondaryActionButton>
           </div>
@@ -252,7 +252,7 @@ export function PasskeyWaitPage() {
           <div className="flex w-full flex-col gap-2">
             <AuthPrimaryActionButton
               onClick={() => void handleSubmitPin()}
-              icon={<LuFingerprint className="h-4 w-4" />}
+              icon={<LuFingerprint className="size-4" />}
             >
               Continue
             </AuthPrimaryActionButton>
@@ -260,7 +260,7 @@ export function PasskeyWaitPage() {
               onClick={handleCancel}
               className="flex items-center justify-center gap-2"
             >
-              <LuArrowLeft className="h-4 w-4" />
+              <LuArrowLeft className="size-4" />
               Cancel
             </AuthSecondaryActionButton>
           </div>
@@ -280,7 +280,7 @@ export function PasskeyWaitPage() {
         <>
           <AnimatedLogo followMouse={false} />
           <h2 className="text-foreground flex items-center gap-2 text-lg font-semibold">
-            <LuFingerprint className="h-5 w-5" />
+            <LuFingerprint className="size-5" />
             Signing in with Passkey
           </h2>
         </>
@@ -294,7 +294,7 @@ export function PasskeyWaitPage() {
           <div className="flex w-full flex-col gap-2">
             <AuthPrimaryActionButton
               onClick={handleRetry}
-              icon={<LuFingerprint className="h-4 w-4" />}
+              icon={<LuFingerprint className="size-4" />}
             >
               Open again
             </AuthPrimaryActionButton>
@@ -302,7 +302,7 @@ export function PasskeyWaitPage() {
               onClick={handleCancel}
               className="flex items-center justify-center gap-2"
             >
-              <LuArrowLeft className="h-4 w-4" />
+              <LuArrowLeft className="size-4" />
               Cancel
             </AuthSecondaryActionButton>
           </div>

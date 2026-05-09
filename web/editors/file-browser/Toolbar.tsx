@@ -89,19 +89,19 @@ export function Toolbar({
       {showNav && (
         <div className="flex items-center gap-0.5">
           <NavIconButton
-            icon={<LuChevronLeft className="h-4 w-4" />}
+            icon={<LuChevronLeft className="size-4" />}
             label="Back"
             onClick={onBack}
             disabled={!canGoBack}
           />
           <NavIconButton
-            icon={<LuChevronRight className="h-4 w-4" />}
+            icon={<LuChevronRight className="size-4" />}
             label="Forward"
             onClick={onForward}
             disabled={!canGoForward}
           />
           <NavIconButton
-            icon={<LuChevronUp className="h-4 w-4" />}
+            icon={<LuChevronUp className="size-4" />}
             label="Up"
             onClick={onUp}
             disabled={!canGoUp}
@@ -121,14 +121,14 @@ export function Toolbar({
         <div className="flex items-center gap-0.5">
           {onNewFolder && (
             <NavIconButton
-              icon={<LuFolderPlus className="h-4 w-4" />}
+              icon={<LuFolderPlus className="size-4" />}
               label="New folder"
               onClick={onNewFolder}
             />
           )}
           {onUploadFiles && (
             <NavIconButton
-              icon={<LuUpload className="h-4 w-4" />}
+              icon={<LuUpload className="size-4" />}
               label="Upload files"
               onClick={onUploadFiles}
             />
@@ -177,7 +177,7 @@ function NavIconButton({ icon, label, onClick, disabled }: NavIconButtonProps) {
       title={label}
       aria-label={label}
       className={cn(
-        'flex h-6 w-6 items-center justify-center rounded transition-colors',
+        'flex size-6 items-center justify-center rounded transition-colors',
         disabled ?
           'text-foreground-alt/30 cursor-default'
         : 'text-foreground-alt hover:text-foreground hover:bg-foreground/5',
@@ -217,29 +217,29 @@ function OverflowMenu({
         <button
           type="button"
           aria-label="More actions"
-          className="text-foreground-alt hover:text-foreground hover:bg-foreground/5 flex h-6 w-6 items-center justify-center rounded transition-colors"
+          className="text-foreground-alt hover:text-foreground hover:bg-foreground/5 flex size-6 items-center justify-center rounded transition-colors"
         >
-          <LuEllipsisVertical className="h-4 w-4" />
+          <LuEllipsisVertical className="size-4" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="text-ui min-w-[140px]">
         <DropdownMenuItem onClick={onSearchClick}>
-          <LuSearch className="h-3.5 w-3.5" />
+          <LuSearch className="size-3.5" />
           Search
         </DropdownMenuItem>
         {showNavItems && (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onBack} disabled={!canGoBack}>
-              <LuChevronLeft className="h-3.5 w-3.5" />
+              <LuChevronLeft className="size-3.5" />
               Back
             </DropdownMenuItem>
             <DropdownMenuItem onClick={onForward} disabled={!canGoForward}>
-              <LuChevronRight className="h-3.5 w-3.5" />
+              <LuChevronRight className="size-3.5" />
               Forward
             </DropdownMenuItem>
             <DropdownMenuItem onClick={onUp} disabled={!canGoUp}>
-              <LuChevronUp className="h-3.5 w-3.5" />
+              <LuChevronUp className="size-3.5" />
               Up
             </DropdownMenuItem>
           </>

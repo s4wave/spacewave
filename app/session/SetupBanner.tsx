@@ -61,14 +61,14 @@ export function SetupBanner() {
         <p className="text-foreground/80 group-hover:text-foreground text-xs font-medium transition-colors select-none">
           Finish setting up your account
         </p>
-        <LuArrowRight className="text-foreground-alt group-hover:text-foreground h-3 w-3 shrink-0 transition-colors" />
+        <LuArrowRight className="text-foreground-alt group-hover:text-foreground size-3 shrink-0 transition-colors" />
       </button>
       <button
         onClick={handleDismiss}
         className="text-foreground-alt hover:text-foreground shrink-0 px-2 py-1.5 transition-colors"
         aria-label="Dismiss setup banner"
       >
-        <LuX className="h-3 w-3" />
+        <LuX className="size-3" />
       </button>
     </div>
   )

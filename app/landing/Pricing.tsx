@@ -75,7 +75,7 @@ function FeatureList({ features }: { features: string[] }) {
     <ul className="flex flex-col gap-3">
       {features.map((feature) => (
         <li key={feature} className="flex items-start gap-2">
-          <LuCheck className="text-brand mt-0.5 h-4 w-4 shrink-0" />
+          <LuCheck className="text-brand mt-0.5 size-4 shrink-0" />
           <span className="text-foreground-alt text-sm">{feature}</span>
         </li>
       ))}
@@ -118,13 +118,13 @@ function FaqItem({
         </h3>
         <div
           className={cn(
-            'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md transition-all',
+            'mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md transition-all',
             isOpen ?
               'bg-brand/12 text-brand rotate-45'
             : 'bg-foreground/6 text-foreground-alt group-hover:bg-brand/8 group-hover:text-brand',
           )}
         >
-          <LuPlus className="h-3 w-3" />
+          <LuPlus className="size-3" />
         </div>
       </div>
       <div
@@ -194,8 +194,8 @@ export function Pricing() {
               Popular
             </div>
             <div className="mb-4 flex items-center gap-2">
-              <LuCloud className="text-brand h-5 w-5" />
-              <h2 className="text-foreground text-xl font-bold">Cloud</h2>
+              <LuCloud className="text-brand size-5" />
+              <h2 className="text-foreground text-xl font-semibold">Cloud</h2>
             </div>
             <div className="mt-2 mb-2 flex items-baseline gap-1">
               <span className="text-foreground text-4xl font-bold">
@@ -219,8 +219,8 @@ export function Pricing() {
           {/* Free tier */}
           <div className="border-foreground/8 bg-background-card/50 flex flex-col rounded-lg border p-6 backdrop-blur-sm @lg:p-8">
             <div className="mb-4 flex items-center gap-2">
-              <LuCloudOff className="text-foreground-alt h-5 w-5" />
-              <h2 className="text-foreground text-xl font-bold">Free</h2>
+              <LuCloudOff className="text-foreground-alt size-5" />
+              <h2 className="text-foreground text-xl font-semibold">Free</h2>
             </div>
             <div className="mt-2 mb-2 flex items-baseline gap-1">
               <span className="text-foreground text-4xl font-bold">$0</span>
@@ -288,15 +288,15 @@ export function Pricing() {
       <section className="relative z-10 mx-auto w-full max-w-4xl px-4 pb-8 @lg:px-8">
         <div className="text-foreground-alt flex flex-wrap items-center justify-center gap-6 text-xs">
           <span className="flex items-center gap-1.5">
-            <LuCheck className="text-brand h-3.5 w-3.5" />
+            <LuCheck className="text-brand size-3.5" />
             Cancel anytime
           </span>
           <span className="flex items-center gap-1.5">
-            <LuCheck className="text-brand h-3.5 w-3.5" />
+            <LuCheck className="text-brand size-3.5" />
             No hidden fees
           </span>
           <span className="flex items-center gap-1.5">
-            <LuCheck className="text-brand h-3.5 w-3.5" />
+            <LuCheck className="text-brand size-3.5" />
             Open-source
           </span>
         </div>

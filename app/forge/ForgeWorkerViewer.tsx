@@ -111,7 +111,7 @@ export function ForgeWorkerViewer({
     return [
       {
         label: (binding?.approved ?? false) ? 'Stop Worker' : 'Start Worker',
-        icon: <LuActivity className="h-3.5 w-3.5" />,
+        icon: <LuActivity className="size-3.5" />,
         onClick: () => {
           void handleToggleWorker()
         },
@@ -187,7 +187,7 @@ export function ForgeWorkerViewer({
             {activeExecutions.length === 0 && (
               <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
                 <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
-                  <LuActivity className="h-3.5 w-3.5 shrink-0" />
+                  <LuActivity className="size-3.5 shrink-0" />
                   <span>No active executions assigned to this worker</span>
                 </div>
               </div>
@@ -231,7 +231,7 @@ export function ForgeWorkerViewer({
             {completeExecutions.length === 0 && (
               <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
                 <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
-                  <LuActivity className="h-3.5 w-3.5 shrink-0" />
+                  <LuActivity className="size-3.5 shrink-0" />
                   <span>No completed executions recorded yet</span>
                 </div>
               </div>
@@ -287,7 +287,7 @@ export function ForgeWorkerViewer({
 
   return (
     <ForgeViewerShell
-      icon={<LuCpu className="h-4 w-4" />}
+      icon={<LuCpu className="size-4" />}
       title={worker?.name || 'Worker'}
       tabs={tabs}
       actions={actions}

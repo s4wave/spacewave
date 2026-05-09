@@ -87,7 +87,7 @@ export function ObjectKeySelector({
             onClick={handleBack}
             className="border-foreground/8 flex w-full items-center gap-1 border-b px-3 py-2 text-xs"
           >
-            <LuChevronLeft className="h-3.5 w-3.5" />
+            <LuChevronLeft className="size-3.5" />
             {path.join('/') + '/'}
           </button>
         )}
@@ -104,13 +104,13 @@ export function ObjectKeySelector({
                 }
                 className="hover:bg-foreground/6 flex w-full items-center gap-2 px-3 py-1.5 text-xs"
               >
-                <span className="h-4 w-4 shrink-0">{node.icon}</span>
+                <span className="size-4 shrink-0">{node.icon}</span>
                 <span className="flex-1 truncate text-left">{node.name}</span>
                 {isFolder && (
-                  <LuChevronRight className="text-foreground-alt h-3.5 w-3.5" />
+                  <LuChevronRight className="text-foreground-alt size-3.5" />
                 )}
                 {!isFolder && isNodeSelected && (
-                  <LuCheck className="text-foreground h-3.5 w-3.5" />
+                  <LuCheck className="text-foreground size-3.5" />
                 )}
               </button>
             )

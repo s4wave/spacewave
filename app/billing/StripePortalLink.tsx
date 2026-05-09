@@ -32,7 +32,7 @@ export function StripePortalLink() {
   return (
     <div className="space-y-2">
       <DashboardButton
-        icon={<LuExternalLink className="h-3 w-3" />}
+        icon={<LuExternalLink className="size-3" />}
         onClick={() => void handleClick()}
         disabled={loading}
       >

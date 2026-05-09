@@ -26,7 +26,7 @@ export function GitRepoConfigEditor({
       <section>
         <div className="mb-2 flex items-center justify-between">
           <h3 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-            <LuGitBranch className="h-3.5 w-3.5" />
+            <LuGitBranch className="size-3.5" />
             Repository Source
           </h3>
         </div>
@@ -34,14 +34,14 @@ export function GitRepoConfigEditor({
           <RadioOption
             selected={!value.clone}
             onSelect={() => handleSelectMode(false)}
-            icon={<LuPlus className="h-3.5 w-3.5" />}
+            icon={<LuPlus className="size-3.5" />}
             label="New empty repository"
             description="Start with an empty Git repository."
           />
           <RadioOption
             selected={value.clone ?? false}
             onSelect={() => handleSelectMode(true)}
-            icon={<LuCopy className="h-3.5 w-3.5" />}
+            icon={<LuCopy className="size-3.5" />}
             label="Clone a repository"
             description="Import history from an existing Git URL."
           />
@@ -52,7 +52,7 @@ export function GitRepoConfigEditor({
         <section>
           <div className="mb-2 flex items-center justify-between">
             <h3 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-              <LuCopy className="h-3.5 w-3.5" />
+              <LuCopy className="size-3.5" />
               Clone Options
             </h3>
           </div>
@@ -138,10 +138,10 @@ export function GitRepoConfigEditor({
                     cloneOpts: { ...cloneOpts, recursive: e.target.checked },
                   })
                 }
-                className="accent-brand h-4 w-4 rounded"
+                className="accent-brand size-4 rounded"
               />
               <span className="text-foreground flex min-w-0 items-center gap-2 text-xs font-medium select-none">
-                <LuLayers className="text-foreground-alt/50 h-3.5 w-3.5 shrink-0" />
+                <LuLayers className="text-foreground-alt/50 size-3.5 shrink-0" />
                 Clone submodules recursively
               </span>
             </label>

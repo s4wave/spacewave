@@ -372,7 +372,7 @@ export function FloatingWindow({
       >
         <div className="flex items-center gap-1.5">
           {icon && (
-            <span className="text-brand flex h-3 w-3 items-center justify-center [&>svg]:h-3 [&>svg]:w-3">
+            <span className="text-brand flex size-3 items-center justify-center [&>svg]:h-3 [&>svg]:w-3">
               {icon}
             </span>
           )}
@@ -385,25 +385,25 @@ export function FloatingWindow({
             type="button"
             onClick={handleMinimize}
             className={cn(
-              'flex h-4 w-4 items-center justify-center rounded',
+              'flex size-4 items-center justify-center rounded',
               'text-foreground-alt hover:text-foreground',
               'hover:bg-pulldown-hover',
               'transition-colors duration-100',
             )}
           >
-            <LuMinus className="h-2.5 w-2.5" />
+            <LuMinus className="size-2.5" />
           </button>
           <button
             type="button"
             onClick={onClose ?? handleMinimize}
             className={cn(
-              'flex h-4 w-4 items-center justify-center rounded',
+              'flex size-4 items-center justify-center rounded',
               'text-foreground-alt hover:text-error',
               'hover:bg-error-bg',
               'transition-colors duration-100',
             )}
           >
-            <LuX className="h-2.5 w-2.5" />
+            <LuX className="size-2.5" />
           </button>
         </div>
       </div>
@@ -436,10 +436,10 @@ const RESIZE_HANDLE_CLASSES: Record<string, string> = {
   s: 'bottom-0 left-2 right-2 h-1 cursor-ns-resize',
   e: 'right-0 top-2 bottom-2 w-1 cursor-ew-resize',
   w: 'left-0 top-2 bottom-2 w-1 cursor-ew-resize',
-  ne: 'top-0 right-0 w-2 h-2 cursor-nesw-resize',
-  nw: 'top-0 left-0 w-2 h-2 cursor-nwse-resize',
-  se: 'bottom-0 right-0 w-2 h-2 cursor-nwse-resize',
-  sw: 'bottom-0 left-0 w-2 h-2 cursor-nesw-resize',
+  ne: 'top-0 right-0 size-2 cursor-nesw-resize',
+  nw: 'top-0 left-0 size-2 cursor-nwse-resize',
+  se: 'bottom-0 right-0 size-2 cursor-nwse-resize',
+  sw: 'bottom-0 left-0 size-2 cursor-nesw-resize',
 }
 
 function ResizeHandle({ edge, onMouseDown }: ResizeHandleProps) {

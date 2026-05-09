@@ -108,27 +108,27 @@ export function UnixFSContextMenu({
         {state?.entry ?
           <>
             <DropdownMenuItem onClick={handleOpen}>
-              <LuFolderOpen className="h-3.5 w-3.5" />
+              <LuFolderOpen className="size-3.5" />
               Open
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleNewFolder} disabled={!onNewFolder}>
-              <LuFolderPlus className="h-3.5 w-3.5" />
+              <LuFolderPlus className="size-3.5" />
               New folder
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={handleDownload}
               disabled={!onDownload || actionEntries.length === 0}
             >
-              <LuDownload className="h-3.5 w-3.5" />
+              <LuDownload className="size-3.5" />
               {actionEntries.length > 1 ? 'Download selected' : 'Download'}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleRename} disabled={!onRename}>
-              <LuPencil className="h-3.5 w-3.5" />
+              <LuPencil className="size-3.5" />
               Rename
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleMove} disabled={!onMove}>
-              <LuFolderInput className="h-3.5 w-3.5" />
+              <LuFolderInput className="size-3.5" />
               Move...
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -136,18 +136,18 @@ export function UnixFSContextMenu({
               onClick={handleDelete}
               disabled={!onDelete}
             >
-              <LuTrash2 className="h-3.5 w-3.5" />
+              <LuTrash2 className="size-3.5" />
               Delete
               <DropdownMenuShortcut>Del</DropdownMenuShortcut>
             </DropdownMenuItem>
           </>
         : <>
             <DropdownMenuItem onClick={handleNewFolder} disabled={!onNewFolder}>
-              <LuFolderPlus className="h-3.5 w-3.5" />
+              <LuFolderPlus className="size-3.5" />
               New folder
             </DropdownMenuItem>
             <DropdownMenuItem onClick={onUploadFiles} disabled={!onUploadFiles}>
-              <LuUpload className="h-3.5 w-3.5" />
+              <LuUpload className="size-3.5" />
               Upload files
             </DropdownMenuItem>
           </>

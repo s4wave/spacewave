@@ -60,8 +60,8 @@ export function GraphLinkPill({
         )}
         <span className="ml-auto flex items-center gap-1">
           {loaded ?
-            <LuLocateFixed className="h-3 w-3" />
-          : <LuPlus className="h-3 w-3" />}
+            <LuLocateFixed className="size-3" />
+          : <LuPlus className="size-3" />}
           {loaded ? 'Focus' : 'Load'}
         </span>
       </button>
@@ -74,7 +74,7 @@ export function GraphLinkPill({
           onClick={onHide}
           title={`Hide ${edge.predicate} link`}
         >
-          <LuEyeOff className="h-3 w-3" />
+          <LuEyeOff className="size-3" />
         </button>
       )}
       {edge.userRemovable && onDelete && (
@@ -83,7 +83,7 @@ export function GraphLinkPill({
           onClick={onDelete}
           title={`Delete ${edge.predicate} link`}
         >
-          <LuTrash2 className="h-3 w-3" />
+          <LuTrash2 className="size-3" />
         </button>
       )}
     </div>

@@ -64,7 +64,7 @@ export function VerifyEmailPage() {
           {/* Header */}
           <div className="flex flex-col items-center gap-2">
             <AnimatedLogo followMouse={false} />
-            <h1 className="mt-2 text-xl font-bold tracking-wide">
+            <h1 className="mt-2 text-xl font-semibold tracking-wide">
               Verify Your Email
             </h1>
             <p className="text-foreground-alt text-center text-sm">
@@ -119,7 +119,7 @@ export function VerifyEmailPage() {
               )}
             >
               Continue
-              <LuArrowRight className="h-4 w-4" />
+              <LuArrowRight className="size-4" />
             </button>
           )}
 
@@ -130,8 +130,8 @@ export function VerifyEmailPage() {
                 onClick={() => setAddExpanded(!addExpanded)}
                 className="flex w-full items-center gap-3 p-4"
               >
-                <div className="bg-foreground/5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
-                  <LuPlus className="text-foreground-alt h-4 w-4" />
+                <div className="bg-foreground/5 flex size-8 shrink-0 items-center justify-center rounded-lg">
+                  <LuPlus className="text-foreground-alt size-4" />
                 </div>
                 <div className="flex-1 text-left">
                   <h3 className="text-foreground text-sm font-medium">
@@ -143,7 +143,7 @@ export function VerifyEmailPage() {
                 </div>
                 <LuChevronDown
                   className={cn(
-                    'text-foreground-alt h-4 w-4 shrink-0 transition-transform duration-200',
+                    'text-foreground-alt size-4 shrink-0 transition-transform duration-200',
                     addExpanded && 'rotate-180',
                   )}
                 />
@@ -173,7 +173,7 @@ export function VerifyEmailPage() {
                       'flex h-10 items-center justify-center gap-2',
                     )}
                   >
-                    <LuSend className="text-foreground h-4 w-4" />
+                    <LuSend className="text-foreground size-4" />
                     <span className="text-foreground text-sm">
                       {busy ? 'Adding...' : 'Add & send code'}
                     </span>
@@ -222,13 +222,13 @@ function EmailCard({
       <div className="flex items-center gap-3 p-4">
         <div
           className={cn(
-            'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
+            'flex size-8 shrink-0 items-center justify-center rounded-lg',
             verified ? 'bg-brand/20' : 'bg-brand/10',
           )}
         >
           {verified ?
-            <LuCheck className="text-brand h-4 w-4" />
-          : <LuMail className="text-brand h-4 w-4" />}
+            <LuCheck className="text-brand size-4" />
+          : <LuMail className="text-brand size-4" />}
         </div>
         <div className="min-w-0 flex-1">
           <h3 className="text-foreground truncate text-sm font-medium">
@@ -265,7 +265,7 @@ function EmailCard({
               className="text-foreground-alt/50 hover:text-destructive rounded p-1.5 transition-colors disabled:opacity-50"
               title="Remove"
             >
-              <LuTrash2 className="h-3.5 w-3.5" />
+              <LuTrash2 className="size-3.5" />
             </button>
           )}
         </div>
@@ -310,7 +310,7 @@ function EmailCard({
             <span className="text-foreground text-sm">
               {busy ? 'Verifying...' : 'Verify email'}
             </span>
-            {!busy && <LuArrowRight className="text-foreground-alt h-4 w-4" />}
+            {!busy && <LuArrowRight className="text-foreground-alt size-4" />}
           </button>
           <button
             onClick={() => void onSendCode(addr)}

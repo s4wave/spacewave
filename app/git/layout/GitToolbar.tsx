@@ -55,7 +55,7 @@ export function GitToolbar({
             canGoBack ? 'hover:bg-pulldown-hover' : 'cursor-default opacity-40',
           )}
         >
-          <LuChevronLeft className="text-foreground-alt h-4 w-4" />
+          <LuChevronLeft className="text-foreground-alt size-4" />
         </button>
         <button
           onClick={onForward}
@@ -67,7 +67,7 @@ export function GitToolbar({
             : 'cursor-default opacity-40',
           )}
         >
-          <LuChevronRight className="text-foreground-alt h-4 w-4" />
+          <LuChevronRight className="text-foreground-alt size-4" />
         </button>
         <button
           onClick={onUp}
@@ -79,7 +79,7 @@ export function GitToolbar({
             : 'cursor-default opacity-40',
           )}
         >
-          <LuChevronUp className="text-foreground-alt h-4 w-4" />
+          <LuChevronUp className="text-foreground-alt size-4" />
         </button>
       </div>
       {showPath && (

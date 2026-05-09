@@ -89,7 +89,7 @@ export function BlogCta() {
       <div className="flex flex-col gap-8 @lg:flex-row @lg:gap-12">
         {/* Left column: CTA content */}
         <div className="flex flex-1 flex-col gap-4">
-          <h2 className="text-foreground text-xl font-bold tracking-tight">
+          <h2 className="text-foreground text-xl font-semibold tracking-tight">
             Join the community
           </h2>
           <p className="text-foreground-alt/70 text-sm leading-relaxed">
@@ -101,13 +101,13 @@ export function BlogCta() {
               className="border-brand/40 bg-brand/10 text-foreground hover:border-brand/60 hover:bg-brand/15 flex cursor-pointer items-center gap-2 rounded-md px-5 py-2.5 text-sm font-medium transition-all duration-300 select-none hover:-translate-y-0.5"
             >
               Get started
-              <LuArrowRight className="h-3.5 w-3.5" />
+              <LuArrowRight className="size-3.5" />
             </button>
             <button
               onClick={goToCommunity}
               className="border-foreground/15 bg-background/50 text-foreground hover:border-brand/40 hover:bg-brand/8 flex cursor-pointer items-center gap-2 rounded-md px-5 py-2.5 text-sm font-medium transition-all duration-300 select-none hover:-translate-y-0.5"
             >
-              <LuGithub className="h-3.5 w-3.5" />
+              <LuGithub className="size-3.5" />
               Join community
             </button>
           </div>
@@ -118,7 +118,7 @@ export function BlogCta() {
           <div className="flex flex-1 flex-col justify-center">
             {formState === 'success' ?
               <div className="text-brand flex items-center gap-2 text-sm font-medium">
-                <LuCheck className="h-4 w-4" />
+                <LuCheck className="size-4" />
                 Subscribed.
               </div>
             : <form

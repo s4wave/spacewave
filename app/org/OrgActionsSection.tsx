@@ -48,8 +48,8 @@ export function OrgActionsSection({
             blocked && 'hover:bg-destructive/5 cursor-not-allowed opacity-50',
           )}
         >
-          <div className="bg-destructive/20 group-hover:bg-destructive-foreground/20 flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors">
-            <LuTrash2 className="text-destructive group-hover:text-destructive-foreground h-3.5 w-3.5 transition-colors" />
+          <div className="bg-destructive/20 group-hover:bg-destructive-foreground/20 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors">
+            <LuTrash2 className="text-destructive group-hover:text-destructive-foreground size-3.5 transition-colors" />
           </div>
           <div className="flex min-w-0 flex-1 flex-col">
             <h4 className="text-destructive group-hover:text-destructive-foreground text-xs font-medium transition-colors select-none">

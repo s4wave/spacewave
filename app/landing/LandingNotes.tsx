@@ -72,7 +72,7 @@ export function LandingNotes() {
 
   return (
     <LegalPageLayout
-      icon={<LuBookOpen className="h-8 w-8" />}
+      icon={<LuBookOpen className="size-8" />}
       title="Think clearly. On your terms."
       subtitle="A place for your thoughts that respects your privacy. Markdown notes that sync across your devices without touching a server."
     >

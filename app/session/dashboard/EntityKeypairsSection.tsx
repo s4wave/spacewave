@@ -96,7 +96,7 @@ export function EntityKeypairsSection({
   const content = (
     <>
       {loading && (
-        <p className="text-foreground-alt text-xs">Loading keypairs...</p>
+        <p className="text-foreground-alt text-xs">Loading keypairs…</p>
       )}
       {!loading && keypairs.length === 0 && !showAdd && (
         <div className="flex items-center justify-between py-1">
@@ -126,7 +126,7 @@ export function EntityKeypairsSection({
                 onClick={() => setShowAdd(true)}
                 className="text-brand hover:text-brand/80 flex items-center gap-1 text-xs font-medium transition-colors"
               >
-                <LuPlus className="h-3 w-3" />
+                <LuPlus className="size-3" />
                 Add keypair
               </button>
             </div>
@@ -166,7 +166,7 @@ export function EntityKeypairsSection({
                 (busy || !cred.password) && 'cursor-not-allowed opacity-50',
               )}
             >
-              <LuDownload className="h-3 w-3" />
+              <LuDownload className="size-3" />
               {exporting ? 'Exporting...' : 'Export Backup PEM'}
             </button>
             <button
@@ -192,7 +192,7 @@ export function EntityKeypairsSection({
     <section>
       <div className="mb-2 flex items-center justify-between">
         <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-          <LuKey className="h-3.5 w-3.5" />
+          <LuKey className="size-3.5" />
           Entity Keypairs
         </h2>
       </div>
@@ -220,7 +220,7 @@ function KeypairRow({
   return (
     <div className="flex items-center justify-between gap-2">
       <div className="flex min-w-0 flex-1 items-center gap-2">
-        <LuKey className="text-foreground-alt h-3.5 w-3.5 shrink-0" />
+        <LuKey className="text-foreground-alt size-3.5 shrink-0" />
         <div className="min-w-0 flex-1">
           <p className="text-foreground truncate text-xs font-medium">
             {truncatePeerId(peerId)}
@@ -238,7 +238,7 @@ function KeypairRow({
           )}
           title="Remove keypair"
         >
-          <LuTrash2 className="h-3 w-3" />
+          <LuTrash2 className="size-3" />
         </button>
       )}
     </div>

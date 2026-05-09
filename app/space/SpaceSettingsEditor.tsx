@@ -47,7 +47,7 @@ export function SpaceSettingsEditor({
       {!embedded && (
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-            <LuSettings className="h-3.5 w-3.5" />
+            <LuSettings className="size-3.5" />
             Settings
           </h2>
         </div>
@@ -75,7 +75,7 @@ export function SpaceSettingsEditor({
                   {displayName || 'Untitled'}
                 </div>
                 <DashboardButton
-                  icon={<LuPencil className="h-3 w-3" />}
+                  icon={<LuPencil className="size-3" />}
                   onClick={() => onRenameStart()}
                 >
                   Rename

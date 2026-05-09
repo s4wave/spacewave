@@ -27,7 +27,7 @@ export function ProviderSetup() {
       <div className="relative z-10 flex w-full max-w-md flex-col gap-6">
         <div className="flex flex-col items-center gap-2">
           <AnimatedLogo followMouse={false} />
-          <h1 className="text-xl font-bold tracking-wide">
+          <h1 className="text-xl font-semibold tracking-wide">
             Choose your provider
           </h1>
           <p className="text-foreground-alt text-sm">
@@ -40,7 +40,7 @@ export function ProviderSetup() {
             <RadioOption
               selected={false}
               onSelect={handleCloud}
-              icon={<LuCloud className="h-4 w-4" />}
+              icon={<LuCloud className="size-4" />}
               label="Spacewave Cloud"
               tag="$8/mo"
               description="Cloud backup, multi-device sync, encrypted storage."
@@ -54,12 +54,12 @@ export function ProviderSetup() {
                 'flex h-10 items-center justify-center gap-2',
               )}
             >
-              <LuHardDrive className="text-foreground-alt h-4 w-4" />
+              <LuHardDrive className="text-foreground-alt size-4" />
               <span className="text-foreground text-sm">
                 Continue with local storage
               </span>
               <span className="text-foreground-alt text-xs">(Free)</span>
-              <LuArrowRight className="text-foreground-alt h-4 w-4" />
+              <LuArrowRight className="text-foreground-alt size-4" />
             </button>
           </div>
         </div>

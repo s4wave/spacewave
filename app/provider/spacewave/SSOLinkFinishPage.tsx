@@ -79,7 +79,7 @@ export function SSOLinkFinishPage() {
         <>
           <AnimatedLogo followMouse={false} />
           <h2 className="text-foreground flex items-center gap-2 text-lg font-semibold">
-            <ProviderIcon provider={provider} className="h-5 w-5" />
+            <ProviderIcon provider={provider} className="size-5" />
             {ok ? 'Return to Spacewave' : 'SSO link failed'}
           </h2>
         </>
@@ -88,8 +88,8 @@ export function SSOLinkFinishPage() {
       <div className="border-foreground/20 bg-background-get-started rounded-lg border p-5 shadow-lg backdrop-blur-sm">
         <div className="flex flex-col items-center gap-3 text-center">
           {ok ?
-            <LuCheck className="text-brand h-8 w-8" />
-          : <LuCircleAlert className="text-destructive h-8 w-8" />}
+            <LuCheck className="text-brand size-8" />
+          : <LuCircleAlert className="text-destructive size-8" />}
           <p className="text-foreground-alt text-sm">
             {ok ?
               'This window can close. Finish confirming the account link in the original Spacewave window.'

@@ -384,7 +384,7 @@ export function SpaceContainer() {
                     }
                     className="bg-brand/10 text-brand hover:bg-brand/20 flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[0.6rem] font-medium transition-colors"
                   >
-                    <LuBuilding2 className="h-2.5 w-2.5" />
+                    <LuBuilding2 className="size-2.5" />
                     <span className="max-w-20 truncate">
                       {spaceOrgState?.organization?.displayName || 'Org'}
                     </span>
@@ -398,7 +398,7 @@ export function SpaceContainer() {
                       Organization
                     </div>
                     <div className="text-foreground flex items-center gap-1.5 text-xs">
-                      <LuBuilding2 className="text-brand h-3 w-3 shrink-0" />
+                      <LuBuilding2 className="text-brand size-3 shrink-0" />
                       <span className="truncate">
                         {spaceOrgState.organization.displayName || spaceOrgId}
                       </span>
@@ -420,11 +420,11 @@ export function SpaceContainer() {
                 <button
                   type="button"
                   onClick={handleCreateObject}
-                  className="text-foreground-alt hover:text-foreground flex h-4 w-4 items-center justify-center transition-colors"
+                  className="text-foreground-alt hover:text-foreground flex size-4 items-center justify-center transition-colors"
                   aria-label="Create object"
                   title="Create object"
                 >
-                  <LuPlus className="h-3.5 w-3.5" />
+                  <LuPlus className="size-3.5" />
                 </button>
               }
               objectsSection={<SpaceObjectBrowser embedded={true} />}

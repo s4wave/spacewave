@@ -39,10 +39,10 @@ export function SiteHome({ siteId, sections }: SiteHomeProps) {
           onClick={goToHub}
           className="text-foreground-alt/50 hover:text-foreground-alt mb-4 flex cursor-pointer items-center gap-1.5 text-xs transition-colors"
         >
-          <LuArrowLeft className="h-3 w-3" />
+          <LuArrowLeft className="size-3" />
           All Documentation
         </button>
-        <h1 className="text-foreground mb-3 text-2xl font-bold tracking-tight @lg:text-3xl">
+        <h1 className="text-foreground mb-3 text-2xl font-semibold tracking-tight @lg:text-3xl">
           {site?.label ?? siteId}
         </h1>
         <p className="text-foreground-alt text-sm leading-relaxed @lg:text-base">
@@ -60,8 +60,8 @@ export function SiteHome({ siteId, sections }: SiteHomeProps) {
               disabled={!firstPage}
               className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/30 group flex cursor-pointer flex-col items-start gap-3 rounded-xl border p-6 text-left transition-all duration-200 disabled:cursor-default disabled:opacity-50"
             >
-              <div className="bg-brand/10 text-brand flex h-10 w-10 items-center justify-center rounded-lg">
-                <LuBookOpen className="h-5 w-5" />
+              <div className="bg-brand/10 text-brand flex size-10 items-center justify-center rounded-lg">
+                <LuBookOpen className="size-5" />
               </div>
               <h2 className="text-foreground text-lg font-semibold">
                 {section.label}
@@ -73,7 +73,7 @@ export function SiteHome({ siteId, sections }: SiteHomeProps) {
               {firstPage && (
                 <span className="text-brand group-hover:text-brand-highlight mt-auto flex items-center gap-1.5 text-xs font-medium transition-colors">
                   Get started
-                  <LuArrowRight className="h-3 w-3 transition-transform duration-200 group-hover:translate-x-0.5" />
+                  <LuArrowRight className="size-3 transition-transform duration-200 group-hover:translate-x-0.5" />
                 </span>
               )}
             </button>
@@ -91,7 +91,7 @@ export function SiteHome({ siteId, sections }: SiteHomeProps) {
 
       {otherSites.length > 0 && (
         <div className="mt-10 border-t border-white/10 pt-6">
-          <h3 className="text-foreground-alt/50 mb-3 text-xs font-bold tracking-widest uppercase">
+          <h3 className="text-foreground-alt/50 mb-3 text-xs font-semibold tracking-widest uppercase">
             Other Documentation
           </h3>
           <div className="flex flex-wrap gap-3">

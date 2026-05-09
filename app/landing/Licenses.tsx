@@ -80,8 +80,8 @@ function LicenseGroup({
           >
             {showBase ? 'Hide' : 'Show'} license text
             {showBase ?
-              <LuChevronDown className="h-3 w-3" />
-            : <LuChevronRight className="h-3 w-3" />}
+              <LuChevronDown className="size-3" />
+            : <LuChevronRight className="size-3" />}
           </button>
         )}
       </div>
@@ -116,8 +116,8 @@ function LicenseGroup({
                     className="text-foreground-alt/60 hover:text-foreground-alt cursor-pointer transition-colors"
                   >
                     {isExpanded ?
-                      <LuChevronDown className="h-3.5 w-3.5" />
-                    : <LuChevronRight className="h-3.5 w-3.5" />}
+                      <LuChevronDown className="size-3.5" />
+                    : <LuChevronRight className="size-3.5" />}
                   </button>
                 )}
                 <span className="text-foreground text-sm">
@@ -198,7 +198,7 @@ export function Licenses() {
 
   return (
     <LegalPageLayout
-      icon={<LuScale className="h-10 w-10" />}
+      icon={<LuScale className="size-10" />}
       title="Open Source Licenses"
       subtitle="Spacewave is built with open source software. This page lists all third-party dependencies and their licenses."
     >
@@ -212,7 +212,7 @@ export function Licenses() {
           </div>
 
           <div className="relative">
-            <LuSearch className="text-foreground-alt/40 pointer-events-none absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2" />
+            <LuSearch className="text-foreground-alt/40 pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Filter packages..."

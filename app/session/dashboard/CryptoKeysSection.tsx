@@ -45,7 +45,7 @@ export function CryptoKeysSection({
   return (
     <CollapsibleSection
       title="Crypto & Keys"
-      icon={<LuKey className="h-3.5 w-3.5" />}
+      icon={<LuKey className="size-3.5" />}
       open={sectionOpen}
       onOpenChange={handleOpenChange}
     >
@@ -65,8 +65,8 @@ export function CryptoKeysSection({
                   aria-label={pemCopied ? 'Copied!' : 'Copy public key PEM'}
                 >
                   {pemCopied ?
-                    <LuCheck className="h-3 w-3 text-green-500" />
-                  : <LuCopy className="h-3 w-3" />}
+                    <LuCheck className="size-3 text-green-500" />
+                  : <LuCopy className="size-3" />}
                   <span>
                     {pemCopied ? 'Copied' : 'Export Public Key (PEM)'}
                   </span>
@@ -76,7 +76,7 @@ export function CryptoKeysSection({
             {(crypto.spaceCount ?? 0) > 0 && (
               <div className="border-foreground/10 flex items-center gap-4 border-t pt-2">
                 <div className="text-foreground-alt flex items-center gap-1 text-xs">
-                  <LuDatabase className="h-3 w-3" />
+                  <LuDatabase className="size-3" />
                   <span>
                     {crypto.spaceCount}{' '}
                     {crypto.spaceCount === 1 ? 'space' : 'spaces'}

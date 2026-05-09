@@ -377,7 +377,7 @@ function SlashCommandPlugin() {
           }}
           onMouseEnter={() => setSelectedIndex(index)}
         >
-          <span className="text-muted-foreground flex h-6 w-6 items-center justify-center text-xs font-medium">
+          <span className="text-muted-foreground flex size-6 items-center justify-center text-xs font-medium">
             {item.icon}
           </span>
           <span className="flex flex-col">

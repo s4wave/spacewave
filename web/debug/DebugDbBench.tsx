@@ -156,7 +156,7 @@ function ResultsDisplay({ results }: { results: BenchmarkResults }) {
           onClick={downloadResults}
           className="text-text-secondary hover:text-text-primary flex cursor-pointer items-center gap-1.5 text-xs transition-colors"
         >
-          <LuDownload className="h-3.5 w-3.5" />
+          <LuDownload className="size-3.5" />
           Download JSON
         </button>
       </div>
@@ -348,7 +348,7 @@ function BenchmarkPanel({ debugDb }: { debugDb: Resource<DebugDb> }) {
               : 'bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer',
             )}
           >
-            <LuPlay className="h-3.5 w-3.5" />
+            <LuPlay className="size-3.5" />
             {running ? 'Running...' : 'Run Benchmark'}
           </button>
         </div>
@@ -407,11 +407,11 @@ export function DebugDbBench() {
           onClick={goBack}
           className="text-foreground-alt hover:text-foreground mb-6 flex cursor-pointer items-center gap-2 transition-colors"
         >
-          <LuArrowLeft className="h-4 w-4" />
+          <LuArrowLeft className="size-4" />
           Back to home
         </button>
 
-        <h1 className="text-foreground mb-2 text-3xl font-bold">
+        <h1 className="text-foreground mb-2 text-3xl font-semibold">
           Storage Benchmark
         </h1>
         <p className="text-foreground-alt mb-8 text-sm">
@@ -420,7 +420,7 @@ export function DebugDbBench() {
         </p>
 
         {loading ?
-          <div className="text-text-muted text-sm">Loading...</div>
+          <div className="text-text-muted text-sm">Loading…</div>
         : err ?
           <div className="rounded-lg bg-red-500/10 p-3 font-mono text-xs text-red-400">
             {err.message}

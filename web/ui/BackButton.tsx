@@ -26,7 +26,7 @@ export function BackButton({
       )}
       {...props}
     >
-      <LuArrowLeft className="h-4 w-4" />
+      <LuArrowLeft className="size-4" />
       <span className="select-none">{children}</span>
     </button>
   )

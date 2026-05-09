@@ -26,7 +26,7 @@ export function ArchTile({ entry }: ArchTileProps) {
         <span className="text-foreground group-hover:text-brand text-base font-semibold transition-colors select-none">
           {entry.archLabel}
         </span>
-        <LuDownload className="text-foreground-alt group-hover:text-brand h-5 w-5 transition-colors" />
+        <LuDownload className="text-foreground-alt group-hover:text-brand size-5 transition-colors" />
       </div>
       <span className="text-foreground-alt font-mono text-xs break-all select-none">
         {entry.filename}

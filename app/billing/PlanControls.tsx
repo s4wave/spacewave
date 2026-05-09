@@ -100,7 +100,7 @@ export function PlanControls(props: {
       <div className="flex flex-wrap gap-2">
         {isActive && !isCancelScheduled && (
           <DashboardButton
-            icon={<LuX className="h-3 w-3" />}
+            icon={<LuX className="size-3" />}
             onClick={handleCancel}
             className="text-destructive hover:bg-destructive/10"
           >
@@ -109,7 +109,7 @@ export function PlanControls(props: {
         )}
         {isCancelScheduled && (
           <DashboardButton
-            icon={<LuRefreshCw className="h-3 w-3" />}
+            icon={<LuRefreshCw className="size-3" />}
             onClick={() => void handleReactivate()}
             disabled={action !== 'idle' || checkout.polling}
           >
@@ -120,7 +120,7 @@ export function PlanControls(props: {
         )}
         {isCanceled && (
           <DashboardButton
-            icon={<LuRefreshCw className="h-3 w-3" />}
+            icon={<LuRefreshCw className="size-3" />}
             onClick={() => void handleReactivate()}
             disabled={action !== 'idle' || checkout.polling}
           >

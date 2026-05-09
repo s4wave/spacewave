@@ -108,7 +108,7 @@ const AnimatedLogo = ({
       className={cn('group relative perspective-[1000px]', containerClassName)}
     >
       <div
-        className="relative h-20 w-20 @lg:h-28 @lg:w-28"
+        className="relative size-20 @lg:h-28 @lg:w-28"
         style={{
           transform: `rotateX(${transform.rotateX}deg) rotateY(${transform.rotateY}deg) scale(${transform.scale})`,
           transition: 'transform 0.8s ease-out',

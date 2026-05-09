@@ -250,10 +250,10 @@ export function TransformConfigDisplay({ info }: TransformConfigDisplayProps) {
               <div className="flex cursor-default items-center gap-3 px-4 py-2">
                 <div
                   className={cn(
-                    'bg-foreground/5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md',
+                    'bg-foreground/5 flex size-5 shrink-0 items-center justify-center rounded-md',
                   )}
                 >
-                  <Icon className="text-foreground-alt h-3 w-3" />
+                  <Icon className="text-foreground-alt size-3" />
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-foreground-alt text-xs font-medium">
@@ -276,8 +276,8 @@ export function TransformConfigDisplay({ info }: TransformConfigDisplayProps) {
         <Tooltip>
           <TooltipTrigger asChild>
             <div className="flex cursor-default items-center gap-3 px-4 py-2">
-              <div className="bg-foreground/5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md">
-                <LuHardDrive className="text-foreground-alt h-3 w-3" />
+              <div className="bg-foreground/5 flex size-5 shrink-0 items-center justify-center rounded-md">
+                <LuHardDrive className="text-foreground-alt size-3" />
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-foreground-alt text-xs font-medium">
@@ -308,7 +308,7 @@ export function TransformConfigDisplay({ info }: TransformConfigDisplayProps) {
             <div className="flex min-w-0 items-center gap-2">
               <LuLock
                 className={cn(
-                  'h-3 w-3 shrink-0',
+                  'size-3 shrink-0',
                   hasEncryption ? 'text-brand/80' : 'text-foreground-alt/40',
                 )}
               />
@@ -326,7 +326,7 @@ export function TransformConfigDisplay({ info }: TransformConfigDisplayProps) {
             </div>
             {hasEncryption && grantCount > 0 && (
               <div className="flex shrink-0 items-center gap-1 text-[0.55rem] font-medium">
-                <LuUsers className="h-2.5 w-2.5" />
+                <LuUsers className="size-2.5" />
                 {grantCount} {grantCount === 1 ? 'key' : 'keys'}
               </div>
             )}

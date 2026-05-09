@@ -223,7 +223,7 @@ function NavLink({ text, onClick }: { text: string; onClick?: () => void }) {
 function WelcomeHeading() {
   return (
     <div className="mb-6 text-center">
-      <h1 className="text-foreground text-2xl font-bold tracking-wide">
+      <h1 className="text-foreground text-2xl font-semibold tracking-wide">
         Welcome to Spacewave!
       </h1>
       <p className="text-foreground-alt mt-2 text-sm">
@@ -362,19 +362,19 @@ function InlineSecureAccountSection(props: {
     <div className="mt-4 w-full max-w-md">
       <div className="border-ui-outline/50 rounded-lg border p-4">
         <h2 className="text-foreground mb-3 flex items-center gap-2 text-sm font-medium">
-          <LuShieldCheck className="h-4 w-4" />
+          <LuShieldCheck className="size-4" />
           Secure Your Account
         </h2>
         <div className="space-y-4">
           {onboarding.onboarding.backupComplete ?
             <div className="text-foreground-alt flex items-center gap-2 px-3 py-2 text-sm">
-              <LuCheck className="text-brand h-4 w-4 shrink-0" />
+              <LuCheck className="text-brand size-4 shrink-0" />
               <span>Backup key downloaded</span>
             </div>
           : <div className="space-y-3">
               <div className="flex items-start gap-3">
-                <div className="bg-brand/10 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
-                  <LuDownload className="text-brand h-4 w-4" />
+                <div className="bg-brand/10 flex size-8 shrink-0 items-center justify-center rounded-lg">
+                  <LuDownload className="text-brand size-4" />
                 </div>
                 <div>
                   <p className="text-foreground text-sm font-medium">
@@ -411,7 +411,7 @@ function InlineSecureAccountSection(props: {
                   'flex h-9 items-center justify-center gap-2',
                 )}
               >
-                <LuDownload className="text-foreground h-3.5 w-3.5" />
+                <LuDownload className="text-foreground size-3.5" />
                 <span className="text-foreground text-sm">
                   {downloading ? 'Generating...' : 'Download backup .pem'}
                 </span>
@@ -426,13 +426,13 @@ function InlineSecureAccountSection(props: {
 
           {onboarding.onboarding.lockComplete ?
             <div className="text-foreground-alt flex items-center gap-2 px-3 py-2 text-sm">
-              <LuCheck className="text-brand h-4 w-4 shrink-0" />
+              <LuCheck className="text-brand size-4 shrink-0" />
               <span>Session lock configured</span>
             </div>
           : <div className="space-y-3">
               <div className="flex items-start gap-3">
-                <div className="bg-brand/10 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
-                  <LuKeyRound className="text-brand h-4 w-4" />
+                <div className="bg-brand/10 flex size-8 shrink-0 items-center justify-center rounded-lg">
+                  <LuKeyRound className="text-brand size-4" />
                 </div>
                 <div>
                   <p className="text-foreground text-sm font-medium">
@@ -450,7 +450,7 @@ function InlineSecureAccountSection(props: {
                   onSelect={() =>
                     dispatchLock({ type: 'set-mode', mode: 'auto' })
                   }
-                  icon={<LuLockOpen className="h-4 w-4" />}
+                  icon={<LuLockOpen className="size-4" />}
                   label="Auto-unlock"
                   description="Key stored on disk. No PIN needed on launch."
                 />
@@ -459,7 +459,7 @@ function InlineSecureAccountSection(props: {
                   onSelect={() =>
                     dispatchLock({ type: 'set-mode', mode: 'pin' })
                   }
-                  icon={<LuLock className="h-4 w-4" />}
+                  icon={<LuLock className="size-4" />}
                   label="PIN lock"
                   description="Key encrypted with PIN. Enter PIN on each app launch."
                 />
@@ -565,7 +565,7 @@ function CreateOrgSection() {
       <div className="mt-4 w-full max-w-md">
         <div className="border-ui-outline/50 rounded-lg border p-4">
           <div className="text-foreground-alt flex items-center gap-2 text-sm">
-            <LuCheck className="text-brand h-4 w-4 shrink-0" />
+            <LuCheck className="text-brand size-4 shrink-0" />
             <span>Organization created</span>
           </div>
         </div>
@@ -577,7 +577,7 @@ function CreateOrgSection() {
     <div className="mt-4 w-full max-w-md">
       <div className="border-ui-outline/50 rounded-lg border p-4">
         <h2 className="text-foreground mb-3 flex items-center gap-2 text-sm font-medium">
-          <LuBuilding2 className="h-4 w-4" />
+          <LuBuilding2 className="size-4" />
           Create an Organization
         </h2>
         <p className="text-foreground-alt mb-3 text-xs leading-relaxed">
@@ -605,7 +605,7 @@ function CreateOrgSection() {
               'flex h-9 items-center justify-center gap-2',
             )}
           >
-            <LuBuilding2 className="text-foreground h-3.5 w-3.5" />
+            <LuBuilding2 className="text-foreground size-3.5" />
             <span className="text-foreground text-sm">
               {creating ? 'Creating...' : 'Create organization'}
             </span>
@@ -865,11 +865,11 @@ function IconButton({
   return (
     <div
       className={cn(
-        'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors',
+        'flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors',
         tones.bg,
       )}
     >
-      <Icon className={cn('h-4 w-4', tones.icon)} />
+      <Icon className={cn('size-4', tones.icon)} />
     </div>
   )
 }
@@ -924,7 +924,7 @@ function DashboardItem({
           </div>
         )}
       </div>
-      <LuChevronRight className="text-foreground-alt/40 group-data-[selected=true]:text-foreground-alt h-4 w-4 shrink-0 transition-colors" />
+      <LuChevronRight className="text-foreground-alt/40 group-data-[selected=true]:text-foreground-alt size-4 shrink-0 transition-colors" />
     </CommandItem>
   )
 }

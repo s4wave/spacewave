@@ -95,7 +95,7 @@ export function LandingBifrost() {
 
   return (
     <LegalPageLayout
-      icon={<LuNetwork className="h-8 w-8" />}
+      icon={<LuNetwork className="size-8" />}
       title="Encrypted networking between any two devices on earth."
       subtitle="Bifrost is an open-source peer-to-peer network router. Transport-agnostic, NAT-traversing, and cryptographically authenticated."
     >
@@ -110,8 +110,8 @@ export function LandingBifrost() {
                 className="border-foreground/6 bg-background-card/30 group rounded-lg border p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5"
               >
                 <div className="mb-3 flex items-center gap-3">
-                  <div className="bg-brand/8 group-hover:bg-brand/15 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors">
-                    <Icon className="text-brand h-4 w-4" />
+                  <div className="bg-brand/8 group-hover:bg-brand/15 flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors">
+                    <Icon className="text-brand size-4" />
                   </div>
                   <h3 className="text-foreground text-sm font-semibold">
                     {feature.title}
@@ -128,7 +128,7 @@ export function LandingBifrost() {
 
       {/* Code example */}
       <section className="relative z-10 mx-auto w-full max-w-4xl px-4 pb-16 @lg:px-8">
-        <h2 className="text-foreground mb-6 text-center text-xl font-bold">
+        <h2 className="text-foreground mb-6 text-center text-xl font-semibold">
           Get started in Go
         </h2>
         <div className="border-foreground/10 bg-background-dark overflow-hidden rounded-lg border">
@@ -149,7 +149,7 @@ export function LandingBifrost() {
       {/* Used in Spacewave callout */}
       <section className="relative z-10 mx-auto w-full max-w-4xl px-4 pb-16 @lg:px-8">
         <div className="border-brand/20 bg-brand/5 rounded-lg border p-8">
-          <h2 className="text-foreground mb-4 text-center text-xl font-bold">
+          <h2 className="text-foreground mb-4 text-center text-xl font-semibold">
             Used in Spacewave
           </h2>
           <div className="text-foreground-alt space-y-3 text-center text-sm leading-relaxed">
@@ -177,14 +177,14 @@ export function LandingBifrost() {
               'flex items-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium no-underline transition-all duration-300 select-none hover:-translate-y-0.5',
             )}
           >
-            <LuGithub className="h-4 w-4" />
+            <LuGithub className="size-4" />
             <span>View on GitHub</span>
           </ExternalLink>
           <a
             href={landingHref}
             className="border-foreground/15 bg-background/50 text-foreground hover:border-brand/40 hover:bg-brand/8 flex items-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium no-underline transition-all duration-300 select-none hover:-translate-y-0.5"
           >
-            <LuCheck className="h-4 w-4" />
+            <LuCheck className="size-4" />
             <span>See all features</span>
           </a>
         </div>

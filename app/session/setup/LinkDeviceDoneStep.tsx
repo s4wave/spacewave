@@ -79,8 +79,8 @@ export function LinkDeviceDoneStep({
     return (
       <div className="space-y-4">
         <div className="flex flex-col items-center gap-3">
-          <div className="bg-destructive/10 flex h-12 w-12 items-center justify-center rounded-full">
-            <LuX className="text-destructive h-6 w-6" />
+          <div className="bg-destructive/10 flex size-12 items-center justify-center rounded-full">
+            <LuX className="text-destructive size-6" />
           </div>
           <h2 className="text-foreground text-sm font-medium">
             Pairing failed
@@ -95,7 +95,7 @@ export function LinkDeviceDoneStep({
             'flex h-10 items-center justify-center gap-2',
           )}
         >
-          <LuRefreshCw className="text-foreground-alt h-4 w-4" />
+          <LuRefreshCw className="text-foreground-alt size-4" />
           <span className="text-foreground text-sm">Try again</span>
         </button>
       </div>
@@ -105,9 +105,9 @@ export function LinkDeviceDoneStep({
   return (
     <div className="space-y-4">
       <div className="flex flex-col items-center gap-3">
-        <div className="bg-brand/10 flex h-12 w-12 items-center justify-center rounded-full">
+        <div className="bg-brand/10 flex size-12 items-center justify-center rounded-full">
           {syncDone ?
-            <LuCircleCheck className="text-brand h-6 w-6" />
+            <LuCircleCheck className="text-brand size-6" />
           : <Spinner size="lg" className="text-brand" />}
         </div>
         <h2 className="text-foreground text-sm font-medium">
@@ -144,7 +144,7 @@ export function LinkDeviceDoneStep({
               'flex h-10 items-center justify-center gap-2',
             )}
           >
-            <LuLink className="text-foreground-alt h-4 w-4" />
+            <LuLink className="text-foreground-alt size-4" />
             <span className="text-foreground text-sm">Link more</span>
           </button>
           <button
@@ -156,7 +156,7 @@ export function LinkDeviceDoneStep({
             )}
           >
             <span className="text-foreground text-sm">Dashboard</span>
-            <LuArrowRight className="text-foreground-alt h-4 w-4" />
+            <LuArrowRight className="text-foreground-alt size-4" />
           </button>
         </div>
       )}

@@ -1016,7 +1016,7 @@ export function UnixFSBrowser({
                 void handleConfirmRename()
               }}
             >
-              <LuCheck className="h-3 w-3" />
+              <LuCheck className="size-3" />
             </button>
             <button
               tabIndex={0}
@@ -1027,7 +1027,7 @@ export function UnixFSBrowser({
                 handleCancelRename()
               }}
             >
-              <LuX className="h-3 w-3" />
+              <LuX className="size-3" />
             </button>
           </div>
         )
@@ -1217,7 +1217,7 @@ export function UnixFSBrowser({
   const dragOverlay = isDragging && (
     <div className="border-brand/50 bg-brand/5 pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-md border-2 border-dashed">
       <div className="flex flex-col items-center gap-2">
-        <LuUpload className="text-brand h-8 w-8" />
+        <LuUpload className="text-brand size-8" />
         <span className="text-brand text-sm font-medium">
           Drop files to upload
         </span>
@@ -1341,7 +1341,7 @@ export function UnixFSBrowser({
           canGoUp={displayPath !== '/'}
         />
         <div className="border-destructive/20 bg-destructive/5 flex items-center gap-2 border-b px-3 py-1.5">
-          <LuCircleAlert className="text-destructive h-3.5 w-3.5 shrink-0" />
+          <LuCircleAlert className="text-destructive size-3.5 shrink-0" />
           <p className="text-foreground/80 min-w-0 flex-1 truncate text-xs">
             Error loading files: {error.message ?? 'Unknown error'}
           </p>
@@ -1350,7 +1350,7 @@ export function UnixFSBrowser({
             onClick={handleRetry}
             className="text-foreground-alt hover:text-foreground inline-flex items-center gap-1 text-xs font-medium transition-colors"
           >
-            <LuRotateCw className="h-3 w-3" />
+            <LuRotateCw className="size-3" />
             Retry
           </button>
         </div>

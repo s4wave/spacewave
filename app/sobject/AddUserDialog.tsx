@@ -230,22 +230,22 @@ export function AddUserDialog({
           <TabsList>
             {hasOrgTab && (
               <TabsTrigger value="members">
-                <LuBuilding2 className="h-3.5 w-3.5" />
+                <LuBuilding2 className="size-3.5" />
                 Org Members
               </TabsTrigger>
             )}
             {isCloudProvider && (
               <TabsTrigger value="username">
-                <LuUserPlus className="h-3.5 w-3.5" />
+                <LuUserPlus className="size-3.5" />
                 Username
               </TabsTrigger>
             )}
             <TabsTrigger value="code">
-              <LuQrCode className="h-3.5 w-3.5" />
+              <LuQrCode className="size-3.5" />
               Code
             </TabsTrigger>
             <TabsTrigger value="link">
-              <LuLink className="h-3.5 w-3.5" />
+              <LuLink className="size-3.5" />
               Link
             </TabsTrigger>
           </TabsList>
@@ -286,11 +286,11 @@ export function AddUserDialog({
                 >
                   {state.copied ?
                     <>
-                      <LuCheck className="h-3.5 w-3.5" />
+                      <LuCheck className="size-3.5" />
                       Copied
                     </>
                   : <>
-                      <LuCopy className="h-3.5 w-3.5" />
+                      <LuCopy className="size-3.5" />
                       Copy Code
                     </>
                   }
@@ -337,11 +337,11 @@ export function AddUserDialog({
                 >
                   {state.usernameSent ?
                     <>
-                      <LuCheck className="h-3.5 w-3.5" />
+                      <LuCheck className="size-3.5" />
                       Sent
                     </>
                   : <>
-                      <LuUserPlus className="h-3.5 w-3.5" />
+                      <LuUserPlus className="size-3.5" />
                       {state.creating ? 'Sending...' : 'Send Invite'}
                     </>
                   }
@@ -371,11 +371,11 @@ export function AddUserDialog({
                 >
                   {state.copied ?
                     <>
-                      <LuCheck className="h-3.5 w-3.5" />
+                      <LuCheck className="size-3.5" />
                       Copied
                     </>
                   : <>
-                      <LuCopy className="h-3.5 w-3.5" />
+                      <LuCopy className="size-3.5" />
                       Copy Link
                     </>
                   }
@@ -486,7 +486,7 @@ function OrgMembersTab({
         }
       </p>
       <div className="relative">
-        <LuSearch className="text-foreground-alt/50 absolute top-2.5 left-2.5 h-3.5 w-3.5" />
+        <LuSearch className="text-foreground-alt/50 absolute top-2.5 left-2.5 size-3.5" />
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -540,10 +540,10 @@ function OrgMembersTab({
               </div>
               <div className="shrink-0">
                 {isEnrolled ?
-                  <LuCheck className="text-success h-3.5 w-3.5" />
+                  <LuCheck className="text-success size-3.5" />
                 : isEnrolling ?
-                  <span className="text-foreground-alt text-xs">Adding...</span>
-                : <LuUserPlus className="text-foreground-alt/50 h-3.5 w-3.5" />}
+                  <span className="text-foreground-alt text-xs">Adding…</span>
+                : <LuUserPlus className="text-foreground-alt/50 size-3.5" />}
               </div>
             </button>
           )

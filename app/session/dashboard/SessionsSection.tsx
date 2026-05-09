@@ -132,14 +132,14 @@ export function SessionsSection({
   return (
     <CollapsibleSection
       title="Sessions"
-      icon={<LuCloud className="h-3.5 w-3.5" />}
+      icon={<LuCloud className="size-3.5" />}
       open={isOpen}
       onOpenChange={handleOpenChange}
       badge={badge}
     >
       <div className="space-y-2">
         {loading && (
-          <p className="text-foreground-alt text-xs">Loading sessions...</p>
+          <p className="text-foreground-alt text-xs">Loading sessions…</p>
         )}
         {!loading && rows.length === 0 && (
           <div className="flex items-center justify-between py-1">
@@ -239,10 +239,10 @@ function SessionRow({ row, pending, onAction }: SessionRowProps) {
       <div className="flex min-w-0 flex-1 items-center gap-2">
         <div className="relative shrink-0">
           {isLocalRow ?
-            <LuSmartphone className="text-foreground-alt h-3.5 w-3.5" />
-          : <LuCloud className="text-foreground-alt h-3.5 w-3.5" />}
+            <LuSmartphone className="text-foreground-alt size-3.5" />
+          : <LuCloud className="text-foreground-alt size-3.5" />}
           {row.currentSession && (
-            <span className="bg-success absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full" />
+            <span className="bg-success absolute -top-0.5 -right-0.5 size-1.5 rounded-full" />
           )}
         </div>
         <div className="min-w-0 flex-1">
@@ -277,8 +277,8 @@ function SessionRow({ row, pending, onAction }: SessionRowProps) {
           title={actionLabel}
         >
           {isLocalRow ?
-            <LuUnlink className="h-3 w-3" />
-          : <LuLogOut className="h-3 w-3" />}
+            <LuUnlink className="size-3" />
+          : <LuLogOut className="size-3" />}
         </button>
       )}
     </div>

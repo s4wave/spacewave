@@ -162,7 +162,7 @@ export function FileList({
             onClick={() => handleSort('name')}
           >
             <span>Name</span>
-            {sortKey === 'name' && <SortChevron className="h-3 w-3" />}
+            {sortKey === 'name' && <SortChevron className="size-3" />}
           </div>
           <div
             className={cn(
@@ -172,7 +172,7 @@ export function FileList({
             onClick={() => handleSort('date')}
           >
             <span>Date Modified</span>
-            {sortKey === 'date' && <SortChevron className="h-3 w-3" />}
+            {sortKey === 'date' && <SortChevron className="size-3" />}
           </div>
           <div
             className={cn(
@@ -181,7 +181,7 @@ export function FileList({
             )}
             onClick={() => handleSort('size')}
           >
-            {sortKey === 'size' && <SortChevron className="h-3 w-3" />}
+            {sortKey === 'size' && <SortChevron className="size-3" />}
             <span>Size</span>
           </div>
           <div className="w-8"></div>

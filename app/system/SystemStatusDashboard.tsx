@@ -482,7 +482,7 @@ export function SystemStatusDashboard({ onClose }: SystemStatusDashboardProps) {
             onClick={onClose}
             className="text-foreground-alt hover:text-foreground transition-colors"
           >
-            <LuX className="h-4 w-4" />
+            <LuX className="size-4" />
           </button>
         )}
       </div>
@@ -644,7 +644,7 @@ function LiveIndicator({
     >
       <span
         key={updatedAt}
-        className="bg-success/80 h-1.5 w-1.5 animate-pulse rounded-full"
+        className="bg-success/80 size-1.5 animate-pulse rounded-full"
       />
       <span>Live</span>
     </span>
@@ -802,7 +802,7 @@ function LogPanel({ namespace }: { namespace: StateNamespace }) {
           aria-expanded={!collapsed}
           aria-label={collapsed ? 'Expand logs' : 'Collapse logs'}
         >
-          <LuTerminal className="text-foreground-alt/30 h-3 w-3" />
+          <LuTerminal className="text-foreground-alt/30 size-3" />
           <span className="text-foreground-alt/50 text-[0.6rem] font-medium">
             Logs
           </span>
@@ -811,7 +811,7 @@ function LogPanel({ namespace }: { namespace: StateNamespace }) {
           </span>
           <LuChevronDown
             className={cn(
-              'text-foreground-alt/20 h-3 w-3 transition-transform',
+              'text-foreground-alt/20 size-3 transition-transform',
               collapsed && '-rotate-90',
             )}
           />
@@ -884,27 +884,27 @@ function StatsRibbon({
       <StatPill
         label={`${sessionCount} acct`}
         delta={deltas.acct}
-        icon={<span className="bg-success h-1.5 w-1.5 rounded-full" />}
+        icon={<span className="bg-success size-1.5 rounded-full" />}
       />
       <StatPill
         label={`${spaceCount} spc`}
         delta={deltas.spc}
-        icon={<LuFolderOpen className="text-foreground-alt/30 h-2.5 w-2.5" />}
+        icon={<LuFolderOpen className="text-foreground-alt/30 size-2.5" />}
       />
       <StatPill
         label={`${pluginCount} plug`}
         delta={deltas.plug}
-        icon={<LuPuzzle className="text-foreground-alt/30 h-2.5 w-2.5" />}
+        icon={<LuPuzzle className="text-foreground-alt/30 size-2.5" />}
       />
       <StatPill
         label={`${controllerCount} ctrl`}
         delta={deltas.ctrl}
-        icon={<LuCpu className="text-foreground-alt/30 h-2.5 w-2.5" />}
+        icon={<LuCpu className="text-foreground-alt/30 size-2.5" />}
       />
       <StatPill
         label={`${directiveCount} dir`}
         delta={deltas.dir}
-        icon={<LuRadar className="text-foreground-alt/30 h-2.5 w-2.5" />}
+        icon={<LuRadar className="text-foreground-alt/30 size-2.5" />}
       />
       <div className="ml-auto">
         <LiveIndicator updatedAt={updatedAt} label="Ribbon" />
@@ -986,24 +986,24 @@ type SidebarEntry =
 
 function getSidebarSectionIcon(section: SidebarSectionKey): ReactNode {
   if (section === 'accounts') {
-    return <LuUser className="h-3 w-3" />
+    return <LuUser className="size-3" />
   }
   if (section === 'spaces') {
-    return <LuFolderOpen className="h-3 w-3" />
+    return <LuFolderOpen className="size-3" />
   }
   if (section === 'plugins') {
-    return <LuPuzzle className="h-3 w-3" />
+    return <LuPuzzle className="size-3" />
   }
   if (section === 'controllers') {
-    return <LuCpu className="h-3 w-3" />
+    return <LuCpu className="size-3" />
   }
   if (section === 'directives') {
-    return <LuRadar className="h-3 w-3" />
+    return <LuRadar className="size-3" />
   }
   if (section === 'resources') {
-    return <LuLayers className="h-3 w-3" />
+    return <LuLayers className="size-3" />
   }
-  return <LuBox className="h-3 w-3" />
+  return <LuBox className="size-3" />
 }
 
 function SidebarTree({
@@ -1463,7 +1463,7 @@ function SidebarTree({
             >
               <LuChevronRight
                 className={cn(
-                  'text-foreground-alt/25 h-3 w-3 transition-transform',
+                  'text-foreground-alt/25 size-3 transition-transform',
                   entry.expanded && 'rotate-90',
                 )}
               />
@@ -1544,9 +1544,7 @@ function SidebarTree({
               : 'text-foreground/60 hover:bg-foreground/[0.02] hover:text-foreground/80',
             )}
           >
-            <span
-              className={cn('h-1.5 w-1.5 shrink-0 rounded-full', entry.dot)}
-            />
+            <span className={cn('size-1.5 shrink-0 rounded-full', entry.dot)} />
             <span className="min-w-0 truncate text-[0.6rem]">
               {entry.label}
             </span>
@@ -1599,7 +1597,7 @@ function SessionSidebarItem({
         : 'text-foreground/60 hover:bg-foreground/[0.02] hover:text-foreground/80',
       )}
     >
-      <span className="bg-success h-1.5 w-1.5 shrink-0 rounded-full" />
+      <span className="bg-success size-1.5 shrink-0 rounded-full" />
       <span className="min-w-0 truncate text-[0.6rem]">{label}</span>
       <span className="text-foreground-alt/25 ml-auto shrink-0 font-mono text-[0.5rem]">
         /u/{sessionIndex}
@@ -1797,7 +1795,7 @@ function SessionDetail({
   return (
     <div className="space-y-2 p-4">
       <div className="flex items-center gap-2">
-        <div className="bg-brand/10 flex h-6 w-6 items-center justify-center rounded-full">
+        <div className="bg-brand/10 flex size-6 items-center justify-center rounded-full">
           <span className="text-brand text-[0.5rem] font-bold">{initials}</span>
         </div>
         <div>
@@ -1843,8 +1841,8 @@ function SessionDetail({
         <DetailCard title="Security" accent="border-warning/40">
           <div className="flex items-center gap-2 px-3 py-1.5">
             {metadata.lockMode === SessionLockMode.AUTO_UNLOCK ?
-              <LuLockOpen className="text-success/60 h-3 w-3" />
-            : <LuLock className="text-warning/60 h-3 w-3" />}
+              <LuLockOpen className="text-success/60 size-3" />
+            : <LuLock className="text-warning/60 size-3" />}
             <span className="text-foreground/70 text-xs">
               {metadata.lockMode === SessionLockMode.AUTO_UNLOCK ?
                 'Auto-unlock (no PIN)'
@@ -1904,7 +1902,7 @@ function SpacesDetail({
   return (
     <div className="flex h-full flex-col p-4">
       <div className="mb-2 flex items-center gap-2">
-        <LuFolderOpen className="text-brand/50 h-4 w-4" />
+        <LuFolderOpen className="text-brand/50 size-4" />
         <span className="text-foreground text-sm font-medium">Spaces</span>
         <span className="text-foreground-alt/30 font-mono text-xs">
           {spaces.length}
@@ -1932,7 +1930,7 @@ function SpacesDetail({
               }}
               className="border-foreground/4 hover:bg-foreground/[0.02] flex w-full items-center gap-2 border-b px-3 py-1.5 text-left last:border-b-0"
             >
-              <span className="bg-brand h-1.5 w-1.5 shrink-0 rounded-full" />
+              <span className="bg-brand size-1.5 shrink-0 rounded-full" />
               <div className="min-w-0 flex-1">
                 <span className="text-foreground/80 block truncate text-[0.65rem]">
                   {name}
@@ -1992,7 +1990,7 @@ function SpaceDetail({
   return (
     <div className="space-y-2 p-4">
       <div className="flex items-center gap-2">
-        <span className="bg-brand h-2 w-2 rounded-full" />
+        <span className="bg-brand size-2 rounded-full" />
         <span className="text-foreground text-sm font-medium">{name}</span>
         <LiveIndicator updatedAt={updatedAt} label="Space" />
       </div>
@@ -2036,7 +2034,7 @@ function PluginsDetail({
   return (
     <div className="flex h-full flex-col p-4">
       <div className="mb-2 flex items-center gap-2">
-        <LuPuzzle className="text-brand/50 h-4 w-4" />
+        <LuPuzzle className="text-brand/50 size-4" />
         <span className="text-foreground text-sm font-medium">Plugins</span>
         <span className="text-foreground-alt/30 font-mono text-xs">
           {pluginCount}
@@ -2077,7 +2075,7 @@ function PluginsDetail({
             >
               <span
                 className={cn(
-                  'h-1.5 w-1.5 shrink-0 rounded-full',
+                  'size-1.5 shrink-0 rounded-full',
                   state === 'requested' ? 'bg-success' : 'bg-warning/70',
                 )}
               />
@@ -2119,7 +2117,7 @@ function PluginDetail({
           onClick={onBack}
           className="text-foreground-alt/50 hover:text-foreground-alt flex items-center gap-1 text-xs transition-colors"
         >
-          <LuArrowLeft className="h-3 w-3" />
+          <LuArrowLeft className="size-3" />
           Back to plugins
         </button>
         <DetailCard title="Plugin" accent="border-brand/40">
@@ -2138,13 +2136,13 @@ function PluginDetail({
         onClick={onBack}
         className="text-foreground-alt/50 hover:text-foreground-alt flex items-center gap-1 text-xs transition-colors"
       >
-        <LuArrowLeft className="h-3 w-3" />
+        <LuArrowLeft className="size-3" />
         Back to plugins
       </button>
       <div className="flex items-center gap-2">
         <span
           className={cn(
-            'h-2 w-2 rounded-full',
+            'size-2 rounded-full',
             plugin.state === 'requested' ? 'bg-success' : 'bg-warning/70',
           )}
         />
@@ -2229,7 +2227,7 @@ function ControllersDetail({
   return (
     <div className="flex h-full flex-col p-4">
       <div className="mb-2 flex items-center gap-2">
-        <LuCpu className="text-success/60 h-4 w-4" />
+        <LuCpu className="text-success/60 size-4" />
         <span className="text-foreground text-sm font-medium">Controllers</span>
         <span className="text-foreground-alt/30 font-mono text-xs">
           {controllerCount}
@@ -2248,7 +2246,7 @@ function ControllersDetail({
                 'bg-success/5 ring-success/15 ring-1 ring-inset',
             )}
           >
-            <span className="bg-success h-1.5 w-1.5 shrink-0 rounded-full" />
+            <span className="bg-success size-1.5 shrink-0 rounded-full" />
             <div className="min-w-0 flex-1">
               <span className="text-foreground/80 block truncate font-mono text-[0.65rem]">
                 {controller.id || 'unknown'}
@@ -2302,9 +2300,9 @@ function ControllerDetail({
           aria-label="Back to controllers"
           className="text-foreground-alt/60 hover:text-foreground -ml-1 rounded p-1 transition-colors"
         >
-          <LuArrowLeft className="h-3.5 w-3.5" />
+          <LuArrowLeft className="size-3.5" />
         </button>
-        <span className="bg-success h-2 w-2 rounded-full" />
+        <span className="bg-success size-2 rounded-full" />
         <span className="text-foreground text-sm font-medium">
           {controller.id}
         </span>
@@ -2352,7 +2350,7 @@ function DirectivesDetail({
   return (
     <div className="flex h-full flex-col p-4">
       <div className="mb-2 flex items-center gap-2">
-        <LuRadar className="text-warning/60 h-4 w-4" />
+        <LuRadar className="text-warning/60 size-4" />
         <span className="text-foreground text-sm font-medium">Directives</span>
         <span className="text-foreground-alt/30 font-mono text-xs">
           {directiveCount}
@@ -2412,7 +2410,7 @@ function DirectiveRow({
       >
         <LuChevronRight
           className={cn(
-            'text-foreground-alt/20 h-2.5 w-2.5 transition-transform',
+            'text-foreground-alt/20 size-2.5 transition-transform',
             expanded && 'rotate-90',
           )}
         />
@@ -2435,7 +2433,7 @@ function DirectiveRow({
         <div className="bg-foreground/[0.01] border-foreground/4 border-t">
           {directive.idents.map((ident, i) => (
             <div key={i} className="flex items-center gap-1.5 py-0.5 pr-3 pl-9">
-              <span className="bg-warning/20 h-1 w-1 shrink-0 rounded-full" />
+              <span className="bg-warning/20 size-1 shrink-0 rounded-full" />
               <span className="text-foreground-alt/50 truncate font-mono text-[0.55rem]">
                 {ident}
               </span>
@@ -2475,7 +2473,7 @@ function DirectiveGroupDetail({
   return (
     <div className="flex h-full flex-col p-4">
       <div className="mb-2 flex items-center gap-2">
-        <span className="bg-warning/70 h-2 w-2 rounded-full" />
+        <span className="bg-warning/70 size-2 rounded-full" />
         <span className="text-foreground text-sm font-medium">
           {directiveGroup.name}
         </span>
@@ -2500,7 +2498,7 @@ function DirectiveGroupDetail({
               key={makeOccurrenceKey(ident, index)}
               className="border-foreground/4 flex items-center gap-2 border-b px-3 py-1 last:border-b-0"
             >
-              <span className="bg-warning/20 h-1.5 w-1.5 shrink-0 rounded-full" />
+              <span className="bg-warning/20 size-1.5 shrink-0 rounded-full" />
               <span className="text-foreground-alt/60 truncate font-mono text-[0.6rem]">
                 {ident}
               </span>
@@ -2521,7 +2519,7 @@ function ResourcesDetail() {
   return (
     <div className="flex h-full flex-col p-4">
       <div className="mb-2 flex items-center gap-2">
-        <LuLayers className="text-brand/40 h-4 w-4" />
+        <LuLayers className="text-brand/40 size-4" />
         <span className="text-foreground text-sm font-medium">Resources</span>
       </div>
       <div className="flex min-h-0 flex-1 overflow-hidden">
@@ -2546,7 +2544,7 @@ function AtomsDetail() {
   return (
     <div className="flex h-full flex-col p-4">
       <div className="mb-2 flex items-center gap-2">
-        <LuBox className="text-brand/40 h-4 w-4" />
+        <LuBox className="text-brand/40 size-4" />
         <span className="text-foreground text-sm font-medium">State Atoms</span>
       </div>
       <div className="flex min-h-0 flex-1 overflow-hidden">

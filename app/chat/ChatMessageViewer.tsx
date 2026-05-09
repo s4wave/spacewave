@@ -22,7 +22,7 @@ export function ChatMessageViewer({ objectState }: ObjectViewerComponentProps) {
     <div className="bg-background-primary flex h-full w-full flex-col overflow-auto">
       <div className="border-foreground/8 flex h-9 shrink-0 items-center border-b px-4">
         <div className="text-foreground flex items-center gap-2 text-sm font-semibold select-none">
-          <LuMessageCircle className="h-4 w-4" />
+          <LuMessageCircle className="size-4" />
           <span className="tracking-tight">Message</span>
         </div>
       </div>

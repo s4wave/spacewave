@@ -244,7 +244,7 @@ function SampleContent({ node }: { node: TabNode }) {
   return (
     <div className="bg-background flex h-full w-full items-center justify-center opacity-25">
       <div className="flex flex-col items-center gap-1">
-        <LuFile className="h-5 w-5" />
+        <LuFile className="size-5" />
         <span className="text-[10px] font-medium">{node.getName()}</span>
       </div>
     </div>
@@ -373,7 +373,7 @@ function SwatchRow({ scheme }: { scheme: ColorScheme }) {
         return (
           <div key={s.key} className="flex flex-col items-center gap-1">
             <div
-              className="h-8 w-8 rounded border border-white/10"
+              className="size-8 rounded border border-white/10"
               style={{ backgroundColor: value || `var(${s.key})` }}
             />
             <span className="text-foreground-alt text-[10px]">{s.label}</span>
@@ -405,11 +405,11 @@ export function LayoutColorsDebug() {
           onClick={goBack}
           className="text-foreground-alt hover:text-foreground mb-6 flex cursor-pointer items-center gap-2 transition-colors"
         >
-          <LuArrowLeft className="h-4 w-4" />
+          <LuArrowLeft className="size-4" />
           Back to home
         </button>
 
-        <h1 className="text-foreground mb-2 text-3xl font-bold">
+        <h1 className="text-foreground mb-2 text-3xl font-semibold">
           Monokai Spectrum Lab
         </h1>
         <p className="text-foreground-alt mb-2 text-sm">

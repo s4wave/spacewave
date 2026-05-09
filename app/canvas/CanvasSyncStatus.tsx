@@ -53,7 +53,7 @@ export function CanvasSyncStatus({ pending }: CanvasSyncStatusProps) {
     >
       {pending > 0 ?
         <>
-          <svg className="h-3 w-3 animate-spin" viewBox="0 0 16 16" fill="none">
+          <svg className="size-3 animate-spin" viewBox="0 0 16 16" fill="none">
             <circle
               cx="8"
               cy="8"
@@ -68,7 +68,7 @@ export function CanvasSyncStatus({ pending }: CanvasSyncStatusProps) {
           Applying {pending} {pending === 1 ? 'change' : 'changes'}...
         </>
       : <>
-          <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none">
+          <svg className="size-3" viewBox="0 0 16 16" fill="none">
             <path
               d="M3 8.5l3.5 3.5 6.5-8"
               stroke="currentColor"

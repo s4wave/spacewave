@@ -95,7 +95,7 @@ export function ForgeTaskWizardViewer(props: ObjectViewerComponentProps) {
     <WizardShell
       title={
         <>
-          <LuListTodo className="mr-2 h-4 w-4 shrink-0" />
+          <LuListTodo className="mr-2 size-4 shrink-0" />
           New Forge Task
         </>
       }

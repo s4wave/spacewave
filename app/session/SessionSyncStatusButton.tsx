@@ -73,16 +73,16 @@ function SessionSyncStatusGlyph({ status }: { status: SessionSyncStatusView }) {
     return <Spinner size="sm" />
   }
   if (status.error) {
-    return <LuCircleAlert className="h-3.5 w-3.5" aria-hidden="true" />
+    return <LuCircleAlert className="size-3.5" aria-hidden="true" />
   }
   const Icon = status.local ? LuHardDrive : LuCloud
   return (
     <span
-      className="relative flex h-3.5 w-3.5 items-center justify-center"
+      className="relative flex size-3.5 items-center justify-center"
       aria-hidden="true"
     >
-      <Icon className="h-3 w-3" />
-      <LuCircleCheck className="text-brand absolute -right-1 -bottom-1 h-2 w-2" />
+      <Icon className="size-3" />
+      <LuCircleCheck className="text-brand absolute -right-1 -bottom-1 size-2" />
     </span>
   )
 }
@@ -97,7 +97,7 @@ function SessionSyncStatusPopover({
       <div className="flex items-start gap-3">
         <div
           className={cn(
-            'flex h-8 w-8 shrink-0 items-center justify-center rounded-md',
+            'flex size-8 shrink-0 items-center justify-center rounded-md',
             status.error && 'bg-destructive/10 text-destructive',
             status.active && 'bg-brand/10 text-brand',
             status.visualState === 'synced' && 'bg-foreground/5 text-brand',

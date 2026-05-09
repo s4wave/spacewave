@@ -206,7 +206,7 @@ export function ForgeDashboardViewer({
     if (canCreateCluster) {
       nextActions.push({
         label: 'Create Cluster',
-        icon: <LuServer className="h-3.5 w-3.5" />,
+        icon: <LuServer className="size-3.5" />,
         onClick: () => {
           void handleCreateCluster()
         },
@@ -215,7 +215,7 @@ export function ForgeDashboardViewer({
     if (canCreateJob) {
       nextActions.push({
         label: 'Create Job',
-        icon: <LuBriefcase className="h-3.5 w-3.5" />,
+        icon: <LuBriefcase className="size-3.5" />,
         onClick: () => {
           void handleCreateJob()
         },
@@ -224,7 +224,7 @@ export function ForgeDashboardViewer({
     if (pendingWorkers.length !== 0) {
       nextActions.unshift({
         label: pendingWorkers.length === 1 ? 'Start Worker' : 'Start Workers',
-        icon: <LuPlus className="h-3.5 w-3.5" />,
+        icon: <LuPlus className="size-3.5" />,
         onClick: () => {
           void handleStartWorkers()
         },
@@ -290,15 +290,15 @@ export function ForgeDashboardViewer({
             {entitiesLoading && entities.length === 0 && (
               <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
                 <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
-                  <LuBox className="h-3.5 w-3.5 shrink-0" />
-                  <span>Loading entities...</span>
+                  <LuBox className="size-3.5 shrink-0" />
+                  <span>Loading entities…</span>
                 </div>
               </div>
             )}
             {!entitiesLoading && entities.length === 0 && (
               <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
                 <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
-                  <LuBox className="h-3.5 w-3.5 shrink-0" />
+                  <LuBox className="size-3.5 shrink-0" />
                   <span>No linked Forge entities</span>
                 </div>
               </div>
@@ -314,15 +314,15 @@ export function ForgeDashboardViewer({
             {activityLoading && activityEntries.length === 0 && (
               <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
                 <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
-                  <LuActivity className="h-3.5 w-3.5 shrink-0" />
-                  <span>Loading activity...</span>
+                  <LuActivity className="size-3.5 shrink-0" />
+                  <span>Loading activity…</span>
                 </div>
               </div>
             )}
             {!activityLoading && activityEntries.length === 0 && (
               <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
                 <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
-                  <LuActivity className="h-3.5 w-3.5 shrink-0" />
+                  <LuActivity className="size-3.5 shrink-0" />
                   <span>No recent activity yet</span>
                 </div>
               </div>
@@ -348,7 +348,7 @@ export function ForgeDashboardViewer({
                     key={entry.id}
                     objectKey={entry.objectKey}
                     icon={
-                      <LuActivity className="text-foreground-alt/60 h-3 w-3 shrink-0" />
+                      <LuActivity className="text-foreground-alt/60 size-3 shrink-0" />
                     }
                   >
                     {content}
@@ -361,7 +361,7 @@ export function ForgeDashboardViewer({
                   key={entry.id}
                   className="border-foreground/6 bg-background-card/30 flex items-start gap-2 rounded-lg border p-3"
                 >
-                  <LuActivity className="text-foreground-alt/60 mt-0.5 h-3 w-3 shrink-0" />
+                  <LuActivity className="text-foreground-alt/60 mt-0.5 size-3 shrink-0" />
                   {content}
                 </div>
               )
@@ -379,7 +379,7 @@ export function ForgeDashboardViewer({
                 key={entity.objectKey}
                 objectKey={entity.objectKey}
                 icon={
-                  <LuBox className="text-foreground-alt/60 h-3 w-3 shrink-0" />
+                  <LuBox className="text-foreground-alt/60 size-3 shrink-0" />
                 }
               >
                 {entity.typeId && (
@@ -411,7 +411,7 @@ export function ForgeDashboardViewer({
               />
             : <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
                 <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
-                  <LuBox className="h-3.5 w-3.5 shrink-0" />
+                  <LuBox className="size-3.5 shrink-0" />
                   <span>No process bindings</span>
                 </div>
               </div>
@@ -435,7 +435,7 @@ export function ForgeDashboardViewer({
 
   return (
     <ForgeViewerShell
-      icon={<LuLayoutDashboard className="h-4 w-4" />}
+      icon={<LuLayoutDashboard className="size-4" />}
       title={dashboard?.name || 'Forge Dashboard'}
       tabs={tabs}
       actions={actions}

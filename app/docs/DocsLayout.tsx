@@ -38,7 +38,7 @@ function DocsMobileSidebar({
               aria-label="Open documentation navigation"
               className="text-foreground-alt hover:text-foreground inline-flex items-center gap-2 rounded-md border border-white/10 px-3 py-2 text-sm font-medium transition-colors"
             >
-              <LuMenu className="h-4 w-4" />
+              <LuMenu className="size-4" />
               <span>Navigation</span>
             </button>
           </SheetTrigger>
@@ -61,7 +61,7 @@ function DocsMobileSidebar({
                   aria-label="Close documentation navigation"
                   className="text-foreground-alt hover:text-foreground rounded-md p-2 transition-colors"
                 >
-                  <LuX className="h-4 w-4" />
+                  <LuX className="size-4" />
                 </button>
               </SheetClose>
             </div>

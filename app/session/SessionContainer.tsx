@@ -469,9 +469,9 @@ export function SessionContainer(props: {
                   <Route path="*">
                     <div className="flex h-full w-full items-center justify-center px-4 py-8">
                       <div className="border-foreground/6 bg-background-card/30 flex w-full max-w-md flex-col items-center gap-3 rounded-lg border p-6 backdrop-blur-sm">
-                        <div className="bg-foreground/5 flex h-10 w-10 items-center justify-center rounded-full">
+                        <div className="bg-foreground/5 flex size-10 items-center justify-center rounded-full">
                           <LuCompass
-                            className="text-foreground-alt/60 h-5 w-5"
+                            className="text-foreground-alt/60 size-5"
                             aria-hidden="true"
                           />
                         </div>
@@ -485,7 +485,7 @@ export function SessionContainer(props: {
                           </code>
                         </p>
                         <DashboardButton
-                          icon={<LuArrowLeft className="h-3.5 w-3.5" />}
+                          icon={<LuArrowLeft className="size-3.5" />}
                           onClick={handleGoHome}
                         >
                           Back to dashboard
@@ -594,7 +594,7 @@ function TargetedInvitationInbox(props: {
     <div className="pointer-events-none fixed right-4 bottom-16 z-40 w-[min(22rem,calc(100vw-2rem))]">
       <div className="border-foreground/10 bg-background-card/95 pointer-events-auto rounded-lg border p-3 shadow-lg backdrop-blur">
         <div className="mb-2 flex items-center gap-2">
-          <LuInbox className="text-foreground-alt h-4 w-4" />
+          <LuInbox className="text-foreground-alt size-4" />
           <div className="text-foreground text-sm font-medium">
             Pending Invites
           </div>
@@ -622,7 +622,7 @@ function TargetedInvitationInbox(props: {
                     'disabled:cursor-not-allowed disabled:opacity-50',
                   )}
                 >
-                  <LuCheck className="h-3.5 w-3.5" />
+                  <LuCheck className="size-3.5" />
                   Accept
                 </button>
                 <button
@@ -635,7 +635,7 @@ function TargetedInvitationInbox(props: {
                     'disabled:cursor-not-allowed disabled:opacity-50',
                   )}
                 >
-                  <LuX className="h-3.5 w-3.5" />
+                  <LuX className="size-3.5" />
                   Decline
                 </button>
               </div>

@@ -164,7 +164,7 @@ export function GitRepoWizardViewer(props: ObjectViewerComponentProps) {
     <WizardShell
       title={
         <>
-          <LuGitBranch className="mr-2 h-4 w-4 shrink-0" />
+          <LuGitBranch className="mr-2 size-4 shrink-0" />
           New Git Repository
         </>
       }
@@ -259,7 +259,7 @@ function GitCloneProgressStep({
 function GitCloneUrlError({ message }: { message: string }) {
   return (
     <div className="border-warning/20 bg-warning/5 text-warning flex items-start gap-2 rounded-lg border px-3 py-2 text-xs">
-      <LuTriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+      <LuTriangleAlert className="mt-0.5 size-3.5 shrink-0" />
       <p>{message}</p>
     </div>
   )

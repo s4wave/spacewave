@@ -25,20 +25,20 @@ export function WindowsBypassNotice() {
         className="group flex w-full cursor-pointer items-start justify-between gap-4 p-5 text-left select-none"
       >
         <div className="flex items-start gap-3">
-          <LuShieldAlert className="text-brand mt-0.5 h-5 w-5 shrink-0" />
+          <LuShieldAlert className="text-brand mt-0.5 size-5 shrink-0" />
           <h3 className="text-foreground group-hover:text-brand text-sm leading-relaxed font-semibold transition-colors @lg:text-base">
             How to run on Windows
           </h3>
         </div>
         <div
           className={cn(
-            'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md transition-all',
+            'mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md transition-all',
             isOpen ?
               'bg-brand/12 text-brand rotate-45'
             : 'bg-foreground/6 text-foreground-alt group-hover:bg-brand/8 group-hover:text-brand',
           )}
         >
-          <LuPlus className="h-3 w-3" />
+          <LuPlus className="size-3" />
         </div>
       </button>
       <div

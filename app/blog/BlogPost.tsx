@@ -84,11 +84,11 @@ export function BlogPostPage({
               className="text-foreground-alt/40 hover:text-foreground-alt ml-auto flex items-center gap-1.5 text-xs transition-colors"
               title="View source on GitHub"
             >
-              <LuGithub className="h-3.5 w-3.5" />
+              <LuGithub className="size-3.5" />
             </a>
           </div>
 
-          <h1 className="text-foreground mb-4 text-2xl leading-snug font-bold tracking-tight @lg:text-3xl @lg:leading-snug">
+          <h1 className="text-foreground mb-4 text-2xl leading-snug font-semibold tracking-tight @lg:text-3xl @lg:leading-snug">
             {post.title}
           </h1>
 
@@ -96,7 +96,7 @@ export function BlogPostPage({
             <img
               src={post.author.avatar}
               alt={post.author.name}
-              className="border-foreground/10 h-7 w-7 rounded-full border"
+              className="border-foreground/10 size-7 rounded-full border"
               loading="lazy"
             />
             <a
@@ -132,7 +132,7 @@ export function BlogPostPage({
                 className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/30 group flex cursor-pointer flex-col items-start gap-1.5 rounded-xl border p-5 text-left transition-all duration-200"
               >
                 <span className="text-foreground-alt/50 flex items-center gap-1.5 text-xs">
-                  <LuArrowLeft className="h-3 w-3 transition-transform duration-200 group-hover:-translate-x-0.5" />
+                  <LuArrowLeft className="size-3 transition-transform duration-200 group-hover:-translate-x-0.5" />
                   Previous
                 </span>
                 <span className="text-foreground group-hover:text-brand text-sm font-medium transition-colors duration-200">
@@ -148,7 +148,7 @@ export function BlogPostPage({
               >
                 <span className="text-foreground-alt/50 flex items-center gap-1.5 text-xs">
                   Next
-                  <LuArrowRight className="h-3 w-3 transition-transform duration-200 group-hover:translate-x-0.5" />
+                  <LuArrowRight className="size-3 transition-transform duration-200 group-hover:translate-x-0.5" />
                 </span>
                 <span className="text-foreground group-hover:text-brand text-sm font-medium transition-colors duration-200">
                   {nextPost.title}

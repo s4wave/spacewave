@@ -82,7 +82,7 @@ export function OrganizationsSection({
   return (
     <CollapsibleSection
       title="Organizations"
-      icon={<LuBuilding2 className="h-3.5 w-3.5" />}
+      icon={<LuBuilding2 className="size-3.5" />}
       open={sectionOpen}
       onOpenChange={handleOpenChange}
       badge={
@@ -137,7 +137,7 @@ export function OrganizationsSection({
             {creating && (
               <div className="text-foreground-alt flex items-center gap-1.5 text-[11px]">
                 <Spinner size="sm" />
-                <span>Creating organization...</span>
+                <span>Creating organization…</span>
               </div>
             )}
             {error && <p className="text-destructive text-xs">{error}</p>}
@@ -174,7 +174,7 @@ export function OrganizationsSection({
             onClick={() => setShowCreate(true)}
             className="text-brand/60 hover:text-brand flex items-center gap-1 text-xs transition-colors"
           >
-            <LuPlus className="h-3 w-3" />
+            <LuPlus className="size-3" />
             Create Organization
           </button>
         )}

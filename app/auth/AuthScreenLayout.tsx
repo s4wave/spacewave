@@ -77,7 +77,7 @@ export const AuthScreenLayout = forwardRef<
             <img
               src={spacewaveIcon}
               alt="Spacewave Icon"
-              className="h-4 w-4 rounded-sm"
+              className="size-4 rounded-sm"
             />
             <span className="text-foreground text-sm font-medium tracking-wide">
               Spacewave

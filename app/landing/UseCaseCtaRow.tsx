@@ -34,7 +34,7 @@ export function UseCaseCtaLink({
         : 'border-foreground/15 bg-background/50 text-foreground hover:border-brand/40 hover:bg-brand/8',
       )}
     >
-      <Icon className="h-4 w-4" />
+      <Icon className="size-4" />
       <span>{children}</span>
     </a>
   )

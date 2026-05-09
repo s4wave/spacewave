@@ -46,7 +46,7 @@ export function SessionSettingsDebug() {
           onClick={goBack}
           className="text-foreground-alt hover:text-foreground transition-colors"
         >
-          <LuArrowLeft className="h-4 w-4" />
+          <LuArrowLeft className="size-4" />
         </button>
         <span className="text-foreground text-sm font-semibold tracking-tight select-none">
           Session Settings Variants
@@ -57,7 +57,7 @@ export function SessionSettingsDebug() {
         <div className="mx-auto max-w-lg space-y-3">
           <CollapsibleSection
             title="Security"
-            icon={<LuShield className="h-3.5 w-3.5" />}
+            icon={<LuShield className="size-3.5" />}
             open={securityOpen}
             onOpenChange={setSecurityOpen}
           >
@@ -72,7 +72,7 @@ export function SessionSettingsDebug() {
 
           <CollapsibleSection
             title="Billing"
-            icon={<LuCreditCard className="h-3.5 w-3.5" />}
+            icon={<LuCreditCard className="size-3.5" />}
             open={billingOpen}
             onOpenChange={setBillingOpen}
             badge={<StatusBadge label="Active" />}
@@ -91,7 +91,7 @@ export function SessionSettingsDebug() {
 
           <CollapsibleSection
             title="Organizations"
-            icon={<LuBuilding2 className="h-3.5 w-3.5" />}
+            icon={<LuBuilding2 className="size-3.5" />}
             open={orgsOpen}
             onOpenChange={setOrgsOpen}
             badge={<CountBadge count={2} />}
@@ -110,7 +110,7 @@ export function SessionSettingsDebug() {
 
           <CollapsibleSection
             title="Crypto & Keys"
-            icon={<LuKey className="h-3.5 w-3.5" />}
+            icon={<LuKey className="size-3.5" />}
             open={cryptoOpen}
             onOpenChange={setCryptoOpen}
           >
@@ -122,7 +122,7 @@ export function SessionSettingsDebug() {
 
           <CollapsibleSection
             title="Identifiers"
-            icon={<LuFingerprint className="h-3.5 w-3.5" />}
+            icon={<LuFingerprint className="size-3.5" />}
             open={identifiersOpen}
             onOpenChange={setIdentifiersOpen}
           >

@@ -198,7 +198,7 @@ export function BillingAccountsPage() {
       <div className="w-full max-w-md px-4">
         <div className="mb-6 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <LuCreditCard className="text-foreground h-5 w-5" />
+            <LuCreditCard className="text-foreground size-5" />
             <h1 className="text-foreground text-lg font-semibold tracking-tight">
               Billing Accounts
             </h1>
@@ -208,7 +208,7 @@ export function BillingAccountsPage() {
             disabled={creating || !checkoutResultBaseUrl}
             className="border-brand/30 bg-brand/10 hover:bg-brand/20 text-brand flex cursor-pointer items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <LuPlus className="h-3.5 w-3.5" />
+            <LuPlus className="size-3.5" />
             <span>{creating ? 'Creating...' : 'New billing account'}</span>
           </button>
         </div>
@@ -240,7 +240,7 @@ export function BillingAccountsPage() {
         )}
         {!loading && !error && accounts.length === 0 && (
           <EmptyState
-            icon={<LuCreditCard className="text-foreground-alt h-7 w-7" />}
+            icon={<LuCreditCard className="text-foreground-alt size-7" />}
             title="No billing accounts yet"
             description="A billing account holds your subscription. Create one, run checkout to activate it, then assign it to your personal account or to an organization you own."
             action={{
@@ -328,7 +328,7 @@ export function BillingAccountsPage() {
                               aria-label={`Detach ${label}`}
                               className="hover:text-destructive cursor-pointer transition-colors"
                             >
-                              <LuX className="h-3 w-3" />
+                              <LuX className="size-3" />
                             </button>
                           </span>
                         )
@@ -361,7 +361,7 @@ export function BillingAccountsPage() {
                             >
                               <LuCheck
                                 className={cn(
-                                  'h-3 w-3',
+                                  'size-3',
                                   isSelected ? 'text-brand' : (
                                     'text-transparent'
                                   ),

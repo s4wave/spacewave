@@ -99,13 +99,13 @@ export function ForgeJobConfigEditor({
       <section>
         <div className="mb-2 flex items-center justify-between">
           <h3 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-            <LuServer className="h-3.5 w-3.5" />
+            <LuServer className="size-3.5" />
             Target Cluster
           </h3>
         </div>
         {clusters.length === 0 && (
           <div className="border-foreground/6 bg-background-card/30 text-foreground-alt/40 flex items-center gap-2 rounded-lg border px-3.5 py-3 text-xs">
-            <LuServer className="h-3.5 w-3.5 shrink-0" />
+            <LuServer className="size-3.5 shrink-0" />
             {clustersResource.loading ?
               'Loading clusters...'
             : 'No clusters found. Create a cluster first.'}
@@ -123,8 +123,8 @@ export function ForgeJobConfigEditor({
               )}
               onClick={() => handleSelectCluster(cluster.key)}
             >
-              <span className="bg-foreground/5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md">
-                <LuServer className="text-foreground-alt/50 h-3.5 w-3.5" />
+              <span className="bg-foreground/5 flex size-7 shrink-0 items-center justify-center rounded-md">
+                <LuServer className="text-foreground-alt/50 size-3.5" />
               </span>
               <span className="text-foreground text-xs font-medium">
                 {cluster.name}
@@ -137,7 +137,7 @@ export function ForgeJobConfigEditor({
       <section>
         <div className="mb-2 flex items-center justify-between">
           <h3 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-            <LuPlus className="h-3.5 w-3.5" />
+            <LuPlus className="size-3.5" />
             Initial Tasks
           </h3>
           <Button
@@ -146,7 +146,7 @@ export function ForgeJobConfigEditor({
             onClick={handleAddTask}
             className="border-foreground/8 hover:border-foreground/15 hover:bg-foreground/5 text-foreground-alt hover:text-foreground h-7 bg-transparent px-2 text-xs transition-all duration-150"
           >
-            <LuPlus className="h-3.5 w-3.5" />
+            <LuPlus className="size-3.5" />
             Add Task
           </Button>
         </div>
@@ -167,7 +167,7 @@ export function ForgeJobConfigEditor({
                   aria-label={`Remove task ${i + 1}`}
                   className="border-foreground/8 hover:border-destructive/30 hover:bg-destructive/5 hover:text-destructive h-9 bg-transparent px-2 transition-all duration-150"
                 >
-                  <LuTrash className="h-3.5 w-3.5" />
+                  <LuTrash className="size-3.5" />
                 </Button>
               )}
             </div>

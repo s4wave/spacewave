@@ -45,8 +45,8 @@ export function DeletedAccountOverlay({
         <div className="border-foreground/20 bg-background-get-started relative overflow-hidden rounded-lg border shadow-lg backdrop-blur-sm">
           <div className="space-y-4 p-6">
             <div className="flex flex-col items-center gap-2">
-              <div className="bg-destructive/10 flex h-12 w-12 items-center justify-center rounded-full">
-                <LuCircleAlert className="text-destructive h-6 w-6" />
+              <div className="bg-destructive/10 flex size-12 items-center justify-center rounded-full">
+                <LuCircleAlert className="text-destructive size-6" />
               </div>
               <h2 className="text-foreground text-lg font-medium">
                 {metadata.displayName || 'Deleted Session'}

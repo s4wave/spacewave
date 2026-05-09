@@ -163,7 +163,7 @@ function AuthUnlockWizardContent({
         </DialogHeader>
 
         {loading && (
-          <p className="text-foreground-alt text-xs">Loading keypairs...</p>
+          <p className="text-foreground-alt text-xs">Loading keypairs…</p>
         )}
 
         {!loading && keypairs.length > 0 && (
@@ -467,7 +467,7 @@ function KeypairRow({
     return (
       <div className="border-foreground/10 flex items-center justify-between gap-2 rounded-md border px-3 py-2">
         <div className="flex min-w-0 items-center gap-2">
-          <LuLockOpen className="text-brand h-3.5 w-3.5 shrink-0" />
+          <LuLockOpen className="text-brand size-3.5 shrink-0" />
           <div className="min-w-0">
             <p className="text-foreground text-sm font-medium">
               {methodLabel(method)}
@@ -566,7 +566,7 @@ function CredentialUnlockCard({
   return (
     <div className="border-foreground/10 space-y-3 rounded-md border px-3 py-3">
       <div className="flex items-center gap-2">
-        <LuLock className="text-foreground-alt h-3.5 w-3.5 shrink-0" />
+        <LuLock className="text-foreground-alt size-3.5 shrink-0" />
         <div className="min-w-0 flex-1">
           <p className="text-foreground text-sm font-medium">
             {methodLabel(method)}
@@ -661,7 +661,7 @@ function BrowserUnlockCard({
   return (
     <div className="border-foreground/10 space-y-3 rounded-md border px-3 py-3">
       <div className="flex items-center gap-2">
-        <LuLock className="text-foreground-alt h-3.5 w-3.5 shrink-0" />
+        <LuLock className="text-foreground-alt size-3.5 shrink-0" />
         <div className="min-w-0 flex-1">
           <p className="text-foreground text-sm font-medium">
             {methodLabel(method)}
@@ -729,12 +729,12 @@ function BrowserUnlockCard({
             !needsPin && 'inline-flex items-center gap-1.5',
           )}
         >
-          {!needsPin && isPasskey && <LuFingerprint className="h-3 w-3" />}
+          {!needsPin && isPasskey && <LuFingerprint className="size-3" />}
           {!needsPin &&
             !isPasskey &&
             (method === 'google_sso' ?
-              <FcGoogle className="h-3 w-3" />
-            : <LuGithub className="h-3 w-3" />)}
+              <FcGoogle className="size-3" />
+            : <LuGithub className="size-3" />)}
           {needsPin ?
             waiting ?
               '...'

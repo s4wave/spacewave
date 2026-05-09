@@ -15,7 +15,7 @@ export function MissingBillingAccountBanner(props: {
     return (
       <div className="border-warning/20 bg-warning/5 relative z-10 flex w-full items-center border-b">
         <div className="flex min-w-0 flex-1 items-start gap-2 px-3 py-1.5">
-          <LuTriangleAlert className="text-warning h-3.5 w-3.5 shrink-0" />
+          <LuTriangleAlert className="text-warning size-3.5 shrink-0" />
           <div className="min-w-0">
             <p className="text-foreground/80 text-xs font-medium">{message}</p>
             <p className="text-foreground-alt/60 mt-0.5 text-[11px]">
@@ -34,7 +34,7 @@ export function MissingBillingAccountBanner(props: {
       className="border-warning/20 bg-warning/5 hover:bg-warning/10 relative z-10 flex w-full items-center border-b text-left transition-colors"
     >
       <div className="flex min-w-0 flex-1 items-start gap-2 px-3 py-1.5">
-        <LuTriangleAlert className="text-warning h-3.5 w-3.5 shrink-0" />
+        <LuTriangleAlert className="text-warning size-3.5 shrink-0" />
         <div className="min-w-0">
           <p className="text-foreground/80 text-xs font-medium">{message}</p>
           <p className="text-foreground-alt/60 mt-0.5 text-[11px]">
@@ -47,7 +47,7 @@ export function MissingBillingAccountBanner(props: {
         <span className="text-foreground/70 group-hover:text-foreground text-xs font-medium transition-colors">
           Configure billing
         </span>
-        <LuArrowRight className="text-foreground-alt group-hover:text-foreground h-3 w-3 shrink-0 transition-colors" />
+        <LuArrowRight className="text-foreground-alt group-hover:text-foreground size-3 shrink-0 transition-colors" />
       </div>
     </button>
   )

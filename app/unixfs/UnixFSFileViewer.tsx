@@ -51,7 +51,7 @@ function FileIcon({
   mimeType: string
   className?: string
 }) {
-  const cls = className ?? 'text-foreground-alt h-4 w-4'
+  const cls = className ?? 'text-foreground-alt size-4'
 
   if (isTextMimeType(mimeType)) {
     return <LuFileText className={cls} />
@@ -130,10 +130,10 @@ function BinaryFileViewer({ mimeType }: { mimeType: string }) {
     <div className="flex min-h-0 flex-1 items-center justify-center p-6">
       <div className="border-foreground/6 bg-background-card/30 w-full max-w-xs rounded-lg border p-4 backdrop-blur-sm">
         <div className="flex items-start gap-2.5">
-          <span className="bg-foreground/5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md">
+          <span className="bg-foreground/5 flex size-8 shrink-0 items-center justify-center rounded-md">
             <FileIcon
               mimeType={mimeType}
-              className="text-foreground-alt/70 h-4 w-4"
+              className="text-foreground-alt/70 size-4"
             />
           </span>
           <div className="min-w-0">
@@ -189,8 +189,8 @@ function SymlinkViewer({
     <div className="flex min-h-0 flex-1 items-center justify-center p-6">
       <div className="border-foreground/6 bg-background-card/30 w-full max-w-xs rounded-lg border p-4 backdrop-blur-sm">
         <div className="flex items-start gap-2.5">
-          <span className="bg-foreground/5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md">
-            <LuLink className="text-foreground-alt/70 h-4 w-4" />
+          <span className="bg-foreground/5 flex size-8 shrink-0 items-center justify-center rounded-md">
+            <LuLink className="text-foreground-alt/70 size-4" />
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-foreground text-xs font-medium select-none">
@@ -214,7 +214,7 @@ function SymlinkViewer({
               className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-all duration-150"
             >
               Go to target
-              <LuArrowRight className="h-3 w-3" />
+              <LuArrowRight className="size-3" />
             </button>
           </div>
         )}

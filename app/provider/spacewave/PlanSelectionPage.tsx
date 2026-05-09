@@ -364,7 +364,7 @@ export function PlanSelectionPage({
       {/* Header */}
       <div className="mt-4 flex flex-col items-center gap-2">
         <AnimatedLogo followMouse={false} />
-        <h1 className="mt-2 text-xl font-bold tracking-wide">
+        <h1 className="mt-2 text-xl font-semibold tracking-wide">
           Welcome to Spacewave
         </h1>
       </div>
@@ -373,8 +373,8 @@ export function PlanSelectionPage({
       <div className="border-brand/40 bg-background-card/50 hover:border-brand/60 hover:shadow-brand/5 relative overflow-hidden rounded-lg border p-6 backdrop-blur-sm transition-all duration-300 hover:shadow-md">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <LuCloud className="text-brand h-5 w-5" />
-            <h2 className="text-foreground text-lg font-bold">Cloud</h2>
+            <LuCloud className="text-brand size-5" />
+            <h2 className="text-foreground text-lg font-semibold">Cloud</h2>
           </div>
           <div className="flex items-baseline gap-1">
             <span className="text-foreground text-2xl font-bold">
@@ -411,8 +411,8 @@ export function PlanSelectionPage({
       <div className="border-foreground/10 bg-background-card/30 hover:border-foreground/20 rounded-lg border p-6 backdrop-blur-sm transition-all duration-300 hover:shadow-md">
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <LuServer className="text-foreground-alt h-5 w-5" />
-            <h2 className="text-foreground text-lg font-bold">Local</h2>
+            <LuServer className="text-foreground-alt size-5" />
+            <h2 className="text-foreground text-lg font-semibold">Local</h2>
           </div>
           <span className="text-foreground-alt text-sm">free forever</span>
         </div>
@@ -420,7 +420,7 @@ export function PlanSelectionPage({
         <div className="mb-4 space-y-2">
           {LOCAL_FEATURES.map((text) => (
             <div key={text} className="flex items-start gap-2">
-              <LuCheck className="text-brand mt-0.5 h-4 w-4 shrink-0" />
+              <LuCheck className="text-brand mt-0.5 size-4 shrink-0" />
               <span className="text-foreground-alt text-sm">{text}</span>
             </div>
           ))}
@@ -443,7 +443,7 @@ export function PlanSelectionPage({
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {SHARED_FEATURES.map((feature) => (
             <div key={feature} className="flex items-start gap-2">
-              <LuCheck className="text-brand mt-0.5 h-3 w-3 shrink-0" />
+              <LuCheck className="text-brand mt-0.5 size-3 shrink-0" />
               <span className="text-foreground-alt text-xs">{feature}</span>
             </div>
           ))}

@@ -198,7 +198,7 @@ export function SSOFinishPage() {
     return (
       <div className="bg-background-landing relative flex flex-1 flex-col items-center justify-center p-6">
         <div className="relative z-10 flex flex-col items-center gap-4 text-center">
-          <LuCircleAlert className="text-destructive h-12 w-12" />
+          <LuCircleAlert className="text-destructive size-12" />
           <h2 className="text-foreground text-lg font-semibold">
             Sign-in failed
           </h2>
@@ -259,7 +259,7 @@ export function SSOFinishPage() {
       <div className="relative z-10 flex flex-col items-center gap-4 text-center">
         <AnimatedLogo followMouse={false} />
         {state.step === 'complete' ?
-          <LuCheck className="text-brand h-6 w-6" />
+          <LuCheck className="text-brand size-6" />
         : <Spinner size="md" className="text-foreground-alt" />}
         <p className="text-foreground-alt text-sm">{statusMessage}</p>
       </div>

@@ -94,7 +94,7 @@ function LocalSetupWizard({
       <div className="relative z-10 my-auto flex w-full max-w-lg flex-col gap-4">
         <div className="flex flex-col items-center gap-2">
           <AnimatedLogo followMouse={false} />
-          <h1 className="mt-2 text-xl font-bold tracking-wide">
+          <h1 className="mt-2 text-xl font-semibold tracking-wide">
             Your data lives on this device
           </h1>
           <p className="text-foreground-alt text-center text-sm">
@@ -119,13 +119,13 @@ function LocalSetupWizard({
           >
             <div
               className={cn(
-                'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
+                'flex size-8 shrink-0 items-center justify-center rounded-lg',
                 backupDone ? 'bg-brand/20' : 'bg-brand/10',
               )}
             >
               {backupDone ?
-                <LuCheck className="text-brand h-4 w-4" />
-              : <LuShieldCheck className="text-brand h-4 w-4" />}
+                <LuCheck className="text-brand size-4" />
+              : <LuShieldCheck className="text-brand size-4" />}
             </div>
             <div className="flex-1 text-left">
               <h3 className="text-foreground text-sm font-medium">
@@ -142,7 +142,7 @@ function LocalSetupWizard({
             </div>
             <LuChevronDown
               className={cn(
-                'text-foreground-alt h-4 w-4 shrink-0 transition-transform duration-200',
+                'text-foreground-alt size-4 shrink-0 transition-transform duration-200',
                 expandedCard === 'backup' && 'rotate-180',
               )}
             />
@@ -170,7 +170,7 @@ function LocalSetupWizard({
                   'flex h-10 items-center justify-center gap-2',
                 )}
               >
-                <LuDownload className="text-foreground h-4 w-4" />
+                <LuDownload className="text-foreground size-4" />
                 <span className="text-foreground text-sm">
                   {wiz.downloading ?
                     'Generating key...'
@@ -194,13 +194,13 @@ function LocalSetupWizard({
           >
             <div
               className={cn(
-                'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
+                'flex size-8 shrink-0 items-center justify-center rounded-lg',
                 pinDone ? 'bg-brand/20' : 'bg-brand/10',
               )}
             >
               {pinDone ?
-                <LuCheck className="text-brand h-4 w-4" />
-              : <LuLock className="text-brand h-4 w-4" />}
+                <LuCheck className="text-brand size-4" />
+              : <LuLock className="text-brand size-4" />}
             </div>
             <div className="flex-1 text-left">
               <h3 className="text-foreground text-sm font-medium">
@@ -217,7 +217,7 @@ function LocalSetupWizard({
             </div>
             <LuChevronDown
               className={cn(
-                'text-foreground-alt h-4 w-4 shrink-0 transition-transform duration-200',
+                'text-foreground-alt size-4 shrink-0 transition-transform duration-200',
                 expandedCard === 'pin' && 'rotate-180',
               )}
             />
@@ -228,14 +228,14 @@ function LocalSetupWizard({
                 <RadioOption
                   selected={wiz.lockMode === 'auto'}
                   onSelect={() => wiz.setLockMode('auto')}
-                  icon={<LuLockOpen className="h-4 w-4" />}
+                  icon={<LuLockOpen className="size-4" />}
                   label="Auto-unlock"
                   description="Key stored on disk. No PIN needed."
                 />
                 <RadioOption
                   selected={wiz.lockMode === 'pin'}
                   onSelect={() => wiz.setLockMode('pin')}
-                  icon={<LuLock className="h-4 w-4" />}
+                  icon={<LuLock className="size-4" />}
                   label="PIN lock"
                   description="Enter PIN on each app launch."
                 />
@@ -290,7 +290,7 @@ function LocalSetupWizard({
                   {wiz.saving ? 'Saving...' : 'Set lock mode'}
                 </span>
                 {!wiz.saving && (
-                  <LuArrowRight className="text-foreground-alt h-4 w-4" />
+                  <LuArrowRight className="text-foreground-alt size-4" />
                 )}
               </button>
             </div>
@@ -306,7 +306,7 @@ function LocalSetupWizard({
           )}
         >
           Continue to app
-          <LuArrowRight className="h-4 w-4" />
+          <LuArrowRight className="size-4" />
         </button>
       </div>
     </div>

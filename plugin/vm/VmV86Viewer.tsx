@@ -292,7 +292,7 @@ export default function VmV86Viewer({
     <div className="bg-background-primary flex h-full w-full flex-col overflow-hidden">
       <div className="border-foreground/8 flex h-9 shrink-0 items-center justify-between border-b px-4">
         <div className="text-foreground flex items-center gap-2 text-sm font-semibold select-none">
-          <LuTv className="h-4 w-4" />
+          <LuTv className="size-4" />
           <span className="tracking-tight">V86</span>
           <span
             className={cn(
@@ -342,7 +342,7 @@ export default function VmV86Viewer({
                 : 'text-muted-foreground hover:bg-muted/40',
             )}
           >
-            <LuSettings className="h-3.5 w-3.5" />
+            <LuSettings className="size-3.5" />
           </button>
         </div>
       </div>

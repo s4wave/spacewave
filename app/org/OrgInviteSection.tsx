@@ -14,7 +14,7 @@ export function OrgInviteSection(props: {
     <div className="space-y-1">
       {props.invites.length === 0 && (
         <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
-          <LuLink className="h-3.5 w-3.5 shrink-0" />
+          <LuLink className="size-3.5 shrink-0" />
           <span>No active invites</span>
         </div>
       )}
@@ -64,7 +64,7 @@ function InviteRow(props: {
     <div className="flex items-center justify-between gap-2 py-1">
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <LuLink className="text-foreground-alt/50 h-3 w-3 shrink-0" />
+          <LuLink className="text-foreground-alt/50 size-3 shrink-0" />
           <span className="text-foreground truncate font-mono text-xs">
             {invite.token}
           </span>
@@ -74,16 +74,14 @@ function InviteRow(props: {
       <div className="flex shrink-0 gap-1">
         <DashboardButton
           icon={
-            <LuClipboard
-              className={cn('h-3 w-3', copied && 'text-green-500')}
-            />
+            <LuClipboard className={cn('size-3', copied && 'text-green-500')} />
           }
           onClick={() => void handleCopy()}
         >
           {copied ? 'Copied' : 'Copy'}
         </DashboardButton>
         <DashboardButton
-          icon={<LuTrash2 className="h-3 w-3" />}
+          icon={<LuTrash2 className="size-3" />}
           onClick={() => void handleRevoke()}
           disabled={revoking}
           className="text-destructive hover:bg-destructive/10"

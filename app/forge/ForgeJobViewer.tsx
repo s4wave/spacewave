@@ -146,7 +146,7 @@ export function ForgeJobViewer({
           <ForgeEntityList
             entities={tasks}
             loading
-            icon={<LuListTodo className="h-3 w-3 shrink-0" />}
+            icon={<LuListTodo className="size-3 shrink-0" />}
             loadingLabel="Loading tasks..."
             emptyLabel="No tasks in job"
           />
@@ -157,7 +157,7 @@ export function ForgeJobViewer({
           <ForgeEntityList
             entities={tasks}
             loading={tasksLoading}
-            icon={<LuListTodo className="h-3 w-3 shrink-0" />}
+            icon={<LuListTodo className="size-3 shrink-0" />}
             loadingLabel="Loading tasks..."
             emptyLabel="No tasks in job"
           />
@@ -193,8 +193,8 @@ export function ForgeJobViewer({
       return (
         <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
           <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
-            <LuGitBranch className="h-3.5 w-3.5 shrink-0" />
-            <span>Loading dependency graph...</span>
+            <LuGitBranch className="size-3.5 shrink-0" />
+            <span>Loading dependency graph…</span>
           </div>
         </div>
       )
@@ -203,7 +203,7 @@ export function ForgeJobViewer({
       return (
         <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
           <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
-            <LuListTodo className="h-3.5 w-3.5 shrink-0" />
+            <LuListTodo className="size-3.5 shrink-0" />
             <span>No tasks in job</span>
           </div>
         </div>
@@ -213,7 +213,7 @@ export function ForgeJobViewer({
       return (
         <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
           <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
-            <LuGitBranch className="h-3.5 w-3.5 shrink-0" />
+            <LuGitBranch className="size-3.5 shrink-0" />
             <span>No task dependency edges defined yet</span>
           </div>
         </div>
@@ -231,7 +231,7 @@ export function ForgeJobViewer({
               className="border-foreground/6 bg-background-card/30 rounded-lg border px-3.5 py-2.5"
             >
               <div className="text-foreground flex items-center gap-2 text-sm font-medium">
-                <LuGitBranch className="h-3.5 w-3.5" />
+                <LuGitBranch className="size-3.5" />
                 <span>{fromTask?.data.name || edge.from}</span>
                 <span className="text-foreground-alt/50 text-xs">-&gt;</span>
                 <span>{toTask?.data.name || edge.to}</span>
@@ -274,9 +274,7 @@ export function ForgeJobViewer({
               </div>
             </InfoCard>
             <InfoCard
-              icon={
-                <LuListTodo className="text-foreground-alt/60 h-3.5 w-3.5" />
-              }
+              icon={<LuListTodo className="text-foreground-alt/60 size-3.5" />}
               title="Tasks"
             >
               <div className="text-foreground text-2xl font-semibold">
@@ -312,7 +310,7 @@ export function ForgeJobViewer({
                     : 'text-foreground-alt/60 hover:text-foreground hover:bg-foreground/5 border-transparent',
                   )}
                 >
-                  <LuList className="h-3.5 w-3.5" />
+                  <LuList className="size-3.5" />
                   List
                 </button>
                 <button
@@ -325,13 +323,13 @@ export function ForgeJobViewer({
                     : 'text-foreground-alt/60 hover:text-foreground hover:bg-foreground/5 border-transparent',
                   )}
                 >
-                  <LuGitBranch className="h-3.5 w-3.5" />
+                  <LuGitBranch className="size-3.5" />
                   DAG
                 </button>
               </div>
               {canCreateTask && (
                 <DashboardButton
-                  icon={<LuPlus className="h-3.5 w-3.5" />}
+                  icon={<LuPlus className="size-3.5" />}
                   onClick={() => {
                     void handleAddTask()
                   }}
@@ -363,7 +361,7 @@ export function ForgeJobViewer({
 
   return (
     <ForgeViewerShell
-      icon={<LuBriefcase className="h-4 w-4" />}
+      icon={<LuBriefcase className="size-4" />}
       title="Job"
       state={job?.jobState ?? 0}
       stateLabels={jobStateLabels}

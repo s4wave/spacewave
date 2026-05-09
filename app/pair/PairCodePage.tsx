@@ -194,8 +194,8 @@ export function PairCodePage(props: PairCodePageProps) {
           {step === 'enter' && (
             <div className="space-y-4">
               <div className="text-center">
-                <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center">
-                  <LuKeyboard className="text-brand h-5 w-5" />
+                <div className="mx-auto mb-2 flex size-10 items-center justify-center">
+                  <LuKeyboard className="text-brand size-5" />
                 </div>
                 <h2 className="text-foreground text-sm font-medium">
                   Enter pairing code
@@ -235,10 +235,10 @@ export function PairCodePage(props: PairCodePageProps) {
                   className={cn(
                     'rounded-md border transition-all duration-300',
                     'border-foreground/20 hover:border-foreground/40',
-                    'flex h-10 w-10 shrink-0 items-center justify-center',
+                    'flex size-10 shrink-0 items-center justify-center',
                   )}
                 >
-                  <LuArrowLeft className="text-foreground-alt h-4 w-4" />
+                  <LuArrowLeft className="text-foreground-alt size-4" />
                 </button>
                 <button
                   onClick={() => void handleSubmit()}
@@ -255,7 +255,7 @@ export function PairCodePage(props: PairCodePageProps) {
                   {loading ?
                     <Spinner />
                   : <>
-                      <LuLink className="text-brand h-4 w-4" />
+                      <LuLink className="text-brand size-4" />
                       <span className="text-foreground text-sm">Connect</span>
                     </>
                   }
@@ -298,8 +298,8 @@ export function PairCodePage(props: PairCodePageProps) {
           {step === 'done' && (
             <div className="space-y-4">
               <div className="flex flex-col items-center gap-3">
-                <div className="bg-brand/10 flex h-12 w-12 items-center justify-center rounded-full">
-                  <LuCircleCheck className="text-brand h-6 w-6" />
+                <div className="bg-brand/10 flex size-12 items-center justify-center rounded-full">
+                  <LuCircleCheck className="text-brand size-6" />
                 </div>
                 <h2 className="text-foreground text-sm font-medium">
                   Devices linked!
@@ -411,7 +411,7 @@ function PairVerifyStep({
         <div className="flex justify-center">
           <Spinner size="md" className="text-foreground-alt" />
         </div>
-        <p className="text-foreground-alt text-xs">Waiting for connection...</p>
+        <p className="text-foreground-alt text-xs">Waiting for connection…</p>
       </div>
     )
   }
@@ -420,8 +420,8 @@ function PairVerifyStep({
     return (
       <div className="space-y-4">
         <div className="flex flex-col items-center gap-2">
-          <div className="bg-destructive/10 flex h-10 w-10 items-center justify-center rounded-full">
-            <LuX className="text-destructive h-5 w-5" />
+          <div className="bg-destructive/10 flex size-10 items-center justify-center rounded-full">
+            <LuX className="text-destructive size-5" />
           </div>
           <h2 className="text-foreground text-sm font-medium">
             Verification failed
@@ -436,7 +436,7 @@ function PairVerifyStep({
             'flex h-10 items-center justify-center gap-2',
           )}
         >
-          <LuArrowLeft className="text-foreground-alt h-4 w-4" />
+          <LuArrowLeft className="text-foreground-alt size-4" />
           <span className="text-foreground text-sm">Try again</span>
         </button>
       </div>
@@ -447,8 +447,8 @@ function PairVerifyStep({
     return (
       <div className="space-y-4">
         <div className="flex flex-col items-center gap-2">
-          <div className="bg-brand/10 flex h-10 w-10 items-center justify-center rounded-full">
-            <LuShieldCheck className="text-brand h-5 w-5" />
+          <div className="bg-brand/10 flex size-10 items-center justify-center rounded-full">
+            <LuShieldCheck className="text-brand size-5" />
           </div>
           <h2 className="text-foreground text-sm font-medium">
             Waiting for other device
@@ -469,8 +469,8 @@ function PairVerifyStep({
     return (
       <div className="space-y-4">
         <div className="flex flex-col items-center gap-2">
-          <div className="bg-brand/10 flex h-10 w-10 items-center justify-center rounded-full">
-            <LuShieldCheck className="text-brand h-5 w-5" />
+          <div className="bg-brand/10 flex size-10 items-center justify-center rounded-full">
+            <LuShieldCheck className="text-brand size-5" />
           </div>
           <h2 className="text-foreground text-sm font-medium">
             Establishing secure channel
@@ -490,7 +490,7 @@ function PairVerifyStep({
             'flex h-10 items-center justify-center gap-2',
           )}
         >
-          <LuArrowLeft className="text-foreground-alt h-4 w-4" />
+          <LuArrowLeft className="text-foreground-alt size-4" />
           <span className="text-foreground text-sm">Back</span>
         </button>
       </div>
@@ -500,8 +500,8 @@ function PairVerifyStep({
   return (
     <div className="space-y-4">
       <div className="flex flex-col items-center gap-2">
-        <div className="bg-brand/10 flex h-10 w-10 items-center justify-center rounded-full">
-          <LuShieldCheck className="text-brand h-5 w-5" />
+        <div className="bg-brand/10 flex size-10 items-center justify-center rounded-full">
+          <LuShieldCheck className="text-brand size-5" />
         </div>
         <h2 className="text-foreground text-sm font-medium">
           Verify connection
@@ -522,7 +522,7 @@ function PairVerifyStep({
             'flex h-10 items-center justify-center gap-2',
           )}
         >
-          <LuX className="text-destructive h-4 w-4" />
+          <LuX className="text-destructive size-4" />
           <span className="text-destructive text-sm">No, abort</span>
         </button>
         <button
@@ -533,7 +533,7 @@ function PairVerifyStep({
             'flex h-10 items-center justify-center gap-2',
           )}
         >
-          <LuCircleCheck className="text-brand h-4 w-4" />
+          <LuCircleCheck className="text-brand size-4" />
           <span className="text-foreground text-sm">Yes, they match</span>
         </button>
       </div>
@@ -688,8 +688,8 @@ function PairDirectStep({
       )}
 
       <div className="text-center">
-        <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center">
-          <LuWifi className="text-brand h-5 w-5" />
+        <div className="mx-auto mb-2 flex size-10 items-center justify-center">
+          <LuWifi className="text-brand size-5" />
         </div>
         <h2 className="text-foreground text-sm font-medium">
           {answerPayload ? 'Share this response' : 'Direct pairing'}
@@ -722,7 +722,7 @@ function PairDirectStep({
               'flex h-9 items-center justify-center gap-2',
             )}
           >
-            <LuCamera className="text-foreground-alt h-4 w-4" />
+            <LuCamera className="text-foreground-alt size-4" />
             <span className="text-foreground-alt text-xs">Scan QR code</span>
           </button>
         </>
@@ -750,14 +750,14 @@ function PairDirectStep({
             >
               <LuCopy
                 className={cn(
-                  'h-4 w-4',
+                  'size-4',
                   copied ? 'text-brand' : 'text-foreground-alt',
                 )}
               />
             </button>
           </div>
           <div className="flex items-center justify-center gap-2">
-            <span className="bg-brand inline-block h-2 w-2 animate-pulse rounded-full" />
+            <span className="bg-brand inline-block size-2 animate-pulse rounded-full" />
             <span className="text-foreground-alt text-xs">
               Waiting for connection...
             </span>
@@ -773,10 +773,10 @@ function PairDirectStep({
           className={cn(
             'rounded-md border transition-all duration-300',
             'border-foreground/20 hover:border-foreground/40',
-            'flex h-10 w-10 shrink-0 items-center justify-center',
+            'flex size-10 shrink-0 items-center justify-center',
           )}
         >
-          <LuArrowLeft className="text-foreground-alt h-4 w-4" />
+          <LuArrowLeft className="text-foreground-alt size-4" />
         </button>
         {!answerPayload && (
           <button
@@ -792,7 +792,7 @@ function PairDirectStep({
             {loading ?
               <Spinner />
             : <>
-                <LuLink className="text-brand h-4 w-4" />
+                <LuLink className="text-brand size-4" />
                 <span className="text-foreground text-sm">Accept offer</span>
               </>
             }
@@ -872,7 +872,7 @@ function PairDirectQRScanner({
             onClick={onClose}
             className="text-foreground-alt hover:text-foreground"
           >
-            <LuX className="h-4 w-4" />
+            <LuX className="size-4" />
           </button>
         </div>
         <div

@@ -150,7 +150,7 @@ function FloatingToolbarPlugin() {
         }}
         title="Bold"
       >
-        <LuBold className="h-3.5 w-3.5" />
+        <LuBold className="size-3.5" />
       </button>
       <button
         type="button"
@@ -161,7 +161,7 @@ function FloatingToolbarPlugin() {
         }}
         title="Italic"
       >
-        <LuItalic className="h-3.5 w-3.5" />
+        <LuItalic className="size-3.5" />
       </button>
       <button
         type="button"
@@ -172,7 +172,7 @@ function FloatingToolbarPlugin() {
         }}
         title="Code"
       >
-        <LuCode className="h-3.5 w-3.5" />
+        <LuCode className="size-3.5" />
       </button>
       <button
         type="button"
@@ -183,7 +183,7 @@ function FloatingToolbarPlugin() {
         }}
         title="Link"
       >
-        <LuLink className="h-3.5 w-3.5" />
+        <LuLink className="size-3.5" />
       </button>
     </div>
   )

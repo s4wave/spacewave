@@ -89,7 +89,7 @@ export function CredentialProofInput({
                 disabled && 'opacity-50',
               )}
             >
-              <LuUpload className="text-foreground-alt h-3.5 w-3.5 shrink-0" />
+              <LuUpload className="text-foreground-alt size-3.5 shrink-0" />
               <span className={cn(!pemFileName && 'text-foreground-alt/50')}>
                 {pemFileName ?? 'Choose .pem file'}
               </span>

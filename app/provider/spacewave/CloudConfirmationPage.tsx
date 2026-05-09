@@ -135,7 +135,7 @@ export function CloudConfirmationPage({
           onClick={onBack}
           className="text-foreground-alt hover:text-foreground flex cursor-pointer items-center gap-2 text-sm transition-colors"
         >
-          <LuArrowLeft className="h-4 w-4" />
+          <LuArrowLeft className="size-4" />
           Back to plan selection
         </button>
       }
@@ -143,7 +143,7 @@ export function CloudConfirmationPage({
       {/* Header */}
       <div className="flex flex-col items-center gap-2">
         <AnimatedLogo followMouse={false} />
-        <h1 className="mt-2 text-xl font-bold tracking-wide">
+        <h1 className="mt-2 text-xl font-semibold tracking-wide">
           Spacewave Cloud
         </h1>
         <p className="text-foreground-alt text-center text-sm">
@@ -155,11 +155,11 @@ export function CloudConfirmationPage({
       <div className="border-brand/30 bg-background-card/50 overflow-hidden rounded-lg border p-8 backdrop-blur-sm">
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-brand/10 flex h-10 w-10 items-center justify-center rounded-lg">
-              <LuCloud className="text-brand h-5 w-5" />
+            <div className="bg-brand/10 flex size-10 items-center justify-center rounded-lg">
+              <LuCloud className="text-brand size-5" />
             </div>
             <div>
-              <h2 className="text-foreground text-lg font-bold">Cloud</h2>
+              <h2 className="text-foreground text-lg font-semibold">Cloud</h2>
               <p className="text-foreground-alt text-xs">Everything you need</p>
             </div>
           </div>
@@ -207,7 +207,7 @@ export function CloudConfirmationPage({
               className="border-brand bg-brand/10 text-foreground hover:bg-brand/20 flex cursor-pointer items-center justify-center rounded-r-md border border-l-0 px-3 transition-all duration-300"
               title="Retry"
             >
-              <LuRefreshCw className="h-4 w-4" />
+              <LuRefreshCw className="size-4" />
             </button>
           )}
         </div>
@@ -221,7 +221,7 @@ export function CloudConfirmationPage({
       <div className="text-foreground-alt flex flex-wrap items-center justify-center gap-6 text-xs">
         {TRUST_SIGNALS.map((text) => (
           <span key={text} className="flex items-center gap-1.5">
-            <LuCheck className="text-brand h-3.5 w-3.5" />
+            <LuCheck className="text-brand size-3.5" />
             {text}
           </span>
         ))}
@@ -234,7 +234,7 @@ export function CloudConfirmationPage({
       <div className="border-foreground/6 flex flex-col items-center justify-between gap-4 rounded-lg border bg-gradient-to-r from-blue-500/5 via-indigo-500/5 to-cyan-500/5 px-6 py-5 backdrop-blur-sm sm:flex-row">
         <div className="flex items-center gap-3">
           <div className="rounded-lg bg-blue-500/10 p-2.5">
-            <LuCode className="text-brand h-5 w-5" />
+            <LuCode className="text-brand size-5" />
           </div>
           <div>
             <h3 className="text-foreground text-sm font-semibold">
@@ -251,7 +251,7 @@ export function CloudConfirmationPage({
           rel="noopener noreferrer"
           className="group border-foreground/15 bg-background/50 text-foreground hover:border-brand/30 hover:bg-brand/10 flex items-center rounded-md border px-4 py-1.5 text-xs font-medium transition-all duration-300"
         >
-          <LuGithub className="mr-1.5 h-3.5 w-3.5 transition-transform duration-300 group-hover:scale-110" />
+          <LuGithub className="mr-1.5 size-3.5 transition-transform duration-300 group-hover:scale-110" />
           <span className="select-none">View on GitHub</span>
         </a>
       </div>
@@ -299,7 +299,7 @@ export function FeatureGrid({
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       {features.map((feature) => (
         <div key={feature.text} className="flex items-start gap-2">
-          <feature.icon className="text-brand mt-0.5 h-4 w-4 shrink-0" />
+          <feature.icon className="text-brand mt-0.5 size-4 shrink-0" />
           <span className="text-foreground-alt text-sm">{feature.text}</span>
         </div>
       ))}
@@ -375,13 +375,13 @@ export function PlanFaqItem({
         </h3>
         <div
           className={cn(
-            'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded transition-all',
+            'mt-0.5 flex size-4 shrink-0 items-center justify-center rounded transition-all',
             isOpen ?
               'bg-brand/12 text-brand rotate-45'
             : 'bg-foreground/6 text-foreground-alt',
           )}
         >
-          <LuPlus className="h-2.5 w-2.5" />
+          <LuPlus className="size-2.5" />
         </div>
       </div>
       <div

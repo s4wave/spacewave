@@ -25,7 +25,7 @@ export function BlogLayout({ children, showBack = true }: BlogLayoutProps) {
             onClick={goBack}
             className="text-foreground-alt/60 hover:text-foreground flex cursor-pointer items-center gap-2 text-xs font-medium transition-colors"
           >
-            <LuArrowLeft className="h-3.5 w-3.5" />
+            <LuArrowLeft className="size-3.5" />
             All posts
           </button>
         </div>

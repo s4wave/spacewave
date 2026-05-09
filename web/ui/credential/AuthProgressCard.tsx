@@ -29,7 +29,7 @@ export function AuthProgressCard({
       aria-live="polite"
     >
       <div className="flex items-start gap-3">
-        <div className="bg-brand/10 text-brand flex h-8 w-8 shrink-0 items-center justify-center rounded-md">
+        <div className="bg-brand/10 text-brand flex size-8 shrink-0 items-center justify-center rounded-md">
           <Spinner size="md" />
         </div>
         <div className="min-w-0 flex-1">
@@ -55,15 +55,15 @@ export function AuthProgressCard({
                 >
                   <div
                     className={cn(
-                      'flex h-5 w-5 shrink-0 items-center justify-center rounded-md',
+                      'flex size-5 shrink-0 items-center justify-center rounded-md',
                       active ? 'bg-brand/10 text-brand' : 'bg-foreground/5',
                     )}
                   >
                     {active ?
-                      <LuKeyRound className="h-3 w-3" aria-hidden="true" />
+                      <LuKeyRound className="size-3" aria-hidden="true" />
                     : index === steps.length - 1 ?
-                      <LuCheck className="h-3 w-3" aria-hidden="true" />
-                    : <LuShield className="h-3 w-3" aria-hidden="true" />}
+                      <LuCheck className="size-3" aria-hidden="true" />
+                    : <LuShield className="size-3" aria-hidden="true" />}
                   </div>
                   <span>{step}</span>
                 </div>

@@ -64,9 +64,9 @@ const Example: React.FC<ExampleProps> = (props) => {
       <div className="example-message">
         <p>The following message comes from an RPC call to Go:</p>
         <p>{message || 'Loading...'}</p>
-        <LuHouse className="h-4 w-4" />
-        <LuSettings className="h-4 w-4" />
-        <LuUser className="h-4 w-4" />
+        <LuHouse className="size-4" />
+        <LuSettings className="size-4" />
+        <LuUser className="size-4" />
         <img src={bldrLogo} width={256} alt="Bldr logo" />
       </div>
     </div>

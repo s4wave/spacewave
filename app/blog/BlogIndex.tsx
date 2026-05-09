@@ -35,13 +35,13 @@ export function BlogIndex({ posts }: BlogIndexProps) {
         onClick={goHome}
         className="text-foreground-alt hover:text-brand absolute top-4 left-4 z-20 flex items-center gap-2 text-sm transition-colors"
       >
-        <LuArrowLeft className="h-4 w-4" />
+        <LuArrowLeft className="size-4" />
         <span className="select-none">Back to home</span>
       </button>
 
       {/* Hero header */}
       <header className="relative z-10 mx-auto w-full max-w-5xl px-4 pt-24 pb-6 @lg:px-8 @lg:pt-32 @lg:pb-8">
-        <h1 className="text-foreground mb-5 text-center text-4xl font-bold tracking-tight @lg:text-5xl">
+        <h1 className="text-foreground mb-5 text-center text-4xl font-semibold tracking-tight @lg:text-5xl">
           Spacewave Blog
         </h1>
         <p className="text-foreground-alt mx-auto max-w-xl text-center text-sm leading-relaxed font-light @lg:text-base">

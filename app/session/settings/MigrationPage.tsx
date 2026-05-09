@@ -28,12 +28,12 @@ export function MigrationPage() {
           onClick={handleBack}
           className="text-foreground-alt hover:text-foreground mb-6 flex items-center gap-1.5 text-sm transition-colors"
         >
-          <LuArrowLeft className="h-4 w-4" />
+          <LuArrowLeft className="size-4" />
           Back to dashboard
         </button>
 
         <div className="mb-6">
-          <h1 className="text-foreground text-lg font-bold tracking-wide">
+          <h1 className="text-foreground text-lg font-semibold tracking-wide">
             Provider Migration
           </h1>
           <p className="text-foreground-alt mt-1 text-sm">
@@ -44,8 +44,8 @@ export function MigrationPage() {
         <div className="border-foreground/20 bg-background-get-started overflow-hidden rounded-lg border shadow-lg backdrop-blur-sm">
           <div className="space-y-4 p-6">
             <div className="flex items-center gap-3">
-              <div className="bg-foreground/5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg">
-                <LuCpu className="text-foreground-alt h-5 w-5" />
+              <div className="bg-foreground/5 flex size-10 shrink-0 items-center justify-center rounded-lg">
+                <LuCpu className="text-foreground-alt size-5" />
               </div>
               <div>
                 <p className="text-foreground text-sm font-medium">

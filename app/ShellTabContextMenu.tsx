@@ -67,19 +67,19 @@ export function ShellTabContextMenu({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" side="bottom">
         <DropdownMenuItem onClick={() => handleAction(onNewTab)}>
-          <LuPlus className="h-4 w-4" />
+          <LuPlus className="size-4" />
           New Tab
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => handleAction(onRenameTab)}>
-          <LuPencil className="h-4 w-4" />
+          <LuPencil className="size-4" />
           Rename Tab
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => handleAction(onDuplicateTab)}>
-          <LuCopy className="h-4 w-4" />
+          <LuCopy className="size-4" />
           Duplicate Tab
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => handleAction(onPopoutTab)}>
-          <LuExternalLink className="h-4 w-4" />
+          <LuExternalLink className="size-4" />
           Open in New Tab
         </DropdownMenuItem>
         <DropdownMenuSeparator />
@@ -87,7 +87,7 @@ export function ShellTabContextMenu({
           onClick={() => handleAction(onCloseOtherTabs)}
           disabled={!canCloseTabs}
         >
-          <LuCircleX className="h-4 w-4" />
+          <LuCircleX className="size-4" />
           Close Other Tabs
         </DropdownMenuItem>
         <DropdownMenuItem
@@ -95,7 +95,7 @@ export function ShellTabContextMenu({
           disabled={!canCloseTabs}
           variant="destructive"
         >
-          <LuX className="h-4 w-4" />
+          <LuX className="size-4" />
           Close Tab
         </DropdownMenuItem>
       </DropdownMenuContent>

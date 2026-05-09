@@ -59,7 +59,7 @@ export function SearchBox({
         className,
       )}
     >
-      <LuSearch className="text-foreground-alt h-3 w-3 flex-shrink-0" />
+      <LuSearch className="text-foreground-alt size-3 flex-shrink-0" />
       {focused && (
         <input
           ref={inputRef}

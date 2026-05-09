@@ -21,7 +21,7 @@ export function ResourceErrorsTab() {
   if (errorResources.length === 0) {
     return (
       <div className="text-foreground-alt/50 flex flex-1 items-center justify-center gap-1.5 p-4 text-xs">
-        <RiErrorWarningLine className="h-3.5 w-3.5 opacity-50" />
+        <RiErrorWarningLine className="size-3.5 opacity-50" />
         <span>No errors</span>
       </div>
     )
@@ -72,7 +72,7 @@ function ErrorRow({ resource }: ErrorRowProps) {
       )}
       data-testid="resource-error-row"
     >
-      <span className="bg-error h-1.5 w-1.5 shrink-0 rounded-full" />
+      <span className="bg-error size-1.5 shrink-0 rounded-full" />
       <span className="shrink-0 font-medium">{label}</span>
       <span className="text-foreground-alt min-w-0 flex-1 truncate font-mono">
         {errorMessage}

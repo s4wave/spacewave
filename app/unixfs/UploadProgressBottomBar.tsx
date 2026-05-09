@@ -163,10 +163,10 @@ function UploadItemRow({
 
   return (
     <div className="border-popover-border flex items-start gap-3 border-t px-5 py-4 first:border-t-0">
-      <div className="bg-muted text-foreground-alt mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md">
+      <div className="bg-muted text-foreground-alt mt-0.5 flex size-9 flex-shrink-0 items-center justify-center rounded-md">
         {item.kind === 'directory' ?
-          <LuFolder className="h-4 w-4" />
-        : <LuUpload className="h-4 w-4" />}
+          <LuFolder className="size-4" />
+        : <LuUpload className="size-4" />}
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
@@ -208,18 +208,18 @@ function UploadItemRow({
           </span>
         </div>
       </div>
-      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center">
+      <div className="flex size-8 flex-shrink-0 items-center justify-center">
         {(item.status === 'uploading' || item.status === 'queued') && (
           <button
             className="text-foreground-alt hover:text-foreground"
             onClick={handleCancel}
             title="Cancel"
           >
-            <LuX className="h-4 w-4" />
+            <LuX className="size-4" />
           </button>
         )}
         {item.status === 'done' && (
-          <LuCheck className="h-4 w-4 text-green-500" />
+          <LuCheck className="size-4 text-green-500" />
         )}
         {item.status === 'error' && (
           <button
@@ -227,7 +227,7 @@ function UploadItemRow({
             onClick={handleCancel}
             title="Dismiss"
           >
-            <LuX className="text-destructive h-4 w-4" />
+            <LuX className="text-destructive size-4" />
           </button>
         )}
       </div>
@@ -260,7 +260,7 @@ export function UploadProgressBottomBar({
       >
         {activeUploading > 0 ?
           <Spinner size="sm" />
-        : <LuUpload className="h-3 w-3" />}
+        : <LuUpload className="size-3" />}
         {activeUploading > 0 ?
           `Uploading ${activeUploading}/${totalCount}`
         : `${doneCount}/${totalCount} uploaded`}

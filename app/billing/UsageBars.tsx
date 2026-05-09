@@ -79,7 +79,7 @@ export function UsageBars(props: { actions?: ReactNode }) {
           <div className="rounded-md border border-blue-400/10 bg-blue-400/5 px-2.5 py-1.5 text-[0.6rem]">
             <div className="flex items-center justify-between gap-2">
               <div className="text-foreground-alt/60 flex min-w-0 items-center gap-1.5">
-                <span className="h-1 w-1 shrink-0 rounded-full bg-blue-400/80" />
+                <span className="size-1 shrink-0 rounded-full bg-blue-400/80" />
                 <span>Extra storage</span>
               </div>
               <div className="text-foreground-alt/50 text-right">

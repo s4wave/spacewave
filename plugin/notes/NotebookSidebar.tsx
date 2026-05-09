@@ -66,7 +66,7 @@ function NotebookSidebar({
             title="Add source"
             onClick={onAddSource}
           >
-            <LuPlus className="h-3 w-3" />
+            <LuPlus className="size-3" />
           </button>
         </div>
       </div>
@@ -93,9 +93,9 @@ function NotebookSidebar({
                   }}
                 >
                   {expanded ?
-                    <LuChevronDown className="h-3 w-3 shrink-0" />
-                  : <LuChevronRight className="h-3 w-3 shrink-0" />}
-                  <LuFolder className="h-3 w-3 shrink-0" />
+                    <LuChevronDown className="size-3 shrink-0" />
+                  : <LuChevronRight className="size-3 shrink-0" />}
+                  <LuFolder className="size-3 shrink-0" />
                   <span className="truncate">
                     {source.name || `Source ${index + 1}`}
                   </span>
@@ -111,7 +111,7 @@ function NotebookSidebar({
                       onMoveSource?.(index, -1)
                     }}
                   >
-                    <LuArrowUp className="h-3 w-3" />
+                    <LuArrowUp className="size-3" />
                   </button>
                   <button
                     type="button"
@@ -123,7 +123,7 @@ function NotebookSidebar({
                       onMoveSource?.(index, 1)
                     }}
                   >
-                    <LuArrowDown className="h-3 w-3" />
+                    <LuArrowDown className="size-3" />
                   </button>
                   <button
                     type="button"
@@ -134,7 +134,7 @@ function NotebookSidebar({
                       onRemoveSource?.(index)
                     }}
                   >
-                    <LuTrash2 className="h-3 w-3" />
+                    <LuTrash2 className="size-3" />
                   </button>
                 </span>
               </div>

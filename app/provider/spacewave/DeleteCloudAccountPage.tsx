@@ -222,13 +222,13 @@ export function DeleteCloudAccountPage() {
             onClick={handleBack}
             className="text-foreground-alt hover:text-foreground -mb-2 flex items-center gap-1.5 self-start text-xs transition-colors select-none"
           >
-            <LuArrowLeft className="h-3.5 w-3.5" />
+            <LuArrowLeft className="size-3.5" />
             Back
           </button>
 
           <div className="flex flex-col items-center gap-2">
             <AnimatedLogo followMouse={false} />
-            <h1 className="mt-2 text-xl font-bold tracking-wide select-none">
+            <h1 className="mt-2 text-xl font-semibold tracking-wide select-none">
               {isPendingDelete ? 'Deletion Scheduled' : 'Delete Account'}
             </h1>
             <p className="text-foreground-alt max-w-sm text-center text-sm">
@@ -308,17 +308,17 @@ function InitiateDeleteView({
         </h2>
         <ul className="flex flex-col gap-3">
           <InfoRow
-            icon={<LuTimer className="text-destructive h-4 w-4" />}
+            icon={<LuTimer className="text-destructive size-4" />}
             title="Subscription ends now"
             body="Your account becomes read-only. We'll issue the final invoice immediately."
           />
           <InfoRow
-            icon={<LuRotateCcw className="text-brand h-4 w-4" />}
+            icon={<LuRotateCcw className="text-brand size-4" />}
             title="24 hours to undo"
             body="Before the window closes, you can cancel deletion from this page or the confirmation email."
           />
           <InfoRow
-            icon={<LuBanknote className="text-foreground-alt h-4 w-4" />}
+            icon={<LuBanknote className="text-foreground-alt size-4" />}
             title="Prorated refund if any"
             body="Any unused time is refunded to your card, less Stripe's $0.30 processing fee."
           />
@@ -327,8 +327,8 @@ function InitiateDeleteView({
 
       <div className={cn(cardClass, 'space-y-4')}>
         <div className="flex items-start gap-3">
-          <div className="bg-destructive/10 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg">
-            <LuTriangleAlert className="text-destructive h-5 w-5" />
+          <div className="bg-destructive/10 flex size-10 shrink-0 items-center justify-center rounded-lg">
+            <LuTriangleAlert className="text-destructive size-5" />
           </div>
           <div className="flex-1">
             <h2 className="text-foreground text-sm font-semibold select-none">
@@ -359,8 +359,8 @@ function InitiateDeleteView({
           {sending ?
             <Spinner />
           : email ?
-            <LuCircleCheck className="text-brand h-4 w-4" />
-          : <LuMail className="h-4 w-4" />}
+            <LuCircleCheck className="text-brand size-4" />
+          : <LuMail className="size-4" />}
           <span className="text-foreground">
             {sending ?
               'Sending...'
@@ -469,7 +469,7 @@ function PendingDeleteView({
         >
           {undoing ?
             <Spinner />
-          : <LuRotateCcw className="h-4 w-4" />}
+          : <LuRotateCcw className="size-4" />}
           {undoing ? 'Canceling...' : 'Undo deletion'}
         </button>
         <p className="text-foreground-alt text-center text-xs leading-relaxed">
@@ -483,7 +483,7 @@ function PendingDeleteView({
           onClick={onDashboard}
           className="text-foreground-alt hover:text-foreground flex items-center justify-center gap-1.5 text-xs transition-colors select-none"
         >
-          <LuArrowLeft className="h-3 w-3" />
+          <LuArrowLeft className="size-3" />
           Return to dashboard
         </button>
         <button
@@ -491,7 +491,7 @@ function PendingDeleteView({
           disabled={loggingOut}
           className="text-foreground-alt hover:text-foreground flex items-center justify-center gap-1.5 text-xs transition-colors select-none disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <LuLogOut className="h-3 w-3" />
+          <LuLogOut className="size-3" />
           {loggingOut ? 'Logging out...' : 'Log out of this device'}
         </button>
       </div>
@@ -511,7 +511,7 @@ function InfoRow({
 }) {
   return (
     <li className="flex items-start gap-3">
-      <div className="bg-foreground/5 mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md">
+      <div className="bg-foreground/5 mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md">
         {icon}
       </div>
       <div className="flex-1">

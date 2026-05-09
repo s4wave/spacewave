@@ -31,10 +31,10 @@ export function CliSection({ primary, groups }: CliSectionProps) {
     >
       <header className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
-          <LuTerminal className="text-foreground-alt h-5 w-5" />
+          <LuTerminal className="text-foreground-alt size-5" />
           <h2
             id="cli-heading"
-            className="text-foreground text-2xl font-bold select-none @lg:text-3xl"
+            className="text-foreground text-2xl font-semibold select-none @lg:text-3xl"
           >
             Spacewave CLI
           </h2>

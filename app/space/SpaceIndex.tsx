@@ -143,7 +143,7 @@ export function SpaceIndex() {
   return (
     <EmptyState
       className="flex-1"
-      icon={<LuBox className="text-foreground-alt h-7 w-7" />}
+      icon={<LuBox className="text-foreground-alt size-7" />}
       title="Empty Space"
       description="This space has no objects yet."
       action={{

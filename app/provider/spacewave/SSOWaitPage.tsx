@@ -186,7 +186,7 @@ export function SSOWaitPage() {
           <div className="flex w-full flex-col gap-2">
             <AuthPrimaryActionButton
               onClick={handleRetry}
-              icon={<ProviderIcon provider={provider} className="h-4 w-4" />}
+              icon={<ProviderIcon provider={provider} className="size-4" />}
             >
               Try again
             </AuthPrimaryActionButton>
@@ -194,7 +194,7 @@ export function SSOWaitPage() {
               onClick={handleCancel}
               className="flex items-center justify-center gap-2"
             >
-              <LuArrowLeft className="h-4 w-4" />
+              <LuArrowLeft className="size-4" />
               Back to login
             </AuthSecondaryActionButton>
           </div>
@@ -245,7 +245,7 @@ export function SSOWaitPage() {
         <>
           <AnimatedLogo followMouse={false} />
           <h2 className="text-foreground flex items-center gap-2 text-lg font-semibold">
-            <ProviderIcon provider={provider} className="h-5 w-5" />
+            <ProviderIcon provider={provider} className="size-5" />
             Signing in with {providerLabel}
           </h2>
         </>
@@ -263,7 +263,7 @@ export function SSOWaitPage() {
           <div className="flex w-full flex-col gap-2">
             <AuthPrimaryActionButton
               onClick={handleRetry}
-              icon={<ProviderIcon provider={provider} className="h-4 w-4" />}
+              icon={<ProviderIcon provider={provider} className="size-4" />}
             >
               Open again
             </AuthPrimaryActionButton>
@@ -271,7 +271,7 @@ export function SSOWaitPage() {
               onClick={handleCancel}
               className="flex items-center justify-center gap-2"
             >
-              <LuArrowLeft className="h-4 w-4" />
+              <LuArrowLeft className="size-4" />
               Cancel
             </AuthSecondaryActionButton>
           </div>

@@ -41,7 +41,7 @@ export function SecuritySection({
   return (
     <CollapsibleSection
       title="Security"
-      icon={<LuShield className="h-3.5 w-3.5" />}
+      icon={<LuShield className="size-3.5" />}
       open={sectionOpen}
       onOpenChange={handleOpenChange}
     >

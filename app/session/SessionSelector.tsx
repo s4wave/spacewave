@@ -102,7 +102,7 @@ export function SessionSelector() {
       <div className="relative z-10 flex min-h-full flex-1 flex-col items-center justify-center px-4 py-12">
         <AnimatedLogo followMouse={true} containerClassName="mb-6" />
 
-        <h1 className="text-2xl font-bold tracking-wide">Welcome back</h1>
+        <h1 className="text-2xl font-semibold tracking-wide">Welcome back</h1>
         <p className="text-foreground-alt/60 mb-6 text-sm">
           Choose a session to continue
         </p>
@@ -144,7 +144,7 @@ export function SessionSelector() {
             }}
             disabled={!addRootAlias.canAdd}
           >
-            <LuFolderOpen className="h-4 w-4" />
+            <LuFolderOpen className="size-4" />
             {addRootAlias.adding ? 'Adding root' : 'Add state root'}
           </Button>
         </div>
@@ -206,10 +206,10 @@ function SpaceRootAliasCard(props: {
 
   return (
     <div className="border-foreground/10 flex items-center gap-3 rounded-lg border px-4 py-3">
-      <div className="bg-brand/10 flex h-9 w-9 items-center justify-center rounded-lg">
+      <div className="bg-brand/10 flex size-9 items-center justify-center rounded-lg">
         {ready ?
-          <LuFolderOpen className="h-4 w-4" />
-        : <LuTriangleAlert className="text-warning h-4 w-4" />}
+          <LuFolderOpen className="size-4" />
+        : <LuTriangleAlert className="text-warning size-4" />}
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
@@ -230,7 +230,7 @@ function SpaceRootAliasCard(props: {
         disabled={!ready}
         className="h-8 px-2 text-xs"
       >
-        <LuPlug className="h-3.5 w-3.5" />
+        <LuPlug className="size-3.5" />
         {selected ? 'Using' : 'Use'}
       </Button>
       <Button
@@ -241,9 +241,9 @@ function SpaceRootAliasCard(props: {
         }}
         disabled={!root || removing}
         aria-label="Remove state root"
-        className="text-foreground-alt/60 hover:text-foreground h-8 w-8"
+        className="text-foreground-alt/60 hover:text-foreground size-8"
       >
-        <LuTrash2 className="h-4 w-4" />
+        <LuTrash2 className="size-4" />
       </Button>
     </div>
   )
@@ -270,13 +270,13 @@ function SpaceRootRuntimePanel(props: {
     <div className="border-foreground/10 mt-4 w-full max-w-md rounded-lg border px-4 py-3">
       <div className="flex items-center gap-2">
         {loading ?
-          <LuLoaderCircle className="h-4 w-4 animate-spin" />
+          <LuLoaderCircle className="size-4 animate-spin" />
         : (
           runtime?.status ===
           SpaceRootRuntimeStatus.SpaceRootRuntimeStatus_ERROR
         ) ?
-          <LuTriangleAlert className="text-warning h-4 w-4" />
-        : <LuPlug className="h-4 w-4" />}
+          <LuTriangleAlert className="text-warning size-4" />
+        : <LuPlug className="size-4" />}
         <span className="text-foreground text-sm font-medium">
           {statusLabel}
         </span>
@@ -297,7 +297,7 @@ function SpaceRootRuntimePanel(props: {
               className="bg-foreground/5 rounded-md px-3 py-2"
             >
               <div className="flex items-center gap-2">
-                <LuUser className="h-4 w-4" />
+                <LuUser className="size-4" />
                 <div className="min-w-0">
                   <div className="text-foreground truncate text-sm">
                     {runtimeSessionTitle(runtimeSession)}
@@ -317,7 +317,7 @@ function SpaceRootRuntimePanel(props: {
                       }
                       className="text-foreground-alt/80 flex items-center gap-2 text-xs"
                     >
-                      <LuFolderOpen className="h-3.5 w-3.5" />
+                      <LuFolderOpen className="size-3.5" />
                       <span className="truncate">
                         {space.spaceMeta?.name || 'Untitled space'}
                       </span>
@@ -416,8 +416,8 @@ function SessionCard(props: {
         isLinked && 'opacity-50',
       )}
     >
-      <div className="bg-foreground/5 flex h-9 w-9 items-center justify-center rounded-lg">
-        <LuUser className="h-4 w-4" />
+      <div className="bg-foreground/5 flex size-9 items-center justify-center rounded-lg">
+        <LuUser className="size-4" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
@@ -442,7 +442,7 @@ function SessionCard(props: {
           {subtitle}
         </div>
       </div>
-      <LuChevronRight className="text-foreground-alt/40 h-4 w-4" />
+      <LuChevronRight className="text-foreground-alt/40 size-4" />
     </div>
   )
 }

@@ -199,9 +199,7 @@ export function ForgeClusterViewer({
               />
             </div>
             <InfoCard
-              icon={
-                <LuListTodo className="text-foreground-alt/60 h-3.5 w-3.5" />
-              }
+              icon={<LuListTodo className="text-foreground-alt/60 size-3.5" />}
               title="Task States"
             >
               {snapshotLoading && (
@@ -243,7 +241,7 @@ export function ForgeClusterViewer({
             <ForgeEntityList
               entities={workers}
               loading={workersLoading || snapshotLoading}
-              icon={<LuCpu className="h-3 w-3 shrink-0" />}
+              icon={<LuCpu className="size-3 shrink-0" />}
               loadingLabel="Loading workers..."
               emptyLabel="No workers assigned"
             />
@@ -280,7 +278,7 @@ export function ForgeClusterViewer({
             {canCreateJob && (
               <div className="flex justify-end">
                 <DashboardButton
-                  icon={<LuPlus className="h-3.5 w-3.5" />}
+                  icon={<LuPlus className="size-3.5" />}
                   onClick={() => {
                     void handleCreateJob()
                   }}
@@ -294,7 +292,7 @@ export function ForgeClusterViewer({
               <ForgeEntityList
                 entities={jobs}
                 loading={jobsLoading || snapshotLoading}
-                icon={<LuBriefcase className="h-3 w-3 shrink-0" />}
+                icon={<LuBriefcase className="size-3 shrink-0" />}
                 loadingLabel="Loading jobs..."
                 emptyLabel="No jobs in cluster"
               />
@@ -342,7 +340,7 @@ export function ForgeClusterViewer({
                       {startable && (
                         <div className="flex justify-end">
                           <DashboardButton
-                            icon={<LuPlay className="h-3.5 w-3.5" />}
+                            icon={<LuPlay className="size-3.5" />}
                             onClick={() => {
                               void handleStartJob(job.objectKey)
                             }}
@@ -397,7 +395,7 @@ export function ForgeClusterViewer({
 
   return (
     <ForgeViewerShell
-      icon={<LuServer className="h-4 w-4" />}
+      icon={<LuServer className="size-4" />}
       title={cluster?.name || 'Cluster'}
       tabs={tabs}
     />

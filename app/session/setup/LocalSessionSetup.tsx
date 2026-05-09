@@ -241,8 +241,8 @@ export function WarningCard({
     <div className="border-foreground/20 bg-background-card/50 overflow-hidden rounded-lg border backdrop-blur-sm">
       <div className="p-6">
         <div className="mb-4 flex items-center gap-3">
-          <div className="bg-brand/10 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg">
-            <LuTriangleAlert className="text-brand h-5 w-5" />
+          <div className="bg-brand/10 flex size-10 shrink-0 items-center justify-center rounded-lg">
+            <LuTriangleAlert className="text-brand size-5" />
           </div>
           <div>
             <h2 className="text-foreground text-sm font-medium">
@@ -265,10 +265,10 @@ export function WarningCard({
               : 'hover:border-brand/30 hover:bg-brand/5 cursor-pointer',
             )}
           >
-            <div className="bg-foreground/5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md">
+            <div className="bg-foreground/5 flex size-8 shrink-0 items-center justify-center rounded-md">
               {isDesktop ?
-                <LuCheck className="text-foreground-alt h-4 w-4" />
-              : <LuMonitor className="text-foreground-alt h-4 w-4" />}
+                <LuCheck className="text-foreground-alt size-4" />
+              : <LuMonitor className="text-foreground-alt size-4" />}
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-foreground text-sm font-medium">
@@ -279,7 +279,7 @@ export function WarningCard({
               </p>
             </div>
             {!isDesktop && (
-              <LuArrowRight className="text-foreground-alt/50 h-4 w-4 shrink-0" />
+              <LuArrowRight className="text-foreground-alt/50 size-4 shrink-0" />
             )}
           </button>
 
@@ -288,10 +288,10 @@ export function WarningCard({
             disabled={upgradeLoading}
             className="border-foreground/10 hover:border-brand/30 hover:bg-brand/5 flex w-full cursor-pointer items-center gap-3 rounded-md border p-3 text-left transition-colors disabled:opacity-50"
           >
-            <div className="bg-foreground/5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md">
+            <div className="bg-foreground/5 flex size-8 shrink-0 items-center justify-center rounded-md">
               {upgradeLoading ?
                 <Spinner className="text-foreground-alt" />
-              : <LuCloud className="text-foreground-alt h-4 w-4" />}
+              : <LuCloud className="text-foreground-alt size-4" />}
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-foreground text-sm font-medium">
@@ -301,7 +301,7 @@ export function WarningCard({
                 Cloud sync and backup for ${PLAN_PRICE_MONTHLY}/mo.
               </p>
             </div>
-            <LuArrowRight className="text-foreground-alt/50 h-4 w-4 shrink-0" />
+            <LuArrowRight className="text-foreground-alt/50 size-4 shrink-0" />
           </button>
         </div>
       </div>

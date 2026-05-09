@@ -394,8 +394,8 @@ export function OrganizationDetails({
     <div className="bg-background-primary flex h-full w-full flex-col overflow-hidden">
       <div className="border-foreground/8 flex min-h-9 shrink-0 items-center justify-between gap-3 border-b px-4 py-2">
         <div className="text-foreground flex min-w-0 flex-1 items-center gap-2 text-sm font-semibold select-none">
-          <div className="bg-brand/10 text-brand flex h-5 w-5 shrink-0 items-center justify-center rounded">
-            <LuBuilding2 className="h-3 w-3" />
+          <div className="bg-brand/10 text-brand flex size-5 shrink-0 items-center justify-center rounded">
+            <LuBuilding2 className="size-3" />
           </div>
           <span className="min-w-0 truncate tracking-tight">{orgName}</span>
           <span className="text-foreground-alt/50 text-xs font-normal">
@@ -407,7 +407,7 @@ export function OrganizationDetails({
             <Tooltip>
               <TooltipTrigger asChild>
                 <DashboardButton
-                  icon={<LuLogOut className="h-4 w-4" />}
+                  icon={<LuLogOut className="size-4" />}
                   className="text-destructive hover:bg-destructive/10"
                   onClick={() => void handleLeave()}
                 >
@@ -421,7 +421,7 @@ export function OrganizationDetails({
             <Tooltip>
               <TooltipTrigger asChild>
                 <DashboardButton
-                  icon={<LuX className="h-4 w-4" />}
+                  icon={<LuX className="size-4" />}
                   onClick={onCloseClick}
                 />
               </TooltipTrigger>
@@ -436,7 +436,7 @@ export function OrganizationDetails({
           {degraded && (
             <CollapsibleSection
               title="Recovery"
-              icon={<LuCircleAlert className="h-3.5 w-3.5" />}
+              icon={<LuCircleAlert className="size-3.5" />}
               open={openSection === 'recovery'}
               onOpenChange={handleSectionOpenChange('recovery')}
             >
@@ -456,7 +456,7 @@ export function OrganizationDetails({
                     <div className="flex items-start gap-2">
                       <div
                         className={cn(
-                          'flex h-7 w-7 shrink-0 items-center justify-center rounded-md',
+                          'flex size-7 shrink-0 items-center justify-center rounded-md',
                           recoverySummary.tone === 'loading' &&
                             'bg-foreground/5',
                           recoverySummary.tone === 'degraded' &&
@@ -468,9 +468,8 @@ export function OrganizationDetails({
                         {recoverySummary.tone === 'loading' ?
                           <Spinner className="text-foreground" />
                         : recoverySummary.tone === 'degraded' ?
-                          <LuTriangleAlert className="text-warning h-4 w-4" />
-                        : <LuShieldAlert className="text-destructive h-4 w-4" />
-                        }
+                          <LuTriangleAlert className="text-warning size-4" />
+                        : <LuShieldAlert className="text-destructive size-4" />}
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-foreground text-xs font-medium">
@@ -504,7 +503,7 @@ export function OrganizationDetails({
                     <div className="mt-3 flex flex-wrap gap-2">
                       <RecoveryActionButton
                         label={mutationPending ? 'Repairing...' : 'Repair'}
-                        icon={<LuRefreshCw className="h-3.5 w-3.5" />}
+                        icon={<LuRefreshCw className="size-3.5" />}
                         onClick={() => {
                           setConfirmingReinitialize(false)
                           void runRecoveryAction('repair')
@@ -518,7 +517,7 @@ export function OrganizationDetails({
                       />
                       <RecoveryActionButton
                         label="Reinitialize"
-                        icon={<LuShieldAlert className="h-3.5 w-3.5" />}
+                        icon={<LuShieldAlert className="size-3.5" />}
                         onClick={() => setConfirmingReinitialize(true)}
                         disabled={mutationPending}
                         disabledReason={
@@ -541,13 +540,13 @@ export function OrganizationDetails({
                         </p>
                         <div className="mt-3 flex flex-wrap gap-2">
                           <DashboardButton
-                            icon={<LuX className="h-3.5 w-3.5" />}
+                            icon={<LuX className="size-3.5" />}
                             onClick={() => setConfirmingReinitialize(false)}
                           >
                             Cancel
                           </DashboardButton>
                           <DashboardButton
-                            icon={<LuShieldAlert className="h-3.5 w-3.5" />}
+                            icon={<LuShieldAlert className="size-3.5" />}
                             onClick={() => {
                               setConfirmingReinitialize(false)
                               void runRecoveryAction('reinitialize')
@@ -578,7 +577,7 @@ export function OrganizationDetails({
           {orgState && (
             <CollapsibleSection
               title="Members"
-              icon={<LuUsers className="h-3.5 w-3.5" />}
+              icon={<LuUsers className="size-3.5" />}
               open={openSection === 'members'}
               onOpenChange={handleSectionOpenChange('members')}
               badge={
@@ -602,7 +601,7 @@ export function OrganizationDetails({
           {isOwner && orgState && (
             <CollapsibleSection
               title="Invites"
-              icon={<LuLink className="h-3.5 w-3.5" />}
+              icon={<LuLink className="size-3.5" />}
               open={openSection === 'invites'}
               onOpenChange={handleSectionOpenChange('invites')}
               badge={
@@ -619,9 +618,9 @@ export function OrganizationDetails({
                   disabled={creatingInvite}
                   aria-label="Create invite"
                   title="Create invite"
-                  className="text-foreground-alt hover:text-foreground flex h-4 w-4 items-center justify-center transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                  className="text-foreground-alt hover:text-foreground flex size-4 items-center justify-center transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <LuPlus className="h-3.5 w-3.5" />
+                  <LuPlus className="size-3.5" />
                 </button>
               }
             >
@@ -643,7 +642,7 @@ export function OrganizationDetails({
                     )}
                   />
                   <DashboardButton
-                    icon={<LuUserPlus className="h-3 w-3" />}
+                    icon={<LuUserPlus className="size-3" />}
                     onClick={() => void handleCreateUsernameInvite()}
                     disabled={
                       usernameInvitePending ||
@@ -669,7 +668,7 @@ export function OrganizationDetails({
           {isOwner && orgState && (
             <CollapsibleSection
               title="Settings"
-              icon={<LuSettings className="h-3.5 w-3.5" />}
+              icon={<LuSettings className="size-3.5" />}
               open={openSection === 'settings'}
               onOpenChange={handleSectionOpenChange('settings')}
             >
@@ -696,7 +695,7 @@ export function OrganizationDetails({
                           )}
                         />
                         <DashboardButton
-                          icon={<LuSave className="h-3 w-3" />}
+                          icon={<LuSave className="size-3" />}
                           onClick={() => void handleRenameSave()}
                           disabled={
                             renameSaving || renameValue.trim() === orgName
@@ -705,7 +704,7 @@ export function OrganizationDetails({
                           {renameSaving ? 'Saving...' : 'Save'}
                         </DashboardButton>
                         <DashboardButton
-                          icon={<LuX className="h-3 w-3" />}
+                          icon={<LuX className="size-3" />}
                           onClick={handleRenameCancel}
                           disabled={renameSaving}
                         >
@@ -728,7 +727,7 @@ export function OrganizationDetails({
                           {orgName}
                         </div>
                         <DashboardButton
-                          icon={<LuPencil className="h-3 w-3" />}
+                          icon={<LuPencil className="size-3" />}
                           onClick={handleRenameStart}
                         >
                           Edit
@@ -752,7 +751,7 @@ export function OrganizationDetails({
 
           <CollapsibleSection
             title="Identifiers"
-            icon={<LuFingerprint className="h-3.5 w-3.5" />}
+            icon={<LuFingerprint className="size-3.5" />}
             open={openSection === 'identifiers'}
             onOpenChange={handleSectionOpenChange('identifiers')}
           >

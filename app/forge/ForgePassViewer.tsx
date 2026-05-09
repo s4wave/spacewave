@@ -123,7 +123,7 @@ export function ForgePassViewer({
             <ForgeEntityList
               entities={executions}
               loading={executionsLoading || decodedExecutionsLoading}
-              icon={<LuActivity className="h-3 w-3 shrink-0" />}
+              icon={<LuActivity className="size-3 shrink-0" />}
               loadingLabel="Loading executions..."
               emptyLabel="No executions yet"
             />
@@ -191,7 +191,7 @@ export function ForgePassViewer({
 
   return (
     <ForgeViewerShell
-      icon={<LuPlay className="h-4 w-4" />}
+      icon={<LuPlay className="size-4" />}
       title="Pass"
       state={pass?.passState ?? 0}
       stateLabels={passStateLabels}

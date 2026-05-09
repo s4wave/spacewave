@@ -187,7 +187,7 @@ export function DocumentationViewer({
       <div className="bg-background-primary flex h-full w-full flex-col">
         <div className="border-foreground/8 flex h-9 shrink-0 items-center border-b px-4">
           <div className="text-foreground flex items-center gap-2 text-sm font-semibold select-none">
-            <LuBookOpen className="h-4 w-4" />
+            <LuBookOpen className="size-4" />
             <span className="tracking-tight">{title}</span>
           </div>
         </div>
@@ -212,7 +212,7 @@ export function DocumentationViewer({
       <div className="bg-background-primary flex h-full w-full flex-col">
         <div className="border-foreground/8 flex h-9 shrink-0 items-center border-b px-4">
           <div className="text-foreground flex items-center gap-2 text-sm font-semibold select-none">
-            <LuBookOpen className="h-4 w-4" />
+            <LuBookOpen className="size-4" />
             <span className="tracking-tight">{title}</span>
           </div>
         </div>
@@ -232,7 +232,7 @@ export function DocumentationViewer({
       >
         {/* Header */}
         <div className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-3">
-          <LuBookOpen className="text-foreground h-4 w-4 shrink-0" />
+          <LuBookOpen className="text-foreground size-4 shrink-0" />
           <span className="text-foreground truncate text-sm font-semibold tracking-tight">
             {title}
           </span>
@@ -241,7 +241,7 @@ export function DocumentationViewer({
         {/* Search and create */}
         <div className="border-border flex items-center gap-1 border-b px-2 py-1.5">
           <div className="bg-muted flex flex-1 items-center gap-1.5 rounded px-2 py-1">
-            <LuSearch className="text-muted-foreground h-3 w-3 shrink-0" />
+            <LuSearch className="text-muted-foreground size-3 shrink-0" />
             <input
               type="text"
               placeholder="Search pages..."
@@ -258,7 +258,7 @@ export function DocumentationViewer({
             }}
             title="New page"
           >
-            <LuPlus className="h-3.5 w-3.5" />
+            <LuPlus className="size-3.5" />
           </button>
         </div>
 
@@ -296,7 +296,7 @@ export function DocumentationViewer({
                   )}
                   onClick={() => handleSelectPage(entry.name)}
                 >
-                  <LuFile className="h-3 w-3 shrink-0" />
+                  <LuFile className="size-3 shrink-0" />
                   <span className="truncate">{label}</span>
                 </button>
               )
@@ -322,7 +322,7 @@ export function DocumentationViewer({
                     onClick={handleCancelEdit}
                     title="Cancel editing"
                   >
-                    <LuX className="h-3 w-3" />
+                    <LuX className="size-3" />
                     Cancel
                   </button>
                 )}
@@ -336,7 +336,7 @@ export function DocumentationViewer({
                   onClick={handleToggleEdit}
                   title={editing ? 'Save and preview' : 'Edit page'}
                 >
-                  <LuPenLine className="h-3 w-3" />
+                  <LuPenLine className="size-3" />
                   {editing ? 'Save' : 'Edit'}
                 </button>
               </div>

@@ -28,8 +28,8 @@ export function CopyableField({ label, value }: CopyableFieldProps) {
           {value}
         </span>
         {copied ?
-          <LuCheck className="h-3.5 w-3.5 flex-shrink-0 text-green-500" />
-        : <LuCopy className="h-3.5 w-3.5 flex-shrink-0 opacity-0 transition-opacity group-hover:opacity-100" />
+          <LuCheck className="size-3.5 flex-shrink-0 text-green-500" />
+        : <LuCopy className="size-3.5 flex-shrink-0 opacity-0 transition-opacity group-hover:opacity-100" />
         }
       </button>
     </div>

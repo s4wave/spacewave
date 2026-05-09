@@ -89,14 +89,14 @@ export function SessionLockSection({ embedded }: SessionLockSectionProps) {
             <RadioOption
               selected={displayMode === 'auto'}
               onSelect={() => setSelectedMode('auto')}
-              icon={<LuLockOpen className="h-4 w-4" />}
+              icon={<LuLockOpen className="size-4" />}
               label="Auto-unlock"
               description="Key stored on disk. No PIN needed."
             />
             <RadioOption
               selected={displayMode === 'pin'}
               onSelect={() => setSelectedMode('pin')}
-              icon={<LuLock className="h-4 w-4" />}
+              icon={<LuLock className="size-4" />}
               label="PIN lock"
               description="Key encrypted with PIN. Enter PIN on each app launch."
             />
@@ -197,7 +197,7 @@ export function SessionLockSection({ embedded }: SessionLockSectionProps) {
     <section>
       <div className="mb-2 flex items-center justify-between">
         <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-          <LuLock className="h-3.5 w-3.5" />
+          <LuLock className="size-3.5" />
           Session Lock
         </h2>
       </div>

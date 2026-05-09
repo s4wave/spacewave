@@ -217,7 +217,7 @@ function AuthMethodsSectionContent({
     <>
       <CollapsibleSection
         title="Auth Methods"
-        icon={<LuKey className="h-3.5 w-3.5" />}
+        icon={<LuKey className="size-3.5" />}
         open={sectionOpen}
         onOpenChange={handleOpenChange}
         badge={
@@ -231,11 +231,11 @@ function AuthMethodsSectionContent({
           <button
             type="button"
             onClick={() => setPickerOpen(true)}
-            className="text-foreground-alt hover:text-foreground flex h-4 w-4 items-center justify-center transition-colors"
+            className="text-foreground-alt hover:text-foreground flex size-4 items-center justify-center transition-colors"
             aria-label="Add auth method"
             title="Add auth method"
           >
-            <LuPlus className="h-3.5 w-3.5" />
+            <LuPlus className="size-3.5" />
           </button>
         }
       >
@@ -246,7 +246,7 @@ function AuthMethodsSectionContent({
         )}
         {!loading && authMethods.length === 0 && (
           <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
-            <LuKey className="h-3.5 w-3.5 shrink-0" />
+            <LuKey className="size-3.5 shrink-0" />
             <span>No auth methods found</span>
           </div>
         )}
@@ -267,7 +267,7 @@ function AuthMethodsSectionContent({
                   className="border-foreground/6 bg-background-card/30 flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5"
                 >
                   <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <div className="bg-foreground/5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md">
+                    <div className="bg-foreground/5 flex size-8 shrink-0 items-center justify-center rounded-md">
                       <AuthMethodIcon method={method} />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -287,7 +287,7 @@ function AuthMethodsSectionContent({
                   <div className="flex gap-1">
                     {canChangePassword && (
                       <DashboardButton
-                        icon={<LuLock className="h-3 w-3" />}
+                        icon={<LuLock className="size-3" />}
                         onClick={() => setChangePasswordOpen(true)}
                       >
                         Change
@@ -295,7 +295,7 @@ function AuthMethodsSectionContent({
                     )}
                     {canRemove && (
                       <DashboardButton
-                        icon={<LuTrash2 className="h-3 w-3" />}
+                        icon={<LuTrash2 className="size-3" />}
                         disabled={authMethods.length <= 1}
                         className={cn(
                           authMethods.length > 1 &&
@@ -337,13 +337,13 @@ function AuthMethodsSectionContent({
             <MethodOption
               label="Google"
               description="Link your Google identity"
-              icon={<FcGoogle className="h-4 w-4" />}
+              icon={<FcGoogle className="size-4" />}
               onClick={() => handlePickMethod('google')}
             />
             <MethodOption
               label="GitHub"
               description="Link your GitHub identity"
-              icon={<LuGithub className="h-4 w-4" />}
+              icon={<LuGithub className="size-4" />}
               onClick={() => handlePickMethod('github')}
             />
           </div>
@@ -412,8 +412,7 @@ function AuthMethodsSectionContent({
           description="Confirm your identity to generate and register a backup key. The .pem file will download automatically."
           confirmLabel={
             <>
-              <LuDownload className="inline h-3.5 w-3.5" /> Generate and
-              download
+              <LuDownload className="inline size-3.5" /> Generate and download
             </>
           }
           intent={{
@@ -464,13 +463,13 @@ function AuthMethodsSectionContent({
 function AuthMethodIcon({ method }: { method: AccountAuthMethod }) {
   switch (getAuthMethodKind(method)) {
     case AccountAuthMethodKind.GOOGLE_SSO:
-      return <FcGoogle className="h-4 w-4" />
+      return <FcGoogle className="size-4" />
     case AccountAuthMethodKind.GITHUB_SSO:
-      return <LuGithub className="h-4 w-4" />
+      return <LuGithub className="size-4" />
     case AccountAuthMethodKind.PASSKEY:
-      return <LuFingerprint className="text-foreground-alt h-4 w-4" />
+      return <LuFingerprint className="text-foreground-alt size-4" />
     default:
-      return <LuKey className="text-foreground-alt h-4 w-4" />
+      return <LuKey className="text-foreground-alt size-4" />
   }
 }
 

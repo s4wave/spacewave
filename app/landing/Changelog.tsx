@@ -81,7 +81,7 @@ function ReleaseCard({ release }: { release: Release }) {
       className="border-foreground/8 bg-background-card/50 hover:border-foreground/20 hover:shadow-foreground/5 rounded-lg border p-5 backdrop-blur-sm transition-all duration-300 hover:shadow-md"
     >
       <div className="flex items-start justify-between">
-        <h2 className="text-foreground text-lg font-bold">
+        <h2 className="text-foreground text-lg font-semibold">
           v{release.version}
         </h2>
         {release.releaseUrl && (
@@ -90,7 +90,7 @@ function ReleaseCard({ release }: { release: Release }) {
             className="text-foreground-alt/50 hover:text-foreground shrink-0 transition-colors"
             title="View release"
           >
-            <LuGithub className="h-5 w-5" />
+            <LuGithub className="size-5" />
           </ExternalLink>
         )}
       </div>
@@ -155,14 +155,14 @@ export function Changelog() {
           onClick={goBack}
           className="text-foreground-alt hover:text-foreground flex cursor-pointer items-center gap-2 text-sm transition-colors"
         >
-          <LuArrowLeft className="h-4 w-4" />
+          <LuArrowLeft className="size-4" />
           Back
         </button>
       </div>
 
       {/* Hero */}
       <header className="relative z-10 mx-auto w-full max-w-4xl px-4 pt-14 pb-8 text-center @lg:px-8 @lg:pt-20 @lg:pb-10">
-        <h1 className="text-foreground mb-6 text-4xl font-bold tracking-tight @lg:text-5xl">
+        <h1 className="text-foreground mb-6 text-4xl font-semibold tracking-tight @lg:text-5xl">
           Changelog
         </h1>
         <p className="text-foreground-alt mx-auto max-w-xl text-base leading-relaxed @lg:text-lg">
@@ -184,7 +184,7 @@ export function Changelog() {
               {latestVersion ? `v${latestVersion}` : 'Versions'}
               <LuChevronDown
                 className={cn(
-                  'h-4 w-4 transition-transform',
+                  'size-4 transition-transform',
                   dropdownOpen && 'rotate-180',
                 )}
               />

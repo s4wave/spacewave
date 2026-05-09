@@ -73,7 +73,7 @@ export function LandingChat() {
 
   return (
     <LegalPageLayout
-      icon={<LuMessageSquare className="h-8 w-8" />}
+      icon={<LuMessageSquare className="size-8" />}
       title="Encrypted messaging that belongs to you."
       subtitle="Private conversations for your people. No tracking, no ads, no server-side copies of your messages."
     >

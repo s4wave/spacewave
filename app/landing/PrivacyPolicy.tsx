@@ -14,7 +14,7 @@ export const metadata = {
 export function PrivacyPolicy() {
   return (
     <LegalPageLayout
-      icon={<LuShield className="h-10 w-10" />}
+      icon={<LuShield className="size-10" />}
       title="Privacy Policy"
       subtitle="How Spacewave handles your data and protects your privacy."
       lastUpdated="Last updated: March 2026"

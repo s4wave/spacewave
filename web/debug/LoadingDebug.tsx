@@ -28,7 +28,7 @@ export function LoadingDebug() {
           className="text-foreground-alt hover:text-foreground transition-colors"
           aria-label="Back"
         >
-          <LuArrowLeft className="h-4 w-4" />
+          <LuArrowLeft className="size-4" />
         </button>
         <span className="text-foreground text-sm font-semibold tracking-tight select-none">
           Loading UI Prototype
@@ -112,10 +112,10 @@ function Label({ children }: { children: React.ReactNode }) {
 type SpinnerSize = 'sm' | 'md' | 'lg' | 'xl'
 
 const spinnerSizes: Record<SpinnerSize, string> = {
-  sm: 'h-3.5 w-3.5',
-  md: 'h-4 w-4',
-  lg: 'h-6 w-6',
-  xl: 'h-8 w-8',
+  sm: 'size-3.5',
+  md: 'size-4',
+  lg: 'size-6',
+  xl: 'size-8',
 }
 
 // Spinner inherits text color from parent so container state colors apply.
@@ -287,7 +287,7 @@ function LoadingCard({ view }: { view: LoadingView }) {
       <div className="flex items-start gap-3">
         <div
           className={cn(
-            'flex h-8 w-8 shrink-0 items-center justify-center rounded-md',
+            'flex size-8 shrink-0 items-center justify-center rounded-md',
             state === 'loading' && 'bg-foreground/5 text-foreground-alt',
             state === 'active' && 'bg-brand/10 text-brand',
             state === 'synced' && 'bg-foreground/5 text-brand',
@@ -359,16 +359,16 @@ function LoadingCard({ view }: { view: LoadingView }) {
 
 function LoadingCardIcon({ state }: { state: LoadingState }) {
   if (state === 'error') {
-    return <LuCircleAlert className="h-4 w-4" aria-hidden="true" />
+    return <LuCircleAlert className="size-4" aria-hidden="true" />
   }
   if (state === 'synced') {
     return (
       <span
-        className="relative flex h-4 w-4 items-center justify-center"
+        className="relative flex size-4 items-center justify-center"
         aria-hidden="true"
       >
-        <LuCloud className="h-3.5 w-3.5" />
-        <LuCircleCheck className="text-brand absolute -right-1 -bottom-1 h-2.5 w-2.5" />
+        <LuCloud className="size-3.5" />
+        <LuCircleCheck className="text-brand absolute -right-1 -bottom-1 size-2.5" />
       </span>
     )
   }
@@ -452,7 +452,7 @@ function LoadingCardSection() {
   return (
     <Section
       title="LoadingCard"
-      description="The primary loading surface. Glass card with h-8 w-8 icon box + title + detail. Four states. Optionally renders a ProgressBar, rate pills, last-activity footer, error box, and retry/cancel buttons. Lifts the shape from SessionSyncStatusSummary."
+      description="The primary loading surface. Glass card with size-8 icon box + title + detail. Four states. Optionally renders a ProgressBar, rate pills, last-activity footer, error box, and retry/cancel buttons. Lifts the shape from SessionSyncStatusSummary."
     >
       <div className="space-y-3">
         {examples.map(({ label, view }) => (
@@ -515,7 +515,7 @@ function LoadingInlineSection() {
               disabled
             >
               <Spinner size="sm" className="text-brand" />
-              <span>Creating...</span>
+              <span>Creating…</span>
             </button>
             <button
               type="button"
@@ -523,7 +523,7 @@ function LoadingInlineSection() {
               disabled
             >
               <Spinner size="sm" />
-              <span>Retrying...</span>
+              <span>Retrying…</span>
             </button>
           </div>
         </div>
@@ -560,7 +560,7 @@ function LoadingScreenSection() {
     >
       <div className="border-foreground/6 bg-background/80 relative flex h-64 items-center justify-center overflow-hidden rounded-lg border">
         <div className="relative z-10 flex flex-col items-center gap-4">
-          <div className="bg-brand/10 flex h-12 w-12 items-center justify-center rounded-xl">
+          <div className="bg-brand/10 flex size-12 items-center justify-center rounded-xl">
             <Spinner size="xl" className="text-brand" />
           </div>
           <div className="space-y-1 text-center">

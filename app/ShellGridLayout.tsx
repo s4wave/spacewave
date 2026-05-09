@@ -293,7 +293,7 @@ export function ShellGridLayout() {
           title="Close tab"
           disabled={tabCount <= 1}
         >
-          <LuX className="h-3 w-3" />
+          <LuX className="size-3" />
         </button>,
         <button
           key="add-tab"
@@ -301,7 +301,7 @@ export function ShellGridLayout() {
           onClick={handleAddTab}
           title="Add tab"
         >
-          <LuPlus className="h-3 w-3" />
+          <LuPlus className="size-3" />
         </button>,
         <button
           key="popout-tab"
@@ -309,7 +309,7 @@ export function ShellGridLayout() {
           onClick={() => selectedTabId && handlePopoutTab(selectedTabId)}
           title="Open in new tab"
         >
-          <LuExternalLink className="h-3 w-3" />
+          <LuExternalLink className="size-3" />
         </button>,
       )
     },

@@ -241,7 +241,7 @@ function ToolbarPlugin() {
         disabled={!canUndo}
         title="Undo"
       >
-        <LuUndo2 className="h-3.5 w-3.5" />
+        <LuUndo2 className="size-3.5" />
       </button>
       <button
         type="button"
@@ -250,7 +250,7 @@ function ToolbarPlugin() {
         disabled={!canRedo}
         title="Redo"
       >
-        <LuRedo2 className="h-3.5 w-3.5" />
+        <LuRedo2 className="size-3.5" />
       </button>
 
       <div className="mx-1 h-4 w-px bg-border" />
@@ -265,7 +265,7 @@ function ToolbarPlugin() {
           <span className="text-foreground-alt/50 text-xs">
             {BLOCK_TYPE_LABELS[blockType]}
           </span>
-          <LuChevronDown className="h-3 w-3" />
+          <LuChevronDown className="size-3" />
         </button>
         {showBlockMenu && (
           <div className="bg-popover border-border absolute left-0 top-full z-50 mt-1 min-w-[140px] rounded-lg border py-1 shadow-lg">
@@ -294,7 +294,7 @@ function ToolbarPlugin() {
         onClick={() => formatText('bold')}
         title="Bold (Ctrl+B)"
       >
-        <LuBold className="h-3.5 w-3.5" />
+        <LuBold className="size-3.5" />
       </button>
       <button
         type="button"
@@ -302,7 +302,7 @@ function ToolbarPlugin() {
         onClick={() => formatText('italic')}
         title="Italic (Ctrl+I)"
       >
-        <LuItalic className="h-3.5 w-3.5" />
+        <LuItalic className="size-3.5" />
       </button>
       <button
         type="button"
@@ -310,7 +310,7 @@ function ToolbarPlugin() {
         onClick={() => formatText('strikethrough')}
         title="Strikethrough"
       >
-        <LuStrikethrough className="h-3.5 w-3.5" />
+        <LuStrikethrough className="size-3.5" />
       </button>
       <button
         type="button"
@@ -318,7 +318,7 @@ function ToolbarPlugin() {
         onClick={() => formatText('code')}
         title="Inline Code"
       >
-        <LuCode className="h-3.5 w-3.5" />
+        <LuCode className="size-3.5" />
       </button>
 
       <div className="mx-1 h-4 w-px bg-border" />
@@ -329,7 +329,7 @@ function ToolbarPlugin() {
         onClick={() => formatBlock('bullet')}
         title="Bullet List"
       >
-        <LuList className="h-3.5 w-3.5" />
+        <LuList className="size-3.5" />
       </button>
       <button
         type="button"
@@ -337,7 +337,7 @@ function ToolbarPlugin() {
         onClick={() => formatBlock('number')}
         title="Numbered List"
       >
-        <LuListOrdered className="h-3.5 w-3.5" />
+        <LuListOrdered className="size-3.5" />
       </button>
       <button
         type="button"
@@ -345,7 +345,7 @@ function ToolbarPlugin() {
         onClick={() => formatBlock('check')}
         title="Check List"
       >
-        <LuListChecks className="h-3.5 w-3.5" />
+        <LuListChecks className="size-3.5" />
       </button>
 
       <div className="mx-1 h-4 w-px bg-border" />
@@ -356,7 +356,7 @@ function ToolbarPlugin() {
         onClick={insertLink}
         title="Insert Link"
       >
-        <LuLink className="h-3.5 w-3.5" />
+        <LuLink className="size-3.5" />
       </button>
     </div>
   )

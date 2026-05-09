@@ -57,8 +57,8 @@ export function CommitRow({
         onClick={handleClick}
       >
         {expanded ?
-          <LuChevronDown className="text-foreground-alt h-3 w-3 shrink-0" />
-        : <LuChevronRight className="text-foreground-alt h-3 w-3 shrink-0" />}
+          <LuChevronDown className="text-foreground-alt size-3 shrink-0" />
+        : <LuChevronRight className="text-foreground-alt size-3 shrink-0" />}
         <span
           className="text-brand shrink-0 cursor-pointer font-mono hover:underline"
           onClick={handleHashClick}

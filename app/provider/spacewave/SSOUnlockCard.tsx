@@ -48,8 +48,8 @@ export function SSOUnlockCard(props: SSOUnlockCardProps) {
     <div className="flex flex-col gap-4">
       <AuthCard>
         <div className="mb-4 flex items-center gap-3">
-          <div className="bg-brand/10 flex h-10 w-10 items-center justify-center rounded-lg">
-            <ProviderIcon provider={provider} className="h-5 w-5" />
+          <div className="bg-brand/10 flex size-10 items-center justify-center rounded-lg">
+            <ProviderIcon provider={provider} className="size-5" />
           </div>
           <div className="flex min-w-0 flex-col">
             <h2 className="text-foreground text-sm font-semibold">
@@ -75,7 +75,7 @@ export function SSOUnlockCard(props: SSOUnlockCardProps) {
         >
           <label className="flex flex-col gap-1.5">
             <span className="text-foreground-alt flex items-center gap-1.5 text-xs select-none">
-              <LuLock className="h-3.5 w-3.5" />
+              <LuLock className="size-3.5" />
               PIN
             </span>
             <input
@@ -107,7 +107,7 @@ export function SSOUnlockCard(props: SSOUnlockCardProps) {
           <AuthPrimaryActionButton
             type="submit"
             disabled={busy || !pin}
-            icon={<LuLock className="text-foreground h-4 w-4" />}
+            icon={<LuLock className="text-foreground size-4" />}
           >
             Unlock and continue
           </AuthPrimaryActionButton>
@@ -115,7 +115,7 @@ export function SSOUnlockCard(props: SSOUnlockCardProps) {
             onClick={onCancel}
             className="hover:text-brand flex items-center justify-center gap-1.5"
           >
-            <LuArrowLeft className="h-3 w-3" />
+            <LuArrowLeft className="size-3" />
             {cancelLabel}
           </AuthSecondaryActionButton>
         </form>
@@ -124,7 +124,7 @@ export function SSOUnlockCard(props: SSOUnlockCardProps) {
       <div className="text-foreground-alt flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-xs">
         {UNLOCK_HIGHLIGHTS.map((text) => (
           <span key={text} className="flex items-center gap-1.5">
-            <LuCheck className="text-brand h-3.5 w-3.5" />
+            <LuCheck className="text-brand size-3.5" />
             {text}
           </span>
         ))}

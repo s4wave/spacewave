@@ -134,7 +134,7 @@ function ListenerYieldNotifierInner({
         <DialogContent showCloseButton={false}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <LuTriangleAlert className="text-warning h-5 w-5 shrink-0" />
+              <LuTriangleAlert className="text-warning size-5 shrink-0" />
               Allow command-line takeover?
             </DialogTitle>
             <DialogDescription>
@@ -147,8 +147,8 @@ function ListenerYieldNotifierInner({
 
           <div className="border-foreground/10 bg-background/30 rounded-lg border p-4">
             <div className="flex items-start gap-3">
-              <div className="border-foreground/10 bg-background/60 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border">
-                <LuTerminal className="text-foreground-alt h-5 w-5" />
+              <div className="border-foreground/10 bg-background/60 flex size-10 shrink-0 items-center justify-center rounded-full border">
+                <LuTerminal className="text-foreground-alt size-5" />
               </div>
               <div className="min-w-0 flex-1 space-y-2">
                 <div className="space-y-0.5">
@@ -251,7 +251,7 @@ function RuntimeHandoffBanner({
       className="border-warning/20 bg-warning/5 flex w-full flex-wrap items-center justify-between gap-3 border-b px-3 py-1.5"
     >
       <div className="flex min-w-0 flex-1 items-start gap-2">
-        <LuTriangleAlert className="text-warning h-3.5 w-3.5 shrink-0" />
+        <LuTriangleAlert className="text-warning size-3.5 shrink-0" />
         <div className="min-w-0">
           <p className="text-foreground/80 text-xs font-medium select-none">
             Runtime handed off

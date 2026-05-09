@@ -224,8 +224,8 @@ function UnixFSPdfViewerSurface({
                 data-testid="unixfs-pdf-error"
                 className="bg-background/82 absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 p-6 text-center backdrop-blur-sm"
               >
-                <div className="bg-destructive/10 text-destructive flex h-10 w-10 items-center justify-center rounded-full">
-                  <LuTriangleAlert className="h-5 w-5" />
+                <div className="bg-destructive/10 text-destructive flex size-10 items-center justify-center rounded-full">
+                  <LuTriangleAlert className="size-5" />
                 </div>
                 <div className="text-foreground text-sm font-semibold">
                   PDF preview unavailable

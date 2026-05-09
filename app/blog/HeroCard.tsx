@@ -35,7 +35,7 @@ export function HeroCard({ post }: HeroCardProps) {
             ))}
           </div>
 
-          <h2 className="text-foreground group-hover:text-brand mb-3 text-2xl font-bold tracking-tight transition-colors duration-300 @lg:text-3xl">
+          <h2 className="text-foreground group-hover:text-brand mb-3 text-2xl font-semibold tracking-tight transition-colors duration-300 @lg:text-3xl">
             {post.title}
           </h2>
 
@@ -45,7 +45,7 @@ export function HeroCard({ post }: HeroCardProps) {
 
           <div className="text-brand flex items-center gap-2 text-sm font-medium opacity-0 transition-all duration-300 group-hover:opacity-100">
             Read post
-            <LuArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+            <LuArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" />
           </div>
         </div>
 
@@ -54,7 +54,7 @@ export function HeroCard({ post }: HeroCardProps) {
           <img
             src={post.author.avatar}
             alt={post.author.name}
-            className="border-foreground/10 h-10 w-10 rounded-full border @lg:h-12 @lg:w-12"
+            className="border-foreground/10 size-10 rounded-full border @lg:h-12 @lg:w-12"
             loading="lazy"
           />
           <div className="@lg:text-right">

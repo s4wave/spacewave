@@ -58,7 +58,7 @@ export function SpacePlugins() {
     return (
       <div className="text-foreground-alt border-foreground/8 flex items-center justify-center rounded-lg border bg-transparent px-6 py-8 text-center">
         <div className="text-foreground-alt">
-          <LuPuzzle className="mx-auto mb-1.5 h-6 w-6 opacity-30" />
+          <LuPuzzle className="mx-auto mb-1.5 size-6 opacity-30" />
           <p className="text-foreground-alt/50 text-xs select-none">
             No plugins configured
           </p>

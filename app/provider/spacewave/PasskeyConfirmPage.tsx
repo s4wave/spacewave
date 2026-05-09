@@ -188,13 +188,13 @@ export function PasskeyConfirmPage() {
         }
       >
         <AuthStatusPanel
-          icon={<LuCircleAlert className="text-destructive h-10 w-10" />}
+          icon={<LuCircleAlert className="text-destructive size-10" />}
           message="Your desktop passkey session has expired. Start the passkey flow again."
         >
           <div className="flex w-full flex-col gap-2">
             <AuthPrimaryActionButton
               onClick={handleRestart}
-              icon={<LuFingerprint className="h-4 w-4" />}
+              icon={<LuFingerprint className="size-4" />}
             >
               Restart sign-in
             </AuthPrimaryActionButton>
@@ -202,7 +202,7 @@ export function PasskeyConfirmPage() {
               onClick={handleCancel}
               className="flex items-center justify-center gap-2"
             >
-              <LuArrowLeft className="h-4 w-4" />
+              <LuArrowLeft className="size-4" />
               Back to login
             </AuthSecondaryActionButton>
           </div>
@@ -224,13 +224,13 @@ export function PasskeyConfirmPage() {
         }
       >
         <AuthStatusPanel
-          icon={<LuCircleAlert className="text-destructive h-10 w-10" />}
+          icon={<LuCircleAlert className="text-destructive size-10" />}
           message={state.message}
         >
           <div className="flex w-full flex-col gap-2">
             <AuthPrimaryActionButton
               onClick={handleRestart}
-              icon={<LuFingerprint className="h-4 w-4" />}
+              icon={<LuFingerprint className="size-4" />}
             >
               Restart sign-in
             </AuthPrimaryActionButton>
@@ -238,7 +238,7 @@ export function PasskeyConfirmPage() {
               onClick={handleCancel}
               className="flex items-center justify-center gap-2"
             >
-              <LuArrowLeft className="h-4 w-4" />
+              <LuArrowLeft className="size-4" />
               Back to login
             </AuthSecondaryActionButton>
           </div>
@@ -259,8 +259,8 @@ export function PasskeyConfirmPage() {
         <>
           <AnimatedLogo followMouse={false} />
           <div className="flex items-center gap-2">
-            <div className="bg-brand/10 border-brand/30 flex h-11 w-11 items-center justify-center rounded-full border">
-              <LuFingerprint className="text-brand h-5 w-5" />
+            <div className="bg-brand/10 border-brand/30 flex size-11 items-center justify-center rounded-full border">
+              <LuFingerprint className="text-brand size-5" />
             </div>
             <div className="text-left">
               <h2 className="text-foreground text-lg font-semibold">
@@ -332,7 +332,7 @@ export function PasskeyConfirmPage() {
             <AuthPrimaryActionButton
               onClick={() => void handleCreateAccount()}
               disabled={isBusy || !username || !!usernameError}
-              icon={isBusy ? <Spinner /> : <LuUserPlus className="h-4 w-4" />}
+              icon={isBusy ? <Spinner /> : <LuUserPlus className="size-4" />}
             >
               {isBusy ? statusMessage : 'Create account'}
             </AuthPrimaryActionButton>
@@ -340,7 +340,7 @@ export function PasskeyConfirmPage() {
               onClick={handleCancel}
               className="flex items-center justify-center gap-2"
             >
-              <LuArrowLeft className="h-4 w-4" />
+              <LuArrowLeft className="size-4" />
               Back to login
             </AuthSecondaryActionButton>
           </div>

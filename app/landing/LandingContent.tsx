@@ -93,7 +93,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 // SectionTitle renders a section heading.
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="text-foreground mb-4 text-center text-3xl font-bold @lg:text-4xl">
+    <h2 className="text-foreground mb-4 text-center text-3xl font-semibold @lg:text-4xl">
       {children}
     </h2>
   )
@@ -130,7 +130,7 @@ function CtaButton({
         : 'border-foreground/15 bg-background/50 text-foreground hover:border-brand/40 hover:bg-brand/8',
       )}
     >
-      <Icon className="h-4 w-4" />
+      <Icon className="size-4" />
       <span>{children}</span>
     </button>
   )
@@ -148,7 +148,7 @@ interface SectionHeadingProps {
 }
 
 const SectionHeading: React.FC<SectionHeadingProps> = ({ children }) => (
-  <h2 className="text-foreground mb-8 text-center text-3xl font-bold @lg:text-4xl">
+  <h2 className="text-foreground mb-8 text-center text-3xl font-semibold @lg:text-4xl">
     {children}
   </h2>
 )
@@ -256,13 +256,13 @@ const FaqItem: React.FC<FaqItemProps> = ({
         </h3>
         <div
           className={cn(
-            'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md transition-all',
+            'mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md transition-all',
             isOpen ?
               'bg-brand/12 text-brand rotate-45'
             : 'bg-foreground/6 text-foreground-alt group-hover:bg-brand/8 group-hover:text-brand',
           )}
         >
-          <LuPlus className="h-3 w-3" />
+          <LuPlus className="size-3" />
         </div>
       </div>
       <div
@@ -430,7 +430,7 @@ const HeroSection: React.FC = () => {
           href={blogHref}
           className="border-brand/30 text-brand hover:border-brand/50 mb-8 inline-block cursor-pointer rounded-full border px-4 py-2 text-sm font-medium no-underline backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5"
         >
-          <PiRocketLaunchDuotone className="mr-2 inline-block h-4 w-4 -translate-y-0.5" />
+          <PiRocketLaunchDuotone className="mr-2 inline-block size-4 -translate-y-0.5" />
           Announcing open beta
         </a>
 
@@ -461,22 +461,22 @@ const HeroSection: React.FC = () => {
         <div className="mx-auto mb-8 flex max-w-xl flex-col items-center">
           <ul className="mx-auto grid max-w-2xl grid-cols-1 gap-x-8 gap-y-3 text-base @lg:grid-cols-2">
             <HeroFeature
-              icon={<PiAppStoreLogoBold className="h-5 w-5" />}
+              icon={<PiAppStoreLogoBold className="size-5" />}
               text="Spaces for any purpose"
               color="emerald"
             />
             <HeroFeature
-              icon={<LuMousePointer className="h-5 w-5" />}
+              icon={<LuMousePointer className="size-5" />}
               text="Instant live sync"
               color="pink"
             />
             <HeroFeature
-              icon={<LuShield className="h-5 w-5" />}
+              icon={<LuShield className="size-5" />}
               text="End-to-end encrypted"
               color="purple"
             />
             <HeroFeature
-              icon={<LuGithub className="h-5 w-5" />}
+              icon={<LuGithub className="size-5" />}
               text="Open-source & extensible"
               color="amber"
             />
@@ -485,14 +485,14 @@ const HeroSection: React.FC = () => {
 
         <div className="mt-2 flex flex-wrap justify-center gap-4">
           <HeroButton
-            icon={<LuRocket className="mr-2 h-4 w-4" />}
+            icon={<LuRocket className="mr-2 size-4" />}
             onClick={nav.getStarted}
           >
             Get started (free)
           </HeroButton>
           {!isDesktop && (
             <HeroButton
-              icon={<LuDownload className="mr-2 h-4 w-4" />}
+              icon={<LuDownload className="mr-2 size-4" />}
               onClick={nav.download}
             >
               Download app
@@ -661,7 +661,7 @@ function NetworkNode({
           className="flex h-full w-full items-center justify-center"
           style={{ color }}
         >
-          <Icon className="h-4 w-4" />
+          <Icon className="size-4" />
         </div>
       </foreignObject>
     </g>
@@ -746,7 +746,7 @@ function TraditionalDiagram({ label }: { label: string }) {
       />
       <foreignObject x={server.x - 10} y={server.y - 10} width="20" height="20">
         <div className="text-foreground-alt flex h-full w-full items-center justify-center opacity-60">
-          <LuServer className="h-4 w-4" />
+          <LuServer className="size-4" />
         </div>
       </foreignObject>
       <text
@@ -772,7 +772,7 @@ function TraditionalDiagram({ label }: { label: string }) {
           />
           <foreignObject x={d.x - 8} y={d.y - 8} width="16" height="16">
             <div className="text-foreground-alt flex h-full w-full items-center justify-center opacity-40">
-              <d.icon className="h-3.5 w-3.5" />
+              <d.icon className="size-3.5" />
             </div>
           </foreignObject>
           <text
@@ -928,7 +928,7 @@ function HowItWorksSection() {
               key={card.title}
               className="border-foreground/6 bg-background-card/30 group rounded-lg border p-5 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5"
             >
-              <CardIcon className="text-brand mb-3 h-5 w-5" />
+              <CardIcon className="text-brand mb-3 size-5" />
               <h3 className="text-foreground mb-2 text-sm font-semibold">
                 {card.title}
               </h3>
@@ -1030,8 +1030,8 @@ function UseCaseCard({
       style={{ transitionDelay: `${index * 80}ms` }}
     >
       <div className="mb-4 flex items-center gap-3">
-        <div className="bg-brand/8 group-hover:bg-brand/15 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors">
-          <Icon className="text-brand h-5 w-5" />
+        <div className="bg-brand/8 group-hover:bg-brand/15 flex size-10 shrink-0 items-center justify-center rounded-lg transition-colors">
+          <Icon className="text-brand size-5" />
         </div>
         <span className="text-brand/70 text-metadata font-semibold tracking-widest uppercase">
           {highlight}
@@ -1119,8 +1119,8 @@ function ArchitectureStackDiagram() {
                   }}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="bg-brand/8 flex h-9 w-9 shrink-0 items-center justify-center rounded-md">
-                      <LayerIcon className="text-brand h-4 w-4" />
+                    <div className="bg-brand/8 flex size-9 shrink-0 items-center justify-center rounded-md">
+                      <LayerIcon className="text-brand size-4" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="text-foreground text-sm font-semibold">
@@ -1139,7 +1139,7 @@ function ArchitectureStackDiagram() {
                         transitionDelay: `${STACK_LAYERS.length * 100 + 300}ms`,
                       }}
                     >
-                      <LuPlus className="h-2.5 w-2.5" />
+                      <LuPlus className="size-2.5" />
                       plugins
                     </div>
                   </div>
@@ -1151,8 +1151,8 @@ function ArchitectureStackDiagram() {
                     marginLeft: `${(STACK_LAYERS.length - 1 - i) * 6}px`,
                   }}
                 >
-                  <div className="bg-brand/8 flex h-5 w-5 shrink-0 items-center justify-center rounded">
-                    <LayerIcon className="text-brand h-3 w-3" />
+                  <div className="bg-brand/8 flex size-5 shrink-0 items-center justify-center rounded">
+                    <LayerIcon className="text-brand size-3" />
                   </div>
                   <span className="text-foreground-alt text-xs font-medium">
                     {layer.name}
@@ -1175,7 +1175,7 @@ function ArchitectureStackDiagram() {
         style={{ transitionDelay: '600ms' }}
       >
         <div className="border-brand/20 bg-brand/5 flex items-center gap-1.5 rounded-full border px-3 py-1">
-          <LuCircuitBoard className="text-brand h-3 w-3" />
+          <LuCircuitBoard className="text-brand size-3" />
           <span className="text-brand text-[0.5rem] font-semibold tracking-widest uppercase">
             ControllerBus connects all layers
           </span>
@@ -1227,7 +1227,7 @@ function ForDevelopersSection() {
               return (
                 <div key={card.title}>
                   <div className="text-brand mb-2 flex items-center gap-2 text-sm font-semibold">
-                    <CardIcon className="h-4 w-4" />
+                    <CardIcon className="size-4" />
                     {card.title}
                   </div>
                   <p className="text-foreground-alt text-sm leading-relaxed text-balance">
@@ -1248,7 +1248,7 @@ function ForDevelopersSection() {
           href={GITHUB_REPO_URL}
           className="border-foreground/15 bg-background/50 text-foreground hover:border-brand/40 hover:bg-brand/8 flex cursor-pointer items-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium no-underline transition-all duration-300 select-none hover:-translate-y-0.5"
         >
-          <LuGithub className="h-4 w-4" />
+          <LuGithub className="size-4" />
           <span>Browse Source</span>
         </ExternalLink>
       </CtaRow>
@@ -1276,43 +1276,43 @@ const ComparisonChart: React.FC = () => {
       name: 'Free and open-source',
       spacewave: true,
       traditional: false,
-      icon: <LuGift className="h-4 w-4" />,
+      icon: <LuGift className="size-4" />,
     },
     {
       name: 'No account required',
       spacewave: true,
       traditional: false,
-      icon: <LuUserX className="h-4 w-4" />,
+      icon: <LuUserX className="size-4" />,
     },
     {
       name: 'Works offline without limitations',
       spacewave: true,
       traditional: 'partial',
-      icon: <LuWifiOff className="h-4 w-4" />,
+      icon: <LuWifiOff className="size-4" />,
     },
     {
       name: 'Runs on your devices w/ p2p sync',
       spacewave: true,
       traditional: false,
-      icon: <PiAppStoreLogoBold className="h-4 w-4" />,
+      icon: <PiAppStoreLogoBold className="size-4" />,
     },
     {
       name: 'End-to-end encryption by default',
       spacewave: true,
       traditional: 'partial',
-      icon: <LuLock className="h-4 w-4" />,
+      icon: <LuLock className="size-4" />,
     },
     {
       name: 'Low-cost cloud storage and APIs',
       spacewave: true,
       traditional: 'partial',
-      icon: <LuCreditCard className="h-4 w-4" />,
+      icon: <LuCreditCard className="size-4" />,
     },
     {
       name: 'No telemetry or tracking of any kind',
       spacewave: true,
       traditional: false,
-      icon: <LuEyeOff className="h-4 w-4" />,
+      icon: <LuEyeOff className="size-4" />,
     },
   ]
 
@@ -1320,7 +1320,7 @@ const ComparisonChart: React.FC = () => {
   const renderLegend = () => (
     <div className="text-foreground-alt mt-4 flex items-center justify-center gap-6 text-xs">
       <div className="flex items-center gap-2">
-        <LuCheck className="text-success h-5 w-5 font-bold" />
+        <LuCheck className="text-success size-5 font-bold" />
         <span>Full support</span>
       </div>
       <div className="flex items-center gap-2">
@@ -1328,7 +1328,7 @@ const ComparisonChart: React.FC = () => {
         <span>Partial support</span>
       </div>
       <div className="flex items-center gap-2">
-        <LuX className="h-4 w-4 text-red-400" />
+        <LuX className="size-4 text-red-400" />
         <span>Not supported</span>
       </div>
     </div>
@@ -1360,17 +1360,17 @@ const ComparisonChart: React.FC = () => {
               </div>
               <div className="flex justify-center px-2 py-4 @md:p-4">
                 {feature.spacewave === true ?
-                  <LuCheck className="text-success h-6 w-6 font-bold" />
+                  <LuCheck className="text-success size-6 font-bold" />
                 : feature.spacewave === 'partial' ?
-                  <div className="bg-partial h-5 w-5 rounded-full" />
-                : <LuX className="h-5 w-5 text-red-400" />}
+                  <div className="bg-partial size-5 rounded-full" />
+                : <LuX className="size-5 text-red-400" />}
               </div>
               <div className="flex justify-center px-2 py-4 @md:p-4">
                 {feature.traditional === true ?
-                  <LuCheck className="text-success h-6 w-6 font-bold" />
+                  <LuCheck className="text-success size-6 font-bold" />
                 : feature.traditional === 'partial' ?
                   <div className="bg-warning h-0.5 w-4 rounded-full" />
-                : <LuX className="h-5 w-5 text-red-400" />}
+                : <LuX className="size-5 text-red-400" />}
               </div>
             </div>
           ))}
@@ -1397,7 +1397,7 @@ const OpenSourceSection: React.FC = () => {
       <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-4 @lg:flex-row @2xl:px-6">
         <div className="flex items-center gap-4">
           <div className="rounded-lg bg-blue-500/10 p-3">
-            <LuCode className="text-brand h-6 w-6" />
+            <LuCode className="text-brand size-6" />
           </div>
           <div>
             <h2 className="text-xl font-semibold text-white">
@@ -1412,7 +1412,7 @@ const OpenSourceSection: React.FC = () => {
           href={GITHUB_REPO_URL}
           className="group hover:border-brand/30 hover:bg-brand/10 flex cursor-pointer items-center rounded-md border border-gray-700 bg-black/50 px-6 py-2 text-sm font-medium text-white no-underline transition-all duration-300"
         >
-          <LuGithub className="mr-2 h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
+          <LuGithub className="mr-2 size-4 transition-transform duration-300 group-hover:scale-110" />
           <span className="select-none">View on GitHub</span>
         </ExternalLink>
       </div>

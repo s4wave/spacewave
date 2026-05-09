@@ -72,7 +72,7 @@ export function LandingPlugins() {
 
   return (
     <LegalPageLayout
-      icon={<LuPuzzle className="h-8 w-8" />}
+      icon={<LuPuzzle className="size-8" />}
       title="Build anything. Ship it everywhere."
       subtitle="The Spacewave SDK gives you databases, networking, encryption, and UI in one package. Write once, deploy to any platform."
     >

@@ -269,8 +269,8 @@ function UnsupportedLinkStep({
   return (
     <div className="space-y-4">
       <div className="flex flex-col items-center gap-3">
-        <div className="bg-foreground/5 flex h-12 w-12 items-center justify-center rounded-full">
-          <LuMonitor className="text-foreground-alt h-6 w-6" />
+        <div className="bg-foreground/5 flex size-12 items-center justify-center rounded-full">
+          <LuMonitor className="text-foreground-alt size-6" />
         </div>
         <h2 className="text-foreground text-sm font-medium">
           Device linking unavailable
@@ -289,7 +289,7 @@ function UnsupportedLinkStep({
         )}
       >
         <span className="text-foreground text-sm">{buttonLabel}</span>
-        <LuArrowRight className="text-foreground-alt h-4 w-4" />
+        <LuArrowRight className="text-foreground-alt size-4" />
       </button>
     </div>
   )
@@ -391,14 +391,14 @@ function ChooseOption({
         'flex items-center gap-3 p-3 text-left',
       )}
     >
-      <div className="bg-brand/10 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg">
-        <Icon className="text-brand h-4 w-4" />
+      <div className="bg-brand/10 flex size-9 shrink-0 items-center justify-center rounded-lg">
+        <Icon className="text-brand size-4" />
       </div>
       <div>
         <span className="text-foreground text-sm font-medium">{label}</span>
         <p className="text-foreground-alt text-xs">{description}</p>
       </div>
-      <LuArrowRight className="text-foreground-alt ml-auto h-4 w-4 shrink-0" />
+      <LuArrowRight className="text-foreground-alt ml-auto size-4 shrink-0" />
     </button>
   )
 }
@@ -412,8 +412,8 @@ function DownloadStep({ onContinue, onBack }: DownloadStepProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-start gap-3">
-        <div className="bg-brand/10 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg">
-          <LuMonitor className="text-brand h-5 w-5" />
+        <div className="bg-brand/10 flex size-10 shrink-0 items-center justify-center rounded-lg">
+          <LuMonitor className="text-brand size-5" />
         </div>
         <div>
           <h2 className="text-foreground text-sm font-medium">
@@ -441,7 +441,7 @@ function DownloadStep({ onContinue, onBack }: DownloadStepProps) {
         )}
       >
         <span className="text-foreground text-sm">I have the desktop app</span>
-        <LuArrowRight className="text-foreground-alt h-4 w-4" />
+        <LuArrowRight className="text-foreground-alt size-4" />
       </button>
 
       <button
@@ -487,7 +487,7 @@ function PairingQRCode({ code }: { code: string }) {
       <img
         src={qrResult.data}
         alt="Pairing QR code"
-        className="h-40 w-40 rounded"
+        className="size-40 rounded"
       />
       <span className="text-foreground-alt text-xs">Or scan this QR code</span>
     </div>
@@ -614,7 +614,7 @@ function PairingStep({
       {!loading && code && !connectionError && (
         <div className="flex flex-col items-center gap-1">
           <div className="flex items-center justify-center gap-2">
-            <span className="bg-brand inline-block h-2 w-2 animate-pulse rounded-full" />
+            <span className="bg-brand inline-block size-2 animate-pulse rounded-full" />
             <span className="text-foreground-alt text-xs">
               Waiting for connection...
             </span>
@@ -658,10 +658,10 @@ function PairingStep({
           className={cn(
             'rounded-md border transition-all duration-300',
             'border-foreground/20 hover:border-foreground/40',
-            'flex h-10 w-10 shrink-0 items-center justify-center',
+            'flex size-10 shrink-0 items-center justify-center',
           )}
         >
-          <LuArrowLeft className="text-foreground-alt h-4 w-4" />
+          <LuArrowLeft className="text-foreground-alt size-4" />
         </button>
         <button
           onClick={onRegenerateCode}
@@ -673,7 +673,7 @@ function PairingStep({
             'flex h-10 items-center justify-center gap-2',
           )}
         >
-          <LuRefreshCw className="text-foreground-alt h-4 w-4" />
+          <LuRefreshCw className="text-foreground-alt size-4" />
           <span className="text-foreground text-sm">Generate new code</span>
         </button>
       </div>
@@ -688,7 +688,7 @@ function PairingStep({
           )}
         >
           <span className="text-foreground text-sm">Continue</span>
-          <LuArrowRight className="text-foreground-alt h-4 w-4" />
+          <LuArrowRight className="text-foreground-alt size-4" />
         </button>
       )}
     </div>
@@ -758,7 +758,7 @@ function QRScannerModal({ onCodeScanned, onClose }: QRScannerModalProps) {
             onClick={onClose}
             className="text-foreground-alt hover:text-foreground"
           >
-            <LuX className="h-4 w-4" />
+            <LuX className="size-4" />
           </button>
         </div>
         <div
@@ -894,8 +894,8 @@ function EnterCodeStep({
       )}
 
       <div className="text-center">
-        <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center">
-          <LuKeyboard className="text-brand h-5 w-5" />
+        <div className="mx-auto mb-2 flex size-10 items-center justify-center">
+          <LuKeyboard className="text-brand size-5" />
         </div>
         <h2 className="text-foreground text-sm font-medium">
           Enter pairing code
@@ -923,7 +923,7 @@ function EnterCodeStep({
           'flex h-9 items-center justify-center gap-2',
         )}
       >
-        <LuCamera className="text-foreground-alt h-4 w-4" />
+        <LuCamera className="text-foreground-alt size-4" />
         <span className="text-foreground-alt text-xs">Scan QR code</span>
       </button>
 
@@ -935,10 +935,10 @@ function EnterCodeStep({
           className={cn(
             'rounded-md border transition-all duration-300',
             'border-foreground/20 hover:border-foreground/40',
-            'flex h-10 w-10 shrink-0 items-center justify-center',
+            'flex size-10 shrink-0 items-center justify-center',
           )}
         >
-          <LuArrowLeft className="text-foreground-alt h-4 w-4" />
+          <LuArrowLeft className="text-foreground-alt size-4" />
         </button>
         <button
           onClick={() => {
@@ -955,7 +955,7 @@ function EnterCodeStep({
           {loading ?
             <Spinner />
           : <>
-              <LuLink className="text-brand h-4 w-4" />
+              <LuLink className="text-brand size-4" />
               <span className="text-foreground text-sm">Connect</span>
             </>
           }
@@ -1045,8 +1045,8 @@ function VerifyStep({
     return (
       <div className="space-y-4">
         <div className="flex flex-col items-center gap-2">
-          <div className="bg-destructive/10 flex h-10 w-10 items-center justify-center rounded-full">
-            <LuX className="text-destructive h-5 w-5" />
+          <div className="bg-destructive/10 flex size-10 items-center justify-center rounded-full">
+            <LuX className="text-destructive size-5" />
           </div>
           <h2 className="text-foreground text-sm font-medium">
             Verification failed
@@ -1061,7 +1061,7 @@ function VerifyStep({
             'flex h-10 items-center justify-center gap-2',
           )}
         >
-          <LuArrowLeft className="text-foreground-alt h-4 w-4" />
+          <LuArrowLeft className="text-foreground-alt size-4" />
           <span className="text-foreground text-sm">Back to pairing</span>
         </button>
       </div>
@@ -1072,8 +1072,8 @@ function VerifyStep({
     return (
       <div className="space-y-4">
         <div className="flex flex-col items-center gap-2">
-          <div className="bg-brand/10 flex h-10 w-10 items-center justify-center rounded-full">
-            <LuShieldCheck className="text-brand h-5 w-5" />
+          <div className="bg-brand/10 flex size-10 items-center justify-center rounded-full">
+            <LuShieldCheck className="text-brand size-5" />
           </div>
           <h2 className="text-foreground text-sm font-medium">
             Waiting for other device
@@ -1094,8 +1094,8 @@ function VerifyStep({
     return (
       <div className="space-y-4">
         <div className="flex flex-col items-center gap-2">
-          <div className="bg-brand/10 flex h-10 w-10 items-center justify-center rounded-full">
-            <LuShieldCheck className="text-brand h-5 w-5" />
+          <div className="bg-brand/10 flex size-10 items-center justify-center rounded-full">
+            <LuShieldCheck className="text-brand size-5" />
           </div>
           <h2 className="text-foreground text-sm font-medium">
             Establishing secure channel
@@ -1115,7 +1115,7 @@ function VerifyStep({
             'flex h-10 items-center justify-center gap-2',
           )}
         >
-          <LuArrowLeft className="text-foreground-alt h-4 w-4" />
+          <LuArrowLeft className="text-foreground-alt size-4" />
           <span className="text-foreground text-sm">Back to pairing</span>
         </button>
       </div>
@@ -1125,8 +1125,8 @@ function VerifyStep({
   return (
     <div className="space-y-4">
       <div className="flex flex-col items-center gap-2">
-        <div className="bg-brand/10 flex h-10 w-10 items-center justify-center rounded-full">
-          <LuShieldCheck className="text-brand h-5 w-5" />
+        <div className="bg-brand/10 flex size-10 items-center justify-center rounded-full">
+          <LuShieldCheck className="text-brand size-5" />
         </div>
         <h2 className="text-foreground text-sm font-medium">
           Verify connection
@@ -1147,7 +1147,7 @@ function VerifyStep({
             'flex h-10 items-center justify-center gap-2',
           )}
         >
-          <LuX className="text-destructive h-4 w-4" />
+          <LuX className="text-destructive size-4" />
           <span className="text-destructive text-sm">No, abort</span>
         </button>
         <button
@@ -1158,7 +1158,7 @@ function VerifyStep({
             'flex h-10 items-center justify-center gap-2',
           )}
         >
-          <LuCircleCheck className="text-brand h-4 w-4" />
+          <LuCircleCheck className="text-brand size-4" />
           <span className="text-foreground text-sm">Yes, they match</span>
         </button>
       </div>
@@ -1175,8 +1175,8 @@ function WaitingForConnection({ onSkip, onAbort }: WaitingForConnectionProps) {
   return (
     <div className="space-y-4">
       <div className="flex flex-col items-center gap-2">
-        <div className="bg-brand/10 flex h-10 w-10 items-center justify-center rounded-full">
-          <LuShieldCheck className="text-brand h-5 w-5" />
+        <div className="bg-brand/10 flex size-10 items-center justify-center rounded-full">
+          <LuShieldCheck className="text-brand size-5" />
         </div>
         <h2 className="text-foreground text-sm font-medium">
           Verify connection
@@ -1198,7 +1198,7 @@ function WaitingForConnection({ onSkip, onAbort }: WaitingForConnectionProps) {
           'flex h-10 items-center justify-center gap-2',
         )}
       >
-        <LuArrowLeft className="text-foreground-alt h-4 w-4" />
+        <LuArrowLeft className="text-foreground-alt size-4" />
         <span className="text-foreground text-sm">Back to pairing</span>
       </button>
 
@@ -1312,8 +1312,8 @@ function DirectOfferStep({
   return (
     <div className="space-y-4">
       <div className="text-center">
-        <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center">
-          <LuWifi className="text-brand h-5 w-5" />
+        <div className="mx-auto mb-2 flex size-10 items-center justify-center">
+          <LuWifi className="text-brand size-5" />
         </div>
         <h2 className="text-foreground text-sm font-medium">
           Direct connection
@@ -1331,7 +1331,7 @@ function DirectOfferStep({
               <img
                 src={qrResult.data}
                 alt="Direct pairing QR"
-                className="h-48 w-48 rounded"
+                className="size-48 rounded"
               />
             )}
             <div className="flex w-full items-center gap-2">
@@ -1354,7 +1354,7 @@ function DirectOfferStep({
               >
                 <LuCopy
                   className={cn(
-                    'h-4 w-4',
+                    'size-4',
                     copied ? 'text-brand' : 'text-foreground-alt',
                   )}
                 />
@@ -1390,10 +1390,10 @@ function DirectOfferStep({
           className={cn(
             'rounded-md border transition-all duration-300',
             'border-foreground/20 hover:border-foreground/40',
-            'flex h-10 w-10 shrink-0 items-center justify-center',
+            'flex size-10 shrink-0 items-center justify-center',
           )}
         >
-          <LuArrowLeft className="text-foreground-alt h-4 w-4" />
+          <LuArrowLeft className="text-foreground-alt size-4" />
         </button>
         <button
           onClick={() => {
@@ -1410,7 +1410,7 @@ function DirectOfferStep({
           {accepting ?
             <Spinner />
           : <>
-              <LuLink className="text-brand h-4 w-4" />
+              <LuLink className="text-brand size-4" />
               <span className="text-foreground text-sm">Connect</span>
             </>
           }
@@ -1518,8 +1518,8 @@ function DirectAnswerStep({
       )}
 
       <div className="text-center">
-        <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center">
-          <LuCamera className="text-brand h-5 w-5" />
+        <div className="mx-auto mb-2 flex size-10 items-center justify-center">
+          <LuCamera className="text-brand size-5" />
         </div>
         <h2 className="text-foreground text-sm font-medium">
           {answerPayload ? 'Share this response' : 'Scan or paste offer'}
@@ -1552,7 +1552,7 @@ function DirectAnswerStep({
               'flex h-9 items-center justify-center gap-2',
             )}
           >
-            <LuCamera className="text-foreground-alt h-4 w-4" />
+            <LuCamera className="text-foreground-alt size-4" />
             <span className="text-foreground-alt text-xs">Scan QR code</span>
           </button>
         </>
@@ -1580,14 +1580,14 @@ function DirectAnswerStep({
             >
               <LuCopy
                 className={cn(
-                  'h-4 w-4',
+                  'size-4',
                   copied ? 'text-brand' : 'text-foreground-alt',
                 )}
               />
             </button>
           </div>
           <div className="flex items-center justify-center gap-2">
-            <span className="bg-brand inline-block h-2 w-2 animate-pulse rounded-full" />
+            <span className="bg-brand inline-block size-2 animate-pulse rounded-full" />
             <span className="text-foreground-alt text-xs">
               Waiting for connection...
             </span>
@@ -1603,10 +1603,10 @@ function DirectAnswerStep({
           className={cn(
             'rounded-md border transition-all duration-300',
             'border-foreground/20 hover:border-foreground/40',
-            'flex h-10 w-10 shrink-0 items-center justify-center',
+            'flex size-10 shrink-0 items-center justify-center',
           )}
         >
-          <LuArrowLeft className="text-foreground-alt h-4 w-4" />
+          <LuArrowLeft className="text-foreground-alt size-4" />
         </button>
         {!answerPayload && (
           <button
@@ -1622,7 +1622,7 @@ function DirectAnswerStep({
             {loading ?
               <Spinner />
             : <>
-                <LuLink className="text-brand h-4 w-4" />
+                <LuLink className="text-brand size-4" />
                 <span className="text-foreground text-sm">Accept offer</span>
               </>
             }
@@ -1678,7 +1678,7 @@ function DirectQRScannerModal({
             onClick={onClose}
             className="text-foreground-alt hover:text-foreground"
           >
-            <LuX className="h-4 w-4" />
+            <LuX className="size-4" />
           </button>
         </div>
         <div

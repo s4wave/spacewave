@@ -209,7 +209,7 @@ export function SSOLinkDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <ProviderIcon provider={provider} className="h-5 w-5" />
+            <ProviderIcon provider={provider} className="size-5" />
             Link {getProviderLabel(provider)}
           </DialogTitle>
           <DialogDescription>
@@ -225,8 +225,8 @@ export function SSOLinkDialog({
         <div className="space-y-3">
           <div className="border-foreground/10 bg-background/30 rounded-lg border p-4">
             <div className="flex items-start gap-3">
-              <div className="border-foreground/10 bg-background/60 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border">
-                <ProviderIcon provider={provider} className="h-5 w-5" />
+              <div className="border-foreground/10 bg-background/60 flex size-10 shrink-0 items-center justify-center rounded-full border">
+                <ProviderIcon provider={provider} className="size-5" />
               </div>
               <div className="space-y-1">
                 <p className="text-foreground text-sm font-medium">
@@ -268,7 +268,7 @@ export function SSOLinkDialog({
           {error && (
             <div className="border-destructive/20 bg-destructive/5 rounded-lg border px-3 py-2.5">
               <div className="flex items-center gap-2">
-                <LuCircleAlert className="text-destructive h-4 w-4" />
+                <LuCircleAlert className="text-destructive size-4" />
                 <p className="text-destructive text-sm">{error}</p>
               </div>
             </div>
@@ -292,7 +292,7 @@ export function SSOLinkDialog({
               'inline-flex items-center gap-2',
             )}
           >
-            <LuArrowUpRight className="h-4 w-4" />
+            <LuArrowUpRight className="size-4" />
             {waiting ?
               'Open again'
             : isDesktop ?

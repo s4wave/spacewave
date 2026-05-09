@@ -67,7 +67,7 @@ function DocsToc({ markdown }: DocsTocProps) {
   return (
     <div ref={containerRef} className="flex h-full flex-col overflow-y-auto">
       <div className="text-foreground-alt flex items-center gap-1.5 border-b border-border px-3 py-2 text-xs font-medium uppercase tracking-wide">
-        <LuList className="h-3 w-3" />
+        <LuList className="size-3" />
         On this page
       </div>
       <nav className="flex-1 overflow-y-auto py-1">

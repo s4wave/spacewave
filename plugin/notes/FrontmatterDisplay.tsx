@@ -90,7 +90,7 @@ function FrontmatterDisplay({
           onClick={() => onTagClick?.(tag)}
           title={`Filter by tag: ${tag}`}
         >
-          <LuTag className="h-2.5 w-2.5" />
+          <LuTag className="size-2.5" />
           {tag}
         </button>
       ))}
@@ -106,14 +106,14 @@ function FrontmatterDisplay({
 
       {authors.length > 0 && (
         <span className="text-muted-foreground flex items-center gap-1 text-xs">
-          <LuUser className="h-2.5 w-2.5" />
+          <LuUser className="size-2.5" />
           {authors.join(', ')}
         </span>
       )}
 
       {(frontmatter.created || frontmatter.published) && (
         <span className="text-muted-foreground flex items-center gap-1 text-xs">
-          <LuCalendar className="h-2.5 w-2.5" />
+          <LuCalendar className="size-2.5" />
           {frontmatter.published ?? frontmatter.created}
         </span>
       )}
@@ -125,7 +125,7 @@ function FrontmatterDisplay({
           rel="noopener noreferrer"
           className="text-brand flex items-center gap-1 text-xs hover:underline"
         >
-          <LuExternalLink className="h-2.5 w-2.5" />
+          <LuExternalLink className="size-2.5" />
           source
         </a>
       )}

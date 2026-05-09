@@ -119,7 +119,7 @@ export function SharedObjectDetails({
     <div className="bg-background-primary flex h-full w-full flex-col overflow-hidden">
       <div className="border-foreground/8 flex min-h-9 shrink-0 items-center justify-between gap-3 border-b px-4 py-2">
         <div className="text-foreground flex min-w-0 flex-1 items-center gap-2 text-sm font-semibold select-none">
-          <PiAppStoreLogoBold className="h-4 w-4" />
+          <PiAppStoreLogoBold className="size-4" />
           <span
             className={cn(
               'min-w-0 truncate tracking-tight',
@@ -149,7 +149,7 @@ export function SharedObjectDetails({
             <Tooltip>
               <TooltipTrigger asChild>
                 <DashboardButton
-                  icon={<LuPencil className="h-3.5 w-3.5" />}
+                  icon={<LuPencil className="size-3.5" />}
                   onClick={onRenameStart}
                 >
                   <span className="hidden md:inline">Rename</span>
@@ -162,7 +162,7 @@ export function SharedObjectDetails({
             <Tooltip>
               <TooltipTrigger asChild>
                 <DashboardButton
-                  icon={<LuX className="h-4 w-4" />}
+                  icon={<LuX className="size-4" />}
                   onClick={onCloseClick}
                 />
               </TooltipTrigger>
@@ -177,7 +177,7 @@ export function SharedObjectDetails({
           {objectsSection && (
             <CollapsibleSection
               title="Objects"
-              icon={<LuBox className="h-3.5 w-3.5" />}
+              icon={<LuBox className="size-3.5" />}
               open={openSection === 'objects'}
               onOpenChange={handleSectionOpenChange('objects')}
               badge={objectsBadge}
@@ -188,7 +188,7 @@ export function SharedObjectDetails({
           )}
           <CollapsibleSection
             title="Sharing"
-            icon={<LuUsers className="h-3.5 w-3.5" />}
+            icon={<LuUsers className="size-3.5" />}
             open={openSection === 'sharing'}
             onOpenChange={handleSectionOpenChange('sharing')}
             headerActions={
@@ -198,11 +198,11 @@ export function SharedObjectDetails({
                     <button
                       type="button"
                       onClick={onSharingClick}
-                      className="text-foreground-alt hover:text-foreground flex h-4 w-4 items-center justify-center transition-colors"
+                      className="text-foreground-alt hover:text-foreground flex size-4 items-center justify-center transition-colors"
                       aria-label="Add user"
                       title="Add user"
                     >
-                      <LuUserPlus className="h-3.5 w-3.5" />
+                      <LuUserPlus className="size-3.5" />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom">
@@ -218,7 +218,7 @@ export function SharedObjectDetails({
           {settingsSection && (
             <CollapsibleSection
               title="Settings"
-              icon={<LuSettings className="h-3.5 w-3.5" />}
+              icon={<LuSettings className="size-3.5" />}
               open={openSection === 'settings'}
               onOpenChange={handleSectionOpenChange('settings')}
             >
@@ -228,13 +228,13 @@ export function SharedObjectDetails({
 
           <CollapsibleSection
             title="Data"
-            icon={<LuDatabase className="h-3.5 w-3.5" />}
+            icon={<LuDatabase className="size-3.5" />}
             open={openSection === 'data'}
             onOpenChange={handleSectionOpenChange('data')}
           >
             <div className="space-y-2">
               <ActionCard
-                icon={<LuDownload className="h-4 w-4" />}
+                icon={<LuDownload className="size-4" />}
                 label="Export Data"
                 description="Download object contents"
                 onClick={onExportClick}
@@ -246,7 +246,7 @@ export function SharedObjectDetails({
           {pluginsSection && (
             <CollapsibleSection
               title="Plugins"
-              icon={<LuPuzzle className="h-3.5 w-3.5" />}
+              icon={<LuPuzzle className="size-3.5" />}
               open={openSection === 'plugins'}
               onOpenChange={handleSectionOpenChange('plugins')}
             >
@@ -256,7 +256,7 @@ export function SharedObjectDetails({
 
           <CollapsibleSection
             title="Identifiers"
-            icon={<LuCpu className="h-3.5 w-3.5" />}
+            icon={<LuCpu className="size-3.5" />}
             open={openSection === 'identifiers'}
             onOpenChange={handleSectionOpenChange('identifiers')}
           >
@@ -283,8 +283,8 @@ export function SharedObjectDetails({
                 !onDeleteClick && 'cursor-not-allowed opacity-50',
               )}
             >
-              <div className="bg-destructive/20 group-hover:bg-destructive/30 flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors">
-                <LuTrash2 className="text-destructive h-3.5 w-3.5" />
+              <div className="bg-destructive/20 group-hover:bg-destructive/30 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors">
+                <LuTrash2 className="text-destructive size-3.5" />
               </div>
               <div className="flex min-w-0 flex-1 flex-col">
                 <h4 className="text-destructive text-xs font-medium select-none">

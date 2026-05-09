@@ -81,7 +81,7 @@ export function CodeBlock({ lang, code }: CodeBlockProps) {
       <button
         onClick={handleCopy}
         className={cn(
-          'absolute top-2.5 right-2.5 z-10 flex h-7 w-7 items-center justify-center rounded-md transition-all',
+          'absolute top-2.5 right-2.5 z-10 flex size-7 items-center justify-center rounded-md transition-all',
           'opacity-0 group-hover/code:opacity-100',
           copied ?
             'bg-brand/20 text-brand'
@@ -90,8 +90,8 @@ export function CodeBlock({ lang, code }: CodeBlockProps) {
         title="Copy code"
       >
         {copied ?
-          <LuCheck className="h-3.5 w-3.5" />
-        : <LuCopy className="h-3.5 w-3.5" />}
+          <LuCheck className="size-3.5" />
+        : <LuCopy className="size-3.5" />}
       </button>
       {html ?
         <div dangerouslySetInnerHTML={{ __html: html }} />

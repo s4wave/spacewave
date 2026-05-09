@@ -76,9 +76,9 @@ function clientTypeLabel(clientType: string): string {
 // ClientTypeIcon renders the icon for the client type.
 function ClientTypeIcon({ clientType }: { clientType: string }) {
   if (clientType === 'cli') {
-    return <LuTerminal className="text-brand h-6 w-6" />
+    return <LuTerminal className="text-brand size-6" />
   }
-  return <LuMonitor className="text-brand h-6 w-6" />
+  return <LuMonitor className="text-brand size-6" />
 }
 
 // HandoffPage handles browser-delegated auth for desktop/CLI clients.
@@ -217,7 +217,7 @@ export function HandoffPage() {
       <div className="bg-background-landing relative flex flex-1 flex-col items-center justify-center gap-6 p-6">
         <div className="relative z-10 flex flex-col items-center gap-4">
           <Spinner size="xl" className="text-brand" />
-          <h1 className="text-xl font-bold tracking-wide">
+          <h1 className="text-xl font-semibold tracking-wide">
             Completing sign-in...
           </h1>
           <p className="text-foreground-alt text-sm">
@@ -232,10 +232,12 @@ export function HandoffPage() {
     return (
       <div className="bg-background-landing relative flex flex-1 flex-col items-center justify-center gap-6 p-6">
         <div className="relative z-10 flex flex-col items-center gap-4">
-          <div className="bg-brand/10 border-brand/30 flex h-16 w-16 items-center justify-center rounded-full border">
-            <LuCheck className="text-brand h-8 w-8" />
+          <div className="bg-brand/10 border-brand/30 flex size-16 items-center justify-center rounded-full border">
+            <LuCheck className="text-brand size-8" />
           </div>
-          <h1 className="text-xl font-bold tracking-wide">Sign-in complete</h1>
+          <h1 className="text-xl font-semibold tracking-wide">
+            Sign-in complete
+          </h1>
           <p className="text-foreground-alt text-sm">
             You can close this tab and return to Spacewave {label}.
           </p>
@@ -256,7 +258,7 @@ export function HandoffPage() {
           <AnimatedLogo followMouse={false} />
           <div className="flex items-center gap-2">
             <ClientTypeIcon clientType={request.clientType ?? ''} />
-            <h1 className="text-xl font-bold tracking-wide">
+            <h1 className="text-xl font-semibold tracking-wide">
               {routeHints.authIntent === 'signup' ?
                 `Creating a Spacewave ${label} account`
               : `Signing in to Spacewave ${label}`}

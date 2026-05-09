@@ -117,8 +117,8 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
             title="Copy as Markdown"
           >
             {copied ?
-              <LuCheck className="h-3 w-3" />
-            : <LuCopy className="h-3 w-3" />}
+              <LuCheck className="size-3" />
+            : <LuCopy className="size-3" />}
             <span className="hidden @lg:inline">
               {copied ? 'Copied' : 'Copy MD'}
             </span>
@@ -129,7 +129,7 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
             className="text-foreground-alt/40 hover:text-foreground-alt hover:bg-foreground/5 flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors"
             title="Open raw Markdown on GitHub"
           >
-            <LuFileText className="h-3 w-3" />
+            <LuFileText className="size-3" />
             <span className="hidden @lg:inline">Open MD</span>
           </ExternalLink>
 
@@ -139,9 +139,9 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
                 className="text-foreground-alt/40 hover:text-foreground-alt hover:bg-foreground/5 flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors"
                 title="Open in AI"
               >
-                <LuSparkles className="h-3 w-3" />
+                <LuSparkles className="size-3" />
                 <span className="hidden @lg:inline">AI</span>
-                <LuChevronDown className="h-2.5 w-2.5" />
+                <LuChevronDown className="size-2.5" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -161,7 +161,7 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
 
       {/* Page header */}
       <header className="mb-8">
-        <h1 className="text-foreground mb-3 text-2xl leading-snug font-bold tracking-tight @lg:text-3xl @lg:leading-snug">
+        <h1 className="text-foreground mb-3 text-2xl leading-snug font-semibold tracking-tight @lg:text-3xl @lg:leading-snug">
           {doc.title}
         </h1>
         <p className="text-foreground-alt text-sm leading-relaxed">
@@ -183,7 +183,7 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
               className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/30 group flex cursor-pointer flex-col items-start gap-1.5 rounded-xl border p-5 text-left transition-all duration-200"
             >
               <span className="text-foreground-alt/50 flex items-center gap-1.5 text-xs">
-                <LuArrowLeft className="h-3 w-3 transition-transform duration-200 group-hover:-translate-x-0.5" />
+                <LuArrowLeft className="size-3 transition-transform duration-200 group-hover:-translate-x-0.5" />
                 Previous
               </span>
               <span className="text-foreground group-hover:text-brand text-sm font-medium transition-colors duration-200">
@@ -199,7 +199,7 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
             >
               <span className="text-foreground-alt/50 flex items-center gap-1.5 text-xs">
                 Next
-                <LuArrowRight className="h-3 w-3 transition-transform duration-200 group-hover:translate-x-0.5" />
+                <LuArrowRight className="size-3 transition-transform duration-200 group-hover:translate-x-0.5" />
               </span>
               <span className="text-foreground group-hover:text-brand text-sm font-medium transition-colors duration-200">
                 {nextDoc.title}

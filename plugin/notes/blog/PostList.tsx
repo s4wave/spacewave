@@ -41,7 +41,7 @@ function PostListItem({ post, onSelectPost }: PostListItemProps) {
         <time className="text-foreground-alt/50 text-xs tabular-nums">
           {post.date}
         </time>
-        <LuArrowRight className="text-foreground-alt/30 group-hover:text-brand h-3.5 w-3.5 transition-all duration-200 group-hover:translate-x-0.5" />
+        <LuArrowRight className="text-foreground-alt/30 group-hover:text-brand size-3.5 transition-all duration-200 group-hover:translate-x-0.5" />
       </div>
     </article>
   )

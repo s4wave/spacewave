@@ -42,9 +42,9 @@ export function RefSelector({
           )}
           disabled={loading}
         >
-          <LuGitBranch className="text-foreground-alt h-3.5 w-3.5 shrink-0" />
+          <LuGitBranch className="text-foreground-alt size-3.5 shrink-0" />
           <span className="max-w-[120px] truncate">{displayName}</span>
-          <LuChevronDown className="text-foreground-alt h-3 w-3 shrink-0" />
+          <LuChevronDown className="text-foreground-alt size-3 shrink-0" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -55,7 +55,7 @@ export function RefSelector({
           <DropdownMenuGroup>
             <DropdownMenuLabel>
               <div className="flex items-center gap-1">
-                <LuGitBranch className="h-3 w-3" />
+                <LuGitBranch className="size-3" />
                 <span>Branches</span>
               </div>
             </DropdownMenuLabel>
@@ -80,7 +80,7 @@ export function RefSelector({
           <DropdownMenuGroup>
             <DropdownMenuLabel>
               <div className="flex items-center gap-1">
-                <LuTag className="h-3 w-3" />
+                <LuTag className="size-3" />
                 <span>Tags</span>
               </div>
             </DropdownMenuLabel>

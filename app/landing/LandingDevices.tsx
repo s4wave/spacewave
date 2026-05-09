@@ -72,7 +72,7 @@ export function LandingDevices() {
 
   return (
     <LegalPageLayout
-      icon={<LuServer className="h-8 w-8" />}
+      icon={<LuServer className="size-8" />}
       title="Every device in your swarm. One command away."
       subtitle="Manage laptops, phones, Raspberry Pis, and servers from anywhere. Direct encrypted connections with zero configuration."
     >

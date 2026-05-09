@@ -124,7 +124,7 @@ export function EmailSection({ open, onOpenChange }: EmailSectionProps) {
   return (
     <CollapsibleSection
       title="Email"
-      icon={<LuMail className="h-3.5 w-3.5" />}
+      icon={<LuMail className="size-3.5" />}
       open={sectionOpen}
       onOpenChange={handleOpenChange}
       badge={
@@ -134,11 +134,11 @@ export function EmailSection({ open, onOpenChange }: EmailSectionProps) {
       }
     >
       {loading && !emails && (
-        <p className="text-foreground-alt/40 text-xs">Loading emails...</p>
+        <p className="text-foreground-alt/40 text-xs">Loading emails…</p>
       )}
       {!loading && emails && emails.length === 0 && (
         <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
-          <LuMail className="h-3.5 w-3.5 shrink-0" />
+          <LuMail className="size-3.5 shrink-0" />
           <span>No email addresses yet</span>
         </div>
       )}
@@ -221,8 +221,8 @@ function AddEmailForm({
         onClick={() => onOpenChange(true)}
         className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/50 bg-background-card/30 flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left transition-all duration-150"
       >
-        <div className="bg-foreground/5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md">
-          <LuPlus className="text-foreground-alt h-3.5 w-3.5" />
+        <div className="bg-foreground/5 flex size-7 shrink-0 items-center justify-center rounded-md">
+          <LuPlus className="text-foreground-alt size-3.5" />
         </div>
         <span className="text-foreground-alt text-xs">Add another email</span>
       </button>
@@ -233,8 +233,8 @@ function AddEmailForm({
   return (
     <div className="border-foreground/6 bg-background-card/30 space-y-2 rounded-lg border px-3 py-2.5">
       <div className="flex items-center gap-2">
-        <div className="bg-foreground/5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md">
-          <LuPlus className="text-foreground-alt h-3.5 w-3.5" />
+        <div className="bg-foreground/5 flex size-7 shrink-0 items-center justify-center rounded-md">
+          <LuPlus className="text-foreground-alt size-3.5" />
         </div>
         <p className="text-foreground text-xs font-medium">Add another email</p>
       </div>
@@ -270,7 +270,7 @@ function AddEmailForm({
       )}
       <div className="flex items-center justify-end gap-1.5">
         <DashboardButton
-          icon={<LuX className="h-3 w-3" />}
+          icon={<LuX className="size-3" />}
           onClick={() => onOpenChange(false)}
           disabled={adding}
         >
@@ -278,9 +278,7 @@ function AddEmailForm({
         </DashboardButton>
         <DashboardButton
           icon={
-            adding ?
-              <Spinner size="sm" />
-            : <LuArrowRight className="h-3 w-3" />
+            adding ? <Spinner size="sm" /> : <LuArrowRight className="size-3" />
           }
           className="text-brand hover:bg-brand/10"
           disabled={!canSubmit}
@@ -355,13 +353,13 @@ function EmailRow({
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <div
             className={cn(
-              'flex h-8 w-8 shrink-0 items-center justify-center rounded-md',
+              'flex size-8 shrink-0 items-center justify-center rounded-md',
               verified ? 'bg-brand/10' : 'bg-foreground/5',
             )}
           >
             {verified ?
-              <LuCheck className="text-brand h-4 w-4" />
-            : <LuMail className="text-foreground-alt h-4 w-4" />}
+              <LuCheck className="text-brand size-4" />
+            : <LuMail className="text-foreground-alt size-4" />}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
@@ -370,7 +368,7 @@ function EmailRow({
               </p>
               {primary && (
                 <span className="border-brand/30 bg-brand/10 text-brand inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[0.55rem] font-semibold tracking-widest uppercase select-none">
-                  <LuStar className="h-2.5 w-2.5" />
+                  <LuStar className="size-2.5" />
                   Primary
                 </span>
               )}
@@ -394,7 +392,7 @@ function EmailRow({
               icon={
                 sendingCode ?
                   <Spinner size="sm" />
-                : <LuSend className="h-3 w-3" />
+                : <LuSend className="size-3" />
               }
               disabled={busy || retryAfter > 0}
               onClick={() => void onSendCode(addr)}
@@ -408,7 +406,7 @@ function EmailRow({
           )}
           {canSetPrimary && !primaryConfirmOpen && (
             <DashboardButton
-              icon={<LuStar className="h-3 w-3" />}
+              icon={<LuStar className="size-3" />}
               disabled={busy}
               onClick={onRequestPrimary}
             >
@@ -431,7 +429,7 @@ function EmailRow({
           </p>
           <div className="flex items-center justify-end gap-1.5">
             <DashboardButton
-              icon={<LuX className="h-3 w-3" />}
+              icon={<LuX className="size-3" />}
               onClick={onCancelPrimary}
               disabled={settingPrimary}
             >
@@ -441,7 +439,7 @@ function EmailRow({
               icon={
                 settingPrimary ?
                   <Spinner size="sm" />
-                : <LuStar className="h-3 w-3" />
+                : <LuStar className="size-3" />
               }
               className="text-brand hover:bg-brand/10"
               disabled={settingPrimary}
@@ -496,7 +494,7 @@ function EmailRow({
               icon={
                 verifyingCode ?
                   <Spinner size="sm" />
-                : <LuArrowRight className="h-3 w-3" />
+                : <LuArrowRight className="size-3" />
               }
               disabled={verifyingCode || code.length !== 6}
               onClick={() => void onVerifyCode()}
@@ -523,7 +521,7 @@ function RemoveAction({
 }) {
   const button = (
     <DashboardButton
-      icon={removing ? <Spinner size="sm" /> : <LuTrash2 className="h-3 w-3" />}
+      icon={removing ? <Spinner size="sm" /> : <LuTrash2 className="size-3" />}
       disabled={!canRemove || removing}
       className={cn(canRemove && 'text-destructive hover:bg-destructive/10')}
       onClick={() => void onRemove()}

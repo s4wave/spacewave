@@ -84,10 +84,10 @@ function StateScopeNode({ node }: { node: ScopeNode }) {
           'hover:bg-pulldown-hover/40 transition-colors duration-100',
         )}
       >
-        <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+        <span className="flex size-4 shrink-0 items-center justify-center">
           {isExpanded ?
-            <LuChevronDown className="h-3 w-3" />
-          : <LuChevronRight className="h-3 w-3" />}
+            <LuChevronDown className="size-3" />
+          : <LuChevronRight className="size-3" />}
         </span>
         <span>{node.label}</span>
         <span className="text-foreground-alt ml-auto font-mono text-xs">
@@ -135,10 +135,10 @@ function StateGroupNode({ node, level }: { node: GroupNode; level: number }) {
         )}
         style={{ paddingLeft: `${level * 12 + 8}px` }}
       >
-        <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+        <span className="flex size-4 shrink-0 items-center justify-center">
           {isExpanded ?
-            <LuChevronDown className="h-2.5 w-2.5" />
-          : <LuChevronRight className="h-2.5 w-2.5" />}
+            <LuChevronDown className="size-2.5" />
+          : <LuChevronRight className="size-2.5" />}
         </span>
         <span className="truncate">{node.label}</span>
         <span className="text-foreground-alt ml-auto font-mono text-xs">
@@ -222,16 +222,16 @@ function StateEntryNode({
             }
           }}
           className={cn(
-            'flex h-4 w-4 shrink-0 items-center justify-center',
+            'flex size-4 shrink-0 items-center justify-center',
             !hasChildren && 'invisible',
           )}
         >
           {isExpanded ?
-            <LuChevronDown className="h-3 w-3" />
-          : <LuChevronRight className="h-3 w-3" />}
+            <LuChevronDown className="size-3" />
+          : <LuChevronRight className="size-3" />}
         </span>
 
-        <LuDatabase className="text-brand h-3 w-3 shrink-0" />
+        <LuDatabase className="text-brand size-3 shrink-0" />
         <span className="truncate text-xs font-medium">{label}</span>
         <span className="text-foreground-alt ml-auto truncate font-mono text-xs">
           {preview}
@@ -327,13 +327,13 @@ function StateTreeNodeInner({
             }
           }}
           className={cn(
-            'flex h-4 w-4 shrink-0 items-center justify-center',
+            'flex size-4 shrink-0 items-center justify-center',
             !isExpandable && 'invisible',
           )}
         >
           {isExpanded ?
-            <LuChevronDown className="h-2.5 w-2.5" />
-          : <LuChevronRight className="h-2.5 w-2.5" />}
+            <LuChevronDown className="size-2.5" />
+          : <LuChevronRight className="size-2.5" />}
         </span>
 
         <span className="text-foreground font-mono text-xs">{nodeKey}:</span>

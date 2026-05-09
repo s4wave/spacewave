@@ -43,7 +43,7 @@ export function DropdownTriggerButton({
     >
       {icon}
       <span>{children}</span>
-      {showChevron && <LuChevronDown className="h-3 w-3" />}
+      {showChevron && <LuChevronDown className="size-3" />}
     </Button>
   )
 }

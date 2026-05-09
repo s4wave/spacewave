@@ -11,7 +11,7 @@ interface LoadingCardProps {
   className?: string
 }
 
-// LoadingCard is the primary loading surface. Glass card with an h-8 w-8 icon
+// LoadingCard is the primary loading surface. Glass card with an size-8 icon
 // box, title, detail, optional progress, rate pills, last-activity footer,
 // error box, and retry / cancel buttons. Four states: loading / active /
 // synced / error.
@@ -27,7 +27,7 @@ export function LoadingCard({ view, className }: LoadingCardProps) {
       <div className="flex items-start gap-3">
         <div
           className={cn(
-            'flex h-8 w-8 shrink-0 items-center justify-center rounded-md',
+            'flex size-8 shrink-0 items-center justify-center rounded-md',
             state === 'loading' && 'bg-foreground/5 text-foreground-alt',
             state === 'active' && 'bg-brand/10 text-brand',
             state === 'synced' && 'bg-foreground/5 text-brand',
@@ -99,16 +99,16 @@ export function LoadingCard({ view, className }: LoadingCardProps) {
 
 function LoadingCardIcon({ state }: { state: LoadingState }) {
   if (state === 'error') {
-    return <LuCircleAlert className="h-4 w-4" aria-hidden="true" />
+    return <LuCircleAlert className="size-4" aria-hidden="true" />
   }
   if (state === 'synced') {
     return (
       <span
-        className="relative flex h-4 w-4 items-center justify-center"
+        className="relative flex size-4 items-center justify-center"
         aria-hidden="true"
       >
-        <LuCloud className="h-3.5 w-3.5" />
-        <LuCircleCheck className="text-brand absolute -right-1 -bottom-1 h-2.5 w-2.5" />
+        <LuCloud className="size-3.5" />
+        <LuCircleCheck className="text-brand absolute -right-1 -bottom-1 size-2.5" />
       </span>
     )
   }

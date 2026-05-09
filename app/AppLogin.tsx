@@ -156,7 +156,7 @@ export function AppLogin({
             onClick={() => navigate({ path: '/pair' })}
             className="text-foreground-alt hover:text-brand flex items-center gap-1.5 text-xs transition-colors"
           >
-            <LuLink className="h-3 w-3" />
+            <LuLink className="size-3" />
             <span className="select-none">Link to existing device</span>
           </button>
         </div>
@@ -173,7 +173,7 @@ export function AppLogin({
             disabled={!addRootAlias.canAdd}
             className="text-foreground-alt hover:text-brand flex items-center gap-1.5 text-xs transition-colors disabled:pointer-events-none disabled:opacity-50"
           >
-            <LuFolderOpen className="h-3 w-3" />
+            <LuFolderOpen className="size-3" />
             <span className="select-none">Open local state root</span>
           </button>
         </div>

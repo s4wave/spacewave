@@ -59,7 +59,7 @@ export function CollapsibleSection({
               className="-my-2.5 flex min-w-0 flex-1 cursor-pointer items-center gap-2 self-stretch py-2.5 text-left"
             >
               {icon && (
-                <span className="text-foreground-alt/50 flex h-3.5 w-3.5 shrink-0 items-center justify-center">
+                <span className="text-foreground-alt/50 flex size-3.5 shrink-0 items-center justify-center">
                   {icon}
                 </span>
               )}
@@ -69,7 +69,7 @@ export function CollapsibleSection({
               {badge}
               <LuChevronDown
                 className={cn(
-                  'text-foreground-alt/30 h-3.5 w-3.5 shrink-0 transition-transform duration-150',
+                  'text-foreground-alt/30 size-3.5 shrink-0 transition-transform duration-150',
                   open && 'rotate-180',
                 )}
               />

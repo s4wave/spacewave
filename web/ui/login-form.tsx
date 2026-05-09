@@ -636,7 +636,7 @@ export function LoginForm({
                 checked={agreed}
                 onChange={(e) => setAgreed(e.target.checked)}
                 disabled={loading !== null}
-                className="accent-brand mt-0.5 h-4 w-4 shrink-0 rounded"
+                className="accent-brand mt-0.5 size-4 shrink-0 rounded"
               />
               <span className="text-foreground-alt text-xs leading-relaxed">
                 I agree to the{' '}
@@ -678,7 +678,7 @@ export function LoginForm({
           {rateLimitCountdown > 0 && (
             <div className="rounded-md border border-yellow-500/30 bg-yellow-500/10 p-3">
               <p className="text-foreground text-xs">
-                Rate limited, retrying in {rateLimitCountdown}s...
+                Rate limited, retrying in {rateLimitCountdown}s…
               </p>
             </div>
           )}
@@ -700,7 +700,7 @@ export function LoginForm({
                   'flex h-9 items-center justify-center gap-2',
                 )}
               >
-                <LuKeyRound className="text-foreground h-4 w-4" />
+                <LuKeyRound className="text-foreground size-4" />
                 <span className="text-foreground text-sm">
                   Open browser to sign in...
                 </span>
@@ -731,7 +731,7 @@ export function LoginForm({
           >
             {passwordBusy ?
               <Spinner className="text-foreground" />
-            : <LuKeyRound className="text-foreground h-4 w-4" />}
+            : <LuKeyRound className="text-foreground size-4" />}
             <span className="text-foreground text-sm">
               {passwordBusy ?
                 'Connecting...'
@@ -796,7 +796,7 @@ export function LoginForm({
                   enabled={!!onLoginWithPem}
                   busy={loading !== null}
                   loading={loading === 'pem'}
-                  icon={<LuKeyRound className="text-foreground-alt h-5 w-5" />}
+                  icon={<LuKeyRound className="text-foreground-alt size-5" />}
                   label={
                     loading === 'pem' ? 'Signing in with backup key...'
                     : pemFileName ?
@@ -813,7 +813,7 @@ export function LoginForm({
                         busy={loading !== null}
                         loading={loading === 'passkey'}
                         icon={
-                          <LuFingerprint className="text-foreground-alt h-5 w-5" />
+                          <LuFingerprint className="text-foreground-alt size-5" />
                         }
                         label="Passkey"
                         onClick={() =>
@@ -834,7 +834,7 @@ export function LoginForm({
                           enabled
                           busy={loading !== null}
                           loading={loading === 'google'}
-                          icon={<FcGoogle className="h-5 w-5" />}
+                          icon={<FcGoogle className="size-5" />}
                           label="Google"
                           onClick={() => void handleSSOSignIn('google')}
                         />
@@ -849,7 +849,7 @@ export function LoginForm({
                           busy={loading !== null}
                           loading={loading === 'github'}
                           icon={
-                            <LuGithub className="text-foreground-alt h-5 w-5" />
+                            <LuGithub className="text-foreground-alt size-5" />
                           }
                           label="GitHub"
                           onClick={() => void handleSSOSignIn('github')}
@@ -881,7 +881,7 @@ export function LoginForm({
                         )}
                       >
                         <div className="flex items-center gap-3">
-                          <PiUserCircleDuotone className="text-foreground-alt group-hover:text-brand h-5 w-5 transition-colors" />
+                          <PiUserCircleDuotone className="text-foreground-alt group-hover:text-brand size-5 transition-colors" />
                           <span className="text-foreground-alt group-hover:text-foreground text-sm transition-colors">
                             {loading === 'continue' ?
                               'Starting...'
@@ -890,7 +890,7 @@ export function LoginForm({
                         </div>
                         <RxArrowRight
                           className={cn(
-                            'text-foreground-alt group-hover:text-brand h-4 w-4 transition-all duration-300',
+                            'text-foreground-alt group-hover:text-brand size-4 transition-all duration-300',
                             'group-hover:translate-x-1',
                           )}
                         />

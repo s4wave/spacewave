@@ -174,7 +174,7 @@ export function BillingAssignmentsSection({
                   aria-label={`Detach ${label}`}
                   className="hover:text-destructive cursor-pointer transition-colors"
                 >
-                  <LuX className="h-3 w-3" />
+                  <LuX className="size-3" />
                 </button>
               </span>
             )
@@ -184,7 +184,7 @@ export function BillingAssignmentsSection({
       <div className="flex items-center gap-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild disabled={menuDisabled}>
-            <DropdownTriggerButton icon={<LuLink className="h-3 w-3" />}>
+            <DropdownTriggerButton icon={<LuLink className="size-3" />}>
               {assigning ? 'Assigning...' : 'Assign to...'}
             </DropdownTriggerButton>
           </DropdownMenuTrigger>
@@ -202,7 +202,7 @@ export function BillingAssignmentsSection({
                 >
                   <LuCheck
                     className={cn(
-                      'h-3 w-3',
+                      'size-3',
                       isSelected ? 'text-brand' : 'text-transparent',
                     )}
                   />

@@ -58,8 +58,8 @@ export function QuickstartLoading() {
 function QuickstartIcon(props: { option: QuickstartOption }) {
   const Icon = props.option.icon
   return (
-    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--color-neutral-900)]">
-      <Icon className="h-8 w-8 text-[var(--color-neutral-300)]" />
+    <div className="flex size-16 items-center justify-center rounded-2xl bg-[var(--color-neutral-900)]">
+      <Icon className="size-8 text-[var(--color-neutral-300)]" />
     </div>
   )
 }
@@ -70,7 +70,7 @@ function LoadingDots() {
       {[0, 1, 2].map((i) => (
         <div
           key={i}
-          className="h-2 w-2 rounded-full bg-[var(--color-neutral-500)]"
+          className="size-2 rounded-full bg-[var(--color-neutral-500)]"
           style={{
             animation: 'pulse 1.4s ease-in-out infinite',
             animationDelay: `${i * 0.2}s`,

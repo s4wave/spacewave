@@ -87,7 +87,7 @@ export function TransferResourceDialog(props: {
             </option>
           ))}
         </select>
-        <LuChevronDown className="text-foreground-alt/50 pointer-events-none absolute top-1/2 right-2.5 h-3.5 w-3.5 -translate-y-1/2" />
+        <LuChevronDown className="text-foreground-alt/50 pointer-events-none absolute top-1/2 right-2.5 size-3.5 -translate-y-1/2" />
       </div>
       {sameAsCurrent && (
         <div className="text-foreground-alt/50 text-xs">
@@ -96,7 +96,7 @@ export function TransferResourceDialog(props: {
         </div>
       )}
       <DashboardButton
-        icon={<LuArrowRight className="h-3 w-3" />}
+        icon={<LuArrowRight className="size-3" />}
         onClick={() => void handleTransfer()}
         disabled={transferring || sameAsCurrent}
       >

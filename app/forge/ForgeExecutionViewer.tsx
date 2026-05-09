@@ -108,7 +108,7 @@ function LogViewer({ logEntries }: { logEntries: Execution['logEntries'] }) {
     return (
       <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
         <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
-          <LuActivity className="h-3.5 w-3.5 shrink-0" />
+          <LuActivity className="size-3.5 shrink-0" />
           <span>No log output</span>
         </div>
       </div>
@@ -232,7 +232,7 @@ export function ForgeExecutionViewer({
 
   return (
     <ForgeViewerShell
-      icon={<LuActivity className="h-4 w-4" />}
+      icon={<LuActivity className="size-4" />}
       title="Execution"
       state={execution?.executionState ?? 0}
       stateLabels={execStateLabels}
