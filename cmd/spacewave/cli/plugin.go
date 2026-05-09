@@ -101,7 +101,7 @@ func runPluginImportManifest(
 		return errors.Wrap(err, "open devtool storage")
 	}
 	defer src.Close()
-	collected, err := lookupDevtoolManifest(ctx, le, src, manifestID)
+	collectedManifests, err := lookupDevtoolManifests(ctx, le, src, manifestID)
 	if err != nil {
 		return errors.Wrap(err, "lookup manifest")
 	}
@@ -143,9 +143,11 @@ func runPluginImportManifest(
 	if destClose != nil {
 		defer destClose()
 	}
-	rootRef := collected.ManifestRef.GetRootRef()
-	if err := copyManifestBlockDAG(ctx, rootRef, src, dest, xfrm); err != nil {
-		return errors.Wrap(err, "copy manifest blocks")
+	for _, collected := range collectedManifests {
+		rootRef := collected.ManifestRef.GetRootRef()
+		if err := copyManifestBlockDAG(ctx, rootRef, src, dest, xfrm); err != nil {
+			return errors.Wrap(err, "copy manifest blocks")
+		}
 	}
 	tx, err := destEngine.NewTransaction(ctx, true)
 	if err != nil {
@@ -155,20 +157,26 @@ func runPluginImportManifest(
 	if _, err := bldr_manifest_world.CreateManifestStore(ctx, tx, objectKey); err != nil {
 		return errors.Wrap(err, "create plugin host manifest store")
 	}
-	manifestKey := bldr_manifest.NewManifestKey(objectKey, collected.Manifest.GetMeta())
-	objRef := collected.ManifestRef.Clone()
-	objRef.BucketId = destBucketID
-	objRef.TransformConf = transformConf
-	if _, _, err := bldr_manifest_world.SetManifest(ctx, tx, "", manifestKey, objRef); err != nil {
-		return errors.Wrap(err, "set manifest")
-	}
-	if err := tx.SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad(objectKey, manifestKey, manifestID)); err != nil {
-		return errors.Wrap(err, "link manifest")
+	imported := make([]string, 0, len(collectedManifests))
+	for _, collected := range collectedManifests {
+		manifestKey := bldr_manifest.NewManifestKey(objectKey, collected.Manifest.GetMeta())
+		objRef := collected.ManifestRef.Clone()
+		objRef.BucketId = destBucketID
+		objRef.TransformConf = transformConf
+		if _, _, err := bldr_manifest_world.SetManifest(ctx, tx, "", manifestKey, objRef); err != nil {
+			return errors.Wrap(err, "set manifest")
+		}
+		if err := tx.SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad(objectKey, manifestKey, manifestID)); err != nil {
+			return errors.Wrap(err, "link manifest")
+		}
+		imported = append(imported, manifestKey)
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return errors.Wrap(err, "commit manifest import")
 	}
-	os.Stdout.WriteString("imported: " + manifestKey + "\n")
+	for _, manifestKey := range imported {
+		os.Stdout.WriteString("imported: " + manifestKey + "\n")
+	}
 	return nil
 }
 

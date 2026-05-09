@@ -186,6 +186,20 @@ func lookupDevtoolManifest(
 	vol volume.Volume,
 	manifestID string,
 ) (*bldr_manifest_world.CollectedManifest, error) {
+	list, err := lookupDevtoolManifests(ctx, le, vol, manifestID)
+	if err != nil {
+		return nil, err
+	}
+	return list[0], nil
+}
+
+// lookupDevtoolManifests opens the devtool world and finds latest manifests by ID.
+func lookupDevtoolManifests(
+	ctx context.Context,
+	le *logrus.Entry,
+	vol volume.Volume,
+	manifestID string,
+) ([]*bldr_manifest_world.CollectedManifest, error) {
 	eng, err := openDevtoolWorldEngine(ctx, le, vol)
 	if err != nil {
 		return nil, err
@@ -208,5 +222,6 @@ func lookupDevtoolManifest(
 		return nil, errors.Errorf("manifest %q not found (available: %v)", manifestID, available)
 	}
 
-	return list[0], nil
+	list = bldr_manifest_world.FilterCollectedManifestsByLatestRev(list)
+	return list, nil
 }
