@@ -85,6 +85,31 @@ Quick actions are intentionally conservative. Copy actions use the native clipbo
 
 The native menu entry tree is the contract for tray commands. A richer popover may consume `DesktopRuntimeState` for presentation, but it must preserve the native menu as fallback and route commands through `DesktopTrayEntry` action transport or explicit desktop runtime actuators instead of inventing a second status or command model.
 
+### DesktopTrayEntry Popover Contract
+
+Popover renderers that dispatch tray commands consume the `DesktopTrayState.entries` tree as the command contract. `DesktopRuntimeState` supplies richer descriptive context, but the popover treats each `DesktopTrayEntry` as the source of truth for row identity, visibility, ordering, enabled state, and invocation semantics. The same snapshot also feeds the native menu, so a row that cannot be expressed through `DesktopTrayEntry` is not part of the desktop tray contract.
+
+Stable identity comes from `DesktopTrayEntry.id`. Publishers keep the same ID for the same logical row across label, status, active, and enabled changes. Popovers use `id` as the reconciliation key and pass it unchanged to `InvokeDesktopTrayEntry` for attached-handler actions. An ID is unique within the tray tree while the entry is registered; when a publisher releases the entry resource, the row leaves the contract and any popover-local row state for that ID is discarded.
+
+Display text comes from the entry fields, not from popover-side lookup tables. `label` is the primary visible name. `detail` is optional secondary text. `statusText` is compact row status. `iconName`, `iconState`, `severity`, and `active` are presentation hints for status, attention, and foreground activity. `SECTION`, `SEPARATOR`, `STATUS`, and `SUBMENU` entries are structural or informational and are not invoked.
+
+Action rows are the only selectable command rows. A popover disables an action when `enabled` is false, when `action` is absent, or when the action payload is incomplete for its kind. It does not hide disabled rows unless the entry is removed from the watched tree. The supported action handoff is:
+
+| `DesktopTrayAction.kind` | Popover behavior                                                                 |
+| ------------------------ | --------------------------------------------------------------------------------- |
+| `OPEN_ROUTE`             | Call `OpenOrFocusMainWindow` with `route` when present, otherwise focus the app.  |
+| `NEW_WINDOW`             | Call `OpenOrFocusMainWindow` with the requested `route`, or `/` when empty.       |
+| `COPY_TEXT`              | Copy `value` to the native clipboard.                                             |
+| `REVEAL_PATH`            | Reveal `value` with the platform file manager.                                    |
+| `QUIT`                   | Call `QuitDesktopRuntime`.                                                        |
+| `ATTACHED_HANDLER`       | Call `InvokeDesktopTrayEntry` with the entry `id`; the publisher owns the handler. |
+
+Ordering is the watched tree order. The tray service sorts registered entries by path, group, and order before publishing `DesktopTrayState`. Popovers render entries in the published order, preserve `path` as submenu or grouped hierarchy, and do not re-rank rows from `severity` or `active`; attention projection happens before publication.
+
+Lifecycle follows the Resource SDK. Publishers register each row with `RegisterDesktopTrayEntry`, update it through the returned `DesktopTrayEntryResourceService`, and release the resource when the row no longer exists. Popovers subscribe with `WatchDesktopTray`, replace their local tree from each full snapshot, and treat missing rows as removed. They do not hold row resources, invoke released IDs, or keep commands from stale snapshots.
+
+The native menu remains the required fallback. Electron main continues to rebuild and install the native menu from `WatchDesktopTray` even when a popover is enabled. If the popover cannot attach, render, or dispatch an action, the tray controller falls back to the native menu or opens/focuses the singleton app window; it must not route commands through a popover-only model.
+
 The current custom popover is a desktop-only development prototype. Enable it with:
 
 ```bash
