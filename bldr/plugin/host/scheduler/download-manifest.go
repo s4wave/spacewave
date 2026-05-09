@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
+	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	block_copy "github.com/s4wave/spacewave/db/block/copy"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	trace "github.com/s4wave/spacewave/db/traceutil"
@@ -32,6 +33,13 @@ func (t *pluginInstance) execDownloadManifest(
 	if blockRef.GetEmpty() {
 		return errors.New("manifest ref has empty root block ref")
 	}
+	var manifestMeta *bldr_manifest.ManifestMeta
+	if !t.c.conf.GetDisableStoreManifest() {
+		manifestMeta = manifestSnapshot.GetManifest().GetMeta()
+		if err := manifestMeta.Validate(false); err != nil {
+			return errors.Wrap(err, "manifest snapshot metadata")
+		}
+	}
 	trace.Log(ctx, "plugin-id", t.pluginID)
 	trace.Log(ctx, "manifest-ref", ref.MarshalString())
 	trace.Log(ctx, "startup-fetch-kind", "background-manifest-dag-copy")
@@ -44,10 +52,26 @@ func (t *pluginInstance) execDownloadManifest(
 	// Access the world root bucket (dest) then the manifest source bucket (src).
 	return ws.AccessWorldState(ctx, nil, func(dest *bucket_lookup.Cursor) error {
 		return ws.AccessWorldState(ctx, ref, func(src *bucket_lookup.Cursor) error {
-			le.Infof("copying manifest DAG from bucket %s to %s", src.GetOpArgs().GetBucketId(), dest.GetOpArgs().GetBucketId())
+			destBucketID := dest.GetOpArgs().GetBucketId()
+			le.Infof("copying manifest DAG from bucket %s to %s", src.GetOpArgs().GetBucketId(), destBucketID)
 			err := block_copy.CopyBlockDAG(ctx, blockRef, bldr_manifest.NewManifestBlock, src.GetBucket(), dest.GetBucket())
 			if err != nil {
 				return errors.Wrap(err, "copy manifest block DAG")
+			}
+			if !t.c.conf.GetDisableStoreManifest() {
+				localRef := ref.CloneVT()
+				localRef.BucketId = destBucketID
+				manifestKey := bldr_manifest.NewManifestKey(t.c.objKey, manifestMeta)
+				if err := bldr_manifest_world.ExStoreManifestOp(
+					ctx,
+					ws,
+					t.c.peerID,
+					manifestKey,
+					[]string{t.c.objKey},
+					bldr_manifest.NewManifestRef(manifestMeta, localRef),
+				); err != nil {
+					return errors.Wrap(err, "store local manifest ref")
+				}
 			}
 			le.Info("manifest download complete")
 			return nil
