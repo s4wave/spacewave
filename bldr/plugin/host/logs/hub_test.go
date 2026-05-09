@@ -1,8 +1,11 @@
 package plugin_host_logs
 
 import (
+	"io"
 	"testing"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 func TestHubAssignsMonotonicSequencesAndBoundsRetainedHistory(t *testing.T) {
@@ -235,6 +238,48 @@ func TestHubFastPathSkipsInactiveFollowViews(t *testing.T) {
 	want := []uint64{3}
 	if !equalSequences(got, want) {
 		t.Fatalf("followed view sequences = %v, want %v", got, want)
+	}
+}
+
+func TestHostLogrusHookCapturesEvents(t *testing.T) {
+	log := logrus.New()
+	log.SetOutput(io.Discard)
+	log.SetLevel(logrus.DebugLevel)
+	hub := NewHub(WithRetainedEventLimit(10))
+	release := AttachHostLogrusHook(nil, log, hub)
+	defer release()
+	if got := len(log.Hooks[logrus.WarnLevel]); got != 1 {
+		t.Fatalf("warn hooks = %d, want 1", got)
+	}
+
+	view := hub.OpenView(nil, nil)
+	defer view.Release()
+
+	log.WithFields(logrus.Fields{
+		"plugin-id":    "runner",
+		"instance-key": "main",
+		"attempt":      2,
+	}).Warn("host captured")
+
+	events := hub.Snapshot(nil, nil).GetEvents()
+	if len(events) != 1 {
+		t.Fatalf("captured events = %d, want 1", len(events))
+	}
+	event := events[0]
+	if event.GetPluginId() != "runner" {
+		t.Fatalf("plugin id = %q, want runner", event.GetPluginId())
+	}
+	if event.GetInstanceKey() != "main" {
+		t.Fatalf("instance key = %q, want main", event.GetInstanceKey())
+	}
+	if event.GetStream() != StructuredLogStream_STRUCTURED_LOG_STREAM_LOGGER {
+		t.Fatalf("stream = %s, want logger", event.GetStream())
+	}
+	if event.GetLevel() != StructuredLogLevel_STRUCTURED_LOG_LEVEL_WARN {
+		t.Fatalf("level = %s, want warn", event.GetLevel())
+	}
+	if event.GetFields()["attempt"] != "2" {
+		t.Fatalf("attempt field = %q, want 2", event.GetFields()["attempt"])
 	}
 }
 

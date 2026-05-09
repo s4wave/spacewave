@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	bldr_plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
+	plugin_host_logs "github.com/s4wave/spacewave/bldr/plugin/host/logs"
 	plugin_host_root "github.com/s4wave/spacewave/bldr/plugin/host/root"
 	"github.com/sirupsen/logrus"
 )
@@ -24,6 +25,8 @@ type Controller struct {
 	host bldr_plugin_host.PluginHost
 	// hostRoot is the process-lifetime host resource root
 	hostRoot *plugin_host_root.Root
+	// releaseHostLogHook releases the bus-scoped host log hook reference
+	releaseHostLogHook func()
 	// platformID is the host platform id
 	platformID string
 }
@@ -35,12 +38,18 @@ func NewController(
 	info *controller.Info,
 	host bldr_plugin_host.PluginHost,
 ) *Controller {
+	hostRoot := plugin_host_root.NewRoot()
 	return &Controller{
-		le:         le,
-		bus:        bus,
-		info:       info,
-		host:       host,
-		hostRoot:   plugin_host_root.NewRoot(),
+		le:       le,
+		bus:      bus,
+		info:     info,
+		host:     host,
+		hostRoot: hostRoot,
+		releaseHostLogHook: plugin_host_logs.AttachHostLogrusHook(
+			bus,
+			le.Logger,
+			hostRoot.GetStructuredLogs(),
+		),
 		platformID: host.GetPlatformId(),
 	}
 }
@@ -118,6 +127,10 @@ func (c *Controller) resolveLookupRoot(
 // Close releases any resources used by the controller.
 // Error indicates any issue encountered releasing.
 func (c *Controller) Close() error {
+	if c.releaseHostLogHook != nil {
+		c.releaseHostLogHook()
+		c.releaseHostLogHook = nil
+	}
 	return nil
 }
 
