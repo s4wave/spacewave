@@ -432,7 +432,7 @@ func prefixSuccessor(prefix []byte) []byte {
 	next := bytes.Clone(prefix)
 	for i, v := range slices.Backward(next) {
 		if v != 0xff {
-			v++
+			next[i]++
 			return next[:i+1]
 		}
 	}
