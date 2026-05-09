@@ -105,13 +105,75 @@ Start the desktop app with:
 bun run start:desktop
 ```
 
-The tray Quick Actions section exposes `Copy CLI Socket` when the listener socket path is known. `Copy Diagnostics` includes the collapsed status, listener detail, and socket path.
+The tray Quick Actions section exposes `Copy Socket Path` when the listener socket path is known. `Copy Diagnostics` includes the collapsed status, listener detail, and socket path. Use those values as the first live check before starting a debugger: the copied socket should match the socket used by the CLI, and the diagnostics text should match the title row, listener row, and connected-client count in the native menu.
+
+### CLI And Debug Verification
+
+Use the CLI walkthrough commands against the copied socket path to verify the daemon surface from outside Electron:
+
+```bash
+bun run cli:local -- --socket-path /path/from/tray status
+bun run cli:local -- --socket-path /path/from/tray whoami
+bun run cli:local -- --socket-path /path/from/tray space list
+```
+
+`status` proves the daemon socket is reachable and reports the mounted session, lock state, and Space count. `whoami` proves which session identity the CLI is acting as. `space list` proves the session's Space entries are visible through the same daemon. For a non-default session, add `--session-index <n>` to each command.
+
+When the debug bridge is enabled in a running desktop build, use the repo-local debug CLI to confirm the renderer bridge before evaluating page-side probes:
+
+```bash
+go run -mod=mod ./cmd/spacewave-debug wait
+go run -mod=mod ./cmd/spacewave-debug info
+```
+
+The debug CLI talks to `.bldr/spacewave-debug.sock` or `SPACEWAVE_DEBUG_SOCK`. It is for renderer and plugin debug inspection. The authoritative native tray tree still lives in Electron main behind `DesktopTrayResourceService`.
+
+### Resource Tree Inspection
+
+Inspect the host `DesktopTray` tree with the Resource SDK tests before changing native menu behavior:
+
+```bash
+GOFLAGS=-mod=mod go test -count=1 ./bldr/desktop/tray
+```
+
+The important fixtures are:
+
+| Test                                                                 | What it proves                                                                 |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `TestDesktopTrayRegistryWatchStreamsSnapshots`                       | `WatchDesktopTray` emits the current ordered `DesktopTrayState`.               |
+| `TestDesktopTrayRegistryOrdersEntriesAndUpdatesState`                | registered entries sort by order/group and entry resources update active state. |
+| `TestReconcileDesktopTrayMirrorsEntriesToTargetResource`             | source entries mirror into the Electron-owned target tray resource.             |
+| `TestReconcileDesktopTrayMirrorsExistingEntriesAcrossTargetReconnect` | reconnecting a target receives existing source entries and old target rows drop. |
+
+Inspect Electron main actuator state with:
+
+```bash
+bunx vitest run --config bldr/vitest.config.ts bldr/web/electron/main/desktop-runtime.test.ts
+```
+
+`DesktopRuntimeResource.WatchDesktopState` is the stream to watch for `mainWindowOpen`, `quitting`, `statusText`, `health`, `lifecycle`, `listener`, `sessions`, `spaces`, `activity`, `update`, `attentionItems`, and `actions`. `SetDesktopState` only accepts projected runtime fields; Electron main preserves `mainWindowOpen` and `quitting`. `OpenOrFocusMainWindow` and `QuitDesktopRuntime` are the actuator calls to verify when tray rows are clicked.
+
+Inspect listener, session, and Space projection with:
+
+```bash
+GOFLAGS=-mod=mod go test -count=1 ./core/resource/desktop/statusprojector
+```
+
+`state_test.go` covers listener reachability states, session rows, Space rows, attention rows, update actions, and bounded lists. `tray-publisher_test.go` covers publishing projected tray entries into the host tray resource and releasing removed actions.
+
+Inspect the native Electron menu rendering with:
+
+```bash
+bunx vitest run --config bldr/vitest.config.ts bldr/web/electron/main/desktop-tray.test.ts
+```
+
+Use this when labels, route actions, copy actions, popover fallback, or menu rebuild behavior changes. The tests assert the daemon-console order, the synthetic `Copy Socket Path` and `Copy Diagnostics` rows, route dispatch through `OpenOrFocusMainWindow`, attached-handler dispatch through `InvokeDesktopTrayEntry`, and duplicate snapshot suppression.
 
 Use focused tests while changing the daemon console:
 
 ```bash
 bunx vitest run --config bldr/vitest.config.ts bldr/web/bldr/web-runtime.test.ts bldr/web/electron/main/desktop-runtime.test.ts bldr/web/electron/main/desktop-tray.test.ts
-GOFLAGS=-mod=mod go test -count=1 ./bldr/web/runtime ./bldr/web/electron/desktop-runtime ./core/resource/desktop/statusprojector ./core/resource/session
+GOFLAGS=-mod=mod go test -count=1 ./bldr/desktop/tray ./bldr/web/runtime ./bldr/web/electron/desktop-runtime ./core/resource/desktop/statusprojector ./core/resource/session
 ```
 
 The opt-in Electron e2e suite is heavier and only runs when enabled:
