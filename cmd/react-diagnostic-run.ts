@@ -32,6 +32,7 @@ export interface ReactDiagnosticRunCliOptions {
   outputPath: string | null
   offline: boolean
   compact: boolean
+  fullAudit: boolean
   passthroughArgs: string[]
 }
 
@@ -104,6 +105,7 @@ export function parseReactDiagnosticRunArgs(
   let outputPath: string | null = null
   let offline = true
   let compact = false
+  let fullAudit = false
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]
@@ -120,6 +122,10 @@ export function parseReactDiagnosticRunArgs(
     }
     if (arg === '--compact') {
       compact = true
+      continue
+    }
+    if (arg === '--full-audit') {
+      fullAudit = true
       continue
     }
     if (arg === '--offline') {
@@ -151,11 +157,15 @@ export function parseReactDiagnosticRunArgs(
     passthroughArgs.push(arg)
   }
 
-  return { directory, outputPath, offline, compact, passthroughArgs }
+  return { directory, outputPath, offline, compact, fullAudit, passthroughArgs }
 }
 
 function hasLongFlag(args: string[], flag: string): boolean {
   return args.some((arg) => arg === flag || arg.startsWith(`${flag}=`))
+}
+
+function hasDeadCodeFlag(args: string[]): boolean {
+  return args.some((arg) => arg === '--dead-code' || arg === '--no-dead-code')
 }
 
 export function buildReactDoctorArgs(
@@ -164,6 +174,15 @@ export function buildReactDoctorArgs(
   const args = [options.directory, '--json']
   if (options.offline && !hasLongFlag(options.passthroughArgs, '--offline')) {
     args.push('--offline')
+  }
+  if (options.fullAudit && !hasLongFlag(options.passthroughArgs, '--full')) {
+    args.push('--full')
+  }
+  if (options.fullAudit && !hasDeadCodeFlag(options.passthroughArgs)) {
+    args.push('--dead-code')
+  }
+  if (!options.fullAudit && !hasDeadCodeFlag(options.passthroughArgs)) {
+    args.push('--no-dead-code')
   }
   if (!hasLongFlag(options.passthroughArgs, '--fail-on')) {
     args.push('--fail-on', 'none')

@@ -16,12 +16,14 @@ describe('react diagnostic run wrapper', () => {
       outputPath: null,
       offline: true,
       compact: false,
+      fullAudit: false,
       passthroughArgs: [],
     })
     expect(buildReactDoctorArgs(options)).toEqual([
       '.',
       '--json',
       '--offline',
+      '--no-dead-code',
       '--fail-on',
       'none',
     ])
@@ -45,11 +47,13 @@ describe('react diagnostic run wrapper', () => {
       outputPath: '.tmp/react-diagnostic.json',
       offline: false,
       compact: true,
+      fullAudit: false,
       passthroughArgs: ['--project', 'spacewave', '--diff', 'master'],
     })
     expect(buildReactDoctorArgs(options)).toEqual([
       'app',
       '--json',
+      '--no-dead-code',
       '--fail-on',
       'none',
       '--project',
@@ -66,8 +70,48 @@ describe('react diagnostic run wrapper', () => {
       '.',
       '--json',
       '--offline',
+      '--no-dead-code',
       '--fail-on',
       'warning',
+    ])
+  })
+
+  it('enables full dead-code diagnostics only for manual full audit mode', () => {
+    const options = parseReactDiagnosticRunArgs([
+      '--full-audit',
+      '--output',
+      '.tmp/react-diagnostic-full-audit.json',
+    ])
+
+    expect(options).toEqual({
+      directory: '.',
+      outputPath: '.tmp/react-diagnostic-full-audit.json',
+      offline: true,
+      compact: false,
+      fullAudit: true,
+      passthroughArgs: [],
+    })
+    expect(buildReactDoctorArgs(options)).toEqual([
+      '.',
+      '--json',
+      '--offline',
+      '--full',
+      '--dead-code',
+      '--fail-on',
+      'none',
+    ])
+  })
+
+  it('allows explicit React Doctor dead-code flags outside full audit mode', () => {
+    const options = parseReactDiagnosticRunArgs(['--dead-code'])
+
+    expect(buildReactDoctorArgs(options)).toEqual([
+      '.',
+      '--json',
+      '--offline',
+      '--fail-on',
+      'none',
+      '--dead-code',
     ])
   })
 
