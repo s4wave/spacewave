@@ -18,11 +18,33 @@
 #define SPACEWAVE_ZERO_NATIVE_IPC_BAD_RESPONSE 5
 #define SPACEWAVE_ZERO_NATIVE_IPC_REMOTE_ERROR 6
 #define SPACEWAVE_ZERO_NATIVE_IPC_RESPONSE_TOO_LARGE 7
+#define SPACEWAVE_ZERO_NATIVE_IPC_CANCELLED 8
+#define SPACEWAVE_ZERO_NATIVE_IPC_STREAM_CLOSED 9
 
 typedef struct SpacewaveZeroNativeIpcError {
     int32_t code;
     char message[256];
 } SpacewaveZeroNativeIpcError;
+
+typedef struct SpacewaveZeroNativeIpcStream SpacewaveZeroNativeIpcStream;
+
+typedef void (*SpacewaveZeroNativeIpcStreamPacketCallback)(
+    void* user_data,
+    uint32_t stream_id,
+    const uint8_t* data,
+    size_t data_len);
+
+typedef void (*SpacewaveZeroNativeIpcStreamCloseCallback)(
+    void* user_data,
+    uint32_t stream_id,
+    int32_t code,
+    const char* message);
+
+typedef struct SpacewaveZeroNativeIpcStreamCallbacks {
+    void* user_data;
+    SpacewaveZeroNativeIpcStreamPacketCallback on_packet;
+    SpacewaveZeroNativeIpcStreamCloseCallback on_close;
+} SpacewaveZeroNativeIpcStreamCallbacks;
 
 #ifdef __cplusplus
 extern "C" {
@@ -49,6 +71,36 @@ int32_t spacewave_zero_native_starpc_echo(
     uint8_t* response,
     size_t response_cap,
     size_t* response_len,
+    SpacewaveZeroNativeIpcError* error);
+
+// Opens a callback-driven framed stream over the native pipe/socket endpoint.
+//
+// The current stream probe uses a deliberately small frame shape:
+//   frame: 4-byte little-endian length + type byte + stream_id LE32 + payload
+// Frame types are internal to this probe. The ABI owns the native handle and
+// reader thread until close/cancel is called.
+int32_t spacewave_zero_native_starpc_stream_open(
+    const char* endpoint,
+    uint32_t stream_id,
+    const SpacewaveZeroNativeIpcStreamCallbacks* callbacks,
+    SpacewaveZeroNativeIpcStream** stream,
+    SpacewaveZeroNativeIpcError* error);
+
+// Sends one ordered packet on the stream.
+int32_t spacewave_zero_native_starpc_stream_send(
+    SpacewaveZeroNativeIpcStream* stream,
+    const uint8_t* data,
+    size_t data_len,
+    SpacewaveZeroNativeIpcError* error);
+
+// Closes and releases the stream. The close callback is delivered at most once.
+int32_t spacewave_zero_native_starpc_stream_close(
+    SpacewaveZeroNativeIpcStream* stream,
+    SpacewaveZeroNativeIpcError* error);
+
+// Sends a cancel frame, closes the native handle, and releases the stream.
+int32_t spacewave_zero_native_starpc_stream_cancel(
+    SpacewaveZeroNativeIpcStream* stream,
     SpacewaveZeroNativeIpcError* error);
 
 #ifdef __cplusplus

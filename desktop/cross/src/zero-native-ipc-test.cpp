@@ -1,9 +1,12 @@
 #include "zero-native-ipc.h"
 
+#include <chrono>
+#include <condition_variable>
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
@@ -24,6 +27,10 @@ namespace {
 
 constexpr uint8_t kResponseOK = 0;
 constexpr uint8_t kResponseError = 1;
+constexpr uint8_t kStreamFrameOpen = 1;
+constexpr uint8_t kStreamFramePacket = 2;
+constexpr uint8_t kStreamFrameClose = 3;
+constexpr uint8_t kStreamFrameCancel = 4;
 
 void writeLE32(uint8_t* out, uint32_t value) {
     out[0] = static_cast<uint8_t>(value);
@@ -86,10 +93,60 @@ bool readFrame(int fd, std::vector<uint8_t>* out) {
     return len == 0 || readExact(fd, out->data(), len);
 }
 
+struct StreamFrame {
+    uint8_t type = 0;
+    uint32_t streamID = 0;
+    std::vector<uint8_t> payload;
+};
+
+bool writeStreamFrame(int fd, uint8_t type, uint32_t streamID, const std::vector<uint8_t>& payload) {
+    std::vector<uint8_t> frame;
+    frame.resize(payload.size() + 5);
+    frame[0] = type;
+    writeLE32(frame.data() + 1, streamID);
+    if (!payload.empty()) {
+        std::memcpy(frame.data() + 5, payload.data(), payload.size());
+    }
+    return writeFrame(fd, frame);
+}
+
+bool readStreamFrame(int fd, StreamFrame* frame) {
+    std::vector<uint8_t> raw;
+    if (!readFrame(fd, &raw)) {
+        return false;
+    }
+    if (raw.size() < 5) {
+        return false;
+    }
+    frame->type = raw[0];
+    frame->streamID = readLE32(raw.data() + 1);
+    frame->payload.assign(raw.begin() + 5, raw.end());
+    return true;
+}
+
 struct ServerResult {
     std::vector<uint8_t> request;
     bool sawCleanClose = false;
     std::string error;
+};
+
+struct StreamServerResult {
+    uint32_t streamID = 0;
+    std::vector<std::string> packets;
+    bool sawClientClose = false;
+    bool sawClientCancel = false;
+    bool sawCleanClose = false;
+    std::string error;
+};
+
+struct StreamClientState {
+    std::mutex mutex;
+    std::condition_variable changed;
+    uint32_t expectedStreamID = 0;
+    std::vector<std::string> packets;
+    int32_t closeCode = -1;
+    std::string closeMessage;
+    bool callbackUserDataMatched = true;
 };
 
 std::string makeSocketPath(const char* suffix) {
@@ -130,7 +187,7 @@ int listenUnix(const std::string& socketPath) {
         std::cerr << "bind failed: " << std::strerror(errno) << "\n";
         std::exit(1);
     }
-    if (listen(fd, 1) != 0) {
+    if (listen(fd, 8) != 0) {
         std::cerr << "listen failed: " << std::strerror(errno) << "\n";
         std::exit(1);
     }
@@ -172,11 +229,161 @@ bool contains(const char* haystack, const char* needle) {
     return std::strstr(haystack, needle) != nullptr;
 }
 
+std::string bytesToString(const std::vector<uint8_t>& bytes) {
+    return std::string(reinterpret_cast<const char*>(bytes.data()), bytes.size());
+}
+
+std::vector<uint8_t> stringBytes(const char* value) {
+    return std::vector<uint8_t>(value, value + std::strlen(value));
+}
+
 void require(bool ok, const char* message) {
     if (!ok) {
         std::cerr << "require failed: " << message << "\n";
         std::exit(1);
     }
+}
+
+void onStreamPacket(void* userData, uint32_t streamID, const uint8_t* data, size_t dataLen) {
+    StreamClientState* state = static_cast<StreamClientState*>(userData);
+    std::lock_guard<std::mutex> lock(state->mutex);
+    state->callbackUserDataMatched = state->callbackUserDataMatched &&
+        streamID == state->expectedStreamID;
+    if (dataLen == 0) {
+        state->packets.emplace_back();
+    } else {
+        state->packets.emplace_back(reinterpret_cast<const char*>(data), dataLen);
+    }
+    state->changed.notify_all();
+}
+
+void onStreamClose(void* userData, uint32_t streamID, int32_t code, const char* message) {
+    StreamClientState* state = static_cast<StreamClientState*>(userData);
+    std::lock_guard<std::mutex> lock(state->mutex);
+    state->callbackUserDataMatched = state->callbackUserDataMatched &&
+        streamID == state->expectedStreamID;
+    state->closeCode = code;
+    state->closeMessage = message == nullptr ? "" : message;
+    state->changed.notify_all();
+}
+
+bool waitForStreamState(StreamClientState* state, size_t packetCount, bool closed) {
+    std::unique_lock<std::mutex> lock(state->mutex);
+    return state->changed.wait_for(lock, std::chrono::seconds(5), [&]() {
+        bool packetReady = state->packets.size() >= packetCount;
+        bool closeReady = !closed || state->closeCode != -1;
+        return packetReady && closeReady;
+    });
+}
+
+StreamServerResult runPacketStreamServer(int listenFd, size_t expectedPackets) {
+    StreamServerResult result;
+    int fd = accept(listenFd, nullptr, nullptr);
+    if (fd < 0) {
+        result.error = std::string("accept failed: ") + std::strerror(errno);
+        return result;
+    }
+
+    StreamFrame frame;
+    if (!readStreamFrame(fd, &frame)) {
+        result.error = "read stream open failed";
+        close(fd);
+        return result;
+    }
+    if (frame.type != kStreamFrameOpen) {
+        result.error = "first stream frame was not open";
+        close(fd);
+        return result;
+    }
+    result.streamID = frame.streamID;
+
+    for (size_t i = 0; i < expectedPackets; ++i) {
+        if (!readStreamFrame(fd, &frame)) {
+            result.error = "read stream packet failed";
+            close(fd);
+            return result;
+        }
+        if (frame.type != kStreamFramePacket || frame.streamID != result.streamID) {
+            result.error = "unexpected stream packet frame";
+            close(fd);
+            return result;
+        }
+        result.packets.push_back(bytesToString(frame.payload));
+        if (!writeStreamFrame(fd, kStreamFramePacket, result.streamID, frame.payload)) {
+            result.error = "write stream packet failed";
+            close(fd);
+            return result;
+        }
+    }
+
+    std::string closeMessage = "server-close-" + std::to_string(result.streamID);
+    if (!writeStreamFrame(fd, kStreamFrameClose, result.streamID, stringBytes(closeMessage.c_str()))) {
+        result.error = "write stream close failed";
+        close(fd);
+        return result;
+    }
+
+    if (readStreamFrame(fd, &frame)) {
+        if (frame.type == kStreamFrameClose && frame.streamID == result.streamID) {
+            result.sawClientClose = true;
+        }
+    } else {
+        result.sawCleanClose = true;
+    }
+    close(fd);
+    return result;
+}
+
+StreamServerResult runCancelStreamServer(int listenFd) {
+    StreamServerResult result;
+    int fd = accept(listenFd, nullptr, nullptr);
+    if (fd < 0) {
+        result.error = std::string("accept failed: ") + std::strerror(errno);
+        return result;
+    }
+
+    StreamFrame frame;
+    if (!readStreamFrame(fd, &frame)) {
+        result.error = "read cancel stream open failed";
+        close(fd);
+        return result;
+    }
+    if (frame.type != kStreamFrameOpen) {
+        result.error = "first cancel stream frame was not open";
+        close(fd);
+        return result;
+    }
+    result.streamID = frame.streamID;
+
+    for (;;) {
+        if (!readStreamFrame(fd, &frame)) {
+            result.error = "cancel stream closed before cancel frame";
+            close(fd);
+            return result;
+        }
+        if (frame.streamID != result.streamID) {
+            result.error = "cancel stream id mismatch";
+            close(fd);
+            return result;
+        }
+        if (frame.type == kStreamFramePacket) {
+            result.packets.push_back(bytesToString(frame.payload));
+            continue;
+        }
+        if (frame.type == kStreamFrameCancel) {
+            result.sawClientCancel = true;
+            break;
+        }
+        result.error = "unexpected cancel stream frame";
+        close(fd);
+        return result;
+    }
+
+    uint8_t eofProbe = 0;
+    ssize_t n = read(fd, &eofProbe, 1);
+    result.sawCleanClose = n == 0;
+    close(fd);
+    return result;
 }
 
 void runEchoCase() {
@@ -297,6 +504,135 @@ void runConnectFailureCase() {
     require(responseLen == 0, "connect failure has no response");
 }
 
+void runConcurrentStreamCase() {
+    std::string socketPath = makeSocketPath("streams");
+    int listenFd = listenUnix(socketPath);
+    StreamServerResult serverA;
+    StreamServerResult serverB;
+    std::thread acceptA([&]() {
+        serverA = runPacketStreamServer(listenFd, 3);
+    });
+    std::thread acceptB([&]() {
+        serverB = runPacketStreamServer(listenFd, 3);
+    });
+
+    StreamClientState stateA;
+    StreamClientState stateB;
+    stateA.expectedStreamID = 101;
+    stateB.expectedStreamID = 202;
+    SpacewaveZeroNativeIpcStreamCallbacks callbacksA = {&stateA, onStreamPacket, onStreamClose};
+    SpacewaveZeroNativeIpcStreamCallbacks callbacksB = {&stateB, onStreamPacket, onStreamClose};
+    SpacewaveZeroNativeIpcStream* streamA = nullptr;
+    SpacewaveZeroNativeIpcStream* streamB = nullptr;
+    SpacewaveZeroNativeIpcError error;
+
+    int32_t codeA = spacewave_zero_native_starpc_stream_open(
+        socketPath.c_str(),
+        stateA.expectedStreamID,
+        &callbacksA,
+        &streamA,
+        &error);
+    int32_t codeB = spacewave_zero_native_starpc_stream_open(
+        socketPath.c_str(),
+        stateB.expectedStreamID,
+        &callbacksB,
+        &streamB,
+        &error);
+    require(codeA == SPACEWAVE_ZERO_NATIVE_IPC_OK, "stream A open");
+    require(codeB == SPACEWAVE_ZERO_NATIVE_IPC_OK, "stream B open");
+
+    std::thread sendA([&]() {
+        const char* packets[] = {"a0", "a1", "a2"};
+        SpacewaveZeroNativeIpcError sendError;
+        for (const char* packet : packets) {
+            std::vector<uint8_t> bytes = stringBytes(packet);
+            int32_t code = spacewave_zero_native_starpc_stream_send(
+                streamA,
+                bytes.data(),
+                bytes.size(),
+                &sendError);
+            require(code == SPACEWAVE_ZERO_NATIVE_IPC_OK, "stream A send");
+        }
+    });
+    std::thread sendB([&]() {
+        const char* packets[] = {"b0", "b1", "b2"};
+        SpacewaveZeroNativeIpcError sendError;
+        for (const char* packet : packets) {
+            std::vector<uint8_t> bytes = stringBytes(packet);
+            int32_t code = spacewave_zero_native_starpc_stream_send(
+                streamB,
+                bytes.data(),
+                bytes.size(),
+                &sendError);
+            require(code == SPACEWAVE_ZERO_NATIVE_IPC_OK, "stream B send");
+        }
+    });
+    sendA.join();
+    sendB.join();
+
+    require(waitForStreamState(&stateA, 3, true), "stream A callbacks completed");
+    require(waitForStreamState(&stateB, 3, true), "stream B callbacks completed");
+    codeA = spacewave_zero_native_starpc_stream_close(streamA, &error);
+    codeB = spacewave_zero_native_starpc_stream_close(streamB, &error);
+    acceptA.join();
+    acceptB.join();
+    close(listenFd);
+    cleanupSocketPath(socketPath);
+
+    require(codeA == SPACEWAVE_ZERO_NATIVE_IPC_OK, "stream A close");
+    require(codeB == SPACEWAVE_ZERO_NATIVE_IPC_OK, "stream B close");
+    require(stateA.callbackUserDataMatched, "stream A callback ownership");
+    require(stateB.callbackUserDataMatched, "stream B callback ownership");
+    require(stateA.closeCode == SPACEWAVE_ZERO_NATIVE_IPC_OK, "stream A close callback code");
+    require(stateB.closeCode == SPACEWAVE_ZERO_NATIVE_IPC_OK, "stream B close callback code");
+    require(stateA.closeMessage == "server-close-101", "stream A close message");
+    require(stateB.closeMessage == "server-close-202", "stream B close message");
+    require((stateA.packets == std::vector<std::string>{"a0", "a1", "a2"}), "stream A packet order");
+    require((stateB.packets == std::vector<std::string>{"b0", "b1", "b2"}), "stream B packet order");
+    require(serverA.error.empty(), "concurrent stream server A finished without error");
+    require(serverB.error.empty(), "concurrent stream server B finished without error");
+}
+
+void runCancelStreamCase() {
+    std::string socketPath = makeSocketPath("cancel-stream");
+    int listenFd = listenUnix(socketPath);
+    StreamServerResult serverResult;
+    std::thread server([&]() {
+        serverResult = runCancelStreamServer(listenFd);
+    });
+
+    StreamClientState state;
+    state.expectedStreamID = 303;
+    SpacewaveZeroNativeIpcStreamCallbacks callbacks = {&state, onStreamPacket, onStreamClose};
+    SpacewaveZeroNativeIpcStream* stream = nullptr;
+    SpacewaveZeroNativeIpcError error;
+    int32_t code = spacewave_zero_native_starpc_stream_open(
+        socketPath.c_str(),
+        state.expectedStreamID,
+        &callbacks,
+        &stream,
+        &error);
+    require(code == SPACEWAVE_ZERO_NATIVE_IPC_OK, "cancel stream open");
+
+    std::vector<uint8_t> packet = stringBytes("before-cancel");
+    code = spacewave_zero_native_starpc_stream_send(stream, packet.data(), packet.size(), &error);
+    require(code == SPACEWAVE_ZERO_NATIVE_IPC_OK, "cancel stream send");
+    code = spacewave_zero_native_starpc_stream_cancel(stream, &error);
+    server.join();
+    close(listenFd);
+    cleanupSocketPath(socketPath);
+
+    require(code == SPACEWAVE_ZERO_NATIVE_IPC_OK, "stream cancel");
+    require(state.callbackUserDataMatched, "cancel callback ownership");
+    require(state.closeCode == SPACEWAVE_ZERO_NATIVE_IPC_CANCELLED, "cancel close callback code");
+    require(state.closeMessage == "stream cancelled", "cancel close callback message");
+    require(serverResult.error.empty(), "cancel stream server finished without error");
+    require(serverResult.streamID == state.expectedStreamID, "cancel stream id");
+    require((serverResult.packets == std::vector<std::string>{"before-cancel"}), "cancel packet before cancel");
+    require(serverResult.sawClientCancel, "server observed cancel frame");
+    require(serverResult.sawCleanClose, "server observed clean close after cancel");
+}
+
 }  // namespace
 
 int main() {
@@ -305,6 +641,8 @@ int main() {
     runRemoteErrorCase();
     runTooLargeCase();
     runConnectFailureCase();
+    runConcurrentStreamCase();
+    runCancelStreamCase();
     std::cout << "zero-native-ipc-test: ok\n";
     return 0;
 }
