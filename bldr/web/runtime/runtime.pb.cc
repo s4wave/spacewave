@@ -225,6 +225,42 @@ struct RemoveWebDocumentRequestDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RemoveWebDocumentRequestDefaultTypeInternal _RemoveWebDocumentRequest_default_instance_;
+template <typename>
+PROTOBUF_CONSTEXPR FlushIndexCacheResponse::FlushIndexCacheResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(FlushIndexCacheResponse_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct FlushIndexCacheResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR FlushIndexCacheResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~FlushIndexCacheResponseDefaultTypeInternal() {}
+  union {
+    FlushIndexCacheResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 FlushIndexCacheResponseDefaultTypeInternal _FlushIndexCacheResponse_default_instance_;
+template <typename>
+PROTOBUF_CONSTEXPR FlushIndexCacheRequest::FlushIndexCacheRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(FlushIndexCacheRequest_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct FlushIndexCacheRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR FlushIndexCacheRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~FlushIndexCacheRequestDefaultTypeInternal() {}
+  union {
+    FlushIndexCacheRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 FlushIndexCacheRequestDefaultTypeInternal _FlushIndexCacheRequest_default_instance_;
 
 inline constexpr CreateWebDocumentResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -359,6 +395,8 @@ const ::uint32_t
         4, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::web::runtime::RemoveWebDocumentResponse, _impl_.removed_),
         0,
+        0x000, // bitmap
+        0x000, // bitmap
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::web::runtime::WebRuntimeClientInit, _impl_._has_bits_),
         8, // hasbit index offset
@@ -386,7 +424,9 @@ static const ::_pbi::MigrationSchema
         {31, sizeof(::web::runtime::CreateWebDocumentResponse)},
         {36, sizeof(::web::runtime::RemoveWebDocumentRequest)},
         {41, sizeof(::web::runtime::RemoveWebDocumentResponse)},
-        {46, sizeof(::web::runtime::WebRuntimeClientInit)},
+        {46, sizeof(::web::runtime::FlushIndexCacheRequest)},
+        {47, sizeof(::web::runtime::FlushIndexCacheResponse)},
+        {48, sizeof(::web::runtime::WebRuntimeClientInit)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::web::runtime::_WebRuntimeHostInit_default_instance_._instance,
@@ -399,6 +439,8 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::web::runtime::_CreateWebDocumentResponse_default_instance_._instance,
     &::web::runtime::_RemoveWebDocumentRequest_default_instance_._instance,
     &::web::runtime::_RemoveWebDocumentResponse_default_instance_._instance,
+    &::web::runtime::_FlushIndexCacheRequest_default_instance_._instance,
+    &::web::runtime::_FlushIndexCacheResponse_default_instance_._instance,
     &::web::runtime::_WebRuntimeClientInit_default_instance_._instance,
 };
 const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fruntime_2fruntime_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
@@ -418,39 +460,43 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2f
     "\n\002id\030\001 \001(\t\",\n\031CreateWebDocumentResponse\022"
     "\017\n\007created\030\001 \001(\010\"&\n\030RemoveWebDocumentReq"
     "uest\022\n\n\002id\030\001 \001(\t\",\n\031RemoveWebDocumentRes"
-    "ponse\022\017\n\007removed\030\001 \001(\010\"\261\001\n\024WebRuntimeCli"
-    "entInit\022\026\n\016web_runtime_id\030\001 \001(\t\022\023\n\013clien"
-    "t_uuid\030\002 \001(\t\022\031\n\021logical_client_id\030\005 \001(\t\022"
-    "6\n\013client_type\030\003 \001(\0162!.web.runtime.WebRu"
-    "ntimeClientType\022\031\n\021disable_web_locks\030\004 \001"
-    "(\010*\255\001\n\024WebRuntimeClientType\022 \n\034WebRuntim"
-    "eClientType_UNKNOWN\020\000\022%\n!WebRuntimeClien"
-    "tType_WEB_DOCUMENT\020\001\022\'\n#WebRuntimeClient"
-    "Type_SERVICE_WORKER\020\002\022#\n\037WebRuntimeClien"
-    "tType_WEB_WORKER\020\003*[\n\013WebRenderer\022\030\n\024WEB"
-    "_RENDERER_DEFAULT\020\000\022\031\n\025WEB_RENDERER_ELEC"
-    "TRON\020\001\022\027\n\023WEB_RENDERER_SAUCER\020\0022\341\002\n\016WebR"
-    "untimeHost\022e\n\022RequestRuntimeQuit\022&.web.r"
-    "untime.RequestRuntimeQuitRequest\032\'.web.r"
-    "untime.RequestRuntimeQuitResponse\022L\n\016Web"
-    "DocumentRpc\022\032.rpcstream.RpcStreamPacket\032"
-    "\032.rpcstream.RpcStreamPacket(\0010\001\022N\n\020Servi"
-    "ceWorkerRpc\022\032.rpcstream.RpcStreamPacket\032"
-    "\032.rpcstream.RpcStreamPacket(\0010\001\022J\n\014WebWo"
-    "rkerRpc\022\032.rpcstream.RpcStreamPacket\032\032.rp"
-    "cstream.RpcStreamPacket(\0010\0012\323\003\n\nWebRunti"
-    "me\022c\n\025WatchWebRuntimeStatus\022).web.runtim"
-    "e.WatchWebRuntimeStatusRequest\032\035.web.run"
-    "time.WebRuntimeStatus0\001\022b\n\021CreateWebDocu"
-    "ment\022%.web.runtime.CreateWebDocumentRequ"
-    "est\032&.web.runtime.CreateWebDocumentRespo"
-    "nse\022b\n\021RemoveWebDocument\022%.web.runtime.R"
-    "emoveWebDocumentRequest\032&.web.runtime.Re"
-    "moveWebDocumentResponse\022L\n\016WebDocumentRp"
-    "c\022\032.rpcstream.RpcStreamPacket\032\032.rpcstrea"
-    "m.RpcStreamPacket(\0010\001\022J\n\014WebWorkerRpc\022\032."
-    "rpcstream.RpcStreamPacket\032\032.rpcstream.Rp"
-    "cStreamPacket(\0010\001b\006proto3"
+    "ponse\022\017\n\007removed\030\001 \001(\010\"\030\n\026FlushIndexCach"
+    "eRequest\"\031\n\027FlushIndexCacheResponse\"\261\001\n\024"
+    "WebRuntimeClientInit\022\026\n\016web_runtime_id\030\001"
+    " \001(\t\022\023\n\013client_uuid\030\002 \001(\t\022\031\n\021logical_cli"
+    "ent_id\030\005 \001(\t\0226\n\013client_type\030\003 \001(\0162!.web."
+    "runtime.WebRuntimeClientType\022\031\n\021disable_"
+    "web_locks\030\004 \001(\010*\255\001\n\024WebRuntimeClientType"
+    "\022 \n\034WebRuntimeClientType_UNKNOWN\020\000\022%\n!We"
+    "bRuntimeClientType_WEB_DOCUMENT\020\001\022\'\n#Web"
+    "RuntimeClientType_SERVICE_WORKER\020\002\022#\n\037We"
+    "bRuntimeClientType_WEB_WORKER\020\003*[\n\013WebRe"
+    "nderer\022\030\n\024WEB_RENDERER_DEFAULT\020\000\022\031\n\025WEB_"
+    "RENDERER_ELECTRON\020\001\022\027\n\023WEB_RENDERER_SAUC"
+    "ER\020\0022\341\002\n\016WebRuntimeHost\022e\n\022RequestRuntim"
+    "eQuit\022&.web.runtime.RequestRuntimeQuitRe"
+    "quest\032\'.web.runtime.RequestRuntimeQuitRe"
+    "sponse\022L\n\016WebDocumentRpc\022\032.rpcstream.Rpc"
+    "StreamPacket\032\032.rpcstream.RpcStreamPacket"
+    "(\0010\001\022N\n\020ServiceWorkerRpc\022\032.rpcstream.Rpc"
+    "StreamPacket\032\032.rpcstream.RpcStreamPacket"
+    "(\0010\001\022J\n\014WebWorkerRpc\022\032.rpcstream.RpcStre"
+    "amPacket\032\032.rpcstream.RpcStreamPacket(\0010\001"
+    "2\261\004\n\nWebRuntime\022c\n\025WatchWebRuntimeStatus"
+    "\022).web.runtime.WatchWebRuntimeStatusRequ"
+    "est\032\035.web.runtime.WebRuntimeStatus0\001\022b\n\021"
+    "CreateWebDocument\022%.web.runtime.CreateWe"
+    "bDocumentRequest\032&.web.runtime.CreateWeb"
+    "DocumentResponse\022b\n\021RemoveWebDocument\022%."
+    "web.runtime.RemoveWebDocumentRequest\032&.w"
+    "eb.runtime.RemoveWebDocumentResponse\022L\n\016"
+    "WebDocumentRpc\022\032.rpcstream.RpcStreamPack"
+    "et\032\032.rpcstream.RpcStreamPacket(\0010\001\022J\n\014We"
+    "bWorkerRpc\022\032.rpcstream.RpcStreamPacket\032\032"
+    ".rpcstream.RpcStreamPacket(\0010\001\022\\\n\017FlushI"
+    "ndexCache\022#.web.runtime.FlushIndexCacheR"
+    "equest\032$.web.runtime.FlushIndexCacheResp"
+    "onseb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fruntime_2fruntime_2eproto_deps[1] = {
@@ -460,13 +506,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbl
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fruntime_2fruntime_2eproto = {
     false,
     false,
-    1905,
+    2052,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fruntime_2fruntime_2eproto,
     "github.com/s4wave/spacewave/bldr/web/runtime/runtime.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fruntime_2fruntime_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fruntime_2fruntime_2eproto_deps,
     1,
-    11,
+    13,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fruntime_2fruntime_2eproto::offsets,
@@ -2846,6 +2892,224 @@ void RemoveWebDocumentResponse::InternalSwap(RemoveWebDocumentResponse* PROTOBUF
 
 ::google::protobuf::Metadata RemoveWebDocumentResponse::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class FlushIndexCacheRequest::_Internal {
+ public:
+};
+
+FlushIndexCacheRequest::FlushIndexCacheRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, FlushIndexCacheRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(arena_constructor:web.runtime.FlushIndexCacheRequest)
+}
+FlushIndexCacheRequest::FlushIndexCacheRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const FlushIndexCacheRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, FlushIndexCacheRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  FlushIndexCacheRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:web.runtime.FlushIndexCacheRequest)
+}
+
+inline void* PROTOBUF_NONNULL FlushIndexCacheRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) FlushIndexCacheRequest(arena);
+}
+constexpr auto FlushIndexCacheRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(FlushIndexCacheRequest),
+                                            alignof(FlushIndexCacheRequest));
+}
+constexpr auto FlushIndexCacheRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_FlushIndexCacheRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &FlushIndexCacheRequest::MergeImpl,
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<FlushIndexCacheRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &FlushIndexCacheRequest::SharedDtor,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<FlushIndexCacheRequest>(), &FlushIndexCacheRequest::ByteSizeLong,
+              &FlushIndexCacheRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(FlushIndexCacheRequest, _impl_._cached_size_),
+          false,
+      },
+      &FlushIndexCacheRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fruntime_2fruntime_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull FlushIndexCacheRequest_class_data_ =
+        FlushIndexCacheRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+FlushIndexCacheRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&FlushIndexCacheRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(FlushIndexCacheRequest_class_data_.tc_table);
+  return FlushIndexCacheRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+FlushIndexCacheRequest::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    0, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    FlushIndexCacheRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::web::runtime::FlushIndexCacheRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, // no field_entries, or aux_entries
+  {{
+  }},
+};
+
+
+
+
+
+
+
+::google::protobuf::Metadata FlushIndexCacheRequest::GetMetadata() const {
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class FlushIndexCacheResponse::_Internal {
+ public:
+};
+
+FlushIndexCacheResponse::FlushIndexCacheResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, FlushIndexCacheResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(arena_constructor:web.runtime.FlushIndexCacheResponse)
+}
+FlushIndexCacheResponse::FlushIndexCacheResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const FlushIndexCacheResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, FlushIndexCacheResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  FlushIndexCacheResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:web.runtime.FlushIndexCacheResponse)
+}
+
+inline void* PROTOBUF_NONNULL FlushIndexCacheResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) FlushIndexCacheResponse(arena);
+}
+constexpr auto FlushIndexCacheResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(FlushIndexCacheResponse),
+                                            alignof(FlushIndexCacheResponse));
+}
+constexpr auto FlushIndexCacheResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_FlushIndexCacheResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &FlushIndexCacheResponse::MergeImpl,
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<FlushIndexCacheResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &FlushIndexCacheResponse::SharedDtor,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<FlushIndexCacheResponse>(), &FlushIndexCacheResponse::ByteSizeLong,
+              &FlushIndexCacheResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(FlushIndexCacheResponse, _impl_._cached_size_),
+          false,
+      },
+      &FlushIndexCacheResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fruntime_2fruntime_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull FlushIndexCacheResponse_class_data_ =
+        FlushIndexCacheResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+FlushIndexCacheResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&FlushIndexCacheResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(FlushIndexCacheResponse_class_data_.tc_table);
+  return FlushIndexCacheResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+FlushIndexCacheResponse::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    0, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    FlushIndexCacheResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::web::runtime::FlushIndexCacheResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, // no field_entries, or aux_entries
+  {{
+  }},
+};
+
+
+
+
+
+
+
+::google::protobuf::Metadata FlushIndexCacheResponse::GetMetadata() const {
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================
 

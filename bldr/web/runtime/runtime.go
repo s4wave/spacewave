@@ -51,6 +51,9 @@ type WebRuntime interface {
 	// Returns false, nil if WebDocument cannot be created.
 	CreateWebDocument(ctx context.Context, webViewID string) (bool, error)
 
+	// FlushIndexCache refreshes the cached browser index document.
+	FlushIndexCache(ctx context.Context) error
+
 	// GetWebWorkerOpenStream returns a OpenStreamFunc for the given WebWorker ID.
 	//
 	// note: when opening the stream, waits for the given web worker to exist.

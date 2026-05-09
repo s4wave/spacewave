@@ -316,6 +316,28 @@ func (x *RemoveWebDocumentResponse) GetRemoved() bool {
 	return false
 }
 
+// FlushIndexCacheRequest asks the WebRuntime to refresh the browser index cache.
+type FlushIndexCacheRequest struct {
+	unknownFields []byte
+}
+
+func (x *FlushIndexCacheRequest) Reset() {
+	*x = FlushIndexCacheRequest{}
+}
+
+func (*FlushIndexCacheRequest) ProtoMessage() {}
+
+// FlushIndexCacheResponse is the response to FlushIndexCache.
+type FlushIndexCacheResponse struct {
+	unknownFields []byte
+}
+
+func (x *FlushIndexCacheResponse) Reset() {
+	*x = FlushIndexCacheResponse{}
+}
+
+func (*FlushIndexCacheResponse) ProtoMessage() {}
+
 // WebRuntimeClientInit is a message sent by a client of a WebRuntime.
 type WebRuntimeClientInit struct {
 	unknownFields []byte
@@ -541,6 +563,36 @@ func (m *RemoveWebDocumentResponse) CloneVT() *RemoveWebDocumentResponse {
 }
 
 func (m *RemoveWebDocumentResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *FlushIndexCacheRequest) CloneVT() *FlushIndexCacheRequest {
+	if m == nil {
+		return (*FlushIndexCacheRequest)(nil)
+	}
+	r := new(FlushIndexCacheRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *FlushIndexCacheRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *FlushIndexCacheResponse) CloneVT() *FlushIndexCacheResponse {
+	if m == nil {
+		return (*FlushIndexCacheResponse)(nil)
+	}
+	r := new(FlushIndexCacheResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *FlushIndexCacheResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -775,6 +827,40 @@ func (this *RemoveWebDocumentResponse) EqualVT(that *RemoveWebDocumentResponse) 
 
 func (this *RemoveWebDocumentResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*RemoveWebDocumentResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *FlushIndexCacheRequest) EqualVT(that *FlushIndexCacheRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *FlushIndexCacheRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*FlushIndexCacheRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *FlushIndexCacheResponse) EqualVT(that *FlushIndexCacheResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *FlushIndexCacheResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*FlushIndexCacheResponse)
 	if !ok {
 		return false
 	}
@@ -1330,6 +1416,66 @@ func (x *RemoveWebDocumentResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the FlushIndexCacheRequest message to JSON.
+func (x *FlushIndexCacheRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the FlushIndexCacheRequest to JSON.
+func (x *FlushIndexCacheRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the FlushIndexCacheRequest message from JSON.
+func (x *FlushIndexCacheRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the FlushIndexCacheRequest from JSON.
+func (x *FlushIndexCacheRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the FlushIndexCacheResponse message to JSON.
+func (x *FlushIndexCacheResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the FlushIndexCacheResponse to JSON.
+func (x *FlushIndexCacheResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the FlushIndexCacheResponse message from JSON.
+func (x *FlushIndexCacheResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the FlushIndexCacheResponse from JSON.
+func (x *FlushIndexCacheResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the WebRuntimeClientInit message to JSON.
 func (x *WebRuntimeClientInit) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -1834,6 +1980,72 @@ func (m *RemoveWebDocumentResponse) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	return len(dAtA) - i, nil
 }
 
+func (m *FlushIndexCacheRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *FlushIndexCacheRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *FlushIndexCacheRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *FlushIndexCacheResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *FlushIndexCacheResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *FlushIndexCacheResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *WebRuntimeClientInit) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -2039,6 +2251,26 @@ func (m *RemoveWebDocumentResponse) SizeVT() (n int) {
 	if m.Removed {
 		n += 2
 	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *FlushIndexCacheRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *FlushIndexCacheResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
 	n += len(m.unknownFields)
 	return n
 }
@@ -2269,6 +2501,28 @@ func (x *RemoveWebDocumentResponse) MarshalProtoText() string {
 }
 
 func (x *RemoveWebDocumentResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *FlushIndexCacheRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("FlushIndexCacheRequest {")
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *FlushIndexCacheRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *FlushIndexCacheResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("FlushIndexCacheResponse {")
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *FlushIndexCacheResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -2913,6 +3167,92 @@ func (m *RemoveWebDocumentResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Removed = bool(v != 0)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *FlushIndexCacheRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: FlushIndexCacheRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: FlushIndexCacheRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *FlushIndexCacheResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: FlushIndexCacheResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: FlushIndexCacheResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

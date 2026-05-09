@@ -188,6 +188,12 @@ func (r *Remote) CreateWebDocument(ctx context.Context, webDocumentID string) (b
 	})
 }
 
+// FlushIndexCache refreshes the cached browser index document.
+func (r *Remote) FlushIndexCache(ctx context.Context) error {
+	_, err := r.webRuntime.FlushIndexCache(ctx, &FlushIndexCacheRequest{})
+	return err
+}
+
 // RemoveWebDocument removes a web document by ID.
 // note: this is called by webDocument.Remove.
 // returns nil if not found

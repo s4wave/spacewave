@@ -71,6 +71,14 @@ class CreateWebDocumentResponse;
 struct CreateWebDocumentResponseDefaultTypeInternal;
 extern CreateWebDocumentResponseDefaultTypeInternal _CreateWebDocumentResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull CreateWebDocumentResponse_class_data_;
+class FlushIndexCacheRequest;
+struct FlushIndexCacheRequestDefaultTypeInternal;
+extern FlushIndexCacheRequestDefaultTypeInternal _FlushIndexCacheRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull FlushIndexCacheRequest_class_data_;
+class FlushIndexCacheResponse;
+struct FlushIndexCacheResponseDefaultTypeInternal;
+extern FlushIndexCacheResponseDefaultTypeInternal _FlushIndexCacheResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull FlushIndexCacheResponse_class_data_;
 class RemoveWebDocumentRequest;
 struct RemoveWebDocumentRequestDefaultTypeInternal;
 extern RemoveWebDocumentRequestDefaultTypeInternal _RemoveWebDocumentRequest_default_instance_;
@@ -453,7 +461,7 @@ class WebRuntimeClientInit final : public ::google::protobuf::Message
     return *reinterpret_cast<const WebRuntimeClientInit*>(
         &_WebRuntimeClientInit_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 10;
+  static constexpr int kIndexInFileMessages = 12;
   friend void swap(WebRuntimeClientInit& a, WebRuntimeClientInit& b) { a.Swap(&b); }
   inline void Swap(WebRuntimeClientInit* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1657,6 +1665,274 @@ class RemoveWebDocumentRequest final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull RemoveWebDocumentRequest_class_data_;
 // -------------------------------------------------------------------
 
+class FlushIndexCacheResponse final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:web.runtime.FlushIndexCacheResponse) */ {
+ public:
+  inline FlushIndexCacheResponse() : FlushIndexCacheResponse(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(FlushIndexCacheResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(FlushIndexCacheResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR FlushIndexCacheResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline FlushIndexCacheResponse(const FlushIndexCacheResponse& from) : FlushIndexCacheResponse(nullptr, from) {}
+  inline FlushIndexCacheResponse(FlushIndexCacheResponse&& from) noexcept
+      : FlushIndexCacheResponse(nullptr, ::std::move(from)) {}
+  inline FlushIndexCacheResponse& operator=(const FlushIndexCacheResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline FlushIndexCacheResponse& operator=(FlushIndexCacheResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const FlushIndexCacheResponse& default_instance() {
+    return *reinterpret_cast<const FlushIndexCacheResponse*>(
+        &_FlushIndexCacheResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 11;
+  friend void swap(FlushIndexCacheResponse& a, FlushIndexCacheResponse& b) { a.Swap(&b); }
+  inline void Swap(FlushIndexCacheResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(FlushIndexCacheResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  FlushIndexCacheResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<FlushIndexCacheResponse>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const FlushIndexCacheResponse& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const FlushIndexCacheResponse& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "web.runtime.FlushIndexCacheResponse"; }
+
+  explicit FlushIndexCacheResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  FlushIndexCacheResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const FlushIndexCacheResponse& from);
+  FlushIndexCacheResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, FlushIndexCacheResponse&& from) noexcept
+      : FlushIndexCacheResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:web.runtime.FlushIndexCacheResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fruntime_2fruntime_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull FlushIndexCacheResponse_class_data_;
+// -------------------------------------------------------------------
+
+class FlushIndexCacheRequest final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:web.runtime.FlushIndexCacheRequest) */ {
+ public:
+  inline FlushIndexCacheRequest() : FlushIndexCacheRequest(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(FlushIndexCacheRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(FlushIndexCacheRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR FlushIndexCacheRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline FlushIndexCacheRequest(const FlushIndexCacheRequest& from) : FlushIndexCacheRequest(nullptr, from) {}
+  inline FlushIndexCacheRequest(FlushIndexCacheRequest&& from) noexcept
+      : FlushIndexCacheRequest(nullptr, ::std::move(from)) {}
+  inline FlushIndexCacheRequest& operator=(const FlushIndexCacheRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline FlushIndexCacheRequest& operator=(FlushIndexCacheRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const FlushIndexCacheRequest& default_instance() {
+    return *reinterpret_cast<const FlushIndexCacheRequest*>(
+        &_FlushIndexCacheRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 10;
+  friend void swap(FlushIndexCacheRequest& a, FlushIndexCacheRequest& b) { a.Swap(&b); }
+  inline void Swap(FlushIndexCacheRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(FlushIndexCacheRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  FlushIndexCacheRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<FlushIndexCacheRequest>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const FlushIndexCacheRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const FlushIndexCacheRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "web.runtime.FlushIndexCacheRequest"; }
+
+  explicit FlushIndexCacheRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  FlushIndexCacheRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const FlushIndexCacheRequest& from);
+  FlushIndexCacheRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, FlushIndexCacheRequest&& from) noexcept
+      : FlushIndexCacheRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:web.runtime.FlushIndexCacheRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fruntime_2fruntime_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull FlushIndexCacheRequest_class_data_;
+// -------------------------------------------------------------------
+
 class CreateWebDocumentResponse final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:web.runtime.CreateWebDocumentResponse) */ {
  public:
@@ -2779,6 +3055,14 @@ inline void RemoveWebDocumentResponse::_internal_set_removed(bool value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.removed_ = value;
 }
+
+// -------------------------------------------------------------------
+
+// FlushIndexCacheRequest
+
+// -------------------------------------------------------------------
+
+// FlushIndexCacheResponse
 
 // -------------------------------------------------------------------
 

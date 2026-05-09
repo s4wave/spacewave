@@ -289,6 +289,8 @@ pub trait WebRuntimeClient: Send + Sync {
     async fn web_document_rpc(&self) -> starpc::Result<Box<dyn WebRuntimeWebDocumentRpcStream>>;
     /// WebWorkerRpc.
     async fn web_worker_rpc(&self) -> starpc::Result<Box<dyn WebRuntimeWebWorkerRpcStream>>;
+    /// FlushIndexCache.
+    async fn flush_index_cache(&self, request: &FlushIndexCacheRequest) -> starpc::Result<FlushIndexCacheResponse>;
 }
 
 /// Client implementation for WebRuntime.
@@ -325,6 +327,9 @@ impl<C: starpc::Client + 'static> WebRuntimeClient for WebRuntimeClientImpl<C> {
     async fn web_worker_rpc(&self) -> starpc::Result<Box<dyn WebRuntimeWebWorkerRpcStream>> {
         let stream = self.client.new_stream("web.runtime.WebRuntime", "WebWorkerRpc", None).await?;
         Ok(Box::new(WebRuntimeWebWorkerRpcStreamImpl { stream }))
+    }
+    async fn flush_index_cache(&self, request: &FlushIndexCacheRequest) -> starpc::Result<FlushIndexCacheResponse> {
+        self.client.exec_call("web.runtime.WebRuntime", "FlushIndexCache", request).await
     }
 }
 
@@ -398,6 +403,8 @@ pub trait WebRuntimeServer: Send + Sync {
     async fn web_document_rpc(&self, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
     /// WebWorkerRpc.
     async fn web_worker_rpc(&self, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
+    /// FlushIndexCache.
+    async fn flush_index_cache(&self, request: FlushIndexCacheRequest) -> starpc::Result<FlushIndexCacheResponse>;
 }
 
 const WEB_RUNTIME_METHOD_IDS: &[&str] = &[
@@ -406,6 +413,7 @@ const WEB_RUNTIME_METHOD_IDS: &[&str] = &[
     "RemoveWebDocument",
     "WebDocumentRpc",
     "WebWorkerRpc",
+    "FlushIndexCache",
 ];
 
 /// Handler for WebRuntime.
@@ -476,6 +484,21 @@ impl<S: WebRuntimeServer + 'static> starpc::Invoker for WebRuntimeHandler<S> {
             }
             "WebWorkerRpc" => {
                 (true, self.server.web_worker_rpc(stream).await)
+            }
+            "FlushIndexCache" => {
+                let request: FlushIndexCacheRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.flush_index_cache(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
             }
             _ => (false, Err(starpc::Error::Unimplemented)),
         }

@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "protocFlagsHash": "1c28c09115aa511ff35b1be26994db5c0c847fc8e5879acca1694ab90f3ae614",
+  "protocFlagsHash": "2ee429137165dfaddb88b31e6dc72fd5f3e73be73da9231075d5d5cc633fbe2f",
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.13.0,starpc=v0.49.7,protobuf-es-lite=1.0.2",
   "packages": {
     "github.com/s4wave/spacewave/auth/derive": {
@@ -882,7 +882,7 @@
       "protoFiles": ["bldr/web/plugin/saucer/saucer.proto"]
     },
     "github.com/s4wave/spacewave/bldr/web/runtime": {
-      "hash": "0907206770f37fe73551e4604f2a3ed0b678d62cd2ee512f24356ce48823c6f0",
+      "hash": "82c1f498c9d02df52d2aaf8cc4983c387a4f43401b925dc74cf8c9e8d1dd3a11",
       "generatedFiles": [
         "bldr/web/runtime/runtime.pb.cc",
         "bldr/web/runtime/runtime.pb.go",

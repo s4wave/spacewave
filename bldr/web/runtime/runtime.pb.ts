@@ -347,6 +347,36 @@ export const RemoveWebDocumentResponse: MessageType<RemoveWebDocumentResponse> =
   })
 
 /**
+ * FlushIndexCacheRequest asks the WebRuntime to refresh the browser index cache.
+ *
+ * @generated from message web.runtime.FlushIndexCacheRequest
+ */
+export interface FlushIndexCacheRequest {}
+
+// FlushIndexCacheRequest contains the message type declaration for FlushIndexCacheRequest.
+export const FlushIndexCacheRequest: MessageType<FlushIndexCacheRequest> =
+  createMessageType({
+    typeName: 'web.runtime.FlushIndexCacheRequest',
+    fields: [] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * FlushIndexCacheResponse is the response to FlushIndexCache.
+ *
+ * @generated from message web.runtime.FlushIndexCacheResponse
+ */
+export interface FlushIndexCacheResponse {}
+
+// FlushIndexCacheResponse contains the message type declaration for FlushIndexCacheResponse.
+export const FlushIndexCacheResponse: MessageType<FlushIndexCacheResponse> =
+  createMessageType({
+    typeName: 'web.runtime.FlushIndexCacheResponse',
+    fields: [] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * WebRuntimeClientInit is a message sent by a client of a WebRuntime.
  *
  * @generated from message web.runtime.WebRuntimeClientInit

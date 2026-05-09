@@ -518,4 +518,28 @@ describe('service worker messages', () => {
       expect.objectContaining({ headerTimeoutMs: 30_000 }),
     )
   })
+
+  it('updates cached root content when the browser index cache is refreshed', async () => {
+    const caches = new FakeCacheStorage()
+
+    vi.stubGlobal('BLDR_DEBUG', false)
+    vi.stubGlobal('caches', caches)
+    vi.mocked(proxyFetch)
+      .mockResolvedValueOnce(new Response('stale index', { status: 200 }))
+      .mockResolvedValueOnce(new Response('fresh index', { status: 200 }))
+
+    await refreshBrowserIndexCache('client-a')
+    await refreshBrowserIndexCache('client-a')
+
+    const cache = await caches.open('bldr-control')
+    const rootResponse = await cache.match(
+      new Request(new URL('/', self.location.href)),
+    )
+    const indexResponse = await cache.match(
+      new Request(new URL('/b/__index.html', self.location.href)),
+    )
+
+    expect(await rootResponse?.text()).toBe('fresh index')
+    expect(await indexResponse?.text()).toBe('fresh index')
+  })
 })

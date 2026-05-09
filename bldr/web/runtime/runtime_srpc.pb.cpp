@@ -111,6 +111,10 @@ std::pair<std::unique_ptr<SRPCWebRuntime_WebWorkerRpcClient>, starpc::Error> SRP
   return {std::make_unique<SRPCWebRuntime_WebWorkerRpcClient>(std::move(strm)), starpc::Error::OK};
 }
 
+starpc::Error SRPCWebRuntimeClientImpl::FlushIndexCache(const web::runtime::FlushIndexCacheRequest& in, web::runtime::FlushIndexCacheResponse* out) {
+  return cc_->ExecCall(service_id_, "FlushIndexCache", in, out);
+}
+
 std::vector<std::string> SRPCWebRuntimeHandler::GetMethodIDs() const {
   return {
     "WatchWebRuntimeStatus",
@@ -118,6 +122,7 @@ std::vector<std::string> SRPCWebRuntimeHandler::GetMethodIDs() const {
     "RemoveWebDocument",
     "WebDocumentRpc",
     "WebWorkerRpc",
+    "FlushIndexCache",
   };
 }
 
@@ -157,6 +162,14 @@ std::pair<bool, starpc::Error> SRPCWebRuntimeHandler::InvokeMethod(
   } else if (method_id == "WebWorkerRpc") {
     SRPCWebRuntime_WebWorkerRpcStream bidiStrm(strm);
     return {true, impl_->WebWorkerRpc(&bidiStrm)};
+  } else if (method_id == "FlushIndexCache") {
+    web::runtime::FlushIndexCacheRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    web::runtime::FlushIndexCacheResponse resp;
+    err = impl_->FlushIndexCache(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
   }
 
   return {false, starpc::Error::OK};

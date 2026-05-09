@@ -77,7 +77,12 @@ func StartRuntimeStack(
 		WebRuntime: rt,
 		rels:       []func(){webRuntimeRef.Release},
 	}
-	triggerBrowserIndexCacheRefresh(le)
+	if err := rt.FlushIndexCache(ctx); err != nil {
+		if le != nil {
+			le.WithError(err).Debug("browser index cache refresh rpc failed")
+		}
+		triggerBrowserIndexCacheRefresh(le)
+	}
 
 	return stack, nil
 }

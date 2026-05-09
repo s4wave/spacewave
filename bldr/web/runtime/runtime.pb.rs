@@ -80,6 +80,14 @@ pub struct RemoveWebDocumentResponse {
     #[prost(bool, tag="1")]
     pub removed: bool,
 }
+/// FlushIndexCacheRequest asks the WebRuntime to refresh the browser index cache.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct FlushIndexCacheRequest {
+}
+/// FlushIndexCacheResponse is the response to FlushIndexCache.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct FlushIndexCacheResponse {
+}
 /// WebRuntimeClientInit is a message sent by a client of a WebRuntime.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct WebRuntimeClientInit {

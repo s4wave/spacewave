@@ -278,6 +278,8 @@ class SRPCWebRuntimeClient {
   virtual std::pair<std::unique_ptr<SRPCWebRuntime_WebDocumentRpcClient>, starpc::Error> WebDocumentRpc() = 0;
   // WebWorkerRpc
   virtual std::pair<std::unique_ptr<SRPCWebRuntime_WebWorkerRpcClient>, starpc::Error> WebWorkerRpc() = 0;
+  // FlushIndexCache
+  virtual starpc::Error FlushIndexCache(const web::runtime::FlushIndexCacheRequest& in, web::runtime::FlushIndexCacheResponse* out) = 0;
 };
 
 // SRPCWebRuntimeClientImpl implements SRPCWebRuntimeClient.
@@ -298,6 +300,8 @@ class SRPCWebRuntimeClientImpl : public SRPCWebRuntimeClient {
   virtual std::pair<std::unique_ptr<SRPCWebRuntime_WebDocumentRpcClient>, starpc::Error> WebDocumentRpc() override;
   // WebWorkerRpc
   virtual std::pair<std::unique_ptr<SRPCWebRuntime_WebWorkerRpcClient>, starpc::Error> WebWorkerRpc() override;
+  // FlushIndexCache
+  virtual starpc::Error FlushIndexCache(const web::runtime::FlushIndexCacheRequest& in, web::runtime::FlushIndexCacheResponse* out) override;
 
  private:
   starpc::Client* cc_;
@@ -324,6 +328,8 @@ class SRPCWebRuntimeServer {
   virtual starpc::Error WebDocumentRpc(SRPCWebRuntime_WebDocumentRpcStream* strm) = 0;
   // WebWorkerRpc
   virtual starpc::Error WebWorkerRpc(SRPCWebRuntime_WebWorkerRpcStream* strm) = 0;
+  // FlushIndexCache
+  virtual starpc::Error FlushIndexCache(const web::runtime::FlushIndexCacheRequest& req, web::runtime::FlushIndexCacheResponse* resp) = 0;
 };
 
 // SRPCWebRuntimeHandler implements starpc::Handler for WebRuntime.

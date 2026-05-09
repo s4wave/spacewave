@@ -23,6 +23,8 @@ import {
   WebRuntimeClientInit,
   CreateWebDocumentRequest,
   CreateWebDocumentResponse,
+  FlushIndexCacheRequest,
+  FlushIndexCacheResponse,
   RemoveWebDocumentRequest,
   RemoveWebDocumentResponse,
   WebRuntimeStatus,
@@ -380,6 +382,14 @@ class WebRuntimeImpl implements WebRuntimeService {
     )
   }
 
+  // FlushIndexCache refreshes the cached browser index document.
+  public async FlushIndexCache(
+    _request: FlushIndexCacheRequest,
+  ): Promise<FlushIndexCacheResponse> {
+    await this.host.flushIndexCache()
+    return {}
+  }
+
   // buildWebDocumentRpcGetter builds the RpcGetter for a WebDocument.
   private buildWebDocumentRpcGetter(): RpcStreamGetter {
     return (webDocumentId: string) => {
@@ -532,6 +542,19 @@ export class WebRuntime {
       webDocumentUuid,
       this.runtimeHost.ServiceWorkerRpc.bind(this.runtimeHost),
     )
+  }
+
+  // flushIndexCache forces the service worker to refresh its browser index cache.
+  public async flushIndexCache(): Promise<void> {
+    const response = await fetch(
+      new URL('/b/__index.html', globalThis.location.href).toString(),
+      { cache: 'reload' },
+    )
+    if (!response.ok) {
+      throw new Error(
+        `browser index cache refresh failed: status=${response.status}`,
+      )
+    }
   }
 
   // lookupClient looks up an ongoing WebRuntime client connection.

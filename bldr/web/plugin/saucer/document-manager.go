@@ -664,6 +664,11 @@ func (dm *DocumentManager) RemoveWebDocument(_ context.Context, _ *web_runtime.R
 	return &web_runtime.RemoveWebDocumentResponse{}, nil
 }
 
+// FlushIndexCache is not supported for saucer.
+func (dm *DocumentManager) FlushIndexCache(_ context.Context, _ *web_runtime.FlushIndexCacheRequest) (*web_runtime.FlushIndexCacheResponse, error) {
+	return nil, errors.New("index cache refresh not supported in saucer")
+}
+
 // WebWorkerRpc is not supported for saucer.
 func (dm *DocumentManager) WebWorkerRpc(_ web_runtime.SRPCWebRuntime_WebWorkerRpcStream) error {
 	return errors.New("web workers not supported in saucer")

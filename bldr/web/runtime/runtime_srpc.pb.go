@@ -417,6 +417,8 @@ type SRPCWebRuntimeClient interface {
 	// Note: this is on WebRuntime and not WebDocument for performance reasons (fewer context transfers).
 	// Id is the webWorkerId.
 	WebWorkerRpc(ctx context.Context) (SRPCWebRuntime_WebWorkerRpcClient, error)
+	// FlushIndexCache refreshes the cached browser index document.
+	FlushIndexCache(ctx context.Context, in *FlushIndexCacheRequest) (*FlushIndexCacheResponse, error)
 }
 
 type srpcWebRuntimeClient struct {
@@ -567,6 +569,15 @@ func (x *srpcWebRuntime_WebWorkerRpcClient) RecvTo(m *rpcstream.RpcStreamPacket)
 	return x.MsgRecv(m)
 }
 
+func (c *srpcWebRuntimeClient) FlushIndexCache(ctx context.Context, in *FlushIndexCacheRequest) (*FlushIndexCacheResponse, error) {
+	out := new(FlushIndexCacheResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "FlushIndexCache", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 type SRPCWebRuntimeServer interface {
 	// WatchWebRuntimeStatus returns an initial snapshot of documents followed by updates.
 	WatchWebRuntimeStatus(*WatchWebRuntimeStatusRequest, SRPCWebRuntime_WatchWebRuntimeStatusStream) error
@@ -588,6 +599,8 @@ type SRPCWebRuntimeServer interface {
 	// Note: this is on WebRuntime and not WebDocument for performance reasons (fewer context transfers).
 	// Id is the webWorkerId.
 	WebWorkerRpc(SRPCWebRuntime_WebWorkerRpcStream) error
+	// FlushIndexCache refreshes the cached browser index document.
+	FlushIndexCache(context.Context, *FlushIndexCacheRequest) (*FlushIndexCacheResponse, error)
 }
 
 const SRPCWebRuntimeServiceID = "web.runtime.WebRuntime"
@@ -621,6 +634,7 @@ func (SRPCWebRuntimeHandler) GetMethodIDs() []string {
 		"RemoveWebDocument",
 		"WebDocumentRpc",
 		"WebWorkerRpc",
+		"FlushIndexCache",
 	}
 }
 
@@ -643,6 +657,8 @@ func (d *SRPCWebRuntimeHandler) InvokeMethod(
 		return true, d.InvokeMethod_WebDocumentRpc(d.impl, strm)
 	case "WebWorkerRpc":
 		return true, d.InvokeMethod_WebWorkerRpc(d.impl, strm)
+	case "FlushIndexCache":
+		return true, d.InvokeMethod_FlushIndexCache(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -689,6 +705,18 @@ func (SRPCWebRuntimeHandler) InvokeMethod_WebDocumentRpc(impl SRPCWebRuntimeServ
 func (SRPCWebRuntimeHandler) InvokeMethod_WebWorkerRpc(impl SRPCWebRuntimeServer, strm srpc.Stream) error {
 	clientStrm := &srpcWebRuntime_WebWorkerRpcStream{strm}
 	return impl.WebWorkerRpc(clientStrm)
+}
+
+func (SRPCWebRuntimeHandler) InvokeMethod_FlushIndexCache(impl SRPCWebRuntimeServer, strm srpc.Stream) error {
+	req := new(FlushIndexCacheRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.FlushIndexCache(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
 }
 
 type SRPCWebRuntime_WatchWebRuntimeStatusStream interface {
@@ -802,4 +830,12 @@ func (x *srpcWebRuntime_WebWorkerRpcStream) Recv() (*rpcstream.RpcStreamPacket, 
 
 func (x *srpcWebRuntime_WebWorkerRpcStream) RecvTo(m *rpcstream.RpcStreamPacket) error {
 	return x.MsgRecv(m)
+}
+
+type SRPCWebRuntime_FlushIndexCacheStream interface {
+	srpc.Stream
+}
+
+type srpcWebRuntime_FlushIndexCacheStream struct {
+	srpc.Stream
 }

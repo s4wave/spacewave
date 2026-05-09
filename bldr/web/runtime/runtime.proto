@@ -50,6 +50,9 @@ service WebRuntime {
   // Note: this is on WebRuntime and not WebDocument for performance reasons (fewer context transfers).
   // Id is the webWorkerId.
   rpc WebWorkerRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
+
+  // FlushIndexCache refreshes the cached browser index document.
+  rpc FlushIndexCache(FlushIndexCacheRequest) returns (FlushIndexCacheResponse);
 }
 
 // WebRuntimeHostInit initializes the WebRuntimeHost.
@@ -117,6 +120,12 @@ message RemoveWebDocumentResponse {
   // If this is not set, the document did not exist.
   bool removed = 1;
 }
+
+// FlushIndexCacheRequest asks the WebRuntime to refresh the browser index cache.
+message FlushIndexCacheRequest {}
+
+// FlushIndexCacheResponse is the response to FlushIndexCache.
+message FlushIndexCacheResponse {}
 
 // WebRuntimeClientType is the set of client types for a WebRuntime.
 enum WebRuntimeClientType {

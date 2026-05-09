@@ -5,6 +5,8 @@
 import {
   CreateWebDocumentRequest,
   CreateWebDocumentResponse,
+  FlushIndexCacheRequest,
+  FlushIndexCacheResponse,
   RemoveWebDocumentRequest,
   RemoveWebDocumentResponse,
   RequestRuntimeQuitRequest,
@@ -306,6 +308,17 @@ export const WebRuntimeDefinition = {
       O: RpcStreamPacket,
       kind: MethodKind.BiDiStreaming,
     },
+    /**
+     * FlushIndexCache refreshes the cached browser index document.
+     *
+     * @generated from rpc web.runtime.WebRuntime.FlushIndexCache
+     */
+    FlushIndexCache: {
+      name: 'FlushIndexCache',
+      I: FlushIndexCacheRequest,
+      O: FlushIndexCacheResponse,
+      kind: MethodKind.Unary,
+    },
   },
 } as const
 
@@ -376,6 +389,16 @@ export interface WebRuntime {
     request: MessageStream<RpcStreamPacket>,
     abortSignal?: AbortSignal,
   ): MessageStream<RpcStreamPacket>
+
+  /**
+   * FlushIndexCache refreshes the cached browser index document.
+   *
+   * @generated from rpc web.runtime.WebRuntime.FlushIndexCache
+   */
+  FlushIndexCache(
+    request: FlushIndexCacheRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<FlushIndexCacheResponse>
 }
 
 export const WebRuntimeServiceName = WebRuntimeDefinition.typeName
@@ -391,6 +414,7 @@ export class WebRuntimeClient implements WebRuntime {
     this.RemoveWebDocument = this.RemoveWebDocument.bind(this)
     this.WebDocumentRpc = this.WebDocumentRpc.bind(this)
     this.WebWorkerRpc = this.WebWorkerRpc.bind(this)
+    this.FlushIndexCache = this.FlushIndexCache.bind(this)
   }
   /**
    * WatchWebRuntimeStatus returns an initial snapshot of documents followed by updates.
@@ -493,5 +517,24 @@ export class WebRuntimeClient implements WebRuntime {
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(RpcStreamPacket)(result)
+  }
+
+  /**
+   * FlushIndexCache refreshes the cached browser index document.
+   *
+   * @generated from rpc web.runtime.WebRuntime.FlushIndexCache
+   */
+  async FlushIndexCache(
+    request: FlushIndexCacheRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<FlushIndexCacheResponse> {
+    const requestMsg = FlushIndexCacheRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      WebRuntimeDefinition.methods.FlushIndexCache.name,
+      FlushIndexCacheRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return FlushIndexCacheResponse.fromBinary(result)
   }
 }

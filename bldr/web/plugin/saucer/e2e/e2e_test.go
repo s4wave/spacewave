@@ -104,6 +104,11 @@ func (b *simulatedBrowser) WebWorkerRpc(_ web_runtime.SRPCWebRuntime_WebWorkerRp
 	return nil
 }
 
+// FlushIndexCache is not used in the simulated browser.
+func (b *simulatedBrowser) FlushIndexCache(_ context.Context, _ *web_runtime.FlushIndexCacheRequest) (*web_runtime.FlushIndexCacheResponse, error) {
+	return &web_runtime.FlushIndexCacheResponse{}, nil
+}
+
 // _ is a type assertion
 var _ web_runtime.SRPCWebRuntimeServer = (*simulatedBrowser)(nil)
 

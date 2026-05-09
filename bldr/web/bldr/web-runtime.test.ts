@@ -19,6 +19,7 @@ import {
 } from '../electron/desktop-runtime/desktop-runtime.pb.js'
 import { DesktopRuntimeResource } from '../electron/main/desktop-runtime.js'
 import { WebRuntimeClientType } from '../runtime/runtime.pb.js'
+import { WebRuntimeClient as WebRuntimeServiceClient } from '../runtime/runtime_srpc.pb.js'
 import {
   isClosedStreamWriteError,
   logWebRuntimeMessage,
@@ -83,6 +84,46 @@ function createChannelPortPair(): [ChannelPort, ChannelPort] {
   ]
 }
 
+function connectRuntimeServer(runtime: WebRuntime): {
+  client: SRPCClient
+  close(): Promise<void>
+} {
+  const serverTasks: Promise<void>[] = []
+  const clientConn = new StreamConn()
+  const serverConn = new StreamConn(runtime.getWebRuntimeServer(), {
+    direction: 'inbound',
+  })
+  const [clientPort, serverPort] = createChannelPortPair()
+  const clientStream = new ChannelStream('client', clientPort)
+  const serverStream = new ChannelStream('server', serverPort)
+  serverTasks.push(
+    pipe(
+      clientStream,
+      clientConn,
+      combineUint8ArrayListTransform(),
+      clientStream,
+    )
+      .catch((err: unknown) => clientConn.close(toError(err)))
+      .then(() => clientConn.close()),
+    pipe(
+      serverStream,
+      serverConn,
+      combineUint8ArrayListTransform(),
+      serverStream,
+    )
+      .catch((err: unknown) => serverConn.close(toError(err)))
+      .then(() => serverConn.close()),
+  )
+  return {
+    client: new SRPCClient(clientConn.buildOpenStreamFunc()),
+    async close() {
+      clientConn.close()
+      serverConn.close()
+      await Promise.allSettled(serverTasks)
+    },
+  }
+}
+
 describe('WebRuntime', () => {
   it('allows web runtime streams to stay idle', () => {
     expect(WebRuntimeClientChannelStreamOpts.keepAliveMs).toBeUndefined()
@@ -128,33 +169,8 @@ describe('WebRuntime', () => {
     runtime.registerServerExtension(desktopResource.resourceServer)
 
     const controller = new AbortController()
-    const serverTasks: Promise<void>[] = []
-    const clientConn = new StreamConn()
-    const serverConn = new StreamConn(runtime.getWebRuntimeServer(), {
-      direction: 'inbound',
-    })
-    const [clientPort, serverPort] = createChannelPortPair()
-    const clientStream = new ChannelStream('client', clientPort)
-    const serverStream = new ChannelStream('server', serverPort)
-    serverTasks.push(
-      pipe(
-        clientStream,
-        clientConn,
-        combineUint8ArrayListTransform(),
-        clientStream,
-      )
-        .catch((err: unknown) => clientConn.close(toError(err)))
-        .then(() => clientConn.close()),
-      pipe(
-        serverStream,
-        serverConn,
-        combineUint8ArrayListTransform(),
-        serverStream,
-      )
-        .catch((err: unknown) => serverConn.close(toError(err)))
-        .then(() => serverConn.close()),
-    )
-    const srpcClient = new SRPCClient(clientConn.buildOpenStreamFunc())
+    const runtimeConn = connectRuntimeServer(runtime)
+    const srpcClient = runtimeConn.client
     const resourceClient = new ResourceClient(
       new ResourceServiceClient(srpcClient),
       controller.signal,
@@ -212,9 +228,51 @@ describe('WebRuntime', () => {
     rootRef.release()
     resourceClient.dispose()
     controller.abort()
-    clientConn.close()
-    serverConn.close()
-    await Promise.allSettled(serverTasks)
+    await runtimeConn.close()
+  })
+
+  it('flushes the browser index cache through the runtime RPC', async () => {
+    const runtime = new WebRuntime('runtime-1', vi.fn(), null, null)
+    const runtimeConn = connectRuntimeServer(runtime)
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response('updated index', { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    try {
+      const service = new WebRuntimeServiceClient(runtimeConn.client)
+
+      await service.FlushIndexCache({})
+
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+      expect(fetchMock.mock.calls[0][0]).toBe(
+        new URL('/b/__index.html', globalThis.location.href).toString(),
+      )
+      expect(fetchMock.mock.calls[0][1]).toEqual({ cache: 'reload' })
+    } finally {
+      await runtimeConn.close()
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('rejects a failed browser index cache flush', async () => {
+    const runtime = new WebRuntime('runtime-1', vi.fn(), null, null)
+    const runtimeConn = connectRuntimeServer(runtime)
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(new Response('unavailable', { status: 503 })),
+    )
+
+    try {
+      const service = new WebRuntimeServiceClient(runtimeConn.client)
+
+      await expect(service.FlushIndexCache({})).rejects.toThrow(
+        'browser index cache refresh failed: status=503',
+      )
+    } finally {
+      await runtimeConn.close()
+      vi.unstubAllGlobals()
+    }
   })
 
   it('rejects pending waiters when a client is invalidated', async () => {
