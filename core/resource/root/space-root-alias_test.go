@@ -136,13 +136,13 @@ func TestSpaceRootRuntimeReportsMissingDaemon(t *testing.T) {
 }
 
 func TestSpaceRootRuntimeStreamsSelectedRootSessions(t *testing.T) {
-	ctx, cancel := context.WithCancel(t.Context())
+	watchCtx, cancel := context.WithCancel(t.Context())
 	defer cancel()
-	server, serverCancel := setupSpaceRootAliasServer(ctx, t)
+	server, serverCancel := setupSpaceRootAliasServer(t.Context(), t)
 	defer serverCancel()
 	rootPath := makeSpaceRootAliasDir(t)
 
-	_, err := server.UpsertSpaceRootAlias(ctx, &s4wave_root.UpsertSpaceRootAliasRequest{
+	_, err := server.UpsertSpaceRootAlias(t.Context(), &s4wave_root.UpsertSpaceRootAliasRequest{
 		Record: &s4wave_root.SpaceRootAliasRecord{
 			AliasId:  "company",
 			Kind:     s4wave_root.SpaceRootKind_SpaceRootKind_NATIVE_DIRECTORY,
@@ -170,7 +170,7 @@ func TestSpaceRootRuntimeStreamsSelectedRootSessions(t *testing.T) {
 	})
 
 	strm := &testSpaceRootRuntimeStream{
-		ctx: ctx,
+		ctx: watchCtx,
 		onSend: func(resp *s4wave_root.WatchSpaceRootRuntimeResponse) {
 			if resp.GetStatus() == s4wave_root.SpaceRootRuntimeStatus_SpaceRootRuntimeStatus_READY {
 				cancel()
