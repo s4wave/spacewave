@@ -9,13 +9,12 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"golang.org/x/term"
 )
 
-// Run renders a live terminal screen until the context, quit key, or update channel stops it.
+// Run renders a live terminal screen until the context or update channel stops it.
 func Run[T any](
 	ctx context.Context,
-	input *os.File,
+	_ *os.File,
 	output io.Writer,
 	initial T,
 	updates <-chan T,
@@ -24,12 +23,6 @@ func Run[T any](
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	quitCh := make(chan struct{}, 1)
-	restore, err := prepareInput(input, quitCh)
-	if err != nil {
-		return err
-	}
-	defer restore()
 	if _, err := io.WriteString(output, "\x1b[?25l"); err != nil {
 		return errors.Wrap(err, "hide terminal cursor")
 	}
@@ -42,8 +35,6 @@ func Run[T any](
 	for {
 		select {
 		case <-ctx.Done():
-			return nil
-		case <-quitCh:
 			return nil
 		case snapshot, ok := <-updates:
 			if !ok {
@@ -71,37 +62,4 @@ func Write(output io.Writer, text string) error {
 func normalizeNewlines(text string) string {
 	text = strings.ReplaceAll(text, "\r\n", "\n")
 	return strings.ReplaceAll(text, "\n", "\r\n")
-}
-
-func prepareInput(input *os.File, quitCh chan<- struct{}) (func(), error) {
-	if input == nil || !term.IsTerminal(int(input.Fd())) {
-		return func() {}, nil
-	}
-	prev, err := term.MakeRaw(int(input.Fd()))
-	if err != nil {
-		return nil, errors.Wrap(err, "enable raw terminal input")
-	}
-	go readQuitKeys(input, quitCh)
-	return func() {
-		_ = term.Restore(int(input.Fd()), prev)
-	}, nil
-}
-
-func readQuitKeys(input *os.File, quitCh chan<- struct{}) {
-	var buf [16]byte
-	for {
-		n, err := input.Read(buf[:])
-		if err != nil {
-			return
-		}
-		for _, b := range buf[:n] {
-			if b == 'q' || b == 3 || b == 27 {
-				select {
-				case quitCh <- struct{}{}:
-				default:
-				}
-				return
-			}
-		}
-	}
 }

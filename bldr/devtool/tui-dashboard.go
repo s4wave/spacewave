@@ -61,7 +61,7 @@ func devtoolTUIFooterLines(snapshot *devtool_status.BldrDevtoolStatus) []string 
 		logFile = ".bldr/logs"
 	}
 	return []string{
-		"q quit  ctrl-c stop  logs " + compactDevtoolTUILogFile(logFile),
+		"ctrl-c stop  logs " + compactDevtoolTUILogFile(logFile),
 	}
 }
 

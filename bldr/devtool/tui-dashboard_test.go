@@ -69,7 +69,7 @@ func TestBuildDevtoolTUIDashboardIncludesDashboardSections(t *testing.T) {
 		"run command start web serving web runtime",
 		"run fetch app fetching manifest",
 		"run plugin web/default plugin running",
-		"q quit",
+		"ctrl-c stop",
 	} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("dashboard text missing %q:\n%s", want, text)
@@ -282,7 +282,7 @@ func TestBuildDevtoolTUIDashboardShowsEmptyStates(t *testing.T) {
 		"work: idle",
 		"manifest 0/0 fetched, 0/0 built | active 0 | plugins 0 ok, 0 err | attention 0",
 		"clean - waiting for work",
-		"q quit",
+		"ctrl-c stop",
 		".bldr/logs",
 	} {
 		if !strings.Contains(text, want) {
