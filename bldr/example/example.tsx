@@ -67,7 +67,7 @@ const Example: React.FC<ExampleProps> = (props) => {
         <LuHouse className="h-4 w-4" />
         <LuSettings className="h-4 w-4" />
         <LuUser className="h-4 w-4" />
-        <img src={bldrLogo} width={256} />
+        <img src={bldrLogo} width={256} alt="Bldr logo" />
       </div>
     </div>
   )

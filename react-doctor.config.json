@@ -1,0 +1,22 @@
+{
+  "ignore": {
+    "rules": [
+      "react-hooks-js/set-state-in-render",
+      "react-hooks-js/immutability",
+      "react-hooks-js/refs",
+      "react-hooks-js/purity",
+      "react-hooks-js/hooks",
+      "react-hooks-js/set-state-in-effect",
+      "react-hooks-js/globals",
+      "react-hooks-js/error-boundaries",
+      "react-hooks-js/preserve-manual-memoization",
+      "react-hooks-js/unsupported-syntax",
+      "react-hooks-js/component-hook-factories",
+      "react-hooks-js/static-components",
+      "react-hooks-js/use-memo",
+      "react-hooks-js/void-use-memo",
+      "react-hooks-js/incompatible-library",
+      "react-hooks-js/todo"
+    ]
+  }
+}

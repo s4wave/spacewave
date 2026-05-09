@@ -16,6 +16,7 @@ export const AppLogo = React.forwardRef<HTMLImageElement, AppLogoProps>(
           ...props.style,
         }}
         src={AppIcon}
+        alt={props.alt ?? 'Spacewave'}
       />
     )
   },
