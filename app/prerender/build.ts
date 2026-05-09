@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/async-await-in-loop */
 // Prerender Build Script
 //
 // Post-bldr injection step. Reads bldr dist manifest.json for asset URLs,

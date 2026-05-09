@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/async-await-in-loop, react-doctor/async-parallel */
 import { mkdir } from 'node:fs/promises'
 import path from 'node:path'
 
@@ -63,6 +64,7 @@ async function runBrowser(plan: BrowserPlan) {
   }
 
   try {
+    // eslint-disable-next-line react-doctor/async-parallel
     const context = await browser.newContext()
     const page = await context.newPage()
     const timeoutMs = plan.suite === 'full' ? 120000 : 45000

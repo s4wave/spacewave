@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/async-await-in-loop */
 import { useCallback, useMemo, useRef } from 'react'
 import { LuPlus, LuServer, LuTrash } from 'react-icons/lu'
 

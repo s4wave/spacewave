@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/no-giant-component */
 import { useCallback, useMemo, useState } from 'react'
 import Markdown from 'markdown-to-jsx'
 import {

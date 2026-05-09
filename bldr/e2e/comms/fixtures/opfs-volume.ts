@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/async-await-in-loop */
 // opfs-volume.ts - OPFS volume lifecycle integration fixture.
 //
 // Exercises the full volume lifecycle: create directory tree, write/read

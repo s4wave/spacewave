@@ -120,6 +120,7 @@ function registrationToViewer(
     typeID: typeId,
     name: reg.viewerName || typeId,
     category: reg.category || undefined,
+    // eslint-disable-next-line react-doctor/no-dynamic-import-path
     component: React.lazy(() => import(/* @vite-ignore */ scriptPath)),
   }
 }

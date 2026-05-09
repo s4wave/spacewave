@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/async-await-in-loop, react-doctor/no-giant-component */
 import { useCallback, useMemo, useState } from 'react'
 
 import type { NotebookSource } from './proto/notebook.pb.js'

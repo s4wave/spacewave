@@ -110,6 +110,7 @@ if (isPlugin) {
       await quickjsRunner.default(backendAPI, abortSignal, scriptPath)
     } else {
       console.log('shared-worker: starting native plugin:', scriptPath)
+      // eslint-disable-next-line react-doctor/no-dynamic-import-path
       const pluginModule = await import(scriptPath)
       if (typeof pluginModule.default !== 'function') {
         throw new Error(
@@ -144,6 +145,7 @@ if (isPlugin) {
   }
 
   console.log('shared-worker: loading custom worker script:', scriptPath)
+  // eslint-disable-next-line react-doctor/no-dynamic-import-path
   import(scriptPath)
     .then(() => {
       if (checkSharedWorker(self)) {

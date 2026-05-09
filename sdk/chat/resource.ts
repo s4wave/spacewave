@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/async-await-in-loop */
 import { Engine } from '@s4wave/sdk/world/engine.js'
 import { ChatChannel, ChatMessage } from './chat.pb.js'
 import { keyToIRI, iriToKey } from '@s4wave/sdk/world/graph-utils.js'
@@ -189,6 +190,7 @@ class ChatResource implements ChatResourceService {
         }
 
         // Set message object type.
+        // eslint-disable-next-line react-doctor/async-parallel
         await setObjectType(tx, msgKey, MESSAGE_TYPE_ID, abortSignal)
 
         // Link channel to message.

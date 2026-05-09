@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/async-await-in-loop, react-doctor/async-parallel */
 // Bridge worker: receives a MessagePort from the main thread, sends
 // signaling commands over it, and receives responses.
 
@@ -158,10 +159,12 @@ async function doSignaling(pcOffer, pcAnswer) {
   })
 
   // Offerer: create offer and set local description (starts ICE gathering)
+  // eslint-disable-next-line react-doctor/async-parallel
   const offerResult = await sendCommand('createOffer', { pcId: pcOffer })
   await sendCommand('setLocalDescription', { pcId: pcOffer, sdp: offerResult.sdp })
 
   // Answerer: set remote description (offerer's offer), then flush queued candidates
+  // eslint-disable-next-line react-doctor/async-parallel
   await sendCommand('setRemoteDescription', { pcId: pcAnswer, sdp: offerResult.sdp })
   answerRemoteSet = true
   await flushCandidates(offerCandidateQueue, pcAnswer)
@@ -187,6 +190,7 @@ async function runTests() {
 
   // Test 2: full signaling
   try {
+    // eslint-disable-next-line react-doctor/async-parallel
     const r1 = await sendCommand('createPC', { config: { iceServers: [] } })
     const r2 = await sendCommand('createPC', { config: { iceServers: [] } })
     // Need a DC for ICE to negotiate
@@ -199,6 +203,7 @@ async function runTests() {
 
   // Test 3: ICE connectivity
   try {
+    // eslint-disable-next-line react-doctor/async-parallel
     const r1 = await sendCommand('createPC', { config: { iceServers: [] } })
     const r2 = await sendCommand('createPC', { config: { iceServers: [] } })
     await sendCommand('createDataChannel', { pcId: r1.pcId, label: 'ice-test' })
@@ -215,6 +220,7 @@ async function runTests() {
 
   // Test 4: DC transfer -- offerer creates DC, main thread transfers it to worker
   try {
+    // eslint-disable-next-line react-doctor/async-parallel
     const r1 = await sendCommand('createPC', { config: { iceServers: [] } })
     const r2 = await sendCommand('createPC', { config: { iceServers: [] } })
 

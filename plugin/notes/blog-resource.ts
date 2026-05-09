@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/async-await-in-loop */
 import { Engine } from '@s4wave/sdk/world/engine.js'
 import { accessObjectRootWorldState } from '@s4wave/sdk/world/utils.js'
 import { Blog } from './proto/blog.pb.js'

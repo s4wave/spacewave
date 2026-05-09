@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/no-giant-component */
 import React, {
   Activity,
   useCallback,

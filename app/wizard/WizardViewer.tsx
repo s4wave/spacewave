@@ -80,6 +80,7 @@ export function WizardViewer(props: ObjectViewerComponentProps) {
           toast.error('Space plugins are unavailable')
           return
         }
+        // eslint-disable-next-line react-doctor/async-parallel
         await ensureSpacePlugins(ws.spaceWorld, ['spacewave-app'])
         await approveSpacePlugins(spaceContents, ['spacewave-app'])
         await createBlogClientSide(

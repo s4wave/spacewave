@@ -166,6 +166,7 @@ export async function createBlogClientSide(
       sources: [{ name: 'Posts', ref: unixfsKey + '/-/' }],
       authorRegistryPath,
     })
+    // eslint-disable-next-line react-doctor/async-parallel
     await runBlogSeedStep('create blog object', async () => {
       await createObjectWithBlockData(
         writeState,

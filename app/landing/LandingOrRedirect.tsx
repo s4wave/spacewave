@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/async-await-in-loop */
 import { useMemo } from 'react'
 
 import { hasInteracted } from '@s4wave/web/state/interaction.js'

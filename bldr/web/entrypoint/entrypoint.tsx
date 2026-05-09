@@ -97,6 +97,7 @@ if (typeof BLDR_STARTUP_JS === 'string') {
           async (): Promise<{
             default: React.LazyExoticComponent<React.ComponentType>
           }> =>
+            // eslint-disable-next-line react-doctor/no-dynamic-import-path
             (await import(BLDR_STARTUP_JS)) as {
               default: React.LazyExoticComponent<React.ComponentType>
             },

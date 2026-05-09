@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/no-giant-component, react-doctor/prefer-useReducer */
 import { useMemo, useState, useCallback, useId } from 'react'
 import {
   LuArrowRight,

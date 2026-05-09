@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/no-giant-component, react-doctor/prefer-useReducer */
 import React, {
   useCallback,
   useEffect,
@@ -293,13 +294,17 @@ export function LoginForm({
     setLoading(null)
   }, [clearBrowserSignInPrompt])
 
+  const onAuthBusyChangeEvent = useEffectEvent((busy: boolean) => {
+    onAuthBusyChange?.(busy)
+  })
+
   useEffect(() => {
-    onAuthBusyChange?.(loading !== null)
-  }, [loading, onAuthBusyChange])
+    onAuthBusyChangeEvent(loading !== null)
+  }, [loading])
 
   useEffect(() => {
     return () => {
-      onAuthBusyChange?.(false)
+      onAuthBusyChangeEvent(false)
       browserSignInAbortRef.current?.abort()
       if (browserSignInTimerRef.current) {
         clearTimeout(browserSignInTimerRef.current)
@@ -308,7 +313,7 @@ export function LoginForm({
         clearTimeout(retryTimerRef.current)
       }
     }
-  }, [onAuthBusyChange])
+  }, [])
 
   const startRateLimitCountdown = useCallback((seconds: number) => {
     setRateLimitCountdown(seconds)

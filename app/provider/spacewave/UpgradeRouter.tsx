@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/async-await-in-loop */
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react'
 
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'

@@ -66,6 +66,7 @@ function handleNavigate(to: To) {
     const entry = globalThis.__swEntry
     if (entry) {
       window.location.hash = path
+      // eslint-disable-next-line react-doctor/no-dynamic-import-path
       void import(/* @vite-ignore */ entry)
     }
   }

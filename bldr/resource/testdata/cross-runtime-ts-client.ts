@@ -110,6 +110,7 @@ async function main(): Promise<void> {
   rootMux.register(
     new StaticHandler('test.Root', {
       CreateChild: async (dataSource, dataSink) => {
+        // eslint-disable-next-line react-doctor/async-parallel
         await readOne(dataSource)
         const child = await client.attachResourceTree(
           'ts-child',

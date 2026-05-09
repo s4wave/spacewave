@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/async-await-in-loop, react-doctor/async-parallel */
 // opfs-perfile-lock.ts - Per-file WebLock + OPFS contention fixture.
 //
 // Validates the locking protocol used by hydra's OPFS volume stores:
@@ -164,6 +165,7 @@ async function run() {
             })
 
             // Read current value.
+            // eslint-disable-next-line react-doctor/async-parallel
             const fh = await testDir.getFileHandle('counter')
             const file = await fh.getFile()
             const val = parseInt(await file.text(), 10)
@@ -203,6 +205,7 @@ async function run() {
 
       for (const b of blocks) {
         const shard = b.key.substring(0, 2)
+        // eslint-disable-next-line react-doctor/async-parallel
         const shardDir = await blocksDir.getDirectoryHandle(shard, { create: true })
         const lockName = `${testId}/blocks/${shard}/${b.key}`
 
@@ -228,6 +231,7 @@ async function run() {
 
       // Idempotent put: writing same key again should not error.
       const shard0 = blocks[0].key.substring(0, 2)
+      // eslint-disable-next-line react-doctor/async-parallel
       const shardDir0 = await blocksDir.getDirectoryHandle(shard0)
       const lockName0 = `${testId}/blocks/${shard0}/${blocks[0].key}`
       const { writable: w2, release: r2 } = await acquireFileExclusive(

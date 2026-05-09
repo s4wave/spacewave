@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/async-await-in-loop */
 import type { Root } from '@s4wave/sdk/root'
 import { SetSpaceSettingsOp } from '@s4wave/core/space/world/ops/ops.pb.js'
 import { SET_SPACE_SETTINGS_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'

@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/no-giant-component, react-doctor/prefer-useReducer, react-doctor/rerender-state-only-in-handlers */
 import { startTransition, useCallback, useMemo, useState } from 'react'
 
 import { useAbortSignalEffect } from '@aptre/bldr-react'
@@ -309,6 +310,7 @@ export function CanvasViewer({
         }
 
         // Query outgoing+incoming edges for all selected nodes in parallel.
+        // eslint-disable-next-line react-doctor/async-defer-await
         const perNodeResults = await Promise.all(
           selectedNodes.map(async (selected) => {
             const [outgoing, incoming] = await Promise.all([

@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/async-await-in-loop */
 import type { Root } from '@s4wave/sdk/root/root.js'
 
 type SessionLookupRoot = Pick<Root, 'listSessions' | 'getSessionMetadata'>

@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/async-await-in-loop */
 // Blog Build Script
 //
 // Discovers .md files in app/blog/posts/, parses frontmatter,

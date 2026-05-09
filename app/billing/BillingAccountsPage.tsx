@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/no-giant-component, react-doctor/prefer-useReducer */
 import { useCallback, useMemo, useState } from 'react'
 import { LuCheck, LuCreditCard, LuPlus, LuX } from 'react-icons/lu'
 

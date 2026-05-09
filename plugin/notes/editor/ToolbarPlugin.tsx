@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/prefer-useReducer */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import {

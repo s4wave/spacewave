@@ -79,6 +79,7 @@ export async function createNotebookClientSide(
   abortSignal?: AbortSignal,
 ): Promise<void> {
   await withWritableNotesState(worldState, abortSignal, async (writeState) => {
+    // eslint-disable-next-line react-doctor/async-parallel
     await initNotesUnixfs(writeState, unixfsObjectKey, timestamp, abortSignal)
     await runContentSeedStep('seed initial notebook tree', async () => {
       await uploadSeedTree(
@@ -126,6 +127,7 @@ export async function createDocsClientSide(
 ): Promise<void> {
   const unixfsObjectKey = docsObjectKey + '-fs'
   await withWritableNotesState(worldState, abortSignal, async (writeState) => {
+    // eslint-disable-next-line react-doctor/async-parallel
     await initNotesUnixfs(writeState, unixfsObjectKey, timestamp, abortSignal)
     await runContentSeedStep('seed initial docs tree', async () => {
       await uploadSeedTree(

@@ -203,6 +203,7 @@ async function run() {
         targetId: 12,
         payload: [0xbb, 0x02],
       })
+      // eslint-disable-next-line react-doctor/async-parallel
       await waitWorkerMsg(workerA2, 'register-relay-sender', 'registered', 5000)
       await waitWorkerMsg(workerA2, 'relay-sender', 'sent', 5000)
 
@@ -230,6 +231,7 @@ async function run() {
         targetId: BROADCAST_ID,
         payload: [0xcc, 0x03],
       })
+      // eslint-disable-next-line react-doctor/async-parallel
       await waitWorkerMsg(
         workerC,
         'register-broadcast-sender',

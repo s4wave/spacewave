@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/rerender-state-only-in-handlers */
 import { useState, useCallback, useRef, useEffect } from 'react'
 
 import { cn } from '@s4wave/web/style/utils.js'

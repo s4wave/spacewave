@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/async-await-in-loop */
 export const BENCH_DIR = '.opfs-bench'
 export const HEADER_SIZE = 64
 export const INDEX_ENTRY_SIZE = 20

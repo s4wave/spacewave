@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/prefer-useReducer */
 import { useCallback, useEffect, useState } from 'react'
 import {
   LuCreditCard,

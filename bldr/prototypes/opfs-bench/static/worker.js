@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/async-await-in-loop */
 import {
   PAGE_SIZE,
   average,
@@ -659,6 +660,7 @@ async function cmdPageStoreBenchmark(params) {
   for (const keyIndex of readIndices) {
     const leaf = Math.floor(keyIndex / layout.keysPerLeaf)
     const t0 = performance.now()
+    // eslint-disable-next-line react-doctor/async-parallel
     const file = await fh.getFile()
     await file.slice(layout.rootOffset, layout.rootOffset + PAGE_SIZE).arrayBuffer()
     await file

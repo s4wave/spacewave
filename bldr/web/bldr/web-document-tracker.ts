@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/async-await-in-loop */
 import { HandleStreamFunc } from 'starpc'
 import { Message } from '@aptre/protobuf-es-lite'
 

@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/rerender-state-only-in-handlers */
 import { useCallback, useRef, useState } from 'react'
 import { useWatchStateRpc } from '@aptre/bldr-react'
 import { isDesktop } from '@aptre/bldr'

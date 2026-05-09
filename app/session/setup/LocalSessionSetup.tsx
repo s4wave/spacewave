@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
 import { isDesktop } from '@aptre/bldr'
 import {
   LuArrowRight,
@@ -98,10 +98,12 @@ function LocalSessionSetupCloudScreen({
         const root = rootResource.value
         if (!session || !root) return undefined
         return (async () => {
+          // eslint-disable-next-line react-doctor/async-defer-await
           const resp = await session.spacewave.getLinkedLocalSession(signal)
           if (signal.aborted) return
           if (resp.found) {
             const localIdx = resp.sessionIndex ?? 0
+            // eslint-disable-next-line react-doctor/async-defer-await
             const state = await preparePlanReturnOnboardingForSessionIndex(
               root,
               localIdx,
@@ -115,6 +117,7 @@ function LocalSessionSetupCloudScreen({
             navigate({ path: `/u/${localIdx}/setup` })
             return
           }
+          // eslint-disable-next-line react-doctor/async-defer-await
           const created = await session.spacewave.createLinkedLocalSession()
           if (signal.aborted) return
           const localIdx = created.sessionListEntry?.sessionIndex ?? 0
@@ -163,14 +166,15 @@ function LocalSessionSetupRedirectScreen({
 }) {
   const { loading, setOnboarding } = useLocalSessionOnboardingContext()
   const redirectedRef = useRef(false)
+  const navigateEvent = useEffectEvent(navigate)
 
   useEffect(() => {
     if (loading) return
     if (redirectedRef.current) return
     redirectedRef.current = true
     setOnboarding(mergePlanReturnLocalSessionOnboarding)
-    navigate({ path: setupPath })
-  }, [loading, setOnboarding, navigate, setupPath])
+    navigateEvent({ path: setupPath })
+  }, [loading, setOnboarding, setupPath])
 
   return <PreparingLocalStorageScreen />
 }

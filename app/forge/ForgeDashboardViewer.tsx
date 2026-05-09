@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/no-giant-component */
 import { useCallback, useMemo } from 'react'
 import {
   LuLayoutDashboard,

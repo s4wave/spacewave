@@ -92,7 +92,9 @@ describe('zero-native WebView IPC packet stream', () => {
     mux.register(createHandler(EchoerDefinition, new EchoerServer()))
     const server = new Server(mux.lookupMethod)
 
+    // eslint-disable-next-line react-doctor/server-sequential-independent-await
     const serverStream = await openZeroNativeWebViewIpcPacketStream(bridge, 11)
+    // eslint-disable-next-line react-doctor/server-sequential-independent-await
     const clientStream = await openZeroNativeWebViewIpcPacketStream(bridge, 11)
 
     const serverTask = server

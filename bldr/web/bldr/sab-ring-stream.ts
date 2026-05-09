@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/async-await-in-loop */
 import type { Sink, Source, Duplex } from 'it-stream-types'
 import { pushable } from 'it-pushable'
 import type { Pushable } from 'it-pushable'

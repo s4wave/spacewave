@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/async-await-in-loop */
 import { describe, expect, it } from 'vitest'
 
 import {

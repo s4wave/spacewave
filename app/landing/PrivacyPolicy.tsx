@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/no-giant-component */
 import { LuShield } from 'react-icons/lu'
 import { ExternalLink } from './ExternalLink.js'
 import { LegalPageLayout } from './LegalPageLayout.js'

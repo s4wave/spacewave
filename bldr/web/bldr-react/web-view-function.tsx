@@ -61,6 +61,7 @@ export class FunctionComponentContainer extends BldrComponent<
     retryWithAbort(
       this.abortController.signal,
       async () => {
+        // eslint-disable-next-line react-doctor/no-dynamic-import-path
         const script = await import(this.scriptPath)
         let functionComponent: FunctionComponent | undefined
         if (script?.default && typeof script.default === 'function') {

@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/no-giant-component */
 import { useDeferredValue, useState } from 'react'
 
 import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'

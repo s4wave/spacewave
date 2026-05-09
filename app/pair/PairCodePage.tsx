@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/no-cascading-set-state, react-doctor/prefer-useReducer, react-doctor/rerender-state-only-in-handlers */
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import {
   LuArrowLeft,

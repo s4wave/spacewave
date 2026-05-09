@@ -83,6 +83,7 @@ async function executeBackendEntrypoint(
     // The import path is relative to the assets FS root (e.g., /p/{plugin-id}/a/).
     // Example: vite/backend/index.js or esb/backend/index.js
     // The host environment must resolve these paths relative to the assets base URL.
+    // eslint-disable-next-line react-doctor/no-dynamic-import-path
     const mod = await import(/* @vite-ignore */ importPath) // note: we use esbuild to bundle this, but let's keep vite-ignore anyway.
     const modFunc: BackendEntrypointFunc = mod[importName]
 

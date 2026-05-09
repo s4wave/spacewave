@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/rerender-state-only-in-handlers */
 import {
   useState,
   useRef,

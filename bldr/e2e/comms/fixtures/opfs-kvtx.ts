@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/async-await-in-loop */
 // opfs-kvtx.ts - OPFS kvtx.Store verification fixture.
 //
 // Pure-JS smoke that exercises the kvtx wire layout against OPFS:

@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/async-await-in-loop */
 import {
   average,
   cleanupBenchRoot,
@@ -298,6 +299,7 @@ async function runShardLoadScenario(path, withCompaction) {
 async function benchB4() {
   section('B-4 Compaction cost under load')
   const baseline = await runShardLoadScenario('b4/baseline', false)
+  // eslint-disable-next-line react-doctor/server-sequential-independent-await
   const withCompaction = await runShardLoadScenario('b4/with-compaction', true)
   print(`baseline throughput=${baseline.throughputBlocksPerSec.toFixed(1)} blocks/s p95=${baseline.batchLatency.p95.toFixed(3)}ms`)
   print(
@@ -448,6 +450,7 @@ async function benchB9() {
       falsePositiveRate: 0.01,
     }),
   )
+  // eslint-disable-next-line react-doctor/server-sequential-independent-await
   const dir = await getDirectory(path, true)
   const meta = await loadTableMetadata(dir, publish.name)
   const whole = []

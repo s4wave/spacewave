@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/async-await-in-loop, react-doctor/no-giant-component */
 import { useCallback, use, useEffect, useMemo, useRef, useState } from 'react'
 import {
   LuCloud,

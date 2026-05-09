@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/no-cascading-set-state */
 import { useEffect, useState } from 'react'
 
 // useRenderDelay returns true only after the supplied delay has elapsed since

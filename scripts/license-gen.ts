@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+/* eslint-disable react-doctor/async-await-in-loop */
 
 // Generates Go and JS license data, merges into unified licenses.json.
 //

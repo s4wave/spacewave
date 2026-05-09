@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/async-await-in-loop */
 import { getFullHeapFromFile } from '@memlab/heap-analysis'
 
 // Parse CLI args: --snapshots label1=path1,label2=path2,...

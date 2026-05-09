@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/async-await-in-loop */
 import { castToError } from 'starpc'
 import { ServiceWorkerHostClient } from '../runtime/sw/sw_srpc.pb.js'
 import { proxyFetch } from '../fetch/fetch.js'
@@ -614,6 +615,7 @@ async function swActivate() {
     serviceWorkerId,
   })
   // Claim all clients.
+  // eslint-disable-next-line react-doctor/async-parallel
   await self.clients.claim()
   await getControlCache()
   await syncLatestBrowserRelease()

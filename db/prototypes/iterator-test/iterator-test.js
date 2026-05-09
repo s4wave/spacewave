@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/async-await-in-loop */
 async function runTest() {
   console.log('Starting test...')
 

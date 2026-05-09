@@ -15,6 +15,7 @@ new PluginWorker(
     }
     if (mode === 'import-fail') {
       const missingModule = '/workers/does-not-exist.js'
+      // eslint-disable-next-line react-doctor/no-dynamic-import-path
       await import(/* @vite-ignore */ missingModule)
       return
     }

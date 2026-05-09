@@ -118,6 +118,7 @@ export function GitRepoWizardViewer(props: ObjectViewerComponentProps) {
         })
         return
       }
+      // eslint-disable-next-line react-doctor/async-parallel
       await ws.spaceWorld.applyWorldOp(
         'spacewave/git/repo/create',
         opData,

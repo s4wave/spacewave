@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/no-giant-component */
 import { useCallback, useId, useMemo, useReducer, useState } from 'react'
 import {
   LuBuilding2,

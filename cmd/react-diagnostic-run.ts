@@ -64,11 +64,17 @@ interface ReactDoctorJsonSummary {
   scoreLabel?: string | null
 }
 
+interface ReactDoctorJsonProject {
+  diagnostics?: ReactDoctorJsonDiagnostic[]
+  [key: string]: unknown
+}
+
 interface ReactDoctorJsonReport {
   schemaVersion: number
   ok: boolean
   directory: string
   mode: string
+  projects?: ReactDoctorJsonProject[]
   diagnostics?: ReactDoctorJsonDiagnostic[]
   summary?: ReactDoctorJsonSummary
   error: unknown
@@ -221,6 +227,52 @@ function parseReactDoctorReport(stdout: string): ReactDoctorJsonReport {
   return report as ReactDoctorJsonReport
 }
 
+function shouldKeepDiagnostic(diagnostic: ReactDoctorJsonDiagnostic): boolean {
+  if (diagnostic.plugin === 'react' && diagnostic.rule === 'no-danger') {
+    return false
+  }
+  return true
+}
+
+function normalizeReactDoctorReport(
+  report: ReactDoctorJsonReport | null,
+): ReactDoctorJsonReport | null {
+  if (!report || !Array.isArray(report.diagnostics)) return report
+
+  const diagnostics = report.diagnostics.filter(shouldKeepDiagnostic)
+  const errorCount = diagnostics.filter((diagnostic) => {
+    return getDiagnosticSeverity(diagnostic) === 'error'
+  }).length
+  const warningCount = diagnostics.length - errorCount
+  const affectedFiles = new Set<string>()
+  for (const diagnostic of diagnostics) {
+    if (diagnostic.filePath) affectedFiles.add(diagnostic.filePath)
+  }
+  const projects =
+    report.projects ?
+      report.projects.map((project) => {
+        if (!Array.isArray(project.diagnostics)) return project
+        return {
+          ...project,
+          diagnostics: project.diagnostics.filter(shouldKeepDiagnostic),
+        }
+      })
+    : report.projects
+
+  return {
+    ...report,
+    diagnostics,
+    projects,
+    summary: {
+      ...report.summary,
+      errorCount,
+      warningCount,
+      affectedFileCount: affectedFiles.size,
+      totalDiagnosticCount: diagnostics.length,
+    },
+  }
+}
+
 export function buildReactDiagnosticRunReport(input: {
   directory: string
   offline: boolean
@@ -239,6 +291,7 @@ export function buildReactDiagnosticRunReport(input: {
         : `React Doctor exited with code ${input.processResult.code}`)
   const reactDoctorOk = input.reactDoctor?.ok ?? false
   const ok = input.processResult.code === 0 && !input.parseError && reactDoctorOk
+  const reactDoctor = normalizeReactDoctorReport(input.reactDoctor)
 
   return {
     schemaVersion: REACT_DIAGNOSTIC_RUN_SCHEMA_VERSION,
@@ -254,7 +307,7 @@ export function buildReactDiagnosticRunReport(input: {
       signal: input.processResult.signal,
       args: input.args,
     },
-    reactDoctor: input.reactDoctor,
+    reactDoctor,
     error: errorMessage
       ? {
           message: errorMessage,

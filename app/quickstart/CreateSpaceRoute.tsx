@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/rerender-state-only-in-handlers */
 import { useCallback, useEffect, useMemo, useReducer, useState } from 'react'
 
 import { useAbortSignalEffect } from '@aptre/bldr-react'
@@ -137,6 +138,7 @@ export function CreateSpaceRoute() {
 
       dispatch({ type: 'start' })
       const run = async (): Promise<void> => {
+        // eslint-disable-next-line react-doctor/async-defer-await
         const spaceResp = await session.createSpace(
           {
             spaceName,
@@ -151,6 +153,7 @@ export function CreateSpaceRoute() {
         }
         dispatch({ type: 'advance', to: 'mount' })
 
+        // eslint-disable-next-line react-doctor/async-defer-await
         const setup = await createQuickstartSetupFromSession({
           session,
           spaceResp,

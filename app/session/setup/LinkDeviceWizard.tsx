@@ -1,4 +1,12 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+/* eslint-disable react-doctor/no-cascading-set-state, react-doctor/prefer-useReducer, react-doctor/rerender-state-only-in-handlers */
+import React, {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { isDesktop } from '@aptre/bldr'
 import {
   LuArrowLeft,
@@ -574,13 +582,16 @@ function PairingStep({
     code ? Math.max(0, CODE_TTL_SECONDS - elapsed) : CODE_TTL_SECONDS
 
   // Auto-regenerate when the code expires.
+  const onRegenerateCodeEvent = useEffectEvent(() => {
+    onRegenerateCode()
+  })
   const prevSecondsLeft = useRef(secondsLeft)
   useEffect(() => {
     if (prevSecondsLeft.current > 0 && secondsLeft === 0 && code) {
-      onRegenerateCode()
+      onRegenerateCodeEvent()
     }
     prevSecondsLeft.current = secondsLeft
-  }, [secondsLeft, code, onRegenerateCode])
+  }, [secondsLeft, code])
 
   const countdown = useMemo(() => {
     const mins = Math.floor(secondsLeft / 60)

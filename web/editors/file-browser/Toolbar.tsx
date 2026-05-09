@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/no-many-boolean-props */
 import { useState, useRef, useEffect, useCallback, type ReactNode } from 'react'
 import {
   LuChevronLeft,

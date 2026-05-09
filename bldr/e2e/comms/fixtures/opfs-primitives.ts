@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/async-await-in-loop */
 // opfs-primitives.ts - OPFS primitives verification fixture.
 //
 // Tests all OPFS operations that the Go hydra/opfs package wraps:

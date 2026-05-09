@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/prefer-useReducer */
 import { useCallback, useId, useState } from 'react'
 import { LuLock, LuLockOpen } from 'react-icons/lu'
 

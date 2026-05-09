@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/no-cascading-set-state */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { cn } from '@s4wave/web/style/utils.js'

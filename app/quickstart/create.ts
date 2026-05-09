@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/async-await-in-loop */
 import type { RegisterCleanup } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { Root } from '@s4wave/sdk/root'
 import type { Session } from '@s4wave/sdk/session'
@@ -785,6 +786,7 @@ export async function createDrive(
   abortSignal?: AbortSignal,
   timing?: QuickstartSetupTiming,
 ): Promise<void> {
+  // eslint-disable-next-line react-doctor/async-parallel
   await timeQuickstartPhase(timing, 'init-drive-unixfs', () =>
     initUnixFS(spaceWorld, abortSignal),
   )

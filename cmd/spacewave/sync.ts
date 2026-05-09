@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/async-await-in-loop */
 // sync.ts copies generated entrypoint files from the bldr build output
 // into cmd/spacewave/, prepending a build tag to .go files.
 

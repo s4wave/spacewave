@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/no-giant-component */
 import { useMemo, useCallback, useEffect, useState } from 'react'
 import { joinPath } from '@aptre/bldr'
 import { DebugInfo, useWatchStateRpc } from '@aptre/bldr-react'

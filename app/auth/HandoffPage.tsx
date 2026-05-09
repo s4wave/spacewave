@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/rerender-state-only-in-handlers */
 import { useCallback, useMemo, useState } from 'react'
 import { LuMonitor, LuTerminal, LuCheck } from 'react-icons/lu'
 

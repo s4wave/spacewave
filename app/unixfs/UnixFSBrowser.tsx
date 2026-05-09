@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/no-giant-component */
 import {
   type KeyboardEvent,
   useCallback,

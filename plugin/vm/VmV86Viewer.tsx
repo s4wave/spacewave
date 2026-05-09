@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/async-await-in-loop, react-doctor/no-giant-component */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { LuSettings, LuTv } from 'react-icons/lu'
 import { Terminal } from '@xterm/xterm'

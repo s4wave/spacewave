@@ -43,6 +43,7 @@ export async function setObjectBlockData(
     abortSignal,
   )
   try {
+    // eslint-disable-next-line react-doctor/async-parallel
     await runObjectBlockStep('mark existing object root dirty', async () => {
       await blockCursor.markDirty(abortSignal)
     })
@@ -82,9 +83,11 @@ export async function createObjectWithBlockData(
   abortSignal?: AbortSignal,
 ): Promise<void> {
   using cursor = await worldState.buildStorageCursor(abortSignal)
+  // eslint-disable-next-line react-doctor/server-sequential-independent-await
   const putResp = await runObjectBlockStep('put new object block', async () => {
     return cursor.putBlock({ data }, abortSignal)
   })
+  // eslint-disable-next-line react-doctor/server-sequential-independent-await
   const currentRef = await runObjectBlockStep(
     'capture storage cursor ref',
     async () => (await cursor.getRef(abortSignal)).ref,

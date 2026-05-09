@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/no-giant-component, react-doctor/prefer-useReducer */
 import { useCallback, useMemo, useState } from 'react'
 import { isDesktop } from '@aptre/bldr'
 import { LuArrowLeft, LuCheck, LuUserPlus } from 'react-icons/lu'

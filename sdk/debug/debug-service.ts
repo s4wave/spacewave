@@ -32,6 +32,7 @@ class DebugBridgeServiceImpl implements DebugBridgeService {
       return resp
     }
     try {
+      // eslint-disable-next-line react-doctor/no-dynamic-import-path
       const mod = (await import(/* @vite-ignore */ url)) as {
         default?: unknown
       }

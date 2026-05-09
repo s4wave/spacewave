@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/no-giant-component */
 import { useCallback } from 'react'
 import { LuArrowLeft } from 'react-icons/lu'
 import { useNavigate } from '@s4wave/web/router/router.js'

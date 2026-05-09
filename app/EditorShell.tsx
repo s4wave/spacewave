@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/rerender-state-only-in-handlers */
 import { useState, useEffect, useMemo, type ReactNode } from 'react'
 
 import { getAppPath } from '@s4wave/web/router/app-path.js'

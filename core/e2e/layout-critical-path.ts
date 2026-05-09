@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/async-await-in-loop */
 import { AsyncDisposableStack } from '@aptre/bldr-sdk/defer.js'
 
 import { initObjectLayout, initUnixFS } from '@s4wave/app/quickstart/create.js'
@@ -108,6 +109,7 @@ export async function testLayoutCriticalPath(
   const writeWorld = new EngineWorldState(engine, true)
   const readWorld = new EngineWorldState(engine, false)
 
+  // eslint-disable-next-line react-doctor/async-parallel
   await initUnixFS(writeWorld, abortSignal)
   await initObjectLayout(writeWorld, abortSignal)
 

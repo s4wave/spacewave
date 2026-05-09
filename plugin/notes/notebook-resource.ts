@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/async-await-in-loop */
 import { Engine } from '@s4wave/sdk/world/engine.js'
 import type { IObjectState } from '@s4wave/sdk/world/object-state.js'
 import { Notebook } from './proto/notebook.pb.js'

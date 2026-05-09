@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/no-cascading-set-state */
 import { useEffect, useState } from 'react'
 import { castToError } from 'starpc'
 

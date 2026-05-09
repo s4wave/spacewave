@@ -1,10 +1,27 @@
-import React, { Suspense, useMemo, useEffect } from 'react'
+import React, { Component, Suspense, useMemo } from 'react'
 import { WebViewErrorBoundary } from './web-view-error-boundary.js'
 import type {
   LoadedProtoComponent,
   ProtoComponentType,
 } from './react-component.js'
 import { useMemoUint8Array } from './hooks.js'
+
+interface InnerComponentProps {
+  componentProps?: Uint8Array
+  LoadedComponent: ProtoComponentType
+  onReady?: () => void
+}
+
+class InnerComponent extends Component<InnerComponentProps> {
+  componentDidMount() {
+    this.props.onReady?.()
+  }
+
+  render() {
+    const LoadedComponent = this.props.LoadedComponent
+    return <LoadedComponent componentProps={this.props.componentProps} />
+  }
+}
 
 // IReactComponentContainerProps are props for ReactComponentContainer.
 export interface IReactComponentContainerProps {
@@ -24,30 +41,10 @@ export function ReactComponentContainer(props: IReactComponentContainerProps) {
     () =>
       React.lazy(
         async (): Promise<{ default: LoadedProtoComponent }> =>
+          // eslint-disable-next-line react-doctor/no-dynamic-import-path
           import(props.scriptPath),
       ),
     [props.scriptPath],
-  )
-
-  const InnerComponent = useMemo(
-    () =>
-      ({
-        componentProps,
-        onReady,
-      }: {
-        componentProps?: Uint8Array
-        onReady?: () => void
-      }) => {
-        // eslint-disable-next-line react-hooks/rules-of-hooks
-        useEffect(() => {
-          if (onReady) {
-            onReady()
-          }
-        }, [onReady])
-
-        return <LoadedComponent componentProps={componentProps} />
-      },
-    [LoadedComponent],
   )
 
   return (
@@ -55,6 +52,7 @@ export function ReactComponentContainer(props: IReactComponentContainerProps) {
       <Suspense fallback={null}>
         <InnerComponent
           componentProps={componentProps ?? undefined}
+          LoadedComponent={LoadedComponent}
           onReady={props.onReady}
         />
       </Suspense>
