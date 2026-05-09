@@ -4,6 +4,23 @@ project(spacewave-helper CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+add_library(spacewave-zero-native-ipc STATIC
+    src/zero-native-ipc.cpp
+)
+target_include_directories(spacewave-zero-native-ipc PUBLIC src)
+
+add_executable(spacewave-zero-native-ipc-test
+    src/zero-native-ipc-test.cpp
+)
+target_link_libraries(spacewave-zero-native-ipc-test PRIVATE spacewave-zero-native-ipc)
+
+if(UNIX)
+    target_link_libraries(spacewave-zero-native-ipc-test PRIVATE pthread)
+endif()
+
+enable_testing()
+add_test(NAME spacewave-zero-native-ipc-test COMMAND spacewave-zero-native-ipc-test)
+
 add_executable(spacewave-helper
     src/main.cpp
     src/proto.cpp

@@ -1,0 +1,312 @@
+#include "zero-native-ipc.h"
+
+#include <cerrno>
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
+#include <string>
+#include <thread>
+#include <vector>
+
+#ifdef _WIN32
+int main() {
+    std::cout << spacewave_zero_native_starpc_transport_status() << "\n";
+    std::cout << "zero-native-ipc-test: Windows named-pipe coverage is not implemented\n";
+    return 0;
+}
+#else
+
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <unistd.h>
+
+namespace {
+
+constexpr uint8_t kResponseOK = 0;
+constexpr uint8_t kResponseError = 1;
+
+void writeLE32(uint8_t* out, uint32_t value) {
+    out[0] = static_cast<uint8_t>(value);
+    out[1] = static_cast<uint8_t>(value >> 8);
+    out[2] = static_cast<uint8_t>(value >> 16);
+    out[3] = static_cast<uint8_t>(value >> 24);
+}
+
+uint32_t readLE32(const uint8_t* in) {
+    return static_cast<uint32_t>(in[0]) |
+        (static_cast<uint32_t>(in[1]) << 8) |
+        (static_cast<uint32_t>(in[2]) << 16) |
+        (static_cast<uint32_t>(in[3]) << 24);
+}
+
+bool writeAll(int fd, const uint8_t* data, size_t len) {
+    while (len > 0) {
+        ssize_t n = write(fd, data, len);
+        if (n < 0 && errno == EINTR) {
+            continue;
+        }
+        if (n <= 0) {
+            return false;
+        }
+        data += static_cast<size_t>(n);
+        len -= static_cast<size_t>(n);
+    }
+    return true;
+}
+
+bool readExact(int fd, uint8_t* data, size_t len) {
+    while (len > 0) {
+        ssize_t n = read(fd, data, len);
+        if (n < 0 && errno == EINTR) {
+            continue;
+        }
+        if (n <= 0) {
+            return false;
+        }
+        data += static_cast<size_t>(n);
+        len -= static_cast<size_t>(n);
+    }
+    return true;
+}
+
+bool writeFrame(int fd, const std::vector<uint8_t>& data) {
+    uint8_t lenBuf[4];
+    writeLE32(lenBuf, static_cast<uint32_t>(data.size()));
+    return writeAll(fd, lenBuf, sizeof(lenBuf)) &&
+        (data.empty() || writeAll(fd, data.data(), data.size()));
+}
+
+bool readFrame(int fd, std::vector<uint8_t>* out) {
+    uint8_t lenBuf[4];
+    if (!readExact(fd, lenBuf, sizeof(lenBuf))) {
+        return false;
+    }
+    uint32_t len = readLE32(lenBuf);
+    out->resize(len);
+    return len == 0 || readExact(fd, out->data(), len);
+}
+
+struct ServerResult {
+    std::vector<uint8_t> request;
+    bool sawCleanClose = false;
+    std::string error;
+};
+
+std::string makeSocketPath(const char* suffix) {
+    char dirTemplate[] = "/tmp/spacewave-zero-native-ipc.XXXXXX";
+    char* dir = mkdtemp(dirTemplate);
+    if (dir == nullptr) {
+        std::cerr << "mkdtemp failed: " << std::strerror(errno) << "\n";
+        std::exit(1);
+    }
+    return std::string(dir) + "/" + suffix + ".sock";
+}
+
+void cleanupSocketPath(const std::string& socketPath) {
+    unlink(socketPath.c_str());
+    size_t slash = socketPath.rfind('/');
+    if (slash != std::string::npos) {
+        std::string dir = socketPath.substr(0, slash);
+        rmdir(dir.c_str());
+    }
+}
+
+int listenUnix(const std::string& socketPath) {
+    int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (fd < 0) {
+        std::cerr << "socket failed: " << std::strerror(errno) << "\n";
+        std::exit(1);
+    }
+
+    sockaddr_un addr;
+    std::memset(&addr, 0, sizeof(addr));
+    addr.sun_family = AF_UNIX;
+    if (socketPath.size() >= sizeof(addr.sun_path)) {
+        std::cerr << "socket path too long\n";
+        std::exit(1);
+    }
+    std::memcpy(addr.sun_path, socketPath.c_str(), socketPath.size() + 1);
+    if (bind(fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) != 0) {
+        std::cerr << "bind failed: " << std::strerror(errno) << "\n";
+        std::exit(1);
+    }
+    if (listen(fd, 1) != 0) {
+        std::cerr << "listen failed: " << std::strerror(errno) << "\n";
+        std::exit(1);
+    }
+    return fd;
+}
+
+ServerResult runServer(int listenFd, const std::vector<uint8_t>& responsePayload, bool remoteError) {
+    ServerResult result;
+    int fd = accept(listenFd, nullptr, nullptr);
+    if (fd < 0) {
+        result.error = std::string("accept failed: ") + std::strerror(errno);
+        return result;
+    }
+
+    if (!readFrame(fd, &result.request)) {
+        result.error = "read request failed";
+        close(fd);
+        return result;
+    }
+
+    std::vector<uint8_t> response;
+    response.reserve(responsePayload.size() + 1);
+    response.push_back(remoteError ? kResponseError : kResponseOK);
+    response.insert(response.end(), responsePayload.begin(), responsePayload.end());
+    if (!writeFrame(fd, response)) {
+        result.error = "write response failed";
+        close(fd);
+        return result;
+    }
+
+    uint8_t eofProbe = 0;
+    ssize_t n = read(fd, &eofProbe, 1);
+    result.sawCleanClose = n == 0;
+    close(fd);
+    return result;
+}
+
+bool contains(const char* haystack, const char* needle) {
+    return std::strstr(haystack, needle) != nullptr;
+}
+
+void require(bool ok, const char* message) {
+    if (!ok) {
+        std::cerr << "require failed: " << message << "\n";
+        std::exit(1);
+    }
+}
+
+void runEchoCase() {
+    std::string socketPath = makeSocketPath("echo");
+    int listenFd = listenUnix(socketPath);
+    std::vector<uint8_t> payload = {'q', 'u', 'o', 'r', 'r', 'a'};
+    ServerResult serverResult;
+    std::thread server([&]() {
+        serverResult = runServer(listenFd, payload, false);
+    });
+
+    uint8_t response[64];
+    size_t responseLen = 0;
+    SpacewaveZeroNativeIpcError error;
+    int32_t code = spacewave_zero_native_starpc_echo(
+        socketPath.c_str(),
+        payload.data(),
+        payload.size(),
+        response,
+        sizeof(response),
+        &responseLen,
+        &error);
+    server.join();
+    close(listenFd);
+    cleanupSocketPath(socketPath);
+
+    require(code == SPACEWAVE_ZERO_NATIVE_IPC_OK, "echo code ok");
+    require(responseLen == payload.size(), "echo response length");
+    require(std::memcmp(response, payload.data(), payload.size()) == 0, "echo response bytes");
+    require(serverResult.request == payload, "server received request bytes");
+    require(serverResult.sawCleanClose, "server observed EOF after client close");
+    require(serverResult.error.empty(), "server finished without error");
+}
+
+void runRemoteErrorCase() {
+    std::string socketPath = makeSocketPath("remote-error");
+    int listenFd = listenUnix(socketPath);
+    std::string msg = "remote echo failed";
+    std::vector<uint8_t> remoteError(msg.begin(), msg.end());
+    ServerResult serverResult;
+    std::thread server([&]() {
+        serverResult = runServer(listenFd, remoteError, true);
+    });
+
+    uint8_t response[64];
+    size_t responseLen = 0;
+    SpacewaveZeroNativeIpcError error;
+    const uint8_t request[] = {'f', 'a', 'i', 'l'};
+    int32_t code = spacewave_zero_native_starpc_echo(
+        socketPath.c_str(),
+        request,
+        sizeof(request),
+        response,
+        sizeof(response),
+        &responseLen,
+        &error);
+    server.join();
+    close(listenFd);
+    cleanupSocketPath(socketPath);
+
+    require(code == SPACEWAVE_ZERO_NATIVE_IPC_REMOTE_ERROR, "remote error code");
+    require(error.code == SPACEWAVE_ZERO_NATIVE_IPC_REMOTE_ERROR, "remote error struct code");
+    require(contains(error.message, msg.c_str()), "remote error message propagated");
+    require(responseLen == 0, "remote error has no response payload");
+    require(serverResult.sawCleanClose, "remote error path clean close");
+    require(serverResult.error.empty(), "remote error server finished without error");
+}
+
+void runTooLargeCase() {
+    std::string socketPath = makeSocketPath("too-large");
+    int listenFd = listenUnix(socketPath);
+    std::vector<uint8_t> payload = {'l', 'a', 'r', 'g', 'e'};
+    ServerResult serverResult;
+    std::thread server([&]() {
+        serverResult = runServer(listenFd, payload, false);
+    });
+
+    uint8_t response[2];
+    size_t responseLen = 0;
+    SpacewaveZeroNativeIpcError error;
+    const uint8_t request[] = {'s', 'm', 'a', 'l', 'l'};
+    int32_t code = spacewave_zero_native_starpc_echo(
+        socketPath.c_str(),
+        request,
+        sizeof(request),
+        response,
+        sizeof(response),
+        &responseLen,
+        &error);
+    server.join();
+    close(listenFd);
+    cleanupSocketPath(socketPath);
+
+    require(code == SPACEWAVE_ZERO_NATIVE_IPC_RESPONSE_TOO_LARGE, "too-large code");
+    require(responseLen == payload.size(), "too-large reports required length");
+    require(error.code == SPACEWAVE_ZERO_NATIVE_IPC_RESPONSE_TOO_LARGE, "too-large error struct code");
+    require(serverResult.sawCleanClose, "too-large path clean close");
+    require(serverResult.error.empty(), "too-large server finished without error");
+}
+
+void runConnectFailureCase() {
+    std::string socketPath = makeSocketPath("missing");
+    uint8_t response[8];
+    size_t responseLen = 0;
+    SpacewaveZeroNativeIpcError error;
+    const uint8_t request[] = {'x'};
+    int32_t code = spacewave_zero_native_starpc_echo(
+        socketPath.c_str(),
+        request,
+        sizeof(request),
+        response,
+        sizeof(response),
+        &responseLen,
+        &error);
+    cleanupSocketPath(socketPath);
+    require(code == SPACEWAVE_ZERO_NATIVE_IPC_CONNECT_FAILED, "connect failure code");
+    require(error.code == SPACEWAVE_ZERO_NATIVE_IPC_CONNECT_FAILED, "connect failure error struct code");
+    require(responseLen == 0, "connect failure has no response");
+}
+
+}  // namespace
+
+int main() {
+    std::cout << spacewave_zero_native_starpc_transport_status() << "\n";
+    runEchoCase();
+    runRemoteErrorCase();
+    runTooLargeCase();
+    runConnectFailureCase();
+    std::cout << "zero-native-ipc-test: ok\n";
+    return 0;
+}
+
+#endif
