@@ -15,22 +15,22 @@ The tray is a daemon console, not a second app shell. It renders the published `
 
 Electron main owns the generic desktop runtime Resource SDK tree in `bldr/web/electron/main/desktop-runtime.ts`. The root service is `DesktopRuntimeResourceService`:
 
-| RPC                     | Purpose                                                                                         |
-| ----------------------- | ----------------------------------------------------------------------------------------------- |
-| `WatchDesktopState`     | Streams the latest `DesktopRuntimeState` to popover/debug clients.                              |
-| `SetDesktopState`       | Publishes projected status from the runtime side into Electron main.                            |
-| `OpenOrFocusMainWindow` | Opens or focuses the singleton app window, optionally at a route.                               |
-| `QuitDesktopRuntime`    | Marks the runtime as quitting and requests an explicit shutdown.                                |
+| RPC                     | Purpose                                                              |
+| ----------------------- | -------------------------------------------------------------------- |
+| `WatchDesktopState`     | Streams the latest `DesktopRuntimeState` to popover/debug clients.   |
+| `SetDesktopState`       | Publishes projected status from the runtime side into Electron main. |
+| `OpenOrFocusMainWindow` | Opens or focuses the singleton app window, optionally at a route.    |
+| `QuitDesktopRuntime`    | Marks the runtime as quitting and requests an explicit shutdown.     |
 
 Electron main also exposes a resource-backed `DesktopTrayResourceService`. Runtime publishers register `DesktopTrayEntry` rows there, and native tray renderers subscribe to `WatchDesktopTray` for the ordered menu tree. This `DesktopTrayEntry` publication is the active native tray model.
 
 `DesktopTrayState` contains the native tray contract:
 
-| Field        | Owner                 | Meaning                                                                       |
-| ------------ | --------------------- | ----------------------------------------------------------------------------- |
-| `entries`    | Runtime publishers    | Ordered `DesktopTrayEntry` rows rendered into the native menu tree.           |
-| `iconState`  | `DesktopTray` service | Collapsed tray icon state derived from active published rows.                 |
-| `statusText` | `DesktopTray` service | Collapsed tray status text derived from the published title/status row.       |
+| Field        | Owner                 | Meaning                                                                 |
+| ------------ | --------------------- | ----------------------------------------------------------------------- |
+| `entries`    | Runtime publishers    | Ordered `DesktopTrayEntry` rows rendered into the native menu tree.     |
+| `iconState`  | `DesktopTray` service | Collapsed tray icon state derived from active published rows.           |
+| `statusText` | `DesktopTray` service | Collapsed tray status text derived from the published title/status row. |
 
 Each `DesktopTrayEntry` carries stable row identity, ordering, section/path placement, display label, active/enabled state, severity/icon hints, and optional action transport. Route, new-window, copy, reveal, quit, and attached-handler actions are represented on the entry itself, so native menu dispatch does not depend on `DesktopRuntimeState`.
 
@@ -95,13 +95,13 @@ Display text comes from the entry fields, not from popover-side lookup tables. `
 
 Action rows are the only selectable command rows. A popover disables an action when `enabled` is false, when `action` is absent, or when the action payload is incomplete for its kind. It does not hide disabled rows unless the entry is removed from the watched tree. The supported action handoff is:
 
-| `DesktopTrayAction.kind` | Popover behavior                                                                 |
-| ------------------------ | --------------------------------------------------------------------------------- |
-| `OPEN_ROUTE`             | Call `OpenOrFocusMainWindow` with `route` when present, otherwise focus the app.  |
-| `NEW_WINDOW`             | Call `OpenOrFocusMainWindow` with the requested `route`, or `/` when empty.       |
-| `COPY_TEXT`              | Copy `value` to the native clipboard.                                             |
-| `REVEAL_PATH`            | Reveal `value` with the platform file manager.                                    |
-| `QUIT`                   | Call `QuitDesktopRuntime`.                                                        |
+| `DesktopTrayAction.kind` | Popover behavior                                                                   |
+| ------------------------ | ---------------------------------------------------------------------------------- |
+| `OPEN_ROUTE`             | Call `OpenOrFocusMainWindow` with `route` when present, otherwise focus the app.   |
+| `NEW_WINDOW`             | Call `OpenOrFocusMainWindow` with the requested `route`, or `/` when empty.        |
+| `COPY_TEXT`              | Copy `value` to the native clipboard.                                              |
+| `REVEAL_PATH`            | Reveal `value` with the platform file manager.                                     |
+| `QUIT`                   | Call `QuitDesktopRuntime`.                                                         |
 | `ATTACHED_HANDLER`       | Call `InvokeDesktopTrayEntry` with the entry `id`; the publisher owns the handler. |
 
 Ordering is the watched tree order. The tray service sorts registered entries by path, group, and order before publishing `DesktopTrayState`. Popovers render entries in the published order, preserve `path` as submenu or grouped hierarchy, and do not re-rank rows from `severity` or `active`; attention projection happens before publication.
@@ -175,11 +175,11 @@ GOFLAGS=-mod=mod go test -count=1 ./bldr/desktop/tray
 
 The important fixtures are:
 
-| Test                                                                 | What it proves                                                                 |
-| -------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `TestDesktopTrayRegistryWatchStreamsSnapshots`                       | `WatchDesktopTray` emits the current ordered `DesktopTrayState`.               |
-| `TestDesktopTrayRegistryOrdersEntriesAndUpdatesState`                | registered entries sort by order/group and entry resources update active state. |
-| `TestReconcileDesktopTrayMirrorsEntriesToTargetResource`             | source entries mirror into the Electron-owned target tray resource.             |
+| Test                                                                  | What it proves                                                                   |
+| --------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `TestDesktopTrayRegistryWatchStreamsSnapshots`                        | `WatchDesktopTray` emits the current ordered `DesktopTrayState`.                 |
+| `TestDesktopTrayRegistryOrdersEntriesAndUpdatesState`                 | registered entries sort by order/group and entry resources update active state.  |
+| `TestReconcileDesktopTrayMirrorsEntriesToTargetResource`              | source entries mirror into the Electron-owned target tray resource.              |
 | `TestReconcileDesktopTrayMirrorsExistingEntriesAcrossTargetReconnect` | reconnecting a target receives existing source entries and old target rows drop. |
 
 Inspect Electron main actuator state with:
