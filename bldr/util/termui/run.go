@@ -6,6 +6,7 @@ import (
 	"context"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/pkg/errors"
 	"golang.org/x/term"
@@ -60,10 +61,16 @@ func Write(output io.Writer, text string) error {
 	if _, err := io.WriteString(output, "\x1b[H\x1b[2J"); err != nil {
 		return errors.Wrap(err, "clear terminal screen")
 	}
+	text = normalizeNewlines(text)
 	if _, err := io.WriteString(output, text); err != nil {
 		return errors.Wrap(err, "write terminal screen")
 	}
 	return nil
+}
+
+func normalizeNewlines(text string) string {
+	text = strings.ReplaceAll(text, "\r\n", "\n")
+	return strings.ReplaceAll(text, "\n", "\r\n")
 }
 
 func prepareInput(input *os.File, quitCh chan<- struct{}) (func(), error) {
