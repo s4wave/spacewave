@@ -94,7 +94,7 @@ describe('AuthMethodsSection', () => {
   it('renders loading message when loading', () => {
     mockBothCalls(authMethodsResult(null, true))
     render(<AuthMethodsSection account={makeAccountResource({} as Account)} />)
-    expect(screen.getByText('Loading auth methods...')).toBeDefined()
+    expect(screen.getByText('Loading auth methods…')).toBeDefined()
   })
 
   it('renders empty state when not loading and no keypairs', () => {

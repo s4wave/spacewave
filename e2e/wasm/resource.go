@@ -32,6 +32,8 @@ func (h *Harness) connectSessionResources(ctx context.Context, s *TestSession) e
 	attemptTimeout := 15 * time.Second
 	maxBackoff := 5 * time.Second
 	maxStartupRetry := 75 * time.Second
+	maxStartupReloads := 2
+	startupReloads := 0
 
 	for {
 		le.Info("waiting for new browser peer")
@@ -71,7 +73,14 @@ func (h *Harness) connectSessionResources(ctx context.Context, s *TestSession) e
 					entry.Info("resource connection hit startup race, retrying same peer")
 				} else {
 					h.releaseBrowserPeerLease(s, browserPeer)
-					entry.Info("resource connection startup window expired, waiting for another peer")
+					if startupReloads >= maxStartupReloads {
+						return errors.Wrap(lastErr, "connect resources after browser reloads")
+					}
+					startupReloads++
+					entry.WithField("reload", startupReloads).Info("resource connection startup window expired, reloading session page")
+					if err := h.loadAppPageURL(s, h.baseURL+"/#/"); err != nil {
+						return errors.Wrap(err, "reload app after resource startup timeout")
+					}
 					break
 				}
 			} else if shouldAbandonBrowserPeer(err) {

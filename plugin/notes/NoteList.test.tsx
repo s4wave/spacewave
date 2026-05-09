@@ -157,7 +157,7 @@ describe('NoteList', () => {
     })
 
     renderList()
-    expect(screen.getByText('Loading...')).toBeDefined()
+    expect(screen.getByText('Loading…')).toBeDefined()
   })
 
   it('shows error message when entries have an error', () => {

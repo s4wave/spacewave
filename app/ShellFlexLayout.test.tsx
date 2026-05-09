@@ -93,8 +93,7 @@ describe('TopBar Reference Styling', () => {
     // Visible on hover (via group-hover)
     expect(closeButton.className).toContain('group-hover:opacity-100')
     // Size
-    expect(closeButton.className).toContain('h-3.5')
-    expect(closeButton.className).toContain('w-3.5')
+    expect(closeButton.className).toContain('size-3.5')
     // Margin
     expect(closeButton.className).toContain('mr-1')
     // Flex centering

@@ -114,11 +114,7 @@ function makeProviderRef() {
 }
 
 function submitForm() {
-  const form = screen.getByPlaceholderText('your-name').closest('form')
-  if (!form) {
-    throw new Error('expected SSO confirm form')
-  }
-  fireEvent.submit(form)
+  fireEvent.click(screen.getByRole('button', { name: 'Create account' }))
 }
 
 async function confirmModal() {

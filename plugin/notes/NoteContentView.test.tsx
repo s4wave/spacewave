@@ -101,7 +101,7 @@ describe('NoteContentView', () => {
         onToggleEdit={vi.fn()}
       />,
     )
-    expect(screen.getByText('Loading...')).toBeDefined()
+    expect(screen.getByText('Loading…')).toBeDefined()
   })
 
   it('shows error state when text content fails to load', () => {

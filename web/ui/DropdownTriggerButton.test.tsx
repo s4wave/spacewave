@@ -14,7 +14,7 @@ describe('DropdownTriggerButton', () => {
         Assign to…
       </DropdownTriggerButton>,
     )
-    expect(screen.getByText('Assign to...')).toBeDefined()
+    expect(screen.getByText('Assign to…')).toBeDefined()
     expect(screen.getByTestId('lead')).toBeDefined()
   })
 

@@ -65,7 +65,7 @@ describe('SecurityLevelSection', () => {
     render(
       <SecurityLevelSection account={makeAccountResource({} as Account)} />,
     )
-    expect(screen.getByText('Loading security info...')).toBeDefined()
+    expect(screen.getByText('Loading security info…')).toBeDefined()
   })
 
   it('renders nothing when only one keypair exists', () => {

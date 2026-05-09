@@ -104,7 +104,7 @@ describe('OrganizationsSection', () => {
     expect(input).toHaveProperty('disabled', true)
     expect(createButton).toHaveProperty('disabled', true)
     expect(cancelButton).toHaveProperty('disabled', true)
-    expect(screen.getByText('Creating organization...')).toBeDefined()
+    expect(screen.getByText('Creating organization…')).toBeDefined()
 
     resolveCreate?.()
 

@@ -132,7 +132,9 @@ describe('DeleteSpaceEscapeHatchDialog', () => {
   it('gates deletion behind selection, acknowledgment, and typed confirmation', () => {
     renderDialog()
 
-    const continueButtons = screen.getAllByRole('button', { name: 'Continue' })
+    const continueButtons = screen.getAllByRole('button', {
+      name: 'Review space deletion',
+    })
     expect(continueButtons[0]?.hasAttribute('disabled')).toBe(true)
 
     fireEvent.click(screen.getByRole('radio', { name: /Broken Space/i }))
@@ -140,7 +142,9 @@ describe('DeleteSpaceEscapeHatchDialog', () => {
 
     fireEvent.click(continueButtons[0])
 
-    const warningContinue = screen.getByRole('button', { name: 'Continue' })
+    const warningContinue = screen.getByRole('button', {
+      name: 'Confirm space deletion',
+    })
     expect(warningContinue.hasAttribute('disabled')).toBe(true)
 
     fireEvent.click(screen.getByLabelText('Confirm delete is permanent'))
@@ -163,9 +167,13 @@ describe('DeleteSpaceEscapeHatchDialog', () => {
     renderDialog()
 
     fireEvent.click(screen.getByRole('radio', { name: /Broken Space/i }))
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Review space deletion' }),
+    )
     fireEvent.click(screen.getByLabelText('Confirm delete is permanent'))
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Confirm space deletion' }),
+    )
     fireEvent.change(screen.getByLabelText('Confirm space name or id'), {
       target: { value: 'Broken Space' },
     })
@@ -186,9 +194,13 @@ describe('DeleteSpaceEscapeHatchDialog', () => {
     const view = renderDialog()
 
     fireEvent.click(screen.getByRole('radio', { name: /Broken Space/i }))
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Review space deletion' }),
+    )
     fireEvent.click(screen.getByLabelText('Confirm delete is permanent'))
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Confirm space deletion' }),
+    )
     fireEvent.change(screen.getByLabelText('Confirm space name or id'), {
       target: { value: 'Broken Space' },
     })
@@ -214,9 +226,13 @@ describe('DeleteSpaceEscapeHatchDialog', () => {
     renderDialog()
 
     fireEvent.click(screen.getByRole('radio', { name: /Broken Space/i }))
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Review space deletion' }),
+    )
     fireEvent.click(screen.getByLabelText('Confirm delete is permanent'))
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Confirm space deletion' }),
+    )
     fireEvent.change(screen.getByLabelText('Confirm space name or id'), {
       target: { value: 'Broken Space' },
     })
