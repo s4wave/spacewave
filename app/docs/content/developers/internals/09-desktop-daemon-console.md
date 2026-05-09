@@ -2,29 +2,39 @@
 title: Desktop Daemon Console
 section: internals
 order: 9
-summary: Electron main tray state, background runtime behavior, and desktop status debugging.
+summary: DesktopTrayEntry publication, background runtime behavior, and desktop status debugging.
 ---
 
 ## Overview
 
 Spacewave desktop keeps a native status surface alive for the process lifetime. On macOS this is the menu bar extra. On Windows it is the notification-area icon. On Linux it is the desktop environment's tray/status item when the environment exposes one.
 
-The tray is a daemon console, not a second app shell. It shows bounded runtime state, opens or focuses the singleton Spacewave window, exposes safe diagnostics, and provides explicit quit. Closing every Electron window does not stop the background runtime when the project uses tray-backed desktop presence.
+The tray is a daemon console, not a second app shell. It renders the published `DesktopTrayEntry` tree, opens or focuses the singleton Spacewave window, exposes safe diagnostics, and provides explicit quit. Closing every Electron window does not stop the background runtime when the project uses tray-backed desktop presence.
 
-## State Tree
+## Resource Trees
 
 Electron main owns the generic desktop runtime Resource SDK tree in `bldr/web/electron/main/desktop-runtime.ts`. The root service is `DesktopRuntimeResourceService`:
 
 | RPC                     | Purpose                                                                                         |
 | ----------------------- | ----------------------------------------------------------------------------------------------- |
-| `WatchDesktopState`     | Streams the latest `DesktopRuntimeState` to native tray renderers and process-lifetime clients. |
+| `WatchDesktopState`     | Streams the latest `DesktopRuntimeState` to popover/debug clients.                              |
 | `SetDesktopState`       | Publishes projected status from the runtime side into Electron main.                            |
 | `OpenOrFocusMainWindow` | Opens or focuses the singleton app window, optionally at a route.                               |
 | `QuitDesktopRuntime`    | Marks the runtime as quitting and requests an explicit shutdown.                                |
 
-Electron main also exposes a resource-backed `DesktopTrayResourceService`. Runtime publishers register `DesktopTrayEntry` rows there, and native tray renderers subscribe to `WatchDesktopTray` for the ordered menu tree.
+Electron main also exposes a resource-backed `DesktopTrayResourceService`. Runtime publishers register `DesktopTrayEntry` rows there, and native tray renderers subscribe to `WatchDesktopTray` for the ordered menu tree. This `DesktopTrayEntry` publication is the active native tray model.
 
-`DesktopRuntimeState` contains the tray-visible contract:
+`DesktopTrayState` contains the native tray contract:
+
+| Field        | Owner                 | Meaning                                                                       |
+| ------------ | --------------------- | ----------------------------------------------------------------------------- |
+| `entries`    | Runtime publishers    | Ordered `DesktopTrayEntry` rows rendered into the native menu tree.           |
+| `iconState`  | `DesktopTray` service | Collapsed tray icon state derived from active published rows.                 |
+| `statusText` | `DesktopTray` service | Collapsed tray status text derived from the published title/status row.       |
+
+Each `DesktopTrayEntry` carries stable row identity, ordering, section/path placement, display label, active/enabled state, severity/icon hints, and optional action transport. Route, new-window, copy, reveal, quit, and attached-handler actions are represented on the entry itself, so native menu dispatch does not depend on `DesktopRuntimeState`.
+
+`DesktopRuntimeState` is the Spacewave status projection input and popover/debug presentation state:
 
 | Field                               | Owner         | Meaning                                                                                    |
 | ----------------------------------- | ------------- | ------------------------------------------------------------------------------------------ |
@@ -50,9 +60,11 @@ available in Electron main.
 
 ## Projection Flow
 
-Spacewave-specific interpretation lives in `core/resource/desktop/statusprojector`. The projector connects to the Electron-main Resource SDK tree through `ConnectDesktopRuntimeResourceClient`, accesses the root resource, and publishes `DesktopRuntimeState` with `SetDesktopState`.
+Spacewave-specific interpretation lives in `core/resource/desktop/statusprojector`. The projector builds `DesktopRuntimeState` from listener, session, Space, sync, and update owners, publishes that state with `SetDesktopState`, then projects the same state into `DesktopTrayEntry` rows with `BuildDesktopTrayEntriesFromRuntimeState`.
 
-The projector is process-lifetime code. It watches the listener status broker, session controller state, Space self-enrollment state, sync status, and launcher update state. It does not query Electron windows and it does not depend on an open renderer. On teardown it publishes a deterministic disconnected state unless Electron main has already moved into explicit quit.
+The tray publisher accesses the host `DesktopTrayResourceService` through `AccessDesktopTray`, registers rows with `RegisterDesktopTrayEntry`, updates existing row resources with `SetDesktopTrayEntry`, and releases rows that are no longer present. Attached actions, such as `Install Update`, are caller-owned resources connected through the entry action transport.
+
+The projector is process-lifetime code. It watches the listener status broker, session controller state, Space self-enrollment state, sync status, and launcher update state. It does not query Electron windows and it does not depend on an open renderer. When the publisher stops, it releases its registered tray entry resources from the host tray tree.
 
 ## Native Menu
 
@@ -71,7 +83,7 @@ Quick actions are intentionally conservative. Copy actions use the native clipbo
 
 ## Popover Readiness
 
-The native menu entry tree is the contract for tray commands. A richer popover may consume `DesktopRuntimeState` for presentation, but it must preserve the native menu as fallback and route commands through the desktop runtime or `DesktopTrayEntry` action transport instead of inventing a second status or command model.
+The native menu entry tree is the contract for tray commands. A richer popover may consume `DesktopRuntimeState` for presentation, but it must preserve the native menu as fallback and route commands through `DesktopTrayEntry` action transport or explicit desktop runtime actuators instead of inventing a second status or command model.
 
 The current custom popover is a desktop-only development prototype. Enable it with:
 
@@ -151,7 +163,7 @@ Inspect Electron main actuator state with:
 bunx vitest run --config bldr/vitest.config.ts bldr/web/electron/main/desktop-runtime.test.ts
 ```
 
-`DesktopRuntimeResource.WatchDesktopState` is the stream to watch for `mainWindowOpen`, `quitting`, `statusText`, `health`, `lifecycle`, `listener`, `sessions`, `spaces`, `activity`, `update`, `attentionItems`, and `actions`. `SetDesktopState` only accepts projected runtime fields; Electron main preserves `mainWindowOpen` and `quitting`. `OpenOrFocusMainWindow` and `QuitDesktopRuntime` are the actuator calls to verify when tray rows are clicked.
+`DesktopRuntimeResource.WatchDesktopState` is the popover/debug stream to watch for `mainWindowOpen`, `quitting`, `statusText`, `health`, `lifecycle`, `listener`, `sessions`, `spaces`, `activity`, `update`, `attentionItems`, and `actions`. `SetDesktopState` only accepts projected runtime fields; Electron main preserves `mainWindowOpen` and `quitting`. `OpenOrFocusMainWindow` and `QuitDesktopRuntime` are the explicit desktop runtime actuators to verify for route/open and quit rows.
 
 Inspect listener, session, and Space projection with:
 
@@ -159,7 +171,7 @@ Inspect listener, session, and Space projection with:
 GOFLAGS=-mod=mod go test -count=1 ./core/resource/desktop/statusprojector
 ```
 
-`state_test.go` covers listener reachability states, session rows, Space rows, attention rows, update actions, and bounded lists. `tray-publisher_test.go` covers publishing projected tray entries into the host tray resource and releasing removed actions.
+`state_test.go` covers listener reachability states, session rows, Space rows, attention rows, update actions, bounded lists, and the `DesktopRuntimeState` to `DesktopTrayEntry` projection. `tray-publisher_test.go` covers publishing projected tray entries into the host tray resource and releasing removed actions.
 
 Inspect the native Electron menu rendering with:
 
