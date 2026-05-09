@@ -40,6 +40,7 @@ import type { QuickstartSpaceCreateId } from './options.js'
 import {
   approveSpacePlugins,
   createLocalSession,
+  createQuickstartSetup,
   createDrive,
   createSpaceSettingsObject,
   executeDynamicQuickstart,
@@ -62,6 +63,10 @@ const localProviderMocks = vi.hoisted(() => ({
   createAccount: vi.fn(),
 }))
 
+const spaceMocks = vi.hoisted(() => ({
+  mountSpace: vi.fn(),
+}))
+
 vi.mock('../../plugin/notes/blog-seed.js', () => ({
   createBlogClientSide: seedMocks.createBlogClientSide,
 }))
@@ -81,6 +86,10 @@ vi.mock('@s4wave/sdk/provider/local/local.js', () => ({
   LocalProvider: vi.fn(function () {
     return localProviderMocks
   }),
+}))
+
+vi.mock('@s4wave/app/space/space.js', () => ({
+  mountSpace: spaceMocks.mountSpace,
 }))
 
 type ApplyWorldOp = (
@@ -134,6 +143,7 @@ describe('quickstart create', () => {
   beforeEach(() => {
     vi.unstubAllGlobals()
     localProviderMocks.createAccount.mockReset()
+    spaceMocks.mountSpace.mockReset()
   })
 
   it('skips existing session lookup when local storage has no session hint', async () => {
@@ -301,6 +311,69 @@ describe('quickstart create', () => {
     for (const [quickstartId, name] of cases) {
       expect(getQuickstartSpaceName(quickstartId)).toBe(name)
     }
+  })
+
+  it('publishes quickstart progress-ready before Drive content seeding finishes', async () => {
+    vi.stubGlobal('__s4waveQuickstartTiming', undefined)
+    vi.stubGlobal('__s4wave_debug', {})
+    const abortSignal = new AbortController().signal
+    const cleanup: RegisterCleanup = (value) => value
+    localProviderMocks.createAccount.mockResolvedValue({
+      sessionListEntry: {
+        sessionIndex: 3,
+        sessionRef: { providerResourceRef: { providerId: 'local' } },
+      },
+    })
+    const root = {
+      listSessions: vi.fn().mockResolvedValue({ sessions: [] }),
+      lookupProvider: vi.fn().mockResolvedValue({
+        resourceRef: { providerId: 'local' },
+        release: vi.fn(),
+        [Symbol.dispose]: vi.fn(),
+      }),
+      mountSession: vi.fn().mockResolvedValue({
+        createSpace: vi.fn().mockResolvedValue({
+          sharedObjectRef: { providerResourceRef: { id: 'space-1' } },
+        }),
+        release: vi.fn(),
+        [Symbol.dispose]: vi.fn(),
+      }),
+    }
+    const { world, applyWorldOp } = buildQuickstartWorld()
+    const spaceWorldState = {
+      release: vi.fn(),
+      [Symbol.dispose]: vi.fn(),
+    }
+    const spaceContents = {
+      release: vi.fn(),
+      [Symbol.dispose]: vi.fn(),
+    }
+    Object.assign(world, {
+      accessWorldState: vi.fn().mockResolvedValue(spaceWorldState),
+    })
+    spaceMocks.mountSpace.mockResolvedValue({
+      accessWorldState: vi.fn().mockResolvedValue(world),
+      mountSpaceContents: vi.fn().mockResolvedValue(spaceContents),
+    })
+
+    await createQuickstartSetup(root as never, 'drive', abortSignal, cleanup)
+
+    const timing = globalThis.__s4waveQuickstartTiming
+    expect(timing?.progressReadyMs).toEqual(expect.any(Number))
+    expect(timing?.finishedMs).toEqual(expect.any(Number))
+    expect(timing?.finishedMs ?? 0).toBeGreaterThanOrEqual(
+      timing?.progressReadyMs ?? 0,
+    )
+    const populatePhase = timing?.phases.find(
+      (phase) => phase.name === 'populate-space',
+    )
+    expect(populatePhase?.startedMs ?? 0).toBeGreaterThanOrEqual(
+      timing?.progressReadyMs ?? 0,
+    )
+    expect(applyWorldOp.mock.calls[0]?.[0]).toBe(INIT_UNIXFS_OP_ID)
+    expect(globalThis.__s4wave_debug?.quickstartTiming?.progressReadyMs).toBe(
+      timing?.progressReadyMs,
+    )
   })
 
   it('creates Drive storage before pointing the index at the Drive object', async () => {

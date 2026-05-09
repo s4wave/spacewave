@@ -79,6 +79,7 @@ export interface QuickstartPhaseTiming {
 export interface QuickstartSetupTiming {
   quickstartId: QuickstartSpaceCreateId
   startedMs: number
+  progressReadyMs?: number
   finishedMs?: number
   elapsedMs?: number
   error?: string
@@ -135,6 +136,15 @@ function finishQuickstartTiming(
   publishQuickstartTiming(timing)
   if (globalThis.__s4waveLogQuickstartTiming) {
     console.log('quickstart timing: ' + JSON.stringify(timing))
+  }
+}
+
+function markQuickstartProgressReady(timing: QuickstartSetupTiming): void {
+  if (typeof timing.progressReadyMs === 'number') return
+  timing.progressReadyMs = nowMs()
+  publishQuickstartTiming(timing)
+  if (globalThis.__s4waveLogQuickstartTiming) {
+    console.log('quickstart progress ready: ' + JSON.stringify(timing))
   }
 }
 
@@ -478,6 +488,8 @@ export async function createQuickstartSetup(
       spaceResp,
       ...setup,
     }
+
+    markQuickstartProgressReady(timing)
 
     // Populate the space with quickstart-specific content.
     await timeQuickstartPhase(timing, 'populate-space', () =>

@@ -554,6 +554,12 @@ func collectQuickstartSmokeArtifact(
 				pluginRunning,
 			),
 			makeReadinessMark(
+				'progress-ready',
+				quickstartTiming?.progressReadyMs,
+				['quickstart.progressReadyMs'],
+				null,
+			),
+			makeReadinessMark(
 				'frame-ready',
 				args.driveShellVisibleMs,
 				['driveShellVisibleMs', "[data-testid='unixfs-browser']"],
@@ -606,11 +612,18 @@ func collectQuickstartSmokeArtifact(
 				[lastPluginReady?.label ?? 'worker.ready', 'quickstart.startedMs'],
 			),
 			makeSegment(
-				'quickstart-setup',
+				'quickstart-progress-setup',
 				quickstartTiming?.startedMs,
+				quickstartTiming?.progressReadyMs,
+				'createQuickstartSetup RPC flow through session, space, world, and Drive frame prerequisites',
+				['quickstart.startedMs', 'quickstart.progressReadyMs'],
+			),
+			makeSegment(
+				'quickstart-content-seed',
+				quickstartTiming?.progressReadyMs,
 				quickstartTiming?.finishedMs,
-				'createQuickstartSetup RPC flow and seed content population',
-				['quickstart.startedMs', 'quickstart.finishedMs'],
+				'Quickstart-specific seed content population before final navigation',
+				['quickstart.progressReadyMs', 'quickstart.finishedMs'],
 			),
 			makeSegment(
 				'quickstart-finished-to-drive-shell',
@@ -637,7 +650,7 @@ func collectQuickstartSmokeArtifact(
 				)
 			: null
 		const artifact = {
-			schemaVersion: 2,
+			schemaVersion: 3,
 			scenario: 'quickstart-drive-production-smoke',
 			collectedAt: new Date().toISOString(),
 			baseURL: args.baseURL,
@@ -691,6 +704,7 @@ func collectQuickstartSmokeArtifact(
 			},
 			readiness: {
 				frameReadyMs: args.driveShellVisibleMs,
+				progressReadyMs: quickstartTiming?.progressReadyMs ?? null,
 				contentReadyMs: args.driveReadyMs,
 				workerReadyMs: firstWorkerReady?.startTimeMs ?? null,
 				pluginRunningMs: pluginRunning?.startTimeMs ?? null,
