@@ -18,7 +18,7 @@
 
 #ifdef _WIN32
 using NativeHandle = HANDLE;
-constexpr NativeHandle kInvalidHandle = INVALID_HANDLE_VALUE;
+const NativeHandle kInvalidHandle = INVALID_HANDLE_VALUE;
 #else
 using NativeHandle = int;
 constexpr NativeHandle kInvalidHandle = -1;
