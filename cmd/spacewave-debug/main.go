@@ -24,6 +24,7 @@ func main() {
 	app.Usage = "debug bridge for interacting with a running Spacewave Alpha page"
 	app.Commands = append(
 		args.BuildCommands(),
+		args.BuildForgeCommand(),
 		args.BuildSpaceCommand(),
 		buildLinebreaksCommand(),
 		buildOrphansCommand(),
