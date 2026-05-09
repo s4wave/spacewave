@@ -9,5 +9,10 @@ import (
 )
 
 // refreshReleaseMetadataStatus skips native release staging in browser builds.
-func (c *Controller) refreshReleaseMetadataStatus(ctx context.Context, distConf *spacewave_launcher.DistConfig) {
+func (c *Controller) refreshReleaseMetadataStatus(ctx context.Context, distConf *spacewave_launcher.DistConfig) error {
+	return nil
+}
+
+func (c *Controller) refreshCurrentReleaseMetadataStatus(ctx context.Context) error {
+	return nil
 }

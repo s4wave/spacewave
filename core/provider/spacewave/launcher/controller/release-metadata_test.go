@@ -7,12 +7,15 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus/inmem"
 	controller_info "github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	cdc "github.com/aperturerobotics/controllerbus/directive/controller"
+	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/aperturerobotics/util/routine"
 	"github.com/blang/semver/v4"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
@@ -151,6 +154,74 @@ func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
 	}
 }
 
+func TestReleaseMetadataRoutineRetriesUntilReleaseWorldMounted(t *testing.T) {
+	ctx := t.Context()
+	le := logrus.NewEntry(logrus.New())
+	ws := buildReleaseMetadataTestWorld(t, ctx, "stable", nativeTestPlatformID())
+	src := t.TempDir()
+	if err := os.WriteFile(filepath.Join(src, "spacewave"), []byte("binary"), 0o755); err != nil {
+		t.Fatal(err.Error())
+	}
+	manifestRef := writeReleaseManifestTestBlock(t, ctx, ws, "release/manifests/native", src)
+	metadata := testReleaseMetadata("stable", nativeTestPlatformID(), manifestRef.GetManifestRef().GetRootRef())
+	metadata.ManifestRefs = []*bldr_manifest.ManifestRef{manifestRef}
+	metadataRef := writeReleaseMetadataTestBlock(t, ctx, ws, releaseMetadataObjectKey("stable"), metadata)
+	writeReleaseMetadataTestBlock(t, ctx, ws, releaseMetadataDirectoryObjectKey, &spacewave_release.ChannelDirectory{
+		Channels: []*spacewave_release.ChannelEntry{{
+			ChannelKey:         "stable",
+			ReleaseMetadataRef: metadataRef,
+		}},
+	})
+
+	dc := cdc.NewController(ctx, le)
+	b := inmem.NewBus(dc)
+	stagingDir := t.TempDir()
+	ctrl := newReleaseMetadataRoutineTestController(le, b, stagingDir)
+	ctrl.releaseMetadataRoutine.SetContext(ctx, true)
+	defer ctrl.releaseMetadataRoutine.ClearContext()
+
+	waitForUpdatePhase(t, ctrl, spacewave_launcher.UpdatePhase_UpdatePhase_ERROR)
+	rel, err := b.AddController(ctx, &releaseWorldLookupTestController{ws: ws}, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer rel()
+
+	state := waitForUpdatePhase(t, ctrl, spacewave_launcher.UpdatePhase_UpdatePhase_STAGED)
+	if state.GetStagedPath() != filepath.Join(stagingDir, "0.1.0", "dist", "spacewave") {
+		t.Fatalf("staged path = %q", state.GetStagedPath())
+	}
+}
+
+func TestRefreshReleaseMetadataStatusClearsPluginOnlyUpdateState(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+	ws := buildReleaseMetadataTestWorld(t, ctx, "stable", "js")
+
+	dc := cdc.NewController(ctx, le)
+	b := inmem.NewBus(dc)
+	rel, err := b.AddController(ctx, &releaseWorldLookupTestController{ws: ws}, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer rel()
+
+	ctrl := newReleaseMetadataRoutineTestController(le, b, t.TempDir())
+	ctrl.launcherInfoCtr.SetValue(&spacewave_launcher.LauncherInfo{
+		DistConfig: ctrl.launcherInfoCtr.GetValue().GetDistConfig(),
+		UpdateState: &spacewave_launcher.UpdateState{
+			Phase:        spacewave_launcher.UpdatePhase_UpdatePhase_ERROR,
+			ErrorMessage: "previous",
+		},
+	})
+	if err := ctrl.refreshCurrentReleaseMetadataStatus(ctx); err != nil {
+		t.Fatalf("refreshCurrentReleaseMetadataStatus() error = %v", err)
+	}
+	if state := ctrl.launcherInfoCtr.GetValue().GetUpdateState(); state != nil {
+		t.Fatalf("update state = %+v, want nil for plugin-only release", state)
+	}
+}
+
 func buildReleaseMetadataTestWorld(
 	t *testing.T,
 	ctx context.Context,
@@ -184,6 +255,58 @@ func buildReleaseMetadataTestWorld(
 	}
 	writeReleaseMetadataTestBlock(t, ctx, ws, releaseMetadataDirectoryObjectKey, directory)
 	return ws
+}
+
+func newReleaseMetadataRoutineTestController(
+	le *logrus.Entry,
+	b *inmem.Bus,
+	stagingDir string,
+) *Controller {
+	ctrl := &Controller{
+		le:  le,
+		bus: b,
+		launcherInfoCtr: ccontainer.NewCContainer[*spacewave_launcher.LauncherInfo](
+			&spacewave_launcher.LauncherInfo{
+				DistConfig: &spacewave_launcher.DistConfig{
+					ProjectId:  "spacewave",
+					Rev:        1,
+					ChannelKey: "stable",
+				},
+			},
+		),
+		stagingDirFunc: func() (string, error) { return stagingDir, nil },
+	}
+	ctrl.releaseMetadataRoutine = routine.NewRoutineContainer(
+		routine.WithRetry(&backoff.Backoff{
+			BackoffKind: backoff.BackoffKind_BackoffKind_EXPONENTIAL,
+			Exponential: &backoff.Exponential{
+				InitialInterval: 5,
+				MaxInterval:     10,
+			},
+		}),
+	)
+	ctrl.releaseMetadataRoutine.SetRoutine(ctrl.refreshCurrentReleaseMetadataStatus)
+	return ctrl
+}
+
+func waitForUpdatePhase(
+	t *testing.T,
+	ctrl *Controller,
+	phase spacewave_launcher.UpdatePhase,
+) *spacewave_launcher.UpdateState {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	for {
+		info := ctrl.launcherInfoCtr.GetValue()
+		state := info.GetUpdateState()
+		if state.GetPhase() == phase {
+			return state
+		}
+		if _, err := ctrl.launcherInfoCtr.WaitValueChange(ctx, info, nil); err != nil {
+			t.Fatalf("wait for update phase %v: %v, last state=%+v", phase, err, state)
+		}
+	}
 }
 
 type releaseWorldLookupTestController struct {

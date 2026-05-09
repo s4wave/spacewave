@@ -25,29 +25,40 @@ const (
 	releaseMetadataDirectoryObjectKey = "release/metadata"
 )
 
+func (c *Controller) refreshCurrentReleaseMetadataStatus(ctx context.Context) error {
+	info, err := c.launcherInfoCtr.WaitValue(ctx, nil)
+	if err != nil {
+		return err
+	}
+	return c.refreshReleaseMetadataStatus(ctx, info.GetDistConfig())
+}
+
 // refreshReleaseMetadataStatus resolves release metadata for the current DistConfig.
-func (c *Controller) refreshReleaseMetadataStatus(ctx context.Context, distConf *spacewave_launcher.DistConfig) {
+func (c *Controller) refreshReleaseMetadataStatus(ctx context.Context, distConf *spacewave_launcher.DistConfig) error {
 	if distConf.GetRev() == 0 {
-		return
+		c.clearUpdateState()
+		return nil
 	}
 	metadata, err := c.resolveReleaseMetadata(ctx, distConf.ResolvedChannelKey())
 	if err != nil {
 		c.setUpdateError(err)
-		return
+		return err
 	}
 	platformID, err := nativeDesktopPlatformID()
 	if err != nil {
 		c.setUpdateError(err)
-		return
+		return err
 	}
-	if !releaseMetadataSupportsPlatform(metadata, platformID) {
-		c.setUpdateError(errors.New("release metadata does not support platform " + platformID))
-		return
+	manifestRef := selectReleaseManifestRef(metadata, platformID)
+	if manifestRef == nil {
+		c.clearUpdateState()
+		return nil
 	}
-	if err := c.stageReleaseManifestUpdate(ctx, metadata, platformID); err != nil {
+	if err := c.stageReleaseManifestUpdate(ctx, metadata, platformID, manifestRef); err != nil {
 		c.setUpdateError(err)
-		return
+		return err
 	}
+	return nil
 }
 
 func (c *Controller) resolveReleaseMetadata(
@@ -57,6 +68,9 @@ func (c *Controller) resolveReleaseMetadata(
 	eng, _, ref, err := world.ExLookupWorldEngine(ctx, c.bus, true, releaseWorldEngineID, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "lookup release world")
+	}
+	if eng == nil || ref == nil {
+		return nil, errors.New("release world not mounted")
 	}
 	defer ref.Release()
 	var metadata *spacewave_release.ReleaseMetadata
@@ -88,12 +102,22 @@ func (c *Controller) clearMatchingUpdateError() {
 	})
 }
 
+func (c *Controller) clearUpdateState() {
+	_, _, _ = c.modifyLauncherInfo(func(info *spacewave_launcher.LauncherInfo) (bool, error) {
+		if info.UpdateState == nil {
+			return false, nil
+		}
+		info.UpdateState = nil
+		return true, nil
+	})
+}
+
 func (c *Controller) stageReleaseManifestUpdate(
 	ctx context.Context,
 	metadata *spacewave_release.ReleaseMetadata,
 	platformID string,
+	manifestRef *bldr_manifest.ManifestRef,
 ) error {
-	manifestRef := selectReleaseManifestRef(metadata, platformID)
 	if manifestRef == nil {
 		return errors.New("release metadata does not support platform " + platformID)
 	}
