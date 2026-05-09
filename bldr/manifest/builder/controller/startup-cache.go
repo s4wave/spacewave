@@ -156,7 +156,7 @@ func (c *Controller) validateStartupManifestAvailability(
 	}
 
 	entrypoint := startupBuilderResult.GetManifest().GetEntrypoint()
-	err := bldr_manifest_world.AccessManifest(
+	err := bldr_manifest_world.AccessStartupManifest(
 		ctx,
 		le,
 		ws.AccessWorldState,

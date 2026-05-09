@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -13,12 +14,17 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/blang/semver/v4"
 	"github.com/go-git/go-billy/v6/memfs"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
 	"github.com/s4wave/spacewave/bldr/testbed"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	lookup_concurrent "github.com/s4wave/spacewave/db/bucket/lookup/concurrent"
+	"github.com/s4wave/spacewave/db/dex"
 	"github.com/sirupsen/logrus"
 )
 
@@ -113,6 +119,45 @@ func (c *testStartupCacheBuilder) SupportsStartupManifestCache() bool {
 
 func (c *testStartupCacheBuilder) GetSupportedPlatforms() []string {
 	return nil
+}
+
+type startupCacheBlockingLookupController struct{}
+
+func (startupCacheBlockingLookupController) Execute(ctx context.Context) error {
+	<-ctx.Done()
+	return context.Canceled
+}
+
+func (startupCacheBlockingLookupController) GetControllerInfo() *controller.Info {
+	return controller.NewInfo(
+		"test/startup-cache-blocking-lookup",
+		semver.MustParse("0.0.1"),
+		"",
+	)
+}
+
+func (startupCacheBlockingLookupController) HandleDirective(
+	_ context.Context,
+	di directive.Instance,
+) ([]directive.Resolver, error) {
+	if _, ok := di.GetDirective().(dex.LookupBlockFromNetwork); !ok {
+		return nil, nil
+	}
+	return directive.R(startupCacheBlockingLookupResolver{}, nil)
+}
+
+func (startupCacheBlockingLookupController) Close() error {
+	return nil
+}
+
+type startupCacheBlockingLookupResolver struct{}
+
+func (startupCacheBlockingLookupResolver) Resolve(
+	ctx context.Context,
+	_ directive.ResolverHandler,
+) error {
+	<-ctx.Done()
+	return context.Canceled
 }
 
 func TestValidateStartupFilesHashFallback(t *testing.T) {
@@ -464,6 +509,92 @@ func TestControllerStartupManifestBucketMismatchRebuilds(t *testing.T) {
 	}
 	if result.GetManifestRef().GetManifestRef().GetBucketId() != "built-bucket" {
 		t.Fatal("expected rebuilt result")
+	}
+}
+
+func TestValidateStartupManifestAvailabilitySkipsUnavailableLookupBucketBlock(t *testing.T) {
+	tmpDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	rootLogger := logrus.New()
+	rootLogger.SetLevel(logrus.DebugLevel)
+	tb, err := testbed.BuildTestbed(ctx, logrus.NewEntry(rootLogger))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+
+	ctrlRel, err := tb.GetBus().AddController(ctx, startupCacheBlockingLookupController{}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ctrlRel()
+
+	builderControllerConfig := newTestBuilderControllerProto(t)
+	startupBuilderResult := buildStoredStartupBuilderResult(t, tb, tmpDir, builderControllerConfig)
+	cachedBucketID := startupBuilderResult.GetManifestRef().GetManifestRef().GetBucketId()
+	bucketLkConfig, err := bucket.NewLookupConfig(configset.NewControllerConfig(1, &lookup_concurrent.Config{
+		NotFoundBehavior: lookup_concurrent.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE_WAIT,
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	bucketConf, err := bucket.NewConfig(cachedBucketID, 2, nil, bucketLkConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _, _, err = tb.GetVolume().ApplyBucketConfig(ctx, bucketConf)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	waitCtx, waitCancel := context.WithTimeout(ctx, time.Second)
+	lookupHandle, _, lookupHandleRef, err := bucket_lookup.ExBuildBucketLookup(waitCtx, tb.GetBus(), false, cachedBucketID, nil)
+	waitCancel()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer lookupHandleRef.Release()
+	if lookupHandle.GetBucketConfig() == nil {
+		t.Fatal("lookup bucket config was not loaded")
+	}
+
+	startupBuilderResult.ManifestRef.ManifestRef = startupBuilderResult.GetManifestRef().GetManifestRef().CloneVT()
+	startupBuilderResult.ManifestRef.ManifestRef.RootRef.Hash.Hash[0] ^= 0xff
+
+	builderConfig := &bldr_manifest_builder.BuilderConfig{
+		ManifestMeta: bldr_manifest.NewManifestMeta("demo", bldr_manifest.BuildType_DEV, "desktop/linux/amd64", 1),
+		SourcePath:   tmpDir,
+		EngineId:     tb.GetWorldEngineID(),
+	}
+	controllerConfig := NewConfig(
+		builderConfig,
+		builderControllerConfig,
+		nil,
+		false,
+		startupBuilderResult,
+	)
+	ctrl := NewController(tb.GetLogger(), tb.GetBus(), controllerConfig)
+
+	validateCtx, validateCancel := context.WithTimeout(ctx, 200*time.Millisecond)
+	defer validateCancel()
+	reason, err := ctrl.validateStartupManifestAvailability(validateCtx, tb.GetLogger(), startupBuilderResult)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reason == "" {
+		t.Fatal("expected startup cache miss reason")
+	}
+	if strings.Contains(reason, context.DeadlineExceeded.Error()) {
+		t.Fatalf("startup validation waited for network lookup: %s", reason)
+	}
+	if !strings.Contains(reason, block.ErrNotFound.Error()) {
+		t.Fatalf("startup validation reason = %q, want block not found", reason)
 	}
 }
 

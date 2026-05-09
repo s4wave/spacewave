@@ -61,3 +61,38 @@ func AccessManifest(
 		return bldr_manifest.AccessManifest(ctx, le, bls, cb)
 	})
 }
+
+// AccessStartupManifest accesses a startup manifest with local-only lookup
+// reads so unavailable optional startup refs fail fast instead of waiting on
+// network lookup.
+func AccessStartupManifest(
+	ctx context.Context,
+	le *logrus.Entry,
+	accessFunc world.AccessWorldStateFunc,
+	manifestRef *bucket.ObjectRef,
+	cb func(
+		ctx context.Context,
+		bls *bucket_lookup.Cursor,
+		bcs *block.Cursor,
+		manifest *bldr_manifest.Manifest,
+		distFS *unixfs.FSHandle,
+		assetsFS *unixfs.FSHandle,
+	) error,
+) error {
+	if manifestRef == nil || manifestRef.GetEmpty() {
+		return AccessManifest(ctx, le, accessFunc, manifestRef, cb)
+	}
+
+	return accessFunc(ctx, nil, func(root *bucket_lookup.Cursor) error {
+		manifestCursor, err := followStartupManifestRef(ctx, root, manifestRef)
+		if err != nil {
+			return err
+		}
+		defer manifestCursor.Release()
+
+		localManifestCursor := manifestCursor.CloneWithLocalOnlyReads()
+		defer localManifestCursor.Release()
+
+		return bldr_manifest.AccessManifest(ctx, le, localManifestCursor, cb)
+	})
+}
