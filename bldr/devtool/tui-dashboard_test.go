@@ -6,11 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	tui "github.com/grindlemire/go-tui"
 	devtool_status "github.com/s4wave/spacewave/bldr/devtool/status"
 )
 
-func TestBuildDevtoolTUIDashboardElementIncludesDashboardPanes(t *testing.T) {
+func TestBuildDevtoolTUIDashboardIncludesDashboardSections(t *testing.T) {
 	snapshot := devtool_status.NewBldrDevtoolStatus(
 		devtool_status.BldrDevtoolCommandStatus{
 			Name:    "start web",
@@ -58,11 +57,11 @@ func TestBuildDevtoolTUIDashboardElementIncludesDashboardPanes(t *testing.T) {
 		}},
 	)
 
-	text := collectDevtoolTUIText(BuildDevtoolTUIDashboardElement(snapshot))
+	text := BuildDevtoolTUIDashboard(snapshot)
 	for _, want := range []string{
 		"devtool",
-		"bldr run start web running",
-		"[====>-------------] 4 active",
+		"command: start web (run)",
+		"work: 4 active",
 		"manifest 0/1 fetched, 1/1 built | active 4 | plugins 1 ok, 0 err | attention 1",
 		"activity",
 		"controls",
@@ -78,7 +77,7 @@ func TestBuildDevtoolTUIDashboardElementIncludesDashboardPanes(t *testing.T) {
 	}
 }
 
-func TestBuildDevtoolTUIDashboardElementPolishesStatusDetails(t *testing.T) {
+func TestBuildDevtoolTUIDashboardPolishesStatusDetails(t *testing.T) {
 	snapshot := devtool_status.NewBldrDevtoolStatus(
 		devtool_status.BldrDevtoolCommandStatus{
 			Name:    "build",
@@ -158,9 +157,9 @@ func TestBuildDevtoolTUIDashboardElementPolishesStatusDetails(t *testing.T) {
 		}},
 	)
 
-	text := collectDevtoolTUIText(BuildDevtoolTUIDashboardElement(snapshot))
+	text := BuildDevtoolTUIDashboard(snapshot)
 	for _, want := range []string{
-		"[====>-------------] 6 active",
+		"work: 6 active",
 		"manifest 0/2 fetched, 1/2 built | active 6 | plugins 1 ok, 1 err | attention 2",
 		"logs .bldr/logs/20260508.log",
 		"download plugin manifest: copy failed",
@@ -175,7 +174,7 @@ func TestBuildDevtoolTUIDashboardElementPolishesStatusDetails(t *testing.T) {
 	assertTextOrder(t, text, "download plugin manifest: copy failed", "controller load failed")
 }
 
-func TestBuildDevtoolTUIDashboardElementAnimatesProgressBar(t *testing.T) {
+func TestBuildDevtoolTUIDashboardRendersWorkStatus(t *testing.T) {
 	snapshot := devtool_status.NewBldrDevtoolStatus(
 		devtool_status.BldrDevtoolCommandStatus{
 			Name:  "build",
@@ -192,15 +191,15 @@ func TestBuildDevtoolTUIDashboardElementAnimatesProgressBar(t *testing.T) {
 		nil,
 	)
 
-	first := collectDevtoolTUIText(buildDevtoolTUIDashboardElement(snapshot, 0))
-	second := collectDevtoolTUIText(buildDevtoolTUIDashboardElement(snapshot, 3))
+	first := buildDevtoolTUIDashboard(snapshot, 0)
+	second := buildDevtoolTUIDashboard(snapshot, 3)
 	text := first + second
 	for _, want := range []string{
-		"[====>-------------] 2 active",
-		"[---====>----------] 2 active",
+		"command: build (run)",
+		"work: 2 active",
 	} {
 		if !strings.Contains(text, want) {
-			t.Fatalf("dashboard text missing progress frame %q:\n%s", want, text)
+			t.Fatalf("dashboard text missing work status %q:\n%s", want, text)
 		}
 	}
 
@@ -215,13 +214,13 @@ func TestBuildDevtoolTUIDashboardElementAnimatesProgressBar(t *testing.T) {
 		nil,
 		nil,
 	)
-	doneText := collectDevtoolTUIText(buildDevtoolTUIDashboardElement(done, 3))
-	if !strings.Contains(doneText, "[==================] done") {
-		t.Fatalf("dashboard text missing done progress:\n%s", doneText)
+	doneText := buildDevtoolTUIDashboard(done, 3)
+	if !strings.Contains(doneText, "work: done") {
+		t.Fatalf("dashboard text missing done status:\n%s", doneText)
 	}
 }
 
-func TestBuildDevtoolTUIDashboardElementRendersLivePanes(t *testing.T) {
+func TestBuildDevtoolTUIDashboardRendersLiveSections(t *testing.T) {
 	snapshot := devtool_status.NewBldrDevtoolStatus(
 		devtool_status.BldrDevtoolCommandStatus{
 			Name:    "start desktop",
@@ -262,12 +261,7 @@ func TestBuildDevtoolTUIDashboardElementRendersLivePanes(t *testing.T) {
 		nil,
 	)
 
-	el := BuildDevtoolTUIDashboardElement(snapshot)
-	buf := tui.NewBuffer(140, 44)
-	el.Calculate(140, 44)
-	tui.RenderTree(buf, el)
-
-	text := collectDevtoolTUIBufferText(buf)
+	text := BuildDevtoolTUIDashboard(snapshot)
 	for _, want := range []string{
 		"devtool",
 		"activity",
@@ -281,10 +275,11 @@ func TestBuildDevtoolTUIDashboardElementRendersLivePanes(t *testing.T) {
 	}
 }
 
-func TestBuildDevtoolTUIDashboardElementShowsEmptyStates(t *testing.T) {
-	text := collectDevtoolTUIText(BuildDevtoolTUIDashboardElement(nil))
+func TestBuildDevtoolTUIDashboardShowsEmptyStates(t *testing.T) {
+	text := BuildDevtoolTUIDashboard(nil)
 	for _, want := range []string{
-		"[------------------] idle",
+		"state: ?",
+		"work: idle",
 		"manifest 0/0 fetched, 0/0 built | active 0 | plugins 0 ok, 0 err | attention 0",
 		"clean - waiting for work",
 		"q quit",
@@ -293,32 +288,6 @@ func TestBuildDevtoolTUIDashboardElementShowsEmptyStates(t *testing.T) {
 		if !strings.Contains(text, want) {
 			t.Fatalf("dashboard text missing empty state %q:\n%s", want, text)
 		}
-	}
-}
-
-func TestDevtoolTUIShouldUseColorHonorsDisableEnv(t *testing.T) {
-	t.Setenv("TERM", "xterm-256color")
-	t.Setenv("NO_COLOR", "")
-	t.Setenv("CLICOLOR", "")
-	if !devtoolTUIShouldUseColor() {
-		t.Fatal("expected color when terminal is not explicitly disabled")
-	}
-
-	t.Setenv("NO_COLOR", "1")
-	if devtoolTUIShouldUseColor() {
-		t.Fatal("expected NO_COLOR to disable color")
-	}
-
-	t.Setenv("NO_COLOR", "")
-	t.Setenv("CLICOLOR", "0")
-	if devtoolTUIShouldUseColor() {
-		t.Fatal("expected CLICOLOR=0 to disable color")
-	}
-
-	t.Setenv("CLICOLOR", "")
-	t.Setenv("TERM", "dumb")
-	if devtoolTUIShouldUseColor() {
-		t.Fatal("expected TERM=dumb to disable color")
 	}
 }
 
@@ -332,39 +301,4 @@ func assertTextOrder(t *testing.T, text, first, second string) {
 	if firstIdx > secondIdx {
 		t.Fatalf("expected %q before %q:\n%s", first, second, text)
 	}
-}
-
-func collectDevtoolTUIText(el *tui.Element) string {
-	var b strings.Builder
-	var walk func(*tui.Element)
-	walk = func(current *tui.Element) {
-		if current == nil {
-			return
-		}
-		if text := current.Text(); text != "" {
-			b.WriteString(text)
-			b.WriteByte('\n')
-		}
-		for _, child := range current.Children() {
-			walk(child)
-		}
-	}
-	walk(el)
-	return b.String()
-}
-
-func collectDevtoolTUIBufferText(buf *tui.Buffer) string {
-	var b strings.Builder
-	for y := 0; y < buf.Height(); y++ {
-		for x := 0; x < buf.Width(); x++ {
-			r := buf.Cell(x, y).Rune
-			if r == 0 {
-				b.WriteByte(' ')
-				continue
-			}
-			b.WriteRune(r)
-		}
-		b.WriteByte('\n')
-	}
-	return b.String()
 }

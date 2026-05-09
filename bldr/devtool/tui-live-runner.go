@@ -4,16 +4,17 @@ package devtool
 
 import (
 	"context"
+	"os"
 	"sync"
 
 	"github.com/aperturerobotics/util/ccontainer"
-	tui "github.com/grindlemire/go-tui"
 	devtool_status "github.com/s4wave/spacewave/bldr/devtool/status"
+	"github.com/s4wave/spacewave/bldr/util/termui"
 )
 
 const devtoolTUIStatusBufferSize = 16
 
-// BldrDevtoolTUIRunner runs the native go-tui dashboard.
+// BldrDevtoolTUIRunner runs the native terminal dashboard.
 type BldrDevtoolTUIRunner struct{}
 
 // NewDevtoolTUIRunner creates the native dashboard runner.
@@ -32,25 +33,18 @@ func (r *BldrDevtoolTUIRunner) Start(
 	runCtx, cancel := context.WithCancel(ctx)
 	statusCh := startDevtoolTUIStatusStream(runCtx, producer)
 	initial := devtoolTUIInitialStatus(producer)
-	dashboard := NewBldrDevtoolTUIDashboard(initial, statusCh)
-	app, err := tui.NewApp(tui.WithRootComponent(dashboard))
-	if err != nil {
-		cancel()
-		return nil, err
-	}
 
 	var stopOnce sync.Once
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
-		_ = app.Run()
+		_ = termui.Run(runCtx, os.Stdin, os.Stdout, initial, statusCh, BuildDevtoolTUIDashboard)
 		cancel()
 	}()
 
 	return func() {
 		stopOnce.Do(func() {
 			cancel()
-			app.Stop()
 			<-done
 		})
 	}, nil

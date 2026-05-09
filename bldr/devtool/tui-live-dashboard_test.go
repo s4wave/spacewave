@@ -35,14 +35,9 @@ func TestBldrDevtoolTUIDashboardWatchesStatusChannel(t *testing.T) {
 	)
 	statusCh := make(chan *devtool_status.BldrDevtoolStatus)
 	dashboard := NewBldrDevtoolTUIDashboard(initial, statusCh)
-	watchers := dashboard.Watchers()
-	if len(watchers) != 2 {
-		t.Fatalf("expected status watcher, got %d", len(watchers))
+	if dashboard.GetStatusChannel() != statusCh {
+		t.Fatal("expected dashboard to expose status channel")
 	}
-	eventQueue := make(chan func(), 1)
-	stopCh := make(chan struct{})
-	defer close(stopCh)
-	watchers[0].Start(eventQueue, stopCh)
 
 	next := devtool_status.NewBldrDevtoolStatus(
 		devtool_status.BldrDevtoolCommandStatus{
@@ -56,15 +51,14 @@ func TestBldrDevtoolTUIDashboardWatchesStatusChannel(t *testing.T) {
 		nil,
 		nil,
 	)
-	statusCh <- next
-	readDevtoolTUIEvent(t, eventQueue)()
-	text := collectDevtoolTUIText(dashboard.Render(nil))
+	dashboard.SetStatus(next)
+	text := dashboard.Render()
 	if !strings.Contains(text, "web runtime active") {
 		t.Fatalf("expected updated dashboard text, got:\n%s", text)
 	}
 }
 
-func TestBldrDevtoolTUIDashboardAdvancesProgressFrame(t *testing.T) {
+func TestBldrDevtoolTUIDashboardRendersWorkStatus(t *testing.T) {
 	initial := devtool_status.NewBldrDevtoolStatus(
 		devtool_status.BldrDevtoolCommandStatus{
 			Name:  "build",
@@ -77,14 +71,9 @@ func TestBldrDevtoolTUIDashboardAdvancesProgressFrame(t *testing.T) {
 		nil,
 	)
 	dashboard := NewBldrDevtoolTUIDashboard(initial, nil)
-	before := collectDevtoolTUIText(dashboard.Render(nil))
-	dashboard.advanceFrame()
-	after := collectDevtoolTUIText(dashboard.Render(nil))
-	if !strings.Contains(before, "[====>-------------] 1 active") {
-		t.Fatalf("expected initial progress frame, got:\n%s", before)
-	}
-	if !strings.Contains(after, "[-====>------------] 1 active") {
-		t.Fatalf("expected advanced progress frame, got:\n%s", after)
+	text := dashboard.Render()
+	if !strings.Contains(text, "work: 1 active") {
+		t.Fatalf("expected work status, got:\n%s", text)
 	}
 }
 
@@ -162,22 +151,6 @@ func readDevtoolTUIStatus(
 			t.Fatal("status channel closed")
 		}
 		return snapshot
-	case <-ctx.Done():
-		t.Fatal(ctx.Err())
-	}
-	return nil
-}
-
-func readDevtoolTUIEvent(
-	t *testing.T,
-	eventQueue <-chan func(),
-) func() {
-	t.Helper()
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	select {
-	case fn := <-eventQueue:
-		return fn
 	case <-ctx.Done():
 		t.Fatal(ctx.Err())
 	}

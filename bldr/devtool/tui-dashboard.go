@@ -3,46 +3,38 @@
 package devtool
 
 import (
-	"os"
 	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
 
-	tui "github.com/grindlemire/go-tui"
 	devtool_status "github.com/s4wave/spacewave/bldr/devtool/status"
 )
 
-// BuildDevtoolTUIDashboardElement constructs the static Bldr devtool dashboard tree.
-func BuildDevtoolTUIDashboardElement(snapshot *devtool_status.BldrDevtoolStatus) *tui.Element {
-	return buildDevtoolTUIDashboardElement(snapshot, 0)
+// BuildDevtoolTUIDashboard constructs the static Bldr devtool dashboard text.
+func BuildDevtoolTUIDashboard(snapshot *devtool_status.BldrDevtoolStatus) string {
+	return buildDevtoolTUIDashboard(snapshot, 0)
 }
 
-func buildDevtoolTUIDashboardElement(snapshot *devtool_status.BldrDevtoolStatus, frame int) *tui.Element {
+func buildDevtoolTUIDashboard(snapshot *devtool_status.BldrDevtoolStatus, frame int) string {
 	if snapshot == nil {
 		snapshot = devtool_status.EmptyBldrDevtoolStatus()
 	}
-	root := tui.New(
-		tui.WithDisplay(tui.DisplayFlex),
-		tui.WithDirection(tui.Column),
-		tui.WithPadding(1),
-		tui.WithGap(1),
-		devtoolTUITextStyle(tui.BrightWhite),
-	)
-	root.AddChild(buildDevtoolTUICommandHeader(snapshot, frame))
-	root.AddChild(buildDevtoolTUIActivityPane(snapshot))
-	root.AddChild(buildDevtoolTUIFooter(snapshot))
-	return root
+	var lines []string
+	lines = appendDevtoolTUISection(lines, "devtool", devtoolTUICommandHeaderLines(snapshot, frame))
+	lines = appendDevtoolTUISection(lines, "activity", devtoolTUIActivityLines(snapshot))
+	lines = appendDevtoolTUISection(lines, "controls", devtoolTUIFooterLines(snapshot))
+	return strings.Join(lines, "\n") + "\n"
 }
 
-func buildDevtoolTUICommandHeader(snapshot *devtool_status.BldrDevtoolStatus, frame int) *tui.Element {
+func devtoolTUICommandHeaderLines(snapshot *devtool_status.BldrDevtoolStatus, frame int) []string {
 	command := snapshot.GetCommand()
-	stateText := command.State.String()
+	stateText := "state: " + devtoolTUIStatusMark(command.State)
 	if command.Name != "" {
-		stateText = command.Name + " " + stateText
+		stateText = "command: " + command.Name + " (" + devtoolTUIStatusMark(command.State) + ")"
 	}
 	lines := []string{
-		"bldr " + devtoolTUIStatusMark(command.State) + " " + stateText,
+		stateText,
 		devtoolTUIProgressText(snapshot, frame),
 		devtoolTUISummaryText(snapshot),
 	}
@@ -52,43 +44,36 @@ func buildDevtoolTUICommandHeader(snapshot *devtool_status.BldrDevtoolStatus, fr
 	if command.Error != "" {
 		lines = append(lines, "error: "+cleanTUIText(command.Error))
 	}
-	return buildDevtoolTUIPanel("devtool", lines, devtoolTUIColor(tui.Cyan), tui.WithHeightAuto())
+	return lines
 }
 
-func buildDevtoolTUIActivityPane(snapshot *devtool_status.BldrDevtoolStatus) *tui.Element {
-	color := devtoolTUIColor(tui.Green)
-	if len(devtoolTUIErrorLines(snapshot)) > 0 {
-		color = devtoolTUIColor(tui.BrightRed)
-	}
+func devtoolTUIActivityLines(snapshot *devtool_status.BldrDevtoolStatus) []string {
 	lines := devtoolTUIImportantLines(snapshot)
 	if len(lines) == 0 {
 		lines = append(lines, "clean - waiting for work")
 	}
-	return buildDevtoolTUIPanel("activity", lines, color, tui.WithFlexGrow(1))
+	return lines
 }
 
-func buildDevtoolTUIFooter(snapshot *devtool_status.BldrDevtoolStatus) *tui.Element {
+func devtoolTUIFooterLines(snapshot *devtool_status.BldrDevtoolStatus) []string {
 	logFile := snapshot.GetCommand().LogFile
 	if logFile == "" {
 		logFile = ".bldr/logs"
 	}
-	lines := []string{
+	return []string{
 		"q quit  ctrl-c stop  logs " + compactDevtoolTUILogFile(logFile),
 	}
-	return buildDevtoolTUIPanel("controls", lines, devtoolTUIColor(tui.BrightBlack), tui.WithHeightAuto())
 }
 
-func buildDevtoolTUIPanel(title string, lines []string, color tui.Color, opts ...tui.Option) *tui.Element {
-	panelOpts := []tui.Option{
-		tui.WithBorder(tui.BorderSingle),
-		tui.WithPaddingTRBL(0, 1, 0, 1),
-		tui.WithOverflow(tui.OverflowHidden),
-		tui.WithText(title + "\n" + strings.Join(lines, "\n")),
-		devtoolTUITextStyle(color),
-		devtoolTUIBorderStyle(color),
+func appendDevtoolTUISection(dst []string, title string, lines []string) []string {
+	if len(dst) > 0 {
+		dst = append(dst, "")
 	}
-	panelOpts = append(panelOpts, opts...)
-	return tui.New(panelOpts...)
+	dst = append(dst, title)
+	for _, line := range lines {
+		dst = append(dst, "  "+line)
+	}
+	return dst
 }
 
 func manifestBuildReasonText(row devtool_status.BldrDevtoolManifestBuildRow) string {
@@ -188,52 +173,13 @@ func devtoolTUIStatusMark(state devtool_status.BldrDevtoolCommandState) string {
 func devtoolTUIProgressText(snapshot *devtool_status.BldrDevtoolStatus, frame int) string {
 	command := snapshot.GetCommand()
 	if command.IsTerminal() {
-		return devtoolTUIProgressBar(command.State, frame, false) + " " + command.State.String()
+		return "work: " + command.State.String()
 	}
 	entries := activeDevtoolTUIWorkEntries(snapshot)
-	state := command.State
-	bar := devtoolTUIProgressBar(state, frame, len(entries) > 0)
 	if len(entries) > 0 {
-		return bar + " " + strconv.Itoa(len(entries)) + " active"
+		return "work: " + strconv.Itoa(len(entries)) + " active"
 	}
-	return bar + " idle"
-}
-
-func devtoolTUIProgressBar(
-	state devtool_status.BldrDevtoolCommandState,
-	frame int,
-	active bool,
-) string {
-	const width = 18
-	const segment = 5
-
-	if state == devtool_status.BldrDevtoolCommandStateDone {
-		return "[" + strings.Repeat("=", width) + "]"
-	}
-	if state == devtool_status.BldrDevtoolCommandStateError {
-		return "[" + strings.Repeat("!", width) + "]"
-	}
-	if !active {
-		return "[" + strings.Repeat("-", width) + "]"
-	}
-
-	span := width - segment + 1
-	start := max(frame%span, 0)
-	var b strings.Builder
-	b.WriteByte('[')
-	for idx := range width {
-		if idx >= start && idx < start+segment {
-			if idx == start+segment-1 {
-				b.WriteByte('>')
-				continue
-			}
-			b.WriteByte('=')
-			continue
-		}
-		b.WriteByte('-')
-	}
-	b.WriteByte(']')
-	return b.String()
+	return "work: idle"
 }
 
 func devtoolTUISummaryText(snapshot *devtool_status.BldrDevtoolStatus) string {
@@ -451,28 +397,6 @@ func sortedDevtoolTUIAttentionRows(
 		return strings.Compare(a.ID, b.ID)
 	})
 	return rows
-}
-
-func devtoolTUIColor(color tui.Color) tui.Color {
-	if !devtoolTUIShouldUseColor() {
-		return tui.DefaultColor()
-	}
-	return color
-}
-
-func devtoolTUIBorderStyle(color tui.Color) tui.Option {
-	return tui.WithBorderStyle(tui.NewStyle().Foreground(color))
-}
-
-func devtoolTUITextStyle(color tui.Color) tui.Option {
-	return tui.WithTextStyle(tui.NewStyle().Foreground(devtoolTUIColor(color)))
-}
-
-func devtoolTUIShouldUseColor() bool {
-	if os.Getenv("NO_COLOR") != "" || os.Getenv("CLICOLOR") == "0" {
-		return false
-	}
-	return strings.ToLower(os.Getenv("TERM")) != "dumb"
 }
 
 func compactDevtoolTUILogFile(logFile string) string {
