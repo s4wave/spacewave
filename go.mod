@@ -53,12 +53,12 @@ require (
 )
 
 require (
-	golang.org/x/crypto v0.50.0
-	golang.org/x/mod v0.35.0 // latest
+	golang.org/x/crypto v0.51.0
+	golang.org/x/mod v0.36.0 // latest
 	golang.org/x/sync v0.20.0
-	golang.org/x/sys v0.43.1-0.20260423153702-fb1facd76f95
-	golang.org/x/term v0.42.0
-	golang.org/x/tools v0.44.0 // latest
+	golang.org/x/sys v0.44.0
+	golang.org/x/term v0.43.0
+	golang.org/x/tools v0.45.0 // latest
 )
 
 require (
@@ -86,7 +86,7 @@ require (
 	github.com/emirpasic/gods v1.18.1
 	github.com/fatih/color v1.19.0
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-git/go-billy/v6 v6.0.0-20260505113209-2b60adf67f98 // main
+	github.com/go-git/go-billy/v6 v6.0.0-20260507215541-8db9859ba260 // main
 	github.com/go-git/go-git/v6 v6.0.0-alpha.3 // main
 	github.com/goccy/go-json v0.10.6
 	github.com/gomodule/redigo v1.9.3
@@ -112,7 +112,7 @@ require (
 	github.com/sasha-s/go-deadlock v0.3.9
 	github.com/satori/go.uuid v1.2.0
 	github.com/sergi/go-diff v1.4.0
-	github.com/sirupsen/logrus v1.9.5-0.20260426203557-6878cb36b029
+	github.com/sirupsen/logrus v1.9.5-0.20260508084601-d4a50659cfd6
 	github.com/spf13/afero v1.15.0
 	github.com/spf13/cast v1.10.0
 	github.com/tetratelabs/wazero v1.11.0
@@ -188,9 +188,9 @@ require (
 	go.opentelemetry.io/otel v1.41.0 // indirect
 	go.opentelemetry.io/otel/trace v1.41.0 // indirect
 	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa // indirect
-	golang.org/x/net v0.53.0 // indirect
-	golang.org/x/telemetry v0.0.0-20260409153401-be6f6cb8b1fa // indirect
-	golang.org/x/text v0.36.0 // indirect
+	golang.org/x/net v0.54.0 // indirect
+	golang.org/x/telemetry v0.0.0-20260508192327-42602be52be6 // indirect
+	golang.org/x/text v0.37.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 	gopkg.in/src-d/go-errors.v1 v1.0.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
