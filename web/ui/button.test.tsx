@@ -15,18 +15,18 @@ describe('Button', () => {
   })
 
   it('renders as button element by default', () => {
-    render(<Button>Submit</Button>)
-    const button = screen.getByRole('button', { name: 'Submit' })
+    render(<Button>Save changes</Button>)
+    const button = screen.getByRole('button', { name: 'Save changes' })
     expect(button.tagName).toBe('BUTTON')
   })
 
   it('onClick handler fires', async () => {
     const user = userEvent.setup()
-    const handleClick = vi.fn()
-    render(<Button onClick={handleClick}>Press</Button>)
+    const handleButtonPress = vi.fn()
+    render(<Button onClick={handleButtonPress}>Press</Button>)
 
     await user.click(screen.getByRole('button', { name: 'Press' }))
-    expect(handleClick).toHaveBeenCalledOnce()
+    expect(handleButtonPress).toHaveBeenCalledOnce()
   })
 
   it('disabled state applies opacity and pointer-events', () => {

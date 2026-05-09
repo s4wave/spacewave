@@ -27,10 +27,10 @@ export function buildBrowserReleaseDescriptor(
   prerenderedRoutes: string[],
   requiredStaticAssets: string[],
 ): BrowserReleaseDescriptor {
-  const routes = [...new Set(prerenderedRoutes)].sort((a, b) =>
+  const routes = Array.from(new Set(prerenderedRoutes)).toSorted((a, b) =>
     a.localeCompare(b),
   )
-  const assets = [...new Set(requiredStaticAssets)].sort((a, b) =>
+  const assets = Array.from(new Set(requiredStaticAssets)).toSorted((a, b) =>
     a.localeCompare(b),
   )
   const generationId = createHash('sha256')

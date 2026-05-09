@@ -72,7 +72,7 @@ export function ManifestViewer({
         <div className="space-y-3">
           {isEmpty && (
             <InfoCard>
-              <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
+              <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
                 <LuPackage className="size-3.5 shrink-0" />
                 <span>No manifest data</span>
               </div>

@@ -156,7 +156,11 @@ export function SpaceContainer() {
   const spaceOrgId = useMemo(() => {
     const orgs = orgListCtx?.organizations ?? []
     for (const org of orgs) {
-      if (!org.id || !org.spaceIds?.includes(sharedObjectId)) {
+      if (!org.id || !org.spaceIds) {
+        continue
+      }
+      const spaceIds = new Set(org.spaceIds)
+      if (!spaceIds.has(sharedObjectId)) {
         continue
       }
       return org.id

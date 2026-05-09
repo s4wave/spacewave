@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useId, useReducer } from 'react'
 
 import {
   Dialog,
@@ -17,6 +17,32 @@ export interface RenameSpaceDialogProps {
   onConfirm: (newName: string) => Promise<void>
 }
 
+interface RenameState {
+  submitting: boolean
+  error?: string
+  source: string
+  value: string
+}
+
+type RenameAction =
+  | { type: 'reset'; value: string }
+  | { type: 'set-value'; source: string; value: string }
+  | { type: 'submit' }
+  | { type: 'fail'; error: string }
+
+function renameReducer(state: RenameState, action: RenameAction): RenameState {
+  switch (action.type) {
+    case 'reset':
+      return { submitting: false, source: action.value, value: action.value }
+    case 'set-value':
+      return { ...state, source: action.source, value: action.value }
+    case 'submit':
+      return { ...state, submitting: true, error: undefined }
+    case 'fail':
+      return { ...state, submitting: false, error: action.error }
+  }
+}
+
 // RenameSpaceDialog prompts the user for a new display name for the space.
 export function RenameSpaceDialog({
   open,
@@ -24,44 +50,42 @@ export function RenameSpaceDialog({
   spaceName,
   onConfirm,
 }: RenameSpaceDialogProps) {
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string>()
-  const [value, setValue] = useState(spaceName)
-
-  useEffect(() => {
-    if (open) {
-      queueMicrotask(() => {
-        setValue(spaceName)
-        setError(undefined)
-        setSubmitting(false)
-      })
-    }
-  }, [open, spaceName])
+  const [state, dispatch] = useReducer(renameReducer, {
+    submitting: false,
+    source: spaceName,
+    value: spaceName,
+  })
+  const spaceNameId = useId()
+  const value = state.source === spaceName ? state.value : spaceName
 
   const handleOpenChange = useCallback(
     (next: boolean) => {
       if (!next) {
-        setError(undefined)
-        setSubmitting(false)
+        dispatch({ type: 'reset', value: spaceName })
       }
       onOpenChange(next)
     },
-    [onOpenChange],
+    [onOpenChange, spaceName],
   )
 
   const trimmed = value.trim()
-  const canSubmit = trimmed.length > 0 && trimmed !== spaceName && !submitting
+  const canSubmit =
+    trimmed.length > 0 && trimmed !== spaceName && !state.submitting
+  const handleInputRef = useCallback((node: HTMLInputElement | null) => {
+    node?.focus()
+  }, [])
 
   const handleSubmit = useCallback(async () => {
     if (!canSubmit) return
-    setSubmitting(true)
-    setError(undefined)
+    dispatch({ type: 'submit' })
     try {
       await onConfirm(trimmed)
       handleOpenChange(false)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Rename failed')
-      setSubmitting(false)
+      dispatch({
+        type: 'fail',
+        error: err instanceof Error ? err.message : 'Rename failed',
+      })
     }
   }, [canSubmit, onConfirm, trimmed, handleOpenChange])
 
@@ -81,13 +105,23 @@ export function RenameSpaceDialog({
         </DialogHeader>
 
         <div>
-          <label className="text-foreground-alt mb-1.5 block text-xs select-none">
+          <label
+            className="text-foreground-alt mb-1.5 block text-xs select-none"
+            htmlFor={spaceNameId}
+          >
             Space name
           </label>
           <input
-            autoFocus
+            id={spaceNameId}
+            ref={handleInputRef}
             value={value}
-            onChange={(e) => setValue(e.target.value)}
+            onChange={(e) =>
+              dispatch({
+                type: 'set-value',
+                source: spaceName,
+                value: e.target.value,
+              })
+            }
             placeholder={spaceName}
             className={inputClass}
             aria-label="New space name"
@@ -100,12 +134,14 @@ export function RenameSpaceDialog({
           />
         </div>
 
-        {error && <p className="text-destructive text-xs">{error}</p>}
+        {state.error && (
+          <p className="text-destructive text-xs">{state.error}</p>
+        )}
 
         <DialogFooter>
           <button
             onClick={() => handleOpenChange(false)}
-            disabled={submitting}
+            disabled={state.submitting}
             className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
           >
             Cancel
@@ -119,7 +155,7 @@ export function RenameSpaceDialog({
               'disabled:cursor-not-allowed disabled:opacity-50',
             )}
           >
-            {submitting ? 'Saving...' : 'Save'}
+            {state.submitting ? 'Saving...' : 'Save'}
           </button>
         </DialogFooter>
       </DialogContent>

@@ -69,7 +69,7 @@ function DocsSidebar({
   if (entriesResource.loading) {
     return (
       <div className="text-muted-foreground flex h-full items-center justify-center text-xs">
-        Loading...
+        Loading…
       </div>
     )
   }
@@ -269,7 +269,7 @@ function FileNode({ name, path, selected, onSelect, depth }: FileNodeProps) {
   const title = name.replace(/\.md$/, '')
   const paddingLeft = 8 + depth * 16
 
-  const handleClick = useCallback(() => {
+  const handleDocSelect = useCallback(() => {
     onSelect(path)
   }, [onSelect, path])
 
@@ -283,7 +283,7 @@ function FileNode({ name, path, selected, onSelect, depth }: FileNodeProps) {
           'bg-list-active-selection-background text-list-active-selection-foreground',
       )}
       style={{ paddingLeft }}
-      onClick={handleClick}
+      onClick={handleDocSelect}
     >
       <LuFile className="size-3 shrink-0" />
       <span className="truncate">{title}</span>

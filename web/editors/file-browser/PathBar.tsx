@@ -1,4 +1,4 @@
-import { PathInput } from '../../ui/path/index.js'
+import { PathInput } from '../../ui/path/PathInput.js'
 
 interface PathBarProps {
   path: string

@@ -18,10 +18,12 @@ import { ShellTabStrip } from './ShellFlexLayout.js'
 const mockOptimizedLayoutProps = vi.hoisted(() => vi.fn())
 
 vi.mock('@s4wave/web/state/index.js', async () => {
-  const React = await import('react')
-  const actual = await vi.importActual<
-    typeof import('@s4wave/web/state/index.js')
-  >('@s4wave/web/state/index.js')
+  const [React, actual] = await Promise.all([
+    import('react'),
+    vi.importActual<typeof import('@s4wave/web/state/index.js')>(
+      '@s4wave/web/state/index.js',
+    ),
+  ])
   return {
     ...actual,
     useStateAtom: <T,>(_: unknown, __: string, initialValue: T) =>

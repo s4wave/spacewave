@@ -150,7 +150,7 @@ export function ForgeWorkerViewer({
             <InfoCard title="Peer IDs">
               {snapshotLoading && (
                 <div className="text-foreground-alt/50 text-xs">
-                  Loading worker identities...
+                  Loading worker identities…
                 </div>
               )}
               {!snapshotLoading && peerIds.length === 0 && (
@@ -186,7 +186,7 @@ export function ForgeWorkerViewer({
           <div className="space-y-2">
             {activeExecutions.length === 0 && (
               <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-                <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
+                <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
                   <LuActivity className="size-3.5 shrink-0" />
                   <span>No active executions assigned to this worker</span>
                 </div>
@@ -230,7 +230,7 @@ export function ForgeWorkerViewer({
           <div className="space-y-2">
             {completeExecutions.length === 0 && (
               <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-                <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
+                <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
                   <LuActivity className="size-3.5 shrink-0" />
                   <span>No completed executions recorded yet</span>
                 </div>

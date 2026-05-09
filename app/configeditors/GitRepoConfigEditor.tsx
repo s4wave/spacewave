@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { LuCopy, LuGitBranch, LuLayers, LuPlus } from 'react-icons/lu'
 
 import type { ConfigEditorProps } from '@s4wave/web/configtype/configtype.js'
@@ -16,6 +17,8 @@ export function GitRepoConfigEditor({
   onValueChange,
 }: ConfigEditorProps<CreateGitRepoWizardOp>) {
   const cloneOpts = value.cloneOpts ?? {}
+  const cloneUrlId = useId()
+  const cloneRefId = useId()
 
   const handleSelectMode = (clone: boolean) => {
     onValueChange({ ...value, clone })
@@ -58,10 +61,14 @@ export function GitRepoConfigEditor({
           </div>
           <div className="border-foreground/6 bg-background-card/30 space-y-3 rounded-lg border p-3.5">
             <div className="space-y-2">
-              <label className="text-foreground text-xs font-medium select-none">
+              <label
+                htmlFor={cloneUrlId}
+                className="text-foreground text-xs font-medium select-none"
+              >
                 Clone URL
               </label>
               <Input
+                id={cloneUrlId}
                 value={cloneOpts.url ?? ''}
                 onChange={(e) =>
                   onValueChange({
@@ -74,10 +81,14 @@ export function GitRepoConfigEditor({
               />
             </div>
             <div className="space-y-2">
-              <label className="text-foreground text-xs font-medium select-none">
+              <label
+                htmlFor={cloneRefId}
+                className="text-foreground text-xs font-medium select-none"
+              >
                 Branch / Ref
               </label>
               <Input
+                id={cloneRefId}
                 value={cloneOpts.ref ?? ''}
                 onChange={(e) =>
                   onValueChange({
@@ -90,9 +101,9 @@ export function GitRepoConfigEditor({
               />
             </div>
             <div className="space-y-2">
-              <label className="text-foreground text-xs font-medium select-none">
+              <span className="text-foreground text-xs font-medium select-none">
                 Depth
-              </label>
+              </span>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"

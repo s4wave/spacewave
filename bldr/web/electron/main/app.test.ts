@@ -316,9 +316,10 @@ describe('BldrElectronApp', () => {
   })
 
   it('keeps the Electron main process alive when tray background presence is enabled', async () => {
-    const { DesktopPresencePolicy } =
-      await import('../../plugin/electron/electron.pb.js')
-    const { BldrElectronApp } = await import('./app.js')
+    const [{ DesktopPresencePolicy }, { BldrElectronApp }] = await Promise.all([
+      import('../../plugin/electron/electron.pb.js'),
+      import('./app.js'),
+    ])
     const app = Reflect.construct(BldrElectronApp, [
       mockElectronApp,
       'runtime-1',
@@ -470,8 +471,10 @@ describe('BldrElectronApp', () => {
   })
 
   it('registers a native directory picker ipc handler', async () => {
-    const electron = await import('electron')
-    const { BldrElectronApp } = await import('./app.js')
+    const [electron, { BldrElectronApp }] = await Promise.all([
+      import('electron'),
+      import('./app.js'),
+    ])
     const app = Reflect.construct(BldrElectronApp, [
       mockElectronApp,
       'runtime-1',

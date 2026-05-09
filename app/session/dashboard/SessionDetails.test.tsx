@@ -74,7 +74,7 @@ vi.mock('@s4wave/web/router/router.js', async () => {
       children?: React.ReactNode
       fullPath?: boolean
     }) => {
-      const ctx = React.useContext(RouterContext)
+      const ctx = React.use(RouterContext)
       const routes = React.Children.toArray(children).filter(
         (
           child,
@@ -130,7 +130,17 @@ vi.mock('./SessionsSection.js', () => ({
   }) => (
     <div>
       <div>Sessions</div>
-      <div data-testid="link-devices-trigger" onClick={onLinkDeviceClick} />
+      <div
+        role="button"
+        tabIndex={0}
+        data-testid="link-devices-trigger"
+        onClick={onLinkDeviceClick}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            onLinkDeviceClick?.()
+          }
+        }}
+      />
     </div>
   ),
 }))
@@ -170,8 +180,15 @@ vi.mock('@s4wave/app/billing/BillingSection.js', () => ({
     onNavigateToPath?: (path: string) => void
   }) => (
     <div
+      role="button"
+      tabIndex={0}
       data-testid="billing-section-manage"
       onClick={() => onNavigateToPath?.('billing/ba_test')}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          onNavigateToPath?.('billing/ba_test')
+        }
+      }}
     />
   ),
 }))
@@ -279,7 +296,7 @@ describe('SessionDetails', () => {
         error: null,
       })
       renderWithContext(<SessionDetails />)
-      expect(screen.getByText('Loading session info...')).toBeDefined()
+      expect(screen.getByText('Loading session info…')).toBeDefined()
     })
   })
 

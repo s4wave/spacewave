@@ -25,8 +25,8 @@ describe('SearchBox', () => {
     expect(input).toBeTruthy()
   })
 
-  it('shows input immediately when autoFocus is true', () => {
-    render(<SearchBox autoFocus />)
+  it('shows input immediately when focusOnMount is true', () => {
+    render(<SearchBox focusOnMount />)
 
     const input = screen.getByRole('textbox')
     expect(input).toBeTruthy()
@@ -57,7 +57,7 @@ describe('SearchBox', () => {
   it('calls onSearch when Enter is pressed with non-empty query', async () => {
     const user = userEvent.setup()
     const onSearch = vi.fn()
-    render(<SearchBox onSearch={onSearch} autoFocus />)
+    render(<SearchBox onSearch={onSearch} focusOnMount />)
 
     const input = screen.getByRole('textbox')
     await user.type(input, 'hello{Enter}')
@@ -67,7 +67,7 @@ describe('SearchBox', () => {
 
   it('does not call onSearch when Enter is pressed with empty query', async () => {
     const onSearch = vi.fn()
-    render(<SearchBox onSearch={onSearch} autoFocus />)
+    render(<SearchBox onSearch={onSearch} focusOnMount />)
 
     screen.getByRole('textbox')
     await userEvent.setup().keyboard('{Enter}')
@@ -77,7 +77,7 @@ describe('SearchBox', () => {
 
   it('calls onSearch when input blurs with non-empty query', async () => {
     const onSearch = vi.fn()
-    render(<SearchBox onSearch={onSearch} autoFocus />)
+    render(<SearchBox onSearch={onSearch} focusOnMount />)
 
     const input = screen.getByRole('textbox')
     await userEvent.setup().type(input, 'test query')
@@ -90,7 +90,7 @@ describe('SearchBox', () => {
 
   it('calls onBlur when input blurs', async () => {
     const onBlur = vi.fn()
-    render(<SearchBox onBlur={onBlur} autoFocus />)
+    render(<SearchBox onBlur={onBlur} focusOnMount />)
 
     const input = screen.getByRole('textbox')
     input.blur()
@@ -102,7 +102,7 @@ describe('SearchBox', () => {
 
   it('does not call onSearch when blur with empty query', async () => {
     const onSearch = vi.fn()
-    render(<SearchBox onSearch={onSearch} autoFocus />)
+    render(<SearchBox onSearch={onSearch} focusOnMount />)
 
     const input = screen.getByRole('textbox')
     input.blur()

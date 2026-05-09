@@ -103,8 +103,9 @@ describe('license data integrity', () => {
       ],
     ])
 
+    const entriesByName = new Map(licenseEntries.map((e) => [e.name, e]))
     for (const [name, repo] of expectedRepos) {
-      expect(licenseEntries.find((e) => e.name === name)?.repo).toBe(repo)
+      expect(entriesByName.get(name)?.repo).toBe(repo)
     }
   })
 

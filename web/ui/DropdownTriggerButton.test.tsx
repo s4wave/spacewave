@@ -11,7 +11,7 @@ describe('DropdownTriggerButton', () => {
   it('renders the label and icon', () => {
     render(
       <DropdownTriggerButton icon={<span data-testid="lead">ic</span>}>
-        Assign to...
+        Assign to…
       </DropdownTriggerButton>,
     )
     expect(screen.getByText('Assign to...')).toBeDefined()

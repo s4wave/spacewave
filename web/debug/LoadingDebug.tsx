@@ -568,7 +568,7 @@ function LoadingScreenSection() {
               Loading Spacewave
             </div>
             <div className="text-foreground-alt/60 text-xs select-none">
-              Setting up your session...
+              Setting up your session…
             </div>
           </div>
           <div className="w-56">

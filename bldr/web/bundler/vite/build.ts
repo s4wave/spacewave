@@ -340,16 +340,15 @@ export async function analyzeManifest(
 
   // 3. Prepare the primary output structure for each entrypoint.
   // Collect modules from the entry chunk AND all its imported chunks (transitive).
-  const entrypointOutputs = Object.entries(manifest)
-    .filter(([, value]) => value.isEntry)
-    .map(([key, value]) => {
+  const entrypointOutputs = Object.entries(manifest).flatMap(([key, value]) => {
+    if (!value.isEntry) return []
       const allModules = collectAllModulesForChunk(
         value.file,
         jsChunkToModules,
         chunkImports,
       )
       const entrypointPath = value.src ?? key
-      return {
+      return [{
         entrypoint:
           path.isAbsolute(entrypointPath) ?
             path.relative(rootDir, entrypointPath)
@@ -359,12 +358,15 @@ export async function analyzeManifest(
           css: new Set<string>(value.css ?? []),
         },
         inputs: allModules,
-      }
+      }]
     })
 
   // 4. Associate CSS assets with entrypoints using manifest data.
   const allCssAssets = new Set<string>()
   const handledCssAssets = new Set<string>()
+  const entrypointOutputByEntrypoint = new Map(
+    entrypointOutputs.map((entry) => [entry.entrypoint, entry]),
+  )
 
   // Collect all CSS assets
   for (const chunk of outputChunks) {
@@ -380,14 +382,12 @@ export async function analyzeManifest(
     const { cssFiles } = collectReferencedFiles(key, manifest)
 
     // Find the corresponding entrypoint output
-    const entryOutput = entrypointOutputs.find((entry) => {
-      const entrypointPath = value.src ?? key
-      const normalizedEntrypoint =
-        path.isAbsolute(entrypointPath) ?
-          path.relative(rootDir, entrypointPath)
-        : entrypointPath
-      return entry.entrypoint === normalizedEntrypoint
-    })
+    const entrypointPath = value.src ?? key
+    const normalizedEntrypoint =
+      path.isAbsolute(entrypointPath) ?
+        path.relative(rootDir, entrypointPath)
+      : entrypointPath
+    const entryOutput = entrypointOutputByEntrypoint.get(normalizedEntrypoint)
 
     if (entryOutput) {
       cssFiles.forEach((cssFile) => {

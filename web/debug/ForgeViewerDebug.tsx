@@ -494,7 +494,7 @@ function InlineStat({
   return (
     <div className="group border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/60 flex items-center gap-3 rounded-lg border p-3 transition-all duration-150">
       <div className="bg-brand/10 group-hover:bg-brand/15 flex size-9 shrink-0 items-center justify-center rounded transition-all duration-150">
-        <Icon className="text-brand h-4.5 w-4.5" />
+        <Icon className="text-brand size-4.5" />
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-foreground-alt text-xs select-none">{label}</p>
@@ -530,7 +530,7 @@ function EmptyStateSection() {
         note="Muted icon + text, text-foreground-alt/40"
       >
         <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-          <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
+          <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
             <LuListTodo className="size-3.5 shrink-0" />
             <span>No tasks linked to this job yet</span>
           </div>
@@ -756,7 +756,7 @@ function ViewerShellSection() {
           )}
           {tab === 2 && (
             <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-              <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
+              <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
                 <LuPlay className="size-3.5 shrink-0" />
                 <span>No passes recorded yet</span>
               </div>

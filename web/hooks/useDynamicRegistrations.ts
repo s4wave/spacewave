@@ -6,7 +6,7 @@ import type { Root } from '@s4wave/sdk/root'
 // registrations, maps them through a converter, and returns the output array.
 // Encapsulates the shared useWatchStateRpc + React.lazy pattern used by
 // both the viewer registry and config type registry.
-export function useDynamicRegistrations<TReq, TResp, TOutput>(
+export function useDynamicRegistrations<TReq, TResp, TReg, TOutput>(
   root: Root | null | undefined,
   createStream: (
     root: Root,
@@ -16,8 +16,8 @@ export function useDynamicRegistrations<TReq, TResp, TOutput>(
   emptyReq: TReq,
   reqEquals: (a: TReq, b: TReq) => boolean,
   respEquals: (a: TResp, b: TResp) => boolean,
-  getRegistrations: (resp: TResp | null) => unknown[],
-  mapper: (reg: never) => TOutput | null,
+  getRegistrations: (resp: TResp | null) => TReg[],
+  mapper: (reg: TReg) => TOutput | null,
 ): TOutput[] {
   const watchFn = useCallback(
     (_: TReq, signal: AbortSignal) => {
@@ -31,8 +31,9 @@ export function useDynamicRegistrations<TReq, TResp, TOutput>(
 
   return useMemo(() => {
     const regs = getRegistrations(watchState)
-    return regs
-      .map((r) => mapper(r as never))
-      .filter((c): c is TOutput => Boolean(c))
+    return regs.flatMap((r) => {
+      const item = mapper(r)
+      return item ? [item] : []
+    })
   }, [watchState, getRegistrations, mapper])
 }

@@ -155,7 +155,7 @@ export function Landing() {
 
     if (containerRef.current) {
       const container = containerRef.current
-      container.addEventListener('scroll', handleScroll)
+      container.addEventListener('scroll', handleScroll, { passive: true })
       window.addEventListener('resize', checkWidth)
 
       const resizeObserver = new ResizeObserver(checkWidth)

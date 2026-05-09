@@ -135,7 +135,10 @@ export function PathInput({
       </button>
 
       {pathSegments.map((segment, index) => (
-        <div key={index} className="flex items-center">
+        <div
+          key={pathSegments.slice(0, index + 1).join('/')}
+          className="flex items-center"
+        >
           <LuChevronRight className="text-foreground-alt size-3" />
           <button
             onClick={(e) => {

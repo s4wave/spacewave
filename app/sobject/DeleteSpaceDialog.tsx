@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useId, useState } from 'react'
 
 import {
   Dialog,
@@ -27,6 +27,7 @@ export function DeleteSpaceDialog({
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string>()
   const [confirmText, setConfirmText] = useState('')
+  const confirmInputId = useId()
 
   const handleOpenChange = useCallback(
     (next: boolean) => {
@@ -69,10 +70,14 @@ export function DeleteSpaceDialog({
         </DialogHeader>
 
         <div>
-          <label className="text-foreground-alt mb-1.5 block text-xs select-none">
+          <label
+            htmlFor={confirmInputId}
+            className="text-foreground-alt mb-1.5 block text-xs select-none"
+          >
             Space name
           </label>
           <input
+            id={confirmInputId}
             value={confirmText}
             onChange={(e) => setConfirmText(e.target.value)}
             placeholder={spaceName}

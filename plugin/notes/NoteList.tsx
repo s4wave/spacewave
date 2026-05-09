@@ -205,8 +205,10 @@ function NoteList({
     const name = prompt('Folder name')?.trim() ?? ''
     const parts = name
       .split('/')
-      .map((part) => part.trim())
-      .filter(Boolean)
+      .flatMap((part) => {
+        const trimmed = part.trim()
+        return trimmed ? [trimmed] : []
+      })
     if (parts.length === 0) return
 
     await handle.mkdirAll(parts)
@@ -275,7 +277,7 @@ function NoteList({
   if (entriesResource.loading) {
     return (
       <div className="text-muted-foreground flex h-full items-center justify-center text-xs">
-        Loading...
+        Loading…
       </div>
     )
   }
@@ -299,7 +301,7 @@ function NoteList({
   if (noteEntries.loading && mdEntries.length > 0) {
     return (
       <div className="text-muted-foreground flex h-full items-center justify-center text-xs">
-        Loading...
+        Loading…
       </div>
     )
   }

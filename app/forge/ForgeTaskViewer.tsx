@@ -84,7 +84,7 @@ export function ForgeTaskViewer({
     useForgeDecodedLinkedEntities(worldState, passes, Pass)
   const sortedPasses = useMemo(
     () =>
-      [...decodedPasses].sort((a, b) => {
+      decodedPasses.toSorted((a, b) => {
         const aNonce = Number(a.data.passNonce ?? 0n)
         const bNonce = Number(b.data.passNonce ?? 0n)
         if (aNonce !== bNonce) return bNonce - aNonce

@@ -202,7 +202,7 @@ export const CanvasNode = memo(function CanvasNode({
     return handlers
   }, [bind, hasInteractiveContent])
 
-  const handleClick = useCallback(
+  const handleNodeSelect = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation()
       const target = e.target
@@ -214,6 +214,16 @@ export const CanvasNode = memo(function CanvasNode({
       onSelectWithFocus(node.id, e.shiftKey, isContent ? 'content' : 'border')
     },
     [node.id, hasInteractiveContent, onSelectWithFocus],
+  )
+
+  const handleNodeKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return
+      e.preventDefault()
+      e.stopPropagation()
+      onSelectWithFocus(node.id, e.shiftKey, 'border')
+    },
+    [node.id, onSelectWithFocus],
   )
 
   const isOutlineOnly = scale < SEMANTIC_ZOOM_OUTLINE
@@ -413,9 +423,12 @@ export const CanvasNode = memo(function CanvasNode({
 
   return (
     <div
+      role="button"
+      tabIndex={0}
       data-canvas-node={node.id}
       {...wrappedBind()}
-      onClick={handleClick}
+      onClick={handleNodeSelect}
+      onKeyDown={handleNodeKeyDown}
       style={style}
       className={cn(
         'text-card-foreground border-foreground/6 pointer-events-auto box-border cursor-grab rounded-lg border transition-shadow duration-150 select-none',

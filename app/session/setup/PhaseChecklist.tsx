@@ -19,8 +19,8 @@ export interface PhaseChecklistProps {
 export function PhaseChecklist({ phases, className }: PhaseChecklistProps) {
   return (
     <div className={cn('space-y-2 px-2', className)}>
-      {phases.map((phase, i) => (
-        <PhaseChecklistRow key={i} {...phase} />
+      {phases.map((phase) => (
+        <PhaseChecklistRow key={phase.label} {...phase} />
       ))}
     </div>
   )

@@ -443,8 +443,8 @@ function countLeafNodes(nodes: ChildNode[]): number {
 }
 
 function sortNodes(nodes: ChildNode[]): ChildNode[] {
-  return [...nodes]
-    .sort((a, b) => {
+  return nodes
+    .toSorted((a, b) => {
       if (a.kind === 'entry' && b.kind !== 'entry') return 1
       if (a.kind !== 'entry' && b.kind === 'entry') return -1
       return a.label.localeCompare(b.label)

@@ -1,6 +1,6 @@
 // Loads the CF script on-demand when the first <Turnstile> mounts.
 
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
+import { useEffect, useImperativeHandle, useRef, type Ref } from 'react'
 
 // TURNSTILE_SITE_KEY is the Cloudflare Turnstile public site key.
 export const TURNSTILE_PROD_SITE_KEY = '0x4AAAAAACr84TeZC0nMMY9O'
@@ -70,6 +70,7 @@ function ensureScript() {
 }
 
 interface TurnstileProps {
+  ref?: Ref<TurnstileInstance>
   siteKey: string
 }
 
@@ -80,100 +81,98 @@ interface PendingTurnstileRequest {
 }
 
 // Turnstile renders a hidden Cloudflare Turnstile widget.
-export const Turnstile = forwardRef<TurnstileInstance, TurnstileProps>(
-  ({ siteKey }, ref) => {
-    const bypass = isTurnstileBypassed(siteKey)
-    const containerRef = useRef<HTMLDivElement>(null)
-    const widgetIdRef = useRef<string | null>(null)
-    const solvedRef = useRef(false)
-    const responseRef = useRef<string | undefined>(undefined)
-    const pendingRef = useRef<PendingTurnstileRequest[]>([])
+export function Turnstile({ ref, siteKey }: TurnstileProps) {
+  const bypass = isTurnstileBypassed(siteKey)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const widgetIdRef = useRef<string | null>(null)
+  const solvedRef = useRef(false)
+  const responseRef = useRef<string | undefined>(undefined)
+  const pendingRef = useRef<PendingTurnstileRequest[]>([])
 
-    useEffect(() => {
-      solvedRef.current = bypass
-      responseRef.current = bypass ? TURNSTILE_TEST_TOKEN : undefined
-      if (bypass) return
+  useEffect(() => {
+    solvedRef.current = bypass
+    responseRef.current = bypass ? TURNSTILE_TEST_TOKEN : undefined
+    if (bypass) return
 
-      let cancelled = false
-      void ensureScript()
-        .then(() => {
-          if (cancelled || !containerRef.current || !window.turnstile) return
-          const id = window.turnstile.render(containerRef.current, {
-            sitekey: siteKey,
-            size: 'flexible',
-            callback: (token) => {
-              solvedRef.current = true
-              responseRef.current = token
-              const pending = pendingRef.current
-              pendingRef.current = []
-              pending.forEach(({ resolve, timer }) => {
-                clearTimeout(timer)
-                resolve(token)
-              })
-            },
-          })
-          widgetIdRef.current = id ?? null
+    let cancelled = false
+    void ensureScript()
+      .then(() => {
+        if (cancelled || !containerRef.current || !window.turnstile) return
+        const id = window.turnstile.render(containerRef.current, {
+          sitekey: siteKey,
+          size: 'flexible',
+          callback: (token) => {
+            solvedRef.current = true
+            responseRef.current = token
+            const pending = pendingRef.current
+            pendingRef.current = []
+            pending.forEach(({ resolve, timer }) => {
+              clearTimeout(timer)
+              resolve(token)
+            })
+          },
         })
-        .catch(() => {
-          widgetIdRef.current = null
-        })
-      return () => {
-        cancelled = true
-        if (widgetIdRef.current && window.turnstile) {
-          window.turnstile.remove(widgetIdRef.current)
-          widgetIdRef.current = null
-        }
-        solvedRef.current = false
-        responseRef.current = undefined
-        const pending = pendingRef.current
-        pendingRef.current = []
-        pending.forEach(({ reject, timer }) => {
-          clearTimeout(timer)
-          reject(new Error('Turnstile unmounted'))
-        })
+        widgetIdRef.current = id ?? null
+      })
+      .catch(() => {
+        widgetIdRef.current = null
+      })
+    return () => {
+      cancelled = true
+      if (widgetIdRef.current && window.turnstile) {
+        window.turnstile.remove(widgetIdRef.current)
+        widgetIdRef.current = null
       }
-    }, [bypass, siteKey])
+      solvedRef.current = false
+      responseRef.current = undefined
+      const pending = pendingRef.current
+      pendingRef.current = []
+      pending.forEach(({ reject, timer }) => {
+        clearTimeout(timer)
+        reject(new Error('Turnstile unmounted'))
+      })
+    }
+  }, [bypass, siteKey])
 
-    useImperativeHandle(ref, () => ({
-      getResponse() {
-        if (bypass) return TURNSTILE_TEST_TOKEN
-        if (responseRef.current) return responseRef.current
-        if (!widgetIdRef.current || !window.turnstile) return undefined
-        return window.turnstile.getResponse(widgetIdRef.current)
-      },
+  useImperativeHandle(ref, () => ({
+    getResponse() {
+      if (bypass) return TURNSTILE_TEST_TOKEN
+      if (responseRef.current) return responseRef.current
+      if (!widgetIdRef.current || !window.turnstile) return undefined
+      return window.turnstile.getResponse(widgetIdRef.current)
+    },
 
-      async getResponsePromise(timeout = 30000) {
-        if (bypass) return TURNSTILE_TEST_TOKEN
-        if (responseRef.current) return responseRef.current
-        return await new Promise<string>((resolve, reject) => {
-          const req: PendingTurnstileRequest = {
-            resolve,
-            reject,
-            timer: setTimeout(() => {
-              pendingRef.current = pendingRef.current.filter((v) => v !== req)
-              reject(new Error('Turnstile timeout'))
-            }, timeout),
-          }
-          pendingRef.current.push(req)
-        })
-      },
-
-      reset() {
-        if (bypass) {
-          solvedRef.current = true
-          responseRef.current = TURNSTILE_TEST_TOKEN
-          return
+    async getResponsePromise(timeout = 30000) {
+      if (bypass) return TURNSTILE_TEST_TOKEN
+      if (responseRef.current) return responseRef.current
+      return await new Promise<string>((resolve, reject) => {
+        const req: PendingTurnstileRequest = {
+          resolve,
+          reject,
+          timer: setTimeout(() => {
+            pendingRef.current = pendingRef.current.filter((v) => v !== req)
+            reject(new Error('Turnstile timeout'))
+          }, timeout),
         }
-        if (!widgetIdRef.current || !window.turnstile) return
-        solvedRef.current = false
-        responseRef.current = undefined
-        window.turnstile.reset(widgetIdRef.current)
-      },
-    }))
+        pendingRef.current.push(req)
+      })
+    },
 
-    if (bypass) return null
-    return <div ref={containerRef} />
-  },
-)
+    reset() {
+      if (bypass) {
+        solvedRef.current = true
+        responseRef.current = TURNSTILE_TEST_TOKEN
+        return
+      }
+      if (!widgetIdRef.current || !window.turnstile) return
+      solvedRef.current = false
+      responseRef.current = undefined
+      window.turnstile.reset(widgetIdRef.current)
+    },
+  }))
+
+  if (bypass) return null
+  return <div ref={containerRef} />
+}
 
 Turnstile.displayName = 'Turnstile'

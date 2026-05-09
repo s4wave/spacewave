@@ -1,9 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  useMemo,
-  type ReactNode,
-} from 'react'
+import React, { createContext, use, useMemo, type ReactNode } from 'react'
 import {
   type WatchOnboardingStatusResponse,
   BillingStatus,
@@ -72,7 +67,7 @@ const Provider: React.FC<{
 }
 
 const useSpacewaveOnboardingContext = (): SpacewaveOnboardingContextValue => {
-  const context = useContext(Context)
+  const context = use(Context)
   if (!context) {
     throw new Error(
       'SpacewaveOnboarding context not found. Wrap component in SpacewaveOnboardingContext.Provider.',
@@ -84,7 +79,7 @@ const useSpacewaveOnboardingContext = (): SpacewaveOnboardingContextValue => {
 // useSpacewaveOnboardingContextSafe returns the context value or null if not available.
 const useSpacewaveOnboardingContextSafe =
   (): SpacewaveOnboardingContextValue | null => {
-    return useContext(Context)
+    return use(Context)
   }
 
 // SpacewaveOnboardingContext provides Onboarding Status route state to

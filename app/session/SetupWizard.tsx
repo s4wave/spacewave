@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import {
   LuArrowRight,
   LuCheck,
@@ -60,6 +60,8 @@ function LocalSetupWizard({
     null,
   )
   const downloadDesktopApp = useDownloadDesktopApp()
+  const pinInputId = useId()
+  const confirmPinInputId = useId()
   const {
     loading: onboardingLoading,
     providerChoiceComplete,
@@ -243,10 +245,14 @@ function LocalSetupWizard({
               {wiz.lockMode === 'pin' && (
                 <div className="space-y-3">
                   <div>
-                    <label className="text-foreground-alt mb-1.5 block text-xs select-none">
+                    <label
+                      htmlFor={pinInputId}
+                      className="text-foreground-alt mb-1.5 block text-xs select-none"
+                    >
                       PIN
                     </label>
                     <input
+                      id={pinInputId}
                       type="password"
                       value={wiz.pin}
                       onChange={(e) => wiz.setPin(e.target.value)}
@@ -255,10 +261,14 @@ function LocalSetupWizard({
                     />
                   </div>
                   <div>
-                    <label className="text-foreground-alt mb-1.5 block text-xs select-none">
+                    <label
+                      htmlFor={confirmPinInputId}
+                      className="text-foreground-alt mb-1.5 block text-xs select-none"
+                    >
                       Confirm PIN
                     </label>
                     <input
+                      id={confirmPinInputId}
                       type="password"
                       value={wiz.confirmPin}
                       onChange={(e) => wiz.setConfirmPin(e.target.value)}

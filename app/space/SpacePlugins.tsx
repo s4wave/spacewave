@@ -46,7 +46,7 @@ export function SpacePlugins() {
     return (
       <div className="text-foreground-alt border-foreground/8 flex items-center justify-center rounded-lg border bg-transparent px-6 py-8 text-center">
         <p className="text-foreground-alt/50 text-xs select-none">
-          Loading plugin status...
+          Loading plugin status…
         </p>
       </div>
     )
@@ -174,7 +174,7 @@ function LoadBadge({ loaded }: { loaded: boolean }) {
     )
   }
   return (
-    <span className="rounded-full bg-slate-800/70 px-2 py-0.5 text-xs text-slate-300">
+    <span className="rounded-full bg-zinc-800/70 px-2 py-0.5 text-xs text-zinc-300">
       Loading
     </span>
   )

@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useRef } from 'react'
 import { LuPlus, LuServer, LuTrash } from 'react-icons/lu'
 
 import type { ConfigEditorProps } from '@s4wave/web/configtype/configtype.js'
@@ -62,6 +62,8 @@ export function ForgeJobConfigEditor({
   )
 
   const taskDefs = useMemo(() => value.taskDefs ?? [], [value.taskDefs])
+  const taskKeyMapRef = useRef(new WeakMap<object, string>())
+  const taskKeyCounterRef = useRef(0)
 
   const handleSelectCluster = useCallback(
     (clusterKey: string) => {
@@ -93,6 +95,14 @@ export function ForgeJobConfigEditor({
     },
     [taskDefs, value, onValueChange],
   )
+
+  const getTaskKey = useCallback((task: object) => {
+    const existing = taskKeyMapRef.current.get(task)
+    if (existing) return existing
+    const next = `task-${taskKeyCounterRef.current++}`
+    taskKeyMapRef.current.set(task, next)
+    return next
+  }, [])
 
   return (
     <div className="space-y-3">
@@ -152,7 +162,7 @@ export function ForgeJobConfigEditor({
         </div>
         <div className="border-foreground/6 bg-background-card/30 space-y-2 rounded-lg border p-3.5">
           {taskDefs.map((task, i) => (
-            <div key={i} className="flex items-center gap-2">
+            <div key={getTaskKey(task)} className="flex items-center gap-2">
               <Input
                 value={task.name ?? ''}
                 onChange={(e) => handleUpdateTaskDef(i, e.target.value)}

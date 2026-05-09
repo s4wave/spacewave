@@ -64,12 +64,6 @@ interface ForgeDashboardActivitySource {
   }>
 }
 
-interface ExecutionLogEntry {
-  timestamp?: Date
-  level?: string
-  message?: string
-}
-
 export interface ForgeDashboardActivityEntry {
   id: string
   objectKey?: string
@@ -118,16 +112,17 @@ function describeActivitySource(
         typeId: entity.typeId,
         timestamp: execution.timestamp ?? undefined,
         state: executionStateLabels[execution.executionState ?? 0] ?? 'UNKNOWN',
-        logs: (execution.logEntries ?? [])
-          .filter(
-            (entry): entry is ExecutionLogEntry & { timestamp: Date } =>
-              !!entry.timestamp,
-          )
-          .map((entry) => ({
-            timestamp: entry.timestamp,
-            level: entry.level ?? 'info',
-            message: entry.message ?? '',
-          })),
+        logs: (execution.logEntries ?? []).flatMap((entry) =>
+          entry.timestamp ?
+            [
+              {
+                timestamp: entry.timestamp,
+                level: entry.level ?? 'info',
+                message: entry.message ?? '',
+              },
+            ]
+          : [],
+        ),
       }
     }
   }

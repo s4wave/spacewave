@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo } from 'react'
+import { createContext, use, useMemo } from 'react'
 
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
@@ -66,7 +66,7 @@ export function AccountDashboardStateProvider({
 export function useAccountDashboardState(
   account: Resource<Account> | null | undefined,
 ): AccountDashboardState | null {
-  const state = useContext(AccountDashboardStateContext)
+  const state = use(AccountDashboardStateContext)
   if (!account || state?.account !== account) {
     return null
   }

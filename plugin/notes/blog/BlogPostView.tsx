@@ -63,7 +63,7 @@ export function BlogPostView({
           ))}
         </div>
 
-        <h1 className="text-foreground mb-4 text-2xl leading-snug font-bold tracking-tight @lg:text-3xl @lg:leading-snug">
+        <h1 className="text-foreground mb-4 text-2xl leading-snug font-semibold tracking-tight @lg:text-3xl @lg:leading-snug">
           {post.title}
         </h1>
 

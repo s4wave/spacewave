@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useId, useState } from 'react'
 import {
   LuArrowRight,
   LuCheck,
@@ -46,6 +46,8 @@ export function CloudSetupWizard({
     null,
   )
   const cred = useCredentialProof()
+  const pinInputId = useId()
+  const confirmPinInputId = useId()
 
   const backupDone = wiz.backupComplete
   const pinDone = wiz.lockComplete
@@ -238,10 +240,14 @@ export function CloudSetupWizard({
               {wiz.lockMode === 'pin' && (
                 <div className="space-y-3">
                   <div>
-                    <label className="text-foreground-alt mb-1.5 block text-xs select-none">
+                    <label
+                      htmlFor={pinInputId}
+                      className="text-foreground-alt mb-1.5 block text-xs select-none"
+                    >
                       PIN
                     </label>
                     <input
+                      id={pinInputId}
                       type="password"
                       value={wiz.pin}
                       onChange={(e) => wiz.setPin(e.target.value)}
@@ -250,10 +256,14 @@ export function CloudSetupWizard({
                     />
                   </div>
                   <div>
-                    <label className="text-foreground-alt mb-1.5 block text-xs select-none">
+                    <label
+                      htmlFor={confirmPinInputId}
+                      className="text-foreground-alt mb-1.5 block text-xs select-none"
+                    >
                       Confirm PIN
                     </label>
                     <input
+                      id={confirmPinInputId}
                       type="password"
                       value={wiz.confirmPin}
                       onChange={(e) => wiz.setConfirmPin(e.target.value)}

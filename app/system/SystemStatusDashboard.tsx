@@ -2401,10 +2401,11 @@ function DirectiveRow({
 }) {
   return (
     <div>
-      <div
+      <button
+        type="button"
         onClick={onToggle}
         className={cn(
-          'hover:bg-foreground/[0.02] flex cursor-pointer items-center gap-2 px-3 py-1 transition-colors',
+          'hover:bg-foreground/[0.02] flex w-full cursor-pointer items-center gap-2 px-3 py-1 text-left transition-colors',
           fresh && 'bg-warning/6 ring-warning/20 ring-1 ring-inset',
         )}
       >
@@ -2428,11 +2429,14 @@ function DirectiveRow({
         <span className="text-foreground-alt/40 w-8 shrink-0 text-right font-mono text-[0.6rem] tabular-nums">
           {directive.count}
         </span>
-      </div>
+      </button>
       {expanded && (
         <div className="bg-foreground/[0.01] border-foreground/4 border-t">
-          {directive.idents.map((ident, i) => (
-            <div key={i} className="flex items-center gap-1.5 py-0.5 pr-3 pl-9">
+          {directive.idents.map((ident) => (
+            <div
+              key={ident}
+              className="flex items-center gap-1.5 py-0.5 pr-3 pl-9"
+            >
               <span className="bg-warning/20 size-1 shrink-0 rounded-full" />
               <span className="text-foreground-alt/50 truncate font-mono text-[0.55rem]">
                 {ident}

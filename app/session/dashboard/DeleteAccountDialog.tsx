@@ -88,7 +88,7 @@ export function DeleteAccountDialog({
                 'border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20',
               )}
             >
-              Continue
+              Review deletion
             </button>
           </DialogFooter>
         )}

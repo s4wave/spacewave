@@ -1,6 +1,6 @@
 import React, {
   createContext,
-  useContext,
+  use,
   useCallback,
   useEffect,
   useMemo,
@@ -230,7 +230,7 @@ export function StateNamespaceProvider({
   stateNamespace?: StateNamespace
   stateAtomAccessor?: StateAtomAccessor
 }) {
-  const parentContext = useContext(StateNamespaceContext)
+  const parentContext = use(StateNamespaceContext)
   const inheritedNamespace = stateNamespace?.namespace
   const namespace = useMemoPath(inheritedNamespace ?? namespaceProp)
   const contextValue = useMemo(() => {
@@ -284,7 +284,7 @@ export function useStateNamespace(
   segments?: string[],
   partial?: Partial<StateNamespace>,
 ): StateNamespace {
-  const context = useContext(StateNamespaceContext)
+  const context = use(StateNamespaceContext)
   const contextNamespace = context?.namespace ?? []
   const segmentPath = segments ?? []
 
@@ -313,7 +313,7 @@ export function useStateNamespace(
  * @returns {StateNamespace} The parent state namespace or an empty StateNamespace
  */
 export function useParentStateNamespace(): StateNamespace {
-  const context = useContext(StateNamespaceContext)
+  const context = use(StateNamespaceContext)
   return useMemo(
     () => context ?? { namespace: [], stateAtom: atom<StateType>({}) },
     [context],
@@ -580,8 +580,7 @@ function setDeepValue(
  * Displays the current state for the active namespace
  */
 export function StateDebugger() {
-  const { namespace = [], stateAtom = null } =
-    useContext(StateNamespaceContext) ?? {}
+  const { namespace = [], stateAtom = null } = use(StateNamespaceContext) ?? {}
   const state = useSyncExternalStore(
     (callback) => stateAtom?.subscribe(callback) ?? (() => {}),
     () => stateAtom?.get() ?? {},

@@ -23,7 +23,7 @@ function parseFrontmatter(raw: string): {
   // Simple YAML parser for flat frontmatter.
   const data: Record<string, unknown> = {}
   for (const line of yamlBlock.split('\n')) {
-    const colonIdx = line.indexOf(':')
+    const colonIdx = line.search(':')
     if (colonIdx === -1) continue
     const key = line.slice(0, colonIdx).trim()
     let value: unknown = line.slice(colonIdx + 1).trim()
@@ -37,8 +37,10 @@ function parseFrontmatter(raw: string): {
       value = value
         .slice(1, -1)
         .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean)
+        .flatMap((s) => {
+          const part = s.trim()
+          return part ? [part] : []
+        })
     }
     // Parse booleans.
     if (value === 'true') value = true

@@ -100,8 +100,9 @@ export function ForgeClusterViewer({
   const workerExecutionCounts = useMemo(() => {
     const counts = new Map<string, number>()
     for (const worker of snapshot.workers) {
+      const peerIds = new Set(worker.peerIds)
       const count = snapshot.executions.filter((execution) =>
-        worker.peerIds.includes(execution.data.peerId ?? ''),
+        peerIds.has(execution.data.peerId ?? ''),
       ).length
       counts.set(worker.objectKey, count)
     }
@@ -204,7 +205,7 @@ export function ForgeClusterViewer({
             >
               {snapshotLoading && (
                 <div className="text-foreground-alt/50 text-xs">
-                  Loading task breakdown...
+                  Loading task breakdown…
                 </div>
               )}
               {!snapshotLoading && snapshot.tasks.length === 0 && (

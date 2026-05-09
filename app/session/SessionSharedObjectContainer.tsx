@@ -619,7 +619,8 @@ export function SessionSharedObjectContainer() {
     const orgs = orgListCtx?.organizations ?? []
     for (const org of orgs) {
       if (!org.id || !org.spaceIds) continue
-      if (org.spaceIds.includes(sharedObjectId)) return org.id
+      const spaceIds = new Set(org.spaceIds)
+      if (spaceIds.has(sharedObjectId)) return org.id
     }
     return ''
   }, [orgListCtx, parentPaths, sharedObjectId])

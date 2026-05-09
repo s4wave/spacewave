@@ -179,8 +179,8 @@ export function Licenses() {
       if (!map.has(spdx)) map.set(spdx, [])
       map.get(spdx)!.push(entry)
     }
-    return [...map.entries()]
-      .sort((a, b) => b[1].length - a[1].length)
+    return Array.from(map.entries())
+      .toSorted((a, b) => b[1].length - a[1].length)
       .map(([spdx, entries]) => ({
         spdx,
         entries: entries.sort((a, b) => {

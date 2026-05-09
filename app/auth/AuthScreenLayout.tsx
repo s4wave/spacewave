@@ -1,10 +1,9 @@
 import type React from 'react'
-import { forwardRef } from 'react'
 
 import { cn } from '@s4wave/web/style/utils.js'
 import spacewaveIcon from '@s4wave/web/images/spacewave-icon.png'
 
-export interface AuthScreenLayoutProps extends React.ComponentPropsWithoutRef<'div'> {
+export interface AuthScreenLayoutProps extends React.ComponentPropsWithRef<'div'> {
   intro: React.ReactNode
   topLeft?: React.ReactNode
   topRight?: React.ReactNode
@@ -17,28 +16,21 @@ export interface AuthScreenLayoutProps extends React.ComponentPropsWithoutRef<'d
 
 // AuthScreenLayout renders the shared auth page shell with container-aware
 // intro and form placement.
-export const AuthScreenLayout = forwardRef<
-  HTMLDivElement,
-  AuthScreenLayoutProps
->(function AuthScreenLayout(
-  {
-    intro,
-    topLeft,
-    topRight,
-    bottomRight,
-    alwaysShowIntro,
-    introClassName,
-    contentClassName,
-    shellClassName,
-    children,
-    className,
-    ...props
-  },
-  ref,
-) {
+export function AuthScreenLayout({
+  intro,
+  topLeft,
+  topRight,
+  bottomRight,
+  alwaysShowIntro,
+  introClassName,
+  contentClassName,
+  shellClassName,
+  children,
+  className,
+  ...props
+}: AuthScreenLayoutProps) {
   return (
     <div
-      ref={ref}
       className={cn(
         'bg-background-landing [container-type:size] relative flex w-full flex-1 flex-col items-center justify-center gap-6 overflow-y-auto outline-none',
         'auth-very-short:justify-start',
@@ -95,4 +87,4 @@ export const AuthScreenLayout = forwardRef<
       </div>
     </div>
   )
-})
+}

@@ -1,9 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  useMemo,
-  type ReactNode,
-} from 'react'
+import React, { createContext, use, useMemo, type ReactNode } from 'react'
 import type {
   OrganizationInfo,
   WatchOrganizationsResponse,
@@ -35,7 +30,7 @@ const Provider: React.FC<{
 }
 
 const useSpacewaveOrgListContext = (): SpacewaveOrgListContextValue => {
-  const context = useContext(Context)
+  const context = use(Context)
   if (!context) {
     throw new Error(
       'SpacewaveOrgList context not found. Wrap component in SpacewaveOrgListContext.Provider.',
@@ -46,7 +41,7 @@ const useSpacewaveOrgListContext = (): SpacewaveOrgListContextValue => {
 
 const useSpacewaveOrgListContextSafe =
   (): SpacewaveOrgListContextValue | null => {
-    return useContext(Context)
+    return use(Context)
   }
 
 // SpacewaveOrgListContext provides the org list to spacewave session children.

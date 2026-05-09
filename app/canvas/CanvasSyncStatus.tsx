@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useReducer, useRef } from 'react'
 
 import { cn } from '@s4wave/web/style/utils.js'
 
@@ -13,10 +13,36 @@ const DONE_VISIBLE_MS = 1200
 // FADE_DURATION_MS is the CSS fade-out duration.
 const FADE_DURATION_MS = 500
 
+interface SyncStatusState {
+  showDone: boolean
+  fading: boolean
+}
+
+type SyncStatusAction =
+  | { type: 'show-done' }
+  | { type: 'fade' }
+  | { type: 'hide' }
+
+function syncStatusReducer(
+  state: SyncStatusState,
+  action: SyncStatusAction,
+): SyncStatusState {
+  switch (action.type) {
+    case 'show-done':
+      return { showDone: true, fading: false }
+    case 'fade':
+      return { ...state, fading: true }
+    case 'hide':
+      return { showDone: false, fading: false }
+  }
+}
+
 // CanvasSyncStatus renders a subtle sync indicator at the bottom-left of the canvas.
 export function CanvasSyncStatus({ pending }: CanvasSyncStatusProps) {
-  const [showDone, setShowDone] = useState(false)
-  const [fading, setFading] = useState(false)
+  const [state, dispatch] = useReducer(syncStatusReducer, {
+    showDone: false,
+    fading: false,
+  })
   const prevPendingRef = useRef(pending)
 
   useEffect(() => {
@@ -26,14 +52,16 @@ export function CanvasSyncStatus({ pending }: CanvasSyncStatusProps) {
     if (!wasSyncing || pending > 0) return
 
     // Transitioned from syncing to idle: show "Sync complete" then fade.
-    setShowDone(true)
-    setFading(false)
+    dispatch({ type: 'show-done' })
 
-    const fadeTimer = setTimeout(() => setFading(true), DONE_VISIBLE_MS)
-    const hideTimer = setTimeout(() => {
-      setShowDone(false)
-      setFading(false)
-    }, DONE_VISIBLE_MS + FADE_DURATION_MS)
+    const fadeTimer = setTimeout(
+      () => dispatch({ type: 'fade' }),
+      DONE_VISIBLE_MS,
+    )
+    const hideTimer = setTimeout(
+      () => dispatch({ type: 'hide' }),
+      DONE_VISIBLE_MS + FADE_DURATION_MS,
+    )
 
     return () => {
       clearTimeout(fadeTimer)
@@ -41,13 +69,13 @@ export function CanvasSyncStatus({ pending }: CanvasSyncStatusProps) {
     }
   }, [pending])
 
-  if (pending === 0 && !showDone) return null
+  if (pending === 0 && !state.showDone) return null
 
   return (
     <div
       className={cn(
         'text-foreground-alt/50 pointer-events-none absolute bottom-10 left-4 flex items-center gap-1.5 font-mono text-xs transition-opacity',
-        fading && 'opacity-0',
+        state.fading && 'opacity-0',
       )}
       style={{ transitionDuration: `${FADE_DURATION_MS}ms` }}
     >

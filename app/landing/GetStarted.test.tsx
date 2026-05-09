@@ -53,13 +53,14 @@ vi.mock('@s4wave/web/ui/command.js', () => ({
       {children}
     </section>
   ),
-  CommandInput: React.forwardRef<
-    HTMLInputElement,
-    {
-      placeholder?: string
-      onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void
-    }
-  >(function CommandInputMock(props, ref) {
+  CommandInput: ({
+    ref,
+    ...props
+  }: {
+    placeholder?: string
+    onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void
+    ref?: React.Ref<HTMLInputElement>
+  }) => {
     return (
       <input
         ref={ref}
@@ -67,7 +68,7 @@ vi.mock('@s4wave/web/ui/command.js', () => ({
         onKeyDown={props.onKeyDown}
       />
     )
-  }),
+  },
   CommandItem: ({
     children,
     disabled,

@@ -119,8 +119,10 @@ test.describe('worker communication lifecycle', () => {
 test.describe('cross-tab communication', () => {
   test('two tabs establish cross-tab channels', async ({ context }) => {
     // Open two pages in the same browser context (shared ServiceWorker).
-    const pageA = await context.newPage()
-    const pageB = await context.newPage()
+    const [pageA, pageB] = await Promise.all([
+      context.newPage(),
+      context.newPage(),
+    ])
 
     // Collect ALL console messages for debugging.
     const allA: string[] = []
@@ -165,8 +167,10 @@ test.describe('singleton coordinator (no SharedWorker)', () => {
   test('only one tab runs plugins', async ({ browser }) => {
     const context = await newDedicatedRuntimeContext(browser)
 
-    const pageA = await context.newPage()
-    const pageB = await context.newPage()
+    const [pageA, pageB] = await Promise.all([
+      context.newPage(),
+      context.newPage(),
+    ])
 
     const pageALock = waitForConsole(pageA, 'acquired plugin singleton lock')
     const pageAStart = waitForConsole(pageA, 'starting native plugin')
@@ -196,8 +200,10 @@ test.describe('singleton coordinator (no SharedWorker)', () => {
   test('singleton handoff on tab close', async ({ browser }) => {
     const context = await newDedicatedRuntimeContext(browser)
 
-    const pageA = await context.newPage()
-    const pageB = await context.newPage()
+    const [pageA, pageB] = await Promise.all([
+      context.newPage(),
+      context.newPage(),
+    ])
 
     const pageAStart = waitForConsole(pageA, 'starting native plugin')
     const pageBWait = waitForConsole(pageB, 'waiting for plugin singleton lock')

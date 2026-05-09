@@ -1,5 +1,5 @@
 // contexts provides pre-created resource contexts for Root, Session, and Provider resources.
-import { createContext, useContext } from 'react'
+import { createContext, use } from 'react'
 
 import { Root } from '@s4wave/sdk/root'
 import { Provider } from '@s4wave/sdk/provider'
@@ -44,7 +44,7 @@ function useSessionRouteContext(): {
   basePath: string
   navigate: (to: To) => void
 } {
-  const ctx = useContext(SessionRouteContext)
+  const ctx = use(SessionRouteContext)
   if (!ctx) {
     throw new Error(
       'useSessionRouteContext must be used within SessionRouteContext',

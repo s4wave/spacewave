@@ -192,7 +192,7 @@ export function ForgeJobViewer({
     if (taskEdgesLoading && taskEdges.length === 0) {
       return (
         <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-          <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
+          <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
             <LuGitBranch className="size-3.5 shrink-0" />
             <span>Loading dependency graph…</span>
           </div>
@@ -202,7 +202,7 @@ export function ForgeJobViewer({
     if (decodedTasks.length === 0) {
       return (
         <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-          <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
+          <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
             <LuListTodo className="size-3.5 shrink-0" />
             <span>No tasks in job</span>
           </div>
@@ -212,7 +212,7 @@ export function ForgeJobViewer({
     if (taskEdges.length === 0) {
       return (
         <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-          <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
+          <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
             <LuGitBranch className="size-3.5 shrink-0" />
             <span>No task dependency edges defined yet</span>
           </div>

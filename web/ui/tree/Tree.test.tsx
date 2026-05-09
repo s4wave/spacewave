@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, waitFor, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { Tree, TreeNode } from './index.js'
+import { Tree } from './Tree.js'
+import type { TreeNode } from './TreeNode.js'
 
 interface TestData {
   value: number

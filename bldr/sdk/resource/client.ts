@@ -762,10 +762,11 @@ export class Client {
           if (signal.aborted) return
 
           // Handle initialization message
-          if (msg.body?.case === 'init') {
+          const body = msg.body
+          if (body?.case === 'init') {
             initialized = true
-            const clientHandleId = msg.body.value.clientHandleId ?? 0
-            const rootResourceId = msg.body.value.rootResourceId ?? 0
+            const clientHandleId = body.value.clientHandleId ?? 0
+            const rootResourceId = body.value.rootResourceId ?? 0
 
             const state: ClientInitState = { clientHandleId, rootResourceId }
 

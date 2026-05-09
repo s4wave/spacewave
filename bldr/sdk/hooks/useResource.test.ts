@@ -1,6 +1,5 @@
-import React from 'react'
+import React, { act } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { act } from 'react-dom/test-utils'
 import { createRoot, type Root } from 'react-dom/client'
 import { ResourcesProvider } from './ResourcesContext.js'
 import { useResource } from './useResource.js'
@@ -199,17 +198,13 @@ describe('useResource', () => {
     container = document.createElement('div')
     document.body.appendChild(container)
     root = createRoot(container)
+    const props = {
+      client: client as never,
+      children: React.createElement(TestHandle, { factory }),
+    }
 
     await act(async () => {
-      root?.render(
-        React.createElement(
-          ResourcesProvider,
-          {
-            client: client as never,
-            children: React.createElement(TestHandle, { factory }),
-          },
-        ),
-      )
+      root?.render(React.createElement(ResourcesProvider, props))
       await flush()
     })
 
@@ -235,20 +230,16 @@ describe('useResource', () => {
     container = document.createElement('div')
     document.body.appendChild(container)
     root = createRoot(container)
+    const props = {
+      client: client as never,
+      children: React.createElement(TestHandle, {
+        factory,
+        retryOnReleasedResource: false,
+      }),
+    }
 
     await act(async () => {
-      root?.render(
-        React.createElement(
-          ResourcesProvider,
-          {
-            client: client as never,
-            children: React.createElement(TestHandle, {
-              factory,
-              retryOnReleasedResource: false,
-            }),
-          },
-        ),
-      )
+      root?.render(React.createElement(ResourcesProvider, props))
       await flush()
     })
 

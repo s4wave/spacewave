@@ -109,9 +109,10 @@ function normalizeFrontmatter(frontmatter: Frontmatter): Frontmatter {
 function normalizeStringArray(value: unknown): string[] | undefined {
   if (value === undefined || value === null) return undefined
   if (Array.isArray(value)) {
-    const values = value
-      .map(normalizeStringValue)
-      .filter((item): item is string => !!item)
+    const values = value.flatMap((item) => {
+      const normalized = normalizeStringValue(item)
+      return normalized ? [normalized] : []
+    })
     return values.length > 0 ? values : undefined
   }
   const text = normalizeStringValue(value)

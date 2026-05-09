@@ -4,6 +4,7 @@ import { Plugin } from 'vite'
 
 // List of file extensions that should be remapped to .mjs
 const JS_EXTENSIONS = ['.js', '.cjs', '.jsx', '.ts', '.tsx']
+const JS_EXTENSION_SET = new Set(JS_EXTENSIONS)
 
 export interface WebPkgRemapPluginConfig {
   // List of packages that can be bundled as web pkgs
@@ -26,7 +27,7 @@ function remapWebPkgSpecifier(
       let subPath = id === pkg ? '' : id.substring(pkg.length + 1)
       if (subPath) {
         const ext = path.extname(subPath)
-        if (JS_EXTENSIONS.includes(ext)) {
+        if (JS_EXTENSION_SET.has(ext)) {
           subPath = subPath.substring(0, subPath.length - ext.length) + '.mjs'
         }
       }
@@ -49,6 +50,14 @@ export function createWebPkgRemapPlugin(
   config: WebPkgRemapPluginConfig,
 ): Plugin {
   const debug = config.debug || false
+  const webPkgIDSet = new Set(config.webPkgIDs)
+  const webPkgPatterns = config.webPkgIDs.map((pkg) => ({
+    pkg,
+    pattern: new RegExp(
+      `((?:from|import)\\s*\\(?\\s*["'])${escapeRegExp(pkg)}(/[^"']*)?(?=["'])`,
+      'g',
+    ),
+  }))
 
   // Resolved root directories for each web pkg, populated in configResolved.
   const webPkgRoots: Record<string, string> = {}
@@ -69,7 +78,7 @@ export function createWebPkgRemapPlugin(
         for (const alias of aliases) {
           const find =
             typeof alias.find === 'string' ? alias.find : alias.find?.source
-          if (find && config.webPkgIDs.includes(find) && alias.replacement) {
+          if (find && webPkgIDSet.has(find) && alias.replacement) {
             const resolved = path.isAbsolute(alias.replacement)
               ? alias.replacement
               : path.resolve(root, alias.replacement)
@@ -204,15 +213,7 @@ export function createWebPkgRemapPlugin(
       let modified = false
       let result = code
 
-      for (const pkg of config.webPkgIDs) {
-        // Match both named imports and side-effect imports:
-        //   from "@s4wave/web/..."      (named/namespace imports)
-        //   import "@s4wave/web/..."     (side-effect, e.g. CSS)
-        //   import("@s4wave/web/...")     (dynamic import)
-        const pattern = new RegExp(
-          `((?:from|import)\\s*\\(?\\s*["'])${escapeRegExp(pkg)}(/[^"']*)?(?=["'])`,
-          'g',
-        )
+      for (const { pattern, pkg } of webPkgPatterns) {
         result = result.replace(pattern, (_match, prefix, subPathMatch) => {
           const fullId = pkg + (subPathMatch ?? '')
           const remap = remapWebPkgSpecifier(fullId, config.webPkgIDs)

@@ -4,11 +4,10 @@
 
 import React, {
   useState,
-  forwardRef,
-  ForwardedRef,
   useCallback,
   useEffect,
   useRef,
+  type Ref,
 } from 'react'
 import {
   Layout,
@@ -21,8 +20,8 @@ import {
 import { LuMaximize2, LuMinimize2 } from 'react-icons/lu'
 
 const icons: ILayoutProps['icons'] = {
-  maximize: <LuMaximize2 className="text-foreground-alt h-[1em] w-[1em]" />,
-  restore: <LuMinimize2 className="text-foreground-alt h-[1em] w-[1em]" />,
+  maximize: <LuMaximize2 className="text-foreground-alt size-[1em]" />,
+  restore: <LuMinimize2 className="text-foreground-alt size-[1em]" />,
 }
 
 // getSelectedTabIdFromModel extracts the selected tab ID for each tabset.
@@ -84,102 +83,100 @@ interface LocalStorageLayoutProps extends Omit<
   onModelChange?: (next: Model) => void
   factory: (node: TabNode, model: Model) => React.ReactNode
   clearStateNonce: number
+  ref?: Ref<Layout>
   // syncSelection controls whether tab selection syncs across windows (default: false)
   syncSelection?: boolean
 }
 
-export const LocalStorageLayout: React.FC<LocalStorageLayoutProps> = forwardRef(
-  (props: LocalStorageLayoutProps, ref: ForwardedRef<Layout>) => {
-    const { defaultModel, onModelChange, factory, ...otherProps } = props
-    const syncSelection = props.syncSelection ?? false
+export function LocalStorageLayout(props: LocalStorageLayoutProps) {
+  const { defaultModel, factory, onModelChange, ref, ...otherProps } = props
+  const syncSelection = props.syncSelection ?? false
 
-    // Track current selection by tab ID to preserve it during cross-window sync
-    const selectionRef = useRef<Record<string, string>>({})
-    // Track if we've called onModelChange for initial mount
-    const mountedRef = useRef(false)
+  // Track current selection by tab ID to preserve it during cross-window sync
+  const selectionRef = useRef<Record<string, string>>({})
+  // Track if we've called onModelChange for initial mount
+  const mountedRef = useRef(false)
 
-    const [layoutModel, setLayoutModel] = useState<Model>(() => {
-      let serializedModel: string | null =
-        localStorage[props.storageKey] ?? null
-      if (typeof serializedModel !== 'string') {
-        serializedModel = null
-      }
-      let model: Model | null = null
-      if (serializedModel) {
-        try {
-          const jsonObj = JSON.parse(serializedModel)
-          if (jsonObj.clearStateNonce !== props.clearStateNonce) {
-            model = null
-          } else {
-            delete jsonObj.clearStateNonce
-            model = Model.fromJson(jsonObj)
-          }
-        } catch {
+  const [layoutModel, setLayoutModel] = useState<Model>(() => {
+    let serializedModel: string | null = localStorage[props.storageKey] ?? null
+    if (typeof serializedModel !== 'string') {
+      serializedModel = null
+    }
+    let model: Model | null = null
+    if (serializedModel) {
+      try {
+        const jsonObj = JSON.parse(serializedModel)
+        if (jsonObj.clearStateNonce !== props.clearStateNonce) {
           model = null
-        }
-      }
-      return model ?? Model.fromJson(defaultModel)
-    })
-
-    const handleModelChange = useCallback(
-      (next: Model) => {
-        setLayoutModel(next)
-        // Update selection ref with tab IDs
-        selectionRef.current = getSelectedTabIdFromModel(next)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const nextJson = next.toJson() as any
-        nextJson.clearStateNonce = props.clearStateNonce
-        localStorage[props.storageKey] = JSON.stringify(nextJson)
-        onModelChange?.(next)
-      },
-      [props.storageKey, props.clearStateNonce, onModelChange],
-    )
-
-    const tabFactory = useCallback(
-      (tab: TabNode) => factory(tab, layoutModel),
-      [factory, layoutModel],
-    )
-
-    // Call onModelChange with the initial model on mount so parent has access immediately
-    useEffect(() => {
-      if (mountedRef.current) return
-      mountedRef.current = true
-      selectionRef.current = getSelectedTabIdFromModel(layoutModel)
-      onModelChange?.(layoutModel)
-    }, [layoutModel, onModelChange])
-
-    // Listen for cross-window localStorage changes
-    useEffect(() => {
-      const handleStorage = (e: StorageEvent) => {
-        if (e.key !== props.storageKey || !e.newValue) return
-        try {
-          let jsonObj = JSON.parse(e.newValue)
-          if (jsonObj.clearStateNonce !== props.clearStateNonce) return
+        } else {
           delete jsonObj.clearStateNonce
-          // Preserve current selection by tab ID if not syncing
-          if (!syncSelection) {
-            jsonObj = applySelectionByTabIdToJson(jsonObj, selectionRef.current)
-          }
-          const newModel = Model.fromJson(jsonObj)
-          setLayoutModel(newModel)
-          onModelChange?.(newModel)
-        } catch {
-          // Ignore invalid JSON
+          model = Model.fromJson(jsonObj)
         }
+      } catch {
+        model = null
       }
-      window.addEventListener('storage', handleStorage)
-      return () => window.removeEventListener('storage', handleStorage)
-    }, [props.storageKey, props.clearStateNonce, onModelChange, syncSelection])
+    }
+    return model ?? Model.fromJson(defaultModel)
+  })
 
-    return (
-      <Layout
-        {...otherProps}
-        ref={ref}
-        model={layoutModel}
-        factory={tabFactory}
-        icons={icons}
-        onModelChange={handleModelChange}
-      />
-    )
-  },
-)
+  const handleModelChange = useCallback(
+    (next: Model) => {
+      setLayoutModel(next)
+      // Update selection ref with tab IDs
+      selectionRef.current = getSelectedTabIdFromModel(next)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const nextJson = next.toJson() as any
+      nextJson.clearStateNonce = props.clearStateNonce
+      localStorage[props.storageKey] = JSON.stringify(nextJson)
+      onModelChange?.(next)
+    },
+    [props.storageKey, props.clearStateNonce, onModelChange],
+  )
+
+  const tabFactory = useCallback(
+    (tab: TabNode) => factory(tab, layoutModel),
+    [factory, layoutModel],
+  )
+
+  // Call onModelChange with the initial model on mount so parent has access immediately
+  useEffect(() => {
+    if (mountedRef.current) return
+    mountedRef.current = true
+    selectionRef.current = getSelectedTabIdFromModel(layoutModel)
+    onModelChange?.(layoutModel)
+  }, [layoutModel, onModelChange])
+
+  // Listen for cross-window localStorage changes
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key !== props.storageKey || !e.newValue) return
+      try {
+        let jsonObj = JSON.parse(e.newValue)
+        if (jsonObj.clearStateNonce !== props.clearStateNonce) return
+        delete jsonObj.clearStateNonce
+        // Preserve current selection by tab ID if not syncing
+        if (!syncSelection) {
+          jsonObj = applySelectionByTabIdToJson(jsonObj, selectionRef.current)
+        }
+        const newModel = Model.fromJson(jsonObj)
+        setLayoutModel(newModel)
+        onModelChange?.(newModel)
+      } catch {
+        // Ignore invalid JSON
+      }
+    }
+    window.addEventListener('storage', handleStorage)
+    return () => window.removeEventListener('storage', handleStorage)
+  }, [props.storageKey, props.clearStateNonce, onModelChange, syncSelection])
+
+  return (
+    <Layout
+      {...otherProps}
+      ref={ref}
+      model={layoutModel}
+      factory={tabFactory}
+      icons={icons}
+      onModelChange={handleModelChange}
+    />
+  )
+}

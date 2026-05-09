@@ -311,7 +311,7 @@ export function GitWorktreeViewer({
         <GitViewerCenteredState
           title={
             <span className="text-foreground-alt text-xs">
-              Loading worktree...
+              Loading worktree…
             </span>
           }
         />
@@ -441,7 +441,7 @@ export function GitWorktreeViewer({
       return (
         <GitViewerFrame {...viewerFrameProps}>
           <div className="bg-file-back flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden">
-            <div className="text-foreground-alt text-xs">Loading files...</div>
+            <div className="text-foreground-alt text-xs">Loading files…</div>
           </div>
         </GitViewerFrame>
       )
@@ -584,9 +584,12 @@ export function GitWorktreeViewer({
     )
   }
 
+  const sizeFallback = renderSizeFallback()
+  const content = renderContent()
+
   return (
-    <PanelSizeGate minWidth={400} fallback={renderSizeFallback()}>
-      {renderContent()}
+    <PanelSizeGate minWidth={400} fallback={sizeFallback}>
+      {content}
     </PanelSizeGate>
   )
 }

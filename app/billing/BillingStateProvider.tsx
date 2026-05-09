@@ -1,10 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  type ReactNode,
-} from 'react'
+import { createContext, useCallback, use, useMemo, type ReactNode } from 'react'
 
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
@@ -56,7 +50,7 @@ export function BillingStateProvider(props: {
 
 // useBillingStateContext returns the current billing snapshot context.
 export function useBillingStateContext(): BillingStateContextValue {
-  const context = useContext(Context)
+  const context = use(Context)
   if (!context) {
     throw new Error(
       'Billing state context not found. Wrap component in BillingStateProvider.',
@@ -67,5 +61,5 @@ export function useBillingStateContext(): BillingStateContextValue {
 
 // useBillingStateContextSafe returns the billing snapshot context or null.
 export function useBillingStateContextSafe(): BillingStateContextValue | null {
-  return useContext(Context)
+  return use(Context)
 }

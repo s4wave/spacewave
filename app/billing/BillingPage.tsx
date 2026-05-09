@@ -36,6 +36,10 @@ function statusBadgeColor(status?: BillingStatus): string {
   return 'bg-foreground/10 text-foreground-alt/70'
 }
 
+function formatBillingDate(timestampMs: number | string | bigint): string {
+  return new Date(Number(timestampMs)).toLocaleDateString()
+}
+
 // BillingPage displays billing state and usage for a billing account.
 // Used for both personal and org billing.
 export function BillingPage() {
@@ -100,6 +104,10 @@ export function BillingPage() {
     setRenaming(true)
   }, [displayName])
 
+  const handleRenameInputRef = useCallback((node: HTMLInputElement | null) => {
+    node?.focus()
+  }, [])
+
   const handleRenameCancel = useCallback(() => {
     setRenaming(false)
     setRenameError(null)
@@ -150,6 +158,7 @@ export function BillingPage() {
           {renaming ?
             <div className="flex min-w-0 flex-1 items-center gap-2">
               <input
+                ref={handleRenameInputRef}
                 type="text"
                 value={renameValue}
                 onChange={(e) => setRenameValue(e.target.value)}
@@ -157,7 +166,6 @@ export function BillingPage() {
                   if (e.key === 'Enter') void handleRenameSave()
                   if (e.key === 'Escape') handleRenameCancel()
                 }}
-                autoFocus
                 className={cn(
                   'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 min-w-0 flex-1 rounded-md border px-2 py-1 text-sm transition-colors outline-none',
                   'focus:border-brand/50',
@@ -237,17 +245,23 @@ export function BillingPage() {
                 </span>
               )}
               {renewalAt && (
-                <span className="text-foreground-alt/40 text-xs">
+                <span
+                  suppressHydrationWarning
+                  className="text-foreground-alt/40 text-xs"
+                >
                   {isCancelScheduled ? 'Ends' : 'Renews'}{' '}
-                  {new Date(Number(renewalAt)).toLocaleDateString()}
+                  {formatBillingDate(renewalAt)}
                 </span>
               )}
             </div>
             {isCancelScheduled && renewalAt && (
               <div className="border-destructive/20 bg-destructive/5 text-foreground-alt rounded-md border px-3 py-2 text-xs leading-relaxed">
                 Your subscription is set to end on{' '}
-                <span className="text-foreground font-medium">
-                  {new Date(Number(renewalAt)).toLocaleDateString()}
+                <span
+                  suppressHydrationWarning
+                  className="text-foreground font-medium"
+                >
+                  {formatBillingDate(renewalAt)}
                 </span>
                 . You keep full access until then, and your cloud data stays
                 read-only for 30 days afterward so you can export it.

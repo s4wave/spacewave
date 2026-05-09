@@ -122,8 +122,11 @@ export function LandingCli() {
             </span>
           </div>
           <div className="p-4 font-mono text-sm leading-relaxed">
-            {TERMINAL_LINES.map((line, i) => (
-              <div key={i} className="whitespace-pre">
+            {TERMINAL_LINES.map((line) => (
+              <div
+                key={`${line.prompt ? 'prompt' : 'line'}:${line.text}`}
+                className="whitespace-pre"
+              >
                 {line.text === '' ?
                   '\u00A0'
                 : line.prompt ?

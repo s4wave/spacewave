@@ -198,7 +198,7 @@ function SymlinkViewer({
             </p>
             {loading ?
               <p className="text-foreground-alt/60 mt-0.5 text-[11px]">
-                Reading target...
+                Reading target…
               </p>
             : <p className="text-foreground-alt/70 mt-1 truncate font-mono text-[11px]">
                 {target}

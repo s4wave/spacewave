@@ -176,9 +176,9 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
     // vite-resolve plugin resolves tsconfig paths before user plugin resolveId
     // hooks fire.
     const externalPkgs = request.externalPkgs ?? []
-    const webPkgIDs: string[] = (request.webPkgs ?? [])
-      .map((pkg) => pkg.id)
-      .filter((pkg): pkg is string => !!pkg)
+    const webPkgIDs: string[] = (request.webPkgs ?? []).flatMap((pkg) =>
+      pkg.id ? [pkg.id] : [],
+    )
 
     // Asset extensions that must NOT be externalized, they need Vite's
     // CSS/asset pipeline (Tailwind, PostCSS, etc.).

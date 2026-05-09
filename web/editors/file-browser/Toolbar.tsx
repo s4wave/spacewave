@@ -140,7 +140,7 @@ export function Toolbar({
         searchActive ?
           <SearchBox
             placeholder="Search"
-            autoFocus
+            focusOnMount
             onBlur={() => setSearchActive(false)}
           />
         : <OverflowMenu

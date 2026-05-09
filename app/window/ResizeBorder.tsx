@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useRef, useEffect, useEffectEvent } from 'react'
 import { cn } from '@s4wave/web/style/utils.js'
 
 interface ResizeBorderProps {
@@ -33,8 +33,11 @@ export function ResizeBorder({
   })
   const startPosRef = useRef(0)
   const isHorizontal = direction === 'horizontal'
+  const resize = useEffectEvent((delta: number) => {
+    onResize(delta)
+  })
 
-  const updatePosition = useCallback(() => {
+  const updatePosition = useEffectEvent(() => {
     const container = document.querySelector('[data-fluid-layout]')
     const area = container?.querySelector(`[data-area-id="${areaId}"]`)
 
@@ -49,19 +52,19 @@ export function ResizeBorder({
       width: areaRect.width,
       height: areaRect.height,
     })
-  }, [areaId])
+  })
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     updatePosition()
     window.addEventListener('resize', updatePosition)
     return () => window.removeEventListener('resize', updatePosition)
-  }, [updatePosition])
+  }, [])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     updatePosition()
-  }, [isDragging, updatePosition])
+  }, [isDragging])
 
   useEffect(() => {
     if (!isDragging) return
@@ -69,7 +72,7 @@ export function ResizeBorder({
     const handleMouseMove = (e: MouseEvent) => {
       const currentPos = isHorizontal ? e.clientX : e.clientY
       const delta = currentPos - startPosRef.current
-      onResize(delta)
+      resize(delta)
       startPosRef.current = currentPos
     }
 
@@ -82,7 +85,7 @@ export function ResizeBorder({
       document.removeEventListener('mousemove', handleMouseMove)
       document.removeEventListener('mouseup', handleMouseUp)
     }
-  }, [isDragging, isHorizontal, onResize])
+  }, [isDragging, isHorizontal])
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -109,6 +112,8 @@ export function ResizeBorder({
 
   return (
     <div
+      role="separator"
+      aria-orientation={isHorizontal ? 'vertical' : 'horizontal'}
       className={cn(
         'absolute z-50',
         isHorizontal ? 'cursor-col-resize' : 'cursor-row-resize',

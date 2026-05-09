@@ -26,7 +26,7 @@ export function BlogIndex({ posts }: BlogIndexProps) {
   const latest = posts[0]
   const rest = posts.slice(1)
 
-  const allTags = [...new Set(posts.flatMap((p) => p.tags))].sort()
+  const allTags = Array.from(new Set(posts.flatMap((p) => p.tags))).toSorted()
 
   return (
     <div className="bg-background-landing @container flex w-full flex-1 flex-col overflow-y-auto">

@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react'
+import { useCallback } from 'react'
 import { cn } from '@s4wave/web/style/utils.js'
 
 export interface NavigationItem {
@@ -8,42 +8,22 @@ export interface NavigationItem {
   onClick?: () => void
 }
 
-export const NavigationLink: React.FC<NavigationItem> = ({
+export function NavigationLink({
   text,
   textClassName,
   className,
   onClick,
-}) => {
-  const handleInteraction = useCallback(
-    (
-      e:
-        | React.MouseEvent<HTMLAnchorElement>
-        | React.KeyboardEvent<HTMLAnchorElement>,
-    ) => {
-      e.preventDefault()
-      onClick?.()
-    },
-    [onClick],
-  )
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLAnchorElement>) => {
-      if (e.code === 'Space' || e.code === 'Enter' || e.code === 'Return') {
-        handleInteraction(e)
-      }
-    },
-    [handleInteraction],
-  )
+}: NavigationItem) {
+  const handleNavigationSelect = useCallback(() => onClick?.(), [onClick])
 
   return (
-    <a
-      href="#"
+    <button
+      type="button"
       className={cn(
-        'hover:bg-navlink-selection focus:bg-navlink-selection group font-heading text-sm whitespace-nowrap transition-colors @lg:text-base',
+        'hover:bg-navlink-selection focus:bg-navlink-selection group font-heading bg-transparent p-0 text-sm whitespace-nowrap transition-colors @lg:text-base',
         className,
       )}
-      onClick={handleInteraction}
-      onKeyDown={handleKeyDown}
+      onClick={handleNavigationSelect}
     >
       <span className="text-navlink-bracket pr-navlink-bracket group-hover:no-underline group-focus:no-underline">
         [
@@ -59,6 +39,6 @@ export const NavigationLink: React.FC<NavigationItem> = ({
       <span className="text-navlink-bracket pl-navlink-bracket group-hover:no-underline group-focus:no-underline">
         ]
       </span>
-    </a>
+    </button>
   )
 }

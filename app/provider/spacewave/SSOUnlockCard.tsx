@@ -1,3 +1,4 @@
+import { useCallback } from 'react'
 import { LuArrowLeft, LuCheck, LuLock } from 'react-icons/lu'
 
 import { cn } from '@s4wave/web/style/utils.js'
@@ -43,6 +44,9 @@ export function SSOUnlockCard(props: SSOUnlockCardProps) {
     cancelLabel = 'Back to login',
   } = props
   const providerLabel = getProviderLabel(provider)
+  const handlePinRef = useCallback((node: HTMLInputElement | null) => {
+    node?.focus()
+  }, [])
 
   return (
     <div className="flex flex-col gap-4">
@@ -66,25 +70,19 @@ export function SSOUnlockCard(props: SSOUnlockCardProps) {
           </div>
         </div>
 
-        <form
-          className="flex flex-col gap-4"
-          onSubmit={(e) => {
-            e.preventDefault()
-            if (!busy) onSubmit()
-          }}
-        >
+        <div className="flex flex-col gap-4">
           <label className="flex flex-col gap-1.5">
             <span className="text-foreground-alt flex items-center gap-1.5 text-xs select-none">
               <LuLock className="size-3.5" />
               PIN
             </span>
             <input
+              ref={handlePinRef}
               id="sso-unlock-pin"
               type="password"
               value={pin}
               onChange={(e) => onPinChange(e.target.value)}
               placeholder="Enter your PIN"
-              autoFocus
               disabled={busy}
               className={cn(
                 authInputClassName,
@@ -105,7 +103,7 @@ export function SSOUnlockCard(props: SSOUnlockCardProps) {
             }
           </label>
           <AuthPrimaryActionButton
-            type="submit"
+            onClick={onSubmit}
             disabled={busy || !pin}
             icon={<LuLock className="text-foreground size-4" />}
           >
@@ -118,7 +116,7 @@ export function SSOUnlockCard(props: SSOUnlockCardProps) {
             <LuArrowLeft className="size-3" />
             {cancelLabel}
           </AuthSecondaryActionButton>
-        </form>
+        </div>
       </AuthCard>
 
       <div className="text-foreground-alt flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-xs">

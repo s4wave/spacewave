@@ -218,7 +218,7 @@ export function HandoffPage() {
         <div className="relative z-10 flex flex-col items-center gap-4">
           <Spinner size="xl" className="text-brand" />
           <h1 className="text-xl font-semibold tracking-wide">
-            Completing sign-in...
+            Completing sign-in…
           </h1>
           <p className="text-foreground-alt text-sm">
             Sending credentials to Spacewave {label}.

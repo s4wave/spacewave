@@ -86,6 +86,17 @@ function buildTreeNodes(
   // Track which resources have been added to the tree to prevent duplicates
   // (a resource with multiple parents would otherwise appear under each parent)
   const addedIds = new Set<string>()
+  const childrenByParentId = new Map<string, TrackedResource[]>()
+  for (const resource of resources.values()) {
+    for (const parentId of resource.parentIds) {
+      const children = childrenByParentId.get(parentId)
+      if (children) {
+        children.push(resource)
+        continue
+      }
+      childrenByParentId.set(parentId, [resource])
+    }
+  }
 
   function buildNode(resource: TrackedResource): TreeNode<TrackedResource> {
     addedIds.add(resource.id)
@@ -94,8 +105,8 @@ function buildTreeNodes(
     // We must check addedIds inside the loop (not just filter) because buildNode
     // modifies addedIds, and we need to see updates from sibling subtrees
     const children: TreeNode<TrackedResource>[] = []
-    for (const r of resources.values()) {
-      if (r.parentIds.includes(resource.id) && !addedIds.has(r.id)) {
+    for (const r of childrenByParentId.get(resource.id) ?? []) {
+      if (!addedIds.has(r.id)) {
         children.push(buildNode(r))
       }
     }

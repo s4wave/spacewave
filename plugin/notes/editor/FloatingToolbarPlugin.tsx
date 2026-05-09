@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import {
   $getSelection,
@@ -51,7 +51,7 @@ function FloatingToolbarPlugin() {
     setIsVisible(true)
   }, [editor])
 
-  const updateState = useCallback(() => {
+  const updateState = useEffectEvent(() => {
     editor.getEditorState().read(() => {
       const selection = $getSelection()
       if (!$isRangeSelection(selection) || selection.isCollapsed()) {
@@ -69,13 +69,13 @@ function FloatingToolbarPlugin() {
 
       updatePosition()
     })
-  }, [editor, updatePosition])
+  })
 
   useEffect(() => {
     return editor.registerUpdateListener(() => {
       updateState()
     })
-  }, [editor, updateState])
+  }, [editor])
 
   useEffect(() => {
     const handleSelectionChange = () => {
@@ -99,7 +99,7 @@ function FloatingToolbarPlugin() {
     document.addEventListener('selectionchange', handleSelectionChange)
     return () =>
       document.removeEventListener('selectionchange', handleSelectionChange)
-  }, [editor, updateState])
+  }, [editor])
 
   const handleFormat = useCallback(
     (format: TextFormatType) => {

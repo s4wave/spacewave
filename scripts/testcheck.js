@@ -40,10 +40,7 @@ function extractVitestSummary(output) {
   const lines = output.split('\n')
   for (const line of lines) {
     // Match lines like "Test Files  18 passed (18)" or "Tests  244 passed | 4 skipped (248)"
-    if (
-      line.includes('Test Files') &&
-      (line.includes('passed') || line.includes('failed'))
-    ) {
+    if (/Test Files/.test(line) && /(passed|failed)/.test(line)) {
       // Strip ANSI codes
       return line.replace(/\x1b\[[0-9;]*m/g, '').trim()
     }
@@ -55,7 +52,7 @@ function extractVitestSummary(output) {
 function extractTestCount(output) {
   const lines = output.split('\n')
   for (const line of lines) {
-    if (line.includes('Tests') && !line.includes('Test Files')) {
+    if (/Tests/.test(line) && !/Test Files/.test(line)) {
       return line.replace(/\x1b\[[0-9;]*m/g, '').trim()
     }
   }
@@ -68,13 +65,13 @@ function extractGoSummary(output) {
   let passed = 0
   let failed = 0
   for (const line of lines) {
-    if (line.includes('--- PASS:')) passed++
-    if (line.includes('--- FAIL:')) failed++
-    if (line.includes('PASS') && !line.includes('---')) {
+    if (/--- PASS:/.test(line)) passed++
+    if (/--- FAIL:/.test(line)) failed++
+    if (/PASS/.test(line) && !/---/.test(line)) {
       // Final PASS line
       if (failed === 0) return `Go tests passed`
     }
-    if (line.includes('FAIL') && !line.includes('---')) {
+    if (/FAIL/.test(line) && !/---/.test(line)) {
       return null // Will show full output
     }
   }

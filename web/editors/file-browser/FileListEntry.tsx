@@ -1,11 +1,12 @@
 import {
   type ReactNode,
   useCallback,
-  useContext,
+  use,
   useEffect,
   useMemo,
   useRef,
   type DragEvent,
+  type KeyboardEvent,
   type MouseEvent,
 } from 'react'
 import { format } from 'date-fns'
@@ -97,7 +98,7 @@ export function FileListEntry({
   const entry = item.data
   const isEntryLoading = entry ? entry.id === loadingId : false
 
-  const handleClick = useCallback(
+  const handleEntrySelect = useCallback(
     (e: MouseEvent) => {
       onRowClick?.(itemIndex, item, e, 1)
     },
@@ -107,6 +108,15 @@ export function FileListEntry({
   const handleDoubleClick = useCallback(
     (e: MouseEvent) => {
       onRowClick?.(itemIndex, item, e, 2)
+    },
+    [itemIndex, item, onRowClick],
+  )
+
+  const handleEntryKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return
+      e.preventDefault()
+      onRowClick?.(itemIndex, item, e as unknown as MouseEvent, 1)
     },
     [itemIndex, item, onRowClick],
   )
@@ -128,7 +138,7 @@ export function FileListEntry({
     [itemIndex, item, onContextMenu],
   )
 
-  const context = useContext(ListStateContext)
+  const context = use(ListStateContext)
   const selected =
     entry ? (context?.selectedIds?.includes(entry.id) ?? false) : false
   const focused = itemIndex === context?.focusedIndex
@@ -280,7 +290,8 @@ export function FileListEntry({
           : formatBytes(entryDetails.size, 0)
         : '—'}
       </div>
-      <div
+      <button
+        type="button"
         className="flex h-full w-8 items-center justify-center"
         onClick={handleDotsClick}
         onDoubleClick={(e) => {
@@ -290,7 +301,7 @@ export function FileListEntry({
         onContextMenu={handleDotsClick}
       >
         <LuEllipsis className="text-foreground-alt size-4 opacity-0 transition-opacity group-hover:opacity-100" />
-      </div>
+      </button>
     </>
   )
 
@@ -313,7 +324,8 @@ export function FileListEntry({
         isDropTargetActive && 'bg-brand/10 ring-brand/40 ring-1 ring-inset',
       )}
       draggable={dragEnvelope !== null || downloadDragTarget !== null}
-      onClick={handleClick}
+      onClick={handleEntrySelect}
+      onKeyDown={handleEntryKeyDown}
       onDoubleClick={handleDoubleClick}
       onContextMenu={handleContextMenu}
       onDragStart={handleDragStart}

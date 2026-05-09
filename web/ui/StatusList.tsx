@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, type ReactNode } from 'react'
 import { cn } from '@s4wave/web/style/utils.js'
 
 // StatusListItemStatus defines the status of an item.
@@ -37,6 +37,9 @@ const defaultStatusLabels: Record<StatusListItemStatus, string> = {
   none: '----',
 }
 
+const defaultCustomStatusLabels: Partial<Record<StatusListItemStatus, string>> =
+  {}
+
 const statusClassNames: Record<StatusListItemStatus, string> = {
   success: 'text-success',
   error: 'text-error',
@@ -53,11 +56,12 @@ function StatusIndicator({
   status: StatusListItemStatus
   label: string
 }) {
-  const [prevStatus, setPrevStatus] = useState(status)
-  const changed = prevStatus !== status
-  if (changed) {
-    setPrevStatus(status)
-  }
+  const prevStatusRef = useRef(status)
+  const changed = prevStatusRef.current !== status
+
+  useEffect(() => {
+    prevStatusRef.current = status
+  }, [status])
 
   return (
     <span
@@ -76,11 +80,18 @@ function StatusIndicator({
 export function StatusList({
   items,
   emptyMessage = 'No items',
-  statusLabels = {},
+  statusLabels = defaultCustomStatusLabels,
   className,
   onItemClick,
 }: StatusListProps) {
   const labels = { ...defaultStatusLabels, ...statusLabels }
+  const handleItemKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return
+    e.preventDefault()
+    e.currentTarget.dispatchEvent(
+      new MouseEvent('click', { bubbles: true, cancelable: true }),
+    )
+  }, [])
 
   return (
     <div
@@ -93,29 +104,46 @@ export function StatusList({
     >
       {items.length === 0 ?
         <div className="text-foreground-alt">{emptyMessage}</div>
-      : items.map((item) => (
-          <div
-            key={item.id}
-            className={cn(
-              'flex items-center justify-between gap-2 py-0.5',
-              onItemClick && 'hover:bg-background-tertiary cursor-pointer',
-            )}
-            onClick={onItemClick ? () => onItemClick(item) : undefined}
-          >
-            <div className="flex items-center gap-1.5">
-              <StatusIndicator
-                status={item.status}
-                label={labels[item.status]}
-              />
-              <span className="truncate">{item.label}</span>
+      : items.map((item) => {
+          const content = (
+            <>
+              <div className="flex items-center gap-1.5">
+                <StatusIndicator
+                  status={item.status}
+                  label={labels[item.status]}
+                />
+                <span className="truncate">{item.label}</span>
+              </div>
+              {item.detail && (
+                <span className="text-foreground-alt shrink-0 text-[10px]">
+                  {item.detail}
+                </span>
+              )}
+            </>
+          )
+          if (!onItemClick) {
+            return (
+              <div
+                key={item.id}
+                className="flex items-center justify-between gap-2 py-0.5"
+              >
+                {content}
+              </div>
+            )
+          }
+          return (
+            <div
+              key={item.id}
+              role="button"
+              tabIndex={0}
+              className="hover:bg-background-tertiary flex cursor-pointer items-center justify-between gap-2 py-0.5"
+              onClick={() => onItemClick(item)}
+              onKeyDown={handleItemKeyDown}
+            >
+              {content}
             </div>
-            {item.detail && (
-              <span className="text-foreground-alt shrink-0 text-[10px]">
-                {item.detail}
-              </span>
-            )}
-          </div>
-        ))
+          )
+        })
       }
     </div>
   )

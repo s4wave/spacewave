@@ -75,7 +75,7 @@ function NotebookSidebar({
           const expanded = expandedSources[index] ?? true
           const selected = selectedSource === index
           return (
-            <div key={index}>
+            <div key={source.ref || source.name || `source-${selectedSource}`}>
               <div
                 className={cn(
                   'flex items-center gap-1 px-2 py-1.5 text-xs',

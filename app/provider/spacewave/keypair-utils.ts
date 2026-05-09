@@ -5,6 +5,9 @@ export const dnsLabelRegex = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/
 
 const BASE58_ALPHABET =
   '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+const BASE58_INDEX = new Map(
+  Array.from(BASE58_ALPHABET).map((char, index) => [char, index]),
+)
 
 // base58Encode encodes bytes to a base58 string.
 export function base58Encode(input: Uint8Array): string {
@@ -57,8 +60,8 @@ export function base58Decode(input: string): Uint8Array {
   const buf = new Uint8Array(size)
 
   for (let i = 0; i < input.length; i++) {
-    const idx = BASE58_ALPHABET.indexOf(input[i])
-    if (idx < 0) throw new Error(`invalid base58 character: ${input[i]}`)
+    const idx = BASE58_INDEX.get(input[i] ?? '')
+    if (idx == null) throw new Error(`invalid base58 character: ${input[i]}`)
     let carry = idx
     for (let j = buf.length - 1; j >= 0; j--) {
       carry += 58 * buf[j]

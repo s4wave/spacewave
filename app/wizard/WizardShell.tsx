@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useCallback, type ReactNode } from 'react'
 import { LuArrowLeft, LuCheck, LuTrash2 } from 'react-icons/lu'
 
 import { Button } from '@s4wave/web/ui/button.js'
@@ -66,6 +66,9 @@ export function WizardShell({
   finalizeStep,
 }: WizardShellProps) {
   const showFinalize = finalizeStep === undefined || step === finalizeStep
+  const handleNameInputRef = useCallback((node: HTMLInputElement | null) => {
+    node?.focus()
+  }, [])
 
   return (
     <div className="flex h-full w-full items-start justify-center overflow-auto px-4 py-10">
@@ -104,10 +107,10 @@ export function WizardShell({
                 </div>
                 <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
                   <Input
+                    ref={handleNameInputRef}
                     value={localName}
                     onChange={(e) => onUpdateName(e.target.value)}
                     placeholder={namePlaceholder}
-                    autoFocus
                     className="border-foreground/10 bg-background/20 text-foreground placeholder:text-foreground-alt/40 focus-visible:border-brand/50 focus-visible:ring-brand/15 h-9"
                   />
                   {nameHelp && (

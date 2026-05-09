@@ -1,6 +1,6 @@
 import {
   createContext,
-  useContext,
+  use,
   useMemo,
   ReactNode,
   useReducer,
@@ -41,12 +41,12 @@ const ShellTabContext = createContext<ShellTabContextValue | null>(null)
 
 // useShellTab returns the current tab context.
 export function useShellTab(): ShellTabContextValue | null {
-  return useContext(ShellTabContext)
+  return use(ShellTabContext)
 }
 
 // useTabId returns the current tab ID from context.
 export function useTabId(): string | null {
-  return useContext(ShellTabContext)?.tabId ?? null
+  return use(ShellTabContext)?.tabId ?? null
 }
 
 // useIsTabActive returns whether the current tab is the active tab.
@@ -55,10 +55,10 @@ export function useTabId(): string | null {
 // TabContext's tabId when ShellTabContext is not available.
 export function useIsTabActive(): boolean {
   const isStatic = useIsStaticMode()
-  const shellTabId = useContext(ShellTabContext)?.tabId
+  const shellTabId = use(ShellTabContext)?.tabId
   const tabContextTabId = useTabContextTabId()
   const tabId = shellTabId ?? tabContextTabId
-  const tabsContext = useContext(ShellTabsContext)
+  const tabsContext = use(ShellTabsContext)
   if (isStatic) return true
   if (!tabId || !tabsContext) return true
   return tabsContext.activeTabId === tabId
@@ -175,7 +175,7 @@ const ShellTabsContext = createContext<ShellTabsContextValue | null>(null)
 
 // useShellTabs returns the global tabs state context.
 export function useShellTabs(): ShellTabsContextValue {
-  const context = useContext(ShellTabsContext)
+  const context = use(ShellTabsContext)
   if (!context) {
     throw new Error('useShellTabs must be used within a ShellTabsProvider')
   }

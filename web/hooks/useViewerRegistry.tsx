@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo } from 'react'
+import { createContext, use, useMemo } from 'react'
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { Root } from '@s4wave/sdk/root'
 import type { ObjectViewerComponent } from '@s4wave/web/object/object.js'
@@ -39,7 +39,7 @@ export function ViewerRegistryProvider({
 
 // useStaticViewers returns the static viewers from ViewerRegistryProvider context.
 export function useStaticViewers(): ObjectViewerComponent[] {
-  return useContext(ViewerRegistryContext)
+  return use(ViewerRegistryContext)
 }
 
 // useAllViewers returns all viewers: static from context + dynamic from RPC.

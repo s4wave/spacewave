@@ -50,9 +50,10 @@ export function useForgeLinkedEntities(
       }
 
       const quads = result.quads ?? []
-      const items = quads
-        .map((q) => (direction === 'out' ? q.obj : q.subject))
-        .filter((iri): iri is string => !!iri)
+      const items = quads.flatMap((q) => {
+        const iri = direction === 'out' ? q.obj : q.subject
+        return iri ? [iri] : []
+      })
       const entities = await Promise.all(
         items.map(async (entityIRI) => {
           const key = iriToKey(entityIRI)

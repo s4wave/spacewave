@@ -35,8 +35,10 @@ describe('Hydration', () => {
     localStorage.clear()
     window.location.hash = ''
     container = document.createElement('div')
-    container.style.width = '1280px'
-    container.style.height = '800px'
+    Object.assign(container.style, {
+      width: '1280px',
+      height: '800px',
+    })
     document.body.appendChild(container)
     errorCalls = []
     const errorSpy = vi

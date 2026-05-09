@@ -1,4 +1,11 @@
-import { useCallback, useMemo, useReducer, useRef, useState } from 'react'
+import {
+  useCallback,
+  useId,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react'
 import {
   LuBuilding2,
   LuChevronRight,
@@ -200,22 +207,16 @@ function DashboardNav() {
 }
 
 function NavLink({ text, onClick }: { text: string; onClick?: () => void }) {
-  const handleClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault()
-      onClick?.()
-    },
-    [onClick],
-  )
+  const handleNavSelect = useCallback(() => onClick?.(), [onClick])
 
   return (
-    <a
-      href="#"
-      onClick={handleClick}
-      className="text-foreground-alt/40 hover:text-foreground-alt px-2 py-1 text-[11px] font-medium tracking-wide uppercase transition-colors"
+    <button
+      type="button"
+      onClick={handleNavSelect}
+      className="text-foreground-alt/40 hover:text-foreground-alt bg-transparent px-2 py-1 text-[11px] font-medium tracking-wide uppercase transition-colors"
     >
       {text}
-    </a>
+    </button>
   )
 }
 
@@ -275,6 +276,9 @@ function InlineSecureAccountSection(props: {
   accountResource?: Resource<Account | null>
   session?: Session
 }) {
+  const passwordInputId = useId()
+  const pinInputId = useId()
+  const confirmPinInputId = useId()
   const onboarding = useSessionOnboardingState()
 
   const [password, setPassword] = useState('')
@@ -387,10 +391,14 @@ function InlineSecureAccountSection(props: {
                 </div>
               </div>
               <div>
-                <label className="text-foreground-alt mb-1.5 block text-xs select-none">
+                <label
+                  htmlFor={passwordInputId}
+                  className="text-foreground-alt mb-1.5 block text-xs select-none"
+                >
                   Account password
                 </label>
                 <input
+                  id={passwordInputId}
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -467,10 +475,14 @@ function InlineSecureAccountSection(props: {
               {lock.mode === 'pin' && (
                 <div className="space-y-2">
                   <div>
-                    <label className="text-foreground-alt mb-1.5 block text-xs select-none">
+                    <label
+                      htmlFor={pinInputId}
+                      className="text-foreground-alt mb-1.5 block text-xs select-none"
+                    >
                       PIN
                     </label>
                     <input
+                      id={pinInputId}
                       type="password"
                       value={lock.pin}
                       onChange={(e) =>
@@ -484,10 +496,14 @@ function InlineSecureAccountSection(props: {
                     />
                   </div>
                   <div>
-                    <label className="text-foreground-alt mb-1.5 block text-xs select-none">
+                    <label
+                      htmlFor={confirmPinInputId}
+                      className="text-foreground-alt mb-1.5 block text-xs select-none"
+                    >
                       Confirm PIN
                     </label>
                     <input
+                      id={confirmPinInputId}
                       type="password"
                       value={lock.confirmPin}
                       onChange={(e) =>
@@ -781,24 +797,26 @@ function DashboardCommandPalette({
           heading={isEmpty ? 'Get Started' : 'Create'}
           className="py-1"
         >
-          {quickstartOptions
-            .filter((opt) => opt.id !== 'account' && opt.id !== 'pair')
-            .map((opt) => (
-              <DashboardItem
-                key={opt.id}
-                value={`create-${opt.id}`}
-                icon={opt.icon}
-                iconTone="muted"
-                label={opt.name}
-                sublabel={opt.description}
-                experimental={'experimental' in opt && !!opt.experimental}
-                onSelect={() =>
-                  onQuickstartClick ?
-                    onQuickstartClick(opt.id)
-                  : navigate({ path: getQuickstartPath(opt) })
-                }
-              />
-            ))}
+          {quickstartOptions.flatMap((opt) =>
+            opt.id !== 'account' && opt.id !== 'pair' ?
+              [
+                <DashboardItem
+                  key={opt.id}
+                  value={`create-${opt.id}`}
+                  icon={opt.icon}
+                  iconTone="muted"
+                  label={opt.name}
+                  sublabel={opt.description}
+                  experimental={'experimental' in opt && !!opt.experimental}
+                  onSelect={() =>
+                    onQuickstartClick ?
+                      onQuickstartClick(opt.id)
+                    : navigate({ path: getQuickstartPath(opt) })
+                  }
+                />,
+              ]
+            : [],
+          )}
         </CommandGroup>
       </CommandList>
     </Command>

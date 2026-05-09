@@ -45,7 +45,7 @@ function ErrorRow({ resource }: ErrorRowProps) {
   const selectedId = useSelectedResourceId()
   const isSelected = selectedId === resource.id
 
-  const handleClick = useCallback(() => {
+  const handleResourceSelect = useCallback(() => {
     devtools?.setSelectedId(resource.id)
   }, [devtools, resource.id])
 
@@ -61,7 +61,7 @@ function ErrorRow({ resource }: ErrorRowProps) {
   return (
     <button
       type="button"
-      onClick={handleClick}
+      onClick={handleResourceSelect}
       className={cn(
         'flex items-center gap-2 px-3 py-1.5 text-left text-xs',
         'border-popover-border/30 border-b',

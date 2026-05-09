@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { LuCheck, LuFolder } from 'react-icons/lu'
 import type { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
 import { usePromise } from '@s4wave/web/hooks/usePromise.js'
@@ -57,8 +57,9 @@ export function UnixFSMoveDialog({
   onOpenChange,
   onConfirm,
 }: UnixFSMoveDialogProps) {
+  const initialSelectedPathRef = useRef(initialSelectedPath)
   const [selectedPath, setSelectedPath] = useState<string | null>(
-    initialSelectedPath,
+    initialSelectedPathRef.current,
   )
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)

@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+import { useCallback, use, useEffect, useMemo, useRef, useState } from 'react'
 import {
   LuCloud,
   LuCpu,
@@ -266,7 +259,7 @@ export function VmV86WizardViewer({
 }: ObjectViewerComponentProps) {
   const { spaceState, spaceWorldResource, spaceId } =
     SpaceContainerContext.useContext()
-  const sessionIndex = useContext(SessionIndexContext)
+  const sessionIndex = use(SessionIndexContext)
 
   const rootResource = useRootResource()
   const root = useResourceValue(rootResource)
@@ -852,10 +845,12 @@ function CdnImagePickerModal({
 
   return (
     <div
+      role="presentation"
       className="bg-background/80 fixed inset-0 z-50 flex items-center justify-center p-6"
       onClick={onClose}
     >
       <div
+        role="presentation"
         className="border-foreground/8 bg-background-card/95 flex max-h-[80vh] w-full max-w-md flex-col gap-3 rounded-xl border p-4 shadow-lg backdrop-blur-sm"
         onClick={(e) => e.stopPropagation()}
       >

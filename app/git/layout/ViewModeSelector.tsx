@@ -30,9 +30,9 @@ export function ViewModeSelector({
 }: ViewModeSelectorProps) {
   const tabs = useMemo(() => {
     if (availableModes) {
-      return availableModes
-        .filter((m) => m !== 'readme' || hasReadme)
-        .map((m) => ({ key: m, label: modeLabels[m] }))
+      return availableModes.flatMap((m) =>
+        m !== 'readme' || hasReadme ? [{ key: m, label: modeLabels[m] }] : [],
+      )
     }
     const result: { key: ViewMode; label: string }[] = [
       { key: 'files', label: 'Files' },

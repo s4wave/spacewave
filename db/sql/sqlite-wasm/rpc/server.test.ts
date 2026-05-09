@@ -204,8 +204,10 @@ describe('SqliteBridgeServer', () => {
   })
 
   it('reuses one physical database per path with logical handle refcounts', async () => {
-    const open1 = await server.OpenDb({ path: '/shared.db' })
-    const open2 = await server.OpenDb({ path: '/shared.db' })
+    const [open1, open2] = await Promise.all([
+      server.OpenDb({ path: '/shared.db' }),
+      server.OpenDb({ path: '/shared.db' }),
+    ])
     const dbId1 = open1.dbId!
     const dbId2 = open2.dbId!
     const internals = server as unknown as SqliteBridgeServerInternals

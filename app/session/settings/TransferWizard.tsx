@@ -415,9 +415,9 @@ function SelectStep({
   return (
     <>
       <div>
-        <label className="text-foreground mb-2 block text-xs font-medium">
+        <span className="text-foreground mb-2 block text-xs font-medium">
           Source session (merge from)
-        </label>
+        </span>
         <div className="space-y-1.5">
           {sessionOptions.map((s) => (
             <RadioOption
@@ -434,30 +434,34 @@ function SelectStep({
       </div>
 
       <div>
-        <label className="text-foreground mb-2 block text-xs font-medium">
+        <span className="text-foreground mb-2 block text-xs font-medium">
           Target session (merge into)
-        </label>
+        </span>
         <div className="space-y-1.5">
-          {sessionOptions
-            .filter((s) => s.index !== sourceIdx)
-            .map((s) => (
-              <RadioOption
-                key={`tgt-${s.index}`}
-                selected={targetIdx === s.index}
-                onSelect={() => onTargetChange(s.index)}
-                label={s.label}
-                description={
-                  s.providerId === 'local' ? 'Local storage' : 'Spacewave Cloud'
-                }
-              />
-            ))}
+          {sessionOptions.flatMap((s) =>
+            s.index !== sourceIdx ?
+              [
+                <RadioOption
+                  key={`tgt-${s.index}`}
+                  selected={targetIdx === s.index}
+                  onSelect={() => onTargetChange(s.index)}
+                  label={s.label}
+                  description={
+                    s.providerId === 'local' ?
+                      'Local storage'
+                    : 'Spacewave Cloud'
+                  }
+                />,
+              ]
+            : [],
+          )}
         </div>
       </div>
 
       <div>
-        <label className="text-foreground mb-2 block text-xs font-medium">
+        <span className="text-foreground mb-2 block text-xs font-medium">
           Transfer mode
-        </label>
+        </span>
         <div className="space-y-1.5">
           <RadioOption
             selected={mode === TransferMode.TransferMode_MERGE}

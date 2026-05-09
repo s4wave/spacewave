@@ -60,9 +60,9 @@ function isSortColumn(key: string): key is SortColumn {
 
 // sortFn adapts sortFileEntries to the ListSortFn interface.
 const sortFn: ListSortFn<FileEntry> = (items, sortKey, sortDirection) => {
-  const entriesWithData = items
-    .map((item) => item.data)
-    .filter((entry): entry is FileEntry => entry !== undefined)
+  const entriesWithData = items.flatMap((item) =>
+    item.data ? [item.data] : [],
+  )
   const column = isSortColumn(sortKey) ? sortKey : 'name'
   const sorted = sortFileEntries(entriesWithData, column, sortDirection)
   return sorted.map((entry) => ({ id: entry.id, data: entry }))
@@ -99,9 +99,9 @@ export function FileList({
     () =>
       onOpen ?
         (openedItems: ListItem<FileEntry>[]) => {
-          const fileEntries = openedItems
-            .map((item) => item.data)
-            .filter((entry): entry is FileEntry => entry !== undefined)
+          const fileEntries = openedItems.flatMap((item) =>
+            item.data ? [item.data] : [],
+          )
           onOpen(fileEntries)
         }
       : undefined,
@@ -154,36 +154,39 @@ export function FileList({
           className="bg-panel-header text-foreground-alt border-foreground/8 flex items-center border-b px-3 py-1.5 text-xs select-none"
           style={headerStyle}
         >
-          <div
+          <button
+            type="button"
             className={cn(
-              'flex min-w-[120px] flex-1 cursor-pointer items-center gap-1',
+              'flex min-w-[120px] flex-1 cursor-pointer items-center gap-1 bg-transparent p-0 text-left',
               sortKey === 'name' && 'text-foreground',
             )}
             onClick={() => handleSort('name')}
           >
             <span>Name</span>
             {sortKey === 'name' && <SortChevron className="size-3" />}
-          </div>
-          <div
+          </button>
+          <button
+            type="button"
             className={cn(
-              'flex w-[140px] min-w-[100px] shrink cursor-pointer items-center gap-1 text-xs',
+              'flex w-[140px] min-w-[100px] shrink cursor-pointer items-center gap-1 bg-transparent p-0 text-left text-xs',
               sortKey === 'date' && 'text-foreground',
             )}
             onClick={() => handleSort('date')}
           >
             <span>Date Modified</span>
             {sortKey === 'date' && <SortChevron className="size-3" />}
-          </div>
-          <div
+          </button>
+          <button
+            type="button"
             className={cn(
-              'flex w-[70px] min-w-[50px] shrink cursor-pointer items-center justify-end gap-1 text-xs',
+              'flex w-[70px] min-w-[50px] shrink cursor-pointer items-center justify-end gap-1 bg-transparent p-0 text-left text-xs',
               sortKey === 'size' && 'text-foreground',
             )}
             onClick={() => handleSort('size')}
           >
             {sortKey === 'size' && <SortChevron className="size-3" />}
             <span>Size</span>
-          </div>
+          </button>
           <div className="w-8"></div>
         </div>
       )

@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, type ReactNode } from 'react'
+import { createContext, use, useMemo, type ReactNode } from 'react'
 import type { RuntimeHandoffState } from '@s4wave/sdk/root/root.pb.js'
 
 // RuntimeHandoffContextValue carries the current handoff snapshot so
@@ -54,5 +54,5 @@ export function RuntimeHandoffProvider({
 // Components that depend on the native runtime can disable actions or
 // show copy when handoff.active is true.
 export function useRuntimeHandoff(): RuntimeHandoffContextValue {
-  return useContext(RuntimeHandoffContext)
+  return use(RuntimeHandoffContext)
 }

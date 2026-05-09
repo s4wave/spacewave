@@ -34,6 +34,10 @@ interface MenuNode {
   order: number
 }
 
+interface MenuSeparatorNode {
+  separatorKey: string
+}
+
 // topLevelMenus defines the order of top-level menus.
 const topLevelMenus = ['File', 'Edit', 'View', 'Tools', 'Help']
 
@@ -106,23 +110,29 @@ function buildMenuTree(commands: CommandState[]): Map<string, MenuNode> {
 // with separators between groups indicated by null entries.
 function sortedGroupedChildren(
   children: Map<string, MenuNode>,
-): (MenuNode | null)[] {
+): (MenuNode | MenuSeparatorNode)[] {
   const items = Array.from(children.values())
   items.sort((a, b) => {
     if (a.group !== b.group) return a.group - b.group
     return a.order - b.order
   })
 
-  const result: (MenuNode | null)[] = []
+  const result: (MenuNode | MenuSeparatorNode)[] = []
   let lastGroup = -1
   for (const item of items) {
     if (lastGroup >= 0 && item.group !== lastGroup) {
-      result.push(null)
+      result.push({ separatorKey: `sep-${lastGroup}-${item.group}` })
     }
     result.push(item)
     lastGroup = item.group
   }
   return result
+}
+
+function isMenuSeparator(
+  item: MenuNode | MenuSeparatorNode,
+): item is MenuSeparatorNode {
+  return 'separatorKey' in item
 }
 
 // MenuItemRenderer renders a single menu item or submenu.
@@ -139,8 +149,10 @@ function MenuItemRenderer({
       <MenubarSub>
         <MenubarSubTrigger>{node.label}</MenubarSubTrigger>
         <MenubarSubContent>
-          {items.map((child, i) => {
-            if (!child) return <MenubarSeparator key={`sep-${i}`} />
+          {items.map((child) => {
+            if (isMenuSeparator(child)) {
+              return <MenubarSeparator key={child.separatorKey} />
+            }
             return (
               <MenuItemRenderer
                 key={child.label}
@@ -211,7 +223,7 @@ export function ShellMenuBar() {
         onClick={handleLogoClick}
         title="Open command palette"
       >
-        <AppLogo className="h-[28px] w-[28px]" />
+        <AppLogo className="size-[28px]" />
       </button>
       <div
         className={cn(
@@ -232,8 +244,10 @@ export function ShellMenuBar() {
                 </MenubarTrigger>
                 <MenubarContent align="start">
                   {items.length ?
-                    items.map((item, i) => {
-                      if (!item) return <MenubarSeparator key={`sep-${i}`} />
+                    items.map((item) => {
+                      if (isMenuSeparator(item)) {
+                        return <MenubarSeparator key={item.separatorKey} />
+                      }
                       return (
                         <MenuItemRenderer
                           key={item.commandId ?? item.label}

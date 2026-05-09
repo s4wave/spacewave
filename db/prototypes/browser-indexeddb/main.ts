@@ -68,8 +68,10 @@ async function deleteDatabase(dbName: string) {
 
 document.addEventListener('DOMContentLoaded', async () => {
   // delete the test db
-  await deleteDatabase('hydra/test-kv')
-  await deleteDatabase('hydra/test-kvtx')
+  await Promise.all([
+    deleteDatabase('hydra/test-kv'),
+    deleteDatabase('hydra/test-kvtx'),
+  ])
 
   const wasmModule = await WebAssembly.compileStreaming(fetch('main.wasm'))
   const runButton = document.getElementById('run-button')!

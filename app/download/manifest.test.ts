@@ -64,13 +64,13 @@ describe('resolvePrimaryEntry', () => {
   })
 
   it('covers the same host matrix for cli as for installers', () => {
-    const installerHosts = DOWNLOAD_MANIFEST.filter(
-      (e) => e.kind === 'installer',
-    ).map((e) => `${e.os}-${e.arch}`)
-    const cliHosts = DOWNLOAD_MANIFEST.filter((e) => e.kind === 'cli').map(
-      (e) => `${e.os}-${e.arch}`,
+    const installerHosts = DOWNLOAD_MANIFEST.flatMap((e) =>
+      e.kind === 'installer' ? [`${e.os}-${e.arch}`] : [],
     )
-    expect([...cliHosts].sort()).toEqual([...installerHosts].sort())
+    const cliHosts = DOWNLOAD_MANIFEST.flatMap((e) =>
+      e.kind === 'cli' ? [`${e.os}-${e.arch}`] : [],
+    )
+    expect(cliHosts.toSorted()).toEqual(installerHosts.toSorted())
   })
 
   it('uses cli filename naming convention spacewave-cli-{os}-{arch}.{ext}', () => {

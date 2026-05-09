@@ -122,18 +122,22 @@ export function SpaceCommands({
       if (signal.aborted) return Promise.resolve([])
       const q = query.toLowerCase()
       return Promise.resolve(
-        wizards
-          .filter(
-            (w) =>
-              !q ||
-              w.displayName?.toLowerCase().includes(q) ||
-              w.category?.toLowerCase().includes(q),
-          )
-          .map((w) => ({
-            id: w.typeId ?? '',
-            label: w.displayName ?? '',
-            description: w.category,
-          })),
+        wizards.flatMap((w) => {
+          if (
+            q &&
+            !w.displayName?.toLowerCase().includes(q) &&
+            !w.category?.toLowerCase().includes(q)
+          ) {
+            return []
+          }
+          return [
+            {
+              id: w.typeId ?? '',
+              label: w.displayName ?? '',
+              description: w.category,
+            },
+          ]
+        }),
       )
     },
     [wizards],

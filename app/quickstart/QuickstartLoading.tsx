@@ -65,15 +65,21 @@ function QuickstartIcon(props: { option: QuickstartOption }) {
 }
 
 function LoadingDots() {
+  const dots = [
+    { key: 'first', delay: 0 },
+    { key: 'second', delay: 0.2 },
+    { key: 'third', delay: 0.4 },
+  ]
+
   return (
     <div className="flex gap-1.5">
-      {[0, 1, 2].map((i) => (
+      {dots.map((dot) => (
         <div
-          key={i}
+          key={dot.key}
           className="size-2 rounded-full bg-[var(--color-neutral-500)]"
           style={{
-            animation: 'pulse 1.4s ease-in-out infinite',
-            animationDelay: `${i * 0.2}s`,
+            animation: 'pulse 0.9s ease-in-out infinite',
+            animationDelay: `${dot.delay}s`,
           }}
         />
       ))}

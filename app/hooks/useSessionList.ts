@@ -52,7 +52,7 @@ export interface SessionWithMeta {
 export function sortSessionsNewestFirst(
   sessions: SessionWithMeta[],
 ): SessionWithMeta[] {
-  return [...sessions].sort((a, b) => {
+  return sessions.toSorted((a, b) => {
     const aTime = Number(a.metadata?.createdAt ?? 0n)
     const bTime = Number(b.metadata?.createdAt ?? 0n)
     if (aTime !== 0 && bTime !== 0) {

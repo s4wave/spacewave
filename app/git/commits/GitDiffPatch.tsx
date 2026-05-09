@@ -72,9 +72,7 @@ export function GitDiffPatchFiles({
 
   if (loading) {
     return (
-      <div className="text-foreground-alt px-3 py-2 text-xs">
-        Loading diff...
-      </div>
+      <div className="text-foreground-alt px-3 py-2 text-xs">Loading diff…</div>
     )
   }
 

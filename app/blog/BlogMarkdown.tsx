@@ -12,6 +12,7 @@ function YouTubeEmbed({ videoid, title }: YouTubeEmbedProps) {
     'https://www.youtube-nocookie.com/embed/' +
     encodeURIComponent(videoid) +
     '?rel=0'
+  const frameTitle = title ?? `YouTube video ${videoid}`
 
   return (
     <div className="my-8">
@@ -19,7 +20,7 @@ function YouTubeEmbed({ videoid, title }: YouTubeEmbedProps) {
         <div className="aspect-video">
           <iframe
             src={src}
-            title={title || 'YouTube video'}
+            title={frameTitle}
             className="h-full w-full"
             loading="lazy"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"

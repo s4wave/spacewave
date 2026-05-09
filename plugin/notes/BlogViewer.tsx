@@ -149,8 +149,7 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
 
     const existing = new Set(
       (entriesResource.value ?? [])
-        .filter((e) => !e.isDir && e.name.endsWith('.md'))
-        .map((e) => e.name),
+        .flatMap((e) => (!e.isDir && e.name.endsWith('.md') ? [e.name] : [])),
     )
     let name = 'new-post.md'
     let counter = 1

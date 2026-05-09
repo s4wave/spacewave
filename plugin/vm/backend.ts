@@ -125,14 +125,12 @@ export default async function main(
   const coreClient = new SRPCClient(api.buildPluginOpenStream('spacewave-core'))
   const resourcesService = new ResourceServiceClient(coreClient)
   const resourcesClient = new ResourcesClient(resourcesService, signal)
-  const rootRef = await resourcesClient.accessRootResource()
 
   // Resolve the V86 viewer script path from the Vite manifest.
-  const v86ViewerScript = await resolveAssetPath(
-    api,
-    signal,
-    './plugin/vm/VmV86Viewer.tsx',
-  )
+  const [rootRef, v86ViewerScript] = await Promise.all([
+    resourcesClient.accessRootResource(),
+    resolveAssetPath(api, signal, './plugin/vm/VmV86Viewer.tsx'),
+  ])
 
   // Register Viewer for the V86 type.
   const vrSvc = new ViewerRegistryResourceServiceClient(rootRef.client)

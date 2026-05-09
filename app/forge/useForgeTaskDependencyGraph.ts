@@ -42,16 +42,19 @@ export function useForgeTaskDependencyGraph(
               50,
               signal,
             )
-            return (result.quads ?? [])
-              .map((quad) => quad.obj)
-              .filter((obj): obj is string => !!obj)
-              .map((obj) => iriToKey(obj))
-              .filter((objKey) => taskKeys.has(objKey))
-              .map((objKey) => ({
-                from: task.objectKey,
-                to: objKey,
-                kind,
-              }))
+            return (result.quads ?? []).flatMap((quad) => {
+              if (!quad.obj) return []
+              const objKey = iriToKey(quad.obj)
+              return taskKeys.has(objKey) ?
+                  [
+                    {
+                      from: task.objectKey,
+                      to: objKey,
+                      kind,
+                    },
+                  ]
+                : []
+            })
           }
 
           const [subtaskEdges, cachedEdges] = await Promise.all([

@@ -1,9 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  useMemo,
-  type ReactNode,
-} from 'react'
+import React, { createContext, use, useMemo, type ReactNode } from 'react'
 import type { WatchOrganizationStateResponse } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 import { SpaceSharingState, SpaceState } from '@s4wave/sdk/space/space.pb.js'
 import { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
@@ -102,7 +97,7 @@ const Provider: React.FC<
 }
 
 const useSpaceContainerContext = (): SpaceContainerContextValue => {
-  const context = useContext(Context)
+  const context = use(Context)
   if (!context) {
     throw new Error(
       'SpaceContainer context not found. Wrap component in SpaceContainerContext.Provider.',
@@ -113,7 +108,7 @@ const useSpaceContainerContext = (): SpaceContainerContextValue => {
 
 // useSpaceContainerContextSafe returns the context value or null if not available.
 const useSpaceContainerContextSafe = (): SpaceContainerContextValue | null => {
-  return useContext(Context)
+  return use(Context)
 }
 
 // SpaceContainerContext provides space navigation and state to child components.

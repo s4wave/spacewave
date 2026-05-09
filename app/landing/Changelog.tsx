@@ -61,8 +61,11 @@ function CategorySection({
         {label}
       </Badge>
       <ul className="flex flex-col gap-2">
-        {entries.map((entry, i) => (
-          <li key={i} className="text-foreground-alt text-sm leading-relaxed">
+        {entries.map((entry) => (
+          <li
+            key={entry.descriptionMarkdown || entry.description}
+            className="text-foreground-alt text-sm leading-relaxed"
+          >
             <Markdown options={markdownOptions}>
               {entry.descriptionMarkdown || entry.description || ''}
             </Markdown>

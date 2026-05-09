@@ -22,7 +22,10 @@ function normalizeUnixFSPath(path: string): string {
 }
 
 function encodePath(path: string): string {
-  return path.split('/').filter(Boolean).map(encodeURIComponent).join('/')
+  return path
+    .split('/')
+    .flatMap((part) => (part ? [encodeURIComponent(part)] : []))
+    .join('/')
 }
 
 function buildProjectedObjectPath(

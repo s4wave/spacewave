@@ -171,7 +171,7 @@ async function run() {
       entries.push(name)
     }
 
-    const sorted = [...entries].sort()
+    const sorted = entries.toSorted()
     const expected = ['alpha.txt', 'bravo.txt', 'charlie.txt', 'delta-dir']
     if (sorted.length !== expected.length) {
       errors.push(`list length: got ${sorted.length}, want ${expected.length}`)

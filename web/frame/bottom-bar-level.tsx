@@ -1,10 +1,4 @@
-import React, {
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-} from 'react'
+import React, { useCallback, use, useEffect, useMemo, useRef } from 'react'
 import {
   BottomBarContext,
   BottomBarContextValue,
@@ -79,7 +73,7 @@ export function BottomBarLevel({
   position,
   children,
 }: BottomBarLevelProps) {
-  const parent = useContext(BottomBarContext)
+  const parent = use(BottomBarContext)
 
   // Calculate depth from parent
   const depth = parent ? parent.depth + 1 : 1

@@ -41,6 +41,9 @@ export function PasskeyWaitPage() {
   const [retryCount, setRetryCount] = useState(0)
   const [pin, setPin] = useState('')
   const [pinError, setPinError] = useState('')
+  const handlePinInputRef = useCallback((node: HTMLInputElement | null) => {
+    node?.focus()
+  }, [])
 
   const loginWithPem = useCallback(
     async (pemPrivateKey: Uint8Array) => {
@@ -233,13 +236,13 @@ export function PasskeyWaitPage() {
             signing in.
           </p>
           <input
+            ref={handlePinInputRef}
             type="password"
             value={pin}
             onChange={(e) => {
               setPin(e.target.value)
               setPinError('')
             }}
-            autoFocus
             className={authInputClassName}
             placeholder="PIN"
             onKeyDown={(e) => {

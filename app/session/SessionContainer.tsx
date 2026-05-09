@@ -321,16 +321,6 @@ export function SessionContainer(props: {
     navigate({ path: '/sessions' })
   }, [navigate])
 
-  const accountOverlay = useMemo(
-    () => (
-      <SessionDetails
-        onCloseClick={handleCloseDetails}
-        onChangeAccountClick={handleChangeAccount}
-      />
-    ),
-    [handleCloseDetails, handleChangeAccount],
-  )
-
   // TODO: wire add auth method button in AuthMethodsSection
 
   const handleAccountBreadcrumb = useCallback(() => {
@@ -387,7 +377,12 @@ export function SessionContainer(props: {
         <BottomBarLevel
           id="account"
           button={accountButton}
-          overlay={accountOverlay}
+          overlay={
+            <SessionDetails
+              onCloseClick={handleCloseDetails}
+              onChangeAccountClick={handleChangeAccount}
+            />
+          }
           buttonKey={accountButtonKey}
           onBreadcrumbClick={handleAccountBreadcrumb}
         >

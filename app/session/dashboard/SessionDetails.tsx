@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import {
   LuArrowLeft,
   LuCloud,
@@ -89,6 +89,7 @@ export function SessionDetails({
   onCloseClick,
   onChangeAccountClick,
 }: SessionDetailsProps) {
+  const displayNameInputId = useId()
   const sessionResource = SessionContext.useContext()
   const session = useResourceValue(sessionResource)
   const navigate = useNavigate()
@@ -317,7 +318,7 @@ export function SessionDetails({
     return (
       <div className="bg-background-primary flex h-full w-full flex-1 items-center justify-center">
         <div className="text-foreground-alt text-xs select-none">
-          Loading session info...
+          Loading session info…
         </div>
       </div>
     )
@@ -434,13 +435,17 @@ export function SessionDetails({
                     <InfoCard>
                       <div className="space-y-2">
                         <div>
-                          <label className="text-foreground-alt mb-1 block text-[0.6rem] select-none">
+                          <label
+                            htmlFor={displayNameInputId}
+                            className="text-foreground-alt mb-1 block text-[0.6rem] select-none"
+                          >
                             Display Name
                           </label>
                           {editingDisplayName ?
                             <>
                               <div className="flex items-center gap-2">
                                 <Input
+                                  id={displayNameInputId}
                                   value={displayName}
                                   onChange={(e) => {
                                     setDisplayName(e.target.value)

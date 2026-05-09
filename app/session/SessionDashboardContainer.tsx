@@ -39,6 +39,12 @@ import { LogoutConfirmDialog } from './LogoutConfirmDialog.js'
 // dashboards render a fixed label.
 const CDN_SPACE_DISPLAY_NAME = 'Spacewave CDN'
 
+function formatScheduledDeletion(
+  timestampMs: number | string | bigint,
+): string {
+  return new Date(Number(timestampMs)).toLocaleString()
+}
+
 // SessionDashboardContainer displays the session dashboard.
 export function SessionDashboardContainer() {
   const sessionResource = SessionContext.useContext()
@@ -76,12 +82,16 @@ export function SessionDashboardContainer() {
 
   const dashboardOrgs: DashboardOrg[] | undefined = useMemo(
     () =>
-      orgList
-        ?.filter((o): o is typeof o & { id: string } => !!o.id)
-        .map((o) => ({
-          id: o.id,
-          displayName: o.displayName ?? '',
-        })),
+      orgList?.flatMap((o) =>
+        o.id ?
+          [
+            {
+              id: o.id,
+              displayName: o.displayName ?? '',
+            },
+          ]
+        : [],
+      ),
     [orgList],
   )
 
@@ -108,16 +118,20 @@ export function SessionDashboardContainer() {
 
   const dashboardSpaces: DashboardSpace[] | undefined = useMemo(() => {
     if (!resourcesList?.spacesList) return undefined
-    const spaces: DashboardSpace[] = resourcesList.spacesList
-      .filter((entry) => !!entry.entry?.ref?.providerResourceRef?.id)
-      .map((entry) => {
-        const id = entry.entry!.ref!.providerResourceRef!.id!
-        return {
-          id,
-          name: entry.spaceMeta?.name ?? 'Untitled',
-          orgId: spaceToOrg.get(id),
-        }
-      })
+    const spaces: DashboardSpace[] = resourcesList.spacesList.flatMap(
+      (entry) => {
+        const id = entry.entry?.ref?.providerResourceRef?.id
+        return id ?
+            [
+              {
+                id,
+                name: entry.spaceMeta?.name ?? 'Untitled',
+                orgId: spaceToOrg.get(id),
+              },
+            ]
+          : []
+      },
+    )
     // Inject the CDN Space under the org that claims it (typically the
     // platform/staging org). If no org lists the CDN ULID in space_ids,
     // skip injection so the CDN does not leak into the personal lane.
@@ -284,9 +298,11 @@ function PendingDeleteNotice(props: {
               subscription.
             </p>
             {props.deleteAt && (
-              <p className="text-foreground-alt text-xs">
-                Scheduled deletion:{' '}
-                {new Date(Number(props.deleteAt)).toLocaleString()}
+              <p
+                suppressHydrationWarning
+                className="text-foreground-alt text-xs"
+              >
+                Scheduled deletion: {formatScheduledDeletion(props.deleteAt)}
               </p>
             )}
           </div>

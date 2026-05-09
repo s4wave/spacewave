@@ -46,8 +46,10 @@ export function useObjectViewerSetup(
     async ([root, world, object], signal) => {
       if (!world || !object) return null
       const key = object.getKey()
-      const rootRefResp = await object.getRootRef(signal)
-      const typeID = await getObjectType(world, key, signal)
+      const [rootRefResp, typeID] = await Promise.all([
+        object.getRootRef(signal),
+        getObjectType(world, key, signal),
+      ])
       return {
         key,
         rootRef: await formatObjectRef(root, rootRefResp.rootRef, signal),

@@ -1,7 +1,7 @@
 import {
   createContext,
   useCallback,
-  useContext,
+  use,
   useEffect,
   useMemo,
   useRef,
@@ -154,12 +154,11 @@ function ResourceDevToolsProviderInner({
     (id: TrackingId, parentIds: TrackingId[], retry: () => void) => {
       const prev = resourcesRef.current
       const existing = prev.get(id)
-      if (
-        existing &&
-        existing.retry === retry &&
-        existing.parentIds.length === parentIds.length &&
-        existing.parentIds.every((pid, i) => pid === parentIds[i])
-      ) {
+      const sameParentIds = existing ?
+        trackingIdsEqual(existing.parentIds, parentIds)
+      : false
+
+      if (existing && existing.retry === retry && sameParentIds) {
         return
       }
 
@@ -332,9 +331,17 @@ function ResourceDevToolsProviderInner({
   )
 }
 
+function trackingIdsEqual(a: TrackingId[], b: TrackingId[]): boolean {
+  if (a.length !== b.length) return false
+  for (const [i, id] of a.entries()) {
+    if (id !== b[i]) return false
+  }
+  return true
+}
+
 // useResourceDevToolsContext returns the DevTools context, or null if not available.
 export function useResourceDevToolsContext() {
-  return useContext(ResourceDevToolsContext)
+  return use(ResourceDevToolsContext)
 }
 
 // Empty map singleton for when devtools is not available

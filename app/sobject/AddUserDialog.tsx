@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useReducer, useState } from 'react'
+import { useCallback, useId, useMemo, useReducer, useState } from 'react'
 import {
   LuBuilding2,
   LuCheck,
@@ -126,6 +126,9 @@ export function AddUserDialog({
   const spaceContainer = SpaceContainerContext.useContextSafe()
   const cloudProviderConfig = useCloudProviderConfig()
   const [state, dispatch] = useReducer(reducer, initialState)
+  const inviteCodeId = useId()
+  const usernameInputId = useId()
+  const inviteLinkId = useId()
 
   const handleOpenChange = useCallback(
     (next: boolean) => {
@@ -265,10 +268,14 @@ export function AddUserDialog({
           <TabsContent value="code" className="space-y-3 pt-2">
             {shortCode ?
               <div className="space-y-2">
-                <label className="text-foreground-alt mb-1.5 block text-xs select-none">
+                <label
+                  htmlFor={inviteCodeId}
+                  className="text-foreground-alt mb-1.5 block text-xs select-none"
+                >
                   Invite code
                 </label>
                 <input
+                  id={inviteCodeId}
                   value={shortCode}
                   readOnly
                   className={cn(
@@ -314,10 +321,14 @@ export function AddUserDialog({
           {isCloudProvider && (
             <TabsContent value="username" className="space-y-3 pt-2">
               <div className="space-y-2">
-                <label className="text-foreground-alt mb-1.5 block text-xs select-none">
+                <label
+                  htmlFor={usernameInputId}
+                  className="text-foreground-alt mb-1.5 block text-xs select-none"
+                >
                   Spacewave username
                 </label>
                 <input
+                  id={usernameInputId}
                   value={state.username}
                   onChange={(e) =>
                     dispatch({ type: 'username', value: e.target.value })
@@ -353,10 +364,14 @@ export function AddUserDialog({
           <TabsContent value="link" className="space-y-3 pt-2">
             {state.inviteResp?.inviteMessage ?
               <div className="space-y-2">
-                <label className="text-foreground-alt mb-1.5 block text-xs select-none">
+                <label
+                  htmlFor={inviteLinkId}
+                  className="text-foreground-alt mb-1.5 block text-xs select-none"
+                >
                   Invite link
                 </label>
                 <input
+                  id={inviteLinkId}
                   value={inviteLink}
                   readOnly
                   className={inputClass}
@@ -500,7 +515,7 @@ function OrgMembersTab({
       <div className="max-h-48 space-y-0.5 overflow-y-auto">
         {loading && filtered.length === 0 && (
           <p className="text-foreground-alt/50 py-2 text-center text-xs">
-            Loading org members...
+            Loading org members…
           </p>
         )}
         {!loading && filtered.length === 0 && (

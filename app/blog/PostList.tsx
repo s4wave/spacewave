@@ -13,14 +13,26 @@ interface PostListItemProps {
 function PostListItem({ post }: PostListItemProps) {
   const navigate = useNavigate()
 
-  const handleClick = useCallback(() => {
+  const handlePostSelect = useCallback(() => {
     navigate({ path: post.url })
   }, [navigate, post.url])
 
+  const handlePostRowKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLElement>) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return
+      e.preventDefault()
+      handlePostSelect()
+    },
+    [handlePostSelect],
+  )
+
   return (
     <article
-      onClick={handleClick}
-      className="border-foreground/6 hover:bg-background-card/30 group flex cursor-pointer items-start gap-5 border-b px-5 py-5 transition-all duration-200 last:border-b-0 @lg:items-center"
+      role="link"
+      tabIndex={0}
+      onClick={handlePostSelect}
+      onKeyDown={handlePostRowKeyDown}
+      className="border-foreground/6 hover:bg-background-card/30 group flex cursor-pointer items-start gap-5 border-b p-5 transition-all duration-200 last:border-b-0 @lg:items-center"
     >
       <div className="min-w-0 flex-1">
         <h3 className="text-foreground group-hover:text-brand mb-1.5 text-sm font-semibold transition-colors duration-200 @lg:text-base">

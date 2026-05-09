@@ -40,7 +40,8 @@ export function ObjectKeySelector({
   const currentNodes = useMemo(() => {
     let current = nodes
     for (const segment of path) {
-      const found = current.find((n) => n.name === segment)
+      const nodeByName = new Map(current.map((n) => [n.name, n]))
+      const found = nodeByName.get(segment)
       if (found?.children) {
         current = found.children
       }

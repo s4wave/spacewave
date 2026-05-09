@@ -903,6 +903,8 @@ describe('Grid Mode Visual Issues', () => {
           model={gridModel}
           factory={(node) => (
             <div
+              role="button"
+              tabIndex={0}
               data-testid={`content-${node.getId()}`}
               style={{ width: '100%', height: '100%', padding: '20px' }}
               onClick={() => {
@@ -914,6 +916,18 @@ describe('Grid Mode Visual Issues', () => {
                 if (parent) {
                   clickedTabsetId = parent.getId()
                   // Select the tab to trigger tabset selection
+                  gridModel.doAction(Actions.selectTab(node.getId()))
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key !== 'Enter' && e.key !== ' ') return
+                e.preventDefault()
+                let parent = node.getParent()
+                while (parent && parent.getType() !== 'tabset') {
+                  parent = parent.getParent()
+                }
+                if (parent) {
+                  clickedTabsetId = parent.getId()
                   gridModel.doAction(Actions.selectTab(node.getId()))
                 }
               }}

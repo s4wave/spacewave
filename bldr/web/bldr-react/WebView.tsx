@@ -384,28 +384,24 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
       : null}
       {/* Render stylesheets immediately when ready with onload tracking */}
       {webViewState.ready ?
-        webViewState.htmlLinks
-          .filter(
-            (ilink) => ilink.link.rel === 'stylesheet' && !!ilink.link.href,
-          )
-          .map((ilink) => (
+        webViewState.htmlLinks.flatMap((ilink) =>
+          ilink.link.rel === 'stylesheet' && ilink.link.href ? [
             <StylesheetLink
               key={`${webViewState.refreshNonce} -> ${ilink.id}`}
               id={ilink.id}
-              href={ilink.link.href!}
+              href={ilink.link.href}
               onLoad={onLinkLoad}
-            />
-          ))
+            />,
+          ] : [],
+        )
       : undefined}
       {/* Render non-stylesheet links immediately */}
       {webViewState.ready ?
-        webViewState.htmlLinks
-          .filter(
-            (ilink) => ilink.link.rel !== 'stylesheet' && !!ilink.link.href,
-          )
-          .map((ilink) => (
-            <link key={ilink.id} href={ilink.link.href} rel={ilink.link.rel} />
-          ))
+        webViewState.htmlLinks.flatMap((ilink) =>
+          ilink.link.rel !== 'stylesheet' && ilink.link.href ? [
+            <link key={ilink.id} href={ilink.link.href} rel={ilink.link.rel} />,
+          ] : [],
+        )
       : undefined}
       {/* Render component inside Activity - hidden until CSS loads */}
       {webViewState.ready &&

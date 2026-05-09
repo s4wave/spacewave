@@ -39,7 +39,7 @@ export function ForgeValueSetDisplay({
         <div className="space-y-2">
           {rows.map((value, index) => (
             <div
-              key={`${value.name ?? 'value'}-${index}`}
+              key={value.name || JSON.stringify(value)}
               className="border-foreground/6 bg-background-card/20 flex items-center justify-between rounded border px-3 py-2"
             >
               <div className="text-foreground text-xs font-medium">

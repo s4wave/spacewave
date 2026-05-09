@@ -15,7 +15,7 @@ export function percentile(sorted, q) {
 }
 
 export function stats(values) {
-  const sorted = [...values].sort((a, b) => a - b)
+  const sorted = values.toSorted((a, b) => a - b)
   const n = sorted.length
   const sum = sorted.reduce((a, b) => a + b, 0)
   return {
@@ -277,7 +277,7 @@ export function buildSSTable(entries, opts = {}) {
   const valueSize = opts.valueSize ?? 4096
   const indexEvery = opts.indexEvery ?? 32
   const falsePositiveRate = opts.falsePositiveRate ?? 0.01
-  const sorted = [...entries].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0))
+  const sorted = entries.toSorted((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0))
   const bloom = buildBloom(sorted.map((entry) => entry.key), falsePositiveRate)
   const recordSize = keySize + 1 + valueSize
   const indexCount = Math.ceil(sorted.length / indexEvery)

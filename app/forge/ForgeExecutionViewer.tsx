@@ -107,7 +107,7 @@ function LogViewer({ logEntries }: { logEntries: Execution['logEntries'] }) {
   if (entries.length === 0) {
     return (
       <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-        <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
+        <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
           <LuActivity className="size-3.5 shrink-0" />
           <span>No log output</span>
         </div>
@@ -120,8 +120,11 @@ function LogViewer({ logEntries }: { logEntries: Execution['logEntries'] }) {
       ref={scrollRef}
       className="border-foreground/6 bg-background/40 max-h-64 overflow-y-auto rounded-lg border p-3"
     >
-      {entries.map((entry, i) => (
-        <div key={i} className="flex gap-2 font-mono text-xs leading-relaxed">
+      {entries.map((entry) => (
+        <div
+          key={`${entry.level ?? ''}:${entry.message}`}
+          className="flex gap-2 font-mono text-xs leading-relaxed"
+        >
           {entry.level && (
             <span className={logLevelColor(entry.level)}>
               [{entry.level.toUpperCase()}]

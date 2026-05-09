@@ -1,6 +1,6 @@
 import {
   createContext,
-  useContext,
+  use,
   useCallback,
   useEffect,
   useMemo,
@@ -125,5 +125,5 @@ export function HistoryRouter({
 
 // useHistory returns history navigation controls, or null if not within a HistoryRouter.
 export function useHistory(): HistoryContextType | null {
-  return useContext(HistoryContext)
+  return use(HistoryContext)
 }

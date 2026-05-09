@@ -100,11 +100,8 @@ export async function prerenderElement(
   path: string,
 ): Promise<string> {
   const child = createElement(StaticProvider, null, element)
-  const wrapped = createElement(RouterProvider, {
-    path,
-    onNavigate: noop,
-    children: child,
-  })
+  const props = { path, onNavigate: noop, children: child }
+  const wrapped = createElement(RouterProvider, props)
   const { prelude } = await prerender(wrapped)
   return streamToString(prelude)
 }

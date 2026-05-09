@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { page, userEvent } from 'vitest/browser'
 import { render, cleanup } from 'vitest-browser-react'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 
 import '@s4wave/web/style/app.css'
 
@@ -38,7 +38,8 @@ function TestWindow({
   title: string
   initialState: FloatingWindowState
 }) {
-  const [state, setState] = useState(initialState)
+  const initialStateRef = useRef(initialState)
+  const [state, setState] = useState(initialStateRef.current)
 
   const handleStateChange = useCallback((newState: FloatingWindowState) => {
     setState(newState)

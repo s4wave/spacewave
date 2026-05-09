@@ -14,13 +14,25 @@ interface HeroCardProps {
 export function HeroCard({ post }: HeroCardProps) {
   const navigate = useNavigate()
 
-  const handleClick = useCallback(() => {
+  const handleHeroCardSelect = useCallback(() => {
     navigate({ path: post.url })
   }, [navigate, post.url])
 
+  const handleHeroCardKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLElement>) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return
+      e.preventDefault()
+      handleHeroCardSelect()
+    },
+    [handleHeroCardSelect],
+  )
+
   return (
     <article
-      onClick={handleClick}
+      role="link"
+      tabIndex={0}
+      onClick={handleHeroCardSelect}
+      onKeyDown={handleHeroCardKeyDown}
       className="border-foreground/8 bg-background-card/20 group relative cursor-pointer overflow-hidden rounded-2xl border backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-white/12"
     >
       {/* Subtle gradient glow on hover */}

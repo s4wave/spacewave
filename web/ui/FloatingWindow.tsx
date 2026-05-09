@@ -1,7 +1,7 @@
 import {
   createContext,
   useCallback,
-  useContext,
+  use,
   useEffect,
   useMemo,
   useRef,
@@ -97,7 +97,7 @@ export function FloatingWindowManagerProvider({
 
 // useFloatingWindowManager returns the window manager context.
 export function useFloatingWindowManager() {
-  return useContext(FloatingWindowManagerContext)
+  return use(FloatingWindowManagerContext)
 }
 
 export interface FloatingWindowPosition {
@@ -200,10 +200,12 @@ export function FloatingWindow({
     const el = panelRef.current
     if (!el) return
     const { pos, size } = current.current
-    el.style.left = `${pos.x}px`
-    el.style.top = `${pos.y}px`
-    el.style.width = `${size.width}px`
-    el.style.height = `${size.height}px`
+    Object.assign(el.style, {
+      left: `${pos.x}px`,
+      top: `${pos.y}px`,
+      width: `${size.width}px`,
+      height: `${size.height}px`,
+    })
   }, [])
 
   const handleMinimize = useCallback(() => {
@@ -348,6 +350,8 @@ export function FloatingWindow({
   return (
     <div
       ref={panelRef}
+      role="dialog"
+      aria-label={title}
       className={cn(
         'fixed flex flex-col overflow-hidden',
         'rounded-lg shadow-lg',
@@ -361,6 +365,7 @@ export function FloatingWindow({
     >
       {/* Header */}
       <div
+        role="presentation"
         className={cn(
           'flex h-6 shrink-0 items-center justify-between',
           'bg-background-deep/80 px-2',
@@ -445,6 +450,10 @@ const RESIZE_HANDLE_CLASSES: Record<string, string> = {
 function ResizeHandle({ edge, onMouseDown }: ResizeHandleProps) {
   return (
     <div
+      role="separator"
+      aria-orientation={
+        edge === 'n' || edge === 's' ? 'horizontal' : 'vertical'
+      }
       className={cn(
         'hover:bg-brand/20 absolute z-10',
         RESIZE_HANDLE_CLASSES[edge],

@@ -83,7 +83,7 @@ export function CreateSpaceRoute() {
   const rootResource = useRootResource()
   const root = useResourceValue(rootResource)
   const quickstartOptions = useVisibleQuickstartOptions()
-  const backPath = useMemo(() => (orgId ? `org/${orgId}/` : ''), [orgId])
+  const backPath = orgId ? `org/${orgId}/` : ''
 
   const selectedOption = useMemo(
     () =>
@@ -92,10 +92,8 @@ export function CreateSpaceRoute() {
       ) ?? null,
     [quickstartId, quickstartOptions],
   )
-  const staticId: QuickstartSpaceCreateId | null = useMemo(
-    () => (isQuickstartSpaceCreateId(quickstartId) ? quickstartId : null),
-    [quickstartId],
-  )
+  const staticId: QuickstartSpaceCreateId | null =
+    isQuickstartSpaceCreateId(quickstartId) ? quickstartId : null
   const valid = !!selectedOption && (!!selectedOption.dynamic || !!staticId)
   const spaceName =
     staticId ?
@@ -147,6 +145,10 @@ export function CreateSpaceRoute() {
           signal,
         )
         if (signal.aborted) return
+        const spaceId = spaceResp.sharedObjectRef?.providerResourceRef?.id ?? ''
+        if (!spaceId) {
+          throw new Error('createSpace did not return a space id')
+        }
         dispatch({ type: 'advance', to: 'mount' })
 
         const setup = await createQuickstartSetupFromSession({
@@ -171,10 +173,6 @@ export function CreateSpaceRoute() {
         }
         if (signal.aborted) return
 
-        const spaceId = spaceResp.sharedObjectRef?.providerResourceRef?.id ?? ''
-        if (!spaceId) {
-          throw new Error('createSpace did not return a space id')
-        }
         dispatch({ type: 'advance', to: 'done' })
         const spacePath = orgId ? `org/${orgId}/so/${spaceId}` : `so/${spaceId}`
         navigateSession({ path: spacePath, replace: true })

@@ -33,8 +33,10 @@ function discoverPosts(includeDrafts: boolean): BlogPost[] {
   if (!existsSync(postsDir)) return []
 
   const files = readdirSync(postsDir, { recursive: true })
-    .map(String)
-    .filter((f) => f.endsWith('.md'))
+    .flatMap((f) => {
+      const file = String(f)
+      return file.endsWith('.md') ? [file] : []
+    })
     .sort()
 
   const posts: BlogPost[] = []
@@ -216,9 +218,13 @@ export async function buildBlog(
 
   // Collect all unique tags.
   const tagSet = new Set<string>()
+  const tagPostsByTag = new Map<string, BlogPost[]>()
   for (const post of posts) {
     for (const tag of post.tags) {
       tagSet.add(tag)
+      const tagPosts = tagPostsByTag.get(tag)
+      if (tagPosts) tagPosts.push(post)
+      else tagPostsByTag.set(tag, [post])
     }
   }
   const allTags = Array.from(tagSet).sort()
@@ -318,7 +324,7 @@ export async function buildBlog(
 
   // Prerender tag pages.
   for (const tag of allTags) {
-    const tagPosts = posts.filter((p) => p.tags.includes(tag))
+    const tagPosts = tagPostsByTag.get(tag) ?? []
     ctx.log(`[blog] Prerendering /blog/tag/${tag}...`)
 
     const tagBody = await prerenderElement(

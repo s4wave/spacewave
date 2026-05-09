@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react'
+import { createContext, use } from 'react'
 import type {
   AddTabRequest,
   AddTabResponse,
@@ -24,10 +24,10 @@ export const TabContextProvider = TabContext.Provider
 
 // useTabContext returns the tab context, or null if not inside a tab.
 export function useTabContext(): TabContextValue | null {
-  return useContext(TabContext)
+  return use(TabContext)
 }
 
 // useTabId returns the current tab ID from TabContext.
 export function useTabId(): string | null {
-  return useContext(TabContext)?.tabId ?? null
+  return use(TabContext)?.tabId ?? null
 }

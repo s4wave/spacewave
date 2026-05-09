@@ -1,4 +1,4 @@
-import { useCallback, useState, type ReactNode } from 'react'
+import { useCallback, useId, useState, type ReactNode } from 'react'
 import {
   LuBuilding2,
   LuCircleAlert,
@@ -214,6 +214,8 @@ export function OrganizationDetails({
   isOwner,
   onCloseClick,
 }: OrganizationDetailsProps) {
+  const usernameInviteId = useId()
+  const renameInputId = useId()
   const session = SessionContext.useContext().value
   const navigateSession = useSessionNavigate()
   const ns = useStateNamespace(['org-details'])
@@ -337,6 +339,10 @@ export function OrganizationDetails({
     setRenameValue(orgName)
     setRenaming(true)
   }, [orgName])
+
+  const handleRenameInputRef = useCallback((node: HTMLInputElement | null) => {
+    node?.focus()
+  }, [])
 
   const handleRenameSave = useCallback(async () => {
     if (!session || renameSaving || renameValue.trim() === orgName) return
@@ -625,11 +631,15 @@ export function OrganizationDetails({
               }
             >
               <div className="border-foreground/8 bg-background-card/20 mb-3 rounded-md border px-3 py-2">
-                <label className="text-foreground-alt mb-1.5 block text-[0.6rem] select-none">
+                <label
+                  htmlFor={usernameInviteId}
+                  className="text-foreground-alt mb-1.5 block text-[0.6rem] select-none"
+                >
                   Spacewave username
                 </label>
                 <div className="flex gap-2">
                   <input
+                    id={usernameInviteId}
                     value={usernameInvite}
                     onChange={(e) => {
                       setUsernameInvite(e.target.value)
@@ -675,12 +685,17 @@ export function OrganizationDetails({
               <InfoCard>
                 <div className="space-y-2">
                   <div>
-                    <label className="text-foreground-alt mb-1 block text-[0.6rem] select-none">
+                    <label
+                      htmlFor={renameInputId}
+                      className="text-foreground-alt mb-1 block text-[0.6rem] select-none"
+                    >
                       Display Name
                     </label>
                     {renaming ?
                       <div className="flex items-center gap-2">
                         <input
+                          ref={handleRenameInputRef}
+                          id={renameInputId}
                           type="text"
                           value={renameValue}
                           onChange={(e) => setRenameValue(e.target.value)}
@@ -688,7 +703,6 @@ export function OrganizationDetails({
                             if (e.key === 'Enter') void handleRenameSave()
                             if (e.key === 'Escape') handleRenameCancel()
                           }}
-                          autoFocus
                           className={cn(
                             'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-2 py-1 text-xs transition-colors outline-none',
                             'focus:border-brand/50',

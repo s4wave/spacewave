@@ -289,7 +289,7 @@ export function ForgeDashboardViewer({
             )}
             {entitiesLoading && entities.length === 0 && (
               <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-                <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
+                <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
                   <LuBox className="size-3.5 shrink-0" />
                   <span>Loading entities…</span>
                 </div>
@@ -297,7 +297,7 @@ export function ForgeDashboardViewer({
             )}
             {!entitiesLoading && entities.length === 0 && (
               <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-                <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
+                <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
                   <LuBox className="size-3.5 shrink-0" />
                   <span>No linked Forge entities</span>
                 </div>
@@ -313,7 +313,7 @@ export function ForgeDashboardViewer({
           <div className="space-y-2">
             {activityLoading && activityEntries.length === 0 && (
               <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-                <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
+                <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
                   <LuActivity className="size-3.5 shrink-0" />
                   <span>Loading activity…</span>
                 </div>
@@ -321,7 +321,7 @@ export function ForgeDashboardViewer({
             )}
             {!activityLoading && activityEntries.length === 0 && (
               <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-                <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
+                <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
                   <LuActivity className="size-3.5 shrink-0" />
                   <span>No recent activity yet</span>
                 </div>
@@ -410,7 +410,7 @@ export function ForgeDashboardViewer({
                 }}
               />
             : <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-                <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
+                <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
                   <LuBox className="size-3.5 shrink-0" />
                   <span>No process bindings</span>
                 </div>

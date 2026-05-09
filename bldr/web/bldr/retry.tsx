@@ -116,7 +116,8 @@ export class Retry<T = void> {
   private async _execute() {
     do {
       try {
-        if (this._canceled || this._abortSignal?.aborted) {
+        const abortSignal = this._abortSignal
+        if (this._canceled || abortSignal?.aborted) {
           this.cancel()
           return
         }
@@ -127,8 +128,9 @@ export class Retry<T = void> {
         }
         return
       } catch (err) {
+        const abortSignal = this._abortSignal
         this._currError = err
-        if (this._canceled || this._abortSignal?.aborted) {
+        if (this._canceled || abortSignal?.aborted) {
           if (this._reject) {
             this._reject(err)
           }
@@ -139,7 +141,7 @@ export class Retry<T = void> {
         }
         await new Promise<void>((resolve) => {
           let timeoutId: NodeJS.Timeout | null = null
-          if (this._abortSignal?.aborted) {
+          if (abortSignal?.aborted) {
             resolve()
             return
           }

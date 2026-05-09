@@ -835,6 +835,7 @@ export default class WASI {
         const events: wasi.Event[] = []
         let clockTimeout: bigint | null = null
         let clockUserdata: bigint = 0n
+        let clockUseRealtime = false
 
         for (const s of subscriptions) {
           if (s.eventtype === wasi.EVENTTYPE_CLOCK) {
@@ -860,6 +861,7 @@ export default class WASI {
             if (clockTimeout === null || endTime < clockTimeout) {
               clockTimeout = endTime
               clockUserdata = s.userdata
+              clockUseRealtime = s.clockid === wasi.CLOCKID_REALTIME
             }
           } else if (
             s.eventtype === wasi.EVENTTYPE_FD_READ ||
@@ -901,10 +903,7 @@ export default class WASI {
           let timeoutMs: number | undefined
           if (clockTimeout !== null) {
             const getNow =
-              (
-                subscriptions.find((s) => s.eventtype === wasi.EVENTTYPE_CLOCK)
-                  ?.clockid === wasi.CLOCKID_REALTIME
-              ) ?
+              clockUseRealtime ?
                 () => BigInt(new Date().getTime()) * 1_000_000n
               : () => BigInt(Math.round(performance.now() * 1_000_000))
 
@@ -1009,11 +1008,7 @@ export default class WASI {
               // Check if clock expired
               if (clockTimeout !== null) {
                 const getNow =
-                  (
-                    subscriptions.find(
-                      (s) => s.eventtype === wasi.EVENTTYPE_CLOCK,
-                    )?.clockid === wasi.CLOCKID_REALTIME
-                  ) ?
+                  clockUseRealtime ?
                     () => BigInt(new Date().getTime()) * 1_000_000n
                   : () => BigInt(Math.round(performance.now() * 1_000_000))
 

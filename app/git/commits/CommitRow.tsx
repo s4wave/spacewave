@@ -35,7 +35,7 @@ export function CommitRow({
   const author = commit.authorName ?? ''
   const timeAgo = formatRelativeTime(commit.authorTimestamp)
 
-  const handleClick = useCallback(() => {
+  const handleCommitExpand = useCallback(() => {
     onToggle(hash)
     if (!expanded) {
       onLoadDiffStat(hash)
@@ -50,21 +50,34 @@ export function CommitRow({
     [hash, onCommitClick],
   )
 
+  const handleCommitExpandKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return
+      e.preventDefault()
+      handleCommitExpand()
+    },
+    [handleCommitExpand],
+  )
+
   return (
     <div className="border-foreground/8 border-b last:border-b-0">
-      <button
+      <div
+        role="button"
+        tabIndex={0}
         className="flex w-full items-center gap-2 px-3 py-1 text-left text-xs select-none hover:bg-white/[0.03]"
-        onClick={handleClick}
+        onClick={handleCommitExpand}
+        onKeyDown={handleCommitExpandKeyDown}
       >
         {expanded ?
           <LuChevronDown className="text-foreground-alt size-3 shrink-0" />
         : <LuChevronRight className="text-foreground-alt size-3 shrink-0" />}
-        <span
-          className="text-brand shrink-0 cursor-pointer font-mono hover:underline"
+        <button
+          type="button"
+          className="text-brand shrink-0 cursor-pointer bg-transparent p-0 font-mono hover:underline"
           onClick={handleHashClick}
         >
           {shortHash}
-        </span>
+        </button>
         <span className="text-foreground min-w-0 flex-1 truncate">
           {subject}
         </span>
@@ -74,7 +87,7 @@ export function CommitRow({
         {timeAgo && (
           <span className="text-foreground-alt/70 shrink-0">{timeAgo}</span>
         )}
-      </button>
+      </div>
       {expanded && (
         <div className="bg-black/[0.02] px-3 py-2">
           {body && (

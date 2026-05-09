@@ -26,7 +26,7 @@ export function ForgeEntityList({
   if (loading && entities.length === 0) {
     return (
       <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-        <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
+        <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
           <LoadingInline
             label={loadingLabel}
             tone="muted"
@@ -40,7 +40,7 @@ export function ForgeEntityList({
   if (entities.length === 0) {
     return (
       <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-        <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
+        <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
           <span className="shrink-0">{icon}</span>
           <span>{emptyLabel}</span>
         </div>

@@ -88,6 +88,9 @@ function DeleteOrgDialog(props: {
 
   const confirmed =
     confirmText.trim().toLowerCase() === props.displayName.trim().toLowerCase()
+  const handleConfirmInputRef = useCallback((node: HTMLInputElement | null) => {
+    node?.focus()
+  }, [])
 
   const handleOpenChange = useCallback(
     (next: boolean) => {
@@ -132,11 +135,11 @@ function DeleteOrgDialog(props: {
             to confirm.
           </label>
           <input
+            ref={handleConfirmInputRef}
             type="text"
             value={confirmText}
             onChange={(e) => setConfirmText(e.target.value)}
             placeholder={props.displayName}
-            autoFocus
             className={cn(
               'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-2 text-sm transition-colors outline-none',
               'focus:border-destructive/50',

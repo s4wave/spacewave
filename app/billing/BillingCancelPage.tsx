@@ -325,7 +325,7 @@ export function BillingCancelPage() {
           </p>
         )}
         {checkout.polling && (
-          <div className="border-brand/20 bg-brand/5 mt-4 rounded-lg border px-3 py-3 text-sm backdrop-blur-sm">
+          <div className="border-brand/20 bg-brand/5 mt-4 rounded-lg border p-3 text-sm backdrop-blur-sm">
             <div className="flex items-center gap-2">
               <LuRefreshCw className="text-brand size-4 animate-spin" />
               <span className="text-foreground">

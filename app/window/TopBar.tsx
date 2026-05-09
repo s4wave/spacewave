@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback } from 'react'
+import { useRef, useState, useEffect, useCallback, useEffectEvent } from 'react'
 import { cn } from '@s4wave/web/style/utils.js'
 import { LuChevronLeft, LuChevronRight, LuX } from 'react-icons/lu'
 import { AppLogo } from '@s4wave/web/images/AppLogo.js'
@@ -36,7 +36,7 @@ export function TopBar({
   })
   const [hideMenuItems, setHideMenuItems] = useState(false)
 
-  const checkScroll = useCallback(() => {
+  const checkScroll = useEffectEvent(() => {
     if (!scrollContainerRef.current || isScrollingRef.current) return
 
     const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current
@@ -44,7 +44,7 @@ export function TopBar({
       canScrollLeft: scrollLeft > 0,
       canScrollRight: scrollLeft < scrollWidth - clientWidth - 1,
     })
-  }, [])
+  })
 
   const scroll = useCallback((direction: 'left' | 'right') => {
     if (!scrollContainerRef.current) return
@@ -70,7 +70,7 @@ export function TopBar({
     })
   }, [])
 
-  const checkMenuFit = useCallback(() => {
+  const checkMenuFit = useEffectEvent(() => {
     const topBar = topBarRef.current
 
     if (!topBar) return
@@ -91,7 +91,7 @@ export function TopBar({
     const shouldHide = totalBarWidth < minRequiredWidth
 
     setHideMenuItems(shouldHide)
-  }, [])
+  })
 
   useEffect(() => {
     checkScroll()
@@ -112,7 +112,7 @@ export function TopBar({
     const topBarObserver = new ResizeObserver(checkMenuFit)
     topBarObserver.observe(topBar)
 
-    container.addEventListener('scroll', checkScroll)
+    container.addEventListener('scroll', checkScroll, { passive: true })
     container.addEventListener('scrollend', handleScrollEnd)
 
     return () => {
@@ -121,7 +121,7 @@ export function TopBar({
       container.removeEventListener('scroll', checkScroll)
       container.removeEventListener('scrollend', handleScrollEnd)
     }
-  }, [workspaces, checkScroll, checkMenuFit])
+  }, [workspaces])
 
   const { canScrollLeft, canScrollRight } = scrollState
 
@@ -141,7 +141,7 @@ export function TopBar({
               className="flex items-center justify-center"
               title="Open app menu"
             >
-              <AppLogo className="h-[28px] w-[28px]" />
+              <AppLogo className="size-[28px]" />
             </button>
           </DropdownMenuTrigger>
           {hideMenuItems && (

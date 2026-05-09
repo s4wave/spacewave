@@ -973,6 +973,7 @@ export function UnixFSBrowser({
       if (isRenaming) {
         return (
           <div
+            role="presentation"
             className="rename-actions flex min-w-[120px] flex-1 items-center gap-0.5 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
@@ -1045,12 +1046,13 @@ export function UnixFSBrowser({
 
       return (
         <div
+          role="presentation"
           className="flex min-w-[120px] flex-1 items-center gap-2 overflow-hidden"
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
         >
           <input
-            autoFocus
+            ref={(el) => el?.focus()}
             className="bg-background text-foreground border-brand min-w-0 flex-1 rounded border px-1 py-0 text-xs outline-none"
             value={value}
             onChange={(e) =>
@@ -1229,6 +1231,8 @@ export function UnixFSBrowser({
   if (isLoading && deferredFileEntries.length > 0) {
     return (
       <div
+        role="region"
+        aria-label="File browser"
         data-testid="unixfs-browser"
         className="flex h-full w-full flex-col overflow-hidden"
         onKeyDown={handleKeyDown}
@@ -1402,6 +1406,8 @@ export function UnixFSBrowser({
   // Render directory listing
   return (
     <div
+      role="region"
+      aria-label="File browser"
       data-testid="unixfs-browser"
       className="flex h-full w-full flex-col overflow-hidden"
       onKeyDown={handleKeyDown}

@@ -307,7 +307,7 @@ function nonEmpty<T>(items: T[] | undefined): T[] {
 function selectPrimaryAttentionItem(
   items: DesktopRuntimeAttentionItem[] | undefined,
 ): DesktopRuntimeAttentionItem | undefined {
-  return [...nonEmpty(items)].sort((a, b) => {
+  return nonEmpty(items).toSorted((a, b) => {
     const severity = severityPriority(b.severity) - severityPriority(a.severity)
     if (severity !== 0) {
       return severity

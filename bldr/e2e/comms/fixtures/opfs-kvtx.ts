@@ -307,9 +307,11 @@ async function run() {
     const testPrefix = testDir.name
     const scanPrefix2 = scanDir.name
     const crashPrefix = crashDir.name
-    await opfsRoot.removeEntry(testPrefix, { recursive: true })
-    await opfsRoot.removeEntry(scanPrefix2, { recursive: true })
-    await opfsRoot.removeEntry(crashPrefix, { recursive: true })
+    await Promise.all([
+      opfsRoot.removeEntry(testPrefix, { recursive: true }),
+      opfsRoot.removeEntry(scanPrefix2, { recursive: true }),
+      opfsRoot.removeEntry(crashPrefix, { recursive: true }),
+    ])
 
     results.pass = errors.length === 0
     results.detail =

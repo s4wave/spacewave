@@ -113,7 +113,9 @@ function mapToTreeNodes(
   prefix: string,
 ): TreeNode<ObjectTreeNode>[] {
   const result: TreeNode<ObjectTreeNode>[] = []
-  const sorted = [...entries.entries()].sort((a, b) => a[0].localeCompare(b[0]))
+  const sorted = Array.from(entries.entries()).toSorted((a, b) =>
+    a[0].localeCompare(b[0]),
+  )
 
   for (const [name, entry] of sorted) {
     const fullKey = prefix ? `${prefix}/${name}` : name

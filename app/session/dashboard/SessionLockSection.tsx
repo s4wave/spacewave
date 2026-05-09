@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useId, useState } from 'react'
 import { LuLock, LuLockOpen } from 'react-icons/lu'
 
 import { cn } from '@s4wave/web/style/utils.js'
@@ -32,6 +32,8 @@ export function SessionLockSection({ embedded }: SessionLockSectionProps) {
   const [changingPin, setChangingPin] = useState(false)
   const [pin, setPin] = useState('')
   const [confirmPin, setConfirmPin] = useState('')
+  const pinId = useId()
+  const confirmPinId = useId()
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
@@ -105,10 +107,14 @@ export function SessionLockSection({ embedded }: SessionLockSectionProps) {
           {needsPin && (
             <div className="space-y-2">
               <div>
-                <label className="text-foreground-alt mb-1 block text-xs select-none">
+                <label
+                  className="text-foreground-alt mb-1 block text-xs select-none"
+                  htmlFor={pinId}
+                >
                   PIN
                 </label>
                 <input
+                  id={pinId}
                   type="password"
                   value={pin}
                   onChange={(e) => setPin(e.target.value)}
@@ -120,10 +126,14 @@ export function SessionLockSection({ embedded }: SessionLockSectionProps) {
                 />
               </div>
               <div>
-                <label className="text-foreground-alt mb-1 block text-xs select-none">
+                <label
+                  className="text-foreground-alt mb-1 block text-xs select-none"
+                  htmlFor={confirmPinId}
+                >
                   Confirm PIN
                 </label>
                 <input
+                  id={confirmPinId}
                   type="password"
                   value={confirmPin}
                   onChange={(e) => setConfirmPin(e.target.value)}

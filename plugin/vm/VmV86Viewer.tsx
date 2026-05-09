@@ -346,7 +346,7 @@ export default function VmV86Viewer({
           </button>
         </div>
       </div>
-      <div ref={terminalHostRef} className="min-h-0 flex-1 overflow-hidden bg-black" />
+      <div ref={terminalHostRef} className="min-h-0 flex-1 overflow-hidden bg-zinc-950" />
       <div className="border-foreground/8 flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 border-t px-4 py-1 text-[11px]">
         <span className="text-muted-foreground">
           mem <span className="text-foreground font-medium">{memoryMb || '-'}MB</span>
@@ -409,9 +409,9 @@ export default function VmV86Viewer({
         <div className="border-foreground/8 shrink-0 border-t px-4 py-1 text-[11px]">
           <div className="text-muted-foreground mb-0.5 uppercase tracking-wide">Mounts</div>
           <div className="flex flex-col gap-0.5">
-            {mounts.map((m, i) => (
+            {mounts.map((m) => (
               <div
-                key={`${m.path ?? ''}-${i}`}
+                key={`${m.path ?? ''}:${m.objectKey ?? ''}:${m.writable ? 'rw' : 'ro'}`}
                 className="flex items-center justify-between font-mono"
               >
                 <span className="text-foreground">{m.path || '(unset)'}</span>

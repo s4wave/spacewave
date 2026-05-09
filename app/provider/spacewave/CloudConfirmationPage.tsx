@@ -231,7 +231,7 @@ export function CloudConfirmationPage({
       <FaqAccordion items={CLOUD_FAQ} />
 
       {/* Open source footer */}
-      <div className="border-foreground/6 flex flex-col items-center justify-between gap-4 rounded-lg border bg-gradient-to-r from-blue-500/5 via-indigo-500/5 to-cyan-500/5 px-6 py-5 backdrop-blur-sm sm:flex-row">
+      <div className="border-foreground/6 via-brand/5 flex flex-col items-center justify-between gap-4 rounded-lg border bg-gradient-to-r from-blue-500/5 to-cyan-500/5 px-6 py-5 backdrop-blur-sm sm:flex-row">
         <div className="flex items-center gap-3">
           <div className="rounded-lg bg-blue-500/10 p-2.5">
             <LuCode className="text-brand size-5" />
@@ -352,8 +352,16 @@ export function PlanFaqItem({
   isOpen: boolean
   onToggle: () => void
 }) {
+  const handleFaqKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return
+    e.preventDefault()
+    onToggle()
+  }
+
   return (
     <div
+      role="button"
+      tabIndex={0}
       className={cn(
         'cursor-pointer rounded-lg border p-4 backdrop-blur-sm transition-all',
         isOpen ?
@@ -361,6 +369,7 @@ export function PlanFaqItem({
         : 'border-foreground/6 bg-background-card/20 hover:border-foreground/12',
       )}
       onClick={onToggle}
+      onKeyDown={handleFaqKeyDown}
     >
       <div className="flex items-start justify-between gap-3">
         <h3

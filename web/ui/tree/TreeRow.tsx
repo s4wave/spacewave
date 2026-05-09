@@ -1,4 +1,4 @@
-import { useCallback, useContext } from 'react'
+import { useCallback, use } from 'react'
 import { LuChevronDown, LuChevronRight } from 'react-icons/lu'
 import { cn } from '@s4wave/web/style/utils.js'
 import { TreeNode } from './TreeNode.js'
@@ -21,15 +21,15 @@ export function TreeRow<T = void>({
   onRowContextMenu,
   index,
 }: TreeRowProps<T>) {
-  const state = useContext(TreeStateContext)
-  const dispatch = useContext(TreeDispatchContext)
+  const state = use(TreeStateContext)
+  const dispatch = use(TreeDispatchContext)
 
   const hasChildren = node.children && node.children.length > 0
   const isExpanded = hasChildren && (state?.expandedIds.has(node.id) ?? false)
   const isSelected = state?.selectedIds.has(node.id) ?? false
   const isFocused = state?.focusedId === node.id
 
-  const handleClick = useCallback(
+  const handleTreeItemSelect = useCallback(
     (e: React.MouseEvent) => {
       dispatch?.({
         type: 'SELECT_NODE',
@@ -72,7 +72,7 @@ export function TreeRow<T = void>({
     [dispatch, node.id],
   )
 
-  const handleFocus = useCallback(
+  const handleTreeItemFocus = useCallback(
     (e: React.FocusEvent) => {
       if (e.target === e.currentTarget && !isFocused) {
         dispatch?.({ type: 'SELECT_NODE', id: node.id, focus: true })
@@ -80,6 +80,14 @@ export function TreeRow<T = void>({
     },
     [dispatch, isFocused, node.id],
   )
+
+  const handleTreeItemKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return
+    e.preventDefault()
+    e.currentTarget.dispatchEvent(
+      new MouseEvent('click', { bubbles: true, cancelable: true }),
+    )
+  }, [])
 
   const handleRef = useCallback(
     (el: HTMLDivElement | null) => {
@@ -124,7 +132,8 @@ export function TreeRow<T = void>({
         paddingRight: '4px',
         height: '20px',
       }}
-      onClick={handleClick}
+      onClick={handleTreeItemSelect}
+      onKeyDown={handleTreeItemKeyDown}
       onDoubleClick={handleDoubleClick}
       onContextMenu={handleContextMenu}
       role="treeitem"
@@ -137,7 +146,7 @@ export function TreeRow<T = void>({
       aria-label={`${node.name}${hasChildren ? `, ${isExpanded ? 'expanded' : 'collapsed'}, ${node.children?.length} items` : ''}`}
       aria-description={`Level ${level + 1}${isSelected ? ', selected' : ''}${isFocused ? ', focused' : ''}`}
       tabIndex={isFocused ? 0 : -1}
-      onFocus={handleFocus}
+      onFocus={handleTreeItemFocus}
       ref={handleRef}
       data-autofocus={isFocused || undefined}
       data-focused={isFocused || undefined}

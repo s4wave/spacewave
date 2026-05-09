@@ -431,10 +431,10 @@ describe('SystemStatusDashboard', () => {
 
     const controllerRows = screen
       .getAllByText('controller/c')
-      .map((node) => node.closest('button'))
-      .filter(
-        (node): node is HTMLButtonElement => node instanceof HTMLButtonElement,
-      )
+      .flatMap((node) => {
+        const button = node.closest('button')
+        return button instanceof HTMLButtonElement ? [button] : []
+      })
     expect(
       controllerRows.some((row) => row.className.includes('bg-success/5')),
     ).toBe(true)
@@ -452,8 +452,9 @@ describe('SystemStatusDashboard', () => {
 
     const directiveRows = screen
       .getAllByText('directive/b')
-      .map((node) => node.parentElement)
-      .filter((node): node is HTMLElement => node instanceof HTMLElement)
+      .flatMap((node) =>
+        node.parentElement instanceof HTMLElement ? [node.parentElement] : [],
+      )
     expect(
       directiveRows.some((row) => row.className.includes('bg-warning/6')),
     ).toBe(true)

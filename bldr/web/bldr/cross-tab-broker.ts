@@ -38,6 +38,7 @@ export async function handleCrossTabMessage(
 ): Promise<void> {
   if (msg.crossTab === 'hello') {
     const allClients = await clients.matchAll({ type: 'window' })
+    const sender = allClients.find((c) => c.id === senderId)
 
     // Create a direct channel between the new tab and every existing tab.
     for (const client of allClients) {
@@ -47,7 +48,6 @@ export async function handleCrossTabMessage(
         { crossTab: 'direct-port', peerId: senderId } satisfies CrossTabBrokerMessage,
         [channel.port1],
       )
-      const sender = allClients.find((c) => c.id === senderId)
       if (sender) {
         sender.postMessage(
           { crossTab: 'direct-port', peerId: client.id } satisfies CrossTabBrokerMessage,

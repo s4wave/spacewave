@@ -26,7 +26,7 @@ export function SelectedRefBar({
   if (loading) {
     return (
       <div className="border-foreground/8 text-foreground-alt flex items-center border-b px-3 py-1 text-xs">
-        Loading commit info...
+        Loading commit info…
       </div>
     )
   }

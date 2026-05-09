@@ -269,11 +269,6 @@ export function UploadProgressBottomBar({
     [activeUploading, totalCount, doneCount],
   )
 
-  const overlayContent = useMemo(
-    () => <UploadProgressOverlay uploadManager={uploadManager} />,
-    [uploadManager],
-  )
-
   if (totalCount === 0) return null
 
   return (
@@ -282,7 +277,7 @@ export function UploadProgressBottomBar({
       position="right"
       button={buttonRender}
       buttonKey={`${activeUploading}-${totalCount}-${doneCount}`}
-      overlay={overlayContent}
+      overlay={<UploadProgressOverlay uploadManager={uploadManager} />}
       overlayKey={`${totalCount}-${activeUploading}-${doneCount}`}
     >
       {null}

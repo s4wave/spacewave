@@ -2,12 +2,10 @@ import { createHandler } from 'starpc'
 import type { MessageStream, Mux } from 'starpc'
 
 import { ItState } from '../../bldr/it-state.js'
-import {
-  constructChildResource,
-  getCurrentResourceClient,
-  newResourceMux,
-  type RemoteResourceClient,
-} from '../../../sdk/resource/server/index.js'
+import { constructChildResource } from '../../../sdk/resource/server/construct.js'
+import { getCurrentResourceClient } from '../../../sdk/resource/server/server.js'
+import { newResourceMux } from '../../../sdk/resource/server/mux.js'
+import type { RemoteResourceClient } from '../../../sdk/resource/server/tracked-client.js'
 import {
   DesktopTrayEntryResourceServiceDefinition,
   DesktopTrayActionHandlerServiceClient,
@@ -160,8 +158,8 @@ export class DesktopTrayResource implements DesktopTrayResourceService {
   }
 
   public getState(): DesktopTrayState {
-    const entries = [...this.registrations.values()]
-      .sort(compareRegistrations)
+    const entries = Array.from(this.registrations.values())
+      .toSorted(compareRegistrations)
       .map((reg) => cloneEntry(reg.entry))
     return {
       entries,

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import Markdown from 'markdown-to-jsx'
 import {
   LuArrowLeft,
@@ -69,19 +69,13 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
     copyTimer.current = setTimeout(() => setCopied(false), 1500)
   }, [doc.body])
 
-  const rawGitHubUrl = useMemo(
-    () =>
-      `https://raw.githubusercontent.com/aperturerobotics/alpha/master/app/docs/content/${doc.site}/${doc.section}/${doc.filename}`,
-    [doc.site, doc.section, doc.filename],
-  )
+  const rawGitHubUrl = `https://raw.githubusercontent.com/aperturerobotics/alpha/master/app/docs/content/${doc.site}/${doc.section}/${doc.filename}`
 
   const handleCopyMarkdownUrl = useCallback(() => {
     void navigator.clipboard.writeText(rawGitHubUrl)
   }, [rawGitHubUrl])
 
-  const aiPrompt = useMemo(() => {
-    return `I'm reading the Spacewave documentation page "${doc.title}".\n\n${doc.body}`
-  }, [doc.title, doc.body])
+  const aiPrompt = `I'm reading the Spacewave documentation page "${doc.title}".\n\n${doc.body}`
 
   const handleOpenClaude = useCallback(() => {
     const url = `https://claude.ai/new?q=${encodeURIComponent(aiPrompt)}`

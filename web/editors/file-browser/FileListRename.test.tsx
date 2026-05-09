@@ -58,18 +58,23 @@ function RenameTestHarness({
     onCancel()
   }, [onCancel])
 
+  const handleRenameInputRef = useCallback((node: HTMLInputElement | null) => {
+    node?.focus()
+  }, [])
+
   const renderEntry: RenderEntryCallback | undefined = useMemo(() => {
     if (!renamingId) return undefined
     return ({ entry, defaultNode }) => {
       if (entry.id !== renamingId) return defaultNode
       return (
         <div
+          role="presentation"
           className="rename-actions flex flex-1 items-center gap-0.5"
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
         >
           <input
-            autoFocus
+            ref={handleRenameInputRef}
             data-testid="rename-input"
             className="flex-1 rounded border px-1 text-xs"
             defaultValue={renameRef.current}
@@ -118,7 +123,7 @@ function RenameTestHarness({
         </div>
       )
     }
-  }, [renamingId, confirmRename, cancelRename])
+  }, [renamingId, confirmRename, cancelRename, handleRenameInputRef])
 
   return (
     <div>
@@ -372,7 +377,7 @@ describe('FileList inline rename', () => {
     const onKeyDown = vi.fn()
 
     render(
-      <div onKeyDown={onKeyDown}>
+      <div role="group" onKeyDown={onKeyDown}>
         <RenameTestHarness onConfirm={onConfirm} onCancel={onCancel} />
       </div>,
     )

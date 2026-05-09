@@ -3,7 +3,7 @@ import { createHandler } from 'starpc'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { Client as ResourceClient } from '../../../sdk/resource/client.js'
-import { newResourceMux } from '../../../sdk/resource/server/index.js'
+import { newResourceMux } from '../../../sdk/resource/server/mux.js'
 import {
   DesktopTrayActionKind,
   DesktopTrayEntryKind,
@@ -1190,8 +1190,10 @@ describe('DesktopTrayController', () => {
 
   it('uses the macOS template icon when configured', async () => {
     platformState.value = 'darwin'
-    const electron = await import('electron')
-    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const [electron, { DesktopTrayController }] = await Promise.all([
+      import('electron'),
+      import('./desktop-tray.js'),
+    ])
     const controller = new DesktopTrayController({
       init: {
         appName: 'Spacewave',
@@ -1210,8 +1212,10 @@ describe('DesktopTrayController', () => {
   })
 
   it('uses an empty fallback icon when no platform icon is configured', async () => {
-    const electron = await import('electron')
-    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const [electron, { DesktopTrayController }] = await Promise.all([
+      import('electron'),
+      import('./desktop-tray.js'),
+    ])
     const controller = new DesktopTrayController({
       init: {},
       resource: mockResource,

@@ -474,6 +474,22 @@ export function Canvas({
     [screenToCanvas],
   )
 
+  const handleBackgroundKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.currentTarget !== e.target) return
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        selection.clearSelection()
+        return
+      }
+      if (tool !== 'text') return
+      if (e.key !== 'Enter' && e.key !== ' ') return
+      e.preventDefault()
+      addTextAt()
+    },
+    [tool, selection, addTextAt],
+  )
+
   // Object tool: drag on background to create a world_object node.
   const objectDragRef = useRef<{ startX: number; startY: number } | null>(null)
   const [objectDragRect, setObjectDragRect] = useState<{
@@ -584,6 +600,8 @@ export function Canvas({
       <div
         ref={viewportContainerRef}
         data-testid="canvas-viewport"
+        role="application"
+        aria-label="Canvas"
         className={cn(
           'relative flex-1 touch-none overflow-hidden bg-[var(--color-background-canvas)] outline-none',
           tool === 'text' && 'cursor-crosshair',
@@ -597,6 +615,7 @@ export function Canvas({
         }}
         onPointerMove={handleBackgroundPointerMove}
         onPointerUp={handleBackgroundPointerUp}
+        onKeyDown={handleBackgroundKeyDown}
         tabIndex={0}
       >
         <div
@@ -640,6 +659,7 @@ export function Canvas({
           ))}
           {pendingText && (
             <div
+              role="presentation"
               ref={pendingTextRef}
               style={{
                 position: 'absolute',

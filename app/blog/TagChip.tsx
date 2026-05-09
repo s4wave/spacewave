@@ -10,7 +10,7 @@ interface TagChipProps {
 export function TagChip({ tag }: TagChipProps) {
   const navigate = useNavigate()
 
-  const handleClick = useCallback(
+  const handleTagSelect = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation()
       navigate({ path: `/blog/tag/${tag}` })
@@ -20,7 +20,7 @@ export function TagChip({ tag }: TagChipProps) {
 
   return (
     <button
-      onClick={handleClick}
+      onClick={handleTagSelect}
       className="text-foreground-alt/70 hover:text-brand hover:border-brand/30 hover:bg-brand/5 cursor-pointer rounded-md border border-white/8 px-2 py-0.5 text-xs font-medium transition-all duration-200"
     >
       {tag}

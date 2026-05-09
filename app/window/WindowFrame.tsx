@@ -53,7 +53,7 @@ export function WindowFrame(props: IWindowFrameProps) {
         key="close"
         title="Close Window"
         onClick={props.onClose}
-        className="text-gray-500 hover:text-white focus:outline-none"
+        className="text-zinc-500 hover:text-white focus:outline-none"
         style={{ fontSize: '22px' }}
       >
         &times;

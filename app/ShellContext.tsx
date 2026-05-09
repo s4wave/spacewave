@@ -1,4 +1,4 @@
-import { createContext, useContext, ReactNode } from 'react'
+import { createContext, use, ReactNode } from 'react'
 import { useIsStaticMode } from '@s4wave/app/prerender/StaticContext.js'
 
 // ShellContextValue provides shell-level state to descendant components.
@@ -10,7 +10,7 @@ const ShellContext = createContext<ShellContextValue | null>(null)
 
 // useShell returns the shell context.
 export function useShell(): ShellContextValue {
-  const context = useContext(ShellContext)
+  const context = use(ShellContext)
   if (!context) {
     throw new Error('useShell must be used within a ShellProvider')
   }
@@ -21,7 +21,7 @@ export function useShell(): ShellContextValue {
 // Returns false in static prerender mode.
 export function useIsGridMode(): boolean {
   const isStatic = useIsStaticMode()
-  const context = useContext(ShellContext)
+  const context = use(ShellContext)
   if (isStatic) return false
   return context?.isGridMode ?? false
 }

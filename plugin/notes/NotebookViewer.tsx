@@ -276,7 +276,9 @@ function NotebookViewer({
 
         {/* Backdrop for mobile sidebar */}
         {sidebarOpen && (
-          <div
+          <button
+            type="button"
+            aria-label="Close sidebar"
             className="fixed inset-0 z-10 bg-black/40 md:hidden"
             onClick={() => setSidebarOpen(false)}
           />

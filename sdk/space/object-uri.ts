@@ -80,9 +80,9 @@ export function joinObjectUriPath(
   pathParts: string[],
   isAbsolute: boolean,
 ): string {
-  const parts = pathParts
-    .filter((part) => part !== '')
-    .map((part) => part.replace(/^\/+|\/+$/g, ''))
+  const parts = pathParts.flatMap((part) =>
+    part !== '' ? [part.replace(/^\/+|\/+$/g, '')] : [],
+  )
 
   const lastIndex = parts.length - 1
   if (lastIndex >= 0 && parts[lastIndex] === '-') {

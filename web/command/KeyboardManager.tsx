@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react'
+import { useEffect, useEffectEvent, useMemo } from 'react'
 
 import { useCommands, useInvokeCommand } from './CommandContext.js'
 
@@ -103,37 +103,34 @@ export function KeyboardManager() {
     return map
   }, [commands])
 
-  const handler = useCallback(
-    (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement
-      if (
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable
-      ) {
-        return
-      }
+  const handler = useEffectEvent((e: KeyboardEvent) => {
+    const target = e.target as HTMLElement
+    if (
+      target.tagName === 'INPUT' ||
+      target.tagName === 'TEXTAREA' ||
+      target.isContentEditable
+    ) {
+      return
+    }
 
-      const combo = buildComboString(
-        e.metaKey,
-        e.ctrlKey,
-        e.altKey,
-        e.shiftKey,
-        e.key.toLowerCase(),
-      )
-      const commandId = keybindingMap.get(combo)
-      if (!commandId) return
+    const combo = buildComboString(
+      e.metaKey,
+      e.ctrlKey,
+      e.altKey,
+      e.shiftKey,
+      e.key.toLowerCase(),
+    )
+    const commandId = keybindingMap.get(combo)
+    if (!commandId) return
 
-      e.preventDefault()
-      invokeCommand(commandId)
-    },
-    [keybindingMap, invokeCommand],
-  )
+    e.preventDefault()
+    invokeCommand(commandId)
+  })
 
   useEffect(() => {
     document.addEventListener('keydown', handler, true)
     return () => document.removeEventListener('keydown', handler, true)
-  }, [handler])
+  }, [])
 
   return null
 }

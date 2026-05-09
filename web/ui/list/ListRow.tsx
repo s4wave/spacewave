@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useRef, useState } from 'react'
+import { useCallback, use, useEffect, useRef, useState } from 'react'
 import { cn } from '@s4wave/web/style/utils.js'
 import { ListStateContext } from './ListState.js'
 import { RowComponentProps } from './List.js'
@@ -15,7 +15,7 @@ export function ListRow<T>({
   const [clickCount, setClickCount] = useState(0)
   const clickTimerRef = useRef<number | null>(null)
 
-  const handleClick = useCallback(
+  const handleListRowSelect = useCallback(
     (e: React.MouseEvent) => {
       const newCount = clickCount + 1
       setClickCount(newCount)
@@ -49,7 +49,15 @@ export function ListRow<T>({
     [itemIndex, item, onContextMenu],
   )
 
-  const context = useContext(ListStateContext)
+  const handleListRowKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return
+    e.preventDefault()
+    e.currentTarget.dispatchEvent(
+      new MouseEvent('click', { bubbles: true, cancelable: true }),
+    )
+  }, [])
+
+  const context = use(ListStateContext)
   const selected = context?.selectedIds?.includes(item.id) ?? false
   const focused = itemIndex === context?.focusedIndex
 
@@ -77,7 +85,8 @@ export function ListRow<T>({
         : 'text-foreground/90 hover:bg-foreground/5',
         focused && !selected && 'ring-brand/25 ring-1 ring-inset',
       )}
-      onClick={handleClick}
+      onClick={handleListRowSelect}
+      onKeyDown={handleListRowKeyDown}
       onContextMenu={handleContextMenu}
     >
       <span className="flex-1 truncate">{item.id}</span>

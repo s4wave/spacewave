@@ -466,9 +466,9 @@ describe('FileList', () => {
       expect(nameContainer).toBeTruthy()
 
       // The span should have truncate class for text-overflow: ellipsis
+      const classes = new Set(nameContainer?.className.split(/\s+/) ?? [])
       const hasOverflowHidden =
-        nameContainer?.className.includes('truncate') ||
-        nameContainer?.className.includes('overflow-hidden')
+        classes.has('truncate') || classes.has('overflow-hidden')
       expect(
         hasOverflowHidden,
         'Filename span should have truncation styling to prevent text wrapping',

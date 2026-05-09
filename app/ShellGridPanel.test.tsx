@@ -10,10 +10,12 @@ vi.mock('@s4wave/web/frame/bottom-bar-root.js', () => ({
 }))
 
 vi.mock('@s4wave/web/state/index.js', async () => {
-  const React = await import('react')
-  const actual = await vi.importActual<
-    typeof import('@s4wave/web/state/index.js')
-  >('@s4wave/web/state/index.js')
+  const [React, actual] = await Promise.all([
+    import('react'),
+    vi.importActual<typeof import('@s4wave/web/state/index.js')>(
+      '@s4wave/web/state/index.js',
+    ),
+  ])
   return {
     ...actual,
     StateNamespaceProvider: ({
@@ -28,9 +30,12 @@ vi.mock('@s4wave/web/state/index.js', async () => {
 })
 
 vi.mock('./routes/AppRoutes.js', async () => {
-  const { useHistory } = await import('@s4wave/web/router/HistoryRouter.js')
-  const { useTabId } = await import('@s4wave/web/object/TabContext.js')
-  const { useNavigate, usePath } = await import('@s4wave/web/router/router.js')
+  const [{ useHistory }, { useTabId }, { useNavigate, usePath }] =
+    await Promise.all([
+      import('@s4wave/web/router/HistoryRouter.js'),
+      import('@s4wave/web/object/TabContext.js'),
+      import('@s4wave/web/router/router.js'),
+    ])
 
   function MockAppRoutes() {
     const history = useHistory()

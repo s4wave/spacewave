@@ -186,6 +186,9 @@ export function PairCodePage(props: PairCodePageProps) {
     },
     [code, loading, providedSession, root, handleSubmit],
   )
+  const handleCodeInputRef = useCallback((node: HTMLInputElement | null) => {
+    node?.focus()
+  }, [])
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
@@ -207,6 +210,7 @@ export function PairCodePage(props: PairCodePageProps) {
 
               <div className="flex justify-center">
                 <input
+                  ref={handleCodeInputRef}
                   type="text"
                   value={formatted}
                   onChange={(e) => handleCodeChange(e.target.value)}
@@ -214,7 +218,6 @@ export function PairCodePage(props: PairCodePageProps) {
                   onKeyDown={handleKeyDown}
                   placeholder="XXXX XXXX"
                   maxLength={9}
-                  autoFocus
                   disabled={loading}
                   className={cn(
                     'border-foreground/20 bg-foreground/5 text-foreground w-48 rounded-md border text-center font-mono text-2xl font-bold tracking-[0.2em]',
@@ -476,7 +479,7 @@ function PairVerifyStep({
             Establishing secure channel
           </h2>
           <p className="text-foreground-alt text-xs leading-relaxed">
-            Setting up encrypted connection...
+            Setting up encrypted connection…
           </p>
         </div>
         <div className="flex min-h-24 items-center justify-center">
@@ -759,7 +762,7 @@ function PairDirectStep({
           <div className="flex items-center justify-center gap-2">
             <span className="bg-brand inline-block size-2 animate-pulse rounded-full" />
             <span className="text-foreground-alt text-xs">
-              Waiting for connection...
+              Waiting for connection…
             </span>
           </div>
         </div>
@@ -808,9 +811,9 @@ function PairDirectStep({
 function EmojiGrid({ emoji }: { emoji: string[] }) {
   return (
     <div className="grid grid-cols-3 gap-2 px-4">
-      {emoji.map((e, i) => (
+      {emoji.map((e) => (
         <div
-          key={i}
+          key={e}
           className={cn(
             'border-foreground/10 bg-foreground/5 flex items-center justify-center rounded-lg border',
             'h-16 text-4xl',

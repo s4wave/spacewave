@@ -195,7 +195,7 @@ describe('PathInput', () => {
     const onContainerClick = vi.fn()
 
     render(
-      <div onClick={onContainerClick}>
+      <div role="presentation" onClick={onContainerClick}>
         <PathInput path="/Users/testuser" onNavigate={onNavigate} />
       </div>,
     )

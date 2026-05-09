@@ -23,7 +23,7 @@ function parseFrontmatter(raw: string): {
   // Simple YAML parser for flat frontmatter.
   const data: Record<string, unknown> = {}
   for (const line of yamlBlock.split('\n')) {
-    const colonIdx = line.indexOf(':')
+    const colonIdx = line.search(':')
     if (colonIdx === -1) continue
     const key = line.slice(0, colonIdx).trim()
     let value: unknown = line.slice(colonIdx + 1).trim()
@@ -66,7 +66,13 @@ export function loadDocs(): DocPage[] {
     const parts = path.split('/')
     let site: string
     let section: string
-    const contentIdx = parts.indexOf('content')
+    let contentIdx = -1
+    for (const [idx, part] of parts.entries()) {
+      if (part === 'content') {
+        contentIdx = idx
+        break
+      }
+    }
     const depth = parts.length - contentIdx - 1
     if (depth >= 3) {
       // New layout: content/{site}/{section}/{page}.md

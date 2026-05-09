@@ -1,10 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  type ReactNode,
-} from 'react'
+import { createContext, useCallback, use, useMemo, type ReactNode } from 'react'
 
 import type { SessionMetadata } from '@s4wave/core/session/session.pb.js'
 import {
@@ -147,7 +141,7 @@ export function LocalSessionOnboardingProvider({
 }
 
 export function useLocalSessionOnboardingContext(): LocalSessionOnboardingContextValue {
-  const context = useContext(Context)
+  const context = use(Context)
   if (!context) {
     throw new Error(
       'LocalSessionOnboardingContext not found. Wrap component in LocalSessionOnboardingProvider.',
@@ -157,5 +151,5 @@ export function useLocalSessionOnboardingContext(): LocalSessionOnboardingContex
 }
 
 export function useOptionalLocalSessionOnboardingContext(): LocalSessionOnboardingContextValue | null {
-  return useContext(Context)
+  return use(Context)
 }

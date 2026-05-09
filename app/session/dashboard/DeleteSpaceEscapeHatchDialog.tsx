@@ -74,18 +74,18 @@ export function DeleteSpaceEscapeHatchDialog({
 
   const choices = useMemo<SpaceChoice[]>(() => {
     const entries = resourcesList?.spacesList ?? []
-    return entries
-      .map((entry): SpaceChoice | null => {
-        const id = entry.entry?.ref?.providerResourceRef?.id ?? ''
-        if (!id) return null
-        const name = entry.spaceMeta?.name?.trim() ?? ''
-        return {
+    return entries.flatMap((entry): SpaceChoice[] => {
+      const id = entry.entry?.ref?.providerResourceRef?.id ?? ''
+      if (!id) return []
+      const name = entry.spaceMeta?.name?.trim() ?? ''
+      return [
+        {
           id,
           name: name || id,
           hasName: name.length > 0,
-        }
-      })
-      .filter((choice): choice is SpaceChoice => choice !== null)
+        },
+      ]
+    })
   }, [resourcesList])
 
   const liveSelected = useMemo(
@@ -270,7 +270,7 @@ export function DeleteSpaceEscapeHatchDialog({
                   'disabled:cursor-not-allowed disabled:opacity-50',
                 )}
               >
-                Continue
+                Review space deletion
               </button>
             </>
           )}
@@ -295,7 +295,7 @@ export function DeleteSpaceEscapeHatchDialog({
                   'disabled:cursor-not-allowed disabled:opacity-50',
                 )}
               >
-                Continue
+                Confirm space deletion
               </button>
             </>
           )}
@@ -349,7 +349,7 @@ function SpaceSelectList({
     return (
       <div className="text-foreground-alt flex items-center gap-2 text-xs select-none">
         <LuBoxes className="text-foreground-alt/40 size-3.5" />
-        Loading spaces...
+        Loading spaces…
       </div>
     )
   }
@@ -447,7 +447,7 @@ function HealthBadge({ health }: HealthBadgeProps) {
     return (
       <div className="text-foreground-alt/70 mt-2 flex items-center gap-1.5 text-[0.65rem] select-none">
         <LuCircleAlert className="text-foreground-alt/50 size-3" />
-        Checking status...
+        Checking status…
       </div>
     )
   }

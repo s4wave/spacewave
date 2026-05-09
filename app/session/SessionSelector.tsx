@@ -404,13 +404,25 @@ function SessionCard(props: {
       `${providerLabel} · Session ${props.session.sessionIndex}`
     : providerLabel
 
-  const handleClick = useCallback(() => {
+  const handleSessionSelect = useCallback(() => {
     navigate({ path: '/u/' + props.session.sessionIndex + '/' })
   }, [navigate, props.session.sessionIndex])
 
+  const handleSessionSelectKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return
+      e.preventDefault()
+      handleSessionSelect()
+    },
+    [handleSessionSelect],
+  )
+
   return (
     <div
-      onClick={handleClick}
+      role="button"
+      tabIndex={0}
+      onClick={handleSessionSelect}
+      onKeyDown={handleSessionSelectKeyDown}
       className={cn(
         'border-foreground/10 hover:bg-foreground/5 flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 transition-colors',
         isLinked && 'opacity-50',

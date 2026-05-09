@@ -162,6 +162,8 @@ function VariantPreview({
 }) {
   return (
     <div
+      role="button"
+      tabIndex={0}
       data-testid={`variant-card-${id}`}
       className={cn(
         'group flex cursor-pointer flex-col gap-3 rounded-xl border p-4 transition-all',
@@ -170,6 +172,11 @@ function VariantPreview({
         : 'border-foreground/8 hover:border-foreground/15 bg-background-card/30',
       )}
       onClick={onSelect}
+      onKeyDown={(event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return
+        event.preventDefault()
+        onSelect()
+      }}
     >
       <div className="flex items-center justify-between">
         <div>
@@ -461,6 +468,8 @@ export function LayoutDebug() {
                     selectedModifiers[section.attrKey] === opt.value
                   return (
                     <div
+                      role="button"
+                      tabIndex={0}
                       key={opt.value}
                       className={cn(
                         'flex cursor-pointer flex-col gap-1.5 rounded-xl border p-3 transition-all',
@@ -474,6 +483,14 @@ export function LayoutDebug() {
                           [section.attrKey]: opt.value,
                         }))
                       }
+                      onKeyDown={(event) => {
+                        if (event.key !== 'Enter' && event.key !== ' ') return
+                        event.preventDefault()
+                        setSelectedModifiers((prev) => ({
+                          ...prev,
+                          [section.attrKey]: opt.value,
+                        }))
+                      }}
                     >
                       <div className="flex items-baseline justify-between gap-2">
                         <div className="flex items-baseline gap-2">
@@ -523,8 +540,9 @@ export function LayoutDebug() {
                   </span>
                   <span className="text-foreground-alt ml-2 text-xs">
                     {Object.entries(selectedModifiers)
-                      .filter(([, v]) => v !== 'default')
-                      .map(([k, v]) => `${k}: ${v}`)
+                      .flatMap(([k, v]) =>
+                        v !== 'default' ? [`${k}: ${v}`] : [],
+                      )
                       .join(', ') || 'all defaults'}
                   </span>
                 </div>

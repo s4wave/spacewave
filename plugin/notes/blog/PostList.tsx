@@ -13,14 +13,26 @@ interface PostListItemProps {
 
 // PostListItem renders a compact post row with title, date, and tags.
 function PostListItem({ post, onSelectPost }: PostListItemProps) {
-  const handleClick = useCallback(() => {
+  const handlePostSelect = useCallback(() => {
     onSelectPost(post)
   }, [onSelectPost, post])
 
+  const handlePostRowKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLElement>) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return
+      e.preventDefault()
+      handlePostSelect()
+    },
+    [handlePostSelect],
+  )
+
   return (
     <article
-      onClick={handleClick}
-      className="border-foreground/6 hover:bg-background-card/30 group flex cursor-pointer items-start gap-5 border-b px-5 py-5 transition-all duration-200 last:border-b-0 @lg:items-center"
+      role="link"
+      tabIndex={0}
+      onClick={handlePostSelect}
+      onKeyDown={handlePostRowKeyDown}
+      className="border-foreground/6 hover:bg-background-card/30 group flex cursor-pointer items-start gap-5 border-b p-5 transition-all duration-200 last:border-b-0 @lg:items-center"
     >
       <div className="min-w-0 flex-1">
         <h3 className="text-foreground group-hover:text-brand mb-1.5 text-sm font-semibold transition-colors duration-200 @lg:text-base">

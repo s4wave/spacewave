@@ -58,7 +58,10 @@ export function isSameOrChildUnixFSPath(
   const parentParts = splitUnixFSPath(parentPath)
   const childParts = splitUnixFSPath(childPath)
   if (childParts.length < parentParts.length) return false
-  return parentParts.every((part, index) => childParts[index] === part)
+  for (const [i, part] of parentParts.entries()) {
+    if (childParts[i] !== part) return false
+  }
+  return true
 }
 
 // buildUnixFSMoveItems maps browser entries in one directory into move items.

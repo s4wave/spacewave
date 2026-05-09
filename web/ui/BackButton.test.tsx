@@ -16,10 +16,10 @@ describe('BackButton', () => {
 
   it('fires onClick handler', async () => {
     const user = userEvent.setup()
-    const handleClick = vi.fn()
-    render(<BackButton onClick={handleClick}>Home</BackButton>)
+    const handleBackSelect = vi.fn()
+    render(<BackButton onClick={handleBackSelect}>Home</BackButton>)
     await user.click(screen.getByRole('button'))
-    expect(handleClick).toHaveBeenCalledOnce()
+    expect(handleBackSelect).toHaveBeenCalledOnce()
   })
 
   it('adds floating positioning classes', () => {

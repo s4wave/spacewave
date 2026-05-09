@@ -301,6 +301,12 @@ export function CanvasViewer({
           selectedNodeIds,
           canvasStateData.nodes,
         )
+        if (selectedNodes.length === 0) {
+          startTransition(() => {
+            setEphemeralEdges([])
+          })
+          return
+        }
 
         // Query outgoing+incoming edges for all selected nodes in parallel.
         const perNodeResults = await Promise.all(
@@ -447,21 +453,24 @@ export function CanvasViewer({
       const q = query.toLowerCase()
 
       return Promise.resolve(
-        objects
-          .filter((obj) => {
-            const key = obj.objectKey ?? ''
-            const type = obj.objectType ?? ''
-            if (!isCanvasInsertableObject(key, type, objectKey)) return false
-            if (!q) return true
-
-            const label = getObjectTypeLabel(type).toLowerCase()
-            return key.toLowerCase().includes(q) || label.includes(q)
-          })
-          .map((obj) => ({
-            id: obj.objectKey ?? '',
-            label: obj.objectKey ?? '',
-            description: getObjectTypeLabel(obj.objectType ?? ''),
-          })),
+        objects.flatMap((obj) => {
+          const key = obj.objectKey ?? ''
+          const type = obj.objectType ?? ''
+          const label = getObjectTypeLabel(type).toLowerCase()
+          if (
+            !isCanvasInsertableObject(key, type, objectKey) ||
+            (q && !key.toLowerCase().includes(q) && !label.includes(q))
+          ) {
+            return []
+          }
+          return [
+            {
+              id: key,
+              label: key,
+              description: getObjectTypeLabel(type),
+            },
+          ]
+        }),
       )
     },
     [spaceContainer, objectKey],
@@ -532,7 +541,7 @@ export function CanvasViewer({
   if (canvasResource.loading || !canvasStateData) {
     return (
       <div className="text-muted-foreground flex h-full items-center justify-center">
-        Loading canvas...
+        Loading canvas…
       </div>
     )
   }

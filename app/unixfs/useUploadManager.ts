@@ -54,16 +54,18 @@ export function useUploadManager(
   const processQueue = useCallback(() => {
     setItems((prev) => {
       const active = new Set(
-        prev.filter((i) => i.status === 'uploading').map((i) => i.groupId),
+        prev.flatMap((i) => (i.status === 'uploading' ? [i.groupId] : [])),
       ).size
       if (active >= concurrency) return prev
 
       const slots = concurrency - active
       const nextGroupIds: string[] = []
+      const nextGroupIdSet = new Set<string>()
       for (const item of prev) {
         if (item.status !== 'queued') continue
-        if (nextGroupIds.includes(item.groupId)) continue
+        if (nextGroupIdSet.has(item.groupId)) continue
         nextGroupIds.push(item.groupId)
+        nextGroupIdSet.add(item.groupId)
         if (nextGroupIds.length >= slots) break
       }
       if (nextGroupIds.length === 0) return prev
@@ -82,7 +84,7 @@ export function useUploadManager(
   useEffect(() => {
     const queued = items.some((i) => i.status === 'queued')
     const active = new Set(
-      items.filter((i) => i.status === 'uploading').map((i) => i.groupId),
+      items.flatMap((i) => (i.status === 'uploading' ? [i.groupId] : [])),
     ).size
     if (queued && active < concurrency) {
       queueMicrotask(processQueue)
@@ -127,23 +129,27 @@ export function useUploadManager(
         })),
       )
       entries.push(
-        ...groupItems
-          .filter((item) => item.kind === 'file' && item.file !== null)
-          .map((item) => ({
-            kind: 'file' as const,
-            path: item.path,
-            totalSize: BigInt(item.totalSize),
-            stream: item.file!.stream(),
-            onProgress: (bytesWritten: bigint) => {
-              setItems((cur) =>
-                cur.map((c) =>
-                  c.id === item.id ?
-                    { ...c, bytesWritten: Number(bytesWritten) }
-                  : c,
-                ),
-              )
-            },
-          })),
+        ...groupItems.flatMap((item) =>
+          item.kind === 'file' && item.file !== null ?
+            [
+              {
+                kind: 'file' as const,
+                path: item.path,
+                totalSize: BigInt(item.totalSize),
+                stream: item.file!.stream(),
+                onProgress: (bytesWritten: bigint) => {
+                  setItems((cur) =>
+                    cur.map((c) =>
+                      c.id === item.id ?
+                        { ...c, bytesWritten: Number(bytesWritten) }
+                      : c,
+                    ),
+                  )
+                },
+              },
+            ]
+          : [],
+        ),
       )
 
       h.uploadTree(entries, undefined, groupItems[0].abortController.signal)

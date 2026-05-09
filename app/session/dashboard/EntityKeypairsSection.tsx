@@ -144,7 +144,7 @@ export function EntityKeypairsSection({
             passwordPlaceholder="Enter password for entity key"
             error={error}
             disabled={busy}
-            autoFocus
+            focusOnMount
           />
           <div className="flex gap-2">
             <button

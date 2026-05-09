@@ -269,7 +269,14 @@ function CurrentRow({
 }) {
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
+      onKeyDown={(event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return
+        event.preventDefault()
+        onSelect()
+      }}
       className={cn(
         'group text-file-browser-row flex items-center px-3 py-1.5 text-xs',
         'hover:bg-outliner-selected-highlight cursor-pointer transition-colors select-none',
@@ -304,7 +311,14 @@ function DenseRow({
 }) {
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
+      onKeyDown={(event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return
+        event.preventDefault()
+        onSelect()
+      }}
       className={cn(
         'group relative flex cursor-pointer items-center px-3 py-1.5 text-xs transition-colors select-none',
         selected ?
@@ -353,7 +367,14 @@ function CardRow({
 }) {
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
+      onKeyDown={(event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return
+        event.preventDefault()
+        onSelect()
+      }}
       className={cn(
         'group flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2 text-xs transition-all duration-150 select-none',
         selected ?

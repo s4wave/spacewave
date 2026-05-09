@@ -306,8 +306,8 @@ function formatTopDiagnosticGroups(
     else groups.set(key, [diagnostic])
   }
 
-  return [...groups.entries()]
-    .sort(([, diagnosticsA], [, diagnosticsB]) => {
+  return Array.from(groups.entries())
+    .toSorted(([, diagnosticsA], [, diagnosticsB]) => {
       const severityA = getDiagnosticSeverity(diagnosticsA[0])
       const severityB = getDiagnosticSeverity(diagnosticsB[0])
       const severityDelta =

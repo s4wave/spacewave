@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, type ReactNode } from 'react'
+import { createContext, use, useMemo, type ReactNode } from 'react'
 import {
   useResource,
   useResourceValue,
@@ -117,7 +117,7 @@ export function SessionSelfEnrollmentStatusProvider({
 
 // useSessionSelfEnrollmentStatus returns the session self-enrollment status.
 export function useSessionSelfEnrollmentStatus(): SessionSelfEnrollmentStatusView {
-  return useContext(SessionSelfEnrollmentStatusContext)
+  return use(SessionSelfEnrollmentStatusContext)
 }
 
 export function buildSessionSelfEnrollmentStatusView(

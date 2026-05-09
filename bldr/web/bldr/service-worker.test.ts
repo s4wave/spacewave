@@ -502,12 +502,10 @@ describe('service worker messages', () => {
     const cache = await (globalThis.caches as unknown as FakeCacheStorage).open(
       'bldr-control',
     )
-    const rootResponse = await cache.match(
-      new Request(new URL('/', self.location.href)),
-    )
-    const indexResponse = await cache.match(
-      new Request(new URL('/b/__index.html', self.location.href)),
-    )
+    const [rootResponse, indexResponse] = await Promise.all([
+      cache.match(new Request(new URL('/', self.location.href))),
+      cache.match(new Request(new URL('/b/__index.html', self.location.href))),
+    ])
 
     expect(await rootResponse?.text()).toBe('runtime index')
     expect(await indexResponse?.text()).toBe('runtime index')
@@ -532,12 +530,10 @@ describe('service worker messages', () => {
     await refreshBrowserIndexCache('client-a')
 
     const cache = await caches.open('bldr-control')
-    const rootResponse = await cache.match(
-      new Request(new URL('/', self.location.href)),
-    )
-    const indexResponse = await cache.match(
-      new Request(new URL('/b/__index.html', self.location.href)),
-    )
+    const [rootResponse, indexResponse] = await Promise.all([
+      cache.match(new Request(new URL('/', self.location.href))),
+      cache.match(new Request(new URL('/b/__index.html', self.location.href))),
+    ])
 
     expect(await rootResponse?.text()).toBe('fresh index')
     expect(await indexResponse?.text()).toBe('fresh index')

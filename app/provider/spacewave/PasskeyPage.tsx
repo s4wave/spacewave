@@ -65,6 +65,12 @@ export function PasskeyPage() {
   const [username, setUsername] = useState(() => getInitialPasskeyUsername())
   const [usernameError, setUsernameError] = useState('')
   const [choiceMessage, setChoiceMessage] = useState('')
+  const handleUsernameInputRef = useCallback(
+    (node: HTMLInputElement | null) => {
+      node?.focus()
+    },
+    [],
+  )
 
   const handleUsernameChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -388,13 +394,13 @@ export function PasskeyPage() {
               Username
             </label>
             <input
+              ref={handleUsernameInputRef}
               id="passkey-username"
               type="text"
               value={username}
               onChange={handleUsernameChange}
               placeholder="your-username"
               autoComplete="username webauthn"
-              autoFocus
               className={cn(
                 authInputClassName,
                 usernameError && 'border-destructive',

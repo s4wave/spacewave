@@ -1,5 +1,5 @@
 import { isDesktop } from '@aptre/bldr'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useId, useMemo, useRef, useState } from 'react'
 import {
   LuArrowLeft,
   LuArrowRight,
@@ -314,6 +314,11 @@ function RequestRecoveryForm({
   onGoToLogin,
   onSubmit,
 }: RequestRecoveryFormProps) {
+  const emailInputId = useId()
+  const handleEmailInputRef = useCallback((node: HTMLInputElement | null) => {
+    node?.focus()
+  }, [])
+
   if (requestSent) {
     return (
       <div className="space-y-4">
@@ -360,15 +365,19 @@ function RequestRecoveryForm({
       </div>
       <div className="space-y-3">
         <div>
-          <label className="text-foreground-alt mb-1.5 block text-xs select-none">
+          <label
+            htmlFor={emailInputId}
+            className="text-foreground-alt mb-1.5 block text-xs select-none"
+          >
             Email
           </label>
           <input
+            ref={handleEmailInputRef}
+            id={emailInputId}
             type="email"
             value={email}
             onChange={onEmailChange}
             placeholder="you@example.com"
-            autoFocus
             className={cn(
               'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-2 text-sm transition-colors outline-none',
               'focus:border-brand/50',
@@ -486,6 +495,15 @@ function PasswordForm({
   onSubmit,
 }: PasswordFormProps) {
   const canSubmit = passwordValid && passwordsMatch
+  const usernameInputId = useId()
+  const passwordInputId = useId()
+  const confirmInputId = useId()
+  const handlePasswordInputRef = useCallback(
+    (node: HTMLInputElement | null) => {
+      node?.focus()
+    },
+    [],
+  )
 
   return (
     <div className="space-y-4">
@@ -503,10 +521,14 @@ function PasswordForm({
 
       <div className="space-y-3">
         <div>
-          <label className="text-foreground-alt mb-1.5 block text-xs select-none">
+          <label
+            htmlFor={usernameInputId}
+            className="text-foreground-alt mb-1.5 block text-xs select-none"
+          >
             Username
           </label>
           <input
+            id={usernameInputId}
             type="text"
             value={username}
             readOnly
@@ -518,15 +540,19 @@ function PasswordForm({
         </div>
 
         <div>
-          <label className="text-foreground-alt mb-1.5 block text-xs select-none">
+          <label
+            htmlFor={passwordInputId}
+            className="text-foreground-alt mb-1.5 block text-xs select-none"
+          >
             New password
           </label>
           <input
+            ref={handlePasswordInputRef}
+            id={passwordInputId}
             type="password"
             value={password}
             onChange={onPasswordChange}
             placeholder="Enter new password"
-            autoFocus
             className={cn(
               'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-2 text-sm transition-colors outline-none',
               'focus:border-brand/50',
@@ -535,10 +561,14 @@ function PasswordForm({
         </div>
 
         <div>
-          <label className="text-foreground-alt mb-1.5 block text-xs select-none">
+          <label
+            htmlFor={confirmInputId}
+            className="text-foreground-alt mb-1.5 block text-xs select-none"
+          >
             Confirm new password
           </label>
           <input
+            id={confirmInputId}
             type="password"
             value={confirm}
             onChange={onConfirmChange}

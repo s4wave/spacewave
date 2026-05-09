@@ -1,17 +1,11 @@
-import {
-  useState,
-  useEffect,
-  useRef,
-  useCallback,
-  type KeyboardEvent,
-} from 'react'
+import { useState, useRef, useCallback, type KeyboardEvent } from 'react'
 import { LuSearch } from 'react-icons/lu'
 import { cn } from '../style/utils.js'
 
 interface SearchBoxProps {
   placeholder?: string
   className?: string
-  autoFocus?: boolean
+  focusOnMount?: boolean
   onSearch?: (query: string) => void
   onBlur?: () => void
 }
@@ -20,21 +14,28 @@ interface SearchBoxProps {
 export function SearchBox({
   placeholder = 'Search',
   className,
-  autoFocus = false,
+  focusOnMount = false,
   onSearch,
   onBlur,
 }: SearchBoxProps) {
-  const [focused, setFocused] = useState(autoFocus)
+  const initialFocusRef = useRef(focusOnMount)
+  const [focused, setFocused] = useState(() => initialFocusRef.current)
   const [query, setQuery] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    if (autoFocus && inputRef.current) {
-      inputRef.current.focus()
+  const focusRequestedRef = useRef(initialFocusRef.current)
+  const focusInputSoon = useCallback(() => {
+    focusRequestedRef.current = true
+    queueMicrotask(() => inputRef.current?.focus())
+  }, [])
+  const setInputRef = useCallback((el: HTMLInputElement | null) => {
+    inputRef.current = el
+    if (el && focusRequestedRef.current) {
+      focusRequestedRef.current = false
+      el.focus()
     }
-  }, [autoFocus])
+  }, [])
 
-  const handleBlur = useCallback(() => {
+  const handleSearchBlur = useCallback(() => {
     setFocused(false)
     if (query.trim() && onSearch) {
       onSearch(query)
@@ -62,21 +63,23 @@ export function SearchBox({
       <LuSearch className="text-foreground-alt size-3 flex-shrink-0" />
       {focused && (
         <input
-          ref={inputRef}
+          ref={setInputRef}
           type="text"
           placeholder={placeholder}
-          autoFocus
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
           className="text-foreground w-full bg-transparent text-xs outline-none"
-          onBlur={handleBlur}
+          onBlur={handleSearchBlur}
         />
       )}
       {!focused && (
         <button
           className="absolute inset-0"
-          onClick={() => setFocused(true)}
+          onClick={() => {
+            setFocused(true)
+            focusInputSoon()
+          }}
           aria-label="Open search"
         />
       )}

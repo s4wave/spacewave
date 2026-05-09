@@ -263,6 +263,10 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
     void handleRenameConfirm()
   }, [handleRenameConfirm])
 
+  const handleRenameInputRef = useCallback((node: HTMLInputElement | null) => {
+    node?.focus()
+  }, [])
+
   const handleDeleteClick = useCallback(() => {
     const data = menuState?.node.data
     if (!data) return
@@ -362,6 +366,7 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
                     New object key
                   </label>
                   <Input
+                    ref={handleRenameInputRef}
                     id={renameInputId}
                     value={renameValue}
                     onChange={(e) => setRenameValue(e.currentTarget.value)}
@@ -369,7 +374,6 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
                       if (e.key === 'Enter') void handleRenameConfirm()
                       if (e.key === 'Escape') handleRenameCancel()
                     }}
-                    autoFocus
                     disabled={renameSaving}
                     aria-label="New object key"
                     className="border-foreground/10 bg-background/20 text-foreground placeholder:text-foreground-alt/40 focus-visible:border-brand/50 focus-visible:ring-brand/15 h-9 font-mono text-xs"

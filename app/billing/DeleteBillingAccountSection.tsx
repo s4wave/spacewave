@@ -50,6 +50,9 @@ export function DeleteBillingAccountSection({
     deleteBillingAccountDisabledReason(status, assigneeCount)
   const deleteDisabled = !session || deleting || !!disabledReason
   const confirmed = confirmText.trim() === 'DELETE'
+  const handleConfirmInputRef = useCallback((node: HTMLInputElement | null) => {
+    node?.focus()
+  }, [])
 
   const handleOpenChange = useCallback(
     (next: boolean) => {
@@ -132,11 +135,11 @@ export function DeleteBillingAccountSection({
               to confirm.
             </label>
             <input
+              ref={handleConfirmInputRef}
               type="text"
               value={confirmText}
               onChange={(e) => setConfirmText(e.target.value)}
               placeholder="DELETE"
-              autoFocus
               className={cn(
                 'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-2 text-sm transition-colors outline-none',
                 'focus:border-destructive/50',

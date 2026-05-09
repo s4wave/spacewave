@@ -85,6 +85,13 @@ export function SSOConfirmPage() {
     setPinError('')
   }, [])
 
+  const handleUsernameInputRef = useCallback(
+    (node: HTMLInputElement | null) => {
+      node?.focus()
+    },
+    [],
+  )
+
   const handleCancel = useCallback(() => {
     clearPendingSSOState()
     navigate({ path: '/login' })
@@ -347,18 +354,13 @@ export function SSOConfirmPage() {
             </div>
           </div>
 
-          <form
-            className="flex flex-col gap-4"
-            onSubmit={(e) => {
-              e.preventDefault()
-              handleRequestConfirm()
-            }}
-          >
+          <div className="flex flex-col gap-4">
             <label className="flex flex-col gap-1.5">
               <span className="text-foreground-alt text-xs select-none">
                 Username
               </span>
               <input
+                ref={handleUsernameInputRef}
                 value={username}
                 onChange={handleUsernameChange}
                 placeholder="your-name"
@@ -366,7 +368,11 @@ export function SSOConfirmPage() {
                   authInputClassName,
                   usernameError && 'border-destructive/50',
                 )}
-                autoFocus
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    handleRequestConfirm()
+                  }
+                }}
               />
               {usernameError ?
                 <p className="text-destructive text-xs">{usernameError}</p>
@@ -386,7 +392,7 @@ export function SSOConfirmPage() {
               pinInputId="sso-pin"
             />
             <AuthPrimaryActionButton
-              type="submit"
+              onClick={handleRequestConfirm}
               disabled={!username || !!usernameError}
               icon={<LuUserPlus className="text-foreground size-4" />}
             >
@@ -399,7 +405,7 @@ export function SSOConfirmPage() {
               <LuArrowLeft className="size-3" />
               Back to login
             </AuthSecondaryActionButton>
-          </form>
+          </div>
         </AuthCard>
 
         {/* Trust signals */}

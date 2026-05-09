@@ -271,9 +271,11 @@ class ChatResource implements ChatResourceService {
 
       // Extract and sort message keys, skipping already-known keys.
       const msgKeys = quads
-        .filter((q) => !!q.obj)
-        .map((q) => iriToKey(q.obj!))
-        .filter((key) => !skipKeys || !skipKeys.has(key))
+        .flatMap((q) => {
+          if (!q.obj) return []
+          const key = iriToKey(q.obj)
+          return !skipKeys || !skipKeys.has(key) ? [key] : []
+        })
         .sort()
 
       // Read each message block.

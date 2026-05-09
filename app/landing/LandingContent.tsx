@@ -233,8 +233,16 @@ const FaqItem: React.FC<FaqItemProps> = ({
   isOpen,
   onToggle,
 }) => {
+  const handleFaqKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return
+    e.preventDefault()
+    onToggle()
+  }
+
   return (
     <div
+      role="button"
+      tabIndex={0}
       className={cn(
         'group cursor-pointer rounded-lg border p-5 backdrop-blur-sm transition-all',
         isOpen ?
@@ -242,6 +250,7 @@ const FaqItem: React.FC<FaqItemProps> = ({
         : 'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:-translate-y-0.5',
       )}
       onClick={onToggle}
+      onKeyDown={handleFaqKeyDown}
     >
       <div className="flex items-start justify-between gap-4">
         <h3
@@ -342,7 +351,7 @@ const FaqAccordion: React.FC = () => {
       <div className="flex flex-col gap-3">
         {faqItems.map((item, index) => (
           <FaqItem
-            key={index}
+            key={item.question}
             question={item.question}
             answer={item.answer}
             isOpen={index === openIndex}
@@ -686,7 +695,7 @@ function TraditionalDiagram({ label }: { label: string }) {
       aria-label="Traditional cloud architecture: all devices route through a central server"
     >
       {devices.map((d, i) => (
-        <g key={`conn-${i}`}>
+        <g key={`conn-${d.label}`}>
           <AnimatedConnection
             x1={server.x}
             y1={server.y + 24}
@@ -759,8 +768,8 @@ function TraditionalDiagram({ label }: { label: string }) {
       >
         Cloud Server
       </text>
-      {devices.map((d, i) => (
-        <g key={`dev-${i}`}>
+      {devices.map((d) => (
+        <g key={`dev-${d.label}`}>
           <circle
             cx={d.x}
             cy={d.y}
@@ -825,7 +834,7 @@ function SpacewaveDiagram({ label }: { label: string }) {
       aria-label="Spacewave mesh: devices connect directly to each other"
     >
       {connections.map(([a, b], i) => (
-        <g key={`c-${i}`}>
+        <g key={`c-${nodes[a].label}-${nodes[b].label}`}>
           <AnimatedConnection
             x1={nodes[a].x}
             y1={nodes[a].y}
@@ -844,9 +853,9 @@ function SpacewaveDiagram({ label }: { label: string }) {
           />
         </g>
       ))}
-      {nodes.map((n, i) => (
+      {nodes.map((n) => (
         <NetworkNode
-          key={i}
+          key={n.label}
           x={n.x}
           y={n.y}
           label={n.label}
@@ -1333,6 +1342,7 @@ const ComparisonChart: React.FC = () => {
       </div>
     </div>
   )
+  const legend = renderLegend()
 
   return (
     <div className="mx-auto max-w-4xl text-base @md:text-lg">
@@ -1350,8 +1360,12 @@ const ComparisonChart: React.FC = () => {
 
         {/* Features */}
         <div className="divide-foreground/10 divide-y">
-          {features.map((feature, index) => (
-            <div key={index} className="grid items-center" style={columns}>
+          {features.map((feature) => (
+            <div
+              key={feature.name}
+              className="grid items-center"
+              style={columns}
+            >
               <div className="flex items-center gap-2 p-4">
                 <span className="text-foreground-alt flex-shrink-0">
                   {feature.icon}
@@ -1377,7 +1391,7 @@ const ComparisonChart: React.FC = () => {
         </div>
       </div>
 
-      {renderLegend()}
+      {legend}
 
       <p className="text-foreground-alt mt-6 text-center text-sm">
         Spacewave is free software and can run directly on your devices without
@@ -1391,7 +1405,7 @@ const OpenSourceSection: React.FC = () => {
   return (
     <Section
       id="open-source"
-      className="relative w-full bg-gradient-to-r from-blue-500/5 via-indigo-500/5 to-cyan-500/5 py-12"
+      className="via-brand/5 relative w-full bg-gradient-to-r from-blue-500/5 to-cyan-500/5 py-12"
       withTopSeparator
     >
       <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-4 @lg:flex-row @2xl:px-6">
@@ -1403,14 +1417,14 @@ const OpenSourceSection: React.FC = () => {
             <h2 className="text-xl font-semibold text-white">
               Open Source Software
             </h2>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-zinc-400">
               Built in the open, for everyone
             </p>
           </div>
         </div>
         <ExternalLink
           href={GITHUB_REPO_URL}
-          className="group hover:border-brand/30 hover:bg-brand/10 flex cursor-pointer items-center rounded-md border border-gray-700 bg-black/50 px-6 py-2 text-sm font-medium text-white no-underline transition-all duration-300"
+          className="group hover:border-brand/30 hover:bg-brand/10 flex cursor-pointer items-center rounded-md border border-zinc-700 bg-black/50 px-6 py-2 text-sm font-medium text-white no-underline transition-all duration-300"
         >
           <LuGithub className="mr-2 size-4 transition-transform duration-300 group-hover:scale-110" />
           <span className="select-none">View on GitHub</span>
@@ -1426,12 +1440,12 @@ function Footer() {
   const privacyHref = useStaticHref('/privacy')
 
   return (
-    <footer className="flex w-full shrink-0 flex-col items-center gap-2 border-t border-gray-800 bg-black/90 px-4 py-6 @lg:flex-row @2xl:px-6">
-      <p className="text-xs text-gray-400 select-none">
+    <footer className="flex w-full shrink-0 flex-col items-center gap-2 border-t border-zinc-800 bg-black/90 px-4 py-6 @lg:flex-row @2xl:px-6">
+      <p className="text-xs text-zinc-400 select-none">
         &copy; 2018-2026{' '}
         <ExternalLink
           href="https://github.com/aperturerobotics"
-          className="text-gray-300 hover:text-white hover:underline"
+          className="text-zinc-300 hover:text-white hover:underline"
         >
           Aperture Robotics
         </ExternalLink>
@@ -1439,21 +1453,21 @@ function Footer() {
       </p>
       <nav className="flex gap-2 @lg:ml-auto @lg:gap-6">
         <a
-          className="text-xs text-gray-400 underline-offset-4 select-none hover:text-white hover:underline"
+          className="text-xs text-zinc-400 underline-offset-4 select-none hover:text-white hover:underline"
           href={dmcaHref}
         >
           DMCA
         </a>
 
         <a
-          className="text-xs text-gray-400 underline-offset-4 select-none hover:text-white hover:underline"
+          className="text-xs text-zinc-400 underline-offset-4 select-none hover:text-white hover:underline"
           href={tosHref}
         >
           Terms of Service
         </a>
 
         <a
-          className="text-xs text-gray-400 underline-offset-4 select-none hover:text-white hover:underline"
+          className="text-xs text-zinc-400 underline-offset-4 select-none hover:text-white hover:underline"
           href={privacyHref}
         >
           Privacy

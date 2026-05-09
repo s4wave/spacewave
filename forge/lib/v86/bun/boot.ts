@@ -123,7 +123,7 @@ function parseArgs(): {
       case '--mount': {
         // --mount name=/guest/path
         const val = args[++i]
-        const eq = val.indexOf('=')
+        const eq = val.search('=')
         if (eq > 0) {
           mounts.push({ name: val.slice(0, eq), path: val.slice(eq + 1) })
         }

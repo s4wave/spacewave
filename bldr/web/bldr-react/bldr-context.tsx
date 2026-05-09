@@ -1,4 +1,4 @@
-import React, { useContext } from 'react'
+import React, { use } from 'react'
 import type {
   WebDocument as BldrWebDocument,
   WebView as BldrWebView,
@@ -17,5 +17,5 @@ export const BldrContext = React.createContext<IBldrContext | null>(null)
 
 // useBldrContext returns the current BldrContext.
 export function useBldrContext() {
-  return useContext(BldrContext)
+  return use(BldrContext)
 }

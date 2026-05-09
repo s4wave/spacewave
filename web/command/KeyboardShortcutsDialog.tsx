@@ -41,7 +41,7 @@ function groupByMenuPath(
     if (q) {
       const label = (cmd.command.label ?? '').toLowerCase()
       const binding = cmd.command.keybinding.toLowerCase()
-      if (!label.includes(q) && !binding.includes(q)) continue
+      if (!containsText(label, q) && !containsText(binding, q)) continue
     }
     seen.add(commandId)
     const menuPath = cmd.command.menuPath
@@ -68,6 +68,10 @@ function groupByMenuPath(
   return result
 }
 
+function containsText(value: string, query: string): boolean {
+  return value.includes(query)
+}
+
 export interface KeyboardShortcutsDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -80,6 +84,12 @@ export function KeyboardShortcutsDialog({
 }: KeyboardShortcutsDialogProps) {
   const commands = useCommands()
   const [query, setQuery] = useState('')
+  const handleFilterRef = useCallback(
+    (node: HTMLInputElement | null) => {
+      if (open) node?.focus()
+    },
+    [open],
+  )
 
   const grouped = useMemo(
     () => groupByMenuPath(commands, query),
@@ -101,11 +111,11 @@ export function KeyboardShortcutsDialog({
           <DialogTitle>Keyboard Shortcuts</DialogTitle>
         </DialogHeader>
         <input
+          ref={handleFilterRef}
           className="bg-background border-foreground/8 text-foreground mb-3 w-full rounded border px-3 py-1.5 text-sm outline-none"
           placeholder="Filter shortcuts..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          autoFocus
         />
         <div className="max-h-[400px] overflow-auto">
           {grouped.length === 0 && (

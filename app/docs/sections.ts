@@ -170,14 +170,12 @@ export function getSections(): DocSection[] {
   if (cachedSections) return cachedSections
 
   const docs = loadDocs()
-  const sections: DocSection[] = sectionDefs
-    .map((def) => ({
-      ...def,
-      pages: docs
-        .filter((d) => d.section === def.id)
-        .sort((a, b) => a.order - b.order),
-    }))
-    .filter((section) => section.pages.length > 0)
+  const sections: DocSection[] = sectionDefs.flatMap((def) => {
+    const pages = docs
+      .filter((d) => d.section === def.id)
+      .sort((a, b) => a.order - b.order)
+    return pages.length > 0 ? [{ ...def, pages }] : []
+  })
 
   cachedSections = sections
   return sections

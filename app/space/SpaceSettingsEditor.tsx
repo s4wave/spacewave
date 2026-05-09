@@ -55,9 +55,9 @@ export function SpaceSettingsEditor({
       <InfoCard>
         <div className="space-y-2">
           <div>
-            <label className="text-foreground-alt mb-1 block text-[0.6rem] select-none">
+            <span className="text-foreground-alt mb-1 block text-[0.6rem] select-none">
               Display Name
-            </label>
+            </span>
             {canRename && onRenameStart ?
               <div className="flex items-center justify-between gap-2">
                 <div
@@ -87,9 +87,9 @@ export function SpaceSettingsEditor({
             }
           </div>
           <div>
-            <label className="text-foreground-alt mb-1 block text-[0.6rem] select-none">
+            <span className="text-foreground-alt mb-1 block text-[0.6rem] select-none">
               Index Path
-            </label>
+            </span>
             {canEdit ?
               <ObjectKeySelector
                 nodes={treeNodes}

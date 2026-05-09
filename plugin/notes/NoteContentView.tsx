@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
@@ -51,13 +51,7 @@ function NoteContentView({
     return parseNote(textResource.value)
   }, [textResource.value])
 
-  // Track the raw frontmatter for round-trip preservation.
-  const rawFrontmatter = useRef('')
-  useEffect(() => {
-    if (parsedNote) {
-      rawFrontmatter.current = parsedNote.rawFrontmatter
-    }
-  }, [parsedNote])
+  const rawFrontmatter = parsedNote?.rawFrontmatter ?? ''
 
   // Source mode edit state.
   const [sourceContent, setSourceContent] = useState<string | null>(null)
@@ -76,10 +70,10 @@ function NoteContentView({
   // WYSIWYG save: re-assemble frontmatter + exported body, then write.
   const handleWysiwygSave = useCallback(
     (body: string) => {
-      const full = reassembleNote(rawFrontmatter.current, body)
+      const full = reassembleNote(rawFrontmatter, body)
       void writeFile(full)
     },
-    [writeFile],
+    [rawFrontmatter, writeFile],
   )
 
   // Source mode blur: write the raw content.
@@ -114,7 +108,7 @@ function NoteContentView({
   if (textResource.loading) {
     return (
       <div className="text-muted-foreground flex h-full items-center justify-center text-xs">
-        Loading...
+        Loading…
       </div>
     )
   }

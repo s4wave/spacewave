@@ -25,6 +25,8 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+const inspectPassthroughTypes = new Set(['object', 'symbol'])
+
 function extend(origin, add) {
   // Don't do anything if add isn't an object
   if (!add || !isObject(add)) {
@@ -96,7 +98,7 @@ export function format(f) {
   })
 
   for (var x = args[i]; i < len; x = args[++i]) {
-    if (x === null || !['object', 'symbol'].includes(typeof x)) {
+    if (x === null || !inspectPassthroughTypes.has(typeof x)) {
       str += ' ' + x
     } else {
       str += ' ' + inspect(x)
@@ -221,9 +223,9 @@ function formatValue(ctx, value, recurseTimes) {
     k,
     descriptors[k],
   ])
-  let keys = descriptorsArr
-    .filter(([_v, desc]) => desc.enumerable)
-    .map(([v, _desc]) => v)
+  let keys = descriptorsArr.flatMap(([v, desc]) =>
+    desc.enumerable ? [v] : [],
+  )
   const visibleKeys = new Set(keys)
 
   if (ctx.showHidden) {

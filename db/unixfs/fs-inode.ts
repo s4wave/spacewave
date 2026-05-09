@@ -856,10 +856,12 @@ export class FSHandle {
       isDir: boolean
     }
     await this._inode.accessInode(signal, async (_cursor, ops) => {
-      const permissions = await ops.getPermissions(signal)
+      const [permissions, size, modTime] = await Promise.all([
+        ops.getPermissions(signal),
+        ops.getSize(signal),
+        ops.getModTimestamp(signal),
+      ])
       const mode = nodeTypeToMode(ops, permissions)
-      const size = await ops.getSize(signal)
-      const modTime = await ops.getModTimestamp(signal)
       result = {
         name: ops.getName(),
         size,

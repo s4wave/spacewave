@@ -8,7 +8,7 @@ export function OrgSpaceList(props: { orgId: string; spaces: OrgSpaceInfo[] }) {
   return (
     <div className="space-y-1">
       {props.spaces.length === 0 && (
-        <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
+        <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
           <LuBox className="size-3.5 shrink-0" />
           <span>No spaces yet</span>
         </div>
@@ -24,13 +24,13 @@ function OrgSpaceRow(props: { orgId: string; space: OrgSpaceInfo }) {
   const { orgId, space } = props
   const navigateSession = useSessionNavigate()
 
-  const handleClick = useCallback(() => {
+  const handleSpaceSelect = useCallback(() => {
     navigateSession({ path: `org/${orgId}/so/${space.id}` })
   }, [navigateSession, orgId, space.id])
 
   return (
     <button
-      onClick={handleClick}
+      onClick={handleSpaceSelect}
       className="hover:bg-foreground/5 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors"
     >
       <LuBox className="text-foreground-alt/50 size-3.5 shrink-0" />

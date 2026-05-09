@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useEffect, useEffectEvent, useRef } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { $convertToMarkdownString } from '@lexical/markdown'
 import type { Transformer } from '@lexical/markdown'
@@ -19,7 +19,7 @@ function SavePlugin({
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastExported = useRef<string>('')
 
-  const doExport = useCallback(() => {
+  const doExport = useEffectEvent(() => {
     editor.getEditorState().read(() => {
       const md = $convertToMarkdownString(transformers, undefined, true)
       if (md !== lastExported.current) {
@@ -27,7 +27,7 @@ function SavePlugin({
         onSave(md)
       }
     })
-  }, [editor, transformers, onSave])
+  })
 
   useEffect(() => {
     return editor.registerUpdateListener(({ editorState, prevEditorState }) => {
@@ -38,7 +38,7 @@ function SavePlugin({
       }
       timer.current = setTimeout(doExport, debounceMs)
     })
-  }, [editor, doExport, debounceMs])
+  }, [editor, debounceMs])
 
   useEffect(() => {
     const rootElement = editor.getRootElement()
@@ -59,7 +59,7 @@ function SavePlugin({
         clearTimeout(timer.current)
       }
     }
-  }, [editor, doExport])
+  }, [editor])
 
   return null
 }

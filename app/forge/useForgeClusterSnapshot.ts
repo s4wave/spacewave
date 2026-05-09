@@ -79,10 +79,9 @@ async function lookupLinkedKeys(
     200,
     signal,
   )
-  return (result.quads ?? [])
-    .map((quad) => quad.obj)
-    .filter((obj): obj is string => !!obj)
-    .map((obj) => iriToKey(obj))
+  return (result.quads ?? []).flatMap((quad) =>
+    quad.obj ? [iriToKey(quad.obj)] : [],
+  )
 }
 
 async function decodeObject<T extends { fromBinary(data: Uint8Array): U }, U>(
@@ -215,9 +214,14 @@ export function useForgeClusterSnapshot(
             PRED_OBJECT_TO_KEYPAIR,
             signal,
           )
-          const keypairs = await Promise.all(
+          const keypairs: Array<Keypair | null> = await Promise.all(
             keypairKeys.map((keypairKey) =>
-              decodeObject(world, keypairKey, Keypair, signal),
+              decodeObject<typeof Keypair, Keypair>(
+                world,
+                keypairKey,
+                Keypair,
+                signal,
+              ),
             ),
           )
           const prev = workerMap.get(workerKey)
@@ -228,10 +232,9 @@ export function useForgeClusterSnapshot(
               ...new Set([...(prev?.clusterKeys ?? []), clusterKey]),
             ],
             keypairKeys,
-            peerIds: keypairs
-              .filter((keypair): keypair is Keypair => keypair !== null)
-              .map((keypair) => keypair.peerId ?? '')
-              .filter(Boolean),
+            peerIds: keypairs.flatMap((keypair) =>
+              keypair?.peerId ? [keypair.peerId] : [],
+            ),
           })
         }
       }

@@ -205,13 +205,13 @@ export function SpaceMembersPanel() {
   return (
     <InfoCard>
       {!spaceSharingState && (
-        <div className="px-1 py-1">
+        <div className="p-1">
           <LoadingInline label="Loading sharing state" tone="muted" size="sm" />
         </div>
       )}
 
       {empty && (
-        <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
+        <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
           <LuUsers className="size-3.5 shrink-0" />
           <span>No users added yet</span>
         </div>

@@ -1,4 +1,4 @@
-import React, { createContext, useContext } from 'react'
+import React, { createContext, use } from 'react'
 import { IJsonModel } from '@aptre/flex-layout'
 
 // BaseLayoutContextValue defines the shape of our context
@@ -28,5 +28,5 @@ export function BaseLayoutContextProvider({
 }
 
 export function useBaseLayoutContext(): BaseLayoutContextValue | undefined {
-  return useContext(BaseLayoutContext)
+  return use(BaseLayoutContext)
 }

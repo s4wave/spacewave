@@ -90,12 +90,12 @@ export function ObjectViewerDetails({
 
               <InfoCard>
                 <div className="space-y-1.5">
-                  {availableComponents.map((component, idx) => {
+                  {availableComponents.map((component) => {
                     const isSelected =
                       selectedComponent?.name === component.name
                     return (
                       <button
-                        key={idx}
+                        key={component.name}
                         onClick={() => onComponentSelect(component)}
                         className={cn(
                           'border-foreground/8 hover:border-foreground/12 hover:bg-foreground/5 flex w-full cursor-pointer items-center justify-between rounded-lg border p-2.5 text-left transition-colors',

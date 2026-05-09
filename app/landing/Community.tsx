@@ -426,9 +426,9 @@ export function Community() {
       {/* Open source acknowledgment */}
       <section className="mx-auto w-full max-w-3xl px-4 py-10 text-center @lg:px-8 @lg:py-12">
         <p className="text-foreground-alt mb-4 text-sm leading-relaxed">
-          Spacewave is built with Go, TypeScript, React, WebAssembly, and WebRTC
-          — running in web browsers, Linux, and other operating systems. We are
-          grateful to everyone behind these projects.
+          Spacewave is built with Go, TypeScript, React, WebAssembly, and
+          WebRTC, running in web browsers, Linux, and other operating systems.
+          We are grateful to everyone behind these projects.
         </p>
         <ExternalLink
           href={GITHUB_REPO_URL}

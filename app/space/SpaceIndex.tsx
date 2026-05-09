@@ -62,13 +62,12 @@ function findReplacementIndexObject(
 ): string {
   const numberedPrefix = missingObjectKey + '-'
   const numbered = objects
-    .map((obj) => obj.objectKey ?? '')
-    .filter((key) => key.startsWith(numberedPrefix))
-    .map((key) => ({
-      key,
-      suffix: Number(key.slice(numberedPrefix.length)),
-    }))
-    .filter((entry) => Number.isInteger(entry.suffix) && entry.suffix > 0)
+    .flatMap((obj) => {
+      const key = obj.objectKey ?? ''
+      if (!key.startsWith(numberedPrefix)) return []
+      const suffix = Number(key.slice(numberedPrefix.length))
+      return Number.isInteger(suffix) && suffix > 0 ? [{ key, suffix }] : []
+    })
     .sort((a, b) => a.suffix - b.suffix || a.key.localeCompare(b.key))
   return numbered[0]?.key ?? objects[0]?.objectKey ?? ''
 }

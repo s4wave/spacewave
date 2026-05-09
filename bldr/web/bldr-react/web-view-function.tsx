@@ -108,7 +108,7 @@ export class FunctionComponentContainer extends BldrComponent<
     }
 
     if (!this.functionComponent) {
-      return <div>Loading...</div>
+      return <div>Loading…</div>
     }
 
     return (

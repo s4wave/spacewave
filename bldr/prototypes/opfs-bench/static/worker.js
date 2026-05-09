@@ -109,8 +109,10 @@ async function publishImmutableSegment(path, shard, entries, opts = {}) {
 }
 
 async function readWholeTableEntries(dir, name) {
-  const meta = await loadTableMetadata(dir, name)
-  const fh = await dir.getFileHandle(name)
+  const [meta, fh] = await Promise.all([
+    loadTableMetadata(dir, name),
+    dir.getFileHandle(name),
+  ])
   const file = await fh.getFile()
   const buf = await file
     .slice(meta.dataOffset, meta.dataOffset + meta.entryCount * meta.recordSize)
@@ -159,7 +161,7 @@ async function compactTables(path, shard, takeCount, opts = {}) {
       }
     }
   }
-  const merged = [...latest.values()].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0))
+  const merged = Array.from(latest.values()).toSorted((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0))
   const readMs = performance.now() - read0
   const built = buildSSTable(merged, opts)
   let lockHoldMs = 0
@@ -563,11 +565,12 @@ async function cmdOverwriteSSTableMeta(params) {
       })
       publishTimes.push(published.totalMs)
       const manifest = await readLatestManifest(await getDirectory(path, true))
-      if (manifest.tables.length > maxTables) {
-        maxTables = manifest.tables.length
+      const tableCount = manifest.tables.length
+      if (tableCount > maxTables) {
+        maxTables = tableCount
       }
-      if (manifest.tables.length >= compactAt) {
-        const compacted = await compactTables(path, 'meta', Math.min(compactAt, manifest.tables.length), {
+      if (tableCount >= compactAt) {
+        const compacted = await compactTables(path, 'meta', Math.min(compactAt, tableCount), {
           valueSize,
           falsePositiveRate,
           indexEvery,

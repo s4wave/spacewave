@@ -283,13 +283,13 @@ function AuthMutationWizardContent({
                 'border-brand/30 bg-brand/10 hover:bg-brand/20',
               )}
             >
-              Done
+              Close
             </button>
           : <>
               {step > 0 && (
                 <button
                   onClick={() => {
-                    setStep(step - 1)
+                    setStep((current) => current - 1)
                     setError(null)
                   }}
                   disabled={executing}
@@ -311,7 +311,7 @@ function AuthMutationWizardContent({
                 <button
                   onClick={() => {
                     setError(null)
-                    setStep(step + 1)
+                    setStep((current) => current + 1)
                   }}
                   disabled={step === 0 && !step0Ready}
                   className={cn(
@@ -337,7 +337,7 @@ function AuthMutationWizardContent({
                   {executing ?
                     <>
                       <Spinner size="sm" />
-                      Executing...
+                      Executing…
                     </>
                   : mode === 'remove' ?
                     <>

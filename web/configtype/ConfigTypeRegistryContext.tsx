@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo } from 'react'
+import { createContext, use, useMemo } from 'react'
 import type { Root } from '@s4wave/sdk/root'
 import { RootContext } from '../contexts/contexts.js'
 import React from 'react'
@@ -37,7 +37,7 @@ export function ConfigTypeRegistryProvider({
 
 // useStaticConfigTypes returns the static config types from context.
 export function useStaticConfigTypes(): StaticConfigTypeRegistration[] {
-  return useContext(ConfigTypeRegistryContext)
+  return use(ConfigTypeRegistryContext)
 }
 
 // useAllConfigTypes returns all config types: static from context + dynamic from RPC.

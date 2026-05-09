@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useId, useState } from 'react'
 import { LuLock, LuLockOpen } from 'react-icons/lu'
 
 import { useNavigate } from '@s4wave/web/router/router.js'
@@ -34,6 +34,10 @@ export function PinUnlockOverlay({
   const [resetting, setResetting] = useState(false)
   const [recoveryError, setRecoveryError] = useState<string | null>(null)
   const cred = useCredentialProof()
+  const pinInputId = useId()
+  const handlePinInputRef = useCallback((node: HTMLInputElement | null) => {
+    node?.focus()
+  }, [])
 
   const handleUnlock = useCallback(async () => {
     if (pin.length === 0) {
@@ -85,6 +89,7 @@ export function PinUnlockOverlay({
 
   return (
     <div
+      role="group"
       className="bg-background-landing relative flex flex-1 flex-col items-center justify-center gap-6 overflow-y-auto p-6 outline-none md:p-10"
       onKeyDown={handleKeyDown}
       tabIndex={-1}
@@ -116,15 +121,19 @@ export function PinUnlockOverlay({
             {!showRecovery ?
               <>
                 <div>
-                  <label className="text-foreground-alt mb-1.5 block text-xs select-none">
+                  <label
+                    htmlFor={pinInputId}
+                    className="text-foreground-alt mb-1.5 block text-xs select-none"
+                  >
                     Enter PIN to unlock
                   </label>
                   <input
+                    ref={handlePinInputRef}
+                    id={pinInputId}
                     type="password"
                     value={pin}
                     onChange={(e) => setPin(e.target.value)}
                     placeholder="PIN"
-                    autoFocus
                     disabled={unlocking}
                     className={cn(
                       'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-2 text-center text-lg tracking-widest transition-colors outline-none',
@@ -178,7 +187,7 @@ export function PinUnlockOverlay({
                   fileInputRef={cred.fileInputRef}
                   pemLabel="Backup key file"
                   error={recoveryError}
-                  autoFocus
+                  focusOnMount
                 />
 
                 <button

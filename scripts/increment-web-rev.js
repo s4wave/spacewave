@@ -24,8 +24,8 @@ function updateBldrStar(content) {
   const lines = content.split('\n')
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i] ?? ''
-    if (!line.includes('"spacewave-app"')) continue
-    if (!line.includes('js_plugin(') && !line.includes('manifest(')) continue
+    if (!/"spacewave-app"/.test(line)) continue
+    if (!/js_plugin\(/.test(line) && !/manifest\(/.test(line)) continue
 
     const sameLine = incrementRev(line)
     if (sameLine.updated) {
@@ -35,7 +35,7 @@ function updateBldrStar(content) {
 
     for (let j = i + 1; j < lines.length; j++) {
       const nextLine = lines[j] ?? ''
-      if (nextLine.includes('manifest(') || nextLine.includes('js_plugin(')) {
+      if (/manifest\(/.test(nextLine) || /js_plugin\(/.test(nextLine)) {
         break
       }
       const updated = incrementRev(nextLine)

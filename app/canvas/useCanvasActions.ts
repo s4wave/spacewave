@@ -44,7 +44,12 @@ export function useCanvasActions(
     // Copy selected node IDs to a custom clipboard format on the global clipboard.
     const ids = Array.from(selection.selectedNodeIds)
     if (ids.length === 0) return
-    const data = JSON.stringify(ids.map((id) => nodes.get(id)).filter(Boolean))
+    const data = JSON.stringify(
+      ids.flatMap((id) => {
+        const node = nodes.get(id)
+        return node ? [node] : []
+      }),
+    )
     navigator.clipboard.writeText(data).catch(() => {
       // Clipboard write may fail in some environments.
     })

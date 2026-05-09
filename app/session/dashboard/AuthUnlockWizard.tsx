@@ -564,7 +564,7 @@ function CredentialUnlockCard({
   const canUnlock = showPassword ? !!credential.password : !!credential.pemData
 
   return (
-    <div className="border-foreground/10 space-y-3 rounded-md border px-3 py-3">
+    <div className="border-foreground/10 space-y-3 rounded-md border p-3">
       <div className="flex items-center gap-2">
         <LuLock className="text-foreground-alt size-3.5 shrink-0" />
         <div className="min-w-0 flex-1">
@@ -659,7 +659,7 @@ function BrowserUnlockCard({
     : `Use ${methodLabel(method)} to unlock this signer in the shared escalation prompt.`
 
   return (
-    <div className="border-foreground/10 space-y-3 rounded-md border px-3 py-3">
+    <div className="border-foreground/10 space-y-3 rounded-md border p-3">
       <div className="flex items-center gap-2">
         <LuLock className="text-foreground-alt size-3.5 shrink-0" />
         <div className="min-w-0 flex-1">

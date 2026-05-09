@@ -129,7 +129,7 @@ export function UnixFSContextMenu({
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleMove} disabled={!onMove}>
               <LuFolderInput className="size-3.5" />
-              Move...
+              Move…
             </DropdownMenuItem>
             <DropdownMenuItem
               variant="destructive"

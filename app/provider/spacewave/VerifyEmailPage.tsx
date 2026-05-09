@@ -42,6 +42,12 @@ export function VerifyEmailPage() {
 
   const [addExpanded, setAddExpanded] = useState(false)
   const [newEmail, setNewEmail] = useState('')
+  const handleNewEmailInputRef = useCallback(
+    (node: HTMLInputElement | null) => {
+      node?.focus()
+    },
+    [],
+  )
 
   const busy = verifyingCode || addingEmail || removingEmail !== null
 
@@ -151,6 +157,7 @@ export function VerifyEmailPage() {
               {addExpanded && (
                 <div className="border-foreground/10 space-y-3 border-t px-4 pt-3 pb-4">
                   <input
+                    ref={handleNewEmailInputRef}
                     type="email"
                     placeholder="you@example.com"
                     value={newEmail}
@@ -161,7 +168,6 @@ export function VerifyEmailPage() {
                       }
                     }}
                     className={inputClass}
-                    autoFocus
                   />
                   <button
                     onClick={() => void handleAddEmail()}
@@ -216,6 +222,9 @@ function EmailCard({
   const addr = email.email ?? ''
   const verified = email.verified ?? false
   const primary = email.primary ?? false
+  const handleCodeInputRef = useCallback((node: HTMLInputElement | null) => {
+    node?.focus()
+  }, [])
 
   return (
     <div className="border-foreground/20 bg-background-get-started overflow-hidden rounded-lg border shadow-lg backdrop-blur-sm">
@@ -280,6 +289,7 @@ function EmailCard({
             inbox and enter it below.
           </p>
           <input
+            ref={handleCodeInputRef}
             type="text"
             inputMode="numeric"
             maxLength={6}
@@ -295,7 +305,6 @@ function EmailCard({
               inputClass,
               'text-center font-mono text-lg tracking-[0.3em]',
             )}
-            autoFocus
           />
           <button
             onClick={() => void onVerifyCode()}

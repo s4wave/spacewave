@@ -1,7 +1,7 @@
 import { cleanPath, joinPath, splitPath } from '@aptre/bldr'
 import React, {
   createContext,
-  useContext,
+  use,
   useCallback,
   useMemo,
   useRef,
@@ -273,7 +273,7 @@ export const Route: FC<RouteProps> = () => {
  * @returns The RouterContextType object containing path, params, and navigate.
  */
 export const useRouter = (): RouterContextType => {
-  const context = useContext(RouterContext)
+  const context = use(RouterContext)
   if (!context) {
     throw new Error('useRouter must be used within a RouterProvider')
   }

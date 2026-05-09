@@ -46,6 +46,9 @@ export function OrganizationsSection({
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const trimmedOrgName = orgName.trim()
+  const handleOrgNameInputRef = useCallback((node: HTMLInputElement | null) => {
+    node?.focus()
+  }, [])
 
   const handleCreate = useCallback(async () => {
     if (!session || !trimmedOrgName || creating) return
@@ -115,6 +118,7 @@ export function OrganizationsSection({
         {showCreate && (
           <div className="space-y-2">
             <input
+              ref={handleOrgNameInputRef}
               value={orgName}
               disabled={creating}
               aria-busy={creating}
@@ -127,7 +131,6 @@ export function OrganizationsSection({
                 'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-1.5 text-xs transition-colors outline-none',
                 'focus:border-brand/50',
               )}
-              autoFocus
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && trimmedOrgName && !creating) {
                   void handleCreate()

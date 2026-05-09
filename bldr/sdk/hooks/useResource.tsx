@@ -455,9 +455,10 @@ export function useResource<T>(
   // Use spread-deps pattern (like useParentState's retries) so the array
   // reference is stable when the actual IDs haven't changed, even if
   // parsed.parents is a new array (e.g. when factory changes reference).
-  const parentTrackingIdValues = parsed.parents
-    .map((p) => p.__devtools?.id)
-    .filter((id): id is string => id != null)
+  const parentTrackingIdValues = parsed.parents.flatMap((p) => {
+    const id = p.__devtools?.id
+    return id == null ? [] : [id]
+  })
   const parentTrackingIds = useMemo(
     () => parentTrackingIdValues,
     // eslint-disable-next-line react-hooks/exhaustive-deps

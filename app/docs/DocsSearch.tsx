@@ -36,15 +36,18 @@ export function DocsSearch({ docs, onSelect }: DocsSearchProps) {
     [onSelect],
   )
 
-  const handleFocus = useCallback(() => setFocused(true), [])
-  const handleBlur = useCallback(() => {
+  const handleSearchFocus = useCallback(() => setFocused(true), [])
+  const handleSearchBlur = useCallback(() => {
     // Delay to allow click on result.
     setTimeout(() => setFocused(false), 150)
   }, [])
 
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setQuery(e.target.value)
-  }, [])
+  const handleSearchChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setQuery(e.target.value)
+    },
+    [],
+  )
 
   const showDropdown = focused && query.trim().length > 0
 
@@ -56,9 +59,9 @@ export function DocsSearch({ docs, onSelect }: DocsSearchProps) {
           ref={inputRef}
           type="text"
           value={query}
-          onChange={handleChange}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
+          onChange={handleSearchChange}
+          onFocus={handleSearchFocus}
+          onBlur={handleSearchBlur}
           placeholder="Search docs..."
           className={cn(
             'border-foreground/10 bg-background-card/50 text-foreground placeholder:text-foreground-alt/40 w-full rounded-md border py-2 pr-3 pl-9 text-sm transition-colors outline-none',

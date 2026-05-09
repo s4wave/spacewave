@@ -24,14 +24,14 @@ describe('DashboardButton', () => {
 
   it('fires onClick handler', async () => {
     const user = userEvent.setup()
-    const handleClick = vi.fn()
+    const handleDashboardAction = vi.fn()
     render(
-      <DashboardButton icon={<span>ic</span>} onClick={handleClick}>
+      <DashboardButton icon={<span>ic</span>} onClick={handleDashboardAction}>
         Press
       </DashboardButton>,
     )
     await user.click(screen.getByRole('button'))
-    expect(handleClick).toHaveBeenCalledOnce()
+    expect(handleDashboardAction).toHaveBeenCalledOnce()
   })
 
   it('applies custom className', () => {

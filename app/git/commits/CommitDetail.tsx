@@ -50,7 +50,7 @@ export function CommitDetail({
   if (commitResource.loading) {
     return (
       <div className="px-3 py-4">
-        <div className="text-foreground-alt text-xs">Loading commit...</div>
+        <div className="text-foreground-alt text-xs">Loading commit…</div>
       </div>
     )
   }
@@ -84,7 +84,7 @@ export function CommitDetail({
 
   return (
     <div className="min-h-0 flex-1 overflow-auto">
-      <div className="border-foreground/8 border-b px-3 py-3">
+      <div className="border-foreground/8 border-b p-3">
         <div className="text-foreground mb-2 text-xs font-medium">
           {subject}
         </div>
@@ -148,7 +148,7 @@ export function CommitDetail({
           )}
         </div>
       </div>
-      <div className="px-3 py-3">
+      <div className="p-3">
         <GitDiffPatchFiles
           files={diffStatResource.value?.files}
           patch={diffPatchResource.value?.patch}

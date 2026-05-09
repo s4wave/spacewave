@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo } from 'react'
+import { createContext, useCallback, use, useMemo } from 'react'
 import { LuArrowUp, LuBuilding2 } from 'react-icons/lu'
 import { useWatchStateRpc } from '@aptre/bldr-react'
 
@@ -49,7 +49,7 @@ const OrgContainerContext = createContext<OrgContainerState | null>(null)
 
 // useOrgContainerState returns the org state from the nearest OrgContainer.
 export function useOrgContainerState(): OrgContainerState {
-  const ctx = useContext(OrgContainerContext)
+  const ctx = use(OrgContainerContext)
   if (!ctx)
     throw new Error('useOrgContainerState must be used inside OrgContainer')
   return ctx
@@ -109,15 +109,10 @@ export function OrgContainer() {
       return []
     }
     const resourceNames = new Map(
-      (resourcesList?.spacesList ?? [])
-        .map((entry) => {
-          const id = entry.entry?.ref?.providerResourceRef?.id
-          if (!id) {
-            return null
-          }
-          return [id, entry.spaceMeta?.name ?? id] as const
-        })
-        .filter((entry): entry is readonly [string, string] => !!entry),
+      (resourcesList?.spacesList ?? []).flatMap((entry) => {
+        const id = entry.entry?.ref?.providerResourceRef?.id
+        return id ? ([[id, entry.spaceMeta?.name ?? id]] as const) : []
+      }),
     )
     return orgSpaceIds.map((id) => ({
       id,

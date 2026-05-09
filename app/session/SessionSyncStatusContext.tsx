@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, type ReactNode } from 'react'
+import { createContext, use, useMemo, type ReactNode } from 'react'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 
 import {
@@ -96,7 +96,7 @@ export function SessionSyncStatusProvider({
 
 // useSessionSyncStatus returns the current provider-owned session sync status view.
 export function useSessionSyncStatus(): SessionSyncStatusView {
-  return useContext(SessionSyncStatusContext)
+  return use(SessionSyncStatusContext)
 }
 
 export function buildSessionSyncStatusView(

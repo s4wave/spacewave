@@ -1,7 +1,7 @@
 import {
   createContext,
   useCallback,
-  useContext,
+  use,
   useMemo,
   useRef,
   type ReactNode,
@@ -180,13 +180,17 @@ export function CommandProvider({
     ): Promise<SubItem[]> => {
       if (!service) return []
       const resp = await service.GetSubItems({ commandId, query }, signal)
-      return (resp.items ?? [])
-        .filter((item) => !!item.id)
-        .map((item) => ({
-          id: item.id!,
-          label: item.label ?? '',
-          description: item.description || undefined,
-        }))
+      return (resp.items ?? []).flatMap((item) =>
+        item.id ?
+          [
+            {
+              id: item.id,
+              label: item.label ?? '',
+              description: item.description || undefined,
+            },
+          ]
+        : [],
+      )
     },
     [service],
   )
@@ -240,7 +244,7 @@ const emptyCommandContext: CommandContextValue = {
 // useCommandContext returns the command context value, or a no-op
 // default if no CommandProvider is present in the tree.
 export function useCommandContext(): CommandContextValue {
-  return useContext(CommandContext) ?? emptyCommandContext
+  return use(CommandContext) ?? emptyCommandContext
 }
 
 // useCommands returns the current command registry state.

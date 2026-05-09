@@ -9,9 +9,7 @@ export interface DiffStatSectionProps {
 // DiffStatSection displays the file-level diff stats for a commit.
 export function DiffStatSection({ files, loading }: DiffStatSectionProps) {
   if (loading) {
-    return (
-      <div className="text-foreground-alt text-xs">Loading diff stat...</div>
-    )
+    return <div className="text-foreground-alt text-xs">Loading diff stat…</div>
   }
 
   if (!files || files.length === 0) {

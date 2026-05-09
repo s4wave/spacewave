@@ -331,18 +331,14 @@ function createMapAdapter(): {
           reply(2, [])
           return
         }
-        const entries = children
-          .map((id) => {
-            const e = inodeMap.get(id)
-            return e
-              ? { inode_id: id, dt_type: e.dt_type, name: e.name }
-              : null
-          })
-          .filter(Boolean) as Array<{
+        const entries: Array<{
           inode_id: number
           dt_type: number
           name: string
-        }>
+        }> = children.flatMap((id) => {
+          const e = inodeMap.get(id)
+          return e ? [{ inode_id: id, dt_type: e.dt_type, name: e.name }] : []
+        })
         reply(0, entries)
       },
 

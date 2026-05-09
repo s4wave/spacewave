@@ -102,15 +102,8 @@ export function CanvasMinimap({
     }
   }, [viewport, containerSize, toMinimap, minimapScale])
 
-  const handleClick = useCallback(
-    (e: React.MouseEvent) => {
-      const rect = minimapRef.current?.getBoundingClientRect()
-      if (!rect) return
-
-      const mx = e.clientX - rect.left
-      const my = e.clientY - rect.top
-
-      // Convert minimap click to canvas center.
+  const centerMinimapAt = useCallback(
+    (mx: number, my: number) => {
       const cx = (mx - MINIMAP_PADDING) / minimapScale + bounds.minX
       const cy = (my - MINIMAP_PADDING) / minimapScale + bounds.minY
 
@@ -121,6 +114,24 @@ export function CanvasMinimap({
       })
     },
     [minimapScale, bounds, viewport.scale, containerSize, onViewportChange],
+  )
+
+  const handleMinimapCenter = useCallback(
+    (e: React.MouseEvent) => {
+      const rect = minimapRef.current?.getBoundingClientRect()
+      if (!rect) return
+      centerMinimapAt(e.clientX - rect.left, e.clientY - rect.top)
+    },
+    [centerMinimapAt],
+  )
+
+  const handleMinimapKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return
+      e.preventDefault()
+      centerMinimapAt(MINIMAP_WIDTH / 2, MINIMAP_HEIGHT / 2)
+    },
+    [centerMinimapAt, MINIMAP_WIDTH, MINIMAP_HEIGHT],
   )
 
   const nodeRects = useMemo(() => {
@@ -152,7 +163,11 @@ export function CanvasMinimap({
         className,
       )}
       style={{ width: MINIMAP_WIDTH, height: MINIMAP_HEIGHT }}
-      onClick={handleClick}
+      role="button"
+      tabIndex={0}
+      aria-label="Center canvas minimap"
+      onClick={handleMinimapCenter}
+      onKeyDown={handleMinimapKeyDown}
     >
       {nodeRects.map((r) => (
         <div

@@ -5,8 +5,10 @@ async function runAndCollect(page: any) {
   await page.goto('/webrtc-transfer.html')
   const logEl = page.locator('#log')
   await expect(logEl).toContainText('DONE', { timeout: 30000 })
-  const results = await page.evaluate(() => (window as any).__results)
-  const logText = await logEl.textContent()
+  const [results, logText] = await Promise.all([
+    page.evaluate(() => (window as any).__results),
+    logEl.textContent(),
+  ])
   return { results, logText }
 }
 

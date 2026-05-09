@@ -72,8 +72,11 @@ export function OutputPanel({
       {lines.length === 0 && !error && (
         <div className="text-foreground-alt">{placeholder}</div>
       )}
-      {lines.map((line, i) => (
-        <div key={i} className={cn('leading-relaxed', getLineClassName(line))}>
+      {lines.map((line) => (
+        <div
+          key={line}
+          className={cn('leading-relaxed', getLineClassName(line))}
+        >
           {line}
         </div>
       ))}

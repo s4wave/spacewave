@@ -185,8 +185,9 @@ function findTabDefById(
       const node = def.node
       if (node?.case === 'tabSet') {
         const tabSet = node.value
-        const tab = tabSet?.children?.find((child) => child.id === tabID)
-        if (tab) return tab
+        for (const child of tabSet?.children ?? []) {
+          if (child.id === tabID) return child
+        }
       }
       if (node?.case === 'row') {
         const tab = visit(node.value?.children as Parameters<typeof visit>[0])

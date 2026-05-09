@@ -1,24 +1,22 @@
-import { forwardRef, type ComponentPropsWithoutRef } from 'react'
+import { type ComponentPropsWithRef } from 'react'
 import { createPortal } from 'react-dom'
 
-export interface DropdownMenuGhostAnchorProps extends ComponentPropsWithoutRef<'div'> {
+export interface DropdownMenuGhostAnchorProps extends ComponentPropsWithRef<'div'> {
   x: number
   y: number
 }
 
 // DropdownMenuGhostAnchor renders a fixed-position trigger anchor in document.body.
-export const DropdownMenuGhostAnchor = forwardRef<
-  HTMLDivElement,
-  DropdownMenuGhostAnchorProps
->(function DropdownMenuGhostAnchor(
-  { x, y, style, ...props }: DropdownMenuGhostAnchorProps,
-  ref,
-) {
+export function DropdownMenuGhostAnchor({
+  x,
+  y,
+  style,
+  ...props
+}: DropdownMenuGhostAnchorProps) {
   if (typeof document === 'undefined') return null
 
   return createPortal(
     <div
-      ref={ref}
       data-slot="dropdown-menu-ghost-anchor"
       style={{
         position: 'fixed',
@@ -33,4 +31,4 @@ export const DropdownMenuGhostAnchor = forwardRef<
     />,
     document.body,
   )
-})
+}

@@ -180,5 +180,8 @@ function bytesEqual(a: Uint8Array | undefined, b: Uint8Array | undefined) {
   if (a === b) return true
   if (!a || !b) return !a?.length && !b?.length
   if (a.length !== b.length) return false
-  return a.every((value, index) => value === b[index])
+  for (const [i, value] of a.entries()) {
+    if (value !== b[i]) return false
+  }
+  return true
 }

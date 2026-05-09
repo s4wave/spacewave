@@ -469,21 +469,12 @@ export default async function main(
 
   // Resolve viewer script paths from the Vite manifest so the
   // frontend gets the hashed output paths (not the source paths).
-  const notebookViewerScript = await resolveAssetPath(
-    api,
-    signal,
-    './plugin/notes/NotebookViewer.tsx',
-  )
-  const blogViewerScript = await resolveAssetPath(
-    api,
-    signal,
-    './plugin/notes/BlogViewer.tsx',
-  )
-  const docsViewerScript = await resolveAssetPath(
-    api,
-    signal,
-    './plugin/notes/DocsViewer.tsx',
-  )
+  const [notebookViewerScript, blogViewerScript, docsViewerScript] =
+    await Promise.all([
+      resolveAssetPath(api, signal, './plugin/notes/NotebookViewer.tsx'),
+      resolveAssetPath(api, signal, './plugin/notes/BlogViewer.tsx'),
+      resolveAssetPath(api, signal, './plugin/notes/DocsViewer.tsx'),
+    ])
 
   // Register Viewers.
   const vrSvc = new ViewerRegistryResourceServiceClient(rootRef.client)

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useSyncExternalStore } from 'react'
+import React, { createContext, use, useSyncExternalStore } from 'react'
 
 /**
  * Represents a single item in the bottom bar.
@@ -87,7 +87,7 @@ const emptyGetSnapshot = () => emptyItems
  * Only components that call this hook will re-render when items change.
  */
 export function useBottomBarItems(): BottomBarItem[] {
-  const context = useContext(BottomBarItemsContext)
+  const context = use(BottomBarItemsContext)
   const subscribe = context?.subscribe ?? emptySubscribe
   const getSnapshot = context?.getSnapshot ?? emptyGetSnapshot
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
@@ -97,7 +97,7 @@ export function useBottomBarItems(): BottomBarItem[] {
  * Hook to get openMenu from the BottomBarItemsContext.
  */
 export function useBottomBarOpenMenu(): string | undefined {
-  const context = useContext(BottomBarItemsContext)
+  const context = use(BottomBarItemsContext)
   return context?.openMenu
 }
 
@@ -105,7 +105,7 @@ export function useBottomBarOpenMenu(): string | undefined {
  * Hook to get setOpenMenu from the BottomBarItemsContext.
  */
 export function useBottomBarSetOpenMenu(): ((id: string) => void) | undefined {
-  const context = useContext(BottomBarItemsContext)
+  const context = use(BottomBarItemsContext)
   return context?.setOpenMenu
 }
 

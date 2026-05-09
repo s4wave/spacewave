@@ -123,11 +123,11 @@ export function UpgradeRouter() {
       } catch (err) {
         const msg =
           err instanceof Error ? err.message : 'Failed to create checkout'
-        if (msg.includes('released') && attempt < maxRetries) {
+        if (/released/.test(msg) && attempt < maxRetries) {
           await new Promise((r) => setTimeout(r, 100))
           continue
         }
-        if (msg.includes('no active spacewave session')) {
+        if (/no active spacewave session/.test(msg)) {
           navigate({ path: '/login' })
           return
         }

@@ -1,4 +1,10 @@
-import React, { CSSProperties, createContext, useContext } from 'react'
+import React, {
+  CSSProperties,
+  createContext,
+  use,
+  useEffect,
+  useRef,
+} from 'react'
 
 import { cn } from '@s4wave/web/style/utils.js'
 import { IBarProps, Bar } from './bar.js'
@@ -7,7 +13,7 @@ const OverlayCloseContext = createContext<(() => void) | undefined>(undefined)
 
 // useOverlayClose returns the close handler for the current overlay.
 export function useOverlayClose() {
-  return useContext(OverlayCloseContext)
+  return use(OverlayCloseContext)
 }
 
 // IFrameProps are properties for Frame.
@@ -39,6 +45,7 @@ export interface IFrameProps {
 
 // Frame is a body with horizontal bars above and/or below it.
 export function Frame(props: IFrameProps) {
+  const overlayRef = useRef<HTMLDivElement>(null)
   const bottomBar =
     !props.bottomBar?.hidden ?
       <Bar hideTopBorder={!!props.overlay} {...props.bottomBar} />
@@ -52,8 +59,13 @@ export function Frame(props: IFrameProps) {
       <Bar {...props.topBar} />
     : undefined
 
+  useEffect(() => {
+    if (props.overlay) overlayRef.current?.focus()
+  }, [props.overlay])
+
   return (
     <div
+      role="group"
       className={cn(
         'relative flex-1 overflow-hidden',
         'flex flex-col flex-nowrap gap-0',
@@ -70,6 +82,7 @@ export function Frame(props: IFrameProps) {
 
       {props.overlay ?
         <div
+          ref={overlayRef}
           className={cn(
             'border-frame-overlay-border bg-frame-overlay relative flex flex-1 overflow-hidden border-[0.21rem] border-solid break-words',
             props.overlayClassName,
@@ -77,7 +90,6 @@ export function Frame(props: IFrameProps) {
           role="dialog"
           aria-modal
           tabIndex={-1}
-          autoFocus
           onKeyDown={(e) => {
             if (e.key === 'Escape' && props.onCloseOverlay) {
               props.onCloseOverlay()

@@ -91,6 +91,13 @@ export function PasskeyConfirmPage() {
     setPinError('')
   }, [])
 
+  const handleUsernameInputRef = useCallback(
+    (node: HTMLInputElement | null) => {
+      node?.focus()
+    },
+    [],
+  )
+
   const handleCreateAccount = useCallback(async () => {
     if (!pendingState) {
       setState({ step: 'error', message: 'Passkey session expired' })
@@ -295,12 +302,12 @@ export function PasskeyConfirmPage() {
               Username
             </label>
             <input
+              ref={handleUsernameInputRef}
               id="desktop-passkey-username"
               type="text"
               value={username}
               onChange={handleUsernameChange}
               placeholder={pendingState.username || 'your-username'}
-              autoFocus
               disabled={isBusy}
               className={cn(
                 authInputClassName,

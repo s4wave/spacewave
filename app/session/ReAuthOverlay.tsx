@@ -91,6 +91,7 @@ export function ReAuthOverlay({
 
   return (
     <div
+      role="group"
       className="bg-background-landing relative flex flex-1 flex-col items-center justify-center gap-6 overflow-y-auto p-6 outline-none md:p-10"
       onKeyDown={handleKeyDown}
       tabIndex={-1}
@@ -130,7 +131,7 @@ export function ReAuthOverlay({
               pemLabel="Backup key file"
               error={error}
               disabled={submitting}
-              autoFocus
+              focusOnMount
             />
 
             <button

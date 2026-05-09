@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useId, useState } from 'react'
 
 import {
   Dialog,
@@ -29,6 +29,9 @@ export function ChangePasswordDialog({
   const [confirmPassword, setConfirmPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const currentPasswordId = useId()
+  const newPasswordId = useId()
+  const confirmPasswordId = useId()
 
   const passwordsMatch = newPassword === confirmPassword
   const canSubmit =
@@ -93,10 +96,14 @@ export function ChangePasswordDialog({
 
         <div className="space-y-3">
           <div>
-            <label className="text-foreground-alt mb-1.5 block text-xs select-none">
+            <label
+              className="text-foreground-alt mb-1.5 block text-xs select-none"
+              htmlFor={currentPasswordId}
+            >
               Current password
             </label>
             <input
+              id={currentPasswordId}
               type="password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
@@ -105,10 +112,14 @@ export function ChangePasswordDialog({
             />
           </div>
           <div>
-            <label className="text-foreground-alt mb-1.5 block text-xs select-none">
+            <label
+              className="text-foreground-alt mb-1.5 block text-xs select-none"
+              htmlFor={newPasswordId}
+            >
               New password
             </label>
             <input
+              id={newPasswordId}
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
@@ -117,10 +128,14 @@ export function ChangePasswordDialog({
             />
           </div>
           <div>
-            <label className="text-foreground-alt mb-1.5 block text-xs select-none">
+            <label
+              className="text-foreground-alt mb-1.5 block text-xs select-none"
+              htmlFor={confirmPasswordId}
+            >
               Confirm new password
             </label>
             <input
+              id={confirmPasswordId}
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}

@@ -30,8 +30,8 @@ export function StatsBar({ stats, className }: StatsBarProps) {
         className,
       )}
     >
-      {stats.map((stat, i) => (
-        <span key={i} className="text-foreground-alt">
+      {stats.map((stat) => (
+        <span key={stat.label} className="text-foreground-alt">
           {stat.label}:{' '}
           <span className={stat.valueClassName ?? 'text-foreground'}>
             {stat.value}

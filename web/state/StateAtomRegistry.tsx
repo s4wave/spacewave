@@ -1,7 +1,7 @@
 import {
   createContext,
   useCallback,
-  useContext,
+  use,
   useEffect,
   useMemo,
   useRef,
@@ -180,7 +180,7 @@ export function StateAtomRegistryProvider({
 }
 
 export function useStateAtomRegistryContext() {
-  return useContext(StateAtomRegistryContext)
+  return use(StateAtomRegistryContext)
 }
 
 export function useStateAtoms(): Map<string, StateAtomEntry> {

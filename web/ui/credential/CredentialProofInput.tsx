@@ -1,3 +1,4 @@
+import { useCallback } from 'react'
 import { LuUpload } from 'react-icons/lu'
 
 import { cn } from '@s4wave/web/style/utils.js'
@@ -15,7 +16,7 @@ export interface CredentialProofInputProps {
   pemLabel?: string
   error?: string | null
   disabled?: boolean
-  autoFocus?: boolean
+  focusOnMount?: boolean
   onPasswordKeyDown?: (e: React.KeyboardEvent) => void
   className?: string
 }
@@ -41,10 +42,17 @@ export function CredentialProofInput({
   pemLabel = 'Backup key (.pem)',
   error,
   disabled,
-  autoFocus,
+  focusOnMount,
   onPasswordKeyDown,
   className,
 }: CredentialProofInputProps) {
+  const handlePasswordRef = useCallback(
+    (node: HTMLInputElement | null) => {
+      if (focusOnMount) node?.focus()
+    },
+    [focusOnMount],
+  )
+
   return (
     <div className={cn('space-y-3', className)}>
       {showPassword && (
@@ -53,13 +61,13 @@ export function CredentialProofInput({
             {passwordLabel}
           </label>
           <input
+            ref={handlePasswordRef}
             type="password"
             value={password}
             onChange={(e) => onPasswordChange(e.target.value)}
             placeholder={passwordPlaceholder}
             disabled={disabled}
             readOnly={disabled}
-            autoFocus={autoFocus}
             onKeyDown={onPasswordKeyDown}
             className={cn(inputClass, disabled && 'opacity-50')}
           />

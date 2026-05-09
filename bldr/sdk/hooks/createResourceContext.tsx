@@ -1,6 +1,6 @@
 import React, {
   createContext,
-  useContext,
+  use,
   useMemo,
   type ReactNode,
 } from 'react'
@@ -25,7 +25,7 @@ export function createResourceContext<
   }
 
   const useResourceContext = (): Resource<T> => {
-    const resource = useContext(Context)
+    const resource = use(Context)
 
     return useMemo(() => {
       if (!resource) {

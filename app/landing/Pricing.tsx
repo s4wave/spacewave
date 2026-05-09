@@ -95,8 +95,16 @@ function FaqItem({
   isOpen: boolean
   onToggle: () => void
 }) {
+  const handleFaqKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return
+    e.preventDefault()
+    onToggle()
+  }
+
   return (
     <div
+      role="button"
+      tabIndex={0}
       className={cn(
         'group cursor-pointer rounded-lg border p-5 backdrop-blur-sm transition-all',
         isOpen ?
@@ -104,6 +112,7 @@ function FaqItem({
         : 'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:-translate-y-0.5',
       )}
       onClick={onToggle}
+      onKeyDown={handleFaqKeyDown}
     >
       <div className="flex items-start justify-between gap-4">
         <h3

@@ -16,6 +16,13 @@ import {
 // unbounded. Matches the server-side default ring buffer capacity.
 const MAX_ENTRIES = 1024
 
+function formatCacheSeedTime(
+  timestampMs: number | string | bigint | undefined,
+): string {
+  if (timestampMs === undefined) return ''
+  return new Date(Number(timestampMs)).toLocaleTimeString()
+}
+
 export interface CacheSeedTabProps {
   rootResource: Resource<Root>
 }
@@ -87,17 +94,23 @@ export function CacheSeedTab({ rootResource }: CacheSeedTabProps) {
   if (entries.length === 0) {
     return (
       <div className="text-foreground-alt/50 flex flex-1 items-center justify-center p-4 text-xs">
-        Waiting for cache-seed entries...
+        Waiting for cache-seed entries…
       </div>
     )
   }
 
   return (
     <div className="flex flex-1 flex-col overflow-auto font-mono text-xs">
-      {entries.map((entry, i) => (
-        <div key={i} className="border-border/40 flex gap-2 border-b px-2 py-1">
-          <span className="text-foreground-alt/60 w-28">
-            {new Date(Number(entry.timestampMs)).toLocaleTimeString()}
+      {entries.map((entry) => (
+        <div
+          key={`${entry.timestampMs}-${entry.reason}-${entry.path}`}
+          className="border-border/40 flex gap-2 border-b px-2 py-1"
+        >
+          <span
+            suppressHydrationWarning
+            className="text-foreground-alt/60 w-28"
+          >
+            {formatCacheSeedTime(entry.timestampMs)}
           </span>
           <span className="text-accent w-40">
             {entry.reason || '(untagged)'}

@@ -42,13 +42,18 @@ export function SessionCommands() {
       const spaces = resourcesList?.spacesList ?? []
       const q = query.toLowerCase()
       return Promise.resolve(
-        spaces
-          .filter((entry) => !!entry.entry?.ref?.providerResourceRef?.id)
-          .map((entry) => ({
-            id: entry.entry!.ref!.providerResourceRef!.id!,
-            label: entry.spaceMeta?.name ?? 'Untitled',
-          }))
-          .filter((item) => !q || item.label.toLowerCase().includes(q)),
+        spaces.flatMap((entry) => {
+          const id = entry.entry?.ref?.providerResourceRef?.id
+          if (!id) return []
+          const label = entry.spaceMeta?.name ?? 'Untitled'
+          if (q && !label.toLowerCase().includes(q)) return []
+          return [
+            {
+              id,
+              label,
+            },
+          ]
+        }),
       )
     },
     [resourcesList],

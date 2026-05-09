@@ -56,8 +56,8 @@ async function analyzeSnapshot(label, filePath) {
     }
   })
 
-  const topRetained = [...clientRpcPairs.entries()]
-    .sort((a, b) => b[1] - a[1])
+  const topRetained = Array.from(clientRpcPairs.entries())
+    .toSorted((a, b) => b[1] - a[1])
     .slice(0, 20)
     .map(([key, count]) => {
       const slash = key.lastIndexOf('/')
@@ -78,20 +78,21 @@ function buildPairDeltas(firstPairs, lastPairs) {
     ...Object.keys(firstPairs || {}),
     ...Object.keys(lastPairs || {}),
   ])
-  return [...allKeys]
-    .map((key) => {
+  return Array.from(allKeys)
+    .flatMap((key) => {
       const baselineCount = firstPairs?.[key] || 0
       const finalCount = lastPairs?.[key] || 0
+      const delta = finalCount - baselineCount
+      if (delta === 0) return []
       const slash = key.lastIndexOf('/')
-      return {
+      return [{
         service: key.slice(0, slash),
         method: key.slice(slash + 1),
         baselineCount,
         finalCount,
-        delta: finalCount - baselineCount,
-      }
+        delta,
+      }]
     })
-    .filter((entry) => entry.delta !== 0)
     .sort((a, b) => {
       if (a.delta !== b.delta) {
         return b.delta - a.delta

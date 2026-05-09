@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { TreeNode } from './TreeNode.js'
 import {
   findNodeById,
@@ -99,9 +99,12 @@ export function Tree<T>({
           if (focusedNode) {
             dispatch({ type: 'SELECT_NODE', id: focusedNode.id })
             if (onRowDefaultAction) {
-              const selectedNodes = Array.from(state.selectedIds)
-                .map((id) => findNodeById(nodes, id))
-                .filter((node): node is TreeNode<T> => node !== undefined)
+              const selectedNodes = Array.from(state.selectedIds).flatMap(
+                (id) => {
+                  const node = findNodeById(nodes, id)
+                  return node ? [node] : []
+                },
+              )
               if (selectedNodes.length > 0) {
                 onRowDefaultAction(selectedNodes)
               }
@@ -219,7 +222,7 @@ export function Tree<T>({
     [dispatch, state, nodes, onRowDefaultAction],
   )
 
-  const renderFlattenedRows = useCallback(() => {
+  const flattenedRows = useMemo(() => {
     const renderNode = (
       node: TreeNode<T>,
       level: number,
@@ -286,7 +289,7 @@ export function Tree<T>({
             <div className="text-foreground-alt flex flex-1 items-center justify-center p-4">
               {placeholder ?? 'No items'}
             </div>
-          : <div>{renderFlattenedRows()}</div>}
+          : <div>{flattenedRows}</div>}
         </div>
       </TreeDispatchContext.Provider>
     </TreeStateContext.Provider>

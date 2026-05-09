@@ -596,8 +596,7 @@ export function PluginsLandingDemo() {
   const pluginName = derivePluginName(code)
   const commandName = derivePluginCommand(code)
 
-  const previewDoc = useMemo(
-    () => `### ${pluginName}
+  const previewDoc = `### ${pluginName}
 
 - command: \`${commandName}\`
 - runtime: \`go + typescript\`
@@ -606,9 +605,7 @@ export function PluginsLandingDemo() {
 \`\`\`ts
 ${code.trim()}
 \`\`\`
-`,
-    [code, commandName, pluginName],
-  )
+`
 
   return (
     <DemoFrame

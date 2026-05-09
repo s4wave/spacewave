@@ -457,7 +457,7 @@ describe('ShellFlexLayout OptimizedLayout E2E', () => {
             document.querySelectorAll('.flexlayout__tab_button'),
           )
           for (const btn of buttons) {
-            if (btn.textContent?.includes('Click Me Tab')) return btn
+            if (btn.textContent?.trim() === 'Click Me Tab') return btn
           }
           return null
         })

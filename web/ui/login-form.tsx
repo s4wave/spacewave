@@ -1,4 +1,11 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useId,
+  useRef,
+  useState,
+} from 'react'
 import { LuFingerprint, LuGithub, LuKeyRound } from 'react-icons/lu'
 import { FcGoogle } from 'react-icons/fc'
 import { RxArrowRight } from 'react-icons/rx'
@@ -234,6 +241,9 @@ export function LoginForm({
   const [pemFileName, setPemFileName] = useState<string | null>(null)
   const turnstileRef = useRef<TurnstileInstance>(null)
   const pemInputRef = useRef<HTMLInputElement>(null)
+  const usernameId = useId()
+  const passwordId = useId()
+  const confirmId = useId()
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const browserSignInTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -258,6 +268,15 @@ export function LoginForm({
 
   const wasRateLimitedRef = useRef(false)
   const pendingRetryRef = useRef(false)
+  const handleUsernameInputRef = useCallback(
+    (node: HTMLInputElement | null) => {
+      node?.focus()
+    },
+    [],
+  )
+  const handleConfirmInputRef = useCallback((node: HTMLInputElement | null) => {
+    node?.focus()
+  }, [])
 
   const clearBrowserSignInPrompt = useCallback(() => {
     if (browserSignInTimerRef.current) {
@@ -440,6 +459,9 @@ export function LoginForm({
     },
     [handleContinueWithPassword, loading],
   )
+  const continueWithPassword = useEffectEvent(() => {
+    void handleContinueWithPassword()
+  })
 
   useEffect(() => {
     if (
@@ -450,9 +472,9 @@ export function LoginForm({
       return
     }
     pendingRetryRef.current = false
-    const id = setTimeout(() => void handleContinueWithPassword(), 0)
+    const id = setTimeout(continueWithPassword, 0)
     return () => clearTimeout(id)
-  }, [handleContinueWithPassword, loading, rateLimitCountdown])
+  }, [loading, rateLimitCountdown])
 
   const handleUsernameChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -574,6 +596,7 @@ export function LoginForm({
 
   return (
     <div
+      role="group"
       className={cn('flex flex-col gap-4', className)}
       onKeyDown={handleKeyDown}
       {...props}
@@ -582,21 +605,27 @@ export function LoginForm({
         <div className="space-y-3 p-6">
           <div className="space-y-3">
             <div>
-              <label className={labelClassName}>Username</label>
+              <label className={labelClassName} htmlFor={usernameId}>
+                Username
+              </label>
               <input
+                ref={handleUsernameInputRef}
+                id={usernameId}
                 type="text"
                 value={username}
                 onChange={handleUsernameChange}
                 placeholder="alice"
-                autoFocus
                 disabled={loading !== null || creatingAccount}
                 className={inputClassName}
               />
             </div>
 
             <div>
-              <label className={labelClassName}>Password</label>
+              <label className={labelClassName} htmlFor={passwordId}>
+                Password
+              </label>
               <input
+                id={passwordId}
                 type="password"
                 value={password}
                 onChange={handlePasswordChange}
@@ -608,13 +637,16 @@ export function LoginForm({
 
             {creatingAccount && (
               <div>
-                <label className={labelClassName}>Confirm password</label>
+                <label className={labelClassName} htmlFor={confirmId}>
+                  Confirm password
+                </label>
                 <input
+                  ref={handleConfirmInputRef}
+                  id={confirmId}
                   type="password"
                   value={confirm}
                   onChange={handleConfirmChange}
                   placeholder="Confirm password"
-                  autoFocus
                   disabled={loading !== null}
                   className={cn(
                     inputClassName,
@@ -702,7 +734,7 @@ export function LoginForm({
               >
                 <LuKeyRound className="text-foreground size-4" />
                 <span className="text-foreground text-sm">
-                  Open browser to sign in...
+                  Open browser to sign in…
                 </span>
               </button>
             </div>

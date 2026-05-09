@@ -1,4 +1,11 @@
-import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react'
+import React, {
+  useRef,
+  useEffect,
+  useState,
+  useMemo,
+  useCallback,
+  useEffectEvent,
+} from 'react'
 import type { ObjectViewerComponent } from './object.js'
 import { cn } from '@s4wave/web/style/utils.js'
 
@@ -11,7 +18,7 @@ interface CategoryGroup {
 // DropdownEntry represents either a category header or a selectable item.
 type DropdownEntry =
   | { kind: 'header'; category: string }
-  | { kind: 'separator' }
+  | { kind: 'separator'; category: string | null }
   | { kind: 'item'; component: ObjectViewerComponent; index: number }
 
 interface ComponentSelectorProps {
@@ -75,7 +82,7 @@ export function ComponentSelector({
       const group = groups[gi]
       // Add separator between groups (not before the first).
       if (gi > 0) {
-        entries.push({ kind: 'separator' })
+        entries.push({ kind: 'separator', category: group.category })
       }
       // Add category header if named.
       if (group.category) {
@@ -102,6 +109,21 @@ export function ComponentSelector({
     },
     [onSelectComponent, onOpenChange],
   )
+  const closeSelector = useEffectEvent(() => {
+    onOpenChange(false)
+  })
+  const selectComponent = useEffectEvent((comp: ObjectViewerComponent) => {
+    handleSelect(comp)
+  })
+
+  const handleTriggerKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return
+      event.preventDefault()
+      onOpenChange(!open)
+    },
+    [onOpenChange, open],
+  )
 
   useEffect(() => {
     if (!open) return
@@ -111,13 +133,13 @@ export function ComponentSelector({
         triggerRef.current &&
         !triggerRef.current.contains(event.target as Node)
       ) {
-        onOpenChange(false)
+        closeSelector()
       }
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        onOpenChange(false)
+        closeSelector()
         return
       }
 
@@ -141,7 +163,7 @@ export function ComponentSelector({
         if (entryIdx !== undefined) {
           const entry = entries[entryIdx]
           if (entry.kind === 'item') {
-            handleSelect(entry.component)
+            selectComponent(entry.component)
           }
         }
       }
@@ -154,28 +176,25 @@ export function ComponentSelector({
       document.removeEventListener('mousedown', handleClickOutside)
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [
-    open,
-    onOpenChange,
-    focusedIndex,
-    entries,
-    selectableIndices,
-    handleSelect,
-  ])
+  }, [open, focusedIndex, entries, selectableIndices])
 
   return (
     <div className="relative" ref={triggerRef}>
       <div
+        role="button"
+        tabIndex={0}
         className="cursor-pointer"
         onClick={() => {
           onOpenChange(!open)
         }}
+        onKeyDown={handleTriggerKeyDown}
       >
         {children}
       </div>
 
       {open && (
         <div
+          role="menu"
           className={cn(
             'absolute right-0 bottom-full z-50 mb-1',
             'border-border bg-background-card min-w-[200px] rounded-md border p-1 shadow-md',
@@ -187,7 +206,10 @@ export function ComponentSelector({
           {entries.map((entry, idx) => {
             if (entry.kind === 'separator') {
               return (
-                <div key={`sep-${idx}`} className="bg-border mx-1 my-1 h-px" />
+                <div
+                  key={`sep-${entry.category ?? 'ungrouped'}`}
+                  className="bg-border mx-1 my-1 h-px"
+                />
               )
             }
             if (entry.kind === 'header') {
@@ -204,6 +226,8 @@ export function ComponentSelector({
             const isFocused = focusedEntryIndex === idx
             return (
               <div
+                role="menuitem"
+                tabIndex={-1}
                 key={`item-${entry.index}`}
                 className={cn(
                   'text-foreground-alt relative flex cursor-pointer items-center rounded px-2 py-1.5 text-sm outline-none select-none',
@@ -212,6 +236,11 @@ export function ComponentSelector({
                   isSelected && 'bg-muted/70 text-foreground',
                 )}
                 onClick={() => handleSelect(entry.component)}
+                onKeyDown={(event) => {
+                  if (event.key !== 'Enter' && event.key !== ' ') return
+                  event.preventDefault()
+                  handleSelect(entry.component)
+                }}
                 onMouseEnter={() => {
                   const selectIdx = selectableIndices.indexOf(idx)
                   if (selectIdx >= 0) {

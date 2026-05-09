@@ -73,7 +73,7 @@ function getScopeRelativeLabel(scopeRoot: string, entryPath: string): string {
 function sortGalleryCandidates(
   candidates: UnixFSGalleryCandidate[],
 ): UnixFSGalleryCandidate[] {
-  return [...candidates].sort((a, b) => a.label.localeCompare(b.label))
+  return candidates.toSorted((a, b) => a.label.localeCompare(b.label))
 }
 
 function buildDiscoveryState(
@@ -140,7 +140,7 @@ async function walkGalleryScope(
     return []
   }
 
-  const entries = [...(await handle.readdirAll(0n, signal))].sort((a, b) =>
+  const entries = (await handle.readdirAll(0n, signal)).toSorted((a, b) =>
     (a.name ?? '').localeCompare(b.name ?? ''),
   )
   const images: UnixFSGalleryCandidate[] = []
@@ -185,7 +185,7 @@ async function* streamGalleryScope(
     return
   }
 
-  const entries = [...(await handle.readdirAll(0n, signal))].sort((a, b) =>
+  const entries = (await handle.readdirAll(0n, signal)).toSorted((a, b) =>
     (a.name ?? '').localeCompare(b.name ?? ''),
   )
   for (const entry of entries) {

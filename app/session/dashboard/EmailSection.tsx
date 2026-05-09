@@ -137,7 +137,7 @@ export function EmailSection({ open, onOpenChange }: EmailSectionProps) {
         <p className="text-foreground-alt/40 text-xs">Loading emails…</p>
       )}
       {!loading && emails && emails.length === 0 && (
-        <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
+        <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
           <LuMail className="size-3.5 shrink-0" />
           <span>No email addresses yet</span>
         </div>
@@ -214,6 +214,10 @@ function AddEmailForm({
   onChange: (value: string) => void
   onSubmit: () => Promise<unknown>
 }) {
+  const handleInputRef = useCallback((node: HTMLInputElement | null) => {
+    node?.focus()
+  }, [])
+
   if (!open) {
     return (
       <button
@@ -239,6 +243,7 @@ function AddEmailForm({
         <p className="text-foreground text-xs font-medium">Add another email</p>
       </div>
       <input
+        ref={handleInputRef}
         type="email"
         autoComplete="email"
         placeholder="you@example.com"
@@ -256,7 +261,6 @@ function AddEmailForm({
         }}
         disabled={adding}
         className={cn(inputClass, error && 'border-destructive/50')}
-        autoFocus
         aria-invalid={!!error}
         aria-describedby={error ? 'add-email-error' : undefined}
       />
@@ -343,6 +347,9 @@ function EmailRow({
     : null
   const canSetPrimary = verified && !primary
   const busy = removing || sendingCode || verifyingCode || settingPrimary
+  const handleCodeInputRef = useCallback((node: HTMLInputElement | null) => {
+    node?.focus()
+  }, [])
 
   return (
     <div
@@ -451,13 +458,14 @@ function EmailRow({
         </div>
       )}
       {verifying && !verified && (
-        <div className="border-foreground/6 space-y-3 border-t px-3 py-3">
+        <div className="border-foreground/6 space-y-3 border-t p-3">
           <p className="text-foreground-alt text-xs leading-relaxed">
             We sent a 6-digit code to{' '}
             <strong className="text-foreground">{addr}</strong>. Check your
             inbox and enter it below.
           </p>
           <input
+            ref={handleCodeInputRef}
             type="text"
             inputMode="numeric"
             maxLength={6}
@@ -474,7 +482,6 @@ function EmailRow({
               inputClass,
               'text-center font-mono text-base tracking-[0.3em]',
             )}
-            autoFocus
             aria-label={'Verification code for ' + addr}
           />
           <div className="flex items-center justify-between gap-2">

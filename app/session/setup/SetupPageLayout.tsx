@@ -24,7 +24,7 @@ export function SetupPageLayout({
       <div className={cn('relative z-10 flex w-full flex-col gap-6', maxWidth)}>
         <div className="flex flex-col items-center gap-2">
           <AnimatedLogo followMouse={false} />
-          <h1 className="text-xl font-bold tracking-wide">{title}</h1>
+          <h1 className="text-xl font-semibold tracking-wide">{title}</h1>
           {subtitle && (
             <p className="text-foreground-alt text-sm">{subtitle}</p>
           )}

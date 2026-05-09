@@ -2,10 +2,8 @@ import { createHandler } from 'starpc'
 import type { MessageStream } from 'starpc'
 
 import { ItState } from '../../bldr/it-state.js'
-import {
-  ResourceServer,
-  newResourceMux,
-} from '../../../sdk/resource/server/index.js'
+import { ResourceServer } from '../../../sdk/resource/server/server.js'
+import { newResourceMux } from '../../../sdk/resource/server/mux.js'
 import { DesktopTrayResourceServiceDefinition } from '@go/github.com/s4wave/spacewave/bldr/desktop/tray/tray_srpc.pb.js'
 import {
   DesktopRuntimeResourceServiceDefinition,

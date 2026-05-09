@@ -99,19 +99,19 @@ function TextContrast({ bg, bgLabel }: { bg: string; bgLabel: string }) {
     >
       <span className="font-mono text-[9px] opacity-60">{bgLabel}</span>
       <span className="text-[10px]" style={{ color: 'white' }}>
-        White 10px — The quick brown fox jumps over the lazy dog
+        White 10px: The quick brown fox jumps over the lazy dog
       </span>
       <span className="text-xs" style={{ color: 'white' }}>
-        White 12px — The quick brown fox jumps over the lazy dog
+        White 12px: The quick brown fox jumps over the lazy dog
       </span>
       <span className="text-sm" style={{ color: 'white' }}>
-        White 14px — The quick brown fox jumps over the lazy dog
+        White 14px: The quick brown fox jumps over the lazy dog
       </span>
       <span
         className="text-xs"
         style={{ color: 'white', textShadow: '0 0 3px rgba(0,0,0,0.8)' }}
       >
-        White 12px + shadow — The quick brown fox jumps over the lazy dog
+        White 12px + shadow: The quick brown fox jumps over the lazy dog
       </span>
     </div>
   )
@@ -847,7 +847,7 @@ export function HDRDebug() {
             <p>
               <strong>Tips:</strong> To test HDR, use a display that supports it
               (MacBook Pro XDR, external HDR monitor). Set display brightness
-              below max — HDR headroom only exists when the display has room to
+              below max; HDR headroom only exists when the display has room to
               go brighter. Chrome 133+ supports dynamic-range-limit.
             </p>
           </div>

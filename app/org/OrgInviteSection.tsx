@@ -13,7 +13,7 @@ export function OrgInviteSection(props: {
   return (
     <div className="space-y-1">
       {props.invites.length === 0 && (
-        <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
+        <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
           <LuLink className="size-3.5 shrink-0" />
           <span>No active invites</span>
         </div>

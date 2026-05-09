@@ -317,6 +317,8 @@ function SchemePreviewCard({
 }) {
   return (
     <div
+      role="button"
+      tabIndex={0}
       data-testid={`scheme-card-${scheme.id}`}
       className={cn(
         'group flex cursor-pointer flex-col gap-3 rounded-xl border p-4 transition-all',
@@ -325,6 +327,11 @@ function SchemePreviewCard({
         : 'border-foreground/8 hover:border-foreground/15 bg-background-card/30',
       )}
       onClick={onSelect}
+      onKeyDown={(event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return
+        event.preventDefault()
+        onSelect()
+      }}
     >
       <div className="flex items-center justify-between">
         <div>

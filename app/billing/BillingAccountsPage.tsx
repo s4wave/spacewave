@@ -46,6 +46,12 @@ interface AssignTarget {
   label: string
 }
 
+function formatBillingAccountDate(
+  timestampMs: number | string | bigint,
+): string {
+  return new Date(Number(timestampMs)).toLocaleDateString()
+}
+
 // BillingAccountsPage lists every BillingAccount the caller manages.
 // Each row links into the detail view at /billing/:baId.
 export function BillingAccountsPage() {
@@ -284,11 +290,14 @@ export function BillingAccountsPage() {
                         {subscriptionStatusLabel(ba.subscriptionStatus)}
                       </span>
                     </div>
-                    <div className="text-foreground-alt/60 text-xs">
+                    <div
+                      suppressHydrationWarning
+                      className="text-foreground-alt/60 text-xs"
+                    >
                       {[
                         lifecycleStateLabel(ba.lifecycleState),
                         ba.createdAt &&
-                          `Created ${new Date(Number(ba.createdAt)).toLocaleDateString()}`,
+                          `Created ${formatBillingAccountDate(ba.createdAt)}`,
                       ]
                         .filter(Boolean)
                         .join(' \u00b7 ')}

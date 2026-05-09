@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import {
   LuArrowLeft,
   LuBanknote,
@@ -299,6 +299,7 @@ function InitiateDeleteView({
 }) {
   const codeValid = code.length === 6
   const canSend = !sending && retryAfter <= 0
+  const deleteCodeId = useId()
 
   return (
     <>
@@ -373,10 +374,14 @@ function InitiateDeleteView({
         </button>
 
         <div className="space-y-1.5">
-          <label className="text-foreground-alt block text-xs select-none">
+          <label
+            className="text-foreground-alt block text-xs select-none"
+            htmlFor={deleteCodeId}
+          >
             6-digit delete code
           </label>
           <input
+            id={deleteCodeId}
             type="text"
             inputMode="numeric"
             maxLength={6}

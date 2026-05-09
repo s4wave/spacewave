@@ -101,15 +101,21 @@ test.describe('cross-browser bridge bootstrap', () => {
     const url = `http://localhost:${port}/#/`
 
     // Launch two separate browser instances.
-    const chrBrowser = await chromium.launch()
-    const ffBrowser = await firefox.launch()
+    const [chrBrowser, ffBrowser] = await Promise.all([
+      chromium.launch(),
+      firefox.launch(),
+    ])
 
     try {
-      const chrContext = await chrBrowser.newContext()
-      const ffContext = await ffBrowser.newContext()
+      const [chrContext, ffContext] = await Promise.all([
+        chrBrowser.newContext(),
+        ffBrowser.newContext(),
+      ])
 
-      const chrPage = await chrContext.newPage()
-      const ffPage = await ffContext.newPage()
+      const [chrPage, ffPage] = await Promise.all([
+        chrContext.newPage(),
+        ffContext.newPage(),
+      ])
 
       // Set up console listeners for bridge bootstrap on both pages.
       const chrBridgePromise = waitForConsole(

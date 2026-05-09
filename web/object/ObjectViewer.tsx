@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
@@ -61,31 +61,28 @@ export function ObjectViewer({
   const routerPath = path ?? '/'
   const navigateHandler = onNavigate ?? noopNavigate
 
-  const content = useMemo(() => {
-    const objectKey = getObjectKey(objectInfo)
-    const missingWorldObject =
-      objectInfo?.info?.case === 'worldObjectInfo' &&
-      !!worldState.value &&
-      !viewer.objectState.loading &&
-      !viewer.objectState.value
-    if (missingWorldObject) {
-      return <ObjectViewerNotFoundState objectKey={objectKey} />
-    }
+  const objectKey = getObjectKey(objectInfo)
+  const missingWorldObject =
+    objectInfo?.info?.case === 'worldObjectInfo' &&
+    !!worldState.value &&
+    !viewer.objectState.loading &&
+    !viewer.objectState.value
 
-    const worldReady =
-      objectInfo?.info?.case !== 'worldObjectInfo' ||
-      (!!viewer.objectState.value && !!worldState.value)
-    // typeID === undefined -> still resolving; empty string is a valid resolved
-    // "untyped" value handled by the wildcard viewer downstream.
-    if (
-      viewer.typeID === undefined ||
-      // For world objects, require objectState and worldState to be loaded.
-      !worldReady
-    ) {
-      return <ObjectViewerLoadingState />
-    }
+  const worldReady =
+    objectInfo?.info?.case !== 'worldObjectInfo' ||
+    (!!viewer.objectState.value && !!worldState.value)
+  const loading =
+    viewer.typeID === undefined ||
+    // For world objects, require objectState and worldState to be loaded.
+    !worldReady
 
-    return (
+  let content
+  if (missingWorldObject) {
+    content = <ObjectViewerNotFoundState objectKey={objectKey} />
+  } else if (loading || viewer.typeID === undefined) {
+    content = <ObjectViewerLoadingState />
+  } else {
+    content = (
       <HistoryRouter path={routerPath} onNavigate={navigateHandler}>
         <ObjectViewerContent
           objectInfo={objectInfo}
@@ -97,17 +94,7 @@ export function ObjectViewer({
         />
       </HistoryRouter>
     )
-  }, [
-    viewer.typeID,
-    viewer.objectState.loading,
-    viewer.objectState.value,
-    viewer.selectedComponent,
-    worldState,
-    objectInfo,
-    routerPath,
-    navigateHandler,
-    standalone,
-  ])
+  }
 
   const inner = (
     <ObjectViewerProvider value={viewer.viewerContextValue}>

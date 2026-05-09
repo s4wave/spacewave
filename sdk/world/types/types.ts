@@ -82,7 +82,7 @@ async function getObjectTypeFromTypeIndex(
       }
       const typeID = typeKey.slice(TypesPrefix.length)
       const keys = await ws.listObjectsWithType(typeID, abortSignal)
-      if (keys.includes(key)) {
+      if (new Set(keys).has(key)) {
         return typeID
       }
     }

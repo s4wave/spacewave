@@ -40,7 +40,7 @@ export function GetStartedSection({
           followMouse={true}
           containerClassName="very-short:hidden"
         />
-        <h1 className="ultra-short:hidden text-2xl font-bold tracking-[0.1rem] whitespace-nowrap @lg:text-3xl @lg:tracking-[0.142rem]">
+        <h1 className="ultra-short:hidden text-2xl font-semibold tracking-[0.1rem] whitespace-nowrap @lg:text-3xl @lg:tracking-[0.142rem]">
           [SPACEWAVE]
         </h1>
 
@@ -64,7 +64,7 @@ export function GetStartedSection({
 
       {/* Footer content pinned to bottom - fades out on short screens to avoid overlap */}
       <div className="short:opacity-0 mt-auto flex flex-shrink-0 flex-col items-center pt-4 text-center transition-opacity duration-300 @lg:pt-6">
-        <div className="text-foreground-alt flex flex-col items-center justify-center space-y-1 text-xs @lg:space-y-2">
+        <div className="text-foreground-alt flex flex-col items-center justify-center gap-y-1 text-xs @lg:gap-y-2">
           <p>
             Made with ❤️ by{' '}
             <button
@@ -89,6 +89,8 @@ export function GetStartedSection({
 
         {/* Scroll indicator */}
         <div
+          role="button"
+          tabIndex={showScrollIndicator ? 0 : -1}
           className={cn(
             'mt-2 mb-3 flex cursor-pointer flex-col items-center transition-opacity duration-300',
             showScrollIndicator ? 'opacity-100' : (
@@ -99,6 +101,11 @@ export function GetStartedSection({
               'animate-[pulse_8s_ease-in-out_infinite]',
           )}
           onClick={scrollDown}
+          onKeyDown={(e) => {
+            if (e.key !== 'Enter' && e.key !== ' ') return
+            e.preventDefault()
+            scrollDown()
+          }}
         >
           <span className="text-foreground-alt/60 text-xs font-bold">▼</span>
         </div>

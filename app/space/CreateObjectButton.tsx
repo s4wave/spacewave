@@ -10,7 +10,7 @@ import { useOpenCommand } from '@s4wave/web/command/CommandContext.js'
 export function CreateObjectButton() {
   const openCommand = useOpenCommand()
 
-  const handleClick = useCallback(() => {
+  const handleCreateObject = useCallback(() => {
     openCommand('spacewave.create-object')
   }, [openCommand])
 
@@ -18,13 +18,13 @@ export function CreateObjectButton() {
     (_selected: boolean, _onClick: () => void) => (
       <BottomBarItem
         selected={false}
-        onClick={handleClick}
+        onClick={handleCreateObject}
         aria-label="Create new object"
       >
         <LuPlus />
       </BottomBarItem>
     ),
-    [handleClick],
+    [handleCreateObject],
   )
 
   return (

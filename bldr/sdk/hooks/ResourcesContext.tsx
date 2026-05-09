@@ -1,6 +1,6 @@
 import React, {
   createContext,
-  useContext,
+  use,
   useMemo,
   useSyncExternalStore,
   ReactNode,
@@ -16,7 +16,7 @@ const ResourcesContext = createContext<ResourcesContextValue | undefined>(
 )
 
 export function useResourcesContext(): ResourcesContextValue | undefined {
-  return useContext(ResourcesContext)
+  return use(ResourcesContext)
 }
 
 /**

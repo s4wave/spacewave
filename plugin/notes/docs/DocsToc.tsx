@@ -71,11 +71,11 @@ function DocsToc({ markdown }: DocsTocProps) {
         On this page
       </div>
       <nav className="flex-1 overflow-y-auto py-1">
-        {headings.map((heading, index) => {
+        {headings.map((heading) => {
           const indent = (heading.level - minLevel) * 12
           return (
             <button
-              key={`${heading.id}-${index}`}
+              key={heading.id}
               type="button"
               className={cn(
                 'text-foreground-alt hover:text-foreground block w-full truncate py-1 pr-3 text-left text-xs',

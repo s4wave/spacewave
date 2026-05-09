@@ -1,6 +1,6 @@
 import React, {
   createContext,
-  useContext,
+  use,
   useState,
   useEffect,
   ReactNode,
@@ -9,7 +9,7 @@ import React, {
   useMemo,
   CSSProperties,
   useCallback,
-  forwardRef,
+  type Ref,
 } from 'react'
 
 type DebugInfoContextType = {
@@ -82,7 +82,7 @@ const DebugInfo: FC<{ children?: ReactNode }> = ({ children }) => {
 }
 
 const useDebugInfo = (info?: ReactNode) => {
-  const context = useContext(DebugInfoContext)
+  const context = use(DebugInfoContext)
 
   useEffect(() => {
     let id: string | null = null
@@ -117,13 +117,18 @@ const debugInfoStyle: CSSProperties = {
 
 interface DebugInfoDisplayProps {
   className?: string
+  ref?: Ref<HTMLDivElement>
   style?: CSSProperties
 }
 
-const DebugInfoDisplay = forwardRef<HTMLDivElement, DebugInfoDisplayProps>(
-  ({ className, style, ...props }, ref) => {
+function DebugInfoDisplay({
+  className,
+  ref,
+  style,
+  ...props
+}: DebugInfoDisplayProps) {
     const [localDebugInfo, setLocalDebugInfo] = useState<React.ReactNode[]>([])
-    const context = useContext(DebugInfoContext)
+    const context = use(DebugInfoContext)
 
     useEffect(() => {
       if (!context) return
@@ -152,15 +157,14 @@ const DebugInfoDisplay = forwardRef<HTMLDivElement, DebugInfoDisplayProps>(
                 { margin: '0.33rem 0', marginBlockEnd: 0 }
               : { margin: 0 }
             }
-            key={index.toString()}
+            key={typeof info === 'string' ? info : `debug-${index}`}
           >
             {info}
           </div>
         ))}
       </div>
     )
-  },
-)
+}
 
 DebugInfoDisplay.displayName = 'DebugInfoDisplay'
 

@@ -85,8 +85,10 @@ function applyDomTransform(
   }
   if (gridLayer) {
     const gs = computeGridStyle(v)
-    gridLayer.style.backgroundSize = gs.backgroundSize
-    gridLayer.style.backgroundPosition = gs.backgroundPosition
+    Object.assign(gridLayer.style, {
+      backgroundSize: gs.backgroundSize,
+      backgroundPosition: gs.backgroundPosition,
+    })
   }
 }
 

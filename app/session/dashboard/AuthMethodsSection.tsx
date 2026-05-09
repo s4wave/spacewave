@@ -241,11 +241,11 @@ function AuthMethodsSectionContent({
       >
         {loading && (
           <p className="text-foreground-alt/40 text-xs">
-            Loading auth methods...
+            Loading auth methods…
           </p>
         )}
         {!loading && authMethods.length === 0 && (
-          <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
+          <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
             <LuKey className="size-3.5 shrink-0" />
             <span>No auth methods found</span>
           </div>

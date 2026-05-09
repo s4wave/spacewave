@@ -16,7 +16,7 @@ export function sortFileEntries<T extends SortableFileEntry>(
 ): T[] {
   const multiplier = direction === 'asc' ? 1 : -1
 
-  return [...entries].sort((a, b) => {
+  return entries.toSorted((a, b) => {
     // Directories first
     if (a.isDir && !b.isDir) return -1
     if (!a.isDir && b.isDir) return 1

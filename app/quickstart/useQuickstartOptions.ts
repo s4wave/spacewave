@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo } from 'react'
+import React, { createContext, use, useMemo } from 'react'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useDynamicRegistrations } from '@s4wave/web/hooks/useDynamicRegistrations.js'
@@ -36,7 +36,7 @@ export function QuickstartOptionsProvider({
 
 // useVisibleQuickstartOptions returns static plus dynamic app Quickstarts.
 export function useVisibleQuickstartOptions(): QuickstartOption[] {
-  return useContext(QuickstartOptionsContext)
+  return use(QuickstartOptionsContext)
 }
 
 const quickstartCreateStream = (

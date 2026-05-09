@@ -21,7 +21,8 @@ export function CanvasTextNode({
   className,
 }: CanvasTextNodeProps) {
   const [editing, setEditing] = useState(autoEdit ?? false)
-  const [draft, setDraft] = useState(content)
+  const initialContentRef = useRef(content)
+  const [draft, setDraft] = useState(() => initialContentRef.current)
   const draftRef = useRef(draft)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
 
