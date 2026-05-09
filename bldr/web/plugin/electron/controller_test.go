@@ -298,6 +298,10 @@ func (r *desktopRuntimeOnlyWebRuntime) CreateWebDocument(ctx context.Context, we
 	return false, errors.New("renderer window is unavailable")
 }
 
+func (r *desktopRuntimeOnlyWebRuntime) FlushIndexCache(ctx context.Context) error {
+	return nil
+}
+
 func (r *desktopRuntimeOnlyWebRuntime) GetWebWorkerOpenStream(webWorkerID string) srpc.OpenStreamFunc {
 	return unavailableRendererOpenStream
 }
