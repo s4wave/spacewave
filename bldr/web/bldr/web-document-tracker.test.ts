@@ -79,4 +79,64 @@ describe('WebDocumentTracker resume-ready gate', () => {
     tracker.close()
     port2.close()
   })
+
+  it('keeps plugin worker reconnect parked while the active WebDocument is hidden', async () => {
+    vi.useFakeTimers()
+    const onWebDocumentsExhausted = vi.fn().mockResolvedValue(undefined)
+    const onAllWebDocumentsClosed = vi.fn()
+    const tracker = new WebDocumentTracker(
+      'plugin/spacewave-app',
+      WebRuntimeClientType.WebRuntimeClientType_WEB_WORKER,
+      onWebDocumentsExhausted,
+      null,
+      onAllWebDocumentsClosed,
+    )
+    const { port1: trackerPort, port2: documentPort } = new MessageChannel()
+    let streamTimedOut = false
+
+    try {
+      tracker.handleWebDocumentMessage({
+        from: 'document-1',
+        initPort: trackerPort,
+      })
+      Reflect.set(tracker, 'lastWebDocumentId', 'document-1')
+
+      const timeoutAfterResumeReady = waitForActiveWebDocumentResumeReady(
+        tracker,
+      )
+        .then(
+          () =>
+            new Promise<void>((resolve) => {
+              setTimeout(resolve, 1500)
+            }),
+        )
+        .then(() => {
+          streamTimedOut = true
+        })
+
+      await vi.advanceTimersByTimeAsync(5000)
+
+      expect(streamTimedOut).toBe(false)
+      expect(onWebDocumentsExhausted).not.toHaveBeenCalled()
+      expect(onAllWebDocumentsClosed).not.toHaveBeenCalled()
+      expect(Reflect.get(tracker, 'webDocuments')).toHaveProperty('document-1')
+
+      documentPort.postMessage({
+        from: 'document-1',
+        resumeReady: true,
+      })
+      await vi.advanceTimersByTimeAsync(1499)
+
+      expect(streamTimedOut).toBe(false)
+
+      await vi.advanceTimersByTimeAsync(1)
+      await timeoutAfterResumeReady
+
+      expect(streamTimedOut).toBe(true)
+    } finally {
+      tracker.close()
+      documentPort.close()
+      vi.useRealTimers()
+    }
+  })
 })

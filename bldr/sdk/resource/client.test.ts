@@ -313,6 +313,39 @@ describe('ResourceClient', () => {
     warn.mockRestore()
     vi.useRealTimers()
   })
+
+  it('does not retry queued resource releases on stream reset', async () => {
+    vi.useFakeTimers()
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const service: ResourceService = {
+      ResourceRefRelease: vi.fn().mockRejectedValue(new Error('stream reset')),
+      ResourceClient() {
+        throw new Error('unused')
+      },
+      ResourceRpc() {
+        throw new Error('unused')
+      },
+      ResourceAttach() {
+        throw new Error('unused')
+      },
+    }
+    const client = new Client(service, new AbortController().signal)
+    Reflect.set(client, 'initState', { clientHandleId: 7, rootResourceId: 1 })
+
+    try {
+      const ref = client.createResourceReference(49)
+      ref.release()
+
+      await vi.advanceTimersByTimeAsync(1000)
+
+      expect(service.ResourceRefRelease).toHaveBeenCalledTimes(1)
+      expect(getPendingResourceReleases(client).size).toBe(0)
+      expect(warn).toHaveBeenCalledOnce()
+    } finally {
+      warn.mockRestore()
+      vi.useRealTimers()
+    }
+  })
 })
 
 function buildUnusedService(): ResourceService {
