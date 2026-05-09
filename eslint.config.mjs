@@ -2,6 +2,7 @@ import eslint from '@eslint/js'
 import tseslint from 'typescript-eslint'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactCompiler from 'eslint-plugin-react-compiler'
+import reactDoctor from 'react-doctor/eslint-plugin'
 import eslintConfigPrettier from 'eslint-config-prettier'
 
 const alphaFiles = [
@@ -64,6 +65,7 @@ export default tseslint.config(
     plugins: {
       'react-hooks': reactHooks,
       'react-compiler': reactCompiler,
+      'react-doctor': reactDoctor,
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
@@ -75,6 +77,12 @@ export default tseslint.config(
     rules: {
       ...Object.fromEntries(
         Object.entries(reactHooks.configs.recommended.rules).map(([k]) => [
+          k,
+          'warn',
+        ]),
+      ),
+      ...Object.fromEntries(
+        Object.entries(reactDoctor.configs.recommended.rules).map(([k]) => [
           k,
           'warn',
         ]),
