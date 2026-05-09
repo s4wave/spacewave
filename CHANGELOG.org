@@ -1,5 +1,37 @@
 #+TITLE: Spacewave Changelog
 
+* v0.51.3
+<2026-05-08 Fri>
+
+Spacewave 0.51.3 improves desktop and browser startup/update reliability, adds a
+tray/menu-bar update action, and fixes rough edges in Cloud setup, Drive video
+previews, and session recovery status.
+
+** Features
+- The desktop tray/menu bar now shows an Install Update action when a Spacewave
+  desktop update is ready.
+
+** Fixes
+- Fixed a desktop startup problem where Spacewave could keep running without
+  showing a window after an update.
+- Fixed Spacewave Cloud setup and billing actions in split views so checkout,
+  cancellation, and reactivation stay in the active panel instead of jumping to
+  the wrong session page.
+- Fixed browser updates and root-page reloads so fresh tabs are less likely to
+  show an old or blank Spacewave page.
+- Fixed Drive video previews so restored video tabs and back/forward navigation
+  return to playable previews.
+- Fixed the desktop tray Settings action so it opens Command Line settings for
+  the active session.
+
+** Improvements
+- Browser startup can show the app frame earlier, reducing time spent on the
+  initial loading screen during cold web loads.
+- Session recovery status now looks the same in the app and the desktop tray,
+  including pending Spaces, unlock prompts, retries, and failures.
+- Command Line guidance now reflects the tray/menu-bar runtime, making it
+  clearer when CLI commands can connect after all Spacewave windows are closed.
+
 * v0.51.2
 <2026-05-07 Thu>
 

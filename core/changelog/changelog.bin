@@ -1,4 +1,16 @@
 
+™
+0.51.3
+2026-05-08ÆSpacewave 0.51.3 improves desktop and browser startup/update reliability, adds a tray/menu-bar update action, and fixes rough edges in Cloud setup, Drive video previews, and session recovery status."ÆSpacewave 0.51.3 improves desktop and browser startup/update reliability, adds a tray/menu-bar update action, and fixes rough edges in Cloud setup, Drive video previews, and session recovery status.*Ð
+fThe desktop tray/menu bar now shows an Install Update action when a Spacewave desktop update is ready.fThe desktop tray/menu bar now shows an Install Update action when a Spacewave desktop update is ready.2Ü
+lFixed a desktop startup problem where Spacewave could keep running without showing a window after an update.lFixed a desktop startup problem where Spacewave could keep running without showing a window after an update.2è
+±Fixed Spacewave Cloud setup and billing actions in split views so checkout, cancellation, and reactivation stay in the active panel instead of jumping to the wrong session page.±Fixed Spacewave Cloud setup and billing actions in split views so checkout, cancellation, and reactivation stay in the active panel instead of jumping to the wrong session page.2æ
+qFixed browser updates and root-page reloads so fresh tabs are less likely to show an old or blank Spacewave page.qFixed browser updates and root-page reloads so fresh tabs are less likely to show an old or blank Spacewave page.2Ø
+jFixed Drive video previews so restored video tabs and back/forward navigation return to playable previews.jFixed Drive video previews so restored video tabs and back/forward navigation return to playable previews.2Ä
+`Fixed the desktop tray Settings action so it opens Command Line settings for the active session.`Fixed the desktop tray Settings action so it opens Command Line settings for the active session.:ô
+xBrowser startup can show the app frame earlier, reducing time spent on the initial loading screen during cold web loads.xBrowser startup can show the app frame earlier, reducing time spent on the initial loading screen during cold web loads.:ž
+ŒSession recovery status now looks the same in the app and the desktop tray, including pending Spaces, unlock prompts, retries, and failures.ŒSession recovery status now looks the same in the app and the desktop tray, including pending Spaces, unlock prompts, retries, and failures.:°
+•Command Line guidance now reflects the tray/menu-bar runtime, making it clearer when CLI commands can connect after all Spacewave windows are closed.•Command Line guidance now reflects the tray/menu-bar runtime, making it clearer when CLI commands can connect after all Spacewave windows are closed.
 ¾(
 0.51.2
 2026-05-07¨Spacewave 0.51.2 makes Drive workspaces, sharing, and desktop use easier while improving sign-in, session recovery, browser updates, and local file storage reliability."¨Spacewave 0.51.2 makes Drive workspaces, sharing, and desktop use easier while improving sign-in, session recovery, browser updates, and local file storage reliability.*Ö
