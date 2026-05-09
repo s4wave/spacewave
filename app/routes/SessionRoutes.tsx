@@ -8,21 +8,9 @@ import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 
 import { AppQuickstart } from '../AppQuickstart.js'
 import { AppSession } from '../AppSession.js'
+import { storePendingJoin } from './pendingJoin.js'
 
-// PENDING_JOIN_KEY is the sessionStorage key for a pending invite code.
-const PENDING_JOIN_KEY = 'spacewave-pending-join'
-
-// storePendingJoin saves an invite code to sessionStorage for post-setup pickup.
-export function storePendingJoin(code: string) {
-  if (code) sessionStorage.setItem(PENDING_JOIN_KEY, code)
-}
-
-// consumePendingJoin retrieves and clears a stored invite code.
-export function consumePendingJoin(): string | null {
-  const code = sessionStorage.getItem(PENDING_JOIN_KEY)
-  if (code) sessionStorage.removeItem(PENDING_JOIN_KEY)
-  return code
-}
+export { consumePendingJoin, storePendingJoin } from './pendingJoin.js'
 
 // JoinRedirect resolves the first available session and redirects to its join route.
 function JoinRedirect() {

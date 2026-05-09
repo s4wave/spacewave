@@ -35,7 +35,7 @@ import { BillingAccountsRoute } from '@s4wave/app/billing/BillingAccountsRoute.j
 import { BillingCancelRoute } from '@s4wave/app/billing/BillingCancelRoute.js'
 import { OrgContainer } from '@s4wave/app/org/OrgContainer.js'
 import { JoinSpacePage } from '@s4wave/app/sobject/JoinSpacePage.js'
-import { consumePendingJoin } from '@s4wave/app/routes/SessionRoutes.js'
+import { consumePendingJoin } from '@s4wave/app/routes/pendingJoin.js'
 import { CreateSpaceRoute } from '@s4wave/app/quickstart/CreateSpaceRoute.js'
 import { PairCodePage } from '@s4wave/app/pair/PairCodePage.js'
 import { SpacewaveRootRouter } from '@s4wave/app/provider/spacewave/SpacewaveRootRouter.js'
