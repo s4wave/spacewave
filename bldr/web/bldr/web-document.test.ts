@@ -9,6 +9,8 @@ type TestWebDocument = {
   resumeReady: boolean
   resumeReadyPending: boolean
   runtimeConnected: boolean
+  serviceWorkerPort?: MessagePort
+  webWorkers: Record<string, { port: MessagePort }>
   scheduleResumeReadySeed(): void
   openWebDocumentHostStream(): Promise<unknown>
   webRuntimeClient: { openStream: () => Promise<unknown> }
@@ -24,6 +26,8 @@ function buildTestWebDocument(hidden = false): TestWebDocument {
     resumeReady: false,
     resumeReadyPending: false,
     runtimeConnected: true,
+    serviceWorkerPort: undefined,
+    webWorkers: {},
     eventHandlers: {},
   })
   return doc
@@ -122,6 +126,46 @@ describe('WebDocument resume-ready state', () => {
         }),
       }),
     )
+  })
+
+  it('notifies connected clients after resume-ready is seeded', () => {
+    const frames: FrameRequestCallback[] = []
+    vi.stubGlobal(
+      'requestAnimationFrame',
+      vi.fn((cb: FrameRequestCallback) => {
+        frames.push(cb)
+        return frames.length
+      }),
+    )
+    vi.spyOn(performance, 'mark').mockImplementation(() => {
+      return {} as PerformanceMark
+    })
+    const serviceWorkerPostMessage = vi.fn()
+    const workerPostMessage = vi.fn()
+    const doc = buildTestWebDocument()
+    doc.serviceWorkerPort = {
+      postMessage: serviceWorkerPostMessage,
+    } as unknown as MessagePort
+    doc.webWorkers = {
+      'worker-1': {
+        port: {
+          postMessage: workerPostMessage,
+        } as unknown as MessagePort,
+      },
+    }
+
+    doc.scheduleResumeReadySeed()
+    frames.shift()?.(1)
+    frames.shift()?.(2)
+
+    expect(serviceWorkerPostMessage).toHaveBeenCalledWith({
+      from: 'document-1',
+      resumeReady: true,
+    })
+    expect(workerPostMessage).toHaveBeenCalledWith({
+      from: 'document-1',
+      resumeReady: true,
+    })
   })
 
   it('does not seed resume-ready while hidden', () => {

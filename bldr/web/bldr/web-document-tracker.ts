@@ -24,6 +24,10 @@ interface WebDocumentWaiter {
   reject: (err: Error) => void
 }
 
+interface WebDocumentResumeReadyWaiter extends WebDocumentWaiter {
+  webDocumentId: string
+}
+
 // WebDocumentTracker is a tracks a set of connected WebDocument and attempts to
 // connect to the remote WebRuntime via these documents, retrying if the remote
 // document(s) have been closed or are unreachable after a timeout.
@@ -44,6 +48,10 @@ export class WebDocumentTracker {
   private webDocuments: Record<string, MessagePort> = {}
   // webDocumentWaiters are callbacks waiting for the next WebDocument.
   private webDocumentWaiters: WebDocumentWaiter[] = []
+  // webDocumentResumeReadyIds are WebDocuments that reported resume readiness.
+  private webDocumentResumeReadyIds = new Set<string>()
+  // webDocumentResumeReadyWaiters are callbacks waiting on a specific WebDocument.
+  private webDocumentResumeReadyWaiters: WebDocumentResumeReadyWaiter[] = []
   // lastWebDocumentIdx was the last index used from WebDocuments.
   private lastWebDocumentIdx = 0
   // lastWebDocumentId was the last web document id used from WebDocuments.
@@ -70,6 +78,7 @@ export class WebDocumentTracker {
       null,
       undefined,
       logicalClientId,
+      this.waitForActiveWebDocumentResumeReady.bind(this),
     )
   }
 
@@ -105,6 +114,13 @@ export class WebDocumentTracker {
               `WebDocumentTracker: ${this.clientUuid}: removed WebDocument: ${webDocumentId}`,
             )
             delete this.webDocuments[webDocumentId]
+            this.webDocumentResumeReadyIds.delete(webDocumentId)
+            this.rejectResumeReadyWaiters(
+              webDocumentId,
+              new Error(
+                `WebDocumentTracker: ${this.clientUuid}: WebDocument ${webDocumentId} closed before resume-ready`,
+              ),
+            )
             if (this.lastWebDocumentId === webDocumentId) {
               this.lastWebDocumentId = undefined
               this.lastWebDocumentIdx = 0
@@ -123,6 +139,12 @@ export class WebDocumentTracker {
             err,
           )
         })
+        return
+      }
+
+      if (data.resumeReady) {
+        this.webDocumentResumeReadyIds.add(webDocumentId)
+        this.resolveResumeReadyWaiters(webDocumentId)
       }
     }
 
@@ -145,12 +167,13 @@ export class WebDocumentTracker {
       doc.postMessage(msg)
       delete this.webDocuments[docID]
     }
+    this.webDocumentResumeReadyIds.clear()
     delete this.lastWebDocumentId
-    this.rejectWaiters(
-      new Error(
-        `WebDocumentTracker: ${this.clientUuid}: closed while waiting for WebDocument`,
-      ),
+    const err = new Error(
+      `WebDocumentTracker: ${this.clientUuid}: closed while waiting for WebDocument`,
     )
+    this.rejectWaiters(err)
+    this.rejectAllResumeReadyWaiters(err)
   }
 
   // postMessage posts a message to all connected web documents.
@@ -326,9 +349,57 @@ export class WebDocumentTracker {
       })
   }
 
+  private async waitForActiveWebDocumentResumeReady(): Promise<void> {
+    const webDocumentId = this.lastWebDocumentId
+    if (
+      !webDocumentId ||
+      !this.webDocuments[webDocumentId] ||
+      this.webDocumentResumeReadyIds.has(webDocumentId)
+    ) {
+      return
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      this.webDocumentResumeReadyWaiters.push({
+        webDocumentId,
+        resume: resolve,
+        reject,
+      })
+    })
+  }
+
   // rejectWaiters rejects all pending WebDocument waiters.
   private rejectWaiters(err: Error) {
     const waiters = this.webDocumentWaiters.splice(0)
+    for (const waiter of waiters) {
+      waiter.reject(err)
+    }
+  }
+
+  private resolveResumeReadyWaiters(webDocumentId: string) {
+    const waiters = this.webDocumentResumeReadyWaiters
+    this.webDocumentResumeReadyWaiters = waiters.filter((waiter) => {
+      if (waiter.webDocumentId !== webDocumentId) {
+        return true
+      }
+      waiter.resume()
+      return false
+    })
+  }
+
+  private rejectResumeReadyWaiters(webDocumentId: string, err: Error) {
+    const waiters = this.webDocumentResumeReadyWaiters
+    this.webDocumentResumeReadyWaiters = waiters.filter((waiter) => {
+      if (waiter.webDocumentId !== webDocumentId) {
+        return true
+      }
+      waiter.reject(err)
+      return false
+    })
+  }
+
+  private rejectAllResumeReadyWaiters(err: Error) {
+    const waiters = this.webDocumentResumeReadyWaiters.splice(0)
     for (const waiter of waiters) {
       waiter.reject(err)
     }

@@ -1260,6 +1260,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       detect,
     )
     this.webWorkers[request.id] = worker
+    this.notifyResumeReadyClient(worker.port)
 
     const createdShared = worker.isShared
     markStartupBoundary('worker.create-ready', {
@@ -1541,6 +1542,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       initPort: clientPort,
     }
     sw.postMessage(msg, [clientPort])
+    this.notifyResumeReadyClient(localPort)
     markStartupBoundary('service-worker.port-sent', {
       source: 'browser',
       documentId: this.webDocumentUuid,
@@ -1923,6 +1925,30 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       visibilityState: state.visibilityState,
     })
     this.emit('resumeready')
+    this.notifyResumeReadyClients()
+  }
+
+  private notifyResumeReadyClients() {
+    if (!this.resumeReady) {
+      return
+    }
+    if (this.serviceWorkerPort) {
+      this.notifyResumeReadyClient(this.serviceWorkerPort)
+    }
+    for (const workerId in this.webWorkers) {
+      this.notifyResumeReadyClient(this.webWorkers[workerId].port)
+    }
+  }
+
+  private notifyResumeReadyClient(port: MessagePort) {
+    if (!this.resumeReady) {
+      return
+    }
+    const msg: WebDocumentToClient = {
+      from: this.webDocumentUuid,
+      resumeReady: true,
+    }
+    port.postMessage(msg)
   }
 
   private async waitForResumeReady(): Promise<void> {

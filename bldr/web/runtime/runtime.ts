@@ -140,6 +140,8 @@ export interface WebDocumentToClient {
   from: string
   // close indicates the web document is about to close.
   close?: true
+  // resumeReady indicates the WebDocument reached its foreground resume gate.
+  resumeReady?: true
 }
 
 // ServiceWorkerToWebDocument is a message sent from the ServiceWorker to a WebDocument.
