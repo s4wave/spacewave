@@ -61,6 +61,7 @@
     "licenses:go": "bun scripts/license-gen.ts --go",
     "licenses:js": "bun scripts/license-gen.ts --js",
     "codegen": "bun run gen",
+    "diagnostic:react": "bun cmd/react-diagnostic-run.ts",
     "shadcn:add": "bunx shadcn add",
     "gen": "bun run go:aptre -- generate",
     "gen:force": "bun run go:aptre -- generate --force",
