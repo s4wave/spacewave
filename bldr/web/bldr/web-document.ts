@@ -489,8 +489,19 @@ type WebDocumentEvents = {
   runtimeconnected: () => void
 }
 
+export interface WebDocumentResumeReadyState {
+  ready: true
+  documentId: string
+  runtimeId: string
+  hidden: false
+  focused?: boolean
+  visibilityState?: string
+  timestampMs?: number
+}
+
 declare global {
   var __swServiceWorker: string | undefined
+  var __swWebDocumentResumeReady: WebDocumentResumeReadyState | undefined
 }
 
 // registerUpdatedServiceWorker registers the boot manifest's newer SW URL.
@@ -617,6 +628,13 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   private firstWorkerCreationMarked = false
   // firstWorkerReadyMarked records the first ready boundary once per document.
   private firstWorkerReadyMarked = false
+  // runtimeConnected records that this document has a live runtime channel.
+  private runtimeConnected = false
+  // resumeReady records that this foreground document has reached a stable point
+  // where resume-sensitive startup collectors can treat it as usable.
+  private resumeReady = false
+  // resumeReadyPending records an in-flight foreground-frame stability check.
+  private resumeReadyPending = false
 
   // isClosed checks if the web document is closed
   public get isClosed(): boolean | Error {
@@ -626,6 +644,14 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   // isHidden checks if the web document is hidden
   public get isHidden(): boolean {
     return this.hidden
+  }
+
+  public getResumeReadyState(): WebDocumentResumeReadyState | null {
+    const state = globalThis.__swWebDocumentResumeReady
+    if (state?.documentId !== this.webDocumentUuid) {
+      return null
+    }
+    return state
   }
 
   // waitConn waits for the WebRuntime connection to become ready.
@@ -1608,6 +1634,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
 
     // Emit the visibilitychange event
     this.emit('visibilitychange', hidden)
+    if (!hidden) {
+      this.scheduleResumeReadySeed()
+    }
   }
 
   // onWebWorkerMessage handles an incoming web worker message.
@@ -1790,6 +1819,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
             documentId: this.webDocumentUuid,
             runtimeId: this.webRuntimeId,
           })
+          this.runtimeConnected = true
+          this.scheduleResumeReadySeed()
           this.emit('runtimeconnected')
         },
         (err) => {
@@ -1806,6 +1837,86 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     if (this.closed) {
       return
     }
+    this.runtimeConnected = false
     this.taskEnsureWebRuntimeConn()
+  }
+
+  private scheduleResumeReadySeed() {
+    if (
+      this.resumeReady ||
+      this.resumeReadyPending ||
+      this.closed ||
+      this.hidden ||
+      !this.runtimeConnected
+    ) {
+      return
+    }
+
+    this.resumeReadyPending = true
+    this.afterForegroundFrame(() => {
+      if (this.shouldAbortResumeReadySeed()) {
+        this.resumeReadyPending = false
+        return
+      }
+      this.afterForegroundFrame(() => {
+        this.resumeReadyPending = false
+        if (this.shouldAbortResumeReadySeed()) {
+          return
+        }
+        this.seedResumeReadyState()
+      })
+    })
+  }
+
+  private shouldAbortResumeReadySeed(): boolean {
+    return (
+      this.resumeReady || !!this.closed || this.hidden || !this.runtimeConnected
+    )
+  }
+
+  private afterForegroundFrame(cb: () => void) {
+    if (typeof globalThis.requestAnimationFrame === 'function') {
+      globalThis.requestAnimationFrame(() => cb())
+      return
+    }
+    globalThis.setTimeout(cb, 0)
+  }
+
+  private seedResumeReadyState() {
+    if (this.resumeReady) {
+      return
+    }
+    this.resumeReady = true
+
+    const state: WebDocumentResumeReadyState = {
+      ready: true,
+      documentId: this.webDocumentUuid,
+      runtimeId: this.webRuntimeId,
+      hidden: false,
+      focused:
+        (
+          typeof document !== 'undefined' &&
+          typeof document.hasFocus === 'function'
+        ) ?
+          document.hasFocus()
+        : undefined,
+      visibilityState:
+        typeof document !== 'undefined' ? document.visibilityState : undefined,
+      timestampMs:
+        (
+          typeof performance !== 'undefined' &&
+          typeof performance.now === 'function'
+        ) ?
+          performance.now()
+        : undefined,
+    }
+    globalThis.__swWebDocumentResumeReady = state
+    markStartupBoundary('web-document.resume-ready', {
+      source: 'browser',
+      documentId: state.documentId,
+      runtimeId: state.runtimeId,
+      focused: state.focused,
+      visibilityState: state.visibilityState,
+    })
   }
 }
