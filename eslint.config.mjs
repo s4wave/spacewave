@@ -14,6 +14,37 @@ const alphaFiles = [
   'cmd/**/*.{js,mjs,ts,tsx}',
 ]
 
+export const reactDoctorRulesCoveredByReactLint = {
+  'react-doctor/no-derived-state-effect': 'react-hooks/set-state-in-effect',
+  'react-doctor/no-mirror-prop-effect': 'react-hooks/set-state-in-effect',
+  'react-doctor/no-cascading-set-state': 'react-hooks/set-state-in-effect',
+  'react-doctor/no-effect-chain': 'react-hooks/set-state-in-effect',
+  'react-doctor/no-event-trigger-state': 'react-hooks/set-state-in-effect',
+  'react-doctor/no-mutable-in-deps': 'react-hooks/exhaustive-deps',
+  'react-doctor/no-effect-event-in-deps': 'react-hooks/exhaustive-deps',
+  'react-doctor/no-direct-state-mutation': 'react-hooks/immutability',
+  'react-doctor/no-set-state-in-render': 'react-hooks/set-state-in-render',
+  'react-doctor/rerender-functional-setstate': 'react-hooks/exhaustive-deps',
+  'react-doctor/rerender-dependencies': 'react-hooks/exhaustive-deps',
+  'react-doctor/no-nested-component-definition':
+    'react-hooks/static-components',
+}
+
+export const reactDoctorRoutineDisabledRules = {
+  ...reactDoctorRulesCoveredByReactLint,
+  'react-doctor/prefer-useReducer':
+    'react-doctor 0.1.4 throws while linting AppSession.tsx',
+}
+
+const warnRuleSet = (rules) =>
+  Object.fromEntries(Object.entries(rules).map(([k]) => [k, 'warn']))
+
+export const reactDoctorRoutineRules = Object.fromEntries(
+  Object.entries(reactDoctor.configs.recommended.rules)
+    .filter(([rule]) => !(rule in reactDoctorRoutineDisabledRules))
+    .map(([rule]) => [rule, 'warn']),
+)
+
 export default tseslint.config(
   {
     ignores: [
@@ -75,18 +106,8 @@ export default tseslint.config(
   {
     files: alphaFiles,
     rules: {
-      ...Object.fromEntries(
-        Object.entries(reactHooks.configs.recommended.rules).map(([k]) => [
-          k,
-          'warn',
-        ]),
-      ),
-      ...Object.fromEntries(
-        Object.entries(reactDoctor.configs.recommended.rules).map(([k]) => [
-          k,
-          'warn',
-        ]),
-      ),
+      ...warnRuleSet(reactHooks.configs.recommended.rules),
+      ...reactDoctorRoutineRules,
       'react-compiler/react-compiler': 'off',
       '@typescript-eslint/no-unused-vars': [
         'warn',
