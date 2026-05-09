@@ -170,6 +170,24 @@ func TestExecutePluginArgsEqualHandlesNilManifestRefs(t *testing.T) {
 	}
 }
 
+func TestDirectFetchCandidateBetterPrefersNativePlatform(t *testing.T) {
+	js := &directFetchCandidate{
+		ref:  newTestManifestRef("spacewave-v86", "js", 68, "bucket"),
+		host: &testPluginHost{id: "js"},
+	}
+	web := &directFetchCandidate{
+		ref:  newTestManifestRef("spacewave-v86", "web/js/wasm", 0, "bucket"),
+		host: &testPluginHost{id: "web/js/wasm"},
+	}
+
+	if !directFetchCandidateBetter(web, js) {
+		t.Fatal("native browser platform should outrank js fallback even when fallback rev is higher")
+	}
+	if directFetchCandidateBetter(js, web) {
+		t.Fatal("js fallback should not outrank native browser platform")
+	}
+}
+
 func TestFetchManifestValueStorerRepairsMissingManifestLink(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())

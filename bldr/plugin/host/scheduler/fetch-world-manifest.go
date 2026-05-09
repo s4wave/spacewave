@@ -10,6 +10,7 @@ import (
 	"github.com/aperturerobotics/util/promise"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
+	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	bldr_plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 	"github.com/sirupsen/logrus"
 )
@@ -276,6 +277,12 @@ func directFetchCandidateBetter(candidate, current *directFetchCandidate) bool {
 		return true
 	}
 
+	candidateRank := platformPreferenceRank(candidate.host.GetPlatformId())
+	currentRank := platformPreferenceRank(current.host.GetPlatformId())
+	if candidateRank != currentRank {
+		return candidateRank > currentRank
+	}
+
 	candidateRev := candidate.ref.GetMeta().GetRev()
 	currentRev := current.ref.GetMeta().GetRev()
 	if candidateRev != currentRev {
@@ -289,6 +296,13 @@ func directFetchCandidateBetter(candidate, current *directFetchCandidate) bool {
 	}
 
 	return candidate.host.GetPlatformId() > current.host.GetPlatformId()
+}
+
+func platformPreferenceRank(platformID string) int {
+	if platformID == bldr_platform.PlatformID_JS {
+		return 0
+	}
+	return 1
 }
 
 func directFetchCandidateMatchesState(candidate *directFetchCandidate, currentState *executePluginArgs) bool {

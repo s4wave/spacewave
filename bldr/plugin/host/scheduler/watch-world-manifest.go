@@ -127,6 +127,22 @@ func (t *pluginInstance) processManifestWorldState(
 		}
 		return true, nil
 	}
+	slices.SortFunc(manifests, func(a, b *bldr_manifest_world.CollectedManifest) int {
+		aRank := platformPreferenceRank(a.Manifest.GetMeta().GetPlatformId())
+		bRank := platformPreferenceRank(b.Manifest.GetMeta().GetPlatformId())
+		if aRank != bRank {
+			return bRank - aRank
+		}
+		aRev := a.GetRev()
+		bRev := b.GetRev()
+		if aRev > bRev {
+			return -1
+		}
+		if aRev < bRev {
+			return 1
+		}
+		return strings.Compare(b.ManifestRef.String(), a.ManifestRef.String())
+	})
 
 	// return the result of this + true to keep waiting
 	return true, ws.AccessWorldState(
