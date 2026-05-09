@@ -222,13 +222,13 @@ func (t *pluginInstance) newDirectFetchHandler(hosts *pluginHostSet) directive.R
 			snapshot := &bldr_manifest.ManifestSnapshot{
 				ManifestRef: best.ref.GetManifestRef(),
 			}
-			if !t.c.conf.GetDisableCopyManifest() {
-				t.downloadManifestRoutine.SetState(snapshot)
-			}
 			t.executePluginRoutine.SetState(&executePluginArgs{
 				manifestSnapshot: snapshot,
 				pluginHost:       best.host,
 			})
+			if !t.c.conf.GetDisableCopyManifest() {
+				t.downloadManifestRoutine.SetState(snapshot)
+			}
 			t.loggedNotFound.Store(false)
 			return
 		}

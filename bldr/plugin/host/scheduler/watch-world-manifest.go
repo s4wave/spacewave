@@ -178,13 +178,7 @@ func (t *pluginInstance) processManifestWorldState(
 				t.loggedNotFound.Store(false)
 			}
 
-			// download the downloadManifest
-			// if downloadManifest is nil this will stop that routine
 			var anyChanged bool
-			if !t.c.conf.GetDisableCopyManifest() {
-				_, changed, _, _ := t.downloadManifestRoutine.SetState(downloadManifest)
-				anyChanged = anyChanged || changed
-			}
 
 			// execute the executeManifest
 			if executeManifest != nil {
@@ -199,13 +193,25 @@ func (t *pluginInstance) processManifestWorldState(
 				anyChanged = anyChanged || changed
 			}
 
+			// Schedule the full-DAG local copy after the execute path so startup
+			// demand fetches get the first chance at worker and shell blocks.
+			// If downloadManifest is nil this stops that routine.
+			if !t.c.conf.GetDisableCopyManifest() {
+				_, changed, _, _ := t.downloadManifestRoutine.SetState(downloadManifest)
+				anyChanged = anyChanged || changed
+			}
+
 			if anyChanged {
-				le.WithFields(logrus.Fields{
-					"download-manifest-rev": downloadManifest.GetManifest().GetMeta().GetRev(),
-					"download-manifest-ref": downloadManifest.GetManifestRef().MarshalB58(),
-					"execute-manifest-ref":  executeManifest.GetManifestRef().MarshalB58(),
-					"execute-manifest-rev":  executeManifest.GetManifest().GetMeta().GetRev(),
-				}).Debug("selected download and execute manifests for plugin")
+				fields := logrus.Fields{}
+				if downloadManifest != nil {
+					fields["download-manifest-rev"] = downloadManifest.GetManifest().GetMeta().GetRev()
+					fields["download-manifest-ref"] = downloadManifest.GetManifestRef().MarshalB58()
+				}
+				if executeManifest != nil {
+					fields["execute-manifest-ref"] = executeManifest.GetManifestRef().MarshalB58()
+					fields["execute-manifest-rev"] = executeManifest.GetManifest().GetMeta().GetRev()
+				}
+				le.WithFields(fields).Debug("selected download and execute manifests for plugin")
 			}
 
 			// done
