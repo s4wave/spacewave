@@ -58,6 +58,38 @@ export class DesktopTrayPopoverController {
     }
   }
 
+  public async show(
+    tray: Electron.Tray | undefined,
+    state: DesktopTrayState,
+  ): Promise<boolean> {
+    if (this.disabled || !tray) {
+      return false
+    }
+    if (this.window && !this.window.isDestroyed()) {
+      await this.render(this.window, state)
+      this.window.show()
+      return true
+    }
+    try {
+      const win = this.createWindow(tray)
+      this.window = win
+      await this.render(win, state)
+      win.show()
+      return true
+    } catch (err) {
+      this.disable(err)
+      return false
+    }
+  }
+
+  public async capturePNG(): Promise<Buffer | undefined> {
+    if (!this.window || this.window.isDestroyed()) {
+      return undefined
+    }
+    const image = await this.window.capturePage()
+    return image.toPNG()
+  }
+
   private createWindow(tray: Electron.Tray): Electron.BrowserWindow {
     const win = new electron.BrowserWindow({
       width: popoverWidth,

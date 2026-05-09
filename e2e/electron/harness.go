@@ -333,6 +333,68 @@ func (h *Harness) ActivateApp(ctx context.Context) error {
 	return nil
 }
 
+// OpenTrayPopover triggers the opt-in tray popover through the Electron-main
+// e2e control surface. The popover is available only when
+// BLDR_ELECTRON_DESKTOP_TRAY_POPOVER=1 is set before Boot.
+func (h *Harness) OpenTrayPopover(ctx context.Context) error {
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		h.ControlEndpoint()+"/tray-popover/open",
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	_, _ = io.Copy(io.Discard, resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return errors.Errorf("open tray popover returned HTTP %d", resp.StatusCode)
+	}
+	return nil
+}
+
+// CaptureTrayPopoverScreenshot stores the current opt-in popover screenshot
+// under the harness artifact directory and returns its path.
+func (h *Harness) CaptureTrayPopoverScreenshot(
+	ctx context.Context,
+	name string,
+) (string, error) {
+	if name == "" || filepath.Base(name) != name {
+		return "", errors.New("tray popover screenshot name must be a file name")
+	}
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodGet,
+		h.ControlEndpoint()+"/tray-popover/screenshot",
+		nil,
+	)
+	if err != nil {
+		return "", err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return "", errors.Errorf("capture tray popover screenshot returned HTTP %d: %s", resp.StatusCode, body)
+	}
+	path := filepath.Join(h.artifactDir, name)
+	if err := os.WriteFile(path, body, 0o644); err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
 // Release stops Playwright, cancels the Bldr desktop runtime, and restores env.
 func (h *Harness) Release() {
 	h.disconnectDriver()

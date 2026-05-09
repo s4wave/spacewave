@@ -219,6 +219,20 @@ The opt-in Electron e2e suite is heavier and only runs when enabled:
 ENABLE_E2E_ELECTRON=true GOFLAGS=-mod=mod go test -count=1 ./e2e/electron
 ```
 
+Popover promotion evidence uses the same opt-in harness with the popover flag
+set before the harness boots:
+
+```bash
+ENABLE_E2E_ELECTRON=true BLDR_ELECTRON_DESKTOP_TRAY_POPOVER=1 GOFLAGS=-mod=mod go test -count=1 ./e2e/electron
+```
+
+The Electron-main e2e control surface exposes `POST /tray-popover/open` and
+`GET /tray-popover/screenshot` for screenshot capture from the current
+`DesktopTrayState`. The Go harness wraps these as `OpenTrayPopover` and
+`CaptureTrayPopoverScreenshot`, writing PNG files under the harness artifact
+directory. These controls are test-only; the native menu remains the default
+runtime tray surface.
+
 `TestDesktopDaemonConsoleKeepsCLIReachableWithoutWindows` installs
 `./cmd/spacewave` into a temporary `GOBIN`, invokes the command by name through
 `PATH`, closes every Electron renderer page, and runs

@@ -90,6 +90,9 @@ class MockTray extends EventEmitter {
 class MockBrowserWindow extends EventEmitter {
   public readonly webContents = new EventEmitter()
   public readonly loadURL = vi.fn((_url: string) => Promise.resolve())
+  public readonly capturePage = vi.fn(() =>
+    Promise.resolve({ toPNG: () => Buffer.from('popover-png') }),
+  )
   public readonly setBounds = vi.fn()
   public readonly show = vi.fn()
   public readonly close = vi.fn(() => {
@@ -1035,6 +1038,26 @@ describe('DesktopTrayController', () => {
 
     expect(event.preventDefault).toHaveBeenCalledTimes(1)
     expect(mockClipboard.writeText).toHaveBeenCalledWith('diagnostics text')
+  })
+
+  it('exposes opt-in popover screenshot capture for e2e evidence', async () => {
+    process.env.BLDR_ELECTRON_DESKTOP_TRAY_POPOVER = '1'
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+    controller.init()
+
+    const shown = await controller.showPopoverForE2E()
+    const png = await controller.capturePopoverPNGForE2E()
+
+    expect(shown).toBe(true)
+    expect(browserWindows).toHaveLength(1)
+    expect(browserWindows[0]?.show).toHaveBeenCalledTimes(1)
+    expect(browserWindows[0]?.capturePage).toHaveBeenCalledTimes(1)
+    expect(png?.toString()).toBe('popover-png')
+    expect(trayInstances[0]?.setContextMenu).toHaveBeenCalledTimes(1)
   })
 
   it('falls back to the singleton window when the dev popover cannot attach', async () => {

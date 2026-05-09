@@ -294,6 +294,21 @@ export class BldrElectronApp {
         )
         return
       }
+      if (req.method === 'POST' && url.pathname === '/tray-popover/open') {
+        const shown =
+          (await this.desktopTrayController?.showPopoverForE2E()) ?? false
+        sendE2EJSON(res, 200, { shown })
+        return
+      }
+      if (req.method === 'GET' && url.pathname === '/tray-popover/screenshot') {
+        const png = await this.desktopTrayController?.capturePopoverPNGForE2E()
+        if (!png) {
+          sendE2EJSON(res, 404, { error: 'tray popover is not open' })
+          return
+        }
+        sendE2EBinary(res, 200, 'image/png', png)
+        return
+      }
       if (req.method === 'POST' && url.pathname === '/open-or-focus') {
         await this.desktopRuntimeResource.OpenOrFocusMainWindow({
           route: url.searchParams.get('route') || undefined,
@@ -649,4 +664,15 @@ function sendE2EJSON(res: ServerResponse, statusCode: number, value: unknown) {
       typeof val === 'bigint' ? val.toString() : val,
     ),
   )
+}
+
+function sendE2EBinary(
+  res: ServerResponse,
+  statusCode: number,
+  contentType: string,
+  value: Buffer,
+) {
+  res.statusCode = statusCode
+  res.setHeader('content-type', contentType)
+  res.end(value)
 }

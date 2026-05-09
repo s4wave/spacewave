@@ -127,6 +127,21 @@ export class DesktopTrayController {
     await this.openOrFocusMainWindow()
   }
 
+  public async showPopoverForE2E(): Promise<boolean> {
+    if (!this.popover) {
+      return false
+    }
+    return this.popover.show(
+      this.tray,
+      this.currentTrayState ??
+        this.opts.resource.desktopTrayResource.getState(),
+    )
+  }
+
+  public async capturePopoverPNGForE2E(): Promise<Buffer | undefined> {
+    return this.popover?.capturePNG()
+  }
+
   private buildMenu(state: DesktopTrayState): Electron.Menu {
     return electron.Menu.buildFromTemplate(
       this.buildMenuTemplate(state.entries ?? []),
