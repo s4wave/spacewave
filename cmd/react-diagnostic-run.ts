@@ -42,13 +42,34 @@ interface ProcessResult {
   stderr: string
 }
 
+interface ReactDoctorJsonDiagnostic {
+  filePath?: string
+  plugin?: string
+  rule?: string
+  severity?: 'error' | 'warning'
+  message?: string
+  help?: string
+  line?: number
+  column?: number
+  category?: string
+}
+
+interface ReactDoctorJsonSummary {
+  errorCount?: number
+  warningCount?: number
+  affectedFileCount?: number
+  totalDiagnosticCount?: number
+  score?: number | null
+  scoreLabel?: string | null
+}
+
 interface ReactDoctorJsonReport {
   schemaVersion: number
   ok: boolean
   directory: string
   mode: string
-  diagnostics: unknown[]
-  summary: unknown
+  diagnostics?: ReactDoctorJsonDiagnostic[]
+  summary?: ReactDoctorJsonSummary
   error: unknown
   [key: string]: unknown
 }
@@ -224,6 +245,120 @@ export function buildReactDiagnosticRunReport(input: {
   }
 }
 
+function pluralize(count: number, singular: string, plural = `${singular}s`) {
+  return `${count} ${count === 1 ? singular : plural}`
+}
+
+function count(value: number | undefined): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 0
+  return value
+}
+
+function formatScore(summary: ReactDoctorJsonSummary | undefined): string {
+  if (typeof summary?.score !== 'number') return 'score unavailable'
+  return `${summary.score}/100 ${summary.scoreLabel ?? ''}`.trim()
+}
+
+function getDiagnosticSeverity(
+  diagnostic: ReactDoctorJsonDiagnostic,
+): 'error' | 'warning' {
+  if (diagnostic.severity === 'error') return 'error'
+  return 'warning'
+}
+
+function formatDiagnosticRule(diagnostic: ReactDoctorJsonDiagnostic): string {
+  return `${diagnostic.plugin ?? 'react-doctor'}/${diagnostic.rule ?? 'unknown'}`
+}
+
+function formatDiagnosticSite(diagnostic: ReactDoctorJsonDiagnostic): string {
+  const filePath = diagnostic.filePath ?? '(unknown file)'
+  if (!diagnostic.line || diagnostic.line <= 0) return filePath
+  return `${filePath}:${diagnostic.line}`
+}
+
+function formatTopDiagnosticGroups(
+  diagnostics: ReactDoctorJsonDiagnostic[],
+): string[] {
+  const groups = new Map<string, ReactDoctorJsonDiagnostic[]>()
+  for (const diagnostic of diagnostics) {
+    const key = formatDiagnosticRule(diagnostic)
+    const group = groups.get(key)
+    if (group) group.push(diagnostic)
+    else groups.set(key, [diagnostic])
+  }
+
+  return [...groups.entries()]
+    .sort(([, diagnosticsA], [, diagnosticsB]) => {
+      const severityA = getDiagnosticSeverity(diagnosticsA[0])
+      const severityB = getDiagnosticSeverity(diagnosticsB[0])
+      const severityDelta =
+        severityA === severityB
+          ? 0
+          : severityA === 'error'
+            ? -1
+            : 1
+      if (severityDelta !== 0) return severityDelta
+      return diagnosticsB.length - diagnosticsA.length
+    })
+    .slice(0, 5)
+    .flatMap(([rule, ruleDiagnostics]) => {
+      const first = ruleDiagnostics[0]
+      const severity = getDiagnosticSeverity(first)
+      return [
+        `- ${severity} ${rule} (${pluralize(ruleDiagnostics.length, 'site')}, ${first.category ?? 'Uncategorized'})`,
+        `  ${first.message ?? 'No diagnostic message.'}`,
+        `  ${formatDiagnosticSite(first)}`,
+      ]
+    })
+}
+
+export function formatReactDiagnosticHumanSummary(
+  report: ReactDiagnosticRunReport,
+  outputPath: string,
+): string {
+  const summary = report.reactDoctor?.summary
+  const diagnostics = Array.isArray(report.reactDoctor?.diagnostics)
+    ? report.reactDoctor.diagnostics
+    : []
+  const totalDiagnostics =
+    count(summary?.totalDiagnosticCount) || diagnostics.length
+  const statusLabel = report.error
+    ? 'failed'
+    : totalDiagnostics > 0
+      ? 'completed with diagnostics'
+      : 'completed with no diagnostics'
+  const lines = [
+    `React Doctor ${statusLabel}`,
+    `Report: ${resolve(outputPath)}`,
+    `Mode: ${report.reactDoctor?.mode ?? 'unknown'} (${report.tool.offline ? 'offline' : 'online'})`,
+  ]
+
+  if (report.reactDoctor) {
+    const issueSummary = [
+      pluralize(count(summary?.errorCount), 'error'),
+      pluralize(count(summary?.warningCount), 'warning'),
+      pluralize(count(summary?.affectedFileCount), 'affected file'),
+      formatScore(summary),
+    ].join(', ')
+    lines.push(`Summary: ${issueSummary}`)
+
+    if (diagnostics.length > 0) {
+      lines.push('', 'Top diagnostics:')
+      lines.push(...formatTopDiagnosticGroups(diagnostics))
+    }
+  }
+
+  if (report.error) {
+    lines.push('', `Error: ${report.error.message}`)
+    if (report.error.stderr.trim()) {
+      lines.push(report.error.stderr.trim())
+    }
+  }
+
+  lines.push('', 'Machine contract: schema-versioned JSON report.')
+  return `${lines.join('\n')}\n`
+}
+
 async function writeReport(
   report: ReactDiagnosticRunReport,
   outputPath: string | null,
@@ -238,6 +373,7 @@ async function writeReport(
   }
   await mkdir(dirname(resolve(outputPath)), { recursive: true })
   await writeFile(outputPath, `${serialized}\n`)
+  process.stderr.write(formatReactDiagnosticHumanSummary(report, outputPath))
 }
 
 export async function runReactDiagnosticRun(args: string[]): Promise<number> {

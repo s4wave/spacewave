@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildReactDiagnosticRunReport,
   buildReactDoctorArgs,
+  formatReactDiagnosticHumanSummary,
   parseReactDiagnosticRunArgs,
 } from './react-diagnostic-run.js'
 
@@ -88,7 +89,14 @@ describe('react diagnostic run wrapper', () => {
         directory: '/repo',
         mode: 'full',
         diagnostics: [],
-        summary: { totalDiagnosticCount: 0 },
+        summary: {
+          errorCount: 0,
+          warningCount: 0,
+          affectedFileCount: 0,
+          totalDiagnosticCount: 0,
+          score: 100,
+          scoreLabel: 'Excellent',
+        },
         error: null,
       },
       parseError: null,
@@ -109,5 +117,94 @@ describe('react diagnostic run wrapper', () => {
       },
       error: null,
     })
+  })
+
+  it('formats a concise human summary for file output', () => {
+    const report = buildReactDiagnosticRunReport({
+      directory: '.',
+      offline: true,
+      args: ['.', '--json', '--offline'],
+      generatedAt: '2026-05-09T00:00:00.000Z',
+      processResult: {
+        code: 0,
+        signal: null,
+        stdout: '{}',
+        stderr: '',
+      },
+      reactDoctor: {
+        schemaVersion: 1,
+        ok: true,
+        directory: '/repo',
+        mode: 'full',
+        diagnostics: [
+          {
+            filePath: 'app/view.tsx',
+            plugin: 'react-doctor',
+            rule: 'memoized-context-value',
+            severity: 'warning',
+            message:
+              'Context provider value is recreated every render, causing consumers to rerender.',
+            help: 'Wrap the provider value in useMemo.',
+            line: 42,
+            column: 11,
+            category: 'Performance',
+          },
+        ],
+        summary: {
+          errorCount: 0,
+          warningCount: 1,
+          affectedFileCount: 1,
+          totalDiagnosticCount: 1,
+          score: 82,
+          scoreLabel: 'Good',
+        },
+        error: null,
+      },
+      parseError: null,
+    })
+
+    const summary = formatReactDiagnosticHumanSummary(
+      report,
+      '.tmp/react-diagnostic.json',
+    )
+
+    expect(summary).toContain('React Doctor completed with diagnostics')
+    expect(summary).toContain('Mode: full (offline)')
+    expect(summary).toContain('Summary: 0 errors, 1 warning, 1 affected file, 82/100 Good')
+    expect(summary).toContain('- warning react-doctor/memoized-context-value (1 site, Performance)')
+    expect(summary).toContain('app/view.tsx:42')
+    expect(summary).toContain('Machine contract: schema-versioned JSON report.')
+  })
+
+  it('formats partial React Doctor reports without throwing', () => {
+    const report = buildReactDiagnosticRunReport({
+      directory: '.',
+      offline: true,
+      args: ['.', '--json', '--offline'],
+      generatedAt: '2026-05-09T00:00:00.000Z',
+      processResult: {
+        code: 1,
+        signal: null,
+        stdout: '{}',
+        stderr: 'react doctor failed',
+      },
+      reactDoctor: {
+        schemaVersion: 1,
+        ok: false,
+        directory: '/repo',
+        mode: 'full',
+        error: { message: 'react doctor failed' },
+      },
+      parseError: null,
+    })
+
+    const summary = formatReactDiagnosticHumanSummary(
+      report,
+      '.tmp/react-diagnostic.json',
+    )
+
+    expect(summary).toContain('React Doctor failed')
+    expect(summary).toContain('Summary: 0 errors, 0 warnings, 0 affected files, score unavailable')
+    expect(summary).toContain('react doctor failed')
   })
 })
