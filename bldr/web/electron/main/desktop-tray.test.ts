@@ -689,6 +689,27 @@ describe('DesktopTrayController', () => {
     expect(mockResource.QuitDesktopRuntime).toHaveBeenCalledTimes(1)
   })
 
+  it.each(['darwin', 'win32', 'linux'])(
+    'uses the native menu fallback when the dev popover is disabled on %s',
+    async (platform) => {
+      platformState.value = platform
+      const { DesktopTrayController } = await import('./desktop-tray.js')
+      const controller = new DesktopTrayController({
+        init: { appName: 'Spacewave' },
+        resource: mockResource,
+      })
+      controller.init()
+
+      trayInstances[0]?.emit('click')
+      await Promise.resolve()
+
+      expect(browserWindows).toHaveLength(0)
+      expect(trayInstances[0]?.setContextMenu).toHaveBeenCalledTimes(1)
+      expect(templateLabels(menuTemplates[0])).toContain('Open Spacewave')
+      expect(mockResource.OpenOrFocusMainWindow).toHaveBeenCalledTimes(1)
+    },
+  )
+
   it('dispatches attached-handler tray entries through the tray resource', async () => {
     emitTrayState({
       statusText: 'Running',
@@ -1034,6 +1055,116 @@ describe('DesktopTrayController', () => {
     expect(mockResource.OpenOrFocusMainWindow).toHaveBeenCalledTimes(1)
   })
 
+  it.each(['darwin', 'win32', 'linux'])(
+    'keeps the native menu fallback when the dev popover cannot attach on %s',
+    async (platform) => {
+      platformState.value = platform
+      process.env.BLDR_ELECTRON_DESKTOP_TRAY_POPOVER = '1'
+      browserWindowState.shouldThrow = true
+      const { DesktopTrayController } = await import('./desktop-tray.js')
+      const controller = new DesktopTrayController({
+        init: { appName: 'Spacewave' },
+        resource: mockResource,
+      })
+      controller.init()
+
+      trayInstances[0]?.emit('click')
+      await Promise.resolve()
+
+      expect(browserWindows).toHaveLength(0)
+      expect(trayInstances[0]?.setContextMenu).toHaveBeenCalledTimes(1)
+      expect(templateLabels(menuTemplates[0])).toContain('Open Spacewave')
+      expect(mockResource.OpenOrFocusMainWindow).toHaveBeenCalledTimes(1)
+    },
+  )
+
+  it('keeps the native menu fallback when the dev popover render fails after attach', async () => {
+    process.env.BLDR_ELECTRON_DESKTOP_TRAY_POPOVER = '1'
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+    controller.init()
+
+    trayInstances[0]?.emit('click')
+    await flushPromises()
+    expect(browserWindows).toHaveLength(1)
+
+    browserWindows[0]?.loadURL.mockRejectedValueOnce(
+      new Error('popover render unavailable'),
+    )
+    emitTrayState({
+      statusText: 'Needs attention',
+      iconState: DesktopTrayIconState.ATTENTION,
+      entries: [
+        {
+          id: 'attention',
+          kind: DesktopTrayEntryKind.STATUS,
+          label: 'Spacewave: Needs attention',
+        },
+      ],
+    })
+    await flushPromises()
+
+    expect(browserWindows[0]?.close).toHaveBeenCalledTimes(1)
+    expect(trayInstances[0]?.setContextMenu).toHaveBeenCalledTimes(2)
+
+    trayInstances[0]?.emit('click')
+    await Promise.resolve()
+
+    expect(browserWindows).toHaveLength(1)
+    expect(mockResource.OpenOrFocusMainWindow).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the native menu fallback when a dev popover action dispatch fails', async () => {
+    process.env.BLDR_ELECTRON_DESKTOP_TRAY_POPOVER = '1'
+    emitTrayState({
+      statusText: 'Running',
+      iconState: DesktopTrayIconState.NORMAL,
+      entries: [
+        {
+          id: 'install-update',
+          kind: DesktopTrayEntryKind.ACTION,
+          label: 'Install Update',
+          enabled: true,
+          action: {
+            kind: DesktopTrayActionKind.ATTACHED_HANDLER,
+          },
+        },
+      ],
+    })
+    mockResource.desktopTrayResource.InvokeDesktopTrayEntry.mockRejectedValueOnce(
+      new Error('handler unavailable'),
+    )
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+    controller.init()
+
+    trayInstances[0]?.emit('click')
+    await flushPromises()
+
+    const event = { preventDefault: vi.fn() }
+    browserWindows[0]?.webContents.emit(
+      'will-navigate',
+      event,
+      'spacewave-tray-action:install-update',
+    )
+    await flushAsyncEvents()
+
+    expect(event.preventDefault).toHaveBeenCalledTimes(1)
+    expect(trayInstances[0]?.setContextMenu).toHaveBeenCalledTimes(1)
+
+    trayInstances[0]?.emit('click')
+    await Promise.resolve()
+
+    expect(browserWindows).toHaveLength(1)
+    expect(mockResource.OpenOrFocusMainWindow).toHaveBeenCalledTimes(1)
+  })
+
   it('uses the macOS template icon when configured', async () => {
     platformState.value = 'darwin'
     const electron = await import('electron')
@@ -1083,6 +1214,11 @@ async function flushPromises(): Promise<void> {
   await Promise.resolve()
   await Promise.resolve()
   await Promise.resolve()
+}
+
+async function flushAsyncEvents(): Promise<void> {
+  await flushPromises()
+  await flushPromises()
 }
 
 function templateLabels(

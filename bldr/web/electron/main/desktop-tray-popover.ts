@@ -80,7 +80,12 @@ export class DesktopTrayPopoverController {
     })
     win.setBounds(this.getWindowBounds(tray))
     win.webContents.on('will-navigate', (event, url) => {
-      void this.handleNavigation(event, url)
+      void this.handleNavigation(event, url).catch((err: unknown) => {
+        this.disable(err)
+        if (!win.isDestroyed()) {
+          win.close()
+        }
+      })
     })
     win.on('blur', () => {
       this.close()
