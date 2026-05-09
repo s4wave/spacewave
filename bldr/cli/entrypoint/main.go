@@ -220,19 +220,30 @@ func Main(
 		return nil
 	}
 
+	var runtimeTracePath string
 	app.Commands = append(app.Commands, &cli.Command{
 		Name:  "start",
 		Usage: "start the daemon and block until interrupted",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:        "trace",
+				Usage:       "write a Go runtime trace for the daemon process",
+				EnvVars:     []string{envPrefix + "_TRACE"},
+				Destination: &runtimeTracePath,
+			},
+		},
 		Action: func(c *cli.Context) error {
-			if err := ensureBus(); err != nil {
-				return err
-			}
-			if dtBus == nil {
-				return errors.New("bus not initialized")
-			}
-			dtBus.GetLogger().Info("started, press ctrl+c to stop")
-			<-dtBus.GetContext().Done()
-			return nil
+			return runWithRuntimeTrace(runtimeTracePath, func() error {
+				if err := ensureBus(); err != nil {
+					return err
+				}
+				if dtBus == nil {
+					return errors.New("bus not initialized")
+				}
+				dtBus.GetLogger().Info("started, press ctrl+c to stop")
+				<-dtBus.GetContext().Done()
+				return nil
+			})
 		},
 	})
 

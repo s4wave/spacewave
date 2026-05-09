@@ -33,6 +33,7 @@ const daemonPluginHostObjectKey = "plugin-host"
 // with a resource service socket listener.
 func newServeCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 	var startupPipeID string
+	var runtimeTracePath string
 	var takeover bool
 	return &cli.Command{
 		Name:  "serve",
@@ -49,124 +50,141 @@ func newServeCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 				Destination: &startupPipeID,
 				Hidden:      true,
 			},
+			&cli.StringFlag{
+				Name:        "trace",
+				Usage:       "write a Go runtime trace for the daemon process",
+				EnvVars:     []string{daemonTracePathEnvVar},
+				Destination: &runtimeTracePath,
+			},
 		},
 		Action: func(c *cli.Context) (retErr error) {
-			ctx := c.Context
-			le := logrus.NewEntry(logrus.New())
-
-			resolved, err := resolveStatePathFromContext(c, "")
-			if err != nil {
-				return err
-			}
-			startupNotifier, err := newDaemonStartupNotifier(ctx, resolved, startupPipeID)
-			if err != nil {
-				return err
-			}
-			defer func() {
-				if startupNotifier == nil {
-					return
-				}
-				if retErr != nil {
-					startupNotifier.reportError(retErr)
-					return
-				}
-				startupNotifier.close()
-			}()
-
-			sockPath := filepath.Join(resolved, socketName)
-			cliBus := getBus()
-			if cliBus == nil {
-				return errors.New("bus not initialized")
-			}
-			le = cliBus.GetLogger()
-			serveCtx, serveCancel := context.WithCancel(ctx)
-			handoffBroker := resource_listener.GetProcessYieldBroker()
-			handoffBroker.BeginHandoff("spacewave serve", sockPath)
-			defer func() {
-				serveCancel()
-				handoffBroker.Reclaim()
-			}()
-			releasePluginRuntime, err := startDaemonPluginRuntime(serveCtx, resolved, cliBus)
-			if err != nil {
-				return err
-			}
-			defer releasePluginRuntime()
-
-			idleTimeout, err := getDaemonIdleTimeout()
-			if err != nil {
-				return err
-			}
-
-			le.Info("waiting for resource service")
-			invoker, invokerRef, err := waitForResourceService(
-				serveCtx,
-				cliBus,
-				cliBus.GetPluginHostObjectKey() != "",
-			)
-			if err != nil {
-				return err
-			}
-			defer invokerRef.Release()
-
-			if takeover {
-				if err := takeoverDaemonSocket(ctx, le, sockPath); err != nil {
-					return err
-				}
-				_ = os.Remove(sockPath)
-			}
-			if err := os.MkdirAll(resolved, 0o755); err != nil {
-				return err
-			}
-
-			lis, err := net.Listen("unix", sockPath)
-			if err != nil {
-				return errors.Wrapf(err, "listen on daemon socket %s; use --takeover only if you intend to ask another runtime to yield", sockPath)
-			}
-			defer func() {
-				lis.Close()
-				_ = os.Remove(sockPath)
-			}()
-
-			if err := os.Chmod(sockPath, 0o600); err != nil {
-				le.WithError(err).Warn("failed to chmod socket")
-			}
-
-			le.Infof("listening on %s", sockPath)
-			idleTracker := newDaemonIdleTracker(idleTimeout, func() {
-				le.Info("daemon idle timeout reached, shutting down")
-				serveCancel()
-				lis.Close()
+			return runWithRuntimeTrace(runtimeTracePath, func() error {
+				return runServeCommand(c, getBus, startupPipeID, takeover)
 			})
-			defer idleTracker.close()
-			releaseWebKeepalive := resource_root.SetWebListenerKeepaliveFunc(func(listenerID string) func() {
-				le.WithField("listener", listenerID).Debug("web listener holding daemon lifetime")
-				return idleTracker.serviceAttached()
-			})
-			defer releaseWebKeepalive()
-
-			mux := srpc.NewMux(invoker)
-			if err := mux.Register(newDaemonControlHandler(func() {
-				serveCancel()
-				lis.Close()
-			})); err != nil {
-				return err
-			}
-			go func() {
-				<-serveCtx.Done()
-				lis.Close()
-			}()
-
-			srv := srpc.NewServer(mux)
-			if err := startupNotifier.reportReady(); err != nil {
-				return err
-			}
-			err = acceptDaemonListener(serveCtx, lis, srv, idleTracker)
-			if err != nil && (serveCtx.Err() != nil || stderrors.Is(err, net.ErrClosed)) {
-				return nil
-			}
-			return err
 		},
 	}
+}
+
+func runServeCommand(
+	c *cli.Context,
+	getBus func() cli_entrypoint.CliBus,
+	startupPipeID string,
+	takeover bool,
+) (retErr error) {
+	ctx := c.Context
+	le := logrus.NewEntry(logrus.New())
+
+	resolved, err := resolveStatePathFromContext(c, "")
+	if err != nil {
+		return err
+	}
+	startupNotifier, err := newDaemonStartupNotifier(ctx, resolved, startupPipeID)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if startupNotifier == nil {
+			return
+		}
+		if retErr != nil {
+			startupNotifier.reportError(retErr)
+			return
+		}
+		startupNotifier.close()
+	}()
+
+	sockPath := filepath.Join(resolved, socketName)
+	cliBus := getBus()
+	if cliBus == nil {
+		return errors.New("bus not initialized")
+	}
+	le = cliBus.GetLogger()
+	serveCtx, serveCancel := context.WithCancel(ctx)
+	handoffBroker := resource_listener.GetProcessYieldBroker()
+	handoffBroker.BeginHandoff("spacewave serve", sockPath)
+	defer func() {
+		serveCancel()
+		handoffBroker.Reclaim()
+	}()
+	releasePluginRuntime, err := startDaemonPluginRuntime(serveCtx, resolved, cliBus)
+	if err != nil {
+		return err
+	}
+	defer releasePluginRuntime()
+
+	idleTimeout, err := getDaemonIdleTimeout()
+	if err != nil {
+		return err
+	}
+
+	le.Info("waiting for resource service")
+	invoker, invokerRef, err := waitForResourceService(
+		serveCtx,
+		cliBus,
+		cliBus.GetPluginHostObjectKey() != "",
+	)
+	if err != nil {
+		return err
+	}
+	defer invokerRef.Release()
+
+	if takeover {
+		if err := takeoverDaemonSocket(ctx, le, sockPath); err != nil {
+			return err
+		}
+		_ = os.Remove(sockPath)
+	}
+	if err := os.MkdirAll(resolved, 0o755); err != nil {
+		return err
+	}
+
+	lis, err := net.Listen("unix", sockPath)
+	if err != nil {
+		return errors.Wrapf(err, "listen on daemon socket %s; use --takeover only if you intend to ask another runtime to yield", sockPath)
+	}
+	defer func() {
+		lis.Close()
+		_ = os.Remove(sockPath)
+	}()
+
+	if err := os.Chmod(sockPath, 0o600); err != nil {
+		le.WithError(err).Warn("failed to chmod socket")
+	}
+
+	le.Infof("listening on %s", sockPath)
+	idleTracker := newDaemonIdleTracker(idleTimeout, func() {
+		le.Info("daemon idle timeout reached, shutting down")
+		serveCancel()
+		lis.Close()
+	})
+	defer idleTracker.close()
+	releaseWebKeepalive := resource_root.SetWebListenerKeepaliveFunc(func(listenerID string) func() {
+		le.WithField("listener", listenerID).Debug("web listener holding daemon lifetime")
+		return idleTracker.serviceAttached()
+	})
+	defer releaseWebKeepalive()
+
+	mux := srpc.NewMux(invoker)
+	if err := mux.Register(newDaemonControlHandler(func() {
+		serveCancel()
+		lis.Close()
+	})); err != nil {
+		return err
+	}
+	go func() {
+		<-serveCtx.Done()
+		lis.Close()
+	}()
+
+	srv := srpc.NewServer(mux)
+	if err := startupNotifier.reportReady(); err != nil {
+		return err
+	}
+	err = acceptDaemonListener(serveCtx, lis, srv, idleTracker)
+	if err != nil && (serveCtx.Err() != nil || stderrors.Is(err, net.ErrClosed)) {
+		return nil
+	}
+	return err
 }
 
 func startDaemonPluginRuntime(

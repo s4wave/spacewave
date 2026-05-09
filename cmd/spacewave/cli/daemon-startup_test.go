@@ -10,11 +10,28 @@ import (
 )
 
 func TestDaemonServeArgsPassStatePathToServe(t *testing.T) {
+	t.Setenv(daemonTracePathEnvVar, "")
+
 	got := daemonServeArgs("/tmp/state", "pipe-id")
 	want := []string{
 		"--state-path", "/tmp/state",
 		"serve",
 		"--daemon-startup-pipe-id", "pipe-id",
+	}
+	if !slices.Equal(got, want) {
+		t.Fatalf("got %#v, want %#v", got, want)
+	}
+}
+
+func TestDaemonServeArgsPassTracePathToServe(t *testing.T) {
+	t.Setenv(daemonTracePathEnvVar, "/tmp/spacewave.trace")
+
+	got := daemonServeArgs("/tmp/state", "pipe-id")
+	want := []string{
+		"--state-path", "/tmp/state",
+		"serve",
+		"--daemon-startup-pipe-id", "pipe-id",
+		"--trace", "/tmp/spacewave.trace",
 	}
 	if !slices.Equal(got, want) {
 		t.Fatalf("got %#v, want %#v", got, want)
@@ -63,6 +80,7 @@ func TestDaemonChildEnvForwardedContract(t *testing.T) {
 		"BLDR_LOG_FILE",
 		"BLDR_LOG_LEVEL",
 		"BLDR_STATE_PATH",
+		"SPACEWAVE_DAEMON_TRACE",
 		"SPACEWAVE_DATA_DIR",
 		"SPACEWAVE_LOG_LEVEL",
 		"SPACEWAVE_LOG_RETENTION_DAYS",

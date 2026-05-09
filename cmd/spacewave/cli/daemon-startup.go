@@ -23,6 +23,8 @@ const daemonStartupErrorPrefix = "error: "
 
 const daemonStartupTimeoutEnvVar = "SPACEWAVE_DAEMON_STARTUP_TIMEOUT"
 
+const daemonTracePathEnvVar = "SPACEWAVE_DAEMON_TRACE"
+
 var defaultDaemonStartupTimeout = time.Minute
 
 // startDaemonProcess starts the current CLI executable in background serve mode
@@ -86,11 +88,15 @@ func startDaemonProcess(ctx context.Context, statePath string) error {
 }
 
 func daemonServeArgs(statePath string, pipeID string) []string {
-	return []string{
+	args := []string{
 		"--state-path", statePath,
 		"serve",
 		"--daemon-startup-pipe-id", pipeID,
 	}
+	if tracePath := os.Getenv(daemonTracePathEnvVar); tracePath != "" {
+		args = append(args, "--trace", tracePath)
+	}
+	return args
 }
 
 // daemonChildEnvForwarded names the env vars the parent CLI process
@@ -111,6 +117,7 @@ var daemonChildEnvForwarded = []string{
 	"SPACEWAVE_LOG_LEVEL",
 	"SPACEWAVE_LOG_RETENTION_DAYS",
 	"SPACEWAVE_DATA_DIR",
+	"SPACEWAVE_DAEMON_TRACE",
 }
 
 // getDaemonStartupTimeout returns the configured daemon startup timeout.
