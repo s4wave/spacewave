@@ -139,7 +139,7 @@ export function BottomBarLevel({
   ])
 
   useEffect(() => {
-    if (!registerItem || !unregisterItem) {
+    if (!registerItem) {
       console.warn(
         'BottomBarLevel must be used inside a BottomBarRoot provider',
       )
@@ -147,11 +147,14 @@ export function BottomBarLevel({
     }
 
     registerItem(item)
+  }, [item, registerItem])
 
+  useEffect(() => {
+    if (!unregisterItem) return
     return () => {
       unregisterItem(id)
     }
-  }, [id, item, registerItem, unregisterItem])
+  }, [id, unregisterItem])
 
   // Provide context for nested children
   const value: BottomBarContextValue = useMemo(

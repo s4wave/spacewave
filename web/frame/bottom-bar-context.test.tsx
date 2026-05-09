@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { describe, it, expect, beforeEach } from 'vitest'
 import { render, cleanup, fireEvent, screen } from '@testing-library/react'
 import { useBottomBarItems, BottomBarItem } from './bottom-bar-context.js'
@@ -152,6 +152,55 @@ describe('BottomBarContext', () => {
 
       fireEvent.click(screen.getByText('Increment'))
       expect(screen.getByText('Overlay 1')).toBeDefined()
+    })
+
+    it('updates an item without unregistering it between item revisions', async () => {
+      const lengths: number[] = []
+
+      function RegistryProbe() {
+        lengths.push(useBottomBarItems().length)
+        return null
+      }
+
+      function TestItem() {
+        const [count, setCount] = useState(0)
+        const overlay = useMemo(() => <div>Overlay {count}</div>, [count])
+
+        return (
+          <BottomBarLevel
+            id="item"
+            button={(_selected, onClick) => (
+              <button onClick={onClick}>Item</button>
+            )}
+            overlay={overlay}
+            overlayKey={count}
+          >
+            <button onClick={() => setCount((n) => n + 1)}>Update</button>
+          </BottomBarLevel>
+        )
+      }
+
+      function TestRoot() {
+        const [openMenu, setOpenMenu] = useState('')
+        return (
+          <BottomBarRoot openMenu={openMenu} setOpenMenu={setOpenMenu}>
+            <RegistryProbe />
+            <ViewerFrame>
+              <TestItem />
+            </ViewerFrame>
+          </BottomBarRoot>
+        )
+      }
+
+      render(<TestRoot />)
+
+      fireEvent.click(await screen.findByText('Item'))
+      expect(await screen.findByText('Overlay 0')).toBeDefined()
+      lengths.length = 0
+
+      fireEvent.click(screen.getByText('Update'))
+      expect(await screen.findByText('Overlay 1')).toBeDefined()
+      expect(lengths).not.toContain(0)
     })
 
     it('handles missing overlay', () => {
