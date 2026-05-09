@@ -633,16 +633,62 @@ void runCancelStreamCase() {
     require(serverResult.sawCleanClose, "server observed clean close after cancel");
 }
 
+void runWebViewIpcBridgeFrameCase() {
+    std::string socketPath = makeSocketPath("webview-ipc");
+    int listenFd = listenUnix(socketPath);
+    StreamServerResult serverResult;
+    std::thread server([&]() {
+        serverResult = runPacketStreamServer(listenFd, 1);
+    });
+
+    StreamClientState state;
+    state.expectedStreamID = 404;
+    SpacewaveZeroNativeIpcStreamCallbacks callbacks = {&state, onStreamPacket, onStreamClose};
+    SpacewaveZeroNativeIpcStream* stream = nullptr;
+    SpacewaveZeroNativeIpcError error;
+    int32_t code = spacewave_zero_native_webview_ipc_stream_open(
+        socketPath.c_str(),
+        state.expectedStreamID,
+        &callbacks,
+        &stream,
+        &error);
+    require(code == SPACEWAVE_ZERO_NATIVE_IPC_OK, "webview ipc stream open");
+
+    std::vector<uint8_t> rpcFrame = {
+        0x1a, 0x0c, 's', 't', 'a', 'r', 'p', 'c', '-', 'f',
+        'r',  'a',  'm', 'e',
+    };
+    code = spacewave_zero_native_webview_ipc_stream_send(stream, rpcFrame.data(), rpcFrame.size(), &error);
+    require(code == SPACEWAVE_ZERO_NATIVE_IPC_OK, "webview ipc stream send");
+    require(waitForStreamState(&state, 1, true), "webview ipc callbacks completed");
+    code = spacewave_zero_native_webview_ipc_stream_close(stream, &error);
+    server.join();
+    close(listenFd);
+    cleanupSocketPath(socketPath);
+
+    require(code == SPACEWAVE_ZERO_NATIVE_IPC_OK, "webview ipc stream close");
+    require(state.callbackUserDataMatched, "webview ipc callback ownership");
+    require(state.closeCode == SPACEWAVE_ZERO_NATIVE_IPC_OK, "webview ipc close callback code");
+    require(state.closeMessage == "server-close-404", "webview ipc close message");
+    require((state.packets == std::vector<std::string>{bytesToString(rpcFrame)}), "webview ipc packet echo");
+    require(serverResult.error.empty(), "webview ipc server finished without error");
+    require(serverResult.streamID == state.expectedStreamID, "webview ipc stream id");
+    require((serverResult.packets == std::vector<std::string>{bytesToString(rpcFrame)}), "webview ipc server packet bytes");
+}
+
 }  // namespace
 
 int main() {
-    std::cout << spacewave_zero_native_starpc_transport_status() << "\n";
+    const char* status = spacewave_zero_native_starpc_transport_status();
+    std::cout << status << "\n";
+    require(contains(status, "WebView IPC packet-stream bridge"), "status exposes webview ipc bridge");
     runEchoCase();
     runRemoteErrorCase();
     runTooLargeCase();
     runConnectFailureCase();
     runConcurrentStreamCase();
     runCancelStreamCase();
+    runWebViewIpcBridgeFrameCase();
     std::cout << "zero-native-ipc-test: ok\n";
     return 0;
 }

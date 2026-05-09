@@ -5,10 +5,10 @@
 
 // Native IPC boundary for zero-native WebRuntime transport probes.
 //
-// This proves a zero-native-owned C ABI can perform an echo round trip over a
-// native pipe/socket with explicit remote errors and clean close behavior. It is
-// not a renderer boot path, WebView bridge, package hook, or full WebRuntime
-// transport.
+// This proves a zero-native-owned C ABI can perform an echo round trip and
+// callback packet streams over a native pipe/socket with explicit remote errors
+// and clean close behavior. It is not a renderer boot path, package hook, or
+// full WebRuntime transport.
 
 #define SPACEWAVE_ZERO_NATIVE_IPC_OK 0
 #define SPACEWAVE_ZERO_NATIVE_IPC_INVALID_ARGUMENT 1
@@ -100,6 +100,30 @@ int32_t spacewave_zero_native_starpc_stream_close(
 
 // Sends a cancel frame, closes the native handle, and releases the stream.
 int32_t spacewave_zero_native_starpc_stream_cancel(
+    SpacewaveZeroNativeIpcStream* stream,
+    SpacewaveZeroNativeIpcError* error);
+
+// WebView IPC packet streams use the same framed packet C ABI as StarPC streams.
+// These entrypoints expose the WebView bridge name without starting renderer
+// backend boot.
+int32_t spacewave_zero_native_webview_ipc_stream_open(
+    const char* endpoint,
+    uint32_t stream_id,
+    const SpacewaveZeroNativeIpcStreamCallbacks* callbacks,
+    SpacewaveZeroNativeIpcStream** stream,
+    SpacewaveZeroNativeIpcError* error);
+
+int32_t spacewave_zero_native_webview_ipc_stream_send(
+    SpacewaveZeroNativeIpcStream* stream,
+    const uint8_t* data,
+    size_t data_len,
+    SpacewaveZeroNativeIpcError* error);
+
+int32_t spacewave_zero_native_webview_ipc_stream_close(
+    SpacewaveZeroNativeIpcStream* stream,
+    SpacewaveZeroNativeIpcError* error);
+
+int32_t spacewave_zero_native_webview_ipc_stream_cancel(
     SpacewaveZeroNativeIpcStream* stream,
     SpacewaveZeroNativeIpcError* error);
 

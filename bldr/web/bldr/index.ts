@@ -21,6 +21,13 @@ export type {
 export { randomId } from './random-id.js'
 export { ItState } from './it-state.js'
 export type { ItStateOpts } from './it-state.js'
+export { openZeroNativeWebViewIpcPacketStream } from './zero-native-webview-ipc.js'
+export type {
+  ZeroNativeWebViewIpcBridge,
+  ZeroNativeWebViewIpcPacketStream,
+  ZeroNativeWebViewIpcStreamCallbacks,
+  ZeroNativeWebViewIpcStreamHandle,
+} from './zero-native-webview-ipc.js'
 export {
   isElectron,
   isSaucer,

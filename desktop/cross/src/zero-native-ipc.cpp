@@ -384,7 +384,7 @@ void streamReaderLoop(SpacewaveZeroNativeIpcStream* stream) {
 }  // namespace
 
 extern "C" const char* spacewave_zero_native_starpc_transport_status() {
-    return "zero-native StarPC IPC transport: native socket echo and callback streams only; renderer, WebView bridge, package, and e2e integration are not implemented by this transport probe";
+    return "zero-native StarPC IPC transport: native socket echo, callback streams, and WebView IPC packet-stream bridge; renderer backend boot, package, and e2e integration are not implemented by this transport probe";
 }
 
 extern "C" int32_t spacewave_zero_native_starpc_echo(
@@ -564,4 +564,33 @@ extern "C" int32_t spacewave_zero_native_starpc_stream_cancel(
     joinReader(stream);
     delete stream;
     return writeFailed ? SPACEWAVE_ZERO_NATIVE_IPC_WRITE_FAILED : SPACEWAVE_ZERO_NATIVE_IPC_OK;
+}
+
+extern "C" int32_t spacewave_zero_native_webview_ipc_stream_open(
+    const char* endpoint,
+    uint32_t stream_id,
+    const SpacewaveZeroNativeIpcStreamCallbacks* callbacks,
+    SpacewaveZeroNativeIpcStream** stream,
+    SpacewaveZeroNativeIpcError* error) {
+    return spacewave_zero_native_starpc_stream_open(endpoint, stream_id, callbacks, stream, error);
+}
+
+extern "C" int32_t spacewave_zero_native_webview_ipc_stream_send(
+    SpacewaveZeroNativeIpcStream* stream,
+    const uint8_t* data,
+    size_t data_len,
+    SpacewaveZeroNativeIpcError* error) {
+    return spacewave_zero_native_starpc_stream_send(stream, data, data_len, error);
+}
+
+extern "C" int32_t spacewave_zero_native_webview_ipc_stream_close(
+    SpacewaveZeroNativeIpcStream* stream,
+    SpacewaveZeroNativeIpcError* error) {
+    return spacewave_zero_native_starpc_stream_close(stream, error);
+}
+
+extern "C" int32_t spacewave_zero_native_webview_ipc_stream_cancel(
+    SpacewaveZeroNativeIpcStream* stream,
+    SpacewaveZeroNativeIpcError* error) {
+    return spacewave_zero_native_starpc_stream_cancel(stream, error);
 }
