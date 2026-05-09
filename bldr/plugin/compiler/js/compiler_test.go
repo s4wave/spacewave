@@ -18,6 +18,7 @@ import (
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
 	bldr_manifest_builder_controller "github.com/s4wave/spacewave/bldr/manifest/builder/controller"
+	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	bldr_plugin_compiler_js "github.com/s4wave/spacewave/bldr/plugin/compiler/js"
 	plugin_host_wazero_quickjs "github.com/s4wave/spacewave/bldr/plugin/host/wazero-quickjs"
@@ -205,6 +206,24 @@ func TestCreateEntrypointsFromViteOutputsBackendImportPath(t *testing.T) {
 	}
 	if got := backend[0].GetImportPath(); got != "/assets/v/b/be/plugin/notes/backend-abc123.mjs" {
 		t.Fatalf("unexpected backend import path: %q", got)
+	}
+}
+
+func TestPluginCompilerJsSupportedPlatforms(t *testing.T) {
+	ctrl, err := bldr_plugin_compiler_js.NewController(nil, nil, &bldr_plugin_compiler_js.Config{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	supported := ctrl.GetSupportedPlatforms()
+
+	browserTarget := bldr_platform.GetBuiltinTarget(bldr_platform.TargetID_Browser)
+	if got := browserTarget.SelectPlatformForCompiler(supported); got != "web/js/wasm" {
+		t.Fatalf("browser target selected platform = %q, want web/js/wasm", got)
+	}
+
+	desktopTarget := bldr_platform.GetBuiltinTarget(bldr_platform.TargetID_Desktop)
+	if got := desktopTarget.SelectPlatformForCompiler(supported); got != bldr_platform.PlatformID_JS {
+		t.Fatalf("desktop target selected platform = %q, want js", got)
 	}
 }
 

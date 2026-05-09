@@ -149,8 +149,9 @@ func (c *Controller) BuildManifest(
 		WithField("build-type", buildType).
 		WithField("platform-id", platformID)
 
-	// Do nothing if we are not targeting a supported platform.
-	if buildPlatform.GetBasePlatformID() != bldr_platform.PlatformID_JS {
+	// Do nothing if we are not targeting a supported JavaScript platform.
+	basePlatformID := buildPlatform.GetBasePlatformID()
+	if basePlatformID != bldr_platform.PlatformID_WEB && basePlatformID != bldr_platform.PlatformID_JS {
 		le.Warnf("skipping build for non-js platform: %v", buildPlatform.GetInputPlatformID())
 		return nil, nil
 	}
@@ -656,7 +657,7 @@ func CreateEntrypointsFromViteOutputs(
 
 // GetSupportedPlatforms returns the base platform IDs this compiler supports.
 func (c *Controller) GetSupportedPlatforms() []string {
-	return []string{bldr_platform.PlatformID_JS}
+	return []string{bldr_platform.PlatformID_WEB, bldr_platform.PlatformID_JS}
 }
 
 // _ is a type assertion
