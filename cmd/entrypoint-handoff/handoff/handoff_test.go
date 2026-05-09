@@ -3,14 +3,9 @@
 package handoff
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/s4wave/spacewave/bldr/util/packedmsg"
-	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
-	"github.com/s4wave/spacewave/net/peer"
 )
 
 func TestNeedsBuilderImage(t *testing.T) {
@@ -267,42 +262,20 @@ func TestValidatePackagedArtifactsAcceptsCompleteMatrix(t *testing.T) {
 	}
 }
 
-func TestValidateBrowserBundleArtifactsChecksSignedDistConfigSeed(t *testing.T) {
+func TestValidateBrowserBundleArtifactsChecksBrowserOutputs(t *testing.T) {
 	dir := t.TempDir()
-	signerPeer, err := peer.NewPeer(nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	signerPriv, err := signerPeer.GetPrivKey(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
-	encoded, err := spacewave_launcher.EncodeSignedDistConfig(
-		signerPriv,
-		&spacewave_launcher.DistConfig{
-			ProjectId:  "spacewave",
-			Rev:        17,
-			ChannelKey: spacewave_launcher.ChannelStable,
-		},
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
-	writeTestFileBytes(
-		t,
-		filepath.Join(dir, "staging", "dist", distConfigSeedFilename),
-		[]byte(packedmsg.EncodePackedMessage(encoded)),
-	)
+	writeTestFile(t, filepath.Join(dir, "staging", "app", "browser-release.json"))
+	writeTestFile(t, filepath.Join(dir, "staging", "static", "index.html"))
+	writeTestFile(t, filepath.Join(dir, "app", "prerender", "dist", "static-manifest.ts"))
 
-	if err := validateBrowserBundleArtifactsWithSigners(dir, []peer.ID{signerPeer.GetPeerID()}); err != nil {
-		t.Fatalf("validateBrowserBundleArtifactsWithSigners valid seed = %v", err)
+	if err := validateBrowserBundleArtifacts(dir); err != nil {
+		t.Fatalf("validateBrowserBundleArtifacts complete outputs = %v", err)
 	}
-	otherPeer, err := peer.NewPeer(nil)
-	if err != nil {
+	if err := os.Remove(filepath.Join(dir, "staging", "static", "index.html")); err != nil {
 		t.Fatal(err)
 	}
-	if err := validateBrowserBundleArtifactsWithSigners(dir, []peer.ID{otherPeer.GetPeerID()}); err == nil {
-		t.Fatal("validateBrowserBundleArtifactsWithSigners accepted wrong signer")
+	if err := validateBrowserBundleArtifacts(dir); err == nil {
+		t.Fatal("validateBrowserBundleArtifacts accepted missing index html")
 	}
 }
 
