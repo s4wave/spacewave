@@ -384,7 +384,7 @@ void streamReaderLoop(SpacewaveZeroNativeIpcStream* stream) {
 }  // namespace
 
 extern "C" const char* spacewave_zero_native_starpc_transport_status() {
-    return "zero-native StarPC IPC transport: native socket echo, callback streams, and WebView IPC packet-stream bridge; renderer backend boot, package, and e2e integration are not implemented by this transport probe";
+    return "zero-native StarPC IPC transport: native socket echo, callback streams, and WebView IPC packet-stream bridge; backend Resource SDK traffic must remain StarPC-over-native-IPC with no renderer-local transport fallback; renderer backend boot, package, and e2e integration are not implemented by this transport probe";
 }
 
 extern "C" int32_t spacewave_zero_native_starpc_echo(

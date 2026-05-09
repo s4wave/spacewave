@@ -39,6 +39,9 @@ export async function openZeroNativeWebViewIpcPacketStream(
   return ZeroNativeWebViewIpcPacketStreamImpl.open(bridge, streamId)
 }
 
+// This adapter preserves the zero-native backend invariant: StarPC packets cross
+// the renderer/backend boundary through the native WebView IPC bridge, not a
+// renderer-local MessagePort, shared-worker, or direct callback transport.
 class ZeroNativeWebViewIpcPacketStreamImpl implements ZeroNativeWebViewIpcPacketStream {
   public readonly source: AsyncGenerator<Uint8Array>
   public readonly sink: Sink<Source<Uint8Array>, Promise<void>>

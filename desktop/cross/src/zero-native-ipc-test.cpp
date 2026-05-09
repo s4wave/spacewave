@@ -681,7 +681,11 @@ void runWebViewIpcBridgeFrameCase() {
 int main() {
     const char* status = spacewave_zero_native_starpc_transport_status();
     std::cout << status << "\n";
+    require(contains(status, "StarPC IPC transport"), "status exposes starpc ipc transport");
     require(contains(status, "WebView IPC packet-stream bridge"), "status exposes webview ipc bridge");
+    require(contains(status, "Resource SDK"), "status exposes Resource SDK backend invariant");
+    require(contains(status, "no renderer-local transport fallback"), "status rejects renderer-local fallback");
+    require(contains(status, "renderer backend boot"), "status keeps backend boot out of probe scope");
     runEchoCase();
     runRemoteErrorCase();
     runTooLargeCase();

@@ -7,8 +7,11 @@
 //
 // This proves a zero-native-owned C ABI can perform an echo round trip and
 // callback packet streams over a native pipe/socket with explicit remote errors
-// and clean close behavior. It is not a renderer boot path, package hook, or
-// full WebRuntime transport.
+// and clean close behavior. The backend Resource SDK transport invariant is
+// StarPC framing over native IPC; renderer-local transports such as MessagePort,
+// shared-worker, in-process calls, or direct JavaScript callbacks are not
+// substitutes for this backend boundary. It is not a renderer boot path, package
+// hook, or full WebRuntime transport.
 
 #define SPACEWAVE_ZERO_NATIVE_IPC_OK 0
 #define SPACEWAVE_ZERO_NATIVE_IPC_INVALID_ARGUMENT 1
