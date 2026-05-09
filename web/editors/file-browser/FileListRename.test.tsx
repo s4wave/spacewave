@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { render, screen, waitFor, cleanup } from '@testing-library/react'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useCallback, useRef, useState, useMemo } from 'react'
 import { FileList } from './FileList.js'
@@ -242,9 +248,8 @@ describe('FileList inline rename', () => {
     await user.click(screen.getByTestId('trigger-rename'))
 
     const input = getRenameInput()
-    await user.clear(input)
-    await user.type(input, 'newname.txt')
-    await user.keyboard('{Enter}')
+    fireEvent.change(input, { target: { value: 'newname.txt' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
 
     await waitFor(() => {
       expect(onConfirm).toHaveBeenCalledWith('hello.txt', 'newname.txt')
@@ -266,9 +271,8 @@ describe('FileList inline rename', () => {
     await user.click(screen.getByTestId('trigger-rename'))
 
     const input = getRenameInput()
-    await user.clear(input)
-    await user.type(input, 'newname.txt')
-    await user.keyboard('{Escape}')
+    fireEvent.change(input, { target: { value: 'newname.txt' } })
+    fireEvent.keyDown(input, { key: 'Escape' })
 
     await waitFor(() => {
       expect(onCancel).toHaveBeenCalled()
@@ -291,8 +295,7 @@ describe('FileList inline rename', () => {
     await user.click(screen.getByTestId('trigger-rename'))
 
     const input = getRenameInput()
-    await user.clear(input)
-    await user.type(input, 'confirmed.txt')
+    fireEvent.change(input, { target: { value: 'confirmed.txt' } })
 
     await user.click(screen.getByTestId('rename-confirm'))
 
@@ -361,7 +364,7 @@ describe('FileList inline rename', () => {
     })
 
     await user.click(screen.getByTestId('trigger-rename'))
-    await user.keyboard('{Enter}')
+    fireEvent.keyDown(getRenameInput(), { key: 'Enter' })
 
     await waitFor(() => {
       expect(onConfirm).not.toHaveBeenCalled()

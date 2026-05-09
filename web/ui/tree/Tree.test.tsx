@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { render, screen, waitFor, cleanup } from '@testing-library/react'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Tree } from './Tree.js'
 import type { TreeNode } from './TreeNode.js'
@@ -167,7 +173,6 @@ describe('Tree', () => {
   })
 
   it('should handle keyboard navigation with j/k', async () => {
-    const user = userEvent.setup()
     render(<Tree nodes={mockNodes} defaultExpandedIds={new Set(['root'])} />)
 
     await waitFor(() => {
@@ -178,7 +183,7 @@ describe('Tree', () => {
     tree.focus()
 
     // j moves down from Root (initially focused) to Child 1
-    await user.keyboard('j')
+    fireEvent.keyDown(tree, { key: 'j' })
 
     await waitFor(() => {
       const child1Item = screen
@@ -188,7 +193,7 @@ describe('Tree', () => {
     })
 
     // Second j moves to Child 2
-    await user.keyboard('j')
+    fireEvent.keyDown(tree, { key: 'j' })
 
     await waitFor(() => {
       const child2Item = screen
@@ -198,7 +203,7 @@ describe('Tree', () => {
     })
 
     // k moves back up to Child 1
-    await user.keyboard('k')
+    fireEvent.keyDown(tree, { key: 'k' })
 
     await waitFor(() => {
       const child1Item = screen
@@ -209,7 +214,6 @@ describe('Tree', () => {
   })
 
   it('should handle expand with ArrowRight', async () => {
-    const user = userEvent.setup()
     render(<Tree nodes={mockNodes} />)
 
     await waitFor(() => {
@@ -217,13 +221,13 @@ describe('Tree', () => {
     })
 
     const rootItem = screen.getByText('Root').closest('[role="treeitem"]')
-    await user.click(rootItem!)
+    fireEvent.click(rootItem!)
 
     await waitFor(() => {
       expect(rootItem?.getAttribute('aria-selected')).toBe('true')
     })
 
-    await user.keyboard('{ArrowRight}')
+    fireEvent.keyDown(screen.getByRole('tree'), { key: 'ArrowRight' })
 
     await waitFor(() => {
       expect(screen.getByText('Child 1')).toBeTruthy()
@@ -231,7 +235,6 @@ describe('Tree', () => {
   })
 
   it('should handle collapse with ArrowLeft', async () => {
-    const user = userEvent.setup()
     render(<Tree nodes={mockNodes} defaultExpandedIds={new Set(['root'])} />)
 
     await waitFor(() => {
@@ -239,9 +242,9 @@ describe('Tree', () => {
     })
 
     const rootItem = screen.getByText('Root').closest('[role="treeitem"]')
-    await user.click(rootItem!)
+    fireEvent.click(rootItem!)
 
-    await user.keyboard('{ArrowLeft}')
+    fireEvent.keyDown(screen.getByRole('tree'), { key: 'ArrowLeft' })
 
     await waitFor(() => {
       expect(screen.queryByText('Child 1')).toBeNull()
@@ -249,7 +252,6 @@ describe('Tree', () => {
   })
 
   it('should navigate to parent with ArrowLeft when collapsed', async () => {
-    const user = userEvent.setup()
     render(<Tree nodes={mockNodes} defaultExpandedIds={new Set(['root'])} />)
 
     await waitFor(() => {
@@ -257,13 +259,13 @@ describe('Tree', () => {
     })
 
     const child1Item = screen.getByText('Child 1').closest('[role="treeitem"]')
-    await user.click(child1Item!)
+    fireEvent.click(child1Item!)
 
     await waitFor(() => {
       expect(child1Item?.getAttribute('aria-selected')).toBe('true')
     })
 
-    await user.keyboard('{ArrowLeft}')
+    fireEvent.keyDown(screen.getByRole('tree'), { key: 'ArrowLeft' })
 
     await waitFor(() => {
       const rootItem = screen.getByText('Root').closest('[role="treeitem"]')
@@ -272,7 +274,6 @@ describe('Tree', () => {
   })
 
   it('should handle range selection with Shift+Arrow', async () => {
-    const user = userEvent.setup()
     render(<Tree nodes={mockNodes} defaultExpandedIds={new Set(['root'])} />)
 
     await waitFor(() => {
@@ -280,13 +281,20 @@ describe('Tree', () => {
     })
 
     const rootItem = screen.getByText('Root').closest('[role="treeitem"]')
-    await user.click(rootItem!)
+    fireEvent.click(rootItem!)
 
     await waitFor(() => {
       expect(rootItem?.getAttribute('aria-selected')).toBe('true')
     })
 
-    await user.keyboard('{Shift>}{ArrowDown}{ArrowDown}{/Shift}')
+    fireEvent.keyDown(screen.getByRole('tree'), {
+      key: 'ArrowDown',
+      shiftKey: true,
+    })
+    fireEvent.keyDown(screen.getByRole('tree'), {
+      key: 'ArrowDown',
+      shiftKey: true,
+    })
 
     await waitFor(() => {
       const selectedItems = screen
@@ -297,7 +305,6 @@ describe('Tree', () => {
   })
 
   it('should handle toggle selection with Ctrl+click', async () => {
-    const user = userEvent.setup()
     render(<Tree nodes={mockNodes} defaultExpandedIds={new Set(['root'])} />)
 
     await waitFor(() => {
@@ -305,16 +312,14 @@ describe('Tree', () => {
     })
 
     const rootItem = screen.getByText('Root').closest('[role="treeitem"]')
-    await user.click(rootItem!)
+    fireEvent.click(rootItem!)
 
     await waitFor(() => {
       expect(rootItem?.getAttribute('aria-selected')).toBe('true')
     })
 
     const child1Item = screen.getByText('Child 1').closest('[role="treeitem"]')
-    await user.keyboard('{Control>}')
-    await user.click(child1Item!)
-    await user.keyboard('{/Control}')
+    fireEvent.click(child1Item!, { ctrlKey: true })
 
     await waitFor(() => {
       expect(rootItem?.getAttribute('aria-selected')).toBe('true')
@@ -323,7 +328,6 @@ describe('Tree', () => {
   })
 
   it('should handle Space to toggle expand on parent node', async () => {
-    const user = userEvent.setup()
     render(<Tree nodes={mockNodes} />)
 
     await waitFor(() => {
@@ -331,9 +335,9 @@ describe('Tree', () => {
     })
 
     const rootItem = screen.getByText('Root').closest('[role="treeitem"]')
-    await user.click(rootItem!)
+    fireEvent.click(rootItem!)
 
-    await user.keyboard(' ')
+    fireEvent.keyDown(screen.getByRole('tree'), { key: ' ' })
 
     await waitFor(() => {
       expect(screen.getByText('Child 1')).toBeTruthy()
@@ -341,7 +345,6 @@ describe('Tree', () => {
   })
 
   it('should handle Enter to trigger default action', async () => {
-    const user = userEvent.setup()
     const onAction = vi.fn()
     render(
       <Tree
@@ -356,9 +359,9 @@ describe('Tree', () => {
     })
 
     const child2Item = screen.getByText('Child 2').closest('[role="treeitem"]')
-    await user.click(child2Item!)
+    fireEvent.click(child2Item!)
 
-    await user.keyboard('{Enter}')
+    fireEvent.keyDown(screen.getByRole('tree'), { key: 'Enter' })
 
     await waitFor(() => {
       expect(onAction).toHaveBeenCalledOnce()

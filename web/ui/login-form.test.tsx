@@ -1,4 +1,10 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -164,11 +170,12 @@ describe('LoginForm clickwrap consent', () => {
 
     expect(screen.queryByRole('checkbox')).toBeNull()
 
-    await user.type(screen.getByPlaceholderText('alice'), 'alice')
-    await user.type(
-      screen.getByPlaceholderText('Enter password'),
-      'password123',
-    )
+    fireEvent.change(screen.getByPlaceholderText('alice'), {
+      target: { value: 'alice' },
+    })
+    fireEvent.change(screen.getByPlaceholderText('Enter password'), {
+      target: { value: 'password123' },
+    })
     await user.click(
       screen.getByRole('button', { name: 'Continue with password' }),
     )
@@ -202,11 +209,12 @@ describe('LoginForm clickwrap consent', () => {
       />,
     )
 
-    await user.type(screen.getByPlaceholderText('alice'), 'alice')
-    await user.type(
-      screen.getByPlaceholderText('Enter password'),
-      'password123',
-    )
+    fireEvent.change(screen.getByPlaceholderText('alice'), {
+      target: { value: 'alice' },
+    })
+    fireEvent.change(screen.getByPlaceholderText('Enter password'), {
+      target: { value: 'password123' },
+    })
     await user.click(
       screen.getByRole('button', { name: 'Continue with password' }),
     )
@@ -236,11 +244,12 @@ describe('LoginForm clickwrap consent', () => {
       />,
     )
 
-    await user.type(screen.getByPlaceholderText('alice'), 'alice')
-    await user.type(
-      screen.getByPlaceholderText('Enter password'),
-      'password123',
-    )
+    fireEvent.change(screen.getByPlaceholderText('alice'), {
+      target: { value: 'alice' },
+    })
+    fireEvent.change(screen.getByPlaceholderText('Enter password'), {
+      target: { value: 'password123' },
+    })
     await user.click(
       screen.getByRole('button', { name: 'Continue with password' }),
     )
@@ -250,10 +259,9 @@ describe('LoginForm clickwrap consent', () => {
       screen.getByRole('button', { name: 'Confirm and create account' }),
     ).toHaveProperty('disabled', true)
 
-    await user.type(
-      screen.getByPlaceholderText('Confirm password'),
-      'password123',
-    )
+    fireEvent.change(screen.getByPlaceholderText('Confirm password'), {
+      target: { value: 'password123' },
+    })
     expect(
       screen.getByRole('button', { name: 'Confirm and create account' }),
     ).toHaveProperty('disabled', true)

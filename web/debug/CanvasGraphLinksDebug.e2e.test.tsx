@@ -27,22 +27,24 @@ describe('CanvasGraphLinksDebug', () => {
       </TestWrapper>,
     )
 
-    for (const variant of variants) {
-      await expect
-        .poll(() =>
-          document.querySelector(
-            `[data-testid="graph-link-variant-${variant}"]`,
-          ),
-        )
-        .not.toBeNull()
+    await Promise.all(
+      variants.map(async (variant) => {
+        await expect
+          .poll(() =>
+            document.querySelector(
+              `[data-testid="graph-link-variant-${variant}"]`,
+            ),
+          )
+          .not.toBeNull()
 
-      const section = document.querySelector(
-        `[data-testid="graph-link-variant-${variant}"]`,
-      )
-      expect(section?.textContent).toContain(
-        variant === 'balanced' ? 'Selected direction' : variant,
-      )
-    }
+        const section = document.querySelector(
+          `[data-testid="graph-link-variant-${variant}"]`,
+        )
+        expect(section?.textContent).toContain(
+          variant === 'balanced' ? 'Selected direction' : variant,
+        )
+      }),
+    )
   })
 
   it('renders loaded and unloaded fixtures for each variant', async () => {
@@ -52,22 +54,24 @@ describe('CanvasGraphLinksDebug', () => {
       </TestWrapper>,
     )
 
-    for (const variant of variants) {
-      await expect
-        .poll(
-          () =>
-            document.querySelectorAll(
-              `[data-testid="graph-link-pill-${variant}-unloaded"]`,
-            ).length,
-        )
-        .toBeGreaterThanOrEqual(1)
+    await Promise.all(
+      variants.map(async (variant) => {
+        await expect
+          .poll(
+            () =>
+              document.querySelectorAll(
+                `[data-testid="graph-link-pill-${variant}-unloaded"]`,
+              ).length,
+          )
+          .toBeGreaterThanOrEqual(1)
 
-      expect(
-        document.querySelectorAll(
-          `[data-testid="graph-link-pill-${variant}-loaded"]`,
-        ).length,
-      ).toBeGreaterThanOrEqual(1)
-    }
+        expect(
+          document.querySelectorAll(
+            `[data-testid="graph-link-pill-${variant}-loaded"]`,
+          ).length,
+        ).toBeGreaterThanOrEqual(1)
+      }),
+    )
   })
 
   it('renders production state coverage fixtures', async () => {

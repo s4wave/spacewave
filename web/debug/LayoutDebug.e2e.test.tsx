@@ -44,16 +44,17 @@ describe('LayoutDebug UI Variants', () => {
       </TestWrapper>,
     )
 
-    for (const id of VARIANT_IDS) {
-      await expect
-        .poll(() => {
-          const v = getVariant(id)
-          if (!v) return null
-          // Should contain a FlexLayout
-          return v.querySelector('.flexlayout__layout')
-        })
-        .not.toBeNull()
-    }
+    await Promise.all(
+      VARIANT_IDS.map(async (id) => {
+        await expect
+          .poll(() => {
+            const v = getVariant(id)
+            if (!v) return null
+            return v.querySelector('.flexlayout__layout')
+          })
+          .not.toBeNull()
+      }),
+    )
   })
 
   it('each variant has 6 tab buttons (4 left tabset + 2 right tabset)', async () => {
@@ -63,15 +64,17 @@ describe('LayoutDebug UI Variants', () => {
       </TestWrapper>,
     )
 
-    for (const id of VARIANT_IDS) {
-      await expect
-        .poll(() => {
-          const v = getVariant(id)
-          if (!v) return 0
-          return v.querySelectorAll('.flexlayout__tab_button').length
-        })
-        .toBe(6)
-    }
+    await Promise.all(
+      VARIANT_IDS.map(async (id) => {
+        await expect
+          .poll(() => {
+            const v = getVariant(id)
+            if (!v) return 0
+            return v.querySelectorAll('.flexlayout__tab_button').length
+          })
+          .toBe(6)
+      }),
+    )
   })
 
   it('each variant has two tabsets with a splitter between them', async () => {
@@ -81,24 +84,26 @@ describe('LayoutDebug UI Variants', () => {
       </TestWrapper>,
     )
 
-    for (const id of VARIANT_IDS) {
-      await expect
-        .poll(() => {
-          const v = getVariant(id)
-          if (!v) return null
-          const tabsets = v.querySelectorAll('.flexlayout__tabset')
-          const splitters = v.querySelectorAll('.flexlayout__splitter')
-          if (tabsets.length < 2) return null
-          return { tabsets: tabsets.length, splitters: splitters.length }
-        })
-        .not.toBeNull()
+    await Promise.all(
+      VARIANT_IDS.map(async (id) => {
+        await expect
+          .poll(() => {
+            const v = getVariant(id)
+            if (!v) return null
+            const tabsets = v.querySelectorAll('.flexlayout__tabset')
+            const splitters = v.querySelectorAll('.flexlayout__splitter')
+            if (tabsets.length < 2) return null
+            return { tabsets: tabsets.length, splitters: splitters.length }
+          })
+          .not.toBeNull()
 
-      const v = getVariant(id)!
-      expect(v.querySelectorAll('.flexlayout__tabset').length).toBe(2)
-      expect(
-        v.querySelectorAll('.flexlayout__splitter').length,
-      ).toBeGreaterThanOrEqual(1)
-    }
+        const v = getVariant(id)!
+        expect(v.querySelectorAll('.flexlayout__tabset').length).toBe(2)
+        expect(
+          v.querySelectorAll('.flexlayout__splitter').length,
+        ).toBeGreaterThanOrEqual(1)
+      }),
+    )
   })
 
   it('selected tab color differs from unselected tab color', async () => {
@@ -108,34 +113,38 @@ describe('LayoutDebug UI Variants', () => {
       </TestWrapper>,
     )
 
-    for (const id of VARIANT_IDS) {
-      await expect
-        .poll(() => {
-          const v = getVariant(id)
-          if (!v) return null
-          const selected = v.querySelector('.flexlayout__tab_button--selected')
-          const unselected = v.querySelector(
-            '.flexlayout__tab_button--unselected',
-          )
-          if (!selected || !unselected) return null
-          return {
-            sel: window.getComputedStyle(selected).color,
-            unsel: window.getComputedStyle(unselected).color,
-          }
-        })
-        .not.toBeNull()
+    await Promise.all(
+      VARIANT_IDS.map(async (id) => {
+        await expect
+          .poll(() => {
+            const v = getVariant(id)
+            if (!v) return null
+            const selected = v.querySelector(
+              '.flexlayout__tab_button--selected',
+            )
+            const unselected = v.querySelector(
+              '.flexlayout__tab_button--unselected',
+            )
+            if (!selected || !unselected) return null
+            return {
+              sel: window.getComputedStyle(selected).color,
+              unsel: window.getComputedStyle(unselected).color,
+            }
+          })
+          .not.toBeNull()
 
-      const v = getVariant(id)!
-      const selected = v.querySelector(
-        '.flexlayout__tab_button--selected',
-      ) as HTMLElement
-      const unselected = v.querySelector(
-        '.flexlayout__tab_button--unselected',
-      ) as HTMLElement
-      const selColor = window.getComputedStyle(selected).color
-      const unselColor = window.getComputedStyle(unselected).color
-      expect(selColor).not.toBe(unselColor)
-    }
+        const v = getVariant(id)!
+        const selected = v.querySelector(
+          '.flexlayout__tab_button--selected',
+        ) as HTMLElement
+        const unselected = v.querySelector(
+          '.flexlayout__tab_button--unselected',
+        ) as HTMLElement
+        const selColor = window.getComputedStyle(selected).color
+        const unselColor = window.getComputedStyle(unselected).color
+        expect(selColor).not.toBe(unselColor)
+      }),
+    )
   })
 
   it('tab buttons show expected tab names', async () => {
@@ -224,15 +233,17 @@ describe('LayoutDebug UI Variants', () => {
     )
 
     // Wait for all variants to render
-    for (const id of VARIANT_IDS) {
-      await expect
-        .poll(() => {
-          const v = getVariant(id)
-          if (!v) return null
-          return v.querySelector('.flexlayout__tab_button')
-        })
-        .not.toBeNull()
-    }
+    await Promise.all(
+      VARIANT_IDS.map(async (id) => {
+        await expect
+          .poll(() => {
+            const v = getVariant(id)
+            if (!v) return null
+            return v.querySelector('.flexlayout__tab_button')
+          })
+          .not.toBeNull()
+      }),
+    )
 
     // Collect computed border-radius of a tab_button from each variant
     const radii: Record<string, string> = {}

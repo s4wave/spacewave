@@ -96,6 +96,7 @@ function registrationToConfigType(
     configId,
     displayName: reg.displayName || configId,
     category: reg.category || undefined,
+    // eslint-disable-next-line react-doctor/no-dynamic-import-path
     component: React.lazy(() => import(/* @vite-ignore */ scriptPath)),
   }
 }

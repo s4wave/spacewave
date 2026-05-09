@@ -136,7 +136,7 @@ export function useUploadManager(
                 kind: 'file' as const,
                 path: item.path,
                 totalSize: BigInt(item.totalSize),
-                stream: item.file!.stream(),
+                stream: item.file.stream(),
                 onProgress: (bytesWritten: bigint) => {
                   setItems((cur) =>
                     cur.map((c) =>

@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { page, userEvent } from 'vitest/browser'
 import { render, cleanup } from 'vitest-browser-react'
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback } from 'react'
 
 import '@s4wave/web/style/app.css'
 
@@ -38,8 +38,7 @@ function TestWindow({
   title: string
   initialState: FloatingWindowState
 }) {
-  const initialStateRef = useRef(initialState)
-  const [state, setState] = useState(initialStateRef.current)
+  const [state, setState] = useState(() => initialState)
 
   const handleStateChange = useCallback((newState: FloatingWindowState) => {
     setState(newState)
@@ -89,12 +88,10 @@ describe('FloatingWindow z-index management', () => {
   it('renders two overlapping windows', async () => {
     await render(<TwoWindowsTest />)
 
-    await expect
-      .element(page.getByTestId('window-window-1'))
-      .toBeInTheDocument()
-    await expect
-      .element(page.getByTestId('window-window-2'))
-      .toBeInTheDocument()
+    await Promise.all([
+      expect.element(page.getByTestId('window-window-1')).toBeInTheDocument(),
+      expect.element(page.getByTestId('window-window-2')).toBeInTheDocument(),
+    ])
   })
 
   it('brings window to front when clicked on content area', async () => {

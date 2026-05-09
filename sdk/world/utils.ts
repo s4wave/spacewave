@@ -43,8 +43,10 @@ export async function accessObject(
   await cb(cursor)
 
   // Write the transaction and get the updated root ref
-  const refResp = await worldState.getRef(abortSignal)
-  const writeResp = await transaction.write({ clearTree: true }, abortSignal)
+  const [refResp, writeResp] = await Promise.all([
+    worldState.getRef(abortSignal),
+    transaction.write({ clearTree: true }, abortSignal),
+  ])
 
   return {
     bucketId: refResp.ref?.bucketId ?? '',

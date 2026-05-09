@@ -75,21 +75,55 @@ async function getObjectTypeFromTypeIndex(
 ): Promise<string> {
   const iter = await ws.iterateObjects(TypesPrefix, false, abortSignal)
   try {
-    while (await iter.next(abortSignal)) {
+    const scan = async (): Promise<string> => {
+      if (!(await iter.next(abortSignal))) {
+        return ''
+      }
       const typeKey = await iter.key(abortSignal)
       if (!typeKey.startsWith(TypesPrefix)) {
-        continue
+        return scan()
       }
       const typeID = typeKey.slice(TypesPrefix.length)
       const keys = await ws.listObjectsWithType(typeID, abortSignal)
       if (new Set(keys).has(key)) {
         return typeID
       }
+      return scan()
     }
-    return ''
+
+    return await scan()
   } finally {
     await iter.close(abortSignal)
   }
+}
+
+async function deleteOldTypeQuads(
+  ws: IWorldState,
+  quads: NonNullable<
+    Awaited<ReturnType<IWorldState['lookupGraphQuads']>>['quads']
+  >,
+  nextObj: string | undefined,
+  abortSignal?: AbortSignal,
+): Promise<boolean> {
+  let exists = false
+  const deletes = []
+  for (const q of quads) {
+    if (q.obj === nextObj) {
+      exists = true
+    } else {
+      deletes.push(
+        ws.deleteGraphQuad(
+          q.subject ?? '',
+          q.predicate ?? '',
+          q.obj ?? '',
+          q.label,
+          abortSignal,
+        ),
+      )
+    }
+  }
+  await Promise.all(deletes)
+  return exists
 }
 
 // CheckObjectType asserts that the object key exists and has the given type
@@ -136,19 +170,12 @@ export async function setObjectType(
   // Delete any existing type quads that don't match
   let exists = false
   if (existing.quads) {
-    for (const q of existing.quads) {
-      if (q.obj === nextQuad.obj) {
-        exists = true
-      } else {
-        await ws.deleteGraphQuad(
-          q.subject ?? '',
-          q.predicate ?? '',
-          q.obj ?? '',
-          q.label,
-          abortSignal,
-        )
-      }
-    }
+    exists = await deleteOldTypeQuads(
+      ws,
+      existing.quads,
+      nextQuad.obj,
+      abortSignal,
+    )
   }
 
   // Ensure the type object exists BEFORE setting the quad
@@ -199,12 +226,16 @@ export async function iterateObjectsWithType(
   }
 
   const objKeys = await ws.listObjectsWithType(typeID, abortSignal)
-  for (const objKey of objKeys) {
+  const iterate = async (index: number): Promise<void> => {
+    const objKey = objKeys[index]
+    if (objKey === undefined) return
     const ctnu = await cb(objKey)
     if (!ctnu) {
-      break
+      return
     }
+    return iterate(index + 1)
   }
+  await iterate(0)
 }
 
 // ListObjectsWithType returns the list of object keys with the given type id.

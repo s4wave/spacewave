@@ -154,9 +154,7 @@ describe('FileList', () => {
     expect(fileEntry).toBeTruthy()
 
     await user.click(documentsEntry!)
-    await user.keyboard('{Control>}')
-    await user.click(fileEntry!)
-    await user.keyboard('{/Control}')
+    fireEvent.click(fileEntry!, { ctrlKey: true })
 
     const writes = new Map<string, string>()
     const dataTransfer = {
@@ -405,9 +403,7 @@ describe('FileList', () => {
     const readmeEntry = screen
       .getAllByText('README.md')[0]
       .closest('[role="row"]')
-    await user.keyboard('{Shift>}')
-    await user.click(readmeEntry!)
-    await user.keyboard('{/Shift}')
+    fireEvent.click(readmeEntry!, { shiftKey: true })
 
     await waitFor(() => {
       const selectedRows = screen
@@ -437,9 +433,7 @@ describe('FileList', () => {
     const picturesEntry = screen
       .getAllByText('Pictures')[0]
       .closest('[role="row"]')
-    await user.keyboard('{Control>}')
-    await user.click(picturesEntry!)
-    await user.keyboard('{/Control}')
+    fireEvent.click(picturesEntry!, { ctrlKey: true })
 
     await waitFor(() => {
       const selectedRows = screen
@@ -549,9 +543,7 @@ describe('FileList', () => {
     const readmeEntry = screen
       .getAllByText('README.md')[0]
       .closest('[role="row"]')
-    await user.keyboard('{Control>}')
-    await user.click(readmeEntry!)
-    await user.keyboard('{/Control}')
+    fireEvent.click(readmeEntry!, { ctrlKey: true })
 
     await waitFor(() => {
       const selectedRows = screen
@@ -597,9 +589,7 @@ describe('FileList', () => {
 
     // Ctrl+click file.txt to add to selection
     const fileEntry = screen.getAllByText('file.txt')[0].closest('[role="row"]')
-    await user.keyboard('{Control>}')
-    await user.click(fileEntry!)
-    await user.keyboard('{/Control}')
+    fireEvent.click(fileEntry!, { ctrlKey: true })
 
     await waitFor(() => {
       const selectedRows = screen

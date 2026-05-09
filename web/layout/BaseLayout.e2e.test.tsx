@@ -282,12 +282,14 @@ describe('BaseLayout E2E', () => {
       .not.toBeNull()
 
     // Verify both tab buttons are present in the tab bar (use role to get specific button)
-    await expect
-      .element(page.getByRole('button', { name: 'Tab 1' }))
-      .toBeInTheDocument()
-    await expect
-      .element(page.getByRole('button', { name: 'Tab 2' }))
-      .toBeInTheDocument()
+    await Promise.all([
+      expect
+        .element(page.getByRole('button', { name: 'Tab 1' }))
+        .toBeInTheDocument(),
+      expect
+        .element(page.getByRole('button', { name: 'Tab 2' }))
+        .toBeInTheDocument(),
+    ])
   })
 
   it('allows switching tabs by clicking tab buttons', async () => {
@@ -315,27 +317,25 @@ describe('BaseLayout E2E', () => {
 
     // Tab 1 should be selected (has aria-pressed="true")
     const tab1Button = page.getByRole('button', { name: 'Tab 1' })
-    await expect.element(tab1Button).toHaveAttribute('aria-pressed', 'true')
-
-    // Tab 2 should not be selected
     const tab2Button = page.getByRole('button', { name: 'Tab 2' })
-    await expect.element(tab2Button).toHaveAttribute('aria-pressed', 'false')
+    await Promise.all([
+      expect.element(tab1Button).toHaveAttribute('aria-pressed', 'true'),
+      expect.element(tab2Button).toHaveAttribute('aria-pressed', 'false'),
+    ])
 
     // Click on Tab 2
     await tab2Button.click()
 
     // Tab 2 should now be selected
-    await expect.element(tab2Button).toHaveAttribute('aria-pressed', 'true')
-
-    // Tab 1 should no longer be selected
-    await expect.element(tab1Button).toHaveAttribute('aria-pressed', 'false')
-
-    // Tab 2 content should be visible
-    await expect
-      .poll(() => page.getByTestId('tab-content-tab-2').element(), {
-        timeout: 5000,
-      })
-      .not.toBeNull()
+    await Promise.all([
+      expect.element(tab2Button).toHaveAttribute('aria-pressed', 'true'),
+      expect.element(tab1Button).toHaveAttribute('aria-pressed', 'false'),
+      expect
+        .poll(() => page.getByTestId('tab-content-tab-2').element(), {
+          timeout: 5000,
+        })
+        .not.toBeNull(),
+    ])
   })
 
   it('passes tabData to renderTab callback', async () => {
@@ -522,25 +522,19 @@ describe('BaseLayout E2E', () => {
       .not.toBeNull()
 
     // The closable tab should be present
-    await expect
-      .element(page.getByRole('button', { name: 'Closable Tab' }))
-      .toBeInTheDocument()
-
-    // Click on the closable tab to select it
     const closableTabButton = page.getByRole('button', { name: 'Closable Tab' })
+    await expect.element(closableTabButton).toBeInTheDocument()
     await closableTabButton.click()
 
     // After clicking, the closable tab should be selected
-    await expect
-      .element(closableTabButton)
-      .toHaveAttribute('aria-pressed', 'true')
-
-    // The closable tab content should be visible
-    await expect
-      .poll(() => page.getByTestId('tab-content-tab-closable').element(), {
-        timeout: 5000,
-      })
-      .not.toBeNull()
+    await Promise.all([
+      expect.element(closableTabButton).toHaveAttribute('aria-pressed', 'true'),
+      expect
+        .poll(() => page.getByTestId('tab-content-tab-closable').element(), {
+          timeout: 5000,
+        })
+        .not.toBeNull(),
+    ])
   })
 
   it('sends layout changes to server when tabs are switched', async () => {
@@ -571,16 +565,14 @@ describe('BaseLayout E2E', () => {
     await tab2Button.click()
 
     // Tab 2 should be selected
-    await expect.element(tab2Button).toHaveAttribute('aria-pressed', 'true')
-
-    // The layout change should have been sent to the server
-    // We verify this indirectly by checking that the tab content is visible
-    // (the RPC communication was logged on the server side in debug mode)
-    await expect
-      .poll(() => page.getByTestId('tab-content-tab-2').element(), {
-        timeout: 5000,
-      })
-      .not.toBeNull()
+    await Promise.all([
+      expect.element(tab2Button).toHaveAttribute('aria-pressed', 'true'),
+      expect
+        .poll(() => page.getByTestId('tab-content-tab-2').element(), {
+          timeout: 5000,
+        })
+        .not.toBeNull(),
+    ])
 
     // Switch back to Tab 1 to verify bidirectional updates work
     const tab1Button = page.getByRole('button', { name: 'Tab 1' })
@@ -726,11 +718,11 @@ describe('BaseLayout E2E', () => {
 
     // Verify the layout is still intact after the drag simulation
     // Tab 1 should still be present and functional
-    await expect.element(tab1Button).toBeInTheDocument()
-
-    // Tab 2 should also still be present
     const tab2Button = page.getByRole('button', { name: 'Tab 2' })
-    await expect.element(tab2Button).toBeInTheDocument()
+    await Promise.all([
+      expect.element(tab1Button).toBeInTheDocument(),
+      expect.element(tab2Button).toBeInTheDocument(),
+    ])
 
     // Verify we can still switch tabs (proves layout state wasn't corrupted)
     await tab2Button.click()
@@ -770,24 +762,22 @@ describe('BaseLayout E2E', () => {
     const closableTab = page.getByRole('button', { name: 'Closable Tab' })
 
     // Rapid switching
-    await tab2Button.click()
-    await closableTab.click()
-    await tab1Button.click()
-    await tab2Button.click()
-    await tab1Button.click()
+    await Promise.all([
+      tab2Button.click(),
+      closableTab.click(),
+      tab1Button.click(),
+      tab2Button.click(),
+      tab1Button.click(),
+    ])
 
     // After rapid switching, verify final state is correct
-    await expect.element(tab1Button).toHaveAttribute('aria-pressed', 'true')
-
-    // Verify all tabs are still present (none were lost during rapid updates)
-    await expect.element(tab1Button).toBeInTheDocument()
-    await expect.element(tab2Button).toBeInTheDocument()
-    await expect.element(closableTab).toBeInTheDocument()
-
-    // Verify tab content is still functional
-    await expect
-      .element(page.getByTestId('tab-content-tab-1'))
-      .toBeInTheDocument()
+    await Promise.all([
+      expect.element(tab1Button).toHaveAttribute('aria-pressed', 'true'),
+      expect.element(tab1Button).toBeInTheDocument(),
+      expect.element(tab2Button).toBeInTheDocument(),
+      expect.element(closableTab).toBeInTheDocument(),
+      expect.element(page.getByTestId('tab-content-tab-1')).toBeInTheDocument(),
+    ])
   })
 
   it('renders config-backed tab data immediately for externally added tabs', async () => {
