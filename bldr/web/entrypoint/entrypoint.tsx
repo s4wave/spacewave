@@ -111,7 +111,7 @@ if (typeof BLDR_STARTUP_JS === 'string') {
 
     return (
       <WebViewErrorBoundary>
-        <Suspense fallback={<div>Loading app...</div>}>
+        <Suspense fallback={<div>Loading app…</div>}>
           {loadedComponent}
         </Suspense>
       </WebViewErrorBoundary>

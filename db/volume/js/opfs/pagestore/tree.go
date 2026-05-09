@@ -2,6 +2,7 @@ package pagestore
 
 import (
 	"bytes"
+	"slices"
 
 	"github.com/pkg/errors"
 )
@@ -429,9 +430,9 @@ func prefixSuccessor(prefix []byte) []byte {
 		return nil
 	}
 	next := bytes.Clone(prefix)
-	for i := len(next) - 1; i >= 0; i-- {
-		if next[i] != 0xff {
-			next[i]++
+	for i, v := range slices.Backward(next) {
+		if v != 0xff {
+			v++
 			return next[:i+1]
 		}
 	}

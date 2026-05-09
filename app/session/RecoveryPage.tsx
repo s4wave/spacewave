@@ -229,14 +229,14 @@ export function RecoveryPage() {
           onClick={handleBack}
           className="text-foreground-alt hover:text-brand flex items-center gap-2 text-sm transition-colors"
         >
-          <LuArrowLeft className="h-4 w-4" />
+          <LuArrowLeft className="size-4" />
           <span className="select-none">Back to home</span>
         </button>
       }
       intro={
         <>
           <AnimatedLogo followMouse={false} />
-          <h1 className="text-xl font-bold tracking-wide">
+          <h1 className="text-xl font-semibold tracking-wide">
             {token ? 'Reset Password' : 'Recover Account'}
           </h1>
         </>
@@ -318,8 +318,8 @@ function RequestRecoveryForm({
     return (
       <div className="space-y-4">
         <div className="flex flex-col items-center gap-2">
-          <div className="bg-brand/10 flex h-10 w-10 items-center justify-center rounded-full">
-            <LuCircleCheck className="text-brand h-5 w-5" />
+          <div className="bg-brand/10 flex size-10 items-center justify-center rounded-full">
+            <LuCircleCheck className="text-brand size-5" />
           </div>
           <h2 className="text-foreground text-sm font-medium">
             Check your email
@@ -338,7 +338,7 @@ function RequestRecoveryForm({
           )}
         >
           <span className="text-foreground text-sm">Back to login</span>
-          <LuArrowRight className="text-foreground-alt h-4 w-4" />
+          <LuArrowRight className="text-foreground-alt size-4" />
         </button>
       </div>
     )
@@ -347,8 +347,8 @@ function RequestRecoveryForm({
   return (
     <div className="space-y-4">
       <div className="flex flex-col items-center gap-2">
-        <div className="bg-brand/10 flex h-10 w-10 items-center justify-center rounded-full">
-          <LuKeyRound className="text-brand h-5 w-5" />
+        <div className="bg-brand/10 flex size-10 items-center justify-center rounded-full">
+          <LuKeyRound className="text-brand size-5" />
         </div>
         <h2 className="text-foreground text-sm font-medium">
           Send a recovery link
@@ -392,7 +392,7 @@ function RequestRecoveryForm({
       >
         {loading ?
           <Spinner className="text-foreground" />
-        : <LuArrowRight className="text-foreground h-4 w-4" />}
+        : <LuArrowRight className="text-foreground size-4" />}
         <span className="text-foreground text-sm">
           {loading ? 'Sending recovery link...' : 'Send recovery link'}
         </span>
@@ -420,7 +420,7 @@ function VerifyingStep({ loading, error, onGoToLogin }: VerifyingStepProps) {
         <div className="flex flex-col items-center gap-2">
           <Spinner size="lg" className="text-foreground-alt" />
           <p className="text-foreground-alt text-sm">
-            Verifying recovery token...
+            Verifying recovery token…
           </p>
         </div>
       </div>
@@ -431,8 +431,8 @@ function VerifyingStep({ loading, error, onGoToLogin }: VerifyingStepProps) {
     return (
       <div className="space-y-4">
         <div className="flex flex-col items-center gap-2">
-          <div className="bg-destructive/10 flex h-10 w-10 items-center justify-center rounded-full">
-            <LuKeyRound className="text-destructive h-5 w-5" />
+          <div className="bg-destructive/10 flex size-10 items-center justify-center rounded-full">
+            <LuKeyRound className="text-destructive size-5" />
           </div>
           <h2 className="text-foreground text-sm font-medium">
             Token verification failed
@@ -453,7 +453,7 @@ function VerifyingStep({ loading, error, onGoToLogin }: VerifyingStepProps) {
           )}
         >
           <span className="text-foreground text-sm">Back to login</span>
-          <LuArrowRight className="text-foreground-alt h-4 w-4" />
+          <LuArrowRight className="text-foreground-alt size-4" />
         </button>
       </div>
     )
@@ -490,8 +490,8 @@ function PasswordForm({
   return (
     <div className="space-y-4">
       <div className="flex flex-col items-center gap-2">
-        <div className="bg-brand/10 flex h-10 w-10 items-center justify-center rounded-full">
-          <LuShieldCheck className="text-brand h-5 w-5" />
+        <div className="bg-brand/10 flex size-10 items-center justify-center rounded-full">
+          <LuShieldCheck className="text-brand size-5" />
         </div>
         <h2 className="text-foreground text-sm font-medium">
           Set a new password
@@ -566,7 +566,7 @@ function PasswordForm({
           'flex h-10 items-center justify-center gap-2',
         )}
       >
-        <LuRefreshCw className="text-foreground h-4 w-4" />
+        <LuRefreshCw className="text-foreground size-4" />
         <span className="text-foreground text-sm">Reset password</span>
       </button>
     </div>
@@ -608,7 +608,7 @@ function ExecutingStep() {
       <div className="flex flex-col items-center gap-3">
         <Spinner size="lg" className="text-foreground-alt" />
         <h2 className="text-foreground text-sm font-medium">
-          Resetting your password...
+          Resetting your password…
         </h2>
         <p className="text-foreground-alt text-xs">
           Deriving new encryption keys. This may take a moment.
@@ -622,8 +622,8 @@ function DoneStep({ onGoToLogin }: { onGoToLogin: () => void }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-col items-center gap-3">
-        <div className="bg-brand/10 flex h-12 w-12 items-center justify-center rounded-full">
-          <LuCircleCheck className="text-brand h-6 w-6" />
+        <div className="bg-brand/10 flex size-12 items-center justify-center rounded-full">
+          <LuCircleCheck className="text-brand size-6" />
         </div>
         <h2 className="text-foreground text-sm font-medium">
           Password reset successfully!
@@ -642,7 +642,7 @@ function DoneStep({ onGoToLogin }: { onGoToLogin: () => void }) {
         )}
       >
         <span className="text-foreground text-sm">Go to login</span>
-        <LuArrowRight className="text-foreground-alt h-4 w-4" />
+        <LuArrowRight className="text-foreground-alt size-4" />
       </button>
     </div>
   )

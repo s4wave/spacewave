@@ -36,44 +36,74 @@ export interface NativeUploadSelection {
 export async function extractNativeUploadSelection(
   dataTransfer: DataTransfer,
 ): Promise<NativeUploadSelection> {
-  const items = Array.from(dataTransfer.items ?? [])
-  const roots = items
-    .map((item) => (item.webkitGetAsEntry?.() ?? null) as WebkitEntry | null)
-    .filter((entry): entry is WebkitEntry => entry !== null)
+  const roots = getNativeUploadRoots(dataTransfer)
   if (roots.length === 0) {
     return { files: Array.from(dataTransfer.files ?? []), directories: [] }
   }
 
-  const selection: NativeUploadSelection = { files: [], directories: [] }
-  for (const root of roots) {
-    await walkNativeUploadEntry(root, selection)
+  const selections = await Promise.all(roots.map(walkNativeUploadEntry))
+  return mergeNativeUploadSelections(selections)
+}
+
+function getNativeUploadRoots(dataTransfer: DataTransfer): WebkitEntry[] {
+  const roots: WebkitEntry[] = []
+  for (const item of Array.from(dataTransfer.items ?? [])) {
+    const entry = (item.webkitGetAsEntry?.() ?? null) as WebkitEntry | null
+    if (entry !== null) {
+      roots.push(entry)
+    }
   }
-  return selection
+  return roots
 }
 
 async function walkNativeUploadEntry(
   entry: WebkitEntry,
-  selection: NativeUploadSelection,
-): Promise<void> {
+): Promise<NativeUploadSelection> {
   const relPath = trimNativeEntryPath(entry.fullPath || entry.name)
   if (entry.isDirectory) {
-    if (relPath) {
-      selection.directories.push(relPath)
+    const selection: NativeUploadSelection = {
+      files: [],
+      directories: relPath ? [relPath] : [],
     }
     const reader = entry.createReader()
     while (true) {
+      // eslint-disable-next-line react-doctor/async-await-in-loop
       const entries = await readNativeDirectoryEntries(reader)
       if (entries.length === 0) {
-        return
+        return selection
       }
-      for (const child of entries) {
-        await walkNativeUploadEntry(child, selection)
-      }
+      mergeNativeUploadSelection(
+        selection,
+        mergeNativeUploadSelections(
+          await Promise.all(entries.map(walkNativeUploadEntry)),
+        ),
+      )
     }
   }
 
   const file = await readNativeFile(entry)
-  selection.files.push(withRelativePath(file, relPath || file.name))
+  return {
+    files: [withRelativePath(file, relPath || file.name)],
+    directories: [],
+  }
+}
+
+function mergeNativeUploadSelections(
+  selections: NativeUploadSelection[],
+): NativeUploadSelection {
+  const merged: NativeUploadSelection = { files: [], directories: [] }
+  for (const selection of selections) {
+    mergeNativeUploadSelection(merged, selection)
+  }
+  return merged
+}
+
+function mergeNativeUploadSelection(
+  target: NativeUploadSelection,
+  source: NativeUploadSelection,
+): void {
+  target.files.push(...source.files)
+  target.directories.push(...source.directories)
 }
 
 function readNativeDirectoryEntries(

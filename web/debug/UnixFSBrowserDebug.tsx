@@ -35,7 +35,7 @@ export function UnixFSBrowserDebug() {
           className="text-foreground-alt hover:text-foreground transition-colors"
           aria-label="Back"
         >
-          <LuArrowLeft className="h-4 w-4" />
+          <LuArrowLeft className="size-4" />
         </button>
         <span className="text-foreground text-sm font-semibold tracking-tight select-none">
           UnixFS Browser UI Prototype
@@ -279,8 +279,8 @@ function CurrentRow({
     >
       <div className="flex min-w-[120px] flex-1 items-center gap-2 overflow-hidden">
         {row.isDir ?
-          <LuFolder className="text-file-folder-icon h-4 w-4 shrink-0" />
-        : <LuFile className="text-foreground-alt h-4 w-4 shrink-0" />}
+          <LuFolder className="text-file-folder-icon size-4 shrink-0" />
+        : <LuFile className="text-foreground-alt size-4 shrink-0" />}
         <span className="truncate">{row.name}</span>
       </div>
       <div className="text-foreground-alt w-[140px] min-w-[100px] shrink text-xs opacity-70">
@@ -319,13 +319,13 @@ function DenseRow({
         {row.isDir ?
           <LuFolder
             className={cn(
-              'h-4 w-4 shrink-0',
+              'size-4 shrink-0',
               selected ? 'text-brand' : 'text-foreground-alt/80',
             )}
           />
         : <LuFile
             className={cn(
-              'h-4 w-4 shrink-0',
+              'size-4 shrink-0',
               selected ? 'text-foreground' : 'text-foreground-alt/60',
             )}
           />
@@ -363,7 +363,7 @@ function CardRow({
     >
       <span
         className={cn(
-          'flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors',
+          'flex size-7 shrink-0 items-center justify-center rounded-md transition-colors',
           selected ? 'bg-brand/15' : (
             'bg-foreground/5 group-hover:bg-foreground/8'
           ),
@@ -372,13 +372,13 @@ function CardRow({
         {row.isDir ?
           <LuFolder
             className={cn(
-              'h-3.5 w-3.5',
+              'size-3.5',
               selected ? 'text-brand' : 'text-foreground-alt/70',
             )}
           />
         : <LuFile
             className={cn(
-              'h-3.5 w-3.5',
+              'size-3.5',
               selected ? 'text-foreground' : 'text-foreground-alt/60',
             )}
           />
@@ -433,25 +433,25 @@ function CurrentToolbar() {
           aria-label="Back"
           className="hover:bg-pulldown-hover rounded p-[2px]"
         >
-          <LuChevronLeft className="text-foreground-alt h-4 w-4" />
+          <LuChevronLeft className="text-foreground-alt size-4" />
         </button>
         <button
           type="button"
           aria-label="Forward"
           className="cursor-default rounded p-[2px] opacity-40"
         >
-          <LuChevronRight className="text-foreground-alt h-4 w-4" />
+          <LuChevronRight className="text-foreground-alt size-4" />
         </button>
         <button
           type="button"
           aria-label="Up"
           className="hover:bg-pulldown-hover rounded p-[2px]"
         >
-          <LuChevronUp className="text-foreground-alt h-4 w-4" />
+          <LuChevronUp className="text-foreground-alt size-4" />
         </button>
       </div>
       <div className="border-foreground/10 bg-background/50 mx-1 flex flex-1 items-center gap-1 rounded border px-2 py-0.5 text-xs">
-        <LuFolderOpen className="text-foreground-alt/50 h-3.5 w-3.5 shrink-0" />
+        <LuFolderOpen className="text-foreground-alt/50 size-3.5 shrink-0" />
         <span className="text-foreground/90 truncate">/photos/2026/april</span>
       </div>
       <div className="flex gap-1">
@@ -460,14 +460,14 @@ function CurrentToolbar() {
           title="New folder"
           className="hover:bg-pulldown-hover rounded p-[2px]"
         >
-          <LuFolderPlus className="text-foreground-alt h-4 w-4" />
+          <LuFolderPlus className="text-foreground-alt size-4" />
         </button>
         <button
           type="button"
           title="Upload files"
           className="hover:bg-pulldown-hover rounded p-[2px]"
         >
-          <LuUpload className="text-foreground-alt h-4 w-4" />
+          <LuUpload className="text-foreground-alt size-4" />
         </button>
       </div>
     </div>
@@ -479,32 +479,29 @@ function ModernToolbar() {
     <div className="border-foreground/8 flex h-9 items-center gap-1.5 border-b px-3">
       <div className="flex items-center gap-0.5">
         <NavIconButton
-          icon={<LuChevronLeft className="h-3.5 w-3.5" />}
+          icon={<LuChevronLeft className="size-3.5" />}
           label="Back"
         />
         <NavIconButton
-          icon={<LuChevronRight className="h-3.5 w-3.5" />}
+          icon={<LuChevronRight className="size-3.5" />}
           label="Forward"
           disabled
         />
-        <NavIconButton
-          icon={<LuChevronUp className="h-3.5 w-3.5" />}
-          label="Up"
-        />
+        <NavIconButton icon={<LuChevronUp className="size-3.5" />} label="Up" />
       </div>
       <div className="border-foreground/8 hover:border-foreground/15 mx-1 flex h-6 flex-1 items-center gap-1.5 rounded-md border bg-transparent px-2 transition-colors">
-        <LuFolderOpen className="text-foreground-alt/60 h-3 w-3 shrink-0" />
+        <LuFolderOpen className="text-foreground-alt/60 size-3 shrink-0" />
         <span className="text-foreground-alt/80 truncate text-[11px]">
           /photos/2026/april
         </span>
       </div>
       <div className="flex items-center gap-0.5">
         <NavIconButton
-          icon={<LuFolderPlus className="h-3.5 w-3.5" />}
+          icon={<LuFolderPlus className="size-3.5" />}
           label="New folder"
         />
         <NavIconButton
-          icon={<LuUpload className="h-3.5 w-3.5" />}
+          icon={<LuUpload className="size-3.5" />}
           label="Upload"
         />
       </div>
@@ -528,7 +525,7 @@ function NavIconButton({
       aria-label={label}
       disabled={disabled}
       className={cn(
-        'flex h-6 w-6 items-center justify-center rounded transition-colors',
+        'flex size-6 items-center justify-center rounded transition-colors',
         disabled ?
           'text-foreground-alt/30 cursor-default'
         : 'text-foreground-alt hover:text-foreground hover:bg-foreground/5',
@@ -559,7 +556,7 @@ function EmptyStateSection() {
               UnixFS object not found
             </div>
             <div className="text-foreground-alt/70 mt-1 text-xs">
-              Object: 0x0a1b2c3d4e5f...
+              Object: 0x0a1b2c3d4e5f…
             </div>
             <div className="text-foreground-alt/70 mt-2 text-xs">
               Create a drive via quickstart to initialize demo content.
@@ -575,8 +572,8 @@ function EmptyStateSection() {
         <div className="bg-file-back flex min-h-[160px] items-center justify-center p-6">
           <div className="border-foreground/6 bg-background-card/30 w-full max-w-xs rounded-lg border p-4 backdrop-blur-sm">
             <div className="flex items-start gap-2.5">
-              <span className="bg-foreground/5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md">
-                <LuFolder className="text-foreground-alt/60 h-4 w-4" />
+              <span className="bg-foreground/5 flex size-8 shrink-0 items-center justify-center rounded-md">
+                <LuFolder className="text-foreground-alt/60 size-4" />
               </span>
               <div className="min-w-0">
                 <p className="text-foreground text-xs font-medium select-none">
@@ -586,7 +583,7 @@ function EmptyStateSection() {
                   Create a drive via quickstart to initialize demo content.
                 </p>
                 <p className="text-foreground-alt/40 mt-1 font-mono text-[10px]">
-                  0x0a1b2c3d4e5f...
+                  0x0a1b2c3d4e5f…
                 </p>
               </div>
             </div>
@@ -600,7 +597,7 @@ function EmptyStateSection() {
       >
         <div className="bg-file-back flex min-h-[160px] items-center justify-center p-6">
           <div className="text-foreground-alt/40 flex items-center gap-2 text-xs">
-            <LuFolder className="h-3.5 w-3.5 shrink-0" />
+            <LuFolder className="size-3.5 shrink-0" />
             <span>No UnixFS object yet. Create a drive via quickstart.</span>
           </div>
         </div>
@@ -627,7 +624,7 @@ function DragOverlaySection() {
           <DummyRows />
           <div className="border-brand/50 bg-brand/5 pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-md border-2 border-dashed">
             <div className="flex flex-col items-center gap-2">
-              <LuUpload className="text-brand h-8 w-8" />
+              <LuUpload className="text-brand size-8" />
               <span className="text-brand text-sm font-medium">
                 Drop files to upload
               </span>
@@ -644,8 +641,8 @@ function DragOverlaySection() {
           <DummyRows />
           <div className="border-brand/30 bg-brand/5 pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-md border border-dashed backdrop-blur-sm">
             <div className="border-brand/30 bg-background-card/40 flex items-center gap-2.5 rounded-lg border px-3.5 py-2 backdrop-blur-sm">
-              <span className="bg-brand/15 flex h-7 w-7 shrink-0 items-center justify-center rounded-md">
-                <LuUpload className="text-brand h-3.5 w-3.5" />
+              <span className="bg-brand/15 flex size-7 shrink-0 items-center justify-center rounded-md">
+                <LuUpload className="text-brand size-3.5" />
               </span>
               <div className="min-w-0">
                 <p className="text-foreground text-xs font-medium select-none">
@@ -670,8 +667,8 @@ function DummyRows() {
         <div key={row.id} className="flex items-center px-3 py-1.5 text-xs">
           <div className="flex min-w-[120px] flex-1 items-center gap-2 overflow-hidden">
             {row.isDir ?
-              <LuFolder className="text-foreground-alt/60 h-4 w-4 shrink-0" />
-            : <LuFile className="text-foreground-alt/60 h-4 w-4 shrink-0" />}
+              <LuFolder className="text-foreground-alt/60 size-4 shrink-0" />
+            : <LuFile className="text-foreground-alt/60 size-4 shrink-0" />}
             <span className="text-foreground-alt/70 truncate">{row.name}</span>
           </div>
         </div>
@@ -710,7 +707,7 @@ function ErrorStateSection() {
         <div className="bg-file-back flex min-h-[160px] items-center justify-center p-6">
           <div className="border-destructive/20 bg-destructive/5 w-full max-w-sm rounded-lg border p-3.5">
             <div className="flex items-start gap-2.5">
-              <LuCircleAlert className="text-destructive mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <LuCircleAlert className="text-destructive mt-0.5 size-3.5 shrink-0" />
               <div className="min-w-0 flex-1">
                 <p className="text-foreground text-xs font-medium select-none">
                   Error loading files
@@ -725,7 +722,7 @@ function ErrorStateSection() {
                 type="button"
                 className="border-destructive/30 bg-destructive/10 hover:border-destructive/50 hover:bg-destructive/15 text-foreground inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-all duration-150"
               >
-                <LuRotateCw className="h-3 w-3" />
+                <LuRotateCw className="size-3" />
                 Retry
               </button>
             </div>
@@ -739,7 +736,7 @@ function ErrorStateSection() {
       >
         <div className="bg-file-back min-h-[160px]">
           <div className="border-destructive/20 bg-destructive/5 flex items-center gap-2 border-b px-3 py-1.5">
-            <LuCircleAlert className="text-destructive h-3.5 w-3.5 shrink-0" />
+            <LuCircleAlert className="text-destructive size-3.5 shrink-0" />
             <p className="text-foreground/80 min-w-0 flex-1 truncate text-xs">
               Error loading files: permission denied
             </p>
@@ -747,7 +744,7 @@ function ErrorStateSection() {
               type="button"
               className="text-foreground-alt hover:text-foreground inline-flex items-center gap-1 text-xs font-medium transition-colors"
             >
-              <LuRotateCw className="h-3 w-3" />
+              <LuRotateCw className="size-3" />
               Retry
             </button>
           </div>

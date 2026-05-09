@@ -2,6 +2,7 @@ package statusprojector
 
 import (
 	"context"
+	"slices"
 	"sync"
 	"time"
 
@@ -295,9 +296,9 @@ func waitAnyStatusChange(ctx context.Context, waitChs []<-chan struct{}) bool {
 }
 
 func releaseAll(releases []func()) {
-	for i := len(releases) - 1; i >= 0; i-- {
-		if releases[i] != nil {
-			releases[i]()
+	for _, v := range slices.Backward(releases) {
+		if v != nil {
+			v()
 		}
 	}
 }

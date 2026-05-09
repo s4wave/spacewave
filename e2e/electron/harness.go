@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -399,8 +400,8 @@ func (h *Harness) CaptureTrayPopoverScreenshot(
 func (h *Harness) Release() {
 	h.disconnectDriver()
 	_ = h.stopDesktopRuntime()
-	for i := len(h.restoreEnv) - 1; i >= 0; i-- {
-		h.restoreEnv[i]()
+	for _, v := range slices.Backward(h.restoreEnv) {
+		v()
 	}
 	h.restoreEnv = nil
 }

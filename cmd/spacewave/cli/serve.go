@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/aperturerobotics/cli"
@@ -184,8 +185,8 @@ func startDaemonPluginRuntime(
 
 	var rels []func()
 	rel := func() {
-		for i := len(rels) - 1; i >= 0; i-- {
-			rels[i]()
+		for _, v := range slices.Backward(rels) {
+			v()
 		}
 	}
 

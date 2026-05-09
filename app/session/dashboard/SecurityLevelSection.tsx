@@ -101,7 +101,7 @@ function SecurityLevelSectionContent({
     : <>
         {loading && (
           <p className="text-foreground-alt/40 text-xs">
-            Loading security info...
+            Loading security info…
           </p>
         )}
         {!loading && info && keypairCount > 1 && (
@@ -167,7 +167,7 @@ function SecurityLevelSectionContent({
     <section>
       <div className="mb-2 flex items-center justify-between">
         <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-          <LuShield className="h-3.5 w-3.5" />
+          <LuShield className="size-3.5" />
           Security Level
         </h2>
       </div>
