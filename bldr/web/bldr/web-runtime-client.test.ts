@@ -5,6 +5,7 @@ import { WebRuntimeClient } from './web-runtime-client.js'
 
 describe('WebRuntimeClient', () => {
   afterEach(() => {
+    vi.restoreAllMocks()
     vi.useRealTimers()
   })
 
@@ -63,5 +64,72 @@ describe('WebRuntimeClient', () => {
 
     resolveConnect?.(port1)
     await expect(Promise.all([a, b])).resolves.toEqual([undefined, undefined])
+  })
+
+  it('defers the stream-open timeout until the resume-ready gate resolves', async () => {
+    vi.useFakeTimers()
+    let resolveResumeReady: (() => void) | undefined
+    const client = new WebRuntimeClient(
+      'runtime',
+      'client',
+      WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+      vi.fn(),
+      null,
+      null,
+      undefined,
+      undefined,
+      () =>
+        new Promise<void>((resolve) => {
+          resolveResumeReady = resolve
+        }),
+    )
+    const streamOpenTimeoutPromise = (
+      client as unknown as { streamOpenTimeoutPromise: () => Promise<void> }
+    ).streamOpenTimeoutPromise()
+    let timedOut = false
+    streamOpenTimeoutPromise.then(() => {
+      timedOut = true
+    })
+
+    await vi.advanceTimersByTimeAsync(3000)
+    expect(timedOut).toBe(false)
+
+    resolveResumeReady?.()
+    await vi.advanceTimersByTimeAsync(1499)
+    expect(timedOut).toBe(false)
+
+    await vi.advanceTimersByTimeAsync(1)
+    expect(timedOut).toBe(true)
+    await expect(streamOpenTimeoutPromise).resolves.toBeUndefined()
+  })
+
+  it('applies the stream-open timeout after the resume-ready gate resolves', async () => {
+    vi.useFakeTimers()
+    const client = new WebRuntimeClient(
+      'runtime',
+      'client',
+      WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+      vi.fn(),
+      null,
+      null,
+      undefined,
+      undefined,
+      vi.fn().mockResolvedValue(undefined),
+    )
+
+    const streamOpenTimeoutPromise = (
+      client as unknown as { streamOpenTimeoutPromise: () => Promise<void> }
+    ).streamOpenTimeoutPromise()
+    let timedOut = false
+    streamOpenTimeoutPromise.then(() => {
+      timedOut = true
+    })
+
+    await vi.advanceTimersByTimeAsync(1499)
+    expect(timedOut).toBe(false)
+
+    await vi.advanceTimersByTimeAsync(1)
+    expect(timedOut).toBe(true)
+    await expect(streamOpenTimeoutPromise).resolves.toBeUndefined()
   })
 })

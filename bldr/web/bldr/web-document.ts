@@ -487,6 +487,8 @@ type WebDocumentEvents = {
   visibilitychange: (hidden: boolean) => void
   webdocumentstatuschange: (snapshot: WebDocumentStatus) => void
   runtimeconnected: () => void
+  resumeready: () => void
+  closed: (err?: Error) => void
 }
 
 export interface WebDocumentResumeReadyState {
@@ -790,6 +792,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         this.handleWebRuntimeClientDisconnected.bind(this),
         this.isElectron,
         this.webDocumentUuid,
+        this.waitForResumeReady.bind(this),
       )
     }
 
@@ -1374,6 +1377,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     if (this.closedCallback) {
       this.closedCallback(err)
     }
+    this.emit('closed', err)
 
     // Release Web Locks last, after all cleanup is done.
     if (this.singletonAbort) {
@@ -1917,6 +1921,34 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       runtimeId: state.runtimeId,
       focused: state.focused,
       visibilityState: state.visibilityState,
+    })
+    this.emit('resumeready')
+  }
+
+  private async waitForResumeReady(): Promise<void> {
+    if (this.resumeReady) {
+      return
+    }
+    await new Promise<void>((resolve, reject) => {
+      const onReady = () => {
+        this.removeListener('closed', onClosed)
+        this.removeListener('resumeready', onReady)
+        resolve()
+      }
+      const onClosed = (err?: Error) => {
+        this.removeListener('resumeready', onReady)
+        this.removeListener('closed', onClosed)
+        reject(err ?? new Error('web document is closed'))
+      }
+      this.on('resumeready', onReady)
+      this.on('closed', onClosed)
+      if (this.closed) {
+        onClosed(
+          this.closed instanceof Error ?
+            this.closed
+          : new Error('web document is closed'),
+        )
+      }
     })
   }
 }

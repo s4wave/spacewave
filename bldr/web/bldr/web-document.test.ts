@@ -24,6 +24,7 @@ function buildTestWebDocument(hidden = false): TestWebDocument {
     resumeReady: false,
     resumeReadyPending: false,
     runtimeConnected: true,
+    eventHandlers: {},
   })
   return doc
 }

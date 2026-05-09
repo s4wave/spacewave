@@ -21,6 +21,10 @@ export type OpenChannelFn = (init: WebRuntimeClientInit) => Promise<MessagePort>
 // HandleDisconnectedFn handles when the web runtime client was disconnected.
 export type HandleDisconnectedFn = (err?: Error) => Promise<void>
 
+// WaitForStreamOpenTimeoutGateFn waits for a startup gate that must be ready
+// before the normal stream-open timeout starts.
+export type WaitForStreamOpenTimeoutGateFn = () => Promise<void>
+
 // WebRuntimeClient opens streams via a remote WebRuntime.
 export class WebRuntimeClient {
   // rpcClient is the rpc client to the web runtime via openStream.
@@ -39,6 +43,7 @@ export class WebRuntimeClient {
     private handleDisconnected: HandleDisconnectedFn | null,
     private disableWebLocks?: boolean,
     private logicalClientId?: string,
+    private waitForStreamOpenTimeoutGate?: WaitForStreamOpenTimeoutGateFn,
   ) {
     this.rpcClient = new Client(this.openStream.bind(this))
   }
@@ -67,7 +72,15 @@ export class WebRuntimeClient {
         openStream: true,
       }
       clientPort.postMessage(msg, [streamChannel.port2])
-      await Promise.race([streamConn.waitRemoteOpen, timeoutPromise(1500)])
+      try {
+        await Promise.race([
+          streamConn.waitRemoteOpen,
+          this.streamOpenTimeoutPromise(),
+        ])
+      } catch (err) {
+        streamConn.close()
+        throw err
+      }
       if (!streamConn.isOpen) {
         streamConn.close()
         const msg = `WebRuntimeClient: ${this.clientId}: timeout opening stream with host`
@@ -229,6 +242,13 @@ export class WebRuntimeClient {
         `WebRuntimeClient: ${this.clientId}: unable to connect to runtime`,
       )
     )
+  }
+
+  private async streamOpenTimeoutPromise(): Promise<void> {
+    if (this.waitForStreamOpenTimeoutGate) {
+      await this.waitForStreamOpenTimeoutGate()
+    }
+    await timeoutPromise(1500)
   }
 
   // handleMessage handles an incoming message from the WebRuntime.
