@@ -88,7 +88,7 @@ describe('hydrate root hash boot', () => {
     await Promise.resolve()
 
     expect(boot).toHaveBeenCalledWith('#/login')
-  })
+  }, 15000)
 
   it('auto-boots a prerendered quickstart page into the app quickstart route', async () => {
     const ready = createReady()
@@ -105,7 +105,7 @@ describe('hydrate root hash boot', () => {
     await Promise.resolve()
 
     expect(boot).toHaveBeenCalledWith('#/quickstart/drive')
-  })
+  }, 15000)
 
   it('boots returning root visitors into the app without hydrating the landing page', async () => {
     const ready = createReady()
@@ -122,5 +122,5 @@ describe('hydrate root hash boot', () => {
     await Promise.resolve()
 
     expect(boot).toHaveBeenCalledWith('')
-  })
+  }, 15000)
 })

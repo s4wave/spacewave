@@ -40,7 +40,7 @@ vi.mock('@s4wave/web/hooks/useSessionInfo.js', () => ({
   useSessionInfo: mockUseSessionInfo,
 }))
 
-vi.mock('@s4wave/app/routes/SessionRoutes.js', () => ({
+vi.mock('@s4wave/app/routes/pendingJoin.js', () => ({
   consumePendingJoin: mockConsumePendingJoin,
 }))
 
