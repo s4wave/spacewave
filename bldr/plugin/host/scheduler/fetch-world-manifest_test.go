@@ -565,6 +565,128 @@ func TestWatchWorldManifestExecutesReadableLauncherWithUnavailableRetainedReleas
 	}
 }
 
+func TestWatchWorldManifestClearsSkippedRefStatusAfterBucketFix(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const objKey = "spacewave/launcher"
+	if _, err := bldr_manifest_world.CreateManifestStore(ctx, ws, objKey); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	launcherRef, launcherRefKey := storeTestWorldManifest(t, ctx, ws, "spacewave-launcher", "desktop/darwin/arm64", 12)
+	if err := ws.SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad(objKey, launcherRefKey, "spacewave-launcher")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	retainedRef := newTestStoredManifestRef(t, ctx, tb, "spacewave-launcher", "desktop/darwin/arm64", 11)
+	retainedRef.GetManifestRef().BucketId = "missing-retained-bucket"
+	const retainedRefKey = "release/manifests/spacewave-launcher/desktop/darwin/arm64/fixable-retained"
+	storeTestManifestRefObject(t, ctx, ws, retainedRefKey, retainedRef)
+	if err := ws.SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad(objKey, retainedRefKey, "")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	host := &testPluginHost{id: "desktop/darwin/arm64"}
+	ctrl := &Controller{
+		conf:   &Config{},
+		objKey: objKey,
+		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
+			&PluginStatusSnapshot{},
+			pluginStatusSnapshotEqual,
+		),
+		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
+	}
+	pi := &pluginInstance{
+		c:                       ctrl,
+		le:                      le,
+		pluginID:                "spacewave-launcher",
+		downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.ManifestSnapshot](le),
+		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
+	}
+
+	obj, ok, err := ws.GetObject(ctx, objKey)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !ok {
+		t.Fatal("expected launcher manifest store object")
+	}
+
+	wait, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
+		pluginHosts: []bldr_plugin_host.PluginHost{host},
+	}, ws, obj)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !wait {
+		t.Fatal("expected watch loop to wait for changes")
+	}
+
+	execState := pi.executePluginRoutine.GetState()
+	if execState == nil || execState.manifestSnapshot == nil {
+		t.Fatal("expected execute state from readable launcher candidate")
+	}
+	if !execState.manifestSnapshot.GetManifestRef().EqualVT(launcherRef.GetManifestRef()) {
+		t.Fatal("expected missing-bucket retained ref not to replace readable launcher candidate")
+	}
+	status := ctrl.GetPluginStatusCtr().GetValue()
+	if len(status.Plugins) != 1 {
+		t.Fatalf("expected one plugin status, got %d", len(status.Plugins))
+	}
+	lastError := status.Plugins[0].GetLastErrorMessage()
+	if !strings.Contains(lastError, "startup manifest refs: 1 skipped startup manifest ref(s)") {
+		t.Fatalf("unexpected retained-ref diagnostic: %q", lastError)
+	}
+	if !strings.Contains(lastError, "bucket=missing-retained-bucket") {
+		t.Fatalf("retained-ref diagnostic %q does not mention missing bucket", lastError)
+	}
+
+	retainedRef.GetManifestRef().BucketId = tb.BucketId
+	storeTestManifestRefObject(t, ctx, ws, retainedRefKey, retainedRef)
+
+	wait, err = pi.processManifestWorldState(ctx, le, &pluginHostSet{
+		pluginHosts: []bldr_plugin_host.PluginHost{host},
+	}, ws, obj)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !wait {
+		t.Fatal("expected watch loop to wait for changes after bucket fix")
+	}
+	execState = pi.executePluginRoutine.GetState()
+	if execState == nil || execState.manifestSnapshot == nil {
+		t.Fatal("expected readable launcher candidate to remain selected after bucket fix")
+	}
+	if !execState.manifestSnapshot.GetManifestRef().EqualVT(launcherRef.GetManifestRef()) {
+		t.Fatal("expected fixed lower-rev retained ref not to replace readable launcher candidate")
+	}
+	status = ctrl.GetPluginStatusCtr().GetValue()
+	if len(status.Plugins) != 1 {
+		t.Fatalf("expected existing plugin status to remain, got %d", len(status.Plugins))
+	}
+	if lastError = status.Plugins[0].GetLastErrorMessage(); lastError != "" {
+		t.Fatalf("expected startup manifest skip status to clear after bucket fix, got %q", lastError)
+	}
+}
+
 func TestWatchWorldManifestLauncherStartsAfterPruningUnavailableRetainedReleaseRef(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
