@@ -9,7 +9,6 @@ import {
   type DesktopTrayEntry,
 } from '@go/github.com/s4wave/spacewave/bldr/desktop/tray/tray.pb.js'
 import type { ElectronInit } from '../../plugin/electron/electron.pb.js'
-import type { DesktopRuntimeState as DesktopRuntimeStateMessage } from '../desktop-runtime/desktop-runtime.pb.js'
 import type { DesktopRuntimeResource } from './desktop-runtime.js'
 import { DesktopTrayPopoverController } from './desktop-tray-popover.js'
 
@@ -19,10 +18,8 @@ interface DesktopTrayControllerOpts {
 }
 
 interface DesktopTrayResource {
-  WatchDesktopState: DesktopRuntimeResource['WatchDesktopState']
   OpenOrFocusMainWindow: DesktopRuntimeResource['OpenOrFocusMainWindow']
   QuitDesktopRuntime: DesktopRuntimeResource['QuitDesktopRuntime']
-  getState: DesktopRuntimeResource['getState']
   desktopTrayResource: Pick<
     DesktopRuntimeResource['desktopTrayResource'],
     'WatchDesktopTray' | 'InvokeDesktopTrayEntry' | 'getState'
@@ -33,7 +30,6 @@ interface DesktopTrayResource {
 export class DesktopTrayController {
   private tray?: Electron.Tray
   private popover?: DesktopTrayPopoverController
-  private currentState?: DesktopRuntimeStateMessage
   private currentTrayState?: DesktopTrayState
   private watchStarted = false
 
@@ -47,6 +43,7 @@ export class DesktopTrayController {
     if (isDesktopTrayPopoverEnabled()) {
       this.popover = new DesktopTrayPopoverController({
         appName: this.opts.init.appName,
+        actionHandler: (entryId) => this.handlePopoverAction(entryId),
       })
     }
     this.rebuildMenu(this.opts.resource.desktopTrayResource.getState())
@@ -87,10 +84,6 @@ export class DesktopTrayController {
     }
     this.watchStarted = true
     void this.watchDesktopTray()
-    if (this.popover) {
-      this.updatePopover(this.opts.resource.getState())
-      void this.watchDesktopStateForPopover()
-    }
   }
 
   private async watchDesktopTray(): Promise<void> {
@@ -107,16 +100,6 @@ export class DesktopTrayController {
     }
   }
 
-  private async watchDesktopStateForPopover(): Promise<void> {
-    try {
-      for await (const resp of this.opts.resource.WatchDesktopState({})) {
-        this.updatePopover(resp.state ?? this.opts.resource.getState())
-      }
-    } catch (err) {
-      console.error('desktop tray state stream ended', err)
-    }
-  }
-
   private rebuildMenu(state: DesktopTrayState): void {
     if (
       this.currentTrayState &&
@@ -127,10 +110,6 @@ export class DesktopTrayController {
     this.currentTrayState = cloneDesktopTrayState(state)
     this.updateIconState(state)
     this.tray?.setContextMenu(this.buildMenu(state))
-  }
-
-  private updatePopover(state: DesktopRuntimeStateMessage): void {
-    this.currentState = cloneDesktopRuntimeState(state)
     this.popover?.update(state)
   }
 
@@ -138,7 +117,8 @@ export class DesktopTrayController {
     if (this.popover) {
       const handled = await this.popover.toggle(
         this.tray,
-        this.currentState ?? this.opts.resource.getState(),
+        this.currentTrayState ??
+          this.opts.resource.desktopTrayResource.getState(),
       )
       if (handled) {
         return
@@ -214,14 +194,14 @@ export class DesktopTrayController {
         return {
           label: entry.label,
           click: () => {
-            void this.openRouteOrFocus(action.route)
+            void this.invokeTrayEntry(entry)
           },
         }
       case DesktopTrayActionKind.NEW_WINDOW:
         return {
           label: entry.label,
           click: () => {
-            void this.openRoute(action.route || '/')
+            void this.invokeTrayEntry(entry)
           },
         }
       case DesktopTrayActionKind.COPY_TEXT:
@@ -231,7 +211,7 @@ export class DesktopTrayController {
         return {
           label: entry.label,
           click: () => {
-            this.copyText(action.value || '')
+            void this.invokeTrayEntry(entry)
           },
         }
       case DesktopTrayActionKind.REVEAL_PATH:
@@ -241,21 +221,21 @@ export class DesktopTrayController {
         return {
           label: entry.label,
           click: () => {
-            this.revealPath(action.value || '')
+            void this.invokeTrayEntry(entry)
           },
         }
       case DesktopTrayActionKind.QUIT:
         return {
           label: entry.label,
           click: () => {
-            void this.quitDesktopRuntime()
+            void this.invokeTrayEntry(entry)
           },
         }
       case DesktopTrayActionKind.ATTACHED_HANDLER:
         return {
           label: entry.label,
           click: () => {
-            void this.invokeAttachedTrayEntry(entry.id)
+            void this.invokeTrayEntry(entry)
           },
         }
       default:
@@ -274,6 +254,53 @@ export class DesktopTrayController {
 
   private async openOrFocusMainWindow(): Promise<void> {
     await this.opts.resource.OpenOrFocusMainWindow({})
+  }
+
+  private async handlePopoverAction(entryId: string): Promise<void> {
+    const entry = (this.currentTrayState?.entries ?? []).find(
+      (entry) => entry.id === entryId,
+    )
+    if (!entry) {
+      return
+    }
+    await this.invokeTrayEntry(entry)
+  }
+
+  private async invokeTrayEntry(entry: DesktopTrayEntry): Promise<void> {
+    const action = entry.action
+    if (
+      entry.kind !== DesktopTrayEntryKind.ACTION ||
+      !(entry.enabled ?? false) ||
+      !action
+    ) {
+      return
+    }
+    switch (action.kind) {
+      case DesktopTrayActionKind.OPEN_ROUTE:
+        await this.openRouteOrFocus(action.route)
+        return
+      case DesktopTrayActionKind.NEW_WINDOW:
+        await this.openRoute(action.route || '/')
+        return
+      case DesktopTrayActionKind.COPY_TEXT:
+        if (action.value) {
+          this.copyText(action.value)
+        }
+        return
+      case DesktopTrayActionKind.REVEAL_PATH:
+        if (action.value) {
+          this.revealPath(action.value)
+        }
+        return
+      case DesktopTrayActionKind.QUIT:
+        await this.quitDesktopRuntime()
+        return
+      case DesktopTrayActionKind.ATTACHED_HANDLER:
+        await this.invokeAttachedTrayEntry(entry.id)
+        return
+      default:
+        return
+    }
   }
 
   private async openRoute(route?: string): Promise<void> {
@@ -338,21 +365,6 @@ function cloneDesktopTrayState(state: DesktopTrayState): DesktopTrayState {
       path: [...(entry.path ?? [])],
       action: entry.action ? { ...entry.action } : undefined,
     })),
-  }
-}
-
-function cloneDesktopRuntimeState(
-  state: DesktopRuntimeStateMessage,
-): DesktopRuntimeStateMessage {
-  return {
-    ...state,
-    listener: state.listener ? { ...state.listener } : undefined,
-    sessions: state.sessions?.map((item) => ({ ...item })),
-    spaces: state.spaces?.map((item) => ({ ...item })),
-    activity: state.activity?.map((item) => ({ ...item })),
-    update: state.update ? { ...state.update } : undefined,
-    attentionItems: state.attentionItems?.map((item) => ({ ...item })),
-    actions: state.actions?.map((item) => ({ ...item })),
   }
 }
 

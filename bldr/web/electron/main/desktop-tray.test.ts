@@ -88,6 +88,7 @@ class MockTray extends EventEmitter {
 }
 
 class MockBrowserWindow extends EventEmitter {
+  public readonly webContents = new EventEmitter()
   public readonly loadURL = vi.fn((_url: string) => Promise.resolve())
   public readonly setBounds = vi.fn()
   public readonly show = vi.fn()
@@ -900,7 +901,7 @@ describe('DesktopTrayController', () => {
     ).toEqual(['Copy Socket'])
   })
 
-  it('shows the dev popover from desktop runtime state while keeping native menu fallback', async () => {
+  it('shows the dev popover from DesktopTrayEntry state while keeping native menu fallback', async () => {
     process.env.BLDR_ELECTRON_DESKTOP_TRAY_POPOVER = '1'
     const state = {
       ...defaultRuntimeState(),
@@ -935,6 +936,7 @@ describe('DesktopTrayController', () => {
     expect(browserWindows).toHaveLength(1)
     expect(browserWindows[0]?.show).toHaveBeenCalledTimes(1)
     expect(mockResource.OpenOrFocusMainWindow).not.toHaveBeenCalled()
+    expect(mockResource.WatchDesktopState).not.toHaveBeenCalled()
     expect(latestPopoverHtml()).toContain('Syncing')
     expect(latestPopoverHtml()).toContain('CLI reachable')
     expect(latestPopoverHtml()).toContain('coolguy@spacewave.app')
@@ -957,6 +959,61 @@ describe('DesktopTrayController', () => {
     expect(trayInstances[0]?.setContextMenu).toHaveBeenCalledTimes(2)
     expect(latestPopoverHtml()).toContain('Needs attention')
     expect(latestPopoverHtml()).toContain('Sign in required')
+  })
+
+  it('routes enabled popover actions through the same tray action paths', async () => {
+    process.env.BLDR_ELECTRON_DESKTOP_TRAY_POPOVER = '1'
+    const trayState: DesktopTrayState = {
+      statusText: 'Running',
+      iconState: DesktopTrayIconState.NORMAL,
+      entries: [
+        {
+          id: 'diagnostics',
+          kind: DesktopTrayEntryKind.ACTION,
+          label: 'Copy Diagnostics',
+          enabled: true,
+          action: {
+            kind: DesktopTrayActionKind.COPY_TEXT,
+            value: 'diagnostics text',
+          },
+        },
+        {
+          id: 'disabled',
+          kind: DesktopTrayEntryKind.ACTION,
+          label: 'Disabled Action',
+          enabled: false,
+          action: {
+            kind: DesktopTrayActionKind.OPEN_ROUTE,
+            route: '/disabled',
+          },
+        },
+      ],
+    }
+    emitTrayState(trayState)
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+    controller.init()
+
+    trayInstances[0]?.emit('click')
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(latestPopoverHtml()).toContain('spacewave-tray-action:diagnostics')
+    expect(latestPopoverHtml()).not.toContain('spacewave-tray-action:disabled')
+
+    const event = { preventDefault: vi.fn() }
+    browserWindows[0]?.webContents.emit(
+      'will-navigate',
+      event,
+      'spacewave-tray-action:diagnostics',
+    )
+    await Promise.resolve()
+
+    expect(event.preventDefault).toHaveBeenCalledTimes(1)
+    expect(mockClipboard.writeText).toHaveBeenCalledWith('diagnostics text')
   })
 
   it('falls back to the singleton window when the dev popover cannot attach', async () => {

@@ -1,22 +1,23 @@
 import electron from 'electron'
 
 import {
-  DesktopRuntimeHealth,
-  type DesktopRuntimeActionItem,
-  type DesktopRuntimeActivityItem,
-  type DesktopRuntimeAttentionItem,
-  type DesktopRuntimeListenerStatus,
-  type DesktopRuntimeNavigationItem,
-  type DesktopRuntimeState as DesktopRuntimeStateMessage,
-} from '../desktop-runtime/desktop-runtime.pb.js'
+  DesktopTrayActionKind,
+  DesktopTrayEntryKind,
+  DesktopTrayIconState,
+  DesktopTraySeverity,
+  type DesktopTrayEntry,
+  type DesktopTrayState,
+} from '@go/github.com/s4wave/spacewave/bldr/desktop/tray/tray.pb.js'
 
 interface DesktopTrayPopoverControllerOpts {
   appName?: string
+  actionHandler: (entryId: string) => Promise<void>
 }
 
 const popoverWidth = 360
 const popoverHeight = 520
 const popoverMargin = 8
+const actionScheme = 'spacewave-tray-action:'
 
 // DesktopTrayPopoverController owns the dev-only custom tray popover prototype.
 export class DesktopTrayPopoverController {
@@ -25,7 +26,7 @@ export class DesktopTrayPopoverController {
 
   constructor(private readonly opts: DesktopTrayPopoverControllerOpts) {}
 
-  public update(state: DesktopRuntimeStateMessage): void {
+  public update(state: DesktopTrayState): void {
     if (!this.window || this.window.isDestroyed()) {
       return
     }
@@ -36,7 +37,7 @@ export class DesktopTrayPopoverController {
 
   public async toggle(
     tray: Electron.Tray | undefined,
-    state: DesktopRuntimeStateMessage,
+    state: DesktopTrayState,
   ): Promise<boolean> {
     if (this.disabled || !tray) {
       return false
@@ -78,6 +79,9 @@ export class DesktopTrayPopoverController {
       },
     })
     win.setBounds(this.getWindowBounds(tray))
+    win.webContents.on('will-navigate', (event, url) => {
+      void this.handleNavigation(event, url)
+    })
     win.on('blur', () => {
       this.close()
     })
@@ -87,6 +91,19 @@ export class DesktopTrayPopoverController {
       }
     })
     return win
+  }
+
+  private async handleNavigation(
+    event: Electron.Event,
+    url: string,
+  ): Promise<void> {
+    if (!url.startsWith(actionScheme)) {
+      return
+    }
+    event.preventDefault()
+    const entryId = decodeURIComponent(url.slice(actionScheme.length))
+    await this.opts.actionHandler(entryId)
+    this.close()
   }
 
   private getWindowBounds(tray: Electron.Tray): Electron.Rectangle {
@@ -114,7 +131,7 @@ export class DesktopTrayPopoverController {
 
   private async render(
     win: Electron.BrowserWindow,
-    state: DesktopRuntimeStateMessage,
+    state: DesktopTrayState,
   ): Promise<void> {
     await win.loadURL(
       `data:text/html;charset=utf-8,${encodeURIComponent(
@@ -144,9 +161,8 @@ export class DesktopTrayPopoverController {
 
 function renderDesktopTrayPopoverHtml(
   appName: string,
-  state: DesktopRuntimeStateMessage,
+  state: DesktopTrayState,
 ): string {
-  const health = healthLabel(state.health)
   return `<!doctype html>
 <html>
 <head>
@@ -168,7 +184,7 @@ body {
 }
 .surface {
   min-height: 100vh;
-  padding: 18px;
+  padding: 16px;
 }
 .header {
   display: flex;
@@ -189,43 +205,66 @@ body {
 .pill {
   border-radius: 999px;
   padding: 4px 9px;
-  background: ${healthColor(state.health)};
+  background: ${iconStateColor(state.iconState)};
   color: #101216;
   font-size: 11px;
   font-weight: 700;
   white-space: nowrap;
 }
-.section {
-  padding: 14px 0;
-  border-bottom: 1px solid #2c3038;
+.entries {
+  padding-top: 10px;
 }
-.section:last-child {
-  border-bottom: 0;
-}
-.section-title {
-  margin-bottom: 8px;
+.section-title,
+.path-title {
+  padding: 10px 0 4px;
   color: #d6d8dd;
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
 }
+.path-title {
+  color: #a9adb7;
+  font-size: 11px;
+}
+.separator {
+  height: 1px;
+  margin: 10px 0;
+  background: #2c3038;
+}
 .row {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
-  padding: 6px 0;
+  width: 100%;
+  min-height: 34px;
+  padding: 7px 8px;
+  border-radius: 6px;
+  color: inherit;
+  text-align: left;
+  text-decoration: none;
+}
+.row.action {
+  cursor: default;
+}
+.row.action:hover {
+  background: #242831;
+}
+.row.inactive {
+  color: #8d929d;
 }
 .label {
+  min-width: 0;
+  overflow: hidden;
   font-size: 13px;
   font-weight: 650;
-  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .detail {
+  min-width: 0;
+  overflow: hidden;
   color: #a9adb7;
   font-size: 12px;
-  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -235,7 +274,27 @@ body {
   font-size: 12px;
   white-space: nowrap;
 }
+.severity-info .status {
+  color: #9fd7ff;
+}
+.severity-warning .status {
+  color: #f6c453;
+}
+.severity-critical .status {
+  color: #ff9f9f;
+}
+.active .label::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  border-radius: 999px;
+  background: #95d47a;
+  vertical-align: 1px;
+}
 .empty {
+  padding: 16px 0;
   color: #8d929d;
   font-size: 12px;
 }
@@ -248,162 +307,160 @@ body {
         <div class="title">${escapeHtml(appName)}</div>
         <div class="subtle">${escapeHtml(state.statusText || 'Running')}</div>
       </div>
-      <div class="pill">${escapeHtml(health)}</div>
+      <div class="pill">${escapeHtml(iconStateLabel(state.iconState))}</div>
     </section>
-    ${renderListenerSection(state.listener)}
-    ${renderAttentionSection(state.attentionItems)}
-    ${renderNavigationSection('Sessions', state.sessions, 'No sessions')}
-    ${renderNavigationSection('Spaces', state.spaces, 'No spaces')}
-    ${renderActivitySection(state.activity)}
-    ${renderActionSection(state.actions)}
+    <section class="entries">
+      ${renderEntries(state.entries ?? [])}
+    </section>
   </main>
 </body>
 </html>`
 }
 
-function renderListenerSection(
-  listener: DesktopRuntimeListenerStatus | undefined,
-): string {
-  if (!listener) {
-    return renderSection('Status', '<div class="empty">Runtime starting</div>')
+function renderEntries(entries: DesktopTrayEntry[]): string {
+  if (!entries.length) {
+    return '<div class="empty">Runtime starting</div>'
   }
-  return renderSection(
-    'Status',
-    `<div class="row"><div><div class="label">${escapeHtml(
-      listener.label || 'CLI listener',
-    )}</div><div class="detail">${escapeHtml(listener.detail || '')}</div></div></div>`,
-  )
+  let currentPath = ''
+  return entries
+    .map((entry) => {
+      const nextPath = (entry.path ?? [])
+        .filter((part) => part !== '')
+        .join(' / ')
+      const pathHeader =
+        nextPath && nextPath !== currentPath ?
+          `<div class="path-title">${escapeHtml(nextPath)}</div>`
+        : ''
+      currentPath = nextPath
+      return pathHeader + renderEntry(entry)
+    })
+    .join('')
 }
 
-function renderAttentionSection(
-  items: DesktopRuntimeAttentionItem[] | undefined,
-): string {
-  if (!items?.length) {
-    return ''
+function renderEntry(entry: DesktopTrayEntry): string {
+  switch (entry.kind) {
+    case DesktopTrayEntryKind.SEPARATOR:
+      return '<div class="separator"></div>'
+    case DesktopTrayEntryKind.SECTION:
+    case DesktopTrayEntryKind.SUBMENU:
+      return `<div class="section-title">${escapeHtml(entry.label || '')}</div>`
+    case DesktopTrayEntryKind.ACTION:
+      return renderActionEntry(entry)
+    default:
+      return renderStaticEntry(entry)
   }
-  return renderSection(
-    'Attention',
-    items
-      .map((item) =>
-        renderRow(
-          item.label || 'Needs attention',
-          item.detail,
-          severityLabel(item.severity),
-        ),
-      )
-      .join(''),
-  )
 }
 
-function renderNavigationSection(
-  title: string,
-  items: DesktopRuntimeNavigationItem[] | undefined,
-  empty: string,
-): string {
-  if (!items?.length) {
-    return renderSection(title, `<div class="empty">${escapeHtml(empty)}</div>`)
+function renderActionEntry(entry: DesktopTrayEntry): string {
+  if (!canInvokeEntry(entry)) {
+    return renderStaticEntry(entry, 'Unavailable')
   }
-  return renderSection(
-    title,
-    items
-      .map((item) =>
-        renderRow(item.label || 'Untitled', item.detail, item.statusText),
-      )
-      .join(''),
-  )
+  return `<a class="${rowClass(entry, 'action')}" href="${actionHref(entry.id)}">${renderRowContents(
+    entry,
+    actionStatus(entry),
+  )}</a>`
 }
 
-function renderActivitySection(
-  items: DesktopRuntimeActivityItem[] | undefined,
-): string {
-  if (!items?.length) {
-    return ''
+function canInvokeEntry(entry: DesktopTrayEntry): boolean {
+  if (!(entry.enabled ?? false) || !entry.action) {
+    return false
   }
-  return renderSection(
-    'Activity',
-    items
-      .map((item) => renderRow(item.label || 'Activity', item.detail))
-      .join(''),
-  )
-}
-
-function renderActionSection(
-  items: DesktopRuntimeActionItem[] | undefined,
-): string {
-  if (!items?.length) {
-    return ''
+  switch (entry.action.kind) {
+    case DesktopTrayActionKind.OPEN_ROUTE:
+    case DesktopTrayActionKind.NEW_WINDOW:
+    case DesktopTrayActionKind.QUIT:
+    case DesktopTrayActionKind.ATTACHED_HANDLER:
+      return true
+    case DesktopTrayActionKind.COPY_TEXT:
+    case DesktopTrayActionKind.REVEAL_PATH:
+      return !!entry.action.value
+    default:
+      return false
   }
-  return renderSection(
-    'Quick Actions',
-    items
-      .map((item) =>
-        renderRow(
-          item.label || 'Action',
-          item.detail,
-          item.enabled ? '' : 'Unavailable',
-        ),
-      )
-      .join(''),
-  )
 }
 
-function renderSection(title: string, body: string): string {
-  return `<section class="section"><div class="section-title">${escapeHtml(
-    title,
-  )}</div>${body}</section>`
+function renderStaticEntry(entry: DesktopTrayEntry, status?: string): string {
+  return `<div class="${rowClass(entry, 'inactive')}">${renderRowContents(
+    entry,
+    status || entry.statusText,
+  )}</div>`
 }
 
-function renderRow(label: string, detail?: string, status?: string): string {
-  return `<div class="row"><div><div class="label">${escapeHtml(
-    label,
-  )}</div>${detail ? `<div class="detail">${escapeHtml(detail)}</div>` : ''}</div>${
-    status ? `<div class="status">${escapeHtml(status)}</div>` : ''
-  }</div>`
+function renderRowContents(entry: DesktopTrayEntry, status?: string): string {
+  return `<div><div class="label">${escapeHtml(entry.label || '')}</div>${
+    entry.detail ? `<div class="detail">${escapeHtml(entry.detail)}</div>` : ''
+  }</div>${status ? `<div class="status">${escapeHtml(status)}</div>` : ''}`
 }
 
-function healthLabel(health: DesktopRuntimeHealth | undefined): string {
-  switch (health) {
-    case DesktopRuntimeHealth.ACTIVE:
+function rowClass(entry: DesktopTrayEntry, extra: string): string {
+  return [
+    'row',
+    extra,
+    entry.active ? 'active' : '',
+    severityClass(entry.severity),
+  ]
+    .filter((part) => part !== '')
+    .join(' ')
+}
+
+function actionStatus(entry: DesktopTrayEntry): string {
+  if (entry.statusText) {
+    return entry.statusText
+  }
+  if (entry.action?.kind === DesktopTrayActionKind.COPY_TEXT) {
+    return 'Copy'
+  }
+  if (entry.action?.kind === DesktopTrayActionKind.REVEAL_PATH) {
+    return 'Reveal'
+  }
+  return ''
+}
+
+function actionHref(entryId: string | undefined): string {
+  return `${actionScheme}${encodeURIComponent(entryId || '')}`
+}
+
+function iconStateLabel(iconState: DesktopTrayIconState | undefined): string {
+  switch (iconState) {
+    case DesktopTrayIconState.ACTIVE:
       return 'Active'
-    case DesktopRuntimeHealth.NEEDS_ATTENTION:
+    case DesktopTrayIconState.ATTENTION:
       return 'Attention'
-    case DesktopRuntimeHealth.DISCONNECTED:
+    case DesktopTrayIconState.DISCONNECTED:
       return 'Offline'
-    case DesktopRuntimeHealth.QUITTING:
+    case DesktopTrayIconState.QUITTING:
       return 'Quitting'
-    case DesktopRuntimeHealth.STARTING:
-      return 'Starting'
     default:
       return 'Running'
   }
 }
 
-function healthColor(health: DesktopRuntimeHealth | undefined): string {
-  switch (health) {
-    case DesktopRuntimeHealth.ACTIVE:
+function iconStateColor(iconState: DesktopTrayIconState | undefined): string {
+  switch (iconState) {
+    case DesktopTrayIconState.ACTIVE:
       return '#69d2e7'
-    case DesktopRuntimeHealth.NEEDS_ATTENTION:
+    case DesktopTrayIconState.ATTENTION:
       return '#f6c453'
-    case DesktopRuntimeHealth.DISCONNECTED:
+    case DesktopTrayIconState.DISCONNECTED:
       return '#e26868'
-    case DesktopRuntimeHealth.QUITTING:
+    case DesktopTrayIconState.QUITTING:
       return '#aeb4c0'
-    case DesktopRuntimeHealth.STARTING:
-      return '#95d47a'
     default:
       return '#95d47a'
   }
 }
 
-function severityLabel(severity: number | undefined): string {
-  if (!severity) {
-    return ''
+function severityClass(severity: DesktopTraySeverity | undefined): string {
+  switch (severity) {
+    case DesktopTraySeverity.INFO:
+      return 'severity-info'
+    case DesktopTraySeverity.WARNING:
+      return 'severity-warning'
+    case DesktopTraySeverity.CRITICAL:
+      return 'severity-critical'
+    default:
+      return ''
   }
-  return (
-    severity >= 3 ? 'Critical'
-    : severity >= 2 ? 'Warning'
-    : 'Info'
-  )
 }
 
 function escapeHtml(value: string): string {
