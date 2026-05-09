@@ -53,6 +53,9 @@ type Controller struct {
 	// releaseMetadataRoutine resolves the current DistConfig against the
 	// Release World and stages the native entrypoint update when one applies.
 	releaseMetadataRoutine *routine.RoutineContainer
+	// configSetRoutine applies signed launcher controller configs carried by
+	// the current DistConfig.
+	configSetRoutine *routine.RoutineContainer
 	// stagingDirFunc overrides the platform staging dir in tests
 	stagingDirFunc func() (string, error)
 	// mtx guards below fields
@@ -101,6 +104,10 @@ func NewController(
 		routine.WithBackoff(fetcherBackoffConf.Construct()),
 	)
 	ctrl.releaseMetadataRoutine.SetRoutine(ctrl.refreshCurrentReleaseMetadataStatus)
+	ctrl.configSetRoutine = routine.NewRoutineContainer(
+		routine.WithExitLogger(le.WithField("routine", "launcher-config-set")),
+	)
+	ctrl.configSetRoutine.SetRoutine(ctrl.applyDistConfigSet)
 	_ = spacewave_launcher.SRPCRegisterLauncher(ctrl.mux, NewLauncherServer(ctrl))
 	return ctrl
 }
@@ -186,6 +193,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	c.launcherInfoCtr.SetValue(&spacewave_launcher.LauncherInfo{
 		DistConfig: distConf,
 	})
+	_ = c.configSetRoutine.SetContext(ctx, true)
 	_ = c.releaseMetadataRoutine.SetContext(ctx, true)
 	// seed fetch status with whether a non-empty dist config was found on disk
 	// or in the embedded default so downstream watchers start in the right
@@ -371,6 +379,9 @@ func (c *Controller) Close() error {
 	c.mtx.Unlock()
 	if c.releaseMetadataRoutine != nil {
 		c.releaseMetadataRoutine.ClearContext()
+	}
+	if c.configSetRoutine != nil {
+		c.configSetRoutine.ClearContext()
 	}
 	return nil
 }

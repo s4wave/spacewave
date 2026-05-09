@@ -3,26 +3,39 @@ package plugin_host_scheduler
 import (
 	"context"
 	"strings"
+	"sync/atomic"
 	"testing"
 
+	"github.com/aperturerobotics/controllerbus/controller"
+	configset "github.com/aperturerobotics/controllerbus/controller/configset"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/promise"
 	"github.com/aperturerobotics/util/routine"
+	"github.com/blang/semver/v4"
 	"github.com/go-git/go-billy/v6/memfs"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	bldr_plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
+	plugin_host_controller "github.com/s4wave/spacewave/bldr/plugin/host/controller"
 	"github.com/s4wave/spacewave/db/block"
+	block_store "github.com/s4wave/spacewave/db/block/store"
+	block_store_controller "github.com/s4wave/spacewave/db/block/store/controller"
+	block_store_kvtx "github.com/s4wave/spacewave/db/block/store/kvtx"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	lookup_concurrent "github.com/s4wave/spacewave/db/bucket/lookup/concurrent"
+	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
+	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/unixfs"
+	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
+	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
@@ -1207,6 +1220,146 @@ func TestProcessManifestWorldStateRunsDownloadAndExecuteForRemoteManifest(t *tes
 	}
 }
 
+func TestExecPluginReadsExternalManifestViaLookupBlockFromNetwork(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const objKey = "plugin-host"
+	if _, err := bldr_manifest_world.CreateManifestStore(ctx, ws, objKey); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const lookupBucketID = "release-world-cdn-bucket"
+	bucketLkConfig, err := bucket.NewLookupConfig(configset.NewControllerConfig(1, &lookup_concurrent.Config{
+		NotFoundBehavior: lookup_concurrent.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE,
+	}))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	bucketConf, err := bucket.NewConfig(lookupBucketID, 1, nil, bucketLkConfig)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, _, _, err := tb.Volume.ApplyBucketConfig(ctx, bucketConf); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	remote := newTestExternalManifestRefWithDistAssets(t, ctx, lookupBucketID, "spacewave-core", "desktop/darwin/arm64", 3)
+	remoteStore := block_store.NewStore("test/release-world-cdn", remote.store)
+	storeCtrl := block_store_controller.NewController(
+		le,
+		controller.NewInfo("test/release-world-cdn-store", semver.MustParse("0.0.1"), ""),
+		block_store_controller.NewBlockStoreBuilder(remoteStore),
+		nil,
+		true,
+		[]string{lookupBucketID},
+		true,
+		false,
+	)
+	storeRel, err := tb.Bus.AddController(ctx, storeCtrl, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer storeRel()
+
+	const refKey = "plugin-host/ref/release-world-cdn"
+	storeTestManifestRefObject(t, ctx, ws, refKey, remote.ref)
+	if err := ws.SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad(objKey, refKey, "spacewave-core")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	got, errs, err := bldr_manifest_world.CollectStartupManifestsForManifestID(
+		ctx,
+		ws,
+		"spacewave-core",
+		[]string{"desktop/darwin/arm64"},
+		objKey,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(got) != 0 {
+		t.Fatalf("startup discovery selected external CDN ref, got %d", len(got))
+	}
+	if len(errs) != 1 {
+		t.Fatalf("startup discovery errors = %v", errs)
+	}
+	if remote.store.gets.Load() != 0 {
+		t.Fatal("startup local-only discovery should not invoke LookupBlockFromNetwork")
+	}
+
+	host := &releaseCDNRuntimePluginHost{
+		testPluginHost: testPluginHost{id: "desktop/darwin/arm64"},
+	}
+	hostCtrl := plugin_host_controller.NewController(
+		le,
+		tb.Bus,
+		controller.NewInfo("test/plugin-host", semver.MustParse("0.0.1"), ""),
+		host,
+	)
+	hostRel, err := tb.Bus.AddController(ctx, hostCtrl, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer hostRel()
+
+	var wsv world.WorldState = ws
+	pi := &pluginInstance{
+		c: &Controller{
+			bus:           tb.Bus,
+			conf:          &Config{},
+			objKey:        objKey,
+			worldStateCtr: ccontainer.NewCContainer(wsv),
+			hostVolumeCtr: ccontainer.NewCContainer(&hostVol{
+				vol: tb.Volume,
+				info: &volume.VolumeInfo{
+					VolumeId: tb.Volume.GetID(),
+				},
+			}),
+			pluginStatusCtr: ccontainer.NewCContainer(&PluginStatusSnapshot{}),
+			pluginStatus:    make(map[string]*bldr_plugin.PluginStatus),
+		},
+		le:               le,
+		pluginID:         "spacewave-core",
+		runningPluginCtr: ccontainer.NewCContainer[bldr_plugin.RunningPlugin](nil),
+	}
+	if err := pi.execPlugin(ctx, &executePluginArgs{
+		manifestSnapshot: &bldr_manifest.ManifestSnapshot{
+			ManifestRef: remote.ref.GetManifestRef(),
+			Manifest:    remote.manifest,
+		},
+		pluginHost: host,
+	}); err != nil {
+		t.Fatal(err.Error())
+	}
+	if remote.store.gets.Load() == 0 {
+		t.Fatal("expected demand execution to invoke LookupBlockFromNetwork")
+	}
+	if string(host.distData) != "console.log('release cdn')\n" {
+		t.Fatalf("dist entrypoint bytes = %q", host.distData)
+	}
+	if string(host.assetsData) != "release asset\n" {
+		t.Fatalf("asset bytes = %q", host.assetsData)
+	}
+}
+
 func TestDownloadManifestCopiesRemoteDAGAndStoresLocalWorldRef(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
@@ -1603,6 +1756,142 @@ func newTestStoredManifestRefWithDistInBucket(
 	return bldr_manifest.NewManifestRef(meta, ref)
 }
 
+type testExternalManifestRef struct {
+	ref      *bldr_manifest.ManifestRef
+	manifest *bldr_manifest.Manifest
+	store    *countingBlockStore
+}
+
+func newTestExternalManifestRefWithDistAssets(
+	t *testing.T,
+	ctx context.Context,
+	bucketID,
+	manifestID,
+	platformID string,
+	rev uint64,
+) *testExternalManifestRef {
+	t.Helper()
+
+	const entrypoint = "plugin.js"
+	distFS := memfs.New()
+	f, err := distFS.Create(entrypoint)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := f.Write([]byte("console.log('release cdn')\n")); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := f.Close(); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	assetsFS := memfs.New()
+	f, err = assetsFS.Create("asset.txt")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := f.Write([]byte("release asset\n")); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := f.Close(); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	kvk, err := store_kvkey.NewKVKey(nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ops := block_store_kvtx.NewKVTxBlock(kvk, store_kvtx_inmem.NewStore(), 0, true)
+	store := &countingBlockStore{store: ops}
+	meta := bldr_manifest.NewManifestMeta(manifestID, bldr_manifest.BuildType_RELEASE, platformID, rev)
+	btx, bcs := block.NewTransaction(store, nil, nil, nil)
+	manifest, err := bldr_manifest.CreateManifestWithBilly(ctx, bcs, meta, entrypoint, distFS, assetsFS, timestamppb.Now())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	rootRef, _, err := btx.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ref := &bucket.ObjectRef{
+		BucketId: bucketID,
+		RootRef:  rootRef,
+	}
+	return &testExternalManifestRef{
+		ref:      bldr_manifest.NewManifestRef(meta, ref),
+		manifest: manifest.CloneVT(),
+		store:    store,
+	}
+}
+
+type countingBlockStore struct {
+	store block.StoreOps
+	gets  atomic.Uint32
+}
+
+func (s *countingBlockStore) GetHashType() hash.HashType {
+	return s.store.GetHashType()
+}
+
+func (s *countingBlockStore) GetSupportedFeatures() block.StoreFeature {
+	return s.store.GetSupportedFeatures()
+}
+
+func (s *countingBlockStore) PutBlock(
+	ctx context.Context,
+	data []byte,
+	opts *block.PutOpts,
+) (*block.BlockRef, bool, error) {
+	return s.store.PutBlock(ctx, data, opts)
+}
+
+func (s *countingBlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	return s.store.PutBlockBatch(ctx, entries)
+}
+
+func (s *countingBlockStore) PutBlockBackground(
+	ctx context.Context,
+	data []byte,
+	opts *block.PutOpts,
+) (*block.BlockRef, bool, error) {
+	return s.store.PutBlockBackground(ctx, data, opts)
+}
+
+func (s *countingBlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	s.gets.Add(1)
+	return s.store.GetBlock(ctx, ref)
+}
+
+func (s *countingBlockStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
+	return s.store.GetBlockExists(ctx, ref)
+}
+
+func (s *countingBlockStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	return s.store.GetBlockExistsBatch(ctx, refs)
+}
+
+func (s *countingBlockStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
+	return s.store.RmBlock(ctx, ref)
+}
+
+func (s *countingBlockStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
+	return s.store.StatBlock(ctx, ref)
+}
+
+func (s *countingBlockStore) Flush(ctx context.Context) error {
+	return s.store.Flush(ctx)
+}
+
+func (s *countingBlockStore) BeginDeferFlush() {
+	s.store.BeginDeferFlush()
+}
+
+func (s *countingBlockStore) EndDeferFlush(ctx context.Context) error {
+	return s.store.EndDeferFlush(ctx)
+}
+
+var _ block.StoreOps = ((*countingBlockStore)(nil))
+
 func storeTestManifestRefObject(
 	t *testing.T,
 	ctx context.Context,
@@ -1680,4 +1969,50 @@ func (h *testPluginHost) ExecutePlugin(
 
 func (h *testPluginHost) DeletePlugin(ctx context.Context, pluginID string) error {
 	return nil
+}
+
+type releaseCDNRuntimePluginHost struct {
+	testPluginHost
+	distData   []byte
+	assetsData []byte
+}
+
+func (h *releaseCDNRuntimePluginHost) Execute(ctx context.Context) error {
+	<-ctx.Done()
+	return context.Canceled
+}
+
+func (h *releaseCDNRuntimePluginHost) ExecutePlugin(
+	ctx context.Context,
+	pluginID,
+	instanceKey,
+	entrypoint string,
+	pluginDist *unixfs.FSHandle,
+	pluginAssets *unixfs.FSHandle,
+	hostRpcMux srpc.Mux,
+	rpcInit bldr_plugin_host.PluginRpcInitCb,
+) error {
+	distFile, _, err := pluginDist.LookupPath(ctx, entrypoint)
+	if err != nil {
+		if distFile != nil {
+			distFile.Release()
+		}
+		return err
+	}
+	defer distFile.Release()
+	h.distData, err = unixfs.ReadFile(ctx, distFile)
+	if err != nil {
+		return err
+	}
+
+	assetFile, _, err := pluginAssets.LookupPath(ctx, "asset.txt")
+	if err != nil {
+		if assetFile != nil {
+			assetFile.Release()
+		}
+		return err
+	}
+	defer assetFile.Release()
+	h.assetsData, err = unixfs.ReadFile(ctx, assetFile)
+	return err
 }

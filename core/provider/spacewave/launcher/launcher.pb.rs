@@ -5,7 +5,7 @@
 /// and valid signature is accepted as the latest config.
 ///
 /// Usually encoded with packedmsg(peer.SignedMsg(DistConfig))
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DistConfig {
     /// ProjectId is the identifier of the project.
     /// usually matches the id: field in the project config.
@@ -15,12 +15,17 @@ pub struct DistConfig {
     /// Rev is the revision of this app config object.
     #[prost(uint64, tag="2")]
     pub rev: u64,
+    /// LauncherConfigSet is a ConfigSet to apply to the launcher host bus.
+    /// This signed field carries trusted release-time host services such as the
+    /// Release World CDN block-store provider.
+    #[prost(map="string, message", tag="3")]
+    pub launcher_config_set: ::std::collections::HashMap<::prost::alloc::string::String, super::super::configset::proto::ControllerConfig>,
     /// ChannelKey selects the release channel this DistConfig targets.
     #[prost(string, tag="8")]
     pub channel_key: ::prost::alloc::string::String,
 }
 /// LauncherInfo contains information about the state of the launcher.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LauncherInfo {
     /// DistConfig contains the latest app dist config object.
     /// May be empty if the config is not known / fetched yet.

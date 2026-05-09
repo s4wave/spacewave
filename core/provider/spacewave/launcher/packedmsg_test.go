@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/s4wave/spacewave/bldr/util/packedmsg"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
@@ -28,6 +29,13 @@ func TestPackDistConfig(t *testing.T) {
 		ProjectId:  "bldr-test",
 		Rev:        42,
 		ChannelKey: "stable",
+		LauncherConfigSet: map[string]*configset_proto.ControllerConfig{
+			"release-world-cdn-store": {
+				Id:     "spacewave/cdn/bstore",
+				Rev:    42,
+				Config: []byte("encoded release cdn config"),
+			},
+		},
 	}
 
 	signerPriv, err := signerPeer.GetPrivKey(context.Background())
@@ -108,5 +116,29 @@ func TestParseDistConfigPackedMsgRejectsMissingChannelKey(t *testing.T) {
 	}
 	if _, err := EncodeSignedDistConfig(signerPriv, config); err == nil {
 		t.Fatal("expected missing channel_key to be rejected before signing")
+	}
+}
+
+func TestEncodeSignedDistConfigRejectsInvalidLauncherConfigSet(t *testing.T) {
+	signerPeer, err := peer.NewPeer(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	config := &DistConfig{
+		ProjectId:  "bldr-test",
+		Rev:        42,
+		ChannelKey: "stable",
+		LauncherConfigSet: map[string]*configset_proto.ControllerConfig{
+			"missing-id": {
+				Rev: 42,
+			},
+		},
+	}
+	signerPriv, err := signerPeer.GetPrivKey(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := EncodeSignedDistConfig(signerPriv, config); err == nil {
+		t.Fatal("expected invalid launcher_config_set to be rejected before signing")
 	}
 }

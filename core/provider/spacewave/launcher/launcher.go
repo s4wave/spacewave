@@ -1,6 +1,7 @@
 package spacewave_launcher
 
 import (
+	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
 )
@@ -27,6 +28,9 @@ func (c *DistConfig) Validate() error {
 	}
 	if c.GetChannelKey() == "" {
 		return errors.New("channel key cannot be empty")
+	}
+	if err := configset_proto.ConfigSetMap(c.GetLauncherConfigSet()).Validate(); err != nil {
+		return errors.Wrap(err, "launcher_config_set")
 	}
 	return nil
 }

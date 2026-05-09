@@ -1,6 +1,8 @@
 syntax = "proto3";
 package spacewave.launcher;
 
+import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
+
 // DistConfig is the encoded and signed object that is exposed on the
 // distribution URL endpoints. The config with the highest valid revision field
 // and valid signature is accepted as the latest config.
@@ -14,18 +16,22 @@ message DistConfig {
   // Rev is the revision of this app config object.
   uint64 rev = 2;
 
+  // LauncherConfigSet is a ConfigSet to apply to the launcher host bus.
+  // This signed field carries trusted release-time host services such as the
+  // Release World CDN block-store provider.
+  map<string, .configset.proto.ControllerConfig> launcher_config_set = 3;
+
   // ChannelKey selects the release channel this DistConfig targets.
   string channel_key = 8;
 
   // Reserved field numbers. Previously:
-  //   3 -> map<string, ControllerConfig> launcher_config_set
   //   4 -> string entrypoint_version
   //   5 -> map<string, EntrypointAsset> entrypoint_assets
   //   6 -> string plugin_version
   //   7 -> map<string, PluginAsset> plugin_assets
-  reserved 3, 4, 5, 6, 7;
-  reserved "launcher_config_set", "entrypoint_version", "entrypoint_assets",
-    "plugin_version", "plugin_assets";
+  reserved 4, 5, 6, 7;
+  reserved "entrypoint_version", "entrypoint_assets", "plugin_version",
+    "plugin_assets";
 }
 
 // LauncherInfo contains information about the state of the launcher.

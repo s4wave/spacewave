@@ -7,10 +7,12 @@ package spacewave_launcher
 import (
 	fmt "fmt"
 	io "io"
+	maps "maps"
 	slices "slices"
 	strconv "strconv"
 	strings "strings"
 
+	proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
@@ -76,6 +78,10 @@ type DistConfig struct {
 	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"projectId,omitempty"`
 	// Rev is the revision of this app config object.
 	Rev uint64 `protobuf:"varint,2,opt,name=rev,proto3" json:"rev,omitempty"`
+	// LauncherConfigSet is a ConfigSet to apply to the launcher host bus.
+	// This signed field carries trusted release-time host services such as the
+	// Release World CDN block-store provider.
+	LauncherConfigSet map[string]*proto.ControllerConfig `protobuf:"bytes,3,rep,name=launcher_config_set,json=launcherConfigSet,proto3" json:"launcherConfigSet,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// ChannelKey selects the release channel this DistConfig targets.
 	ChannelKey string `protobuf:"bytes,8,opt,name=channel_key,json=channelKey,proto3" json:"channelKey,omitempty"`
 }
@@ -98,6 +104,13 @@ func (x *DistConfig) GetRev() uint64 {
 		return x.Rev
 	}
 	return 0
+}
+
+func (x *DistConfig) GetLauncherConfigSet() map[string]*proto.ControllerConfig {
+	if x != nil {
+		return x.LauncherConfigSet
+	}
+	return nil
 }
 
 func (x *DistConfig) GetChannelKey() string {
@@ -319,6 +332,32 @@ func (x *ApplyUpdateResponse) Reset() {
 
 func (*ApplyUpdateResponse) ProtoMessage() {}
 
+type DistConfig_LauncherConfigSetEntry struct {
+	unknownFields []byte
+	Key           string                  `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Value         *proto.ControllerConfig `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+}
+
+func (x *DistConfig_LauncherConfigSetEntry) Reset() {
+	*x = DistConfig_LauncherConfigSetEntry{}
+}
+
+func (*DistConfig_LauncherConfigSetEntry) ProtoMessage() {}
+
+func (x *DistConfig_LauncherConfigSetEntry) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *DistConfig_LauncherConfigSetEntry) GetValue() *proto.ControllerConfig {
+	if x != nil {
+		return x.Value
+	}
+	return nil
+}
+
 func (m *DistConfig) CloneVT() *DistConfig {
 	if m == nil {
 		return (*DistConfig)(nil)
@@ -327,6 +366,12 @@ func (m *DistConfig) CloneVT() *DistConfig {
 	r.ProjectId = m.ProjectId
 	r.Rev = m.Rev
 	r.ChannelKey = m.ChannelKey
+	if rhs := m.LauncherConfigSet; rhs != nil {
+		r.LauncherConfigSet = make(map[string]*proto.ControllerConfig, len(rhs))
+		for k, v := range rhs {
+			r.LauncherConfigSet[k] = v.CloneVT()
+		}
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -495,6 +540,26 @@ func (this *DistConfig) EqualVT(that *DistConfig) bool {
 	}
 	if this.Rev != that.Rev {
 		return false
+	}
+	if len(this.LauncherConfigSet) != len(that.LauncherConfigSet) {
+		return false
+	}
+	for i, vx := range this.LauncherConfigSet {
+		vy, ok := that.LauncherConfigSet[i]
+		if !ok {
+			return false
+		}
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &proto.ControllerConfig{}
+			}
+			if q == nil {
+				q = &proto.ControllerConfig{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
 	}
 	if this.ChannelKey != that.ChannelKey {
 		return false
@@ -739,6 +804,60 @@ func (x *UpdatePhase) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the DistConfig_LauncherConfigSetEntry message to JSON.
+func (x *DistConfig_LauncherConfigSetEntry) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Key != "" || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		s.WriteString(x.Key)
+	}
+	if x.Value != nil || s.HasField("value") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("value")
+		x.Value.MarshalProtoJSON(s.WithField("value"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the DistConfig_LauncherConfigSetEntry to JSON.
+func (x *DistConfig_LauncherConfigSetEntry) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DistConfig_LauncherConfigSetEntry message from JSON.
+func (x *DistConfig_LauncherConfigSetEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "key":
+			s.AddField("key")
+			x.Key = s.ReadString()
+		case "value":
+			if s.ReadNil() {
+				x.Value = nil
+				return
+			}
+			x.Value = &proto.ControllerConfig{}
+			x.Value.UnmarshalProtoJSON(s.WithField("value", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the DistConfig_LauncherConfigSetEntry from JSON.
+func (x *DistConfig_LauncherConfigSetEntry) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the DistConfig message to JSON.
 func (x *DistConfig) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -756,6 +875,18 @@ func (x *DistConfig) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("rev")
 		s.WriteUint64(x.Rev)
+	}
+	if x.LauncherConfigSet != nil || s.HasField("launcherConfigSet") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("launcherConfigSet")
+		s.WriteObjectStart()
+		var wroteElement bool
+		for k, v := range x.LauncherConfigSet {
+			s.WriteMoreIf(&wroteElement)
+			s.WriteObjectStringField(k)
+			v.MarshalProtoJSON(s.WithField("launcherConfigSet"))
+		}
+		s.WriteObjectEnd()
 	}
 	if x.ChannelKey != "" || s.HasField("channelKey") {
 		s.WriteMoreIf(&wroteField)
@@ -785,6 +916,18 @@ func (x *DistConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "rev":
 			s.AddField("rev")
 			x.Rev = s.ReadUint64()
+		case "launcher_config_set", "launcherConfigSet":
+			s.AddField("launcher_config_set")
+			if s.ReadNil() {
+				x.LauncherConfigSet = nil
+				return
+			}
+			x.LauncherConfigSet = make(map[string]*proto.ControllerConfig)
+			s.ReadStringMap(func(key string) {
+				var v proto.ControllerConfig
+				v.UnmarshalProtoJSON(s)
+				x.LauncherConfigSet[key] = &v
+			})
 		case "channel_key", "channelKey":
 			s.AddField("channel_key")
 			x.ChannelKey = s.ReadString()
@@ -1224,6 +1367,28 @@ func (m *DistConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x42
 	}
+	if len(m.LauncherConfigSet) > 0 {
+		for k := range m.LauncherConfigSet {
+			v := m.LauncherConfigSet[k]
+			baseI := i
+			size, err := v.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+			i -= len(k)
+			copy(dAtA[i:], k)
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(k)))
+			i--
+			dAtA[i] = 0xa
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
 	if m.Rev != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Rev))
 		i--
@@ -1637,6 +1802,19 @@ func (m *DistConfig) SizeVT() (n int) {
 	if m.Rev != 0 {
 		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Rev))
 	}
+	if len(m.LauncherConfigSet) > 0 {
+		for k, v := range m.LauncherConfigSet {
+			_ = k
+			_ = v
+			l = 0
+			if v != nil {
+				l = v.SizeVT()
+			}
+			l += 1 + protobuf_go_lite.SizeOfVarint(uint64(l))
+			mapEntrySize := 1 + len(k) + protobuf_go_lite.SizeOfVarint(uint64(len(k))) + l
+			n += mapEntrySize + 1 + protobuf_go_lite.SizeOfVarint(uint64(mapEntrySize))
+		}
+	}
 	l = len(m.ChannelKey)
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
@@ -1781,6 +1959,31 @@ func (x UpdatePhase) MarshalProtoText() string {
 	return x.String()
 }
 
+func (x *DistConfig_LauncherConfigSetEntry) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("LauncherConfigSetEntry {")
+	if x.Key != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("key: ")
+		sb.WriteString(strconv.Quote(x.Key))
+	}
+	if x.Value != nil {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("value: ")
+		sb.WriteString(x.Value.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *DistConfig_LauncherConfigSetEntry) String() string {
+	return x.MarshalProtoText()
+}
+
 func (x *DistConfig) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("DistConfig {")
@@ -1797,6 +2000,20 @@ func (x *DistConfig) MarshalProtoText() string {
 		}
 		sb.WriteString("rev: ")
 		sb.WriteString(strconv.FormatUint(uint64(x.Rev), 10))
+	}
+	if len(x.LauncherConfigSet) > 0 {
+		if sb.Len() > 12 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("launcher_config_set: {")
+		for _, k := range slices.Sorted(maps.Keys(x.LauncherConfigSet)) {
+			v := x.LauncherConfigSet[k]
+			sb.WriteString(" ")
+			sb.WriteString(strconv.Quote(k))
+			sb.WriteString(": ")
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString(" }")
 	}
 	if x.ChannelKey != "" {
 		if sb.Len() > 12 {
@@ -2049,6 +2266,99 @@ func (m *DistConfig) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LauncherConfigSet", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.LauncherConfigSet == nil {
+				m.LauncherConfigSet = make(map[string]*proto.ControllerConfig)
+			}
+			var mapkey string
+			var mapvalue *proto.ControllerConfig
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+				if err != nil {
+					return err
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					var stringLenmapkey uint64
+					stringLenmapkey, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+					if err != nil {
+						return err
+					}
+					intStringLenmapkey := int(stringLenmapkey)
+					if intStringLenmapkey < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					postStringIndexmapkey := iNdEx + intStringLenmapkey
+					if postStringIndexmapkey < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					if postStringIndexmapkey > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
+					iNdEx = postStringIndexmapkey
+				} else if fieldNum == 2 {
+					var mapmsglen int
+					var _v uint64
+					_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+					mapmsglen = int(_v)
+					if err != nil {
+						return err
+					}
+					if mapmsglen < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					postmsgIndex := iNdEx + mapmsglen
+					if postmsgIndex < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					if postmsgIndex > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapvalue = &proto.ControllerConfig{}
+					if err := mapvalue.UnmarshalVT(dAtA[iNdEx:postmsgIndex]); err != nil {
+						return err
+					}
+					iNdEx = postmsgIndex
+				} else {
+					iNdEx = entryPreIndex
+					skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+					if err != nil {
+						return err
+					}
+					if (skippy < 0) || (iNdEx+skippy) < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					if (iNdEx + skippy) > postIndex {
+						return io.ErrUnexpectedEOF
+					}
+					iNdEx += skippy
+				}
+			}
+			m.LauncherConfigSet[mapkey] = mapvalue
+			iNdEx = postIndex
 		case 8:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ChannelKey", wireType)

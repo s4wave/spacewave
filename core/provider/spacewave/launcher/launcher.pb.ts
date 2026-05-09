@@ -8,6 +8,7 @@ import {
   createMessageType,
   ScalarType,
 } from '@aptre/protobuf-es-lite'
+import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 
 export const protobufPackage = 'spacewave.launcher'
 
@@ -90,6 +91,14 @@ export interface DistConfig {
    */
   rev?: bigint
   /**
+   * LauncherConfigSet is a ConfigSet to apply to the launcher host bus.
+   * This signed field carries trusted release-time host services such as the
+   * Release World CDN block-store provider.
+   *
+   * @generated from field: map<string, configset.proto.ControllerConfig> launcher_config_set = 3;
+   */
+  launcherConfigSet?: { [key: string]: ControllerConfig }
+  /**
    * ChannelKey selects the release channel this DistConfig targets.
    *
    * @generated from field: string channel_key = 8;
@@ -103,6 +112,13 @@ export const DistConfig: MessageType<DistConfig> = createMessageType({
   fields: [
     { no: 1, name: 'project_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
+    {
+      no: 3,
+      name: 'launcher_config_set',
+      kind: 'map',
+      K: ScalarType.STRING,
+      V: { kind: 'message', T: () => ControllerConfig },
+    },
     { no: 8, name: 'channel_key', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,

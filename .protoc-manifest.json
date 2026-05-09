@@ -1287,7 +1287,7 @@
       "protoFiles": ["core/provider/spacewave/cacheseed/cacheseed.proto"]
     },
     "github.com/s4wave/spacewave/core/provider/spacewave/launcher": {
-      "hash": "542a9503c4db06b026dd1569a44429984d8d3115a2d3a2b4be5f0169eb318709",
+      "hash": "5d8cc05d6180e69fa143b243a514c3870b100094baabde691e7dd2eda411a373",
       "generatedFiles": [
         "core/provider/spacewave/launcher/launcher.pb.cc",
         "core/provider/spacewave/launcher/launcher.pb.go",

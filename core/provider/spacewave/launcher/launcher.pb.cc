@@ -172,37 +172,6 @@ struct PushDistConfigRequestDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 PushDistConfigRequestDefaultTypeInternal _PushDistConfigRequest_default_instance_;
-
-inline constexpr DistConfig::Impl_::Impl_(
-    ::_pbi::ConstantInitialized) noexcept
-      : _cached_size_{0},
-        project_id_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
-        channel_key_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
-        rev_{::uint64_t{0u}} {}
-
-template <typename>
-PROTOBUF_CONSTEXPR DistConfig::DistConfig(::_pbi::ConstantInitialized)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(DistConfig_class_data_.base()),
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(),
-#endif  // PROTOBUF_CUSTOM_VTABLE
-      _impl_(::_pbi::ConstantInitialized()) {
-}
-struct DistConfigDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR DistConfigDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~DistConfigDefaultTypeInternal() {}
-  union {
-    DistConfig _instance;
-  };
-};
-
-PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DistConfigDefaultTypeInternal _DistConfig_default_instance_;
 template <typename>
 PROTOBUF_CONSTEXPR ApplyUpdateResponse::ApplyUpdateResponse(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -239,6 +208,56 @@ struct ApplyUpdateRequestDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ApplyUpdateRequestDefaultTypeInternal _ApplyUpdateRequest_default_instance_;
+template <typename>
+PROTOBUF_CONSTEXPR DistConfig_LauncherConfigSetEntry_DoNotUse::DistConfig_LauncherConfigSetEntry_DoNotUse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : DistConfig_LauncherConfigSetEntry_DoNotUse::MapEntry(DistConfig_LauncherConfigSetEntry_DoNotUse_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : DistConfig_LauncherConfigSetEntry_DoNotUse::MapEntry() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct DistConfig_LauncherConfigSetEntry_DoNotUseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR DistConfig_LauncherConfigSetEntry_DoNotUseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~DistConfig_LauncherConfigSetEntry_DoNotUseDefaultTypeInternal() {}
+  union {
+    DistConfig_LauncherConfigSetEntry_DoNotUse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DistConfig_LauncherConfigSetEntry_DoNotUseDefaultTypeInternal _DistConfig_LauncherConfigSetEntry_DoNotUse_default_instance_;
+
+inline constexpr DistConfig::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        project_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        channel_key_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        rev_{::uint64_t{0u}},
+        launcher_config_set_{} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR DistConfig::DistConfig(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(DistConfig_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct DistConfigDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR DistConfigDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~DistConfigDefaultTypeInternal() {}
+  union {
+    DistConfig _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DistConfigDefaultTypeInternal _DistConfig_default_instance_;
 
 inline constexpr LauncherInfo::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -275,13 +294,22 @@ const ::uint32_t
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2flauncher_2flauncher_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::spacewave::launcher::DistConfig_LauncherConfigSetEntry_DoNotUse, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::spacewave::launcher::DistConfig_LauncherConfigSetEntry_DoNotUse, _impl_.key_),
+        PROTOBUF_FIELD_OFFSET(::spacewave::launcher::DistConfig_LauncherConfigSetEntry_DoNotUse, _impl_.value_),
+        0,
+        1,
+        0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::spacewave::launcher::DistConfig, _impl_._has_bits_),
-        6, // hasbit index offset
+        7, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::spacewave::launcher::DistConfig, _impl_.project_id_),
         PROTOBUF_FIELD_OFFSET(::spacewave::launcher::DistConfig, _impl_.rev_),
+        PROTOBUF_FIELD_OFFSET(::spacewave::launcher::DistConfig, _impl_.launcher_config_set_),
         PROTOBUF_FIELD_OFFSET(::spacewave::launcher::DistConfig, _impl_.channel_key_),
         0,
         2,
+        3,
         1,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::spacewave::launcher::LauncherInfo, _impl_._has_bits_),
@@ -328,18 +356,20 @@ const ::uint32_t
 
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
-        {0, sizeof(::spacewave::launcher::DistConfig)},
-        {9, sizeof(::spacewave::launcher::LauncherInfo)},
-        {16, sizeof(::spacewave::launcher::UpdateState)},
-        {29, sizeof(::spacewave::launcher::RecheckDistConfigRequest)},
-        {30, sizeof(::spacewave::launcher::RecheckDistConfigResponse)},
-        {31, sizeof(::spacewave::launcher::WatchLauncherInfoRequest)},
-        {32, sizeof(::spacewave::launcher::PushDistConfigRequest)},
-        {37, sizeof(::spacewave::launcher::PushDistConfigResponse)},
-        {48, sizeof(::spacewave::launcher::ApplyUpdateRequest)},
-        {49, sizeof(::spacewave::launcher::ApplyUpdateResponse)},
+        {0, sizeof(::spacewave::launcher::DistConfig_LauncherConfigSetEntry_DoNotUse)},
+        {7, sizeof(::spacewave::launcher::DistConfig)},
+        {18, sizeof(::spacewave::launcher::LauncherInfo)},
+        {25, sizeof(::spacewave::launcher::UpdateState)},
+        {38, sizeof(::spacewave::launcher::RecheckDistConfigRequest)},
+        {39, sizeof(::spacewave::launcher::RecheckDistConfigResponse)},
+        {40, sizeof(::spacewave::launcher::WatchLauncherInfoRequest)},
+        {41, sizeof(::spacewave::launcher::PushDistConfigRequest)},
+        {46, sizeof(::spacewave::launcher::PushDistConfigResponse)},
+        {57, sizeof(::spacewave::launcher::ApplyUpdateRequest)},
+        {58, sizeof(::spacewave::launcher::ApplyUpdateResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
+    &::spacewave::launcher::_DistConfig_LauncherConfigSetEntry_DoNotUse_default_instance_._instance,
     &::spacewave::launcher::_DistConfig_default_instance_._instance,
     &::spacewave::launcher::_LauncherInfo_default_instance_._instance,
     &::spacewave::launcher::_UpdateState_default_instance_._instance,
@@ -355,52 +385,62 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2f
     protodesc_cold) = {
     "\nKgithub.com/s4wave/spacewave/core/provi"
     "der/spacewave/launcher/launcher.proto\022\022s"
-    "pacewave.launcher\"\273\001\n\nDistConfig\022\022\n\nproj"
-    "ect_id\030\001 \001(\t\022\013\n\003rev\030\002 \001(\004\022\023\n\013channel_key"
-    "\030\010 \001(\tJ\004\010\003\020\004J\004\010\004\020\005J\004\010\005\020\006J\004\010\006\020\007J\004\010\007\020\010R\023la"
-    "uncher_config_setR\022entrypoint_versionR\021e"
-    "ntrypoint_assetsR\016plugin_versionR\rplugin"
-    "_assets\"z\n\014LauncherInfo\0223\n\013dist_config\030\001"
-    " \001(\0132\036.spacewave.launcher.DistConfig\0225\n\014"
-    "update_state\030\002 \001(\0132\037.spacewave.launcher."
-    "UpdateState\"\225\001\n\013UpdateState\022.\n\005phase\030\001 \001"
-    "(\0162\037.spacewave.launcher.UpdatePhase\022\017\n\007v"
-    "ersion\030\002 \001(\t\022\031\n\021download_progress\030\003 \001(\r\022"
-    "\023\n\013staged_path\030\004 \001(\t\022\025\n\rerror_message\030\005 "
-    "\001(\t\"\032\n\030RecheckDistConfigRequest\"\033\n\031Reche"
-    "ckDistConfigResponse\"\032\n\030WatchLauncherInf"
-    "oRequest\"%\n\025PushDistConfigRequest\022\014\n\004bod"
-    "y\030\001 \001(\t\"W\n\026PushDistConfigResponse\022\r\n\005val"
-    "id\030\001 \001(\010\022\017\n\007updated\030\002 \001(\010\022\013\n\003rev\030\003 \001(\004\022\020"
-    "\n\010prev_rev\030\004 \001(\004\"\024\n\022ApplyUpdateRequest\"\025"
-    "\n\023ApplyUpdateResponse*\211\001\n\013UpdatePhase\022\024\n"
-    "\020UpdatePhase_IDLE\020\000\022\033\n\027UpdatePhase_DOWNL"
-    "OADING\020\001\022\026\n\022UpdatePhase_STAGED\020\002\022\030\n\024Upda"
-    "tePhase_APPLYING\020\003\022\025\n\021UpdatePhase_ERROR\020"
-    "\0042\267\003\n\010Launcher\022g\n\021WatchLauncherInfo\022,.sp"
-    "acewave.launcher.WatchLauncherInfoReques"
-    "t\032 .spacewave.launcher.LauncherInfo\"\0000\001\022"
-    "l\n\021PushDistConfigMsg\022).spacewave.launche"
-    "r.PushDistConfigRequest\032*.spacewave.laun"
-    "cher.PushDistConfigResponse\"\000\022r\n\021Recheck"
-    "DistConfig\022,.spacewave.launcher.RecheckD"
-    "istConfigRequest\032-.spacewave.launcher.Re"
-    "checkDistConfigResponse\"\000\022`\n\013ApplyUpdate"
-    "\022&.spacewave.launcher.ApplyUpdateRequest"
-    "\032\'.spacewave.launcher.ApplyUpdateRespons"
-    "e\"\000b\006proto3"
+    "pacewave.launcher\032Tgithub.com/aperturero"
+    "botics/controllerbus/controller/configse"
+    "t/proto/configset.proto\"\321\002\n\nDistConfig\022\022"
+    "\n\nproject_id\030\001 \001(\t\022\013\n\003rev\030\002 \001(\004\022R\n\023launc"
+    "her_config_set\030\003 \003(\01325.spacewave.launche"
+    "r.DistConfig.LauncherConfigSetEntry\022\023\n\013c"
+    "hannel_key\030\010 \001(\t\032[\n\026LauncherConfigSetEnt"
+    "ry\022\013\n\003key\030\001 \001(\t\0220\n\005value\030\002 \001(\0132!.configs"
+    "et.proto.ControllerConfig:\0028\001J\004\010\004\020\005J\004\010\005\020"
+    "\006J\004\010\006\020\007J\004\010\007\020\010R\022entrypoint_versionR\021entry"
+    "point_assetsR\016plugin_versionR\rplugin_ass"
+    "ets\"z\n\014LauncherInfo\0223\n\013dist_config\030\001 \001(\013"
+    "2\036.spacewave.launcher.DistConfig\0225\n\014upda"
+    "te_state\030\002 \001(\0132\037.spacewave.launcher.Upda"
+    "teState\"\225\001\n\013UpdateState\022.\n\005phase\030\001 \001(\0162\037"
+    ".spacewave.launcher.UpdatePhase\022\017\n\007versi"
+    "on\030\002 \001(\t\022\031\n\021download_progress\030\003 \001(\r\022\023\n\013s"
+    "taged_path\030\004 \001(\t\022\025\n\rerror_message\030\005 \001(\t\""
+    "\032\n\030RecheckDistConfigRequest\"\033\n\031RecheckDi"
+    "stConfigResponse\"\032\n\030WatchLauncherInfoReq"
+    "uest\"%\n\025PushDistConfigRequest\022\014\n\004body\030\001 "
+    "\001(\t\"W\n\026PushDistConfigResponse\022\r\n\005valid\030\001"
+    " \001(\010\022\017\n\007updated\030\002 \001(\010\022\013\n\003rev\030\003 \001(\004\022\020\n\010pr"
+    "ev_rev\030\004 \001(\004\"\024\n\022ApplyUpdateRequest\"\025\n\023Ap"
+    "plyUpdateResponse*\211\001\n\013UpdatePhase\022\024\n\020Upd"
+    "atePhase_IDLE\020\000\022\033\n\027UpdatePhase_DOWNLOADI"
+    "NG\020\001\022\026\n\022UpdatePhase_STAGED\020\002\022\030\n\024UpdatePh"
+    "ase_APPLYING\020\003\022\025\n\021UpdatePhase_ERROR\020\0042\267\003"
+    "\n\010Launcher\022g\n\021WatchLauncherInfo\022,.spacew"
+    "ave.launcher.WatchLauncherInfoRequest\032 ."
+    "spacewave.launcher.LauncherInfo\"\0000\001\022l\n\021P"
+    "ushDistConfigMsg\022).spacewave.launcher.Pu"
+    "shDistConfigRequest\032*.spacewave.launcher"
+    ".PushDistConfigResponse\"\000\022r\n\021RecheckDist"
+    "Config\022,.spacewave.launcher.RecheckDistC"
+    "onfigRequest\032-.spacewave.launcher.Rechec"
+    "kDistConfigResponse\"\000\022`\n\013ApplyUpdate\022&.s"
+    "pacewave.launcher.ApplyUpdateRequest\032\'.s"
+    "pacewave.launcher.ApplyUpdateResponse\"\000b"
+    "\006proto3"
+};
+static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2flauncher_2flauncher_2eproto_deps[1] = {
+        &::descriptor_table_github_2ecom_2faperturerobotics_2fcontrollerbus_2fcontroller_2fconfigset_2fproto_2fconfigset_2eproto,
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2flauncher_2flauncher_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2flauncher_2flauncher_2eproto = {
     false,
     false,
-    1411,
+    1647,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2flauncher_2flauncher_2eproto,
     "github.com/s4wave/spacewave/core/provider/spacewave/launcher/launcher.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2flauncher_2flauncher_2eproto_once,
-    nullptr,
-    0,
-    10,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2flauncher_2flauncher_2eproto_deps,
+    1,
+    11,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2flauncher_2flauncher_2eproto::offsets,
@@ -417,6 +457,105 @@ PROTOBUF_CONSTINIT const uint32_t UpdatePhase_internal_data_[] = {
     327680u, 0u, };
 // ===================================================================
 
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+DistConfig_LauncherConfigSetEntry_DoNotUse::DistConfig_LauncherConfigSetEntry_DoNotUse()
+    : SuperType(DistConfig_LauncherConfigSetEntry_DoNotUse_class_data_.base()) {}
+DistConfig_LauncherConfigSetEntry_DoNotUse::DistConfig_LauncherConfigSetEntry_DoNotUse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+    : SuperType(arena, DistConfig_LauncherConfigSetEntry_DoNotUse_class_data_.base()) {}
+#else   // PROTOBUF_CUSTOM_VTABLE
+DistConfig_LauncherConfigSetEntry_DoNotUse::DistConfig_LauncherConfigSetEntry_DoNotUse() : SuperType() {}
+DistConfig_LauncherConfigSetEntry_DoNotUse::DistConfig_LauncherConfigSetEntry_DoNotUse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena) : SuperType(arena) {}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+inline void* PROTOBUF_NONNULL DistConfig_LauncherConfigSetEntry_DoNotUse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) DistConfig_LauncherConfigSetEntry_DoNotUse(arena);
+}
+constexpr auto DistConfig_LauncherConfigSetEntry_DoNotUse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(DistConfig_LauncherConfigSetEntry_DoNotUse),
+                                            alignof(DistConfig_LauncherConfigSetEntry_DoNotUse));
+}
+constexpr auto DistConfig_LauncherConfigSetEntry_DoNotUse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_DistConfig_LauncherConfigSetEntry_DoNotUse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &DistConfig_LauncherConfigSetEntry_DoNotUse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<DistConfig_LauncherConfigSetEntry_DoNotUse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &DistConfig_LauncherConfigSetEntry_DoNotUse::SharedDtor,
+          static_cast<void (::google::protobuf::MessageLite::*)()>(&DistConfig_LauncherConfigSetEntry_DoNotUse::ClearImpl),
+              ::google::protobuf::Message::ByteSizeLongImpl, ::google::protobuf::Message::_InternalSerializeImpl
+              ,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(DistConfig_LauncherConfigSetEntry_DoNotUse, _impl_._cached_size_),
+          false,
+      },
+      &DistConfig_LauncherConfigSetEntry_DoNotUse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2flauncher_2flauncher_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull DistConfig_LauncherConfigSetEntry_DoNotUse_class_data_ =
+        DistConfig_LauncherConfigSetEntry_DoNotUse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+DistConfig_LauncherConfigSetEntry_DoNotUse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&DistConfig_LauncherConfigSetEntry_DoNotUse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(DistConfig_LauncherConfigSetEntry_DoNotUse_class_data_.tc_table);
+  return DistConfig_LauncherConfigSetEntry_DoNotUse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 1, 64, 2>
+DistConfig_LauncherConfigSetEntry_DoNotUse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(DistConfig_LauncherConfigSetEntry_DoNotUse, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    DistConfig_LauncherConfigSetEntry_DoNotUse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::DiscardEverythingFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::spacewave::launcher::DistConfig_LauncherConfigSetEntry_DoNotUse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .configset.proto.ControllerConfig value = 2;
+    {::_pbi::TcParser::FastMtS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(DistConfig_LauncherConfigSetEntry_DoNotUse, _impl_.value_)}},
+    // string key = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(DistConfig_LauncherConfigSetEntry_DoNotUse, _impl_.key_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string key = 1;
+    {PROTOBUF_FIELD_OFFSET(DistConfig_LauncherConfigSetEntry_DoNotUse, _impl_.key_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .configset.proto.ControllerConfig value = 2;
+    {PROTOBUF_FIELD_OFFSET(DistConfig_LauncherConfigSetEntry_DoNotUse, _impl_.value_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::configset::proto::ControllerConfig>()},
+  }},
+  {{
+    "\64\3\0\0\0\0\0\0"
+    "spacewave.launcher.DistConfig.LauncherConfigSetEntry"
+    "key"
+  }},
+};
+// ===================================================================
+
 class DistConfig::_Internal {
  public:
   using HasBits =
@@ -425,6 +564,12 @@ class DistConfig::_Internal {
       8 * PROTOBUF_FIELD_OFFSET(DistConfig, _impl_._has_bits_);
 };
 
+void DistConfig::clear_launcher_config_set() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.launcher_config_set_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000008U);
+}
 DistConfig::DistConfig(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
     : ::google::protobuf::Message(arena, DistConfig_class_data_.base()) {
@@ -441,7 +586,8 @@ PROTOBUF_NDEBUG_INLINE DistConfig::Impl_::Impl_(
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
         project_id_(arena, from.project_id_),
-        channel_key_(arena, from.channel_key_) {}
+        channel_key_(arena, from.channel_key_),
+        launcher_config_set_{visibility, arena, from.launcher_config_set_} {}
 
 DistConfig::DistConfig(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -465,7 +611,8 @@ PROTOBUF_NDEBUG_INLINE DistConfig::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
         project_id_(arena),
-        channel_key_(arena) {}
+        channel_key_(arena),
+        launcher_config_set_{visibility, arena} {}
 
 inline void DistConfig::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -493,8 +640,20 @@ inline void* PROTOBUF_NONNULL DistConfig::PlacementNew_(
   return ::new (mem) DistConfig(arena);
 }
 constexpr auto DistConfig::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(DistConfig),
-                                            alignof(DistConfig));
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(DistConfig, _impl_.launcher_config_set_) +
+          decltype(DistConfig::_impl_.launcher_config_set_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
+        sizeof(DistConfig), alignof(DistConfig), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&DistConfig::PlacementNew_,
+                                 sizeof(DistConfig),
+                                 alignof(DistConfig));
+  }
 }
 constexpr auto DistConfig::InternalGenerateClassData_() {
   return ::google::protobuf::internal::ClassDataFull{
@@ -530,18 +689,18 @@ DistConfig::GetClassData() const {
   return DistConfig_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<2, 3, 0, 59, 2>
+const ::_pbi::TcParseTable<2, 4, 2, 78, 2>
 DistConfig::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(DistConfig, _impl_._has_bits_),
     0, // no _extensions_
     8, 24,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967164,  // skipmap
+    4294967160,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    3,  // num_field_entries
-    0,  // num_aux_entries
-    offsetof(decltype(_table_), field_names),  // no aux_entries
+    4,  // num_field_entries
+    2,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
     DistConfig_class_data_.base(),
     nullptr,  // post_loop_handler
     ::_pbi::TcParser::GenericFallback,  // fallback
@@ -569,14 +728,21 @@ DistConfig::_table_ = {
     {PROTOBUF_FIELD_OFFSET(DistConfig, _impl_.project_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // uint64 rev = 2;
     {PROTOBUF_FIELD_OFFSET(DistConfig, _impl_.rev_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // map<string, .configset.proto.ControllerConfig> launcher_config_set = 3;
+    {PROTOBUF_FIELD_OFFSET(DistConfig, _impl_.launcher_config_set_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMap)},
     // string channel_key = 8;
     {PROTOBUF_FIELD_OFFSET(DistConfig, _impl_.channel_key_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
-  // no aux_entries
   {{
-    "\35\12\0\13\0\0\0\0"
+      {::_pbi::TcParser::GetMapAuxInfo(
+          1, 0, 9, 11, 0)},
+      {::_pbi::TcParser::GetTable<::configset::proto::ControllerConfig>()},
+  }},
+  {{
+    "\35\12\0\23\13\0\0\0"
     "spacewave.launcher.DistConfig"
     "project_id"
+    "launcher_config_set"
     "channel_key"
   }},
 };
@@ -596,7 +762,12 @@ PROTOBUF_NOINLINE void DistConfig::Clear() {
       _impl_.channel_key_.ClearNonDefaultToEmpty();
     }
   }
-  _impl_.rev_ = ::uint64_t{0u};
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000cU)) {
+    _impl_.rev_ = ::uint64_t{0u};
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+      _impl_.launcher_config_set_.Clear();
+    }
+  }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -639,6 +810,35 @@ PROTOBUF_NOINLINE void DistConfig::Clear() {
     }
   }
 
+  // map<string, .configset.proto.ControllerConfig> launcher_config_set = 3;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_launcher_config_set().empty()) {
+      using MapType = ::google::protobuf::Map<::std::string, ::configset::proto::ControllerConfig>;
+      using WireHelper = _pbi::MapEntryFuncs<::std::string, ::configset::proto::ControllerConfig,
+                                     _pbi::WireFormatLite::TYPE_STRING,
+                                     _pbi::WireFormatLite::TYPE_MESSAGE>;
+      const auto& field = this_._internal_launcher_config_set();
+
+      if (stream->IsSerializationDeterministic() && field.size() > 1) {
+        for (const auto& entry : ::google::protobuf::internal::MapSorterPtr<MapType>(field)) {
+          target = WireHelper::InternalSerialize(
+              3, entry.first, entry.second, target, stream);
+          ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+              entry.first.data(), static_cast<int>(entry.first.length()),
+ ::google::protobuf::internal::WireFormatLite::SERIALIZE, "spacewave.launcher.DistConfig.launcher_config_set");
+        }
+      } else {
+        for (const auto& entry : field) {
+          target = WireHelper::InternalSerialize(
+              3, entry.first, entry.second, target, stream);
+          ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+              entry.first.data(), static_cast<int>(entry.first.length()),
+ ::google::protobuf::internal::WireFormatLite::SERIALIZE, "spacewave.launcher.DistConfig.launcher_config_set");
+        }
+      }
+    }
+  }
+
   // string channel_key = 8;
   if (CheckHasBit(cached_has_bits, 0x00000002U)) {
     if (!this_._internal_channel_key().empty()) {
@@ -674,7 +874,7 @@ PROTOBUF_NOINLINE void DistConfig::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
     // string project_id = 1;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_project_id().empty()) {
@@ -696,6 +896,16 @@ PROTOBUF_NOINLINE void DistConfig::Clear() {
             this_._internal_rev());
       }
     }
+    // map<string, .configset.proto.ControllerConfig> launcher_config_set = 3;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_launcher_config_set_size());
+      for (const auto& entry : this_._internal_launcher_config_set()) {
+        total_size += _pbi::MapEntryFuncs<::std::string, ::configset::proto::ControllerConfig,
+                                       _pbi::WireFormatLite::TYPE_STRING,
+                                       _pbi::WireFormatLite::TYPE_MESSAGE>::ByteSizeLong(entry.first, entry.second);
+      }
+    }
   }
   return this_.MaybeComputeUnknownFieldsSize(total_size,
                                              &this_._impl_._cached_size_);
@@ -715,7 +925,7 @@ void DistConfig::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!from._internal_project_id().empty()) {
         _this->_internal_set_project_id(from._internal_project_id());
@@ -738,6 +948,9 @@ void DistConfig::MergeImpl(::google::protobuf::MessageLite& to_msg,
       if (from._internal_rev() != 0) {
         _this->_impl_.rev_ = from._impl_.rev_;
       }
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+      _this->_impl_.launcher_config_set_.MergeFrom(from._impl_.launcher_config_set_);
     }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
@@ -762,6 +975,7 @@ void DistConfig::InternalSwap(DistConfig* PROTOBUF_RESTRICT PROTOBUF_NONNULL oth
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.project_id_, &other->_impl_.project_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.channel_key_, &other->_impl_.channel_key_, arena);
   swap(_impl_.rev_, other->_impl_.rev_);
+  _impl_.launcher_config_set_.InternalSwap(&other->_impl_.launcher_config_set_);
 }
 
 ::google::protobuf::Metadata DistConfig::GetMetadata() const {
