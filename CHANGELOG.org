@@ -1,5 +1,33 @@
 #+TITLE: Spacewave Changelog
 
+* v0.51.4
+<2026-05-09 Sat>
+
+Spacewave 0.51.4 is a reliability release for browser and desktop startup.
+Updates recover more reliably during rollout, browser tabs resume with fewer
+stale views, and cold browser loads do less work before the first useful screen
+appears.
+
+** Fixes
+- Fixed update checks so the desktop app keeps retrying when release information
+  is not ready at launch, instead of leaving update status stuck on an old
+  error.
+- Fixed release loading so Spacewave can recover when local update files are
+  incomplete, reducing blank or stuck loading screens during a rollout.
+- Fixed restored or foregrounded browser tabs so reconnect timing waits until
+  the page is ready, reducing stale views and unnecessary app reloads.
+- Fixed updater status for releases that do not include a desktop app update for
+  the current platform, so old update errors are cleared.
+
+** Improvements
+- Browser startup now loads less of the app before showing the first relevant
+  screen, improving cold-load performance for sign-in, Quickstart, docs, and
+  active sessions.
+- Browser resume handling now distinguishes a slow foregrounded tab from a
+  broken connection, making return-to-tab recovery less disruptive.
+- Release file recovery now reuses verified local files after a successful
+  fetch, reducing repeat work on later starts.
+
 * v0.51.3
 <2026-05-08 Fri>
 
