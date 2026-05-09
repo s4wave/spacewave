@@ -1136,7 +1136,7 @@
     },
     {
       "name": "github.com/go-git/go-billy/v6",
-      "version": "v6.0.0-20260505113209-2b60adf67f98",
+      "version": "v6.0.0-20260507215541-8db9859ba260",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://github.com/go-git/go-billy",
@@ -1635,7 +1635,7 @@
     },
     {
       "name": "github.com/sirupsen/logrus",
-      "version": "v1.9.5-0.20260426203557-6878cb36b029",
+      "version": "v1.9.5-0.20260508084601-d4a50659cfd6",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/sirupsen/logrus",
@@ -1761,7 +1761,7 @@
     },
     {
       "name": "golang.org/x/crypto",
-      "version": "v0.50.0",
+      "version": "v0.51.0",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/crypto",
@@ -1777,7 +1777,7 @@
     },
     {
       "name": "golang.org/x/mod",
-      "version": "v0.35.0",
+      "version": "v0.36.0",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/mod",
@@ -1785,7 +1785,7 @@
     },
     {
       "name": "golang.org/x/net",
-      "version": "v0.53.0",
+      "version": "v0.54.0",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/net",
@@ -1801,7 +1801,7 @@
     },
     {
       "name": "golang.org/x/sys",
-      "version": "v0.43.1-0.20260423153702-fb1facd76f95",
+      "version": "v0.44.0",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/sys",
@@ -1809,7 +1809,7 @@
     },
     {
       "name": "golang.org/x/term",
-      "version": "v0.42.0",
+      "version": "v0.43.0",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/term",
@@ -1817,7 +1817,7 @@
     },
     {
       "name": "golang.org/x/text",
-      "version": "v0.36.0",
+      "version": "v0.37.0",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/text",
@@ -1833,7 +1833,7 @@
     },
     {
       "name": "golang.org/x/tools",
-      "version": "v0.44.0",
+      "version": "v0.45.0",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/tools",
