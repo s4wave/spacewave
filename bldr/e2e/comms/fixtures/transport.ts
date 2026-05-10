@@ -8,10 +8,7 @@ import {
   createTransportFactory,
   type PluginTransportFactory,
 } from '../../../web/bldr/plugin-transport.js'
-import {
-  SabBusEndpoint,
-  createBusSab,
-} from '../../../web/bldr/sab-bus.js'
+import { createSabPair } from '../../../web/bldr/sab-ring-stream.js'
 
 declare global {
   interface Window {
@@ -19,7 +16,7 @@ declare global {
       pass: boolean
       detail: string
       config: string
-      hasBusStream: boolean
+      hasPairStream: boolean
       factoryCreated: boolean
     }
   }
@@ -42,45 +39,43 @@ async function run() {
 
     // Create the factory based on config.
     let factory: PluginTransportFactory
-    let hasBusStream = false
+    let hasPairStream = false
 
     if (config === 'B' || config === 'C') {
-      // SAB configs: provide a bus endpoint.
-      const busOpts = { slotSize: 256, numSlots: 16 }
-      const busSab = createBusSab(busOpts)
-      const endpoint = new SabBusEndpoint(busSab, 0, busOpts)
-      endpoint.register()
-
+      const { aSab, bSab } = createSabPair()
       factory = createTransportFactory(detect, {
         openStream: noopOpen,
         handleIncomingStream: noopHandle,
-        busEndpoint: endpoint,
-        pluginId: 0,
+        openPairEndpoint: async () => ({
+          pairId: 'sab-pair-fixture-1',
+          localWorkerId: 'worker-a',
+          remoteWorkerId: 'worker-b',
+          txSab: aSab,
+          rxSab: bSab,
+          mtuBytes: 32 * 1024,
+        }),
       })
 
-      hasBusStream = factory.openBusStream != null
-      endpoint.close()
+      hasPairStream = factory.openPairStream != null
     } else {
-      // Config A/F: no bus, no cross-tab.
       factory = createTransportFactory(detect, {
         openStream: noopOpen,
         handleIncomingStream: noopHandle,
       })
 
-      hasBusStream = factory.openBusStream != null
+      hasPairStream = factory.openPairStream != null
     }
 
     const factoryCreated = factory.config === config
 
     // Validate expectations per config.
     if (config === 'B' || config === 'C') {
-      if (!hasBusStream) {
-        errors.push('expected openBusStream on config ' + config)
+      if (!hasPairStream) {
+        errors.push('expected openPairStream on config ' + config)
       }
     } else {
-      // Config A/F: no bus transport.
-      if (hasBusStream) {
-        errors.push('unexpected openBusStream on config ' + config)
+      if (hasPairStream) {
+        errors.push('unexpected openPairStream on config ' + config)
       }
     }
 
@@ -93,7 +88,7 @@ async function run() {
       pass,
       detail: errors.length > 0 ? errors.join('; ') : 'all tests passed',
       config,
-      hasBusStream,
+      hasPairStream,
       factoryCreated,
     }
   } catch (err) {
@@ -101,7 +96,7 @@ async function run() {
       pass: false,
       detail: `error: ${err}`,
       config: '',
-      hasBusStream: false,
+      hasPairStream: false,
       factoryCreated: false,
     }
   }

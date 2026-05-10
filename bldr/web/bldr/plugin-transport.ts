@@ -1,14 +1,15 @@
 import { OpenStreamFunc, HandleStreamFunc, type PacketStream } from 'starpc'
 
+import type { SabPairEndpointDescriptor } from '../runtime/runtime.js'
 import type {
   WorkerCommsConfig,
   WorkerCommsDetectResult,
 } from './worker-comms-detect.js'
-import { SabBusEndpoint, SabBusStream } from './sab-bus.js'
+import { SabRingStream } from './sab-ring-stream.js'
 
 // PluginTransportFactory creates transport functions for plugin communication.
 // Config A/F: MessagePort/ChannelStream (baseline).
-// Config B/C: SabBusStream intra-tab, MessagePort for runtime.
+// Config B/C: SAB Pair Stream intra-tab, MessagePort for runtime.
 export interface PluginTransportFactory {
   // openStream opens a stream to the WebRuntime (MessagePort path).
   openStream: OpenStreamFunc
@@ -19,17 +20,14 @@ export interface PluginTransportFactory {
   // config is the detected worker communication config.
   config: WorkerCommsConfig
 
-  // openBusStream opens a stream to a same-tab plugin via the SAB bus.
-  // Returns null if bus is not available.
-  openBusStream?: (targetPluginId: number) => Promise<PacketStream>
+  // openPairStream opens a brokered same-tab SAB pair stream.
+  openPairStream?: (targetWorkerId: string) => Promise<PacketStream>
 
   // openCrossTabStream opens a stream to a peer tab via the brokered
   // cross-tab MessagePort channel. peerId is the ServiceWorker client ID.
   // Returns null if no channel exists for that peer.
   openCrossTabStream?: (peerId: string) => PacketStream | null
 
-  // busEndpoint is the SAB bus endpoint for this plugin (config B/C only).
-  busEndpoint?: SabBusEndpoint
 }
 
 // TransportFactoryOpts configures the transport factory.
@@ -38,11 +36,15 @@ export interface TransportFactoryOpts {
   openStream: OpenStreamFunc
   // handleIncomingStream is the HandleStreamFunc for inbound streams.
   handleIncomingStream: HandleStreamFunc
-  // busEndpoint is the SAB bus endpoint (present on config B/C).
-  busEndpoint?: SabBusEndpoint
   // openCrossTabStream opens a ChannelStream to a peer tab.
   // Provided by the CrossTabManager when cross-tab channels are available.
   openCrossTabStream?: (peerId: string) => PacketStream | null
+  // openPairEndpoint requests a SAB pair endpoint descriptor from WebDocument.
+  openPairEndpoint?: (
+    targetWorkerId: string,
+  ) => Promise<SabPairEndpointDescriptor>
+  // closePairEndpoint releases WebDocument broker metadata for a pair.
+  closePairEndpoint?: (pairId: string) => void
 }
 
 // MessagePortTransportOpts configures a MessagePort-backed transport factory.
@@ -62,14 +64,23 @@ export function createTransportFactory(
     config: detect.config,
   }
 
-  if (opts.busEndpoint) {
-    factory.busEndpoint = opts.busEndpoint
-    factory.openBusStream = async (
-      targetPluginId: number,
+  if (
+    opts.openPairEndpoint &&
+    (detect.config === 'B' || detect.config === 'C')
+  ) {
+    factory.openPairStream = async (
+      targetWorkerId: string,
     ): Promise<PacketStream> => {
-      return new SabBusStream(opts.busEndpoint!, targetPluginId)
+      const endpoint = await opts.openPairEndpoint!(targetWorkerId)
+      const stream = new SabRingStream(endpoint.txSab, endpoint.rxSab)
+      const close = stream.close.bind(stream)
+      stream.close = (err?: Error) => {
+        close(err)
+        opts.closePairEndpoint?.(endpoint.pairId)
+      }
+      return stream
     }
-    console.log('worker-comms: SAB bus transport available for intra-tab IPC')
+    console.log('worker-comms: SAB pair transport available for intra-tab IPC')
   }
 
   if (opts.openCrossTabStream) {

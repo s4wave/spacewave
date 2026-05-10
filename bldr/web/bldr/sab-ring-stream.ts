@@ -14,10 +14,6 @@ const CTRL_BYTES = CTRL_INT32S * 4
 const STATE_OPEN = 0
 const STATE_CLOSED = 1
 
-// Default ring buffer parameters.
-const DEFAULT_SLOT_SIZE = 8192
-const DEFAULT_NUM_SLOTS = 32
-
 // SabRingStreamOpts configures a SabRingStream.
 export interface SabRingStreamOpts {
   // slotSize is the byte size of each ring buffer slot.
@@ -27,6 +23,24 @@ export interface SabRingStreamOpts {
   numSlots?: number
 }
 
+// SAB_PAIR_DIRECTION_MTU_BYTES is the v1 payload MTU for one pair direction.
+export const SAB_PAIR_DIRECTION_MTU_BYTES = 32 * 1024
+
+// SAB_PAIR_STREAM_OPTS is the default bounded active-pair memory policy.
+export const SAB_PAIR_STREAM_OPTS: Required<SabRingStreamOpts> = {
+  slotSize: SAB_PAIR_DIRECTION_MTU_BYTES + 4,
+  numSlots: 1,
+}
+
+function resolveSabRingStreamOpts(
+  opts?: SabRingStreamOpts,
+): Required<SabRingStreamOpts> {
+  return {
+    slotSize: opts?.slotSize ?? SAB_PAIR_STREAM_OPTS.slotSize,
+    numSlots: opts?.numSlots ?? SAB_PAIR_STREAM_OPTS.numSlots,
+  }
+}
+
 // createSabPair allocates two SharedArrayBuffers for bidirectional communication.
 // Side A constructs SabRingStream(aSab, bSab).
 // Side B constructs SabRingStream(bSab, aSab).
@@ -34,8 +48,7 @@ export function createSabPair(opts?: SabRingStreamOpts): {
   aSab: SharedArrayBuffer
   bSab: SharedArrayBuffer
 } {
-  const slotSize = opts?.slotSize ?? DEFAULT_SLOT_SIZE
-  const numSlots = opts?.numSlots ?? DEFAULT_NUM_SLOTS
+  const { slotSize, numSlots } = resolveSabRingStreamOpts(opts)
   const size = CTRL_BYTES + numSlots * slotSize
   return {
     aSab: new SharedArrayBuffer(size),
@@ -45,9 +58,13 @@ export function createSabPair(opts?: SabRingStreamOpts): {
 
 // sabBufferSize returns the SharedArrayBuffer byte size for given opts.
 export function sabBufferSize(opts?: SabRingStreamOpts): number {
-  const slotSize = opts?.slotSize ?? DEFAULT_SLOT_SIZE
-  const numSlots = opts?.numSlots ?? DEFAULT_NUM_SLOTS
+  const { slotSize, numSlots } = resolveSabRingStreamOpts(opts)
   return CTRL_BYTES + numSlots * slotSize
+}
+
+// sabPairBufferSize returns the total byte size for both pair directions.
+export function sabPairBufferSize(opts?: SabRingStreamOpts): number {
+  return 2 * sabBufferSize(opts)
 }
 
 // waitForChange waits until arr[index] differs from expected.
@@ -107,8 +124,9 @@ export class SabRingStream
   ) {
     this.txSab = txSab
     this.rxSab = rxSab
-    this.slotSize = opts?.slotSize ?? DEFAULT_SLOT_SIZE
-    this.numSlots = opts?.numSlots ?? DEFAULT_NUM_SLOTS
+    const resolvedOpts = resolveSabRingStreamOpts(opts)
+    this.slotSize = resolvedOpts.slotSize
+    this.numSlots = resolvedOpts.numSlots
     this.txCtrl = new Int32Array(txSab, 0, CTRL_INT32S)
     this.rxCtrl = new Int32Array(rxSab, 0, CTRL_INT32S)
 

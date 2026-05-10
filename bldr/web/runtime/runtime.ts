@@ -89,10 +89,44 @@ export interface ClientToWebDocument {
   // The WebDocument creates a MessageChannel, sends one port back via
   // ConnectWebRtcBridgeAck, and creates a WebRTCBridgeEndpoint on the other.
   connectWebRtcBridge?: true
+  // openSabPair requests a same-tab SAB pair stream to another worker.
+  openSabPair?: OpenSabPairRequest
+  // closeSabPair releases same-tab SAB pair metadata after a stream closes.
+  closeSabPair?: CloseSabPairRequest
   // close indicates the client is closed.
   close?: true
   // ready indicates the worker finished startup and registered its runtime client.
   ready?: true
+}
+
+export interface OpenSabPairRequest {
+  requestId: string
+  targetWorkerId: string
+}
+
+export interface CloseSabPairRequest {
+  pairId: string
+}
+
+export interface SabPairClosed {
+  pairId: string
+  reason?: string
+}
+
+export interface SabPairEndpointDescriptor {
+  pairId: string
+  localWorkerId: string
+  remoteWorkerId: string
+  txSab: SharedArrayBuffer
+  rxSab: SharedArrayBuffer
+  mtuBytes: number
+}
+
+export interface OpenSabPairAck {
+  from: string
+  requestId: string
+  endpoint?: SabPairEndpointDescriptor
+  error?: string
 }
 
 // ConnectWebRuntimeAck is the acknowledgment of connectWebRuntime.
@@ -121,11 +155,6 @@ export interface WebDocumentToWorker {
   // Worker sends ClientToWebDocument
   // Document sends WebDocumentToClient
   initPort?: MessagePort
-  // busSab is the SharedArrayBuffer for the intra-tab SAB bus.
-  // Present when the worker is a plugin DedicatedWorker on config B/C.
-  busSab?: SharedArrayBuffer
-  // busPluginId is the numeric plugin ID assigned for the SAB bus.
-  busPluginId?: number
   // workerCommsDetect is the main-thread detection result.
   // Passed so workers use the authoritative config without re-detecting.
   workerCommsDetect?: WorkerCommsDetectResult
@@ -142,6 +171,12 @@ export interface WebDocumentToClient {
   close?: true
   // resumeReady indicates the WebDocument reached its foreground resume gate.
   resumeReady?: true
+  // sabPairEndpoint delivers an endpoint opened by another worker.
+  sabPairEndpoint?: SabPairEndpointDescriptor
+  // sabPairClosed notifies a worker that broker metadata for a pair closed.
+  sabPairClosed?: SabPairClosed
+  // openSabPairAck returns this worker's endpoint for an openSabPair request.
+  openSabPairAck?: OpenSabPairAck
 }
 
 // ServiceWorkerToWebDocument is a message sent from the ServiceWorker to a WebDocument.

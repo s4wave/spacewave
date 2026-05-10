@@ -5,8 +5,11 @@
 // tests bidirectional and close propagation.
 
 import {
+  SAB_PAIR_DIRECTION_MTU_BYTES,
   SabRingStream,
   createSabPair,
+  sabBufferSize,
+  sabPairBufferSize,
 } from '../../../web/bldr/sab-ring-stream.js'
 
 declare global {
@@ -17,6 +20,8 @@ declare global {
       sendRecv: boolean
       bidirectional: boolean
       close: boolean
+      pairDefault: boolean
+      maxPayload: boolean
       messageCount: number
     }
   }
@@ -42,28 +47,31 @@ async function run() {
   const errors: string[] = []
 
   try {
+    const expectedDirectionBytes = 16 + SAB_PAIR_DIRECTION_MTU_BYTES + 4
+    const pairDefault =
+      sabBufferSize() === expectedDirectionBytes &&
+      sabPairBufferSize() === 2 * expectedDirectionBytes
+
     // Test 1: Send 10 messages A->B, verify all received in order.
-    // Use enough slots that the ring does not fill before the reader starts.
-    const opts = { slotSize: 256, numSlots: 32 }
     let sendRecv = false
     {
-      const { aSab, bSab } = createSabPair(opts)
-      const streamA = new SabRingStream(aSab, bSab, opts)
-      const streamB = new SabRingStream(bSab, aSab, opts)
+      const { aSab, bSab } = createSabPair()
+      const streamA = new SabRingStream(aSab, bSab)
+      const streamB = new SabRingStream(bSab, aSab)
 
       const count = 10
       const recvPromise = collectN(streamB.source, count, 5000)
 
-      for (let i = 0; i < count; i++) {
-        const data = new Uint8Array([i])
-        await streamA.sink(
-          (async function* () {
-            yield data
-          })(),
-        )
-      }
+      const writeDone = streamA.sink(
+        (async function* () {
+          for (let i = 0; i < count; i++) {
+            yield new Uint8Array([i])
+          }
+        })(),
+      )
 
       const received = await recvPromise
+      await writeDone
       if (received.length !== count) {
         errors.push(`sendRecv: got ${received.length} msgs, want ${count}`)
       } else {
@@ -85,30 +93,33 @@ async function run() {
     // Test 2: Bidirectional - both sides send simultaneously.
     let bidirectional = false
     {
-      const { aSab, bSab } = createSabPair(opts)
-      const streamA = new SabRingStream(aSab, bSab, opts)
-      const streamB = new SabRingStream(bSab, aSab, opts)
+      const { aSab, bSab } = createSabPair()
+      const streamA = new SabRingStream(aSab, bSab)
+      const streamB = new SabRingStream(bSab, aSab)
 
       const count = 5
       const recvA = collectN(streamA.source, count, 5000)
       const recvB = collectN(streamB.source, count, 5000)
 
       // A sends 0xAA bytes, B sends 0xBB bytes.
-      for (let i = 0; i < count; i++) {
-        await streamA.sink(
-          (async function* () {
+      const doneA = streamA.sink(
+        (async function* () {
+          for (let i = 0; i < count; i++) {
             yield new Uint8Array([0xaa, i])
-          })(),
-        )
-        await streamB.sink(
-          (async function* () {
+          }
+        })(),
+      )
+      const doneB = streamB.sink(
+        (async function* () {
+          for (let i = 0; i < count; i++) {
             yield new Uint8Array([0xbb, i])
-          })(),
-        )
-      }
+          }
+        })(),
+      )
 
       const msgsA = await recvA
       const msgsB = await recvB
+      await Promise.all([doneA, doneB])
 
       if (msgsA.length === count && msgsB.length === count) {
         let ok = true
@@ -138,9 +149,9 @@ async function run() {
     // Test 3: Close propagation - closing A's sink should end B's source.
     let closeOk = false
     {
-      const { aSab, bSab } = createSabPair(opts)
-      const streamA = new SabRingStream(aSab, bSab, opts)
-      const streamB = new SabRingStream(bSab, aSab, opts)
+      const { aSab, bSab } = createSabPair()
+      const streamA = new SabRingStream(aSab, bSab)
+      const streamB = new SabRingStream(bSab, aSab)
 
       // Send one message then close.
       await streamA.sink(
@@ -167,13 +178,52 @@ async function run() {
       streamB.close()
     }
 
-    const pass = sendRecv && bidirectional && closeOk && errors.length === 0
+    // Test 4: Default pair accepts exactly 32 KiB payloads.
+    let maxPayload = false
+    {
+      const { aSab, bSab } = createSabPair()
+      const streamA = new SabRingStream(aSab, bSab)
+      const streamB = new SabRingStream(bSab, aSab)
+      const msg = new Uint8Array(SAB_PAIR_DIRECTION_MTU_BYTES)
+      msg[0] = 0xab
+      msg[msg.byteLength - 1] = 0xcd
+
+      const writeDone = streamA.sink(
+        (async function* () {
+          yield msg
+        })(),
+      )
+      const received = await streamB.source.next()
+      await writeDone
+
+      maxPayload =
+        received.done === false &&
+        received.value.byteLength === SAB_PAIR_DIRECTION_MTU_BYTES &&
+        received.value[0] === 0xab &&
+        received.value[received.value.byteLength - 1] === 0xcd
+      if (!maxPayload) {
+        errors.push('maxPayload: did not receive exact default MTU payload')
+      }
+
+      streamA.close()
+      streamB.close()
+    }
+
+    const pass =
+      pairDefault &&
+      sendRecv &&
+      bidirectional &&
+      closeOk &&
+      maxPayload &&
+      errors.length === 0
     window.__results = {
       pass,
       detail: errors.length > 0 ? errors.join('; ') : 'all tests passed',
       sendRecv,
       bidirectional,
       close: closeOk,
+      pairDefault,
+      maxPayload,
       messageCount: 10,
     }
   } catch (err) {
@@ -183,6 +233,8 @@ async function run() {
       sendRecv: false,
       bidirectional: false,
       close: false,
+      pairDefault: false,
+      maxPayload: false,
       messageCount: 0,
     }
   }

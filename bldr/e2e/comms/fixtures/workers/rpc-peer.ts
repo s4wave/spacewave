@@ -1,11 +1,10 @@
 // rpc-peer.ts - DedicatedWorker that runs a StarPC echo server or client
-// over the SAB bus.
+// over a SAB pair stream.
 //
-// Receives init message with role, bus SAB, plugin IDs.
+// Receives init message with role and one pair endpoint descriptor.
 // Server: registers echo handler, accepts one stream, handles RPC.
 // Client: waits for 'start' signal, calls Echo, reports result.
 
-import { SabBusEndpoint, SabBusStream } from '../../../../web/bldr/sab-bus.js'
 import { Server, Client, createHandler, createMux } from 'starpc'
 import {
   EchoerDefinition,
@@ -13,16 +12,16 @@ import {
   EchoerServer,
 } from 'starpc/echo'
 
+import { SabRingStream } from '../../../../web/bldr/sab-ring-stream.js'
+
 declare const self: DedicatedWorkerGlobalScope
 
 interface InitMsg {
-  busSab: SharedArrayBuffer
-  pluginId: number
-  targetId: number
+  pairId: string
+  txSab: SharedArrayBuffer
+  rxSab: SharedArrayBuffer
   role: 'server' | 'client'
 }
-
-const busOpts = { slotSize: 8192, numSlots: 64 }
 
 self.onmessage = async (ev: MessageEvent<InitMsg | { type: 'start' }>) => {
   if ('type' in ev.data && ev.data.type === 'start') {
@@ -31,17 +30,12 @@ self.onmessage = async (ev: MessageEvent<InitMsg | { type: 'start' }>) => {
   }
 
   const init = ev.data as InitMsg
-  const { busSab, pluginId, targetId, role } = init
+  const { pairId, txSab, rxSab, role } = init
 
-  const endpoint = new SabBusEndpoint(busSab, pluginId, busOpts)
-  endpoint.register()
-
-  self.postMessage({ type: 'registered', pluginId, role })
+  const stream = new SabRingStream(txSab, rxSab)
+  self.postMessage({ type: 'pair-ready', pairId, role })
 
   if (role === 'server') {
-    // Create SabBusStream targeting the client.
-    const stream = new SabBusStream(endpoint, targetId)
-
     // Set up StarPC echo server.
     const mux = createMux()
     mux.register(createHandler(EchoerDefinition, new EchoerServer()))
@@ -60,15 +54,12 @@ self.onmessage = async (ev: MessageEvent<InitMsg | { type: 'start' }>) => {
       }
     })
 
-    // Create SabBusStream targeting the server.
-    const stream = new SabBusStream(endpoint, targetId)
-
-    // Create StarPC client using the bus stream.
+    // Create StarPC client using the pair stream.
     const client = new Client(async () => stream)
     const echoer = new EchoerClient(client)
 
     // Make an echo RPC call.
-    const response = await echoer.Echo({ body: 'hello via SAB bus' })
+    const response = await echoer.Echo({ body: 'hello via SAB pair' })
     self.postMessage({
       type: 'rpc-result',
       body: response.body,

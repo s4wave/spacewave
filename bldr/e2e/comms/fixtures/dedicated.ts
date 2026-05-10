@@ -1,13 +1,9 @@
 // dedicated.ts - DedicatedWorker hosting test fixture.
 //
 // Creates a DedicatedWorker using the plugin-host wrapper (simplified shw.mjs),
-// sends init with busSab and busPluginId, verifies the worker registers on the
-// SAB bus and the plugin script executes and receives a bus message.
+// sends init without SAB bus fields, and verifies the plugin script executes
+// with the authoritative worker comms config.
 
-import {
-  SabBusEndpoint,
-  createBusSab,
-} from '../../../web/bldr/sab-bus.js'
 import { detectWorkerCommsConfig } from '../../../web/bldr/worker-comms-detect.js'
 
 declare global {
@@ -15,10 +11,10 @@ declare global {
     __results: {
       pass: boolean
       detail: string
-      registered: boolean
+      noStartupSab: boolean
       pluginStarted: boolean
-      pluginReceived: boolean
       configReceived: boolean
+      manyWorkersStarted: boolean
     }
   }
 }
@@ -53,13 +49,6 @@ async function run() {
   const errors: string[] = []
 
   try {
-    const busOpts = { slotSize: 256, numSlots: 32 }
-    const busSab = createBusSab(busOpts)
-
-    // Main thread endpoint (pluginId=0).
-    const mainEndpoint = new SabBusEndpoint(busSab, 0, busOpts)
-    mainEndpoint.register()
-
     // Detect config on main thread (authoritative).
     const detect = await detectWorkerCommsConfig()
 
@@ -73,28 +62,21 @@ async function run() {
     const pluginUrl = '/workers/plugin-stub.js'
 
     // Set up all message listeners BEFORE sending init to avoid race conditions.
-    // Worker sends messages in order: registered, config-received, plugin-started.
-    const registeredP = waitWorkerMsg(worker, 'registered', 5000)
+    const noStartupSabP = waitWorkerMsg(worker, 'startup-no-sab', 5000)
     const configReceivedP = waitWorkerMsg(worker, 'config-received', 5000)
     const pluginStartedP = waitWorkerMsg(worker, 'plugin-started', 5000)
 
-    // Send init message with busSab, busPluginId, detection result, and plugin script URL.
+    // Send init message without startup SAB transport fields.
     worker.postMessage({
-      busSab,
-      busPluginId: 1,
       scriptUrl: pluginUrl,
       workerCommsDetect: detect,
     })
 
-    // Test 1: Worker registers on bus.
-    let registered = false
+    // Test 1: Worker starts without SAB bus registration.
+    let noStartupSab = false
     {
-      const msg = await registeredP
-      if (msg.busPluginId === 1) {
-        registered = true
-      } else {
-        errors.push(`registered: unexpected busPluginId ${msg.busPluginId}`)
-      }
+      await noStartupSabP
+      noStartupSab = true
     }
 
     // Test 2: Worker received workerCommsDetect config via init message.
@@ -115,42 +97,60 @@ async function run() {
       pluginStarted = true
     }
 
-    // Test 4: Send a bus message to the plugin, verify it receives it.
-    let pluginReceived = false
+    worker.terminate()
+
+    // Test 4: More than sixteen plugin workers start without SAB reader slots.
+    let manyWorkersStarted = false
     {
-      mainEndpoint.write(1, new Uint8Array([0xff, 0x42]))
-      const msg = await waitWorkerMsg(worker, 'plugin-received', 5000)
-      if (
-        msg.sourceId === 0 &&
-        msg.data[0] === 0xff &&
-        msg.data[1] === 0x42
-      ) {
-        pluginReceived = true
-      } else {
-        errors.push(`received: unexpected msg ${JSON.stringify(msg)}`)
+      const workers: Worker[] = []
+      try {
+        const starts = Array.from({ length: 20 }, async (_, i) => {
+          const w = new Worker(
+            new URL('./workers/plugin-host.js', import.meta.url),
+            { type: 'module' },
+          )
+          workers.push(w)
+          const noSab = waitWorkerMsg(w, 'startup-no-sab', 5000)
+          const started = waitWorkerMsg(w, 'plugin-started', 5000)
+          w.postMessage({
+            scriptUrl: pluginUrl,
+            workerCommsDetect: detect,
+            workerIndex: i,
+          })
+          await noSab
+          await started
+        })
+        await Promise.all(starts)
+        manyWorkersStarted = true
+      } finally {
+        for (const w of workers) {
+          w.terminate()
+        }
       }
     }
 
-    worker.terminate()
-    mainEndpoint.close()
-
     const pass =
-      registered && pluginStarted && pluginReceived && configReceived && errors.length === 0
+      noStartupSab &&
+      pluginStarted &&
+      configReceived &&
+      manyWorkersStarted &&
+      errors.length === 0
     window.__results = {
       pass,
       detail: errors.length > 0 ? errors.join('; ') : 'all tests passed',
-      registered,
+      noStartupSab,
       pluginStarted,
-      pluginReceived,
       configReceived,
+      manyWorkersStarted,
     }
   } catch (err) {
     window.__results = {
       pass: false,
       detail: `error: ${err}`,
-      registered: false,
+      noStartupSab: false,
       pluginStarted: false,
-      pluginReceived: false,
+      configReceived: false,
+      manyWorkersStarted: false,
     }
   }
 

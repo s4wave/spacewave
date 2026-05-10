@@ -7,6 +7,7 @@ import {
   ClientToWebDocument,
   ConnectWebRtcBridgeAck,
   ConnectWebRuntimeAck,
+  SabPairEndpointDescriptor,
   WebDocumentToClient,
   WebDocumentToWorker,
 } from '../runtime/runtime.js'
@@ -27,6 +28,12 @@ interface WebDocumentWaiter {
 
 interface WebDocumentResumeReadyWaiter extends WebDocumentWaiter {
   webDocumentId: string
+}
+
+interface SabPairOpenWaiter {
+  resolve: (endpoint: SabPairEndpointDescriptor) => void
+  reject: (err: Error) => void
+  timeout: ReturnType<typeof globalThis.setTimeout>
 }
 
 // WebDocumentTracker is a tracks a set of connected WebDocument and attempts to
@@ -57,6 +64,9 @@ export class WebDocumentTracker {
   private lastWebDocumentIdx = 0
   // lastWebDocumentId was the last web document id used from WebDocuments.
   private lastWebDocumentId?: string
+  private nextSabPairRequestNumber = 1
+  private sabPairOpenWaiters = new Map<string, SabPairOpenWaiter>()
+  private sabPairEndpoints = new Map<string, SabPairEndpointDescriptor>()
 
   constructor(
     clientUuid: string,
@@ -147,6 +157,38 @@ export class WebDocumentTracker {
         this.webDocumentResumeReadyIds.add(webDocumentId)
         this.resolveResumeReadyWaiters(webDocumentId)
       }
+
+      if (data.openSabPairAck) {
+        const waiter = this.sabPairOpenWaiters.get(
+          data.openSabPairAck.requestId,
+        )
+        if (!waiter) {
+          return
+        }
+        this.sabPairOpenWaiters.delete(data.openSabPairAck.requestId)
+        clearTimeout(waiter.timeout)
+        if (data.openSabPairAck.error) {
+          waiter.reject(new Error(data.openSabPairAck.error))
+          return
+        }
+        if (!data.openSabPairAck.endpoint) {
+          waiter.reject(new Error('SAB pair open ack missing endpoint'))
+          return
+        }
+        waiter.resolve(data.openSabPairAck.endpoint)
+        return
+      }
+
+      if (data.sabPairEndpoint) {
+        this.sabPairEndpoints.set(
+          data.sabPairEndpoint.pairId,
+          data.sabPairEndpoint,
+        )
+      }
+
+      if (data.sabPairClosed) {
+        this.sabPairEndpoints.delete(data.sabPairClosed.pairId)
+      }
     }
 
     const waiters = this.webDocumentWaiters.splice(0)
@@ -179,6 +221,58 @@ export class WebDocumentTracker {
 
   // postMessage posts a message to all connected web documents.
   public postMessage(msg: ClientToWebDocument) {
+    for (const docID in this.webDocuments) {
+      this.webDocuments[docID]?.postMessage(msg)
+    }
+  }
+
+  public async requestSabPair(
+    targetWorkerId: string,
+  ): Promise<SabPairEndpointDescriptor> {
+    const webDocumentIds = Object.keys(this.webDocuments)
+    if (!webDocumentIds.length) {
+      throw new Error('no WebDocument available for SAB pair open')
+    }
+
+    const docId = this.lastWebDocumentId ?? webDocumentIds[0]
+    const docPort = this.webDocuments[docId]
+    if (!docPort) {
+      throw new Error('selected WebDocument is closed')
+    }
+
+    const requestId = `sab-pair-open-${this.nextSabPairRequestNumber++}`
+    return new Promise<SabPairEndpointDescriptor>((resolve, reject) => {
+      const timeout = globalThis.setTimeout(() => {
+        this.sabPairOpenWaiters.delete(requestId)
+        reject(new Error(`timeout opening SAB pair to ${targetWorkerId}`))
+      }, openViaWebDocumentTimeoutMs)
+      this.sabPairOpenWaiters.set(requestId, {
+        resolve,
+        reject,
+        timeout,
+      })
+      try {
+        docPort.postMessage({
+          from: this.clientUuid,
+          openSabPair: {
+            requestId,
+            targetWorkerId,
+          },
+        } satisfies ClientToWebDocument)
+      } catch (err) {
+        clearTimeout(timeout)
+        this.sabPairOpenWaiters.delete(requestId)
+        reject(err instanceof Error ? err : new Error(String(err)))
+      }
+    })
+  }
+
+  public closeSabPair(pairId: string): void {
+    this.sabPairEndpoints.delete(pairId)
+    const msg: ClientToWebDocument = {
+      from: this.clientUuid,
+      closeSabPair: { pairId },
+    }
     for (const docID in this.webDocuments) {
       this.webDocuments[docID]?.postMessage(msg)
     }

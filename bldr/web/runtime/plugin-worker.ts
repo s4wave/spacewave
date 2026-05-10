@@ -31,11 +31,9 @@ export function parsePluginWorkerName(name: string): string {
   return name.split('?')[0] ?? ''
 }
 
-// PluginStartOpts contains start info and optional bus configuration.
+// PluginStartOpts contains start info and worker communication detection.
 export interface PluginStartOpts {
   startInfo: PluginStartInfo
-  busSab?: SharedArrayBuffer
-  busPluginId?: number
   workerCommsDetect?: WorkerCommsDetectResult
 }
 
@@ -169,8 +167,6 @@ export class PluginWorker {
   // handleStartPlugin handles the message to start the plugin.
   private async handleStartPlugin(
     startInfoBin: Uint8Array,
-    busSab?: SharedArrayBuffer,
-    busPluginId?: number,
     workerCommsDetect?: WorkerCommsDetectResult,
   ) {
     if (this.startPluginPromise) {
@@ -181,8 +177,6 @@ export class PluginWorker {
 
     this.startPluginPromise = this.startPluginImpl(
       startInfoBin,
-      busSab,
-      busPluginId,
       workerCommsDetect,
     ).catch((err) => {
       this.startPluginPromise = undefined
@@ -195,8 +189,6 @@ export class PluginWorker {
   // startPluginImpl runs the actual startup sequence.
   private async startPluginImpl(
     startInfoBin: Uint8Array,
-    busSab?: SharedArrayBuffer,
-    busPluginId?: number,
     workerCommsDetect?: WorkerCommsDetectResult,
   ) {
     // startInfo is b64 encoded json
@@ -221,8 +213,6 @@ export class PluginWorker {
 
     await this.startPlugin({
       startInfo,
-      busSab,
-      busPluginId,
       workerCommsDetect,
     })
     this.pluginStarted = true
@@ -251,8 +241,6 @@ export class PluginWorker {
     if (data.initData) {
       this.handleStartPlugin(
         data.initData,
-        data.busSab,
-        data.busPluginId,
         data.workerCommsDetect,
       ).catch((err) => {
         console.warn(

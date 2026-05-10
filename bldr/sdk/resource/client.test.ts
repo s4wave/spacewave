@@ -5,7 +5,10 @@ import { Client } from './client.js'
 
 describe('ResourceClient', () => {
   it('clears stale attachSession state on reconnect cleanup', () => {
-    const client = new Client(buildUnusedService(), new AbortController().signal)
+    const client = new Client(
+      buildUnusedService(),
+      new AbortController().signal,
+    )
     const controller = new AbortController()
     const end = vi.fn()
     const reject = vi.fn()
@@ -28,7 +31,10 @@ describe('ResourceClient', () => {
   })
 
   it('clears stale attachSession state on dispose', () => {
-    const client = new Client(buildUnusedService(), new AbortController().signal)
+    const client = new Client(
+      buildUnusedService(),
+      new AbortController().signal,
+    )
     const controller = new AbortController()
     const end = vi.fn()
 
@@ -49,7 +55,10 @@ describe('ResourceClient', () => {
   })
 
   it('retries attachResource after attach session closes before addAck', async () => {
-    const client = new Client(buildUnusedService(), new AbortController().signal)
+    const client = new Client(
+      buildUnusedService(),
+      new AbortController().signal,
+    )
     const first = buildAttachSession()
     const second = buildAttachSession()
     const ensureAttachSession = vi
@@ -104,7 +113,10 @@ describe('ResourceClient', () => {
   })
 
   it('attachResourceTree cleanup runs release callback', async () => {
-    const client = new Client(buildUnusedService(), new AbortController().signal)
+    const client = new Client(
+      buildUnusedService(),
+      new AbortController().signal,
+    )
     const sess = buildAttachSession()
     vi.spyOn(
       client as unknown as { ensureAttachSession: () => Promise<unknown> },
@@ -161,7 +173,9 @@ describe('ResourceClient', () => {
     Reflect.set(client, 'connectionController', connectionController)
     const ref = client.createResourceReference(1)
 
-    await expect(client.attachResource('test-handler', vi.fn())).rejects.toEqual(
+    await expect(
+      client.attachResource('test-handler', vi.fn()),
+    ).rejects.toEqual(
       expect.objectContaining({
         code: 'CONNECTION_FAILED',
         cause: expect.objectContaining({ message: 'client not found' }),
@@ -232,6 +246,54 @@ describe('ResourceClient', () => {
 
     client.dispose()
     vi.useRealTimers()
+  })
+
+  it('retries ResourceClient stream resets without warning spam', async () => {
+    vi.useFakeTimers()
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const service = buildUnusedService()
+    let calls = 0
+    service.ResourceClient = vi.fn(async function* (_request, signal) {
+      calls++
+      yield {
+        body: {
+          case: 'init' as const,
+          value: { clientHandleId: calls, rootResourceId: calls },
+        },
+      }
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 1)
+        signal?.addEventListener('abort', resolve, { once: true })
+      })
+      if (!signal?.aborted && calls === 1) {
+        const err = new Error('stream reset')
+        err.name = 'StreamResetError'
+        throw err
+      }
+      await new Promise<void>((resolve) => {
+        signal?.addEventListener('abort', resolve, { once: true })
+      })
+    })
+
+    try {
+      const client = new Client(service, new AbortController().signal)
+      const first = await client.accessRootResource()
+
+      expect(first.resourceId).toBe(1)
+
+      await vi.advanceTimersByTimeAsync(501)
+
+      const second = await client.accessRootResource()
+
+      expect(second.resourceId).toBe(2)
+      expect(calls).toBe(2)
+      expect(warn).not.toHaveBeenCalled()
+
+      client.dispose()
+    } finally {
+      warn.mockRestore()
+      vi.useRealTimers()
+    }
   })
 
   it('retries ResourceClient streams that close before init', async () => {

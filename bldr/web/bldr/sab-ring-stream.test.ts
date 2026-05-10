@@ -1,6 +1,13 @@
 
 import { describe, it, expect } from 'vitest'
-import { SabRingStream, createSabPair } from './sab-ring-stream.js'
+import {
+  SAB_PAIR_DIRECTION_MTU_BYTES,
+  SAB_PAIR_STREAM_OPTS,
+  SabRingStream,
+  createSabPair,
+  sabBufferSize,
+  sabPairBufferSize,
+} from './sab-ring-stream.js'
 
 // Small ring for tests: 128-byte slots, 4 slots.
 const testOpts = { slotSize: 128, numSlots: 4 }
@@ -13,6 +20,20 @@ function makePair() {
 }
 
 describe('SabRingStream', () => {
+  it('uses the named SAB pair memory policy by default', () => {
+    expect(SAB_PAIR_DIRECTION_MTU_BYTES).toBe(32 * 1024)
+    expect(SAB_PAIR_STREAM_OPTS).toEqual({
+      slotSize: SAB_PAIR_DIRECTION_MTU_BYTES + 4,
+      numSlots: 1,
+    })
+    expect(sabBufferSize()).toBe(16 + SAB_PAIR_DIRECTION_MTU_BYTES + 4)
+    expect(sabPairBufferSize()).toBe(2 * sabBufferSize())
+
+    const { aSab, bSab } = createSabPair()
+    expect(aSab.byteLength).toBe(sabBufferSize())
+    expect(bSab.byteLength).toBe(sabBufferSize())
+  })
+
   it('sends and receives a single message', async () => {
     const { a, b } = makePair()
     const msg = new Uint8Array([1, 2, 3, 4, 5])
@@ -30,6 +51,69 @@ describe('SabRingStream', () => {
     a.close()
     b.close()
     await done
+  })
+
+  it('sends a max-sized default pair payload', async () => {
+    const { aSab, bSab } = createSabPair()
+    const a = new SabRingStream(aSab, bSab)
+    const b = new SabRingStream(bSab, aSab)
+    const msg = new Uint8Array(SAB_PAIR_DIRECTION_MTU_BYTES)
+    msg[0] = 1
+    msg[msg.byteLength - 1] = 2
+
+    const done = a.sink(
+      (async function* () {
+        yield msg
+      })(),
+    )
+
+    const result = await b.source.next()
+    expect(result.done).toBe(false)
+    expect(result.value).toEqual(msg)
+
+    a.close()
+    b.close()
+    await done
+  })
+
+  it('rejects messages beyond the default pair MTU', async () => {
+    const { aSab, bSab } = createSabPair()
+    const a = new SabRingStream(aSab, bSab)
+    const b = new SabRingStream(bSab, aSab)
+    const oversized = new Uint8Array(SAB_PAIR_DIRECTION_MTU_BYTES + 1)
+
+    await a.sink(
+      (async function* () {
+        yield oversized
+      })(),
+    )
+
+    await expect(b.source.next()).resolves.toMatchObject({ done: true })
+  })
+
+  it('drains multiple messages with the one-slot pair default', async () => {
+    const { aSab, bSab } = createSabPair()
+    const a = new SabRingStream(aSab, bSab)
+    const b = new SabRingStream(bSab, aSab)
+    const first = new Uint8Array([1])
+    const second = new Uint8Array([2])
+
+    const received = (async () => {
+      const firstResult = await b.source.next()
+      const secondResult = await b.source.next()
+      return [firstResult.value, secondResult.value]
+    })()
+
+    await a.sink(
+      (async function* () {
+        yield first
+        yield second
+      })(),
+    )
+
+    expect(await received).toEqual([first, second])
+    a.close()
+    b.close()
   })
 
   it('sends multiple messages in order', async () => {

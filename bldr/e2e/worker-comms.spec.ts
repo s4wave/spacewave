@@ -2,7 +2,7 @@
 //
 // Runs against the full bldr dev server (bun run start:web:wasm).
 // Verifies the complete plugin lifecycle: WASM runtime boot, worker
-// creation, SAB bus registration, StarPC transport wiring.
+// creation, plugin startup, and absence of eager SAB bus registration.
 
 import { test, expect } from '@playwright/test'
 
@@ -46,21 +46,22 @@ test.describe('worker communication lifecycle', () => {
     expect(msg).toMatch(/detected config [ABCF]/)
   })
 
-  test('creates SAB bus for plugin IPC', async ({ page }) => {
-    const busPromise = waitForConsole(page, 'SAB bus')
+  test('does not eagerly register plugins on SAB bus', async ({ page }) => {
+    const busMessages: string[] = []
+    page.on('console', (msg) => {
+      const text = msg.text()
+      if (
+        text.includes('SAB bus') ||
+        text.includes('registered on SAB bus') ||
+        text.includes('SabBus: max readers')
+      ) {
+        busMessages.push(text)
+      }
+    })
 
     await page.goto('/#/')
-    const msg = await busPromise
-    // Either "created SAB bus" or "SAB bus transport available".
-    expect(msg).toMatch(/SAB bus/)
-  })
-
-  test('plugin registers on SAB bus', async ({ page }) => {
-    const regPromise = waitForConsole(page, 'registered on SAB bus')
-
-    await page.goto('/#/')
-    const msg = await regPromise
-    expect(msg).toContain('registered on SAB bus with pluginId')
+    await expect(page.locator('#bldr-root')).toBeVisible()
+    expect(busMessages).toEqual([])
   })
 
   test('plugin starts native worker', async ({ page }) => {
@@ -80,16 +81,21 @@ test.describe('worker communication lifecycle', () => {
 
     // Collect all lifecycle milestones.
     const milestones: string[] = []
+    const forbiddenBusMessages: string[] = []
     page.on('console', (msg) => {
       const text = msg.text()
       if (
         text.includes('worker-comms: detected config') ||
-        text.includes('SAB bus') ||
-        text.includes('registered on SAB bus') ||
-        text.includes('starting native plugin') ||
-        text.includes('SAB bus transport available')
+        text.includes('starting native plugin')
       ) {
         milestones.push(text)
+      }
+      if (
+        text.includes('SAB bus') ||
+        text.includes('registered on SAB bus') ||
+        text.includes('SabBus: max readers')
+      ) {
+        forbiddenBusMessages.push(text)
       }
     })
 
@@ -110,6 +116,7 @@ test.describe('worker communication lifecycle', () => {
       m.includes('worker-comms: detected config'),
     )
     expect(hasDetect).toBe(true)
+    expect(forbiddenBusMessages).toEqual([])
 
     // No uncaught errors.
     expect(errors).toEqual([])

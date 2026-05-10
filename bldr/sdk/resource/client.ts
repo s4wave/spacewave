@@ -1,4 +1,3 @@
-
 import {
   constantBackoff,
   createAbortController,
@@ -754,78 +753,87 @@ export class Client {
       )
     }
 
-    await retryWithAbort(controller.signal, async (signal) => {
-      const stream = this.service.ResourceClient({}, signal)
-      let initialized = false
+    await retryWithAbort(
+      controller.signal,
+      async (signal) => {
+        const stream = this.service.ResourceClient({}, signal)
+        let initialized = false
 
-      try {
-        for await (const msg of stream) {
-          if (signal.aborted) return
+        try {
+          for await (const msg of stream) {
+            if (signal.aborted) return
 
-          // Handle initialization message
-          const body = msg.body
-          if (body?.case === 'init') {
-            initialized = true
-            const clientHandleId = body.value.clientHandleId ?? 0
-            const rootResourceId = body.value.rootResourceId ?? 0
+            // Handle initialization message
+            const body = msg.body
+            if (body?.case === 'init') {
+              initialized = true
+              const clientHandleId = body.value.clientHandleId ?? 0
+              const rootResourceId = body.value.rootResourceId ?? 0
 
-            const state: ClientInitState = { clientHandleId, rootResourceId }
+              const state: ClientInitState = { clientHandleId, rootResourceId }
 
-            if (this._reconnectResolve) {
-              // Reconnected: resolve the reconnect promise so that
-              // accessRootResource() unblocks with the new state.
-              this.initState = state
-              this._reconnectResolve(state)
-              this._reconnectResolve = null
-            } else if (!this.initState) {
-              // First init: resolve the initialization promise
-              this.initState = state
-              markInitialized()
-              onInitialized(state)
-            } else {
-              // Duplicate init (shouldn't happen): update state
-              this.initState = state
+              if (this._reconnectResolve) {
+                // Reconnected: resolve the reconnect promise so that
+                // accessRootResource() unblocks with the new state.
+                this.initState = state
+                this._reconnectResolve(state)
+                this._reconnectResolve = null
+              } else if (!this.initState) {
+                // First init: resolve the initialization promise
+                this.initState = state
+                markInitialized()
+                onInitialized(state)
+              } else {
+                // Duplicate init (shouldn't happen): update state
+                this.initState = state
+              }
+              continue
             }
-            continue
-          }
 
-          // Handle resource release notifications
-          if (msg.body?.case === 'resourceReleased') {
-            const resourceId = msg.body.value.resourceId ?? 0
-            this.handleServerResourceRelease(resourceId)
-            continue
-          }
-
-          // Handle errors
-          if (msg.body?.case === 'clientError') {
-            const error = new ResourceClientError(
-              `Server error: ${msg.body.value}`,
-              'SERVER_ERROR',
-            )
-
-            if (!this.initState) {
-              onError(error)
+            // Handle resource release notifications
+            if (msg.body?.case === 'resourceReleased') {
+              const resourceId = msg.body.value.resourceId ?? 0
+              this.handleServerResourceRelease(resourceId)
+              continue
             }
-            throw error
+
+            // Handle errors
+            if (msg.body?.case === 'clientError') {
+              const error = new ResourceClientError(
+                `Server error: ${msg.body.value}`,
+                'SERVER_ERROR',
+              )
+
+              if (!this.initState) {
+                onError(error)
+              }
+              throw error
+            }
+          }
+        } finally {
+          // Release all resources when connection ends (disconnect/error/reconnect).
+          if (
+            this.connectionController === controller &&
+            this.resources.size > 0
+          ) {
+            this.releaseAllResources('connection-lost')
           }
         }
-      } finally {
-        // Release all resources when connection ends (disconnect/error/reconnect).
-        if (
-          this.connectionController === controller &&
-          this.resources.size > 0
-        ) {
-          this.releaseAllResources('connection-lost')
+        if (!signal.aborted) {
+          throw new Error(
+            initialized ?
+              'ResourceClient stream closed'
+            : 'ResourceClient stream closed before init',
+          )
         }
-      }
-      if (!signal.aborted) {
-        throw new Error(
-          initialized ?
-            'ResourceClient stream closed'
-          : 'ResourceClient stream closed before init',
-        )
-      }
-    })
+      },
+      {
+        errorCb: (err) => {
+          if (this.shouldRetryResourceClientStreamSilently(err)) return
+          console.warn('Retry: retrying after error', { error: err })
+        },
+      },
+    )
   }
 
   /**
@@ -1038,6 +1046,11 @@ export class Client {
       msg.includes('timed out waiting for next WebDocument to proxy conn') ||
       msg.includes('WebRuntimeClientInstance is closed')
     )
+  }
+
+  private shouldRetryResourceClientStreamSilently(error: unknown): boolean {
+    if (!(error instanceof Error)) return false
+    return error.name === 'StreamResetError' || error.message === 'stream reset'
   }
 
   /**

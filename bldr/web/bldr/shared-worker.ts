@@ -21,7 +21,6 @@ import {
 import { BackendApiImpl } from '../../sdk/impl/backend-api.js'
 import { createTransportFactory } from './plugin-transport.js'
 import { detectWorkerCommsConfig } from './worker-comms-detect.js'
-import { SabBusEndpoint } from './sab-bus.js'
 
 declare let self: (SharedWorkerGlobalScope | DedicatedWorkerGlobalScope) & {
   name?: string
@@ -65,22 +64,8 @@ if (isPlugin) {
     handleIncomingStreamCtr.handleStreamFunc
 
   const startPluginCallback = async (opts: PluginStartOpts) => {
-    const { startInfo, busSab, busPluginId } = opts
+    const { startInfo } = opts
     const { scriptPath, workerType } = parseUrlParams()
-
-    // Set up SAB bus endpoint if the bus SAB was provided.
-    // Falls back to MessagePort-only transport if bus initialization fails.
-    let busEndpoint: SabBusEndpoint | undefined
-    if (busSab && busPluginId != null) {
-      try {
-        busEndpoint = new SabBusEndpoint(busSab, busPluginId)
-        busEndpoint.register()
-        console.log('shared-worker: registered on SAB bus with pluginId', busPluginId)
-      } catch (err) {
-        console.warn('shared-worker: SAB bus init failed, falling back to MessagePort', err)
-        busEndpoint = undefined
-      }
-    }
 
     // Use the detection result from the WebDocument init message (authoritative).
     // Falls back to local detection for standalone test fixtures.
@@ -90,7 +75,12 @@ if (isPlugin) {
         pluginWorker.webRuntimeClient,
       ),
       handleIncomingStream: handleIncomingStream,
-      busEndpoint,
+      openPairEndpoint: pluginWorker.webDocumentTracker.requestSabPair.bind(
+        pluginWorker.webDocumentTracker,
+      ),
+      closePairEndpoint: pluginWorker.webDocumentTracker.closeSabPair.bind(
+        pluginWorker.webDocumentTracker,
+      ),
     })
 
     const abortController = new AbortController()

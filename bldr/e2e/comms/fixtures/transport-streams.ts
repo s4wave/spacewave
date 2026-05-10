@@ -1,16 +1,15 @@
 // transport-streams.ts - Transport factory stream verification fixture.
 //
-// Creates a transport factory, calls openBusStream() and openCrossTabStream(),
+// Creates a transport factory, calls openPairStream() and openCrossTabStream(),
 // sends actual data through the returned streams, verifies receipt.
-// Verifies openBusStream unavailable on WebKit (Config A/F).
+// Verifies openPairStream unavailable on WebKit (Config A/F).
 
 import { detectWorkerCommsConfig } from '../../../web/bldr/worker-comms-detect.js'
-import { type PacketStream } from 'starpc'
 import { createTransportFactory } from '../../../web/bldr/plugin-transport.js'
 import {
-  SabBusEndpoint,
-  createBusSab,
-} from '../../../web/bldr/sab-bus.js'
+  SabRingStream,
+  createSabPair,
+} from '../../../web/bldr/sab-ring-stream.js'
 
 declare global {
   interface Window {
@@ -18,9 +17,9 @@ declare global {
       pass: boolean
       detail: string
       config: string
-      hasBusStream: boolean
-      busStreamRoundTrip: boolean
-      busUnavailableOnFallback: boolean
+      hasPairStream: boolean
+      pairStreamRoundTrip: boolean
+      pairUnavailableOnFallback: boolean
     }
   }
 }
@@ -32,9 +31,9 @@ async function run() {
   const detect = await detectWorkerCommsConfig()
   const config = detect.config
 
-  let hasBusStream: boolean
-  let busStreamRoundTrip = false
-  let busUnavailableOnFallback = false
+  let hasPairStream: boolean
+  let pairStreamRoundTrip = false
+  let pairUnavailableOnFallback = false
 
   const noopOpen = async () => {
     throw new Error('not implemented')
@@ -42,33 +41,30 @@ async function run() {
   const noopHandle = async () => {}
 
   if (config === 'B' || config === 'C') {
-    // SAB configs: create bus with two endpoints.
-    const busOpts = { slotSize: 8192, numSlots: 64 }
-    const busSab = createBusSab(busOpts)
-
-    // Endpoint 1 (our plugin) in the factory.
-    const endpoint1 = new SabBusEndpoint(busSab, 1, busOpts)
-    endpoint1.register()
-
-    // Endpoint 2 (peer plugin) for receiving.
-    const endpoint2 = new SabBusEndpoint(busSab, 2, busOpts)
-    endpoint2.register()
+    const { aSab, bSab } = createSabPair()
+    const remoteStream = new SabRingStream(bSab, aSab)
 
     const factory = createTransportFactory(detect, {
       openStream: noopOpen,
       handleIncomingStream: noopHandle,
-      busEndpoint: endpoint1,
+      openPairEndpoint: async () => ({
+        pairId: 'sab-pair-fixture-1',
+        localWorkerId: 'worker-a',
+        remoteWorkerId: 'worker-b',
+        txSab: aSab,
+        rxSab: bSab,
+        mtuBytes: 32 * 1024,
+      }),
     })
 
-    hasBusStream = factory.openBusStream != null
+    hasPairStream = factory.openPairStream != null
 
-    if (factory.openBusStream) {
-      // Open a bus stream to endpoint 2.
-      const stream = await factory.openBusStream(2)
+    if (factory.openPairStream) {
+      const stream = await factory.openPairStream('worker-b')
 
       // Verify the stream has source and sink (PacketStream interface).
-      if (!stream.source) errors.push('bus stream missing source')
-      if (!stream.sink) errors.push('bus stream missing sink')
+      if (!stream.source) errors.push('pair stream missing source')
+      if (!stream.sink) errors.push('pair stream missing sink')
 
       // Write test data through the stream's sink.
       const testPayload = new TextEncoder().encode('transport-factory-test')
@@ -78,42 +74,35 @@ async function run() {
         })(),
       )
 
-      // Read from endpoint 2 directly.
-      const msg = await endpoint2.read()
-      if (msg) {
-        const received = new TextDecoder().decode(msg.data)
-        busStreamRoundTrip = received === 'transport-factory-test'
-        if (!busStreamRoundTrip) {
-          errors.push(`bus round-trip mismatch: got ${received}`)
+      const msg = await remoteStream.source.next()
+      if (!msg.done) {
+        const received = new TextDecoder().decode(msg.value)
+        pairStreamRoundTrip = received === 'transport-factory-test'
+        if (!pairStreamRoundTrip) {
+          errors.push(`pair round-trip mismatch: got ${received}`)
         }
       } else {
-        errors.push('bus endpoint 2 received no data')
+        errors.push('pair remote stream received no data')
       }
 
-      // Close streams.
-      if (stream.close) {
-        const closeable = stream as PacketStream & { close?: () => void }
-        closeable.close?.()
-      }
+      const closeable = stream as SabRingStream
+      closeable.close()
+      remoteStream.close()
       await writePromise.catch(() => {})
     } else {
-      errors.push('expected openBusStream on config ' + config)
+      errors.push('expected openPairStream on config ' + config)
     }
-
-    endpoint1.close()
-    endpoint2.close()
   } else {
-    // Config A or F: no SAB bus.
     const factory = createTransportFactory(detect, {
       openStream: noopOpen,
       handleIncomingStream: noopHandle,
     })
 
-    hasBusStream = factory.openBusStream != null
-    busUnavailableOnFallback = !hasBusStream
+    hasPairStream = factory.openPairStream != null
+    pairUnavailableOnFallback = !hasPairStream
 
-    if (hasBusStream) {
-      errors.push('unexpected openBusStream on config ' + config)
+    if (hasPairStream) {
+      errors.push('unexpected openPairStream on config ' + config)
     }
   }
 
@@ -122,9 +111,9 @@ async function run() {
     pass,
     detail: errors.length > 0 ? errors.join('; ') : 'ok',
     config,
-    hasBusStream,
-    busStreamRoundTrip,
-    busUnavailableOnFallback,
+    hasPairStream,
+    pairStreamRoundTrip,
+    pairUnavailableOnFallback,
   }
   log.textContent = 'DONE'
 }
@@ -134,9 +123,9 @@ run().catch((err) => {
     pass: false,
     detail: `error: ${err}`,
     config: '',
-    hasBusStream: false,
-    busStreamRoundTrip: false,
-    busUnavailableOnFallback: false,
+    hasPairStream: false,
+    pairStreamRoundTrip: false,
+    pairUnavailableOnFallback: false,
   }
   document.getElementById('log')!.textContent = 'DONE'
 })

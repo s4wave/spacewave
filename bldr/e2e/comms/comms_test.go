@@ -256,28 +256,8 @@ func TestSabRing(t *testing.T) {
 			assertBoolResult(t, results, "sendRecv", true)
 			assertBoolResult(t, results, "bidirectional", true)
 			assertBoolResult(t, results, "close", true)
-
-			t.Logf("detail: %s", results["detail"])
-		})
-	}
-}
-
-// TestSabBus verifies the SAB shared bus multi-endpoint communication.
-// Tests unicast, relay, and broadcast message delivery.
-func TestSabBus(t *testing.T) {
-	browsers := []string{"chromium", "firefox"}
-	for _, browser := range browsers {
-		t.Run(browser, func(t *testing.T) {
-			t.Parallel()
-			results := runFixture(t, browser, "sab-bus")
-
-			if pass, ok := results["pass"].(bool); !ok || !pass {
-				t.Fatalf("sab-bus failed: %v", results["detail"])
-			}
-
-			assertBoolResult(t, results, "unicast", true)
-			assertBoolResult(t, results, "relay", true)
-			assertBoolResult(t, results, "broadcast", true)
+			assertBoolResult(t, results, "pairDefault", true)
+			assertBoolResult(t, results, "maxPayload", true)
 
 			t.Logf("detail: %s", results["detail"])
 		})
@@ -285,8 +265,8 @@ func TestSabBus(t *testing.T) {
 }
 
 // TestDedicatedWorker verifies DedicatedWorker hosting: plugin-host wrapper
-// receives busSab + busPluginId, registers on bus, loads plugin script, and
-// the plugin communicates over the bus.
+// receives worker comms config without eager SAB bus fields and loads the
+// plugin script.
 func TestDedicatedWorker(t *testing.T) {
 	browsers := []string{"chromium", "firefox"}
 	for _, browser := range browsers {
@@ -298,10 +278,10 @@ func TestDedicatedWorker(t *testing.T) {
 				t.Fatalf("dedicated worker failed: %v", results["detail"])
 			}
 
-			assertBoolResult(t, results, "registered", true)
+			assertBoolResult(t, results, "noStartupSab", true)
 			assertBoolResult(t, results, "pluginStarted", true)
-			assertBoolResult(t, results, "pluginReceived", true)
 			assertBoolResult(t, results, "configReceived", true)
+			assertBoolResult(t, results, "manyWorkersStarted", true)
 
 			t.Logf("detail: %s", results["detail"])
 		})
@@ -349,22 +329,21 @@ func TestTransportFactory(t *testing.T) {
 			assertBoolResult(t, results, "factoryCreated", true)
 
 			config, _ := results["config"].(string)
-			hasBus, _ := results["hasBusStream"].(bool)
+			hasPair, _ := results["hasPairStream"].(bool)
 
-			// SAB bus is available on any config with SAB (B, C).
-			// Config A/F have no SAB and no bus stream.
+			// SAB pair streams are available on any config with SAB (B, C).
 			switch config {
 			case "B", "C":
-				if !hasBus {
-					t.Errorf("expected hasBusStream=true on %s (config=%s)", browser, config)
+				if !hasPair {
+					t.Errorf("expected hasPairStream=true on %s (config=%s)", browser, config)
 				}
 			case "A", "F":
-				if hasBus {
-					t.Errorf("unexpected hasBusStream=true on %s (config=%s)", browser, config)
+				if hasPair {
+					t.Errorf("unexpected hasPairStream=true on %s (config=%s)", browser, config)
 				}
 			}
 
-			t.Logf("config=%s hasBusStream=%v", config, hasBus)
+			t.Logf("config=%s hasPairStream=%v", config, hasPair)
 		})
 	}
 }
@@ -960,10 +939,10 @@ func TestCrossTabRpc(t *testing.T) {
 	}
 }
 
-// TestTransportStreams verifies the transport factory openBusStream().
-// On Config B/C (Chromium, Firefox): creates a bus stream, sends data, verifies
+// TestTransportStreams verifies the transport factory openPairStream().
+// On Config B/C (Chromium, Firefox): creates a pair stream, sends data, verifies
 // round-trip through the factory's returned PacketStream.
-// On Config A/F (WebKit): verifies openBusStream is unavailable.
+// On Config A/F (WebKit): verifies openPairStream is unavailable.
 func TestTransportStreams(t *testing.T) {
 	browsers := []string{"chromium", "firefox", "webkit"}
 	for _, browser := range browsers {
@@ -980,14 +959,14 @@ func TestTransportStreams(t *testing.T) {
 
 			switch browser {
 			case "chromium", "firefox":
-				assertBoolResult(t, results, "hasBusStream", true)
-				assertBoolResult(t, results, "busStreamRoundTrip", true)
+				assertBoolResult(t, results, "hasPairStream", true)
+				assertBoolResult(t, results, "pairStreamRoundTrip", true)
 			case "webkit":
 				// WebKit gets Config B (SAB available) or A (fallback).
-				hasBus, _ := results["hasBusStream"].(bool)
+				hasPair, _ := results["hasPairStream"].(bool)
 				if config == "A" || config == "F" {
-					if hasBus {
-						t.Errorf("expected no bus stream on config %s", config)
+					if hasPair {
+						t.Errorf("expected no pair stream on config %s", config)
 					}
 				}
 			}
@@ -997,9 +976,9 @@ func TestTransportStreams(t *testing.T) {
 	}
 }
 
-// TestSabRpc verifies StarPC echo RPC over SabBusStream between two
-// DedicatedWorkers. Server and client each register on a shared SAB bus,
-// open SabBusStreams to each other, and run a full StarPC Echo round-trip.
+// TestSabRpc verifies StarPC echo RPC over a SAB pair stream between two
+// DedicatedWorkers. Server and client receive opposite ends of one bounded
+// SAB pair and run a full StarPC Echo round-trip.
 // Chromium + Firefox only (SAB requires cross-origin isolation).
 func TestSabRpc(t *testing.T) {
 	browsers := []string{"chromium", "firefox"}
@@ -1013,8 +992,20 @@ func TestSabRpc(t *testing.T) {
 			}
 
 			echoBody, _ := results["echoBody"].(string)
-			if echoBody != "hello via SAB bus" {
+			if echoBody != "hello via SAB pair" {
 				t.Errorf("unexpected echo body: %q", echoBody)
+			}
+			switch mtuBytes := results["mtuBytes"].(type) {
+			case int:
+				if mtuBytes != 32*1024 {
+					t.Errorf("unexpected pair MTU bytes: %v", mtuBytes)
+				}
+			case float64:
+				if mtuBytes != 32*1024 {
+					t.Errorf("unexpected pair MTU bytes: %v", mtuBytes)
+				}
+			default:
+				t.Errorf("unexpected pair MTU type: %T", results["mtuBytes"])
 			}
 
 			t.Logf("detail: %s", results["detail"])

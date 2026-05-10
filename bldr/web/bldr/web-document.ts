@@ -60,7 +60,7 @@ import {
 } from './worker-comms-detect.js'
 import { CrossTabManager } from './cross-tab-manager.js'
 import { WebRTCBridgeEndpoint } from './webrtc-bridge-endpoint.js'
-import { createBusSab } from './sab-bus.js'
+import { SabPairBroker } from './sab-pair-broker.js'
 import { shouldUseWebDocumentLivenessLock } from './web-document-lock.js'
 import { WebView, WebViewRegistration, buildWebViewStatus } from './web-view.js'
 import {
@@ -68,6 +68,8 @@ import {
   ClientToWebDocument,
   ConnectWebRtcBridgeAck,
   ConnectWebRuntimeAck,
+  OpenSabPairAck,
+  SabPairEndpointDescriptor,
   ServiceWorkerToWebDocument,
   WebDocumentToClient,
   WebDocumentToWebRuntime,
@@ -76,6 +78,10 @@ import {
 
 import { ItState } from './it-state.js'
 import { randomId } from './random-id.js'
+import {
+  SAB_PAIR_DIRECTION_MTU_BYTES,
+  createSabPair,
+} from './sab-ring-stream.js'
 import { SimpleEventEmitter } from './simple-event-emitter.js'
 import { WebRuntimeClient } from './web-runtime-client.js'
 import { markStartupBoundary } from './startup-marks.js'
@@ -146,10 +152,6 @@ class WebDocumentWebWorker {
     // without the shw.mjs wrapper.
     shared: boolean,
     onWebWorkerMessage: (e: MessageEvent<ClientToWebDocument>) => void,
-    // busSab is the SAB bus for intra-tab plugin IPC (config B/C).
-    busSab?: SharedArrayBuffer,
-    // busPluginId is the numeric ID for this worker on the bus.
-    busPluginId?: number,
     // workerCommsDetect is the main-thread detection result.
     workerCommsDetect?: WorkerCommsDetectResult,
   ) {
@@ -177,8 +179,6 @@ class WebDocumentWebWorker {
       from: webDocumentUuid,
       initData,
       initPort: workerPort,
-      busSab,
-      busPluginId,
       workerCommsDetect,
     }
 
@@ -593,6 +593,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   private webRuntimePort?: MessagePort
   // webrtcBridgeEndpoints tracks active WebRTC bridge connections keyed by worker ID.
   private webrtcBridgeEndpoints = new Map<string, WebRTCBridgeEndpoint>()
+  // sabPairBroker tracks active same-tab SAB pair metadata.
+  private readonly sabPairBroker = new SabPairBroker()
   // webRuntimeClient is the client for the WebRuntime.
   private readonly webRuntimeClient: WebRuntimeClient | SaucerRuntimeClient
   // webDocumentHost is the RPC interface to the WebDocumentHost via the WebRuntime.
@@ -612,10 +614,6 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   private readonly sharedWorkerPath: string
   // workerCommsDetect resolves to the detected worker communication config.
   private readonly workerCommsDetect: Promise<WorkerCommsDetectResult>
-  // busSab is the shared bus SAB for intra-tab plugin IPC (config B/C).
-  private busSab?: SharedArrayBuffer
-  // nextBusPluginId is the next numeric plugin ID to assign on the bus.
-  private nextBusPluginId = 1
   // crossTabManager manages brokered cross-tab MessagePort channels.
   public readonly crossTabManager: CrossTabManager
   // abortController aborts the Web Lock request on close.
@@ -1187,6 +1185,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     const old = this.webWorkers[request.id]
     if (old) {
       this.closeWorkerBridgeEndpoint(request.id)
+      this.closeSabPairsForWorker(request.id, 'worker replaced')
       delete this.webWorkers[request.id]
       await old.close()
     }
@@ -1224,28 +1223,6 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       }
     }
 
-    // For DedicatedWorker plugins on config B/C, set up the SAB bus.
-    // Falls back gracefully if SAB allocation fails.
-    let busSab: SharedArrayBuffer | undefined
-    let busPluginId: number | undefined
-    if (!shared && request.initData) {
-      if (detect.config === 'B' || detect.config === 'C') {
-        try {
-          if (!this.busSab) {
-            this.busSab = createBusSab()
-            console.log('WebDocument: created SAB bus for intra-tab plugin IPC')
-          }
-          busSab = this.busSab
-          busPluginId = this.nextBusPluginId++
-        } catch (err) {
-          console.warn(
-            'WebDocument: SAB bus allocation failed, using MessagePort only',
-            err,
-          )
-        }
-      }
-    }
-
     const worker = new WebDocumentWebWorker(
       request.id,
       request.path,
@@ -1255,8 +1232,6 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       workerType,
       shared,
       this.onWebWorkerMessage.bind(this, request.id),
-      busSab,
-      busPluginId,
       detect,
     )
     this.webWorkers[request.id] = worker
@@ -1287,6 +1262,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     const old = this.webWorkers[request.id]
     if (old) {
       this.closeWorkerBridgeEndpoint(request.id)
+      this.closeSabPairsForWorker(request.id, 'worker removed')
       delete this.webWorkers[request.id]
       await old.close()
       this.notifyWebWorkerUpdated(request.id, true, old.isShared, old.ready)
@@ -1324,6 +1300,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       endpoint.close()
     }
     this.webrtcBridgeEndpoints.clear()
+    this.sabPairBroker.closeAll()
 
     // Notify the cross-tab broker that this tab is closing.
     navigator.serviceWorker?.controller?.postMessage({ crossTab: 'goodbye' })
@@ -1661,6 +1638,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     if (data.close) {
       // Web worker was closed / removed.
       this.closeWorkerBridgeEndpoint(workerID)
+      this.closeSabPairsForWorker(workerID, 'worker closed')
       worker.port.close()
       delete this.webWorkers[workerID]
       this.notifyWebWorkerUpdated(workerID, true, worker.isShared, worker.ready)
@@ -1733,6 +1711,139 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     if (data.connectWebRtcBridge) {
       this.handleConnectWebRtcBridge(data.from)
     }
+
+    if (data.openSabPair) {
+      this.handleOpenSabPair(data.from, data.openSabPair)
+    }
+
+    if (data.closeSabPair) {
+      const pair = this.sabPairBroker.closePairForWorker(
+        data.from,
+        data.closeSabPair.pairId,
+      )
+      if (pair) {
+        this.notifySabPairClosed(pair, data.from, 'stream closed')
+      }
+    }
+  }
+
+  private sendOpenSabPairError(
+    sourceWorkerId: string,
+    requestId: string,
+    error: string,
+  ): void {
+    const sourceWorker = this.webWorkers[sourceWorkerId]
+    if (!sourceWorker?.port) {
+      return
+    }
+    const ack: OpenSabPairAck = {
+      from: this.webDocumentUuid,
+      requestId,
+      error,
+    }
+    try {
+      sourceWorker.port.postMessage({
+        from: this.webDocumentUuid,
+        openSabPairAck: ack,
+      } satisfies WebDocumentToClient)
+    } catch {
+      // The requester is already closed. Pair metadata cleanup is handled by caller.
+    }
+  }
+
+  private handleOpenSabPair(
+    sourceWorkerId: string,
+    request: { requestId: string; targetWorkerId: string },
+  ): void {
+    const sourceWorker = this.webWorkers[sourceWorkerId]
+    if (!sourceWorker?.port) {
+      return
+    }
+    const targetWorker = this.webWorkers[request.targetWorkerId]
+    if (!targetWorker?.port) {
+      this.sendOpenSabPairError(
+        sourceWorkerId,
+        request.requestId,
+        `target worker not found: ${request.targetWorkerId}`,
+      )
+      return
+    }
+
+    let pairId: string | undefined
+    try {
+      const pair = this.sabPairBroker.allocate(
+        sourceWorkerId,
+        request.targetWorkerId,
+      )
+      pairId = pair.pairId
+      const { aSab, bSab } = createSabPair()
+      const sourceEndpoint: SabPairEndpointDescriptor = {
+        pairId: pair.pairId,
+        localWorkerId: sourceWorkerId,
+        remoteWorkerId: request.targetWorkerId,
+        txSab: aSab,
+        rxSab: bSab,
+        mtuBytes: SAB_PAIR_DIRECTION_MTU_BYTES,
+      }
+      const targetEndpoint: SabPairEndpointDescriptor = {
+        pairId: pair.pairId,
+        localWorkerId: request.targetWorkerId,
+        remoteWorkerId: sourceWorkerId,
+        txSab: bSab,
+        rxSab: aSab,
+        mtuBytes: SAB_PAIR_DIRECTION_MTU_BYTES,
+      }
+      targetWorker.port.postMessage({
+        from: this.webDocumentUuid,
+        sabPairEndpoint: targetEndpoint,
+      } satisfies WebDocumentToClient)
+      const ack: OpenSabPairAck = {
+        from: this.webDocumentUuid,
+        requestId: request.requestId,
+        endpoint: sourceEndpoint,
+      }
+      sourceWorker.port.postMessage({
+        from: this.webDocumentUuid,
+        openSabPairAck: ack,
+      } satisfies WebDocumentToClient)
+      this.sabPairBroker.markOpen(pair.pairId)
+    } catch (err) {
+      if (pairId) {
+        this.sabPairBroker.closePair(pairId)
+      }
+      this.sendOpenSabPairError(
+        sourceWorkerId,
+        request.requestId,
+        err instanceof Error ? err.message : String(err),
+      )
+    }
+  }
+
+  private closeSabPairsForWorker(workerId: string, reason: string): void {
+    const pairs = this.sabPairBroker.closeForWorker(workerId)
+    for (const pair of pairs) {
+      this.notifySabPairClosed(pair, workerId, reason)
+    }
+  }
+
+  private notifySabPairClosed(
+    pair: { pairId: string; workerAId: string; workerBId: string },
+    closedByWorkerId: string,
+    reason: string,
+  ): void {
+    const remoteWorkerId =
+      pair.workerAId === closedByWorkerId ? pair.workerBId : pair.workerAId
+    const remoteWorker = this.webWorkers[remoteWorkerId]
+    if (!remoteWorker?.port) {
+      return
+    }
+    remoteWorker.port.postMessage({
+      from: this.webDocumentUuid,
+      sabPairClosed: {
+        pairId: pair.pairId,
+        reason,
+      },
+    } satisfies WebDocumentToClient)
   }
 
   // closeWorkerBridgeEndpoint closes and removes the WebRTC bridge endpoint
