@@ -29,6 +29,7 @@ func renderReleaseMarkdown(rel *Release) string {
 	writeChangeSection(&b, "Fixes", rel.GetFixes())
 	writeChangeSection(&b, "Improvements", rel.GetImprovements())
 	writeChangeSection(&b, "Security", rel.GetSecurity())
+	writeDownloadSection(&b, rel.GetVersion())
 	b.WriteString("\n")
 	return b.String()
 }
@@ -50,4 +51,24 @@ func writeChangeSection(b *strings.Builder, name string, entries []*ChangeEntry)
 		}
 		b.WriteString(entry.GetDescription())
 	}
+}
+
+func writeDownloadSection(b *strings.Builder, version string) {
+	version = strings.TrimPrefix(strings.TrimSpace(version), "v")
+	if version == "" {
+		return
+	}
+	if b.Len() != 0 {
+		b.WriteString("\n\n")
+	}
+	tag := "v" + version
+	base := "https://github.com/s4wave/spacewave/releases/download/" + tag + "/"
+	b.WriteString("## Downloads\n")
+	b.WriteString("[MacOS (arm64)](")
+	b.WriteString(base)
+	b.WriteString("spacewave-macos-arm64.dmg) | [Windows (amd64)](")
+	b.WriteString(base)
+	b.WriteString("spacewave-windows-amd64.msix) | [Linux (amd64)](")
+	b.WriteString(base)
+	b.WriteString("spacewave-linux-amd64.AppImage)")
 }
