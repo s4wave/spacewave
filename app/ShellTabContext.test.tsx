@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { useEffect } from 'react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 
 import {
@@ -19,16 +19,16 @@ function NoopPathUpdateProbe() {
   return <div data-testid="tab-count">{tabs.length}</div>
 }
 
-function NoopSetTabsProbe() {
-  const renders = useRef(0)
-  renders.current++
+function NoopSetTabsProbe({ onCommit }: { onCommit: () => void }) {
   const { setTabs } = useShellTabs()
+
+  useEffect(onCommit)
 
   useEffect(() => {
     setTabs((tabs) => tabs.map((tab) => ({ ...tab })))
   }, [setTabs])
 
-  return <div data-testid="render-count">{renders.current}</div>
+  return <div data-testid="probe-mounted">mounted</div>
 }
 
 function ActiveTabProbe() {
@@ -60,7 +60,8 @@ describe('ShellTabContext', () => {
     expect(screen.getByTestId('tab-count').textContent).toBe('1')
   })
 
-  it('treats semantically equal tab arrays as a no-op', () => {
+  it('treats semantically equal tab arrays as a no-op', async () => {
+    const onCommit = vi.fn()
     localStorage.setItem(
       SHELL_TABS_STORAGE_KEY,
       JSON.stringify({
@@ -71,11 +72,13 @@ describe('ShellTabContext', () => {
 
     render(
       <ShellTabsProvider>
-        <NoopSetTabsProbe />
+        <NoopSetTabsProbe onCommit={onCommit} />
       </ShellTabsProvider>,
     )
 
-    expect(screen.getByTestId('render-count').textContent).toBe('1')
+    expect(screen.getByTestId('probe-mounted').textContent).toBe('mounted')
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(onCommit).toHaveBeenCalledTimes(1)
   })
 
   it('preserves active tab selection when hydrating external tab changes', async () => {

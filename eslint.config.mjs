@@ -121,6 +121,12 @@ export default tseslint.config(
     },
   },
   {
+    files: ['**/*.test.tsx'],
+    rules: {
+      'react-doctor/async-parallel': 'off',
+    },
+  },
+  {
     rules: {
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',

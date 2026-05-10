@@ -95,17 +95,19 @@ function applyStateUpdate<T>(state: T, update: React.SetStateAction<T>): T {
 }
 
 function shellTabsEqual(a: ShellTab[], b: ShellTab[]): boolean {
-  if (a.length !== b.length) return false
-  return a.every((tab, idx) => {
-    const other = b[idx]
-    return (
-      other !== undefined &&
-      tab.id === other.id &&
-      tab.name === other.name &&
-      tab.path === other.path &&
-      tab.customName === other.customName
-    )
-  })
+  return (
+    a.length === b.length &&
+    a.every((tab, idx) => {
+      const other = b[idx]
+      return (
+        other !== undefined &&
+        tab.id === other.id &&
+        tab.name === other.name &&
+        tab.path === other.path &&
+        tab.customName === other.customName
+      )
+    })
+  )
 }
 
 function shellTabsProviderReducer(
