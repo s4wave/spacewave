@@ -3,14 +3,17 @@
 package spacewave_cli
 
 import (
+	"bufio"
 	"os"
 	"strconv"
-
-	protojson "github.com/aperturerobotics/protobuf-go-lite/json"
+	"strings"
 
 	"github.com/aperturerobotics/cli"
+	protojson "github.com/aperturerobotics/protobuf-go-lite/json"
 	"github.com/pkg/errors"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
+	core_session "github.com/s4wave/spacewave/core/session"
+	"github.com/s4wave/spacewave/net/peer"
 	s4wave_account "github.com/s4wave/spacewave/sdk/account"
 )
 
@@ -23,6 +26,7 @@ func newSessionCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 		Subcommands: []*cli.Command{
 			newSessionListCommand(),
 			newSessionInfoCommand(),
+			newSessionLogoutCommand(),
 			newSessionRevokeCommand(),
 		},
 	}
@@ -199,6 +203,167 @@ func runSessionInfo(c *cli.Context, statePath, outputFormat string, sessionIdx u
 	return nil
 }
 
+// newSessionLogoutCommand builds the session logout subcommand.
+func newSessionLogoutCommand() *cli.Command {
+	var statePath string
+	var sessionIdx uint
+	var yes bool
+	var sessionID string
+	var accountID string
+	return &cli.Command{
+		Name:      "logout",
+		Aliases:   []string{"signout"},
+		Usage:     "sign out a local session",
+		ArgsUsage: "[session-index|session-id|account-id]",
+		Flags:     sessionLogoutFlags(&statePath, &sessionIdx, &sessionID, &accountID, &yes),
+		Action: func(c *cli.Context) error {
+			return runSessionLogout(c, statePath, uint32(sessionIdx), sessionLogoutTarget{
+				Positional: c.Args().First(),
+				SessionID:  sessionID,
+				AccountID:  accountID,
+			}, yes)
+		},
+	}
+}
+
+type sessionLogoutTarget struct {
+	Positional string
+	SessionID  string
+	AccountID  string
+}
+
+func sessionLogoutFlags(statePath *string, sessionIdx *uint, sessionID *string, accountID *string, yes *bool) []cli.Flag {
+	return append(clientFlags(statePath, sessionIdx),
+		&cli.StringFlag{
+			Name:        "session-id",
+			Usage:       "session id to sign out",
+			Destination: sessionID,
+		},
+		&cli.StringFlag{
+			Name:        "account-id",
+			Usage:       "provider account id to sign out",
+			Destination: accountID,
+		},
+		&cli.BoolFlag{
+			Name:        "yes",
+			Aliases:     []string{"y"},
+			Usage:       "confirm sign-out without prompting",
+			Destination: yes,
+		},
+	)
+}
+
+func runSessionLogout(c *cli.Context, statePath string, sessionIdx uint32, target sessionLogoutTarget, yes bool) error {
+	ctx := c.Context
+	client, err := connectDaemonFromContext(ctx, c, statePath)
+	if err != nil {
+		return err
+	}
+	defer client.close()
+
+	sessions, err := client.root.ListSessions(ctx)
+	if err != nil {
+		return errors.Wrap(err, "list sessions")
+	}
+
+	entry, err := resolveSessionLogoutEntry(sessions, target, sessionIdx)
+	if err != nil {
+		return err
+	}
+
+	if !yes {
+		ok, err := confirmSessionLogout(entry)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			os.Stdout.WriteString("sign out canceled\n")
+			return nil
+		}
+	}
+
+	if err := client.root.DeleteSession(ctx, entry.GetSessionIndex()); err != nil {
+		return errors.Wrap(err, "delete session")
+	}
+
+	ref := entry.GetSessionRef().GetProviderResourceRef()
+	os.Stdout.WriteString("signed out session index " + strconv.FormatUint(uint64(entry.GetSessionIndex()), 10) +
+		" (" + ref.GetProviderId() + " " + ref.GetProviderAccountId() + ")\n")
+	return nil
+}
+
+func resolveSessionLogoutEntry(sessions []*core_session.SessionListEntry, target sessionLogoutTarget, sessionIdx uint32) (*core_session.SessionListEntry, error) {
+	if len(sessions) == 0 {
+		return nil, errors.New("no sessions")
+	}
+	if target.SessionID != "" && target.AccountID != "" {
+		return nil, errors.New("use only one of --session-id or --account-id")
+	}
+	if target.SessionID != "" {
+		return resolveSessionLogoutEntryByProviderRef(sessions, target.SessionID, false)
+	}
+	if target.AccountID != "" {
+		return resolveSessionLogoutEntryByProviderRef(sessions, target.AccountID, true)
+	}
+	if target.Positional == "" {
+		for _, entry := range sessions {
+			if entry.GetSessionIndex() == sessionIdx {
+				return entry, nil
+			}
+		}
+		return nil, errors.Errorf("no session found at index %d", sessionIdx)
+	}
+
+	if idx, err := strconv.ParseUint(target.Positional, 10, 32); err == nil {
+		for _, entry := range sessions {
+			if entry.GetSessionIndex() == uint32(idx) {
+				return entry, nil
+			}
+		}
+		return nil, errors.Errorf("no session found at index %d", idx)
+	}
+
+	return resolveSessionLogoutEntryByProviderRef(sessions, target.Positional, true)
+}
+
+func resolveSessionLogoutEntryByProviderRef(sessions []*core_session.SessionListEntry, selector string, allowAccount bool) (*core_session.SessionListEntry, error) {
+	var match *core_session.SessionListEntry
+	for _, entry := range sessions {
+		ref := entry.GetSessionRef().GetProviderResourceRef()
+		if selector != ref.GetId() && (!allowAccount || selector != ref.GetProviderAccountId()) {
+			continue
+		}
+		if match != nil {
+			return nil, errors.Errorf("multiple sessions match %q; use a session index", selector)
+		}
+		match = entry
+	}
+	if match != nil {
+		return match, nil
+	}
+	return nil, errors.Errorf("no session found matching %q", selector)
+}
+
+func confirmSessionLogout(entry *core_session.SessionListEntry) (bool, error) {
+	ref := entry.GetSessionRef().GetProviderResourceRef()
+	os.Stdout.WriteString("Sign out this local session?\n\n")
+	writeFields(os.Stdout, [][2]string{
+		{"Index", strconv.FormatUint(uint64(entry.GetSessionIndex()), 10)},
+		{"Session", ref.GetId()},
+		{"Provider", ref.GetProviderId()},
+		{"Account", ref.GetProviderAccountId()},
+	})
+	os.Stdout.WriteString("\nThis removes the session from this Spacewave state root. It does not revoke the provider-side session.\n")
+	os.Stdout.WriteString("Continue? [y/N]: ")
+
+	line, err := bufio.NewReader(os.Stdin).ReadString('\n')
+	if err != nil && line == "" {
+		return false, errors.Wrap(err, "read confirmation")
+	}
+	answer := strings.ToLower(strings.TrimSpace(line))
+	return answer == "y" || answer == "yes", nil
+}
+
 // newSessionRevokeCommand builds the session revoke command.
 func newSessionRevokeCommand() *cli.Command {
 	var statePath string
@@ -206,7 +371,7 @@ func newSessionRevokeCommand() *cli.Command {
 	var pemFile string
 	return &cli.Command{
 		Name:      "revoke",
-		Usage:     "revoke a session by peer ID",
+		Usage:     "revoke a Spacewave provider session by peer ID",
 		ArgsUsage: "<session-peer-id>",
 		Flags:     append(clientFlags(&statePath, &sessionIdx), pemFileFlag(&pemFile)),
 		Action: func(c *cli.Context) error {
@@ -226,9 +391,7 @@ func runSessionRevoke(c *cli.Context, statePath string, sessionIdx uint32, authP
 	if err != nil {
 		return err
 	}
-
-	cred, err := promptCredential(authPemFile)
-	if err != nil {
+	if err := validateSessionPeerID(sessionPeerID); err != nil {
 		return err
 	}
 
@@ -257,6 +420,11 @@ func runSessionRevoke(c *cli.Context, statePath string, sessionIdx uint32, authP
 	}
 	defer acctCleanup()
 
+	cred, err := promptCredential(authPemFile)
+	if err != nil {
+		return err
+	}
+
 	_, err = acctSvc.RevokeSession(ctx, &s4wave_account.RevokeSessionRequest{
 		SessionPeerId: sessionPeerID,
 		Credential:    cred,
@@ -270,5 +438,16 @@ func runSessionRevoke(c *cli.Context, statePath string, sessionIdx uint32, authP
 		pidStr = pidStr[:16] + "..."
 	}
 	os.Stdout.WriteString("session revoked (" + pidStr + ")\n")
+	return nil
+}
+
+func validateSessionPeerID(value string) error {
+	pid, err := peer.IDB58Decode(value)
+	if err != nil || pid.String() != value {
+		return errors.Errorf(
+			"session revoke requires a session peer ID, got %q; run `spacewave sessions info --session-index <idx>` and use the Peer value",
+			value,
+		)
+	}
 	return nil
 }

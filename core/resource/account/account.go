@@ -714,6 +714,9 @@ func (r *AccountResource) RevokeSession(
 	ctx context.Context,
 	req *s4wave_account.RevokeSessionRequest,
 ) (*s4wave_account.RevokeSessionResponse, error) {
+	if r.account == nil {
+		return nil, errors.New("session revoke is only supported for Spacewave provider accounts")
+	}
 	cli := r.account.GetSessionClient()
 
 	// Self-revoke path: no credential provided, current session.

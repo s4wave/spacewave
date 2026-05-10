@@ -2,6 +2,7 @@ package resource_account_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
@@ -239,6 +240,28 @@ func TestWatchSessionsLocal(t *testing.T) {
 	}
 	if remote.GetLocation() != "Home Office" {
 		t.Fatalf("expected remote location %q, got %q", "Home Office", remote.GetLocation())
+	}
+}
+
+func TestRevokeSessionLocalReturnsUnsupported(t *testing.T) {
+	ctx := t.Context()
+
+	_, _, _, acc, release := setupLocalProviderAccount(ctx, t)
+	defer release()
+
+	ar := resource_account.NewAccountResource(acc)
+	if ar == nil {
+		t.Fatal("expected local account resource")
+	}
+
+	_, err := ar.RevokeSession(ctx, &s4wave_account.RevokeSessionRequest{
+		SessionPeerId: "12D3KooWRemotePeer1",
+	})
+	if err == nil {
+		t.Fatal("expected unsupported revoke error")
+	}
+	if !strings.Contains(err.Error(), "only supported for Spacewave provider accounts") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 

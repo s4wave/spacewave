@@ -1,6 +1,12 @@
 package transport_quic
 
-import "errors"
+import (
+	"context"
+	"errors"
+	"io"
+
+	"github.com/quic-go/quic-go"
+)
 
 var (
 	// ErrDialUnimplemented is returned if dialing the peer is unimplemented.
@@ -8,3 +14,15 @@ var (
 	// ErrRemoteUnspecified is returned if the remote addr is unspecified.
 	ErrRemoteUnspecified = errors.New("peer id and/or remote addr must be specified")
 )
+
+func isCleanAcceptClose(err error) bool {
+	var qe *quic.ApplicationError
+	if errors.As(err, &qe) {
+		return qe != nil && qe.ErrorCode == 0
+	}
+
+	return err == context.Canceled ||
+		errors.Is(err, context.Canceled) ||
+		errors.Is(err, io.EOF) ||
+		errors.Is(err, io.ErrClosedPipe)
+}

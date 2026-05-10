@@ -149,14 +149,9 @@ func (l *Link) AcceptStream() (stream.Stream, stream.OpenOpts, error) {
 		return nil, stream.OpenOpts{}, context.Canceled
 	}
 	if err != nil {
-		qe, qeOk := err.(*quic.ApplicationError)
-		if qeOk && qe != nil {
-			// remote shutdown of connection normally
-			if qe.ErrorCode == 0 {
-				err = io.EOF
-			}
+		if isCleanAcceptClose(err) {
+			return nil, stream.OpenOpts{}, io.EOF
 		}
-
 		return nil, stream.OpenOpts{}, err
 	}
 

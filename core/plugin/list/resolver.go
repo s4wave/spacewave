@@ -14,26 +14,7 @@ import (
 // checkPluginLoaded checks if a plugin is currently loaded and running.
 // Reads the plugin host scheduler status without perturbing LoadPlugin refs.
 func checkPluginLoaded(ctx context.Context, b bus.Bus, pluginID string) bool {
-	if err := ctx.Err(); err != nil {
-		return false
-	}
-	for _, ctrl := range b.GetControllers() {
-		scheduler, ok := ctrl.(*plugin_host_scheduler.Controller)
-		if !ok {
-			continue
-		}
-		snapshot := scheduler.GetPluginStatusCtr().GetValue()
-		if snapshot == nil {
-			return false
-		}
-		for _, plugin := range snapshot.Plugins {
-			if plugin.GetPluginId() == pluginID && plugin.GetRunning() {
-				return true
-			}
-		}
-		return false
-	}
-	return false
+	return plugin_host_scheduler.IsPluginRunningOnBus(ctx, b, pluginID)
 }
 
 // fetchManifestInfo fetches manifest metadata for a plugin via FetchManifest.

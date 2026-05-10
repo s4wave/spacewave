@@ -54,8 +54,7 @@ func (c *PacketConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
 
 	data, err := c.ReadMessage()
 	if err != nil {
-		// Detect EOF wrapped with "failed to get reader
-		if err == context.Canceled || errors.Is(err, context.Canceled) || errors.Is(err, io.EOF) {
+		if isCleanReadClose(err) {
 			err = io.EOF
 		}
 		return 0, nil, err
@@ -146,6 +145,19 @@ func (c *PacketConn) SetWriteDeadline(t time.Time) error {
 func (c *PacketConn) Close() error {
 	_ = c.ws.Close(websocket.StatusGoingAway, "goodbye")
 	return nil
+}
+
+func isCleanReadClose(err error) bool {
+	if err == context.Canceled || errors.Is(err, context.Canceled) || errors.Is(err, io.EOF) {
+		return true
+	}
+
+	switch websocket.CloseStatus(err) {
+	case websocket.StatusNormalClosure, websocket.StatusGoingAway:
+		return true
+	default:
+		return false
+	}
 }
 
 // _ is a type assertion

@@ -109,7 +109,6 @@ func TestConnectDaemonAtSocketSkipsAutostart(t *testing.T) {
 func TestConnectDaemonFromContextUsesSocketPath(t *testing.T) {
 	clearStatePathEnv(t)
 	clearSocketPathEnv(t)
-	clearAutostartEnv(t)
 
 	oldDial := connectDaemonDial
 	oldBuildClient := connectDaemonBuildClient
@@ -167,12 +166,11 @@ func TestConnectDaemonFromContextUsesSocketPath(t *testing.T) {
 	}
 }
 
-// TestConnectDaemonFromContextFallsBackToStatePath asserts no
-// --socket-path falls through to connect-only state-path resolution.
+// TestConnectDaemonFromContextFallsBackToStatePath asserts no --socket-path
+// uses the state-path daemon socket.
 func TestConnectDaemonFromContextFallsBackToStatePath(t *testing.T) {
 	clearStatePathEnv(t)
 	clearSocketPathEnv(t)
-	clearAutostartEnv(t)
 
 	oldDial := connectDaemonDial
 	oldBuildClient := connectDaemonBuildClient
@@ -195,7 +193,7 @@ func TestConnectDaemonFromContextFallsBackToStatePath(t *testing.T) {
 		return connA, nil
 	}
 	connectDaemonStart = func(ctx context.Context, statePath string) error {
-		t.Fatal("autostart must not run by default")
+		t.Fatal("daemon start must not run when dial succeeds")
 		return nil
 	}
 	connectDaemonBuildClient = func(ctx context.Context, conn net.Conn) (*sdkClient, error) {
@@ -232,12 +230,11 @@ func TestConnectDaemonFromContextFallsBackToStatePath(t *testing.T) {
 	}
 }
 
-// TestConnectDaemonFromContextAutostartFlag asserts --autostart opts the
-// state-path flow into launching a daemon after an initial dial failure.
-func TestConnectDaemonFromContextAutostartFlag(t *testing.T) {
+// TestConnectDaemonFromContextStartsStatePathDaemon asserts state-path commands
+// launch a daemon after an initial dial failure.
+func TestConnectDaemonFromContextStartsStatePathDaemon(t *testing.T) {
 	clearStatePathEnv(t)
 	clearSocketPathEnv(t)
-	clearAutostartEnv(t)
 
 	oldDial := connectDaemonDial
 	oldBuildClient := connectDaemonBuildClient
@@ -292,7 +289,7 @@ func TestConnectDaemonFromContextAutostartFlag(t *testing.T) {
 			return nil
 		},
 	}}
-	if err := app.RunContext(context.Background(), []string{"spacewave", "--state-path", statePath, "check", "--autostart"}); err != nil {
+	if err := app.RunContext(context.Background(), []string{"spacewave", "--state-path", statePath, "check"}); err != nil {
 		t.Fatalf("run: %v", err)
 	}
 	if startStatePath != statePath {
@@ -438,24 +435,6 @@ func clearSocketPathEnv(t *testing.T) {
 	t.Helper()
 
 	for _, name := range socketPathEnvVars {
-		value, ok := os.LookupEnv(name)
-		if err := os.Unsetenv(name); err != nil {
-			t.Fatal(err)
-		}
-		t.Cleanup(func() {
-			if ok {
-				_ = os.Setenv(name, value)
-				return
-			}
-			_ = os.Unsetenv(name)
-		})
-	}
-}
-
-func clearAutostartEnv(t *testing.T) {
-	t.Helper()
-
-	for _, name := range autostartEnvVars {
 		value, ok := os.LookupEnv(name)
 		if err := os.Unsetenv(name); err != nil {
 			t.Fatal(err)

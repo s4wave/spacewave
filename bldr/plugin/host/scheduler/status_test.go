@@ -52,6 +52,26 @@ func TestPluginStatusRecordsAndClearsLastError(t *testing.T) {
 	}
 }
 
+func TestIsPluginRunning(t *testing.T) {
+	ctrl := &Controller{
+		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
+			&PluginStatusSnapshot{},
+			pluginStatusSnapshotEqual,
+		),
+		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
+	}
+
+	ctrl.setPluginStatus("notes", "left", bldr_plugin.PluginState_PluginState_REQUESTED)
+	if ctrl.IsPluginRunning("notes") {
+		t.Fatal("requested plugin should not report running")
+	}
+
+	ctrl.setPluginStatus("notes", "left", bldr_plugin.PluginState_PluginState_RUNNING)
+	if !ctrl.IsPluginRunning("notes") {
+		t.Fatal("running plugin should report running")
+	}
+}
+
 func TestPluginStatusSnapshotEqualIncludesLastError(t *testing.T) {
 	ctrl := &Controller{
 		pluginStatusCtr: ccontainer.NewCContainerWithEqual(

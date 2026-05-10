@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/pkg/errors"
@@ -19,6 +20,35 @@ type PluginStatusSnapshot struct {
 // GetPluginStatusCtr returns the scheduler's live plugin-status snapshot.
 func (c *Controller) GetPluginStatusCtr() ccontainer.Watchable[*PluginStatusSnapshot] {
 	return c.pluginStatusCtr
+}
+
+// IsPluginRunningOnBus reports whether the scheduler on b has a running plugin.
+func IsPluginRunningOnBus(ctx context.Context, b bus.Bus, pluginID string) bool {
+	if err := ctx.Err(); err != nil {
+		return false
+	}
+	for _, ctrl := range b.GetControllers() {
+		scheduler, ok := ctrl.(*Controller)
+		if !ok {
+			continue
+		}
+		return scheduler.IsPluginRunning(pluginID)
+	}
+	return false
+}
+
+// IsPluginRunning reports whether any instance for pluginID is running.
+func (c *Controller) IsPluginRunning(pluginID string) bool {
+	snapshot := c.pluginStatusCtr.GetValue()
+	if snapshot == nil {
+		return false
+	}
+	for _, plugin := range snapshot.Plugins {
+		if plugin.GetPluginId() == pluginID && plugin.GetRunning() {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *Controller) setPluginStatus(

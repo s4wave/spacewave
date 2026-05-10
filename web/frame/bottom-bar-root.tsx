@@ -6,20 +6,12 @@ import {
   BottomBarItemsContext,
 } from './bottom-bar-context.js'
 
-/**
- * Props for BottomBarRoot component.
- */
 export interface BottomBarRootProps {
-  /** Child components that may contain nested BottomBarLevel components */
   children: React.ReactNode
-  /** Current open menu id */
   openMenu?: string
-  /** Optional function to set the open menu id */
   setOpenMenu?: (id: string) => void
 }
 
-// ItemsStore manages the items state outside of React to prevent context re-renders
-// when items change. Components that need to read items use useSyncExternalStore.
 class ItemsStore {
   private items: BottomBarItem[] = []
   private listeners = new Set<() => void>()
@@ -41,14 +33,10 @@ class ItemsStore {
     const existingIndex = this.items.findIndex((i) => i.id === item.id)
     if (existingIndex !== -1) {
       const existing = this.items[existingIndex]
-      if (
-        existing.depth === item.depth &&
-        existing.button === item.button &&
-        existing.overlay === item.overlay &&
-        existing.onBreadcrumbClick === item.onBreadcrumbClick &&
-        existing.buttonKey === item.buttonKey &&
-        existing.overlayKey === item.overlayKey
-      ) {
+      if (isQuietItemUpdate(existing, item)) {
+        existing.button = item.button
+        existing.overlay = item.overlay
+        existing.onBreadcrumbClick = item.onBreadcrumbClick
         return
       }
 
@@ -75,37 +63,24 @@ class ItemsStore {
   }
 }
 
-/**
- * BottomBarRoot is the root provider for bottom bar items.
- * It maintains the state of all registered items and provides registration functions.
- *
- * Usage:
- * ```tsx
- * <BottomBarRoot>
- *   <BottomBarLevel id="item1" button={...}>
- *     <BottomBarLevel id="item2" button={...}>
- *       <SessionFrame>
- *         <BottomBarLevel id="item3" button={...}>
- *           <Content />
- *         </BottomBarLevel>
- *       </SessionFrame>
- *     </BottomBarLevel>
- *   </BottomBarLevel>
- * </BottomBarRoot>
- * ```
- *
- * All items (item1, item2, item3) will be registered and available in SessionFrame.
- */
+function isQuietItemUpdate(a: BottomBarItem, b: BottomBarItem) {
+  return (
+    a.depth === b.depth &&
+    a.buttonKey === b.buttonKey &&
+    a.overlayKey === b.overlayKey &&
+    !!a.overlay === !!b.overlay &&
+    !!a.onBreadcrumbClick === !!b.onBreadcrumbClick &&
+    a.position === b.position
+  )
+}
+
 export function BottomBarRoot({
   children,
   openMenu,
   setOpenMenu,
 }: BottomBarRootProps) {
-  // Use useState with lazy initialization for the store
   const [store] = useState(() => new ItemsStore())
 
-  // Items context value - uses useSyncExternalStore so only components
-  // that actually read items will re-render when items change
   const itemsContextValue = useMemo(
     () => ({
       subscribe: store.subscribe,
@@ -116,9 +91,6 @@ export function BottomBarRoot({
     [store, openMenu, setOpenMenu],
   )
 
-  // Create stable context value - does NOT depend on items
-  // Only components that call useBottomBarItems() will re-render when items change
-  // Use useState for rootValue to enable stable getRoot() closure
   const [rootValue] = useState<BottomBarRootContextValue>(() => {
     const value: BottomBarRootContextValue = {
       parent: null,
