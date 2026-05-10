@@ -168,7 +168,7 @@ func queueOpAndWaitState(
 // TestAccountSettingsSOCreate verifies that the account settings SO is
 // automatically created when a ProviderAccount initializes.
 func TestAccountSettingsSOCreate(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tb, _, accountID, acc, release := setupProviderAccount(ctx, t)
 	defer release()
@@ -236,7 +236,7 @@ func TestAccountSettingsSOCreate(t *testing.T) {
 
 // TestPairedDeviceCRUD verifies adding and removing paired devices via SO operations.
 func TestPairedDeviceCRUD(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tb, _, accountID, _, release := setupProviderAccount(ctx, t)
 	defer release()
@@ -326,7 +326,7 @@ func TestPairedDeviceCRUD(t *testing.T) {
 // TestSessionPresentationCRUD verifies adding and removing mirrored session
 // presentation metadata via account-settings SO operations.
 func TestSessionPresentationCRUD(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tb, _, accountID, _, release := setupProviderAccount(ctx, t)
 	defer release()
@@ -375,7 +375,7 @@ func TestSessionPresentationCRUD(t *testing.T) {
 
 // TestEntityKeypairCRUD verifies adding and removing entity keypairs via SO operations.
 func TestEntityKeypairCRUD(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tb, _, accountID, _, release := setupProviderAccount(ctx, t)
 	defer release()

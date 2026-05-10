@@ -375,6 +375,25 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 		localPriv: localPriv,
 		localPid:  localPeerID,
 	}
+	// A mounted local SharedObject is ready only after LocalSOHost publishes its
+	// first state snapshot; otherwise immediate callers can block on state reads.
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- lsoHost.Execute(ctx)
+	}()
+
+	stateCtr, relStateCtr, err := lsoHost.AccessSharedObjectState(ctx, nil)
+	if err != nil {
+		ctxCancel()
+		return err
+	}
+	defer relStateCtr()
+
+	if _, err := stateCtr.WaitValue(ctx, errCh); err != nil {
+		ctxCancel()
+		return err
+	}
+
 	t.setHealth(
 		sobject.NewSharedObjectReadyHealth(
 			sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT,
@@ -383,8 +402,7 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 	t.sobjectProm.SetResult(so, nil)
 	defer t.sobjectProm.SetPromise(nil)
 
-	// execute the local SOHost logic
-	return lsoHost.Execute(ctx)
+	return <-errCh
 }
 
 // createSharedObjectLocked creates a new sobject with the given details.
