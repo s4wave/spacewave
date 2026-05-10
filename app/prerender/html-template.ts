@@ -58,6 +58,7 @@ export function buildPageHtml(opts: PageHtmlOptions): string {
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta name="darkreader-lock"/>
   <title>${opts.title}</title>
   <meta name="description" content="${opts.description}"/>
   <meta name="robots" content="index, follow"/>${canonicalTag}

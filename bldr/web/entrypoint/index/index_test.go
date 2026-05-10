@@ -42,6 +42,9 @@ func TestRenderIndexHTML(t *testing.T) {
 	if !strings.Contains(result, "./test/entry.mjs") {
 		t.Error("RenderIndexHTML() result doesn't contain expected entrypoint path")
 	}
+	if !strings.Contains(result, `name="darkreader-lock"`) {
+		t.Error("RenderIndexHTML() result doesn't contain Dark Reader lock")
+	}
 }
 
 func TestRenderIndexHTMLInvalidTemplate(t *testing.T) {
