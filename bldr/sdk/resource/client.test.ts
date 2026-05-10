@@ -266,9 +266,7 @@ describe('ResourceClient', () => {
         signal?.addEventListener('abort', resolve, { once: true })
       })
       if (!signal?.aborted && calls === 1) {
-        const err = new Error('stream reset')
-        err.name = 'StreamResetError'
-        throw err
+        throw { name: 'StreamResetError', message: 'stream reset' }
       }
       await new Promise<void>((resolve) => {
         signal?.addEventListener('abort', resolve, { once: true })
