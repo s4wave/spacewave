@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/refs */
 import React, { useCallback, use, useEffect, useMemo, useRef } from 'react'
 import {
   BottomBarContext,
@@ -88,10 +89,15 @@ export function BottomBarLevel({
     key: buttonKey,
     fn: button,
   })
-  // eslint-disable-next-line react-hooks/refs
   buttonStore.current.key = buttonKey
-  // eslint-disable-next-line react-hooks/refs
   buttonStore.current.fn = button
+
+  const overlayStore = useRef<{ key?: React.Key; node?: React.ReactNode }>({
+    key: overlayKey,
+    node: overlay,
+  })
+  overlayStore.current.key = overlayKey
+  overlayStore.current.node = overlay
 
   const renderButton = useCallback(
     (selected: boolean, onClick: () => void, className?: string) =>
@@ -99,13 +105,12 @@ export function BottomBarLevel({
     [],
   )
 
-  const renderOverlay = useCallback(() => overlay, [overlay])
+  const renderOverlay = useCallback(() => overlayStore.current.node, [])
 
   const hasOverlay = overlay !== undefined
 
   // Use ref for onBreadcrumbClick to keep the item stable
   const breadcrumbStore = useRef(onBreadcrumbClick)
-  // eslint-disable-next-line react-hooks/refs
   breadcrumbStore.current = onBreadcrumbClick
 
   const renderBreadcrumbClick = useCallback(() => {

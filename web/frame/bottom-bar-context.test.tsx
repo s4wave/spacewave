@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import { describe, it, expect, beforeEach } from 'vitest'
 import { render, cleanup, fireEvent, screen } from '@testing-library/react'
 import { useBottomBarItems, BottomBarItem } from './bottom-bar-context.js'
@@ -139,6 +139,7 @@ describe('BottomBarContext', () => {
               </button>
             )}
             overlay={<div>Overlay {count}</div>}
+            overlayKey={count}
           >
             <button onClick={() => setCount((n) => n + 1)}>Increment</button>
           </BottomBarLevel>
@@ -154,7 +155,7 @@ describe('BottomBarContext', () => {
       expect(screen.getByText('Overlay 1')).toBeDefined()
     })
 
-    it('updates an item without unregistering it between item revisions', async () => {
+    it('updates keyed button and overlay content without unregistering between item revisions', () => {
       const lengths: number[] = []
 
       function RegistryProbe() {
@@ -162,16 +163,33 @@ describe('BottomBarContext', () => {
         return null
       }
 
+      function RegisteredContentProbe() {
+        const item = useBottomBarItems()[0]
+        return (
+          <div>
+            <div data-testid="registered-button">
+              {item?.button(false, () => {}, '')}
+            </div>
+            <div data-testid="registered-overlay">{item?.overlay?.()}</div>
+          </div>
+        )
+      }
+
       function TestItem() {
         const [count, setCount] = useState(0)
+        const button = useCallback(
+          (_selected: boolean, onClick: () => void) => (
+            <button onClick={onClick}>Item {count}</button>
+          ),
+          [count],
+        )
         const overlay = useMemo(() => <div>Overlay {count}</div>, [count])
 
         return (
           <BottomBarLevel
             id="item"
-            button={(_selected, onClick) => (
-              <button onClick={onClick}>Item</button>
-            )}
+            button={button}
+            buttonKey={count}
             overlay={overlay}
             overlayKey={count}
           >
@@ -185,6 +203,7 @@ describe('BottomBarContext', () => {
         return (
           <BottomBarRoot openMenu={openMenu} setOpenMenu={setOpenMenu}>
             <RegistryProbe />
+            <RegisteredContentProbe />
             <ViewerFrame>
               <TestItem />
             </ViewerFrame>
@@ -194,13 +213,52 @@ describe('BottomBarContext', () => {
 
       render(<TestRoot />)
 
-      fireEvent.click(await screen.findByText('Item'))
-      expect(await screen.findByText('Overlay 0')).toBeDefined()
+      expect(screen.getByTestId('registered-button').textContent).toBe('Item 0')
+      expect(screen.getByTestId('registered-overlay').textContent).toBe(
+        'Overlay 0',
+      )
       lengths.length = 0
 
       fireEvent.click(screen.getByText('Update'))
-      expect(await screen.findByText('Overlay 1')).toBeDefined()
+      expect(screen.getByTestId('registered-button').textContent).toBe('Item 1')
+      expect(screen.getByTestId('registered-overlay').textContent).toBe(
+        'Overlay 1',
+      )
       expect(lengths).not.toContain(0)
+    })
+
+    it('does not update the registry for unchanged inline overlay content', () => {
+      const renders = { count: 0 }
+
+      function TestItem() {
+        const items = useBottomBarItems()
+        renders.count += 1
+        if (renders.count > 10) {
+          throw new Error('bottom bar registry update loop')
+        }
+
+        return (
+          <>
+            <div data-testid="item-count">{items.length}</div>
+            <BottomBarLevel
+              id="item"
+              button={() => <button>Item</button>}
+              overlay={<div>Overlay</div>}
+            >
+              <div>Child</div>
+            </BottomBarLevel>
+          </>
+        )
+      }
+
+      render(
+        <BottomBarRoot>
+          <TestItem />
+        </BottomBarRoot>,
+      )
+
+      expect(screen.getByTestId('item-count').textContent).toBe('1')
+      expect(renders.count).toBeLessThan(10)
     })
 
     it('handles missing overlay', () => {
