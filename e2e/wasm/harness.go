@@ -68,6 +68,8 @@ type Harness struct {
 	peerLeases      map[string]*TestSession
 	pageSessionMu   sync.Mutex
 	pageSessions    map[playwright.Page]*TestSession
+
+	cloudEndpointClose func()
 }
 
 // Boot starts the full wasm app lifecycle: builds the devtool bus, syncs
@@ -142,9 +144,18 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 		return nil, errors.Wrap(err, "sync dist sources")
 	}
 
+	cloudEndpoint, stopCloudEndpoint, err := startE2ECloudAuthConfigEndpoint()
+	if err != nil {
+		return nil, errors.Wrap(err, "start cloud auth config endpoint")
+	}
+	h.cloudEndpointClose = stopCloudEndpoint
+
 	projConfig, err := loadProjectConfig(repoRoot)
 	if err != nil {
 		return nil, err
+	}
+	if err := applyE2ECloudAuthConfigEndpoint(projConfig, cloudEndpoint); err != nil {
+		return nil, errors.Wrap(err, "apply cloud auth config endpoint")
 	}
 
 	// Wire the devtool remote so plugin manifests resolve against the testbed.
@@ -379,6 +390,10 @@ func (h *Harness) Release() {
 	}
 	if h.wasmDone != nil {
 		<-h.wasmDone
+	}
+	if h.cloudEndpointClose != nil {
+		h.cloudEndpointClose()
+		h.cloudEndpointClose = nil
 	}
 	if h.projRef != nil {
 		h.projRef.Release()
