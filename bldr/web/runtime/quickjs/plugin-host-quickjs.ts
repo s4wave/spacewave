@@ -188,6 +188,23 @@ export function collectViteManifestStaticAssetPaths(
   return [...paths]
 }
 
+// collectBackendEntrypointAssetPaths extracts backend asset imports from the
+// compiled plugin wrapper.
+export function collectBackendEntrypointAssetPaths(
+  pluginScript: string,
+): string[] {
+  const paths = new Set<string>()
+  const assetPathRe = /["'`]\/assets\/(v\/b\/be\/[^"'`\\\s?#)]+)/g
+  for (;;) {
+    const match = assetPathRe.exec(pluginScript)
+    if (!match) {
+      break
+    }
+    paths.add('/assets/' + match[1])
+  }
+  return [...paths]
+}
+
 // resolveBackendAssetPath normalizes a backend asset path to the v/b/be asset tree.
 export function resolveBackendAssetPath(path: string): string {
   const trimmed = path.replace(/^\/+/, '')
@@ -351,8 +368,8 @@ function fetchBackendAssetSync(url: string): BackendAssetCacheEntry {
   }
 }
 
-async function loadBackendAssets(
-  api: BackendAPI,
+export async function loadBackendAssets(
+  api: BackendAssetAPI,
   signal: AbortSignal,
   files: Map<string, string | Uint8Array>,
   entryAssetPaths: string[],
@@ -380,10 +397,10 @@ async function loadBackendAssets(
   const manifest = JSON.parse(
     manifestText,
   ) as Record<string, ViteManifestEntry>
-  const assetPaths = collectViteManifestStaticAssetPaths(
-    manifest,
-    entryAssetPaths,
-  )
+  const assetPaths =
+    entryAssetPaths.length === 0 ?
+      collectViteManifestAssetPaths(manifest)
+    : collectViteManifestStaticAssetPaths(manifest, entryAssetPaths)
 
   await Promise.all(
     assetPaths.map(async (assetPath) => {
@@ -440,21 +457,25 @@ export default async function main(
 
   // Add boot harness at /boot/plugin-quickjs.esm.js
   files.set('/boot/plugin-quickjs.esm.js', bootHarness)
-  files.set(scriptPath, await fetchPluginScript(scriptPath))
+  const pluginScript = await fetchPluginScript(scriptPath)
+  files.set(scriptPath, pluginScript)
 
   const assetLoadingMode = selectBackendAssetLoadingMode()
   const preopens =
-    assetLoadingMode === 'lazy-http'
-      ? createBackendAssetPreopens(api, signal)
-      : []
+    assetLoadingMode === 'lazy-http' ?
+      createBackendAssetPreopens(api, signal)
+    : []
 
   if (preopens.length === 0) {
     console.log(
       'quickjs-runner: synchronous backend asset mount unavailable; preloading backend assets',
     )
-    const loadedBackendAssets = await loadBackendAssets(api, signal, files, [
-      scriptPath,
-    ])
+    const loadedBackendAssets = await loadBackendAssets(
+      api,
+      signal,
+      files,
+      collectBackendEntrypointAssetPaths(pluginScript),
+    )
     if (!loadedBackendAssets) {
       console.log(
         'quickjs-runner: backend asset manifest unavailable; using direct backend script',

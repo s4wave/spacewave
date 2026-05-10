@@ -1,18 +1,21 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
   addAssetToFileSystem,
   canUseSynchronousBackendAssetFetch,
+  collectBackendEntrypointAssetPaths,
   collectViteManifestAssetPaths,
   collectViteManifestStaticAssetPaths,
   createBackendAssetMount,
   createBackendAssetPreopens,
+  loadBackendAssets,
   resolveBackendAssetPath,
   selectBackendAssetLoadingMode,
 } from './plugin-host-quickjs.js'
 
 describe('plugin-host-quickjs asset helpers', () => {
   const originalXMLHttpRequest = globalThis.XMLHttpRequest
+  const originalFetch = globalThis.fetch
   const api = {
     startInfo: { pluginId: 'notes' },
     utils: {
@@ -28,6 +31,12 @@ describe('plugin-host-quickjs asset helpers', () => {
       configurable: true,
       writable: true,
     })
+    Object.defineProperty(globalThis, 'fetch', {
+      value: originalFetch,
+      configurable: true,
+      writable: true,
+    })
+    vi.restoreAllMocks()
   })
 
   it('collects unique vite manifest asset paths across entry fields', () => {
@@ -96,12 +105,80 @@ describe('plugin-host-quickjs asset helpers', () => {
     expect(resolveBackendAssetPath('plugin/notes/backend-abc123.mjs')).toBe(
       'v/b/be/plugin/notes/backend-abc123.mjs',
     )
-    expect(resolveBackendAssetPath('b/be/plugin/notes/backend-abc123.mjs')).toBe(
-      'v/b/be/plugin/notes/backend-abc123.mjs',
+    expect(
+      resolveBackendAssetPath('b/be/plugin/notes/backend-abc123.mjs'),
+    ).toBe('v/b/be/plugin/notes/backend-abc123.mjs')
+    expect(
+      resolveBackendAssetPath('v/b/be/plugin/notes/backend-abc123.mjs'),
+    ).toBe('v/b/be/plugin/notes/backend-abc123.mjs')
+  })
+
+  it('extracts backend entrypoint asset paths from the plugin wrapper', () => {
+    const paths = collectBackendEntrypointAssetPaths(`
+      const backendEntrypoints = [
+        { importPath: "/assets/v/b/be/plugin/notes/backend-abc123.mjs" },
+        { importPath: '/assets/v/b/be/plugin/notes/backend-abc123.mjs' },
+        { importPath: "/assets/v/b/fe/plugin/notes/App-def456.mjs" },
+      ]
+    `)
+
+    expect(paths).toEqual(['/assets/v/b/be/plugin/notes/backend-abc123.mjs'])
+  })
+
+  it('preloads backend assets from wrapper imports without treating /b/pd as an asset', async () => {
+    const requests: string[] = []
+    const manifest = JSON.stringify({
+      'plugin/notes/backend.ts': {
+        file: 'plugin/notes/backend-abc123.mjs',
+        imports: ['_chunk-shared-1.mjs'],
+        css: ['assets/backend.css'],
+      },
+      '_chunk-shared-1.mjs': {
+        file: 'chunks/shared-1.mjs',
+      },
+    })
+    const bodies = new Map<string, string>([
+      ['/asset/notes/v/b/be/.vite/manifest.json', manifest],
+      [
+        '/asset/notes/v/b/be/plugin/notes/backend-abc123.mjs',
+        'export default function backend() {}',
+      ],
+      ['/asset/notes/v/b/be/chunks/shared-1.mjs', 'export const shared = true'],
+      ['/asset/notes/v/b/be/backend.css', '.backend{}'],
+    ])
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        requests.push(url)
+        const body = bodies.get(url)
+        if (body == null) {
+          return new Response('missing', { status: 404 })
+        }
+        return new Response(body, { status: 200 })
+      }),
     )
-    expect(resolveBackendAssetPath('v/b/be/plugin/notes/backend-abc123.mjs')).toBe(
-      'v/b/be/plugin/notes/backend-abc123.mjs',
+
+    const files = new Map<string, string | Uint8Array>()
+    const loaded = await loadBackendAssets(
+      api,
+      new AbortController().signal,
+      files,
+      collectBackendEntrypointAssetPaths(
+        'import("/assets/v/b/be/plugin/notes/backend-abc123.mjs")',
+      ),
     )
+
+    expect(loaded).toBe(true)
+    expect(requests).toEqual([
+      '/asset/notes/v/b/be/.vite/manifest.json',
+      '/asset/notes/v/b/be/plugin/notes/backend-abc123.mjs',
+      '/asset/notes/v/b/be/backend.css',
+      '/asset/notes/v/b/be/chunks/shared-1.mjs',
+    ])
+    expect(requests.some((url) => url.includes('/v/b/pd/'))).toBe(false)
+    expect(files.has('v/b/be/plugin/notes/backend-abc123.mjs')).toBe(true)
+    expect(files.has('v/b/be/chunks/shared-1.mjs')).toBe(true)
   })
 
   it('mirrors assets under both asset-relative and /assets paths', () => {
