@@ -4,7 +4,6 @@ import {
   addAssetToFileSystem,
   canUseSynchronousBackendAssetFetch,
   collectBackendEntrypointAssetPaths,
-  collectViteManifestAssetPaths,
   collectViteManifestStaticAssetPaths,
   createBackendAssetMount,
   createBackendAssetPreopens,
@@ -37,37 +36,6 @@ describe('plugin-host-quickjs asset helpers', () => {
       writable: true,
     })
     vi.restoreAllMocks()
-  })
-
-  it('collects unique vite manifest asset paths across entry fields', () => {
-    const paths = collectViteManifestAssetPaths({
-      'plugin/notes/backend.ts': {
-        file: 'plugin/notes/backend-abc123.mjs',
-        imports: ['_chunk-shared-1.mjs'],
-        dynamicImports: ['_chunk-lazy-2.mjs'],
-        css: ['assets/backend.css'],
-        assets: ['assets/icon.svg'],
-      },
-      '_chunk-shared-1.mjs': {
-        file: 'chunks/shared-1.mjs',
-      },
-      '_chunk-lazy-2.mjs': {
-        file: 'chunks/lazy-2.mjs',
-      },
-      'plugin/vm/backend.ts': {
-        file: 'plugin/vm/backend-def456.mjs',
-        imports: ['_chunk-shared-1.mjs'],
-      },
-    })
-
-    expect(paths).toEqual([
-      'plugin/notes/backend-abc123.mjs',
-      'assets/backend.css',
-      'assets/icon.svg',
-      'chunks/shared-1.mjs',
-      'chunks/lazy-2.mjs',
-      'plugin/vm/backend-def456.mjs',
-    ])
   })
 
   it('collects bounded static vite manifest asset paths for backend entrypoints', () => {
@@ -179,6 +147,23 @@ describe('plugin-host-quickjs asset helpers', () => {
     expect(requests.some((url) => url.includes('/v/b/pd/'))).toBe(false)
     expect(files.has('v/b/be/plugin/notes/backend-abc123.mjs')).toBe(true)
     expect(files.has('v/b/be/chunks/shared-1.mjs')).toBe(true)
+  })
+
+  it('does not fall back to whole-manifest preload without backend entrypoints', async () => {
+    const fetchMock = vi.fn(async () => new Response('{}', { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const files = new Map<string, string | Uint8Array>()
+    const loaded = await loadBackendAssets(
+      api,
+      new AbortController().signal,
+      files,
+      [],
+    )
+
+    expect(loaded).toBe(false)
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(files.size).toBe(0)
   })
 
   it('mirrors assets under both asset-relative and /assets paths', () => {

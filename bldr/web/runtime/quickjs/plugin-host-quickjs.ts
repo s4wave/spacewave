@@ -86,52 +86,6 @@ async function fetchPluginScript(scriptPath: string): Promise<string> {
   return response.text()
 }
 
-// collectViteManifestAssetPaths returns the unique asset-relative files referenced by a Vite manifest.
-export function collectViteManifestAssetPaths(
-  manifest: Record<string, ViteManifestEntry>,
-): string[] {
-  const paths = new Set<string>()
-
-  const addPath = (path?: string) => {
-    if (!path) {
-      return
-    }
-    paths.add(path)
-  }
-
-  const visited = new Set<string>()
-  const visitRef = (ref: string) => {
-    const entry = manifest[ref]
-    if (!entry) {
-      addPath(ref)
-      return
-    }
-    if (visited.has(ref)) {
-      return
-    }
-    visited.add(ref)
-
-    addPath(entry.file)
-    for (const path of entry.css ?? []) {
-      addPath(path)
-    }
-    for (const path of entry.assets ?? []) {
-      addPath(path)
-    }
-    for (const dep of entry.imports ?? []) {
-      visitRef(dep)
-    }
-    for (const dep of entry.dynamicImports ?? []) {
-      visitRef(dep)
-    }
-  }
-
-  for (const ref of Object.keys(manifest)) {
-    visitRef(ref)
-  }
-  return [...paths]
-}
-
 // collectViteManifestStaticAssetPaths returns the static asset graph for entrypoint files.
 export function collectViteManifestStaticAssetPaths(
   manifest: Record<string, ViteManifestEntry>,
@@ -375,7 +329,7 @@ export async function loadBackendAssets(
   entryAssetPaths: string[],
 ): Promise<boolean> {
   const pluginId = api.startInfo.pluginId
-  if (!pluginId) {
+  if (!pluginId || entryAssetPaths.length === 0) {
     return false
   }
 
@@ -395,10 +349,10 @@ export async function loadBackendAssets(
   addAssetToFileSystem(files, manifestPath, manifestText)
 
   const manifest = JSON.parse(manifestText) as Record<string, ViteManifestEntry>
-  const assetPaths =
-    entryAssetPaths.length === 0 ?
-      collectViteManifestAssetPaths(manifest)
-    : collectViteManifestStaticAssetPaths(manifest, entryAssetPaths)
+  const assetPaths = collectViteManifestStaticAssetPaths(
+    manifest,
+    entryAssetPaths,
+  )
 
   for (const assetPath of assetPaths) {
     const resolvedPath = resolveBackendAssetPath(assetPath)
@@ -458,35 +412,27 @@ export default async function main(
 
   const assetLoadingMode = selectBackendAssetLoadingMode()
   const entryAssetPaths = collectBackendEntrypointAssetPaths(pluginScript)
-  const shouldPreloadBackendAssets =
-    entryAssetPaths.length !== 0 || assetLoadingMode === 'bounded-preload'
   const loadedBackendAssets =
-    shouldPreloadBackendAssets ?
+    assetLoadingMode === 'bounded-preload' && entryAssetPaths.length !== 0 ?
       await loadBackendAssets(api, signal, files, entryAssetPaths)
     : false
-  if (loadedBackendAssets) {
-    console.log('quickjs-runner: preloaded backend entrypoint assets')
-  }
 
   const preopens =
     assetLoadingMode === 'lazy-http' ?
       createBackendAssetPreopens(api, signal)
     : []
 
-  if (preopens.length === 0) {
-    console.log(
-      'quickjs-runner: synchronous backend asset mount unavailable; preloading backend assets',
-    )
-    if (!loadedBackendAssets) {
-      console.log(
-        'quickjs-runner: backend asset manifest unavailable; using direct backend script',
-      )
-    }
+  if (assetLoadingMode === 'bounded-preload') {
     if (loadedBackendAssets) {
       console.log('quickjs-runner: using bounded backend asset preload')
     }
+    if (!loadedBackendAssets) {
+      console.log(
+        'quickjs-runner: backend asset preload unavailable; using direct backend script',
+      )
+    }
   }
-  if (preopens.length !== 0) {
+  if (assetLoadingMode === 'lazy-http') {
     console.log('quickjs-runner: using lazy backend asset mount for misses')
   }
 
