@@ -13,4 +13,4 @@ stdout "list spaces in the current session"
 stdout "--watch, -w"
 
 ! spacewave --state-path $WORK/state space list
-stderr "no daemon listening"
+stderr "no session found at index 1"

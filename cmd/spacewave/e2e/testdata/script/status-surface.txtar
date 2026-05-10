@@ -1,9 +1,9 @@
-# Status exposes daemon health and keeps the no-daemon failure explicit.
+# Status exposes daemon health and starts the daemon when needed.
 spacewave status --help
 stdout "check daemon health and show summary"
 stdout "--state-path value"
 stdout "--session-index value"
 
-! spacewave status --state-path $WORK/state
-stderr "connect daemon"
-stderr "no daemon listening"
+spacewave status --state-path $WORK/state
+stdout "Status:           running"
+stdout "Session:          none (no session found at index 1)"
