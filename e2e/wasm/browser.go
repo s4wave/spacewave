@@ -3,6 +3,9 @@
 package wasm
 
 import (
+	"os"
+	"strings"
+
 	"github.com/pkg/errors"
 	playwright "github.com/playwright-community/playwright-go"
 	"github.com/sirupsen/logrus"
@@ -66,6 +69,9 @@ func (h *Harness) newBrowserContext(s *TestSession) (playwright.Page, error) {
 	page.On("console", func(msg playwright.ConsoleMessage) {
 		text := msg.Text()
 		s.emitConsole(text)
+		if !shouldLogBrowserConsole(msg.Type(), text) {
+			return
+		}
 		logrus.WithFields(logrus.Fields{
 			"type":    msg.Type(),
 			"browser": true,
@@ -79,6 +85,9 @@ func (h *Harness) newBrowserContext(s *TestSession) (playwright.Page, error) {
 		w.OnConsole(func(msg playwright.ConsoleMessage) {
 			text := msg.Text()
 			s.emitConsole(text)
+			if !shouldLogBrowserConsole(msg.Type(), text) {
+				return
+			}
 			le := logrus.WithFields(logrus.Fields{
 				"type":   msg.Type(),
 				"worker": url,
@@ -112,6 +121,18 @@ func (h *Harness) newBrowserContext(s *TestSession) (playwright.Page, error) {
 	})
 
 	return page, nil
+}
+
+func shouldLogBrowserConsole(msgType, text string) bool {
+	v := strings.ToLower(os.Getenv("E2E_WASM_BROWSER_LOGS"))
+	if v == "true" || v == "1" {
+		return true
+	}
+	switch msgType {
+	case "error", "warning":
+		return true
+	}
+	return strings.Contains(text, "level=error") || strings.Contains(text, "level=warning")
 }
 
 // loadAppPage loads the app base URL into the session page.
