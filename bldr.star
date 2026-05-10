@@ -108,10 +108,15 @@ manifest("spacewave-launcher",
                 "spacewave/launcher/controller", 1,
                 {
                     "projectId": "spacewave",
-                    # DistConfig endpoints come from BuildTimeDistConfigEndpoints
-                    # in the launcher controller (build-tag-selected: prod vs
-                    # staging Worker). Leaving Config.Endpoints empty means
-                    # every binary hits its own environment's Worker.
+                    # Public defaults are production-only. Release-owned
+                    # overlays replace endpoints and distPeerIds for other
+                    # release environments.
+                    "distPeerIds": [
+                        "12D3KooWL2DEcvqSXXrrCmUxMdPbqFcqzhHBvqseZWHwjAt7aXfW",
+                    ],
+                    "endpoints": [{
+                        "url": "https://spacewave.app/api/release/config",
+                    }],
                     "refetchDur": "1h",
                 },
             ),

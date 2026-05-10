@@ -70,24 +70,21 @@ func (t *Factory) Construct(
 	return NewController(le, t.bus, cc, distPeerIDs, endpoints), nil
 }
 
-// ResolveEndpoints merges Config.Endpoints with BuildTimeDistConfigEndpoints
-// and deduplicates by URL. Build-time entries are appended after config
-// entries; both sources are URL-parsed to filter invalid entries.
+// ResolveEndpoints returns Config.Endpoints when provided, otherwise the
+// production build-time defaults. Config values replace defaults so
+// release-owned overlays do not inherit production endpoints.
 func ResolveEndpoints(conf *Config) ([]*HttpEndpoint, error) {
-	endps := conf.CloneSortEndpoints()
-	merged := make([]*HttpEndpoint, 0, len(endps)+len(BuildTimeDistConfigEndpoints))
-	seen := make(map[string]struct{}, len(endps)+len(BuildTimeDistConfigEndpoints))
-	for _, endp := range endps {
-		u := endp.GetUrl()
-		if u == "" {
-			continue
-		}
-		if _, ok := seen[u]; ok {
-			continue
-		}
-		seen[u] = struct{}{}
-		merged = append(merged, endp)
+	_, endps, err := conf.ParseEndpointURLs()
+	if err != nil {
+		return nil, err
 	}
+	configEndps := dedupEndpoints(endps)
+	if len(configEndps) != 0 {
+		return configEndps, nil
+	}
+
+	fallback := make([]*HttpEndpoint, 0, len(BuildTimeDistConfigEndpoints))
+	seen := make(map[string]struct{}, len(BuildTimeDistConfigEndpoints))
 	for _, u := range BuildTimeDistConfigEndpoints {
 		if u == "" {
 			continue
@@ -99,32 +96,57 @@ func ResolveEndpoints(conf *Config) ([]*HttpEndpoint, error) {
 			return nil, errors.Wrapf(err, "build-time endpoint %q", u)
 		}
 		seen[u] = struct{}{}
-		merged = append(merged, &HttpEndpoint{Url: u})
+		fallback = append(fallback, &HttpEndpoint{Url: u})
 	}
-	return merged, nil
+	return fallback, nil
 }
 
-// ResolveDistPeerIDs merges Config.DistPeerIds with BuildTimeDistPeerIDs and
-// deduplicates the result.
+func dedupEndpoints(endps []*HttpEndpoint) []*HttpEndpoint {
+	deduped := make([]*HttpEndpoint, 0, len(endps))
+	seen := make(map[string]struct{}, len(endps))
+	for _, endp := range endps {
+		u := endp.GetUrl()
+		if u == "" {
+			continue
+		}
+		if _, ok := seen[u]; ok {
+			continue
+		}
+		seen[u] = struct{}{}
+		deduped = append(deduped, endp)
+	}
+	return deduped
+}
+
+// ResolveDistPeerIDs returns Config.DistPeerIds when provided, otherwise the
+// production build-time defaults. Config values replace defaults so
+// release-owned overlays do not inherit production signer trust.
 func ResolveDistPeerIDs(conf *Config) ([]peer.ID, error) {
 	configIDs, err := conf.ParseDistPeerIds()
 	if err != nil {
 		return nil, err
 	}
+	if len(configIDs) != 0 {
+		return dedupPeerIDs(configIDs), nil
+	}
 	buildTimeIDs, err := confparse.ParsePeerIDs(BuildTimeDistPeerIDs, false)
 	if err != nil {
 		return nil, errors.Wrap(err, "build-time peer ids")
 	}
-	merged := make([]peer.ID, 0, len(configIDs)+len(buildTimeIDs))
-	seen := make(map[peer.ID]struct{}, len(configIDs)+len(buildTimeIDs))
-	for _, id := range append(configIDs, buildTimeIDs...) {
+	return dedupPeerIDs(buildTimeIDs), nil
+}
+
+func dedupPeerIDs(ids []peer.ID) []peer.ID {
+	deduped := make([]peer.ID, 0, len(ids))
+	seen := make(map[peer.ID]struct{}, len(ids))
+	for _, id := range ids {
 		if _, ok := seen[id]; ok {
 			continue
 		}
 		seen[id] = struct{}{}
-		merged = append(merged, id)
+		deduped = append(deduped, id)
 	}
-	return merged, nil
+	return deduped
 }
 
 // GetVersion returns the version of this controller.

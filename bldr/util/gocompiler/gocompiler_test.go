@@ -7,18 +7,14 @@ import (
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 )
 
-func TestNewBuildTagsProductionRelease(t *testing.T) {
-	t.Setenv("SPACEWAVE_RELEASE_ENV", "prod")
-	tags := NewBuildTags(bldr_manifest.BuildType_RELEASE, false)
-	if !slices.Contains(tags, "prod_signing") {
-		t.Fatalf("expected prod_signing tag in %v", tags)
-	}
-}
-
-func TestNewBuildTagsStagingRelease(t *testing.T) {
-	t.Setenv("SPACEWAVE_RELEASE_ENV", "staging")
-	tags := NewBuildTags(bldr_manifest.BuildType_RELEASE, false)
-	if slices.Contains(tags, "prod_signing") {
-		t.Fatalf("did not expect prod_signing tag in %v", tags)
+func TestNewBuildTagsDoNotDependOnReleaseEnv(t *testing.T) {
+	for _, env := range []string{"", "prod", "staging"} {
+		t.Run(env, func(t *testing.T) {
+			t.Setenv("SPACEWAVE_RELEASE_ENV", env)
+			tags := NewBuildTags(bldr_manifest.BuildType_RELEASE, false)
+			if !slices.Equal(tags, []string{"build_type_release", "purego"}) {
+				t.Fatalf("build tags = %v, want release defaults only", tags)
+			}
+		})
 	}
 }

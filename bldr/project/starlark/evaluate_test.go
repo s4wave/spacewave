@@ -181,6 +181,22 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 			t.Fatalf("spacewave-core config missing %s: %s", want, coreCfg)
 		}
 	}
+	launcher := result.Config.GetManifests()["spacewave-launcher"]
+	if launcher == nil {
+		t.Fatal("spacewave-launcher manifest not found")
+	}
+	launcherCfg := string(launcher.GetBuilder().GetConfig())
+	for _, want := range []string{
+		`"distPeerIds":["12D3KooWL2DEcvqSXXrrCmUxMdPbqFcqzhHBvqseZWHwjAt7aXfW"]`,
+		`"url":"https://spacewave.app/api/release/config"`,
+	} {
+		if !strings.Contains(launcherCfg, want) {
+			t.Fatalf("spacewave-launcher config missing %s: %s", want, launcherCfg)
+		}
+	}
+	if strings.Contains(launcherCfg, "staging.spacewave.app") {
+		t.Fatalf("spacewave-launcher public config contains staging endpoint: %s", launcherCfg)
+	}
 	web := result.Config.GetManifests()["web"]
 	if web == nil {
 		t.Fatal("web manifest not found")

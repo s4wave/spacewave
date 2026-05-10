@@ -1,13 +1,10 @@
-//go:build !prod_signing
-
 package spacewave_launcher_controller
 
 // BuildTimeDistConfigEndpoints is the list of DistConfig fetch URLs embedded
-// at build time. Merged with Config.Endpoints at Factory.Construct time.
+// at build time when Config.Endpoints is empty.
 //
-// Non-prod builds target the staging Worker, which reads
-// spacewave-dist-staging via its APP_DIST binding and cache-flushes on
-// staging notify.
+// Public project defaults are production-only. Release-owned overlays replace
+// Config.Endpoints when building artifacts for another release environment.
 var BuildTimeDistConfigEndpoints = []string{
-	"https://staging.spacewave.app/api/release/config",
+	"https://spacewave.app/api/release/config",
 }
