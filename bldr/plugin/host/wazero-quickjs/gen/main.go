@@ -11,8 +11,8 @@ import (
 // Equivalent of:
 // esbuild --tree-shaking=true --bundle --format=esm --platform=browser plugin-quickjs.ts --outfile=plugin-quickjs.esb.js
 // followed by:
-// rollup plugin-quickjs.esb.js --file plugin-quickjs.esm.js --format es --plugin @rollup/plugin-terser
-// Note: We use rollup with terser for minification while keeping the code readable
+// rolldown plugin-quickjs.esb.js --file plugin-quickjs.esm.js --format esm
+// Note: Rolldown tree-shakes the esbuild output while keeping the code readable.
 
 func main() {
 	log := logrus.New()
@@ -66,22 +66,22 @@ func main() {
 
 	le.Info("esbuild completed successfully")
 
-	// Run rollup to minify the output
-	le.Info("running rollup to tree-shake output")
-	rollupCmd := exec.Command(
-		"../../../node_modules/.bin/rollup",
+	// Run rolldown to tree-shake the output.
+	le.Info("running rolldown to tree-shake output")
+	rolldownCmd := exec.Command(
+		"bunx",
+		"rolldown",
 		"plugin-quickjs.esb.js",
 		"--file", "plugin-quickjs.esm.js",
-		"--format", "es",
-		// "--plugin", "@rollup/plugin-terser",
+		"--format", "esm",
 	)
 
-	if err := rollupCmd.Run(); err != nil {
-		le.WithError(err).Fatal("rollup failed")
+	if err := rolldownCmd.Run(); err != nil {
+		le.WithError(err).Fatal("rolldown failed")
 		return
 	}
 
-	le.Info("rollup completed successfully")
+	le.Info("rolldown completed successfully")
 
 	// Add eslint-disable comment to the top of the generated file
 	le.Info("adding eslint-disable comment to generated file")
