@@ -75,4 +75,23 @@ describe('app path helpers', () => {
     expect(window.location.pathname).toBe('/')
     expect(window.location.hash).toBe('#/login')
   })
+
+  it('does not dispatch hashchange for an already canonical root hash route', async () => {
+    window.location.hash = '#/login'
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    let hashChanges = 0
+    const listener = () => {
+      hashChanges++
+    }
+    window.addEventListener('hashchange', listener)
+    try {
+      setAppPath('/login')
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    } finally {
+      window.removeEventListener('hashchange', listener)
+    }
+
+    expect(hashChanges).toBe(0)
+  })
 })

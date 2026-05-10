@@ -94,6 +94,20 @@ function applyStateUpdate<T>(state: T, update: React.SetStateAction<T>): T {
   return update
 }
 
+function shellTabsEqual(a: ShellTab[], b: ShellTab[]): boolean {
+  if (a.length !== b.length) return false
+  return a.every((tab, idx) => {
+    const other = b[idx]
+    return (
+      other !== undefined &&
+      tab.id === other.id &&
+      tab.name === other.name &&
+      tab.path === other.path &&
+      tab.customName === other.customName
+    )
+  })
+}
+
 function shellTabsProviderReducer(
   state: ShellTabsProviderState,
   action: ShellTabsProviderAction,
@@ -112,7 +126,7 @@ function shellTabsProviderReducer(
     }
     case 'set_tabs': {
       const tabs = applyStateUpdate(state.tabs, action.update)
-      if (tabs === state.tabs) {
+      if (tabs === state.tabs || shellTabsEqual(tabs, state.tabs)) {
         return state
       }
       const renamingTabId =

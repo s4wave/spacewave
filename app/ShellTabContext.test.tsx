@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 
@@ -17,6 +17,18 @@ function NoopPathUpdateProbe() {
   }, [tabs, updateTabPath])
 
   return <div data-testid="tab-count">{tabs.length}</div>
+}
+
+function NoopSetTabsProbe() {
+  const renders = useRef(0)
+  renders.current++
+  const { setTabs } = useShellTabs()
+
+  useEffect(() => {
+    setTabs((tabs) => tabs.map((tab) => ({ ...tab })))
+  }, [setTabs])
+
+  return <div data-testid="render-count">{renders.current}</div>
 }
 
 function ActiveTabProbe() {
@@ -46,6 +58,24 @@ describe('ShellTabContext', () => {
     )
 
     expect(screen.getByTestId('tab-count').textContent).toBe('1')
+  })
+
+  it('treats semantically equal tab arrays as a no-op', () => {
+    localStorage.setItem(
+      SHELL_TABS_STORAGE_KEY,
+      JSON.stringify({
+        tabs: [{ id: 'tab-1', name: 'Home', path: '/' }],
+        activeTabId: 'tab-1',
+      }),
+    )
+
+    render(
+      <ShellTabsProvider>
+        <NoopSetTabsProbe />
+      </ShellTabsProvider>,
+    )
+
+    expect(screen.getByTestId('render-count').textContent).toBe('1')
   })
 
   it('preserves active tab selection when hydrating external tab changes', async () => {

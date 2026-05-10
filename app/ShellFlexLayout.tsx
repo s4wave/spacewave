@@ -61,6 +61,10 @@ import { hasGridLayout, encodeGridLayout } from './shell-grid-utils.js'
 import { buildShellExternalDrag } from './shell-app-drag.js'
 import { openShellTabInNewTab } from './shell-popout.js'
 
+function isTabNode(node: { getType(): string } | undefined): node is TabNode {
+  return node?.getType() === 'tab'
+}
+
 // noop stubs for TabContextValue in the shell overlay scope.
 const noopAddTab = () => Promise.resolve({ tabId: '' })
 const noopNavigateTab = () => Promise.resolve({})
@@ -235,10 +239,22 @@ export function ShellTabStrip({ children }: ShellTabStripProps) {
 
 // ShellTabStripInner is the inner component that uses the tabs context.
 function ShellTabStripInner({ children }: ShellTabStripProps) {
-  const { tabs, setTabs, activeTabId, setActiveTabId, startRenaming } =
-    useShellTabs()
+  const {
+    tabs,
+    setTabs,
+    activeTabId,
+    setActiveTabId,
+    updateTabPath,
+    startRenaming,
+  } = useShellTabs()
 
   const [, setHasEngaged] = useStateAtom<boolean>(null, 'hasEngaged', false)
+  const hasMarkedEngagedRef = useRef(false)
+  const markShellEngaged = useCallback(() => {
+    if (hasMarkedEngagedRef.current) return
+    hasMarkedEngagedRef.current = true
+    setHasEngaged(true)
+  }, [setHasEngaged])
 
   // Ref to access latest tabs without causing re-renders.
   // Assigned directly (not in useEffect) to avoid one-frame stale reads.
@@ -286,6 +302,7 @@ function ShellTabStripInner({ children }: ShellTabStripProps) {
   // Track if initial URL sync has happened - use ref instead of state
   // to avoid setState in effect body
   const initializedRef = useRef(false)
+  const lastSyncedActiveTabIdRef = useRef(activeTabId)
 
   // Only enable tab dragging when there are at least 2 tabs (can't create splits with 1 tab)
   const canDrag = tabs.length >= 2
@@ -323,20 +340,24 @@ function ShellTabStripInner({ children }: ShellTabStripProps) {
       addAndSelectShellModelTab(model, 'shell-tabset', newTab, 'shell-content')
     }
 
-    setHasEngaged(true)
-  }, [model, tabs, setTabs, setActiveTabId, setHasEngaged, isGridMode])
+    markShellEngaged()
+  }, [model, tabs, setTabs, setActiveTabId, markShellEngaged, isGridMode])
 
-  // Sync URL hash when active tab changes (after initialization)
+  // Sync URL hash when active tab selection changes (after initialization).
+  // Tab path changes are owned by the route/hash listeners and should not
+  // drive the URL back to a stale tab snapshot during navigation.
   useEffect(() => {
     if (!initializedRef.current) return
     // Don't sync URL in grid mode
     if (isGridMode()) return
+    if (lastSyncedActiveTabIdRef.current === activeTabId) return
+    lastSyncedActiveTabIdRef.current = activeTabId
 
-    const activeTab = tabs.find((t) => t.id === activeTabId)
+    const activeTab = findShellTab(tabsRef.current, activeTabId)
     if (activeTab && activeTab.path !== getAppPath()) {
       setAppPath(activeTab.path)
     }
-  }, [activeTabId, tabs, isGridMode])
+  }, [activeTabId, isGridMode])
 
   // Listen for hash changes (back/forward navigation)
   const handleHashChange = useEffectEvent(() => {
@@ -348,7 +369,8 @@ function ShellTabStripInner({ children }: ShellTabStripProps) {
     if (!activeTab || activeTab.path === currentPath) return
 
     // Check if the node still exists in the model before updating
-    if (!model.getNodeById(activeTabId)) return
+    const tabNode = model.getNodeById(activeTabId)
+    if (!isTabNode(tabNode)) return
 
     // Update the current tab's path in tabs state (model doesn't store paths)
     const updated = {
@@ -356,17 +378,18 @@ function ShellTabStripInner({ children }: ShellTabStripProps) {
       path: currentPath,
       name: getTabNameFromPath(currentPath),
     }
-    setTabs((prevTabs) =>
-      prevTabs.map((t) => (t.id !== activeTabId ? t : updated)),
-    )
+    updateTabPath(activeTabId, currentPath)
     // Update tab name in model outside the setTabs updater to avoid
     // triggering Layout.setState during an existing state transition.
-    model.doAction(
-      Actions.updateNodeAttributes(activeTabId, {
-        name: getTabDisplayName(updated),
-      }),
-    )
-    setHasEngaged(true)
+    const displayName = getTabDisplayName(updated)
+    if (tabNode.getName() !== displayName) {
+      model.doAction(
+        Actions.updateNodeAttributes(activeTabId, {
+          name: displayName,
+        }),
+      )
+    }
+    markShellEngaged()
   })
 
   useEffect(() => {
@@ -495,10 +518,10 @@ function ShellTabStripInner({ children }: ShellTabStripProps) {
             setAppPath(selectedTab.path)
           }
         }
-        setHasEngaged(true)
+        markShellEngaged()
       }
     },
-    [setTabs, setActiveTabId, setHasEngaged, activeTabId, tabs, isGridMode],
+    [setTabs, setActiveTabId, markShellEngaged, activeTabId, tabs, isGridMode],
   )
 
   // Custom icons for close button
@@ -601,9 +624,9 @@ function ShellTabStripInner({ children }: ShellTabStripProps) {
         })
         setActiveTabId(tab.id)
         setAppPath(tab.path)
-        setHasEngaged(true)
+        markShellEngaged()
       }),
-    [setActiveTabId, setHasEngaged, setTabs],
+    [setActiveTabId, markShellEngaged, setTabs],
   )
 
   const [contextMenu, setContextMenu] =

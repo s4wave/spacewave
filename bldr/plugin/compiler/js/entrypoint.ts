@@ -52,6 +52,29 @@ function logError(message: string, error: unknown): void {
   console.error(error)
 }
 
+function isQuickJSRuntime(): boolean {
+  return 'std' in globalThis
+}
+
+function resolveBackendEntrypointImportPath(
+  importPath: string,
+  backendAPI: BackendAPI,
+): string {
+  if (isQuickJSRuntime() || !importPath.startsWith('/assets/')) {
+    return importPath
+  }
+
+  const pluginId = backendAPI.startInfo.pluginId
+  if (!pluginId) {
+    return importPath
+  }
+
+  return backendAPI.utils.pluginAssetHttpPath(
+    pluginId,
+    importPath.slice('/assets/'.length),
+  )
+}
+
 /**
  * Loads and executes a single backend entrypoint module.
  * @param entrypoint - The backend entrypoint configuration.
@@ -73,7 +96,10 @@ async function executeBackendEntrypoint(
     return Promise.resolve()
   }
 
-  const importPath = entrypoint.importPath
+  const importPath = resolveBackendEntrypointImportPath(
+    entrypoint.importPath,
+    backendAPI,
+  )
   // Default to 'default' export if import_name is not specified.
   const importName = entrypoint.importName || 'default'
   const entrypointId = `${importPath}#${importName}`

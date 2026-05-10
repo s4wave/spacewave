@@ -15,6 +15,16 @@ function extStyle(s: Record<string, unknown>): React.CSSProperties {
   return s
 }
 
+function rectEquals(a: DOMRect | null, b: DOMRect): boolean {
+  return (
+    a !== null &&
+    a.left === b.left &&
+    a.top === b.top &&
+    a.width === b.width &&
+    a.height === b.height
+  )
+}
+
 const AnimatedLogo = ({
   className,
   containerClassName,
@@ -34,36 +44,43 @@ const AnimatedLogo = ({
   const canAnimate = followMouse && canRunAnimation && hasMouse
 
   useEffect(() => {
+    if (!followMouse) return
+
     const el = mouseRef.current
     if (!el) return
 
     const observer = new IntersectionObserver(([entry]) => {
-      setIsOnScreen(entry?.isIntersecting ?? false)
+      const next = entry?.isIntersecting ?? false
+      setIsOnScreen((prev) => (prev === next ? prev : next))
     })
     observer.observe(el)
 
     return () => {
       observer.disconnect()
     }
-  }, [mouseRef])
+  }, [followMouse, mouseRef])
 
   useEffect(() => {
+    if (!followMouse) return
+
     const query = window.matchMedia('(hover: hover) and (pointer: fine)')
-    const update = () => setHasMouse(query.matches)
+    const update = () =>
+      setHasMouse((prev) => (prev === query.matches ? prev : query.matches))
     update()
     query.addEventListener('change', update)
 
     return () => {
       query.removeEventListener('change', update)
     }
-  }, [])
+  }, [followMouse])
 
   useEffect(() => {
     if (!canAnimate || !mouseRef.current) return
 
     const updateRect = () => {
       if (mouseRef.current) {
-        setElementRect(mouseRef.current.getBoundingClientRect())
+        const next = mouseRef.current.getBoundingClientRect()
+        setElementRect((prev) => (rectEquals(prev, next) ? prev : next))
       }
     }
 

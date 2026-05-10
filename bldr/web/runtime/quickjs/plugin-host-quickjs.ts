@@ -394,34 +394,30 @@ export async function loadBackendAssets(
   const manifestText = await manifestResponse.text()
   addAssetToFileSystem(files, manifestPath, manifestText)
 
-  const manifest = JSON.parse(
-    manifestText,
-  ) as Record<string, ViteManifestEntry>
+  const manifest = JSON.parse(manifestText) as Record<string, ViteManifestEntry>
   const assetPaths =
     entryAssetPaths.length === 0 ?
       collectViteManifestAssetPaths(manifest)
     : collectViteManifestStaticAssetPaths(manifest, entryAssetPaths)
 
-  await Promise.all(
-    assetPaths.map(async (assetPath) => {
-      const resolvedPath = resolveBackendAssetPath(assetPath)
-      if (!resolvedPath) {
-        return
-      }
-      const assetURL = api.utils.pluginAssetHttpPath(pluginId, resolvedPath)
-      const assetResponse = await fetch(assetURL, { signal })
-      if (!assetResponse.ok) {
-        throw new Error(
-          `Failed to fetch backend asset ${assetURL}: ${assetResponse.status}`,
-        )
-      }
-      addAssetToFileSystem(
-        files,
-        resolvedPath,
-        new Uint8Array(await assetResponse.arrayBuffer()),
+  for (const assetPath of assetPaths) {
+    const resolvedPath = resolveBackendAssetPath(assetPath)
+    if (!resolvedPath) {
+      continue
+    }
+    const assetURL = api.utils.pluginAssetHttpPath(pluginId, resolvedPath)
+    const assetResponse = await fetch(assetURL, { signal })
+    if (!assetResponse.ok) {
+      throw new Error(
+        `Failed to fetch backend asset ${assetURL}: ${assetResponse.status}`,
       )
-    }),
-  )
+    }
+    addAssetToFileSystem(
+      files,
+      resolvedPath,
+      new Uint8Array(await assetResponse.arrayBuffer()),
+    )
+  }
   return true
 }
 
@@ -461,6 +457,17 @@ export default async function main(
   files.set(scriptPath, pluginScript)
 
   const assetLoadingMode = selectBackendAssetLoadingMode()
+  const entryAssetPaths = collectBackendEntrypointAssetPaths(pluginScript)
+  const shouldPreloadBackendAssets =
+    entryAssetPaths.length !== 0 || assetLoadingMode === 'bounded-preload'
+  const loadedBackendAssets =
+    shouldPreloadBackendAssets ?
+      await loadBackendAssets(api, signal, files, entryAssetPaths)
+    : false
+  if (loadedBackendAssets) {
+    console.log('quickjs-runner: preloaded backend entrypoint assets')
+  }
+
   const preopens =
     assetLoadingMode === 'lazy-http' ?
       createBackendAssetPreopens(api, signal)
@@ -469,12 +476,6 @@ export default async function main(
   if (preopens.length === 0) {
     console.log(
       'quickjs-runner: synchronous backend asset mount unavailable; preloading backend assets',
-    )
-    const loadedBackendAssets = await loadBackendAssets(
-      api,
-      signal,
-      files,
-      collectBackendEntrypointAssetPaths(pluginScript),
     )
     if (!loadedBackendAssets) {
       console.log(
@@ -486,7 +487,7 @@ export default async function main(
     }
   }
   if (preopens.length !== 0) {
-    console.log('quickjs-runner: using lazy backend asset mount')
+    console.log('quickjs-runner: using lazy backend asset mount for misses')
   }
 
   const fs = buildFileSystem(files)

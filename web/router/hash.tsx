@@ -48,7 +48,8 @@ export function useHashPath(): [string, (path: string) => void] {
         window.location.hash.startsWith('#') ?
           window.location.hash.slice(1)
         : window.location.hash
-      setPath(normalizeAppPath(raw))
+      const nextPath = normalizeAppPath(raw)
+      setPath((prev) => (prev === nextPath ? prev : nextPath))
     }
 
     // Listen for hash changes
@@ -62,7 +63,15 @@ export function useHashPath(): [string, (path: string) => void] {
 
   // Function to update the hash path
   const updatePath = useCallback((newPath: string) => {
-    window.location.hash = newPath.startsWith('/') ? newPath : `/${newPath}`
+    const nextHash = newPath.startsWith('/') ? newPath : `/${newPath}`
+    const currentHash =
+      window.location.hash.startsWith('#') ?
+        window.location.hash.slice(1)
+      : window.location.hash
+    if (currentHash === nextHash) {
+      return
+    }
+    window.location.hash = nextHash
   }, [])
 
   return [normalizeAppPath(path), updatePath]
