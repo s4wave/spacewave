@@ -1,4 +1,4 @@
-/* eslint-disable react-doctor/no-giant-component, react-doctor/prefer-useReducer */
+/* eslint-disable react-doctor/no-giant-component */
 import { useCallback, useMemo, useState } from 'react'
 import { LuCheck, LuCircleAlert, LuFingerprint } from 'react-icons/lu'
 import { startRegistration, startAuthentication } from '@simplewebauthn/browser'

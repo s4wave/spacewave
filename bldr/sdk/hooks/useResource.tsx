@@ -1,4 +1,4 @@
-/* eslint-disable react-doctor/no-cascading-set-state */
+
 import {
   useCallback,
   useEffect,

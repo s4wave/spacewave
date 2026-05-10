@@ -1,4 +1,4 @@
-/* eslint-disable react-doctor/no-cascading-set-state, react-doctor/rerender-state-only-in-handlers */
+/* eslint-disable react-doctor/rerender-state-only-in-handlers */
 import { useCallback, useEffect, useState } from 'react'
 import { isDesktop } from '@aptre/bldr'
 import { LuArrowLeft } from 'react-icons/lu'

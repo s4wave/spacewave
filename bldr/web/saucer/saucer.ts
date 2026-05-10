@@ -1,4 +1,4 @@
-/* eslint-disable react-doctor/async-await-in-loop */
+
 /**
  * saucer.ts provides the interface for JS to communicate with the Go runtime
  * via the C++ Saucer process. Uses a single yamux-multiplexed connection over

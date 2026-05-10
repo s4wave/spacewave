@@ -32,7 +32,7 @@ self.onmessage = async (ev: MessageEvent<InitMsg>) => {
   }
 
   // Dynamically import the plugin script and call its default export.
-  // eslint-disable-next-line react-doctor/no-dynamic-import-path
+
   const pluginModule = await import(/* @vite-ignore */ scriptUrl)
   if (typeof pluginModule.default !== 'function') {
     self.postMessage({

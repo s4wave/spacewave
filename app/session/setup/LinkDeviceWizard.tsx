@@ -1,4 +1,4 @@
-/* eslint-disable react-doctor/no-cascading-set-state, react-doctor/prefer-useReducer, react-doctor/rerender-state-only-in-handlers */
+/* eslint-disable react-doctor/rerender-state-only-in-handlers */
 import React, {
   useCallback,
   useEffect,

@@ -1,4 +1,4 @@
-/* eslint-disable react-doctor/no-giant-component, react-doctor/prefer-useReducer, react-doctor/rerender-state-only-in-handlers */
+/* eslint-disable react-doctor/no-giant-component, react-doctor/rerender-state-only-in-handlers */
 import { startTransition, useCallback, useMemo, useState } from 'react'
 
 import { useAbortSignalEffect } from '@aptre/bldr-react'

@@ -1,4 +1,3 @@
-/* eslint-disable react-doctor/prefer-useReducer */
 import { useCallback, useState } from 'react'
 import { LuArrowLeft, LuDownload, LuPlay } from 'react-icons/lu'
 import { useNavigate } from '@s4wave/web/router/router.js'

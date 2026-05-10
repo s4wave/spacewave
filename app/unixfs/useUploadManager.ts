@@ -1,4 +1,3 @@
-/* eslint-disable react-doctor/no-cascading-set-state */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { FSHandle, TreeUploadEntry } from '@s4wave/sdk/unixfs/handle.js'
 

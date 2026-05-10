@@ -1,4 +1,4 @@
-/* eslint-disable react-doctor/no-cascading-set-state, react-doctor/no-giant-component, react-doctor/rerender-state-only-in-handlers */
+/* eslint-disable react-doctor/no-giant-component, react-doctor/rerender-state-only-in-handlers */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'

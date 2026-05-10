@@ -1,4 +1,4 @@
-/* eslint-disable react-doctor/no-giant-component, react-doctor/prefer-useReducer */
+/* eslint-disable react-doctor/no-giant-component */
 import { useCallback, useState } from 'react'
 import {
   LuDownload,

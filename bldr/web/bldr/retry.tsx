@@ -1,4 +1,4 @@
-/* eslint-disable react-doctor/async-await-in-loop */
+
 // BackoffFn returns the number of milliseconds to wait till next retry.
 export type BackoffFn = () => number
 

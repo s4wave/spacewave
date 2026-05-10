@@ -1,4 +1,4 @@
-/* eslint-disable react-doctor/no-cascading-set-state, react-doctor/no-giant-component */
+/* eslint-disable react-doctor/no-giant-component */
 import {
   type DragEvent as ReactDragEvent,
   useCallback,

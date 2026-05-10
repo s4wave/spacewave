@@ -1,4 +1,4 @@
-/* eslint-disable react-doctor/async-await-in-loop */
+
 /**
  * boot.ts - v86 boot script for forge bun subprocess controller.
  *
@@ -202,7 +202,7 @@ async function loadHandle9p(v86Dir: string, v86fsDir: string): Promise<unknown> 
   const serverPath = path.join(v86fsDir, 'handle9p-server.mjs')
   const fallback = path.join(v86Dir, 'tests/v86fs/handle9p-server.mjs')
   const modPath = fs.existsSync(serverPath) ? serverPath : fallback
-  // eslint-disable-next-line react-doctor/no-dynamic-import-path
+
   const mod = (await import(modPath)) as Handle9pModule
   const fsJsonUrl = url.pathToFileURL(path.join(v86fsDir, 'fs.json')).href
   const flatUrl = url.pathToFileURL(path.join(v86fsDir, 'flat')).href + '/'
@@ -257,7 +257,7 @@ async function main() {
   }
 
   // Import V86 from source (same as v86 repo's own tests)
-  // eslint-disable-next-line react-doctor/no-dynamic-import-path
+
   const { V86 } = (await import(path.join(v86Dir, 'src/main.js'))) as {
     V86: V86Ctor
   }

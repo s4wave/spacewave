@@ -1,4 +1,4 @@
-/* eslint-disable react-doctor/no-cascading-set-state, react-doctor/no-giant-component, react-doctor/prefer-useReducer */
+/* eslint-disable react-doctor/no-giant-component */
 import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import {
   LuArrowLeft,

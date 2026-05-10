@@ -1,4 +1,4 @@
-/* eslint-disable react-doctor/async-await-in-loop */
+
 import { describe, it, expect } from 'vitest'
 import {
   SabBusEndpoint,

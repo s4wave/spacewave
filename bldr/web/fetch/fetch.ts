@@ -1,4 +1,4 @@
-/* eslint-disable react-doctor/async-await-in-loop */
+
 import toIt from './readablestream-to-it.js'
 import { Source } from 'it-stream-types'
 import { pipe } from 'it-pipe'

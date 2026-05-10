@@ -1,4 +1,4 @@
-/* eslint-disable react-doctor/async-await-in-loop */
+
 import {
   AsyncRWMutex,
   type RWMutexLock,

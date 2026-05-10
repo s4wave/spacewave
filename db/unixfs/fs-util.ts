@@ -1,4 +1,4 @@
-/* eslint-disable react-doctor/async-await-in-loop */
+
 import type { FSCursorDirent } from './fs-cursor.js'
 import type { FSHandle } from './fs-handle.js'
 import {

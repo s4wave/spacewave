@@ -375,7 +375,7 @@ describe('service worker fetch release cache routing', () => {
       )
 
     const firstResponse = await swFetch(buildFetchOnlyEvent('/b/__index.html'))
-    // eslint-disable-next-line react-doctor/server-sequential-independent-await
+
     const secondResponse = await swFetch(buildFetchOnlyEvent('/b/__index.html'))
 
     expect(await firstResponse.text()).toBe('runtime index')

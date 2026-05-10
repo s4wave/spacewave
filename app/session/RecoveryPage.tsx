@@ -1,4 +1,3 @@
-/* eslint-disable react-doctor/prefer-useReducer */
 import { isDesktop } from '@aptre/bldr'
 import { useCallback, useId, useMemo, useRef, useState } from 'react'
 import {

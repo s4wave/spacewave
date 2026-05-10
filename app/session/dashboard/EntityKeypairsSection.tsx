@@ -1,4 +1,3 @@
-/* eslint-disable react-doctor/prefer-useReducer */
 import { useCallback, useState } from 'react'
 import { LuKey, LuPlus, LuTrash2, LuDownload } from 'react-icons/lu'
 

@@ -1050,7 +1050,7 @@ describe('DesktopTrayController', () => {
     controller.init()
 
     const shown = await controller.showPopoverForE2E()
-    // eslint-disable-next-line react-doctor/server-sequential-independent-await
+
     const png = await controller.capturePopoverPNGForE2E()
 
     expect(shown).toBe(true)

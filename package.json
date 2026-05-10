@@ -90,7 +90,7 @@
     "vitecheck": "vite build --outDir vite-check",
     "typecheck": "tsgo --noEmit -p tsconfig.json",
     "lint": "bun run lint:js && bun run lint:go",
-    "lint:go": "bun run go:aptre -- lint",
+    "lint:go": "bun run lint:go:auth && bun run lint:go:db && bun run lint:go:forge && bun run lint:go:identity && bun run lint:go:net",
     "lint:js": "eslint . --ext .js,.mjs,.ts,.tsx",
     "lint:js:fix": "bun run lint:js -- --fix",
     "precommit": "bun run typecheck && bun run lint:js && go build -v ./...",

@@ -10,8 +10,12 @@ import {
 import { OrganizationDetails } from './OrganizationDetails.js'
 import type { WatchOrganizationStateResponse } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 
-const mockSession = vi.hoisted(() => ({
-  value: null as unknown,
+type MockSession = {
+  value: unknown
+}
+
+const mockSession = vi.hoisted<MockSession>(() => ({
+  value: null,
 }))
 
 vi.mock('@s4wave/web/ui/tooltip.js', () => ({

@@ -1,4 +1,3 @@
-/* eslint-disable react-doctor/no-cascading-set-state */
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'

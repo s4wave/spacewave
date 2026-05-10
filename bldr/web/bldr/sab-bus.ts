@@ -1,4 +1,4 @@
-/* eslint-disable react-doctor/async-await-in-loop */
+
 // SabBus implements a shared bus ring buffer for intra-tab plugin IPC.
 //
 // Multiple endpoints (plugins) share a single SharedArrayBuffer. Messages

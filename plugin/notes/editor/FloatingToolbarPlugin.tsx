@@ -1,4 +1,4 @@
-/* eslint-disable react-doctor/prefer-useReducer, react-doctor/rerender-state-only-in-handlers */
+/* eslint-disable react-doctor/rerender-state-only-in-handlers */
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import {

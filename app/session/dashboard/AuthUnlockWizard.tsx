@@ -1,4 +1,3 @@
-/* eslint-disable react-doctor/prefer-useReducer */
 import { useCallback, useEffect, useState } from 'react'
 import { isDesktop } from '@aptre/bldr'
 import { FcGoogle } from 'react-icons/fc'

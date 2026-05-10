@@ -103,7 +103,7 @@ function LocalSessionSetupCloudScreen({
           if (signal.aborted) return
           if (resp.found) {
             const localIdx = resp.sessionIndex ?? 0
-            // eslint-disable-next-line react-doctor/async-defer-await
+
             const state = await preparePlanReturnOnboardingForSessionIndex(
               root,
               localIdx,

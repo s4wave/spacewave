@@ -1,4 +1,4 @@
-/* eslint-disable react-doctor/async-await-in-loop */
+
 import path, { resolve } from 'path'
 import fs from 'fs'
 import net from 'net'

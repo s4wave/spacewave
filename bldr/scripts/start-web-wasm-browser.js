@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* eslint-disable react-doctor/async-await-in-loop */
+
 
 // start-web-wasm-browser.js - Launch start:web:wasm and open Playwright Chromium with dark mode.
 // Persistent browser state is stored in .bldr/browser-state/playwright

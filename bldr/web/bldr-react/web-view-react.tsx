@@ -41,7 +41,7 @@ export function ReactComponentContainer(props: IReactComponentContainerProps) {
     () =>
       React.lazy(
         async (): Promise<{ default: LoadedProtoComponent }> =>
-          // eslint-disable-next-line react-doctor/no-dynamic-import-path
+
           import(props.scriptPath),
       ),
     [props.scriptPath],

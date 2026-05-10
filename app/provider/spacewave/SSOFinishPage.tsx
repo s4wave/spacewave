@@ -1,4 +1,3 @@
-/* eslint-disable react-doctor/no-cascading-set-state */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { LuCheck, LuCircleAlert } from 'react-icons/lu'
 

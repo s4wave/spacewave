@@ -1,4 +1,3 @@
-/* eslint-disable react-doctor/prefer-useReducer */
 import { useCallback, useMemo, useState } from 'react'
 import { LuCheck, LuLink, LuX } from 'react-icons/lu'
 

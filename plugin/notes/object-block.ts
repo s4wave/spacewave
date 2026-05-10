@@ -83,7 +83,7 @@ export async function createObjectWithBlockData(
   abortSignal?: AbortSignal,
 ): Promise<void> {
   using cursor = await worldState.buildStorageCursor(abortSignal)
-  // eslint-disable-next-line react-doctor/server-sequential-independent-await
+
   const putResp = await runObjectBlockStep('put new object block', async () => {
     return cursor.putBlock({ data }, abortSignal)
   })

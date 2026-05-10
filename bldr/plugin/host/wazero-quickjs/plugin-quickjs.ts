@@ -38,7 +38,7 @@ if (!scriptPath) {
 const polyGlobalThis = applyPolyfills(quickjsGlobalThis)
 
 // asynchronously import the script module
-// eslint-disable-next-line react-doctor/no-dynamic-import-path
+
 const scriptPromise = import(scriptPath)
 scriptPromise.catch((err) => {
   logError('error importing script: ' + scriptPath, err)

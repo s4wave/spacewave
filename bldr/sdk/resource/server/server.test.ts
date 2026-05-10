@@ -1,4 +1,4 @@
-/* eslint-disable react-doctor/async-await-in-loop */
+
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createMux } from 'starpc'
 import { RemoteResourceClient } from './tracked-client.js'
@@ -1274,7 +1274,7 @@ describe('ResourceAttach handler', () => {
         attachIter,
         'resource-a',
       )
-      // eslint-disable-next-line react-doctor/server-sequential-independent-await
+
       const resId2 = await readNextControlPacket(
         stream,
         attachIter,
@@ -1421,7 +1421,7 @@ describe('ResourceAttach handler', () => {
         attachIter,
         'session-close-a',
       )
-      // eslint-disable-next-line react-doctor/server-sequential-independent-await
+
       const resId2 = await readNextControlPacket(
         stream,
         attachIter,

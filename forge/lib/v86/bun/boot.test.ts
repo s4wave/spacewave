@@ -63,7 +63,7 @@ const HAS_ASSETS = HAS_WASM && HAS_ROOTFS
 
 // Import V86 from the v86 source (same as v86 repo's own tests).
 const v86Module = HAS_ASSETS
-  // eslint-disable-next-line react-doctor/no-dynamic-import-path
+
   ? ((await import(path.join(V86_DIR, 'src/main.js'))) as { V86: V86Ctor })
   : null
 const V86 = v86Module?.V86
@@ -151,14 +151,14 @@ async function loadHandle9p(): Promise<unknown> {
   if (!fs.existsSync(serverPath)) {
     // Fall back to v86 repo's test helper.
     const fallback = path.join(V86_DIR, 'tests/v86fs/handle9p-server.mjs')
-    // eslint-disable-next-line react-doctor/no-dynamic-import-path
+
     const mod = (await import(fallback)) as Handle9pModule
     const fsJsonUrl = url.pathToFileURL(path.join(V86FS_DIR, 'fs.json')).href
     const flatUrl =
       url.pathToFileURL(path.join(V86FS_DIR, 'flat')).href + '/'
     return mod.createHandle9p(fsJsonUrl, flatUrl)
   }
-  // eslint-disable-next-line react-doctor/no-dynamic-import-path
+
   const mod = (await import(serverPath)) as Handle9pModule
   const fsJsonUrl = url.pathToFileURL(path.join(V86FS_DIR, 'fs.json')).href
   const flatUrl = url.pathToFileURL(path.join(V86FS_DIR, 'flat')).href + '/'

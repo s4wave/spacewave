@@ -1,4 +1,4 @@
-/* eslint-disable react-doctor/async-await-in-loop */
+
 // sab-ring.ts - SAB ring buffer point-to-point test fixture.
 //
 // Creates a SabRingStream pair, sends messages, verifies ordering,
