@@ -3,6 +3,10 @@
 package bldr_project_controller
 
 import (
+	"context"
+	"sync"
+	"time"
+
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/promise"
 )
@@ -31,4 +35,24 @@ func (r *ManifestBuilderRef) GetResultPromiseContainer() *promise.PromiseContain
 // Release releases the reference.
 func (r *ManifestBuilderRef) Release() {
 	r.ref.Release()
+}
+
+// ReleaseAfter releases the reference after delay or when ctx is canceled.
+func (r *ManifestBuilderRef) ReleaseAfter(ctx context.Context, delay time.Duration) {
+	var once sync.Once
+	release := func() {
+		once.Do(r.Release)
+	}
+	var stopCtx func() bool
+	timer := time.AfterFunc(delay, func() {
+		release()
+		if stopCtx != nil {
+			stopCtx()
+		}
+	})
+	stopCtx = context.AfterFunc(ctx, func() {
+		if timer.Stop() {
+			release()
+		}
+	})
 }

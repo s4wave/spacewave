@@ -248,13 +248,13 @@ func (d *DevtoolBus) ExecuteWebWasm(
 	// trigger FetchManifest for the startup plugins in advance
 	// if this is commented out, the plugin build begins once the browser asks for it.
 	if devMode {
-		buildType := bldr_manifest.BuildType_DEV
+		platformIDs := []string{bldr_platform.PlatformID_JS, buildPlatform.GetPlatformID()}
 		for _, startPluginID := range startPlugins {
 			_, dir, err := d.GetBus().AddDirective(
 				bldr_manifest.NewFetchManifest(
 					startPluginID,
-					[]bldr_manifest.BuildType{buildType},
-					[]string{buildPlatform.GetPlatformID()},
+					nil,
+					platformIDs,
 					0,
 				),
 				nil,

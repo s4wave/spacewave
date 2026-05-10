@@ -4,10 +4,13 @@ package bldr_project_controller
 
 import (
 	"context"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/directive"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 )
+
+const manifestBuilderRetainAfterFetch = 30 * time.Second
 
 // resolveFetchManifest resolves a FetchManifest directive.
 func (c *Controller) resolveFetchManifest(di directive.Instance, dir bldr_manifest.FetchManifest) directive.Resolver {
@@ -92,7 +95,12 @@ func (r *fetchManifestWithMetaResolver) Resolve(ctx context.Context, handler dir
 		return err
 	}
 	defer remoteRef.Release()
-	defer manifestBuilderRef.Release()
+	releaseManifestBuilderRef := true
+	defer func() {
+		if releaseManifestBuilderRef {
+			manifestBuilderRef.Release()
+		}
+	}()
 
 	conf := r.c.GetConfig()
 	watch := conf.GetWatch()
@@ -121,6 +129,8 @@ func (r *fetchManifestWithMetaResolver) Resolve(ctx context.Context, handler dir
 						[]*bldr_manifest.ManifestRef{result.GetBuilderResult().GetManifestRef().CloneVT()},
 					))
 					if !watch {
+						releaseManifestBuilderRef = false
+						manifestBuilderRef.ReleaseAfter(ctx, manifestBuilderRetainAfterFetch)
 						return nil
 					}
 				}

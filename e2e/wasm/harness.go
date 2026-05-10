@@ -565,12 +565,13 @@ func (h *Harness) startupManifestSummary() string {
 }
 
 func (h *Harness) startupManifestRequests() []manifestFetchRequest {
+	platformIDs := []string{"js", "web/js/wasm"}
 	return []manifestFetchRequest{
-		{pluginID: "spacewave-core", platformIDs: []string{"web/js/wasm"}},
-		{pluginID: "spacewave-debug", platformIDs: []string{"web/js/wasm"}},
-		{pluginID: "web", platformIDs: []string{"web/js/wasm"}},
-		{pluginID: "spacewave-web", platformIDs: []string{"js"}},
-		{pluginID: "spacewave-app", platformIDs: []string{"js"}},
+		{pluginID: "spacewave-core", platformIDs: platformIDs},
+		{pluginID: "spacewave-debug", platformIDs: platformIDs},
+		{pluginID: "web", platformIDs: platformIDs},
+		{pluginID: "spacewave-web", platformIDs: platformIDs},
+		{pluginID: "spacewave-app", platformIDs: platformIDs},
 	}
 }
 
