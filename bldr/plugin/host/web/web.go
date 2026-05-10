@@ -310,10 +310,13 @@ func (h *WebHost) ExecutePlugin(
 		unlock()
 		locked = false
 
-		readyCtx, readyCtxCancel := context.WithTimeout(ctx, time.Second*10)
-		defer readyCtxCancel()
-		if err := waitForWebWorkerReady(readyCtx, doc.GetWebDocumentStatusCtr(), pluginWebWorkerID); err != nil {
+		ready, err := waitForCreatedWebWorkerReady(ctx, doc.GetWebDocumentStatusCtr(), createdWorker)
+		if err != nil {
 			return err
+		}
+		if !ready {
+			le.Info("web worker did not become ready before timeout, recreating")
+			return nil
 		}
 
 		unlock, err = cmtx.Lock(ctx)

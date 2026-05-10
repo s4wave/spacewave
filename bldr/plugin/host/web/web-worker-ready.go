@@ -2,11 +2,15 @@ package plugin_host_web
 
 import (
 	"context"
+	"time"
 
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/pkg/errors"
 	web_document "github.com/s4wave/spacewave/bldr/web/document"
+	web_worker "github.com/s4wave/spacewave/bldr/web/worker"
 )
+
+const webWorkerReadyTimeout = time.Second * 10
 
 func waitForWebWorkerReady(ctx context.Context, docStatusCtr *ccontainer.CContainer[*web_document.WebDocumentStatus], webWorkerID string) error {
 	var docStatus *web_document.WebDocumentStatus
@@ -32,4 +36,33 @@ func waitForWebWorkerReady(ctx context.Context, docStatusCtr *ccontainer.CContai
 			}
 		}
 	}
+}
+
+func waitForCreatedWebWorkerReady(ctx context.Context, docStatusCtr *ccontainer.CContainer[*web_document.WebDocumentStatus], worker web_worker.WebWorker) (bool, error) {
+	return waitForCreatedWebWorkerReadyWithTimeout(ctx, docStatusCtr, worker, webWorkerReadyTimeout)
+}
+
+func waitForCreatedWebWorkerReadyWithTimeout(ctx context.Context, docStatusCtr *ccontainer.CContainer[*web_document.WebDocumentStatus], worker web_worker.WebWorker, timeout time.Duration) (bool, error) {
+	readyCtx, readyCtxCancel := context.WithTimeout(ctx, timeout)
+	defer readyCtxCancel()
+	if err := waitForWebWorkerReady(readyCtx, docStatusCtr, worker.GetId()); err != nil {
+		if ctx.Err() != nil {
+			return false, context.Canceled
+		}
+		if err != context.DeadlineExceeded {
+			return false, err
+		}
+
+		removeCtx, removeCtxCancel := context.WithTimeout(ctx, time.Second*3)
+		defer removeCtxCancel()
+		if _, err := worker.Remove(removeCtx); err != nil {
+			if ctx.Err() != nil {
+				return false, context.Canceled
+			}
+			return false, errors.Wrap(err, "remove unready web worker")
+		}
+		return false, nil
+	}
+
+	return true, nil
 }
