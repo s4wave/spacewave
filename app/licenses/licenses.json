@@ -1136,7 +1136,7 @@
     },
     {
       "name": "github.com/go-git/go-billy/v6",
-      "version": "v6.0.0-20260507215541-8db9859ba260",
+      "version": "v6.0.0-20260509100505-20932ef6e926",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://github.com/go-git/go-billy",
@@ -1356,7 +1356,7 @@
     },
     {
       "name": "github.com/ncruces/go-sqlite3",
-      "version": "v0.34.0",
+      "version": "v0.34.1",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/ncruces/go-sqlite3",
@@ -1364,7 +1364,7 @@
     },
     {
       "name": "github.com/ncruces/go-sqlite3-wasm/v2",
-      "version": "v2.1.35300",
+      "version": "v2.2.35301",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://github.com/ncruces/go-sqlite3-wasm",
