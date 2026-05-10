@@ -52,6 +52,20 @@ function logError(message: string, error: unknown): void {
   console.error(error)
 }
 
+export function isEntrypointStreamReset(error: unknown): boolean {
+  if (!(error instanceof Error)) return false
+  return error.name === 'StreamResetError' || error.message === 'stream reset'
+}
+
+export function entrypointRetryOpts(message: string) {
+  return {
+    errorCb(error: unknown): void {
+      if (isEntrypointStreamReset(error)) return
+      logError(message, error)
+    },
+  }
+}
+
 function isQuickJSRuntime(): boolean {
   return 'std' in globalThis
 }
@@ -198,20 +212,24 @@ async function loadWebPkgs(
   )!
   request.handlePluginId = ourPluginID
 
-  await retryWithAbort(abortSignal, async (signal) => {
-    const response = webPlugin.HandleWebPkgsViaPluginAssets(request, signal)
-    for await (const result of response) {
-      if (result.body?.case !== 'ready') continue
-      const isReady = result.body.value || false
-      if (isReady) {
-        console.debug(
-          `Configured ${webPkgsIDs.length} web pkgs via web plugin.`,
-        )
-      } else {
+  await retryWithAbort(
+    abortSignal,
+    async (signal) => {
+      const response = webPlugin.HandleWebPkgsViaPluginAssets(request, signal)
+      for await (const result of response) {
+        if (result.body?.case !== 'ready') continue
+        const isReady = result.body.value || false
+        if (isReady) {
+          console.debug(
+            `Configured ${webPkgsIDs.length} web pkgs via web plugin.`,
+          )
+          continue
+        }
         console.debug('Web plugin is not ready yet.')
       }
-    }
-  })
+    },
+    entrypointRetryOpts('error configuring web packages'),
+  )
 }
 
 /**
@@ -308,20 +326,27 @@ async function loadFrontendEntrypoints(
     `Configuring ${handlers.length} web view handlers: ${HandleWebViewViaHandlersRequest.toJsonString(handlersRequest)}`,
   )
 
-  await retryWithAbort(abortSignal, async (signal) => {
-    const response = webPlugin.HandleWebViewViaHandlers(handlersRequest, signal)
-    for await (const result of response) {
-      if (result.body?.case !== 'ready') continue
-      const isReady = result.body.value || false
-      if (isReady) {
-        console.debug(
-          `Configured ${handlers.length} web view handlers via web plugin.`,
-        )
-      } else {
+  await retryWithAbort(
+    abortSignal,
+    async (signal) => {
+      const response = webPlugin.HandleWebViewViaHandlers(
+        handlersRequest,
+        signal,
+      )
+      for await (const result of response) {
+        if (result.body?.case !== 'ready') continue
+        const isReady = result.body.value || false
+        if (isReady) {
+          console.debug(
+            `Configured ${handlers.length} web view handlers via web plugin.`,
+          )
+          continue
+        }
         console.debug('Web plugin is not ready yet.')
       }
-    }
-  })
+    },
+    entrypointRetryOpts('error configuring web view handlers'),
+  )
 }
 
 /**
@@ -360,31 +385,34 @@ function loadWebPlugin(
         ])
       },
       {
-        errorCb: (err) => {
-          logError('error loading frontend entrypoints', err)
-        },
+        errorCb: entrypointRetryOpts('error loading frontend entrypoints')
+          .errorCb,
       },
     )
   }
 
-  retryWithAbort(abortSignal, async (signal) => {
-    const respStream = backendAPI.pluginHost.LoadPlugin(
-      { pluginId: webPluginID },
-      signal,
-    )
-    for await (const resp of respStream) {
-      const currRunning = resp?.pluginStatus?.running || false
-      console.debug(`web plugin status running=${currRunning}`)
-      if (!currRunning) {
-        if (pluginAbort) {
-          pluginAbort.abort()
-          pluginAbort = undefined
+  retryWithAbort(
+    abortSignal,
+    async (signal) => {
+      const respStream = backendAPI.pluginHost.LoadPlugin(
+        { pluginId: webPluginID },
+        signal,
+      )
+      for await (const resp of respStream) {
+        const currRunning = resp?.pluginStatus?.running || false
+        console.debug(`web plugin status running=${currRunning}`)
+        if (!currRunning) {
+          if (pluginAbort) {
+            pluginAbort.abort()
+            pluginAbort = undefined
+          }
+          continue
         }
-        continue
+        startPluginSetup(signal)
       }
-      startPluginSetup(signal)
-    }
-  })
+    },
+    entrypointRetryOpts('error watching web plugin status'),
+  )
 }
 
 /**
@@ -407,13 +435,20 @@ export default async function main(
   // Load and start the hostConfigSet, if any.
   const hostConfigSet = __BLDR_HOST_CONFIG_SET__ ?? undefined
   if (hostConfigSet != null && Object.keys(hostConfigSet).length !== 0) {
-    retryWithAbort(abortSignal, async (abortSignal) => {
-      console.debug('starting host config set:', JSON.stringify(hostConfigSet))
-      backendAPI.pluginHost.ExecController(
-        { configSet: { configs: hostConfigSet } },
-        abortSignal,
-      )
-    })
+    retryWithAbort(
+      abortSignal,
+      async (abortSignal) => {
+        console.debug(
+          'starting host config set:',
+          JSON.stringify(hostConfigSet),
+        )
+        backendAPI.pluginHost.ExecController(
+          { configSet: { configs: hostConfigSet } },
+          abortSignal,
+        )
+      },
+      entrypointRetryOpts('error starting host config set'),
+    )
   }
 
   // Start frontend handlers before backend registrations so first paint is not
