@@ -28,11 +28,13 @@ type TestSession struct {
 	workers    []playwright.Worker
 	consoleMu  sync.Mutex
 	console    map[chan string]struct{}
+	timingMu   sync.Mutex
 
-	browserClient srpc.Client
-	resClient     *resource_client.Client
-	root          *s4wave_root.Root
-	browserPeer   peer.ID
+	browserClient  srpc.Client
+	resClient      *resource_client.Client
+	root           *s4wave_root.Root
+	browserPeer    peer.ID
+	resourceTiming ResourceConnectionTiming
 }
 
 // NewSession creates an isolated browser session for a single test. A fresh

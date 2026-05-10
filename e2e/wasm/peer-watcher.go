@@ -4,6 +4,8 @@ package wasm
 
 import (
 	"context"
+	"sync"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -15,17 +17,28 @@ import (
 
 // PeerWatcher tracks browser peers discovered via HandleMountedStream
 // directives on the devtool bus. It supports multi-session tests by
-// tracking seen peers and blocking until a previously unseen peer connects.
+// sequencing peer observations and blocking until a browser peer connects.
 type PeerWatcher struct {
-	pending chan peer.ID
+	pending chan BrowserPeerObservation
+	mu      sync.Mutex
+	nextSeq uint64
 	rel     func()
+}
+
+// BrowserPeerObservation describes one browser peer mount event seen by the
+// devtool bus. A peer can reconnect with the same ID, so each observation has
+// its own monotonic sequence number.
+type BrowserPeerObservation struct {
+	PeerID     peer.ID
+	Sequence   uint64
+	ObservedAt time.Time
 }
 
 // NewPeerWatcher registers a HandleMountedStream handler on the bus filtering
 // for HostProtocolID and returns a PeerWatcher that tracks discovered peers.
 func NewPeerWatcher(b bus.Bus) (*PeerWatcher, error) {
 	pw := &PeerWatcher{
-		pending: make(chan peer.ID, 8),
+		pending: make(chan BrowserPeerObservation, 8),
 	}
 	rel, err := b.AddHandler(pw)
 	if err != nil {
@@ -53,11 +66,32 @@ func (pw *PeerWatcher) HandleDirective(_ context.Context, di directive.Instance)
 		return nil, nil
 	}
 
-	select {
-	case pw.pending <- remotePeer:
-	default:
-	}
+	pw.observePeer(remotePeer)
 	return nil, nil
+}
+
+func (pw *PeerWatcher) observePeer(remotePeer peer.ID) {
+	pw.mu.Lock()
+	pw.nextSeq++
+	obs := BrowserPeerObservation{
+		PeerID:     remotePeer,
+		Sequence:   pw.nextSeq,
+		ObservedAt: time.Now(),
+	}
+	pw.mu.Unlock()
+
+	select {
+	case pw.pending <- obs:
+	default:
+		select {
+		case <-pw.pending:
+		default:
+		}
+		select {
+		case pw.pending <- obs:
+		default:
+		}
+	}
 }
 
 // WaitForNewPeer blocks until a browser peer mount event arrives and returns
@@ -65,18 +99,30 @@ func (pw *PeerWatcher) HandleDirective(_ context.Context, di directive.Instance)
 // across subtest cleanup, so callers want the newest peer observation rather
 // than the oldest buffered event.
 func (pw *PeerWatcher) WaitForNewPeer(ctx context.Context) (peer.ID, error) {
-	var p peer.ID
+	obs, err := pw.WaitForPeerObservation(ctx)
+	if err != nil {
+		return peer.ID(""), err
+	}
+	return obs.PeerID, nil
+}
+
+// WaitForPeerObservation blocks until a browser peer mount event arrives and
+// returns the most recent pending observation. Stale peer mount events can
+// remain queued across subtest cleanup, so callers want the newest peer
+// observation rather than the oldest buffered event.
+func (pw *PeerWatcher) WaitForPeerObservation(ctx context.Context) (BrowserPeerObservation, error) {
+	var obs BrowserPeerObservation
 	select {
-	case p = <-pw.pending:
+	case obs = <-pw.pending:
 	case <-ctx.Done():
-		return peer.ID(""), ctx.Err()
+		return BrowserPeerObservation{}, ctx.Err()
 	}
 
 	for {
 		select {
-		case p = <-pw.pending:
+		case obs = <-pw.pending:
 		default:
-			return p, nil
+			return obs, nil
 		}
 	}
 }

@@ -27,6 +27,12 @@ var browserProtocolID = devtool_web.BrowserProtocolID
 // browser context's WASM process.
 func (h *Harness) connectSessionResources(ctx context.Context, s *TestSession) error {
 	le := logrus.WithField("component", "harness")
+	startedAt := time.Now()
+	s.beginResourceConnectionTiming(startedAt)
+	var retErr error
+	defer func() {
+		s.finishResourceConnectionTiming(time.Now(), retErr)
+	}()
 
 	var lastErr error
 	attemptTimeout := 15 * time.Second
@@ -37,14 +43,26 @@ func (h *Harness) connectSessionResources(ctx context.Context, s *TestSession) e
 
 	for {
 		le.Info("waiting for new browser peer")
-		browserPeer, err := h.getPeerWatcher().WaitForNewPeer(ctx)
+		waitStartedAt := time.Now()
+		peerObs, err := h.getPeerWatcher().WaitForPeerObservation(ctx)
+		waitCompletedAt := time.Now()
+		s.recordPeerWaitTiming(waitStartedAt, waitCompletedAt, peerObs, err)
 		if err != nil {
 			if lastErr != nil {
-				return errors.Wrap(lastErr, "connect resources (last attempt)")
+				retErr = errors.Wrap(lastErr, "connect resources (last attempt)")
+				return retErr
 			}
-			return errors.Wrap(err, "discover browser peer")
+			retErr = errors.Wrap(err, "discover browser peer")
+			return retErr
 		}
-		le.WithField("peer", browserPeer.String()).Info("discovered browser peer")
+		browserPeer := peerObs.PeerID
+		le.WithFields(logrus.Fields{
+			"peer":               browserPeer.String(),
+			"peer-sequence":      peerObs.Sequence,
+			"peer-age-ms":        waitCompletedAt.Sub(peerObs.ObservedAt).Milliseconds(),
+			"peer-wait-ms":       waitCompletedAt.Sub(waitStartedAt).Milliseconds(),
+			"startup-elapsed-ms": waitCompletedAt.Sub(startedAt).Milliseconds(),
+		}).Info("discovered browser peer")
 		if !h.leaseBrowserPeer(s, browserPeer) {
 			le.WithField("peer", browserPeer.String()).Info("browser peer already leased to another session, waiting for another")
 			continue
@@ -55,13 +73,24 @@ func (h *Harness) connectSessionResources(ctx context.Context, s *TestSession) e
 		for {
 			attemptCtx, attemptCancel := context.WithTimeout(ctx, attemptTimeout)
 			clientCtx, clientCancel := context.WithCancel(ctx)
+			attemptStartedAt := time.Now()
 			conn, err := h.tryConnectSessionWithTimeout(attemptCtx, clientCtx, browserPeer)
+			attemptCompletedAt := time.Now()
+			s.recordResourceConnectionAttemptTiming(attemptStartedAt, attemptCompletedAt, browserPeer, err)
 			attemptCancel()
 			if err == nil {
 				s.browserClient = conn.browserClient
 				s.resClient = conn.resClient
 				s.root = conn.root
 				s.browserPeer = browserPeer
+				le.WithFields(logrus.Fields{
+					"peer":                 browserPeer.String(),
+					"startup-elapsed-ms":   attemptCompletedAt.Sub(startedAt).Milliseconds(),
+					"attempt-elapsed-ms":   attemptCompletedAt.Sub(attemptStartedAt).Milliseconds(),
+					"startup-reloads":      startupReloads,
+					"peer-sequence":        peerObs.Sequence,
+					"peer-connected-after": attemptCompletedAt.Sub(peerStart).Milliseconds(),
+				}).Info("connected browser resources")
 				return nil
 			}
 			clientCancel()
@@ -74,12 +103,15 @@ func (h *Harness) connectSessionResources(ctx context.Context, s *TestSession) e
 				} else {
 					h.releaseBrowserPeerLease(s, browserPeer)
 					if startupReloads >= maxStartupReloads {
-						return errors.Wrap(lastErr, "connect resources after browser reloads")
+						retErr = errors.Wrap(lastErr, "connect resources after browser reloads")
+						return retErr
 					}
 					startupReloads++
+					s.recordResourceStartupReload()
 					entry.WithField("reload", startupReloads).Info("resource connection startup window expired, reloading session page")
 					if err := h.loadAppPageURL(s, h.baseURL+"/#/"); err != nil {
-						return errors.Wrap(err, "reload app after resource startup timeout")
+						retErr = errors.Wrap(err, "reload app after resource startup timeout")
+						return retErr
 					}
 					break
 				}
@@ -94,7 +126,8 @@ func (h *Harness) connectSessionResources(ctx context.Context, s *TestSession) e
 			select {
 			case <-ctx.Done():
 				h.releaseBrowserPeerLease(s, browserPeer)
-				return errors.Wrap(lastErr, "connect resources (last attempt)")
+				retErr = errors.Wrap(lastErr, "connect resources (last attempt)")
+				return retErr
 			case <-time.After(backoff):
 			}
 
