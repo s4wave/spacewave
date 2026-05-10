@@ -32,9 +32,10 @@ func newSpaceCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 	var sessionIdx uint
 	flags := clientFlags(&statePath, &sessionIdx)
 	return &cli.Command{
-		Name:  "space",
-		Usage: "manage spaces",
-		Flags: flags,
+		Name:    "space",
+		Aliases: []string{"spaces"},
+		Usage:   "manage spaces",
+		Flags:   flags,
 		Subcommands: []*cli.Command{
 			newSpaceListCommand(&statePath, &sessionIdx),
 			newSpaceCreateCommand(&statePath, &sessionIdx),

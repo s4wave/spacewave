@@ -223,8 +223,9 @@ func edgeStyleDisplay(s s4wave_canvas.EdgeStyle) string {
 // newCanvasCommand builds the top-level canvas command group.
 func newCanvasCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 	return &cli.Command{
-		Name:  "canvas",
-		Usage: "canvas operations",
+		Name:    "canvas",
+		Aliases: []string{"canvases"},
+		Usage:   "canvas operations",
 		Subcommands: []*cli.Command{
 			buildCanvasShowCommand(),
 			buildCanvasWatchCommand(),

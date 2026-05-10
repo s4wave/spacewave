@@ -37,9 +37,10 @@ func newVmCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 	var spaceID string
 	flags := append(clientFlags(&statePath, &sessionIdx), vmSpaceFlag(&spaceID))
 	return &cli.Command{
-		Name:  "vm",
-		Usage: "manage virtual machines",
-		Flags: flags,
+		Name:    "vm",
+		Aliases: []string{"vms"},
+		Usage:   "manage virtual machines",
+		Flags:   flags,
 		Subcommands: []*cli.Command{
 			newVmListCommand(&statePath, &sessionIdx, &spaceID),
 			newVmInfoCommand(&statePath, &sessionIdx, &spaceID),
@@ -200,8 +201,9 @@ func newVmInfoCommand(statePath *string, sessionIdx *uint, spaceID *string) *cli
 
 func newVmImageCommand(statePath *string, sessionIdx *uint, spaceID *string) *cli.Command {
 	return &cli.Command{
-		Name:  "image",
-		Usage: "manage VM images",
+		Name:    "image",
+		Aliases: []string{"images"},
+		Usage:   "manage VM images",
 		Subcommands: []*cli.Command{
 			newVmImageV86Command(statePath, sessionIdx, spaceID),
 		},

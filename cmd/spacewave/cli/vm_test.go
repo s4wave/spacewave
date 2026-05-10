@@ -18,6 +18,9 @@ func TestVmCommandShape(t *testing.T) {
 	if cmd.Name != "vm" {
 		t.Fatalf("name = %q, want vm", cmd.Name)
 	}
+	if !hasAlias(cmd.Aliases, "vms") {
+		t.Fatal("vms alias missing")
+	}
 	if len(cmd.Subcommands) != 7 {
 		t.Fatalf("subcommand count = %d, want 7", len(cmd.Subcommands))
 	}
@@ -42,6 +45,9 @@ func TestVmCommandShape(t *testing.T) {
 	image := cmd.Subcommands[6]
 	if image.Name != "image" {
 		t.Fatalf("subcommand[6] = %q, want image", image.Name)
+	}
+	if !hasAlias(image.Aliases, "images") {
+		t.Fatal("images alias missing")
 	}
 	if len(image.Subcommands) != 1 {
 		t.Fatalf("image subcommand count = %d, want 1", len(image.Subcommands))
