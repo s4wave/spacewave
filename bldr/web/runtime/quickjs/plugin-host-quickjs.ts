@@ -191,7 +191,7 @@ export function addAssetToFileSystem(
   files.set('/assets/' + resolvedPath, content)
 }
 
-type BackendAssetCacheEntry =
+export type BackendAssetCacheEntry =
   | { ok: true; data: Uint8Array }
   | { ok: false; status: number; url: string }
 
@@ -280,8 +280,8 @@ function createBackendAssetMountWithCache(
 export function createBackendAssetPreopens(
   api: BackendAssetAPI,
   signal: AbortSignal,
+  cache = new Map<string, BackendAssetCacheEntry>(),
 ): Fd[] {
-  const cache = new Map<string, BackendAssetCacheEntry>()
   const assetsMount = createBackendAssetMountWithCache(api, signal, '', cache)
   const rootVMount = createBackendAssetMountWithCache(api, signal, 'v/', cache)
   const preopens: Fd[] = []
@@ -327,6 +327,7 @@ export async function loadBackendAssets(
   signal: AbortSignal,
   files: Map<string, string | Uint8Array>,
   entryAssetPaths: string[],
+  cache?: Map<string, BackendAssetCacheEntry>,
 ): Promise<boolean> {
   const pluginId = api.startInfo.pluginId
   if (!pluginId || entryAssetPaths.length === 0) {
@@ -366,11 +367,9 @@ export async function loadBackendAssets(
         `Failed to fetch backend asset ${assetURL}: ${assetResponse.status}`,
       )
     }
-    addAssetToFileSystem(
-      files,
-      resolvedPath,
-      new Uint8Array(await assetResponse.arrayBuffer()),
-    )
+    const data = new Uint8Array(await assetResponse.arrayBuffer())
+    cache?.set(resolvedPath, { ok: true, data })
+    addAssetToFileSystem(files, resolvedPath, data)
   }
   return true
 }
@@ -412,14 +411,21 @@ export default async function main(
 
   const assetLoadingMode = selectBackendAssetLoadingMode()
   const entryAssetPaths = collectBackendEntrypointAssetPaths(pluginScript)
+  const backendAssetCache = new Map<string, BackendAssetCacheEntry>()
   const loadedBackendAssets =
-    assetLoadingMode === 'bounded-preload' && entryAssetPaths.length !== 0 ?
-      await loadBackendAssets(api, signal, files, entryAssetPaths)
+    entryAssetPaths.length !== 0 ?
+      await loadBackendAssets(
+        api,
+        signal,
+        files,
+        entryAssetPaths,
+        backendAssetCache,
+      )
     : false
 
   const preopens =
     assetLoadingMode === 'lazy-http' ?
-      createBackendAssetPreopens(api, signal)
+      createBackendAssetPreopens(api, signal, backendAssetCache)
     : []
 
   if (assetLoadingMode === 'bounded-preload') {
@@ -433,7 +439,14 @@ export default async function main(
     }
   }
   if (assetLoadingMode === 'lazy-http') {
-    console.log('quickjs-runner: using lazy backend asset mount for misses')
+    if (loadedBackendAssets) {
+      console.log(
+        'quickjs-runner: using lazy backend asset mount with warmed entrypoint assets',
+      )
+    }
+    if (!loadedBackendAssets) {
+      console.log('quickjs-runner: using lazy backend asset mount for misses')
+    }
   }
 
   const fs = buildFileSystem(files)

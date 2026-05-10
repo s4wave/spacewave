@@ -10,6 +10,7 @@ import {
   loadBackendAssets,
   resolveBackendAssetPath,
   selectBackendAssetLoadingMode,
+  type BackendAssetCacheEntry,
 } from './plugin-host-quickjs.js'
 
 describe('plugin-host-quickjs asset helpers', () => {
@@ -128,6 +129,7 @@ describe('plugin-host-quickjs asset helpers', () => {
     )
 
     const files = new Map<string, string | Uint8Array>()
+    const cache = new Map<string, BackendAssetCacheEntry>()
     const loaded = await loadBackendAssets(
       api,
       new AbortController().signal,
@@ -135,6 +137,7 @@ describe('plugin-host-quickjs asset helpers', () => {
       collectBackendEntrypointAssetPaths(
         'import("/assets/v/b/be/plugin/notes/backend-abc123.mjs")',
       ),
+      cache,
     )
 
     expect(loaded).toBe(true)
@@ -147,6 +150,8 @@ describe('plugin-host-quickjs asset helpers', () => {
     expect(requests.some((url) => url.includes('/v/b/pd/'))).toBe(false)
     expect(files.has('v/b/be/plugin/notes/backend-abc123.mjs')).toBe(true)
     expect(files.has('v/b/be/chunks/shared-1.mjs')).toBe(true)
+    expect(cache.get('v/b/be/plugin/notes/backend-abc123.mjs')?.ok).toBe(true)
+    expect(cache.get('v/b/be/chunks/shared-1.mjs')?.ok).toBe(true)
   })
 
   it('does not fall back to whole-manifest preload without backend entrypoints', async () => {
@@ -314,6 +319,62 @@ describe('plugin-host-quickjs asset helpers', () => {
       'export const path = true',
     )
     expect(requests).toEqual(['/asset/notes/v/b/be/plugin/app.mjs'])
+  })
+
+  it('serves warmed backend assets from lazy preopens without sync XHR', () => {
+    const enc = new TextEncoder()
+    const cache = new Map<string, BackendAssetCacheEntry>([
+      [
+        'v/b/be/plugin/app.mjs',
+        { ok: true, data: enc.encode('export const warmed = true') },
+      ],
+    ])
+
+    class MockXMLHttpRequest {
+      open() {}
+
+      send() {
+        throw new Error('unexpected XHR')
+      }
+    }
+
+    Object.defineProperty(globalThis, 'XMLHttpRequest', {
+      value: MockXMLHttpRequest,
+      configurable: true,
+      writable: true,
+    })
+
+    const preopens = createBackendAssetPreopens(
+      api,
+      new AbortController().signal,
+      cache,
+    )
+
+    const assetsOpen = preopens[0].path_open(
+      0,
+      'v/b/be/plugin/app.mjs',
+      0,
+      0n,
+      0n,
+      0,
+    )
+    const rootVOpen = preopens[1].path_open(
+      0,
+      'b/be/plugin/app.mjs',
+      0,
+      0n,
+      0n,
+      0,
+    )
+
+    expect(assetsOpen.ret).toBe(0)
+    expect(rootVOpen.ret).toBe(0)
+    expect(new TextDecoder().decode(assetsOpen.fd_obj?.fd_read(64).data)).toBe(
+      'export const warmed = true',
+    )
+    expect(new TextDecoder().decode(rootVOpen.fd_obj?.fd_read(64).data)).toBe(
+      'export const warmed = true',
+    )
   })
 
   it('surfaces lazy backend asset failures without whole-manifest fallback', () => {
