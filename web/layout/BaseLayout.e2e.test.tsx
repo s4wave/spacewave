@@ -761,14 +761,16 @@ describe('BaseLayout E2E', () => {
     const tab2Button = page.getByRole('button', { name: 'Tab 2' })
     const closableTab = page.getByRole('button', { name: 'Closable Tab' })
 
-    // Rapid switching
-    await Promise.all([
-      tab2Button.click(),
-      closableTab.click(),
-      tab1Button.click(),
-      tab2Button.click(),
-      tab1Button.click(),
-    ])
+    for (const tabButton of [
+      tab2Button,
+      closableTab,
+      tab1Button,
+      tab2Button,
+      tab1Button,
+    ]) {
+      // eslint-disable-next-line react-doctor/async-await-in-loop -- tab clicks are intentionally order-dependent.
+      await tabButton.click()
+    }
 
     // After rapid switching, verify final state is correct
     await Promise.all([
