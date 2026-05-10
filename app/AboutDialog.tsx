@@ -26,7 +26,7 @@ export function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="relative gap-0 overflow-hidden p-0 sm:max-w-sm"
+        className="gap-0 overflow-hidden p-0 sm:max-w-sm"
       >
         <DialogTitle className="sr-only">About Spacewave</DialogTitle>
         <DialogDescription className="sr-only">
