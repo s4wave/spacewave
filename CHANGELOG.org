@@ -1,5 +1,44 @@
 #+TITLE: Spacewave Changelog
 
+* v0.51.5
+<2026-05-09 Sat>
+
+Spacewave 0.51.5 is a reliability release for browser startup, local setup,
+Drive, and session cleanup. Sign-in and local onboarding recover more reliably,
+plugin-backed Spaces are less likely to get stuck after reloads or browser
+updates, and Drive/file storage edge cases now produce fewer missing or stalled
+views.
+
+** Features
+- Command Line commands now accept plural aliases for Spaces, Canvases, and VMs,
+  matching the nouns users see in help and docs.
+
+** Fixes
+- Fixed sign-in and local setup startup so Spacewave is less likely to stay on a
+  static shell or blank page before the setup wizard appears.
+- Fixed browser startup for plugin-backed Spaces so missing app assets or
+  unready app workers are retried instead of leaving the page stuck.
+- Fixed Drive Quickstart and Drive views where bottom bar updates could crash
+  the page or prevent uploads and video previews from appearing.
+- Fixed logout and session close handling so local sign-out, stale-session
+  removal, and account-session revocation report the right state and close
+  cleanly.
+- Fixed local Space opening so Spacewave waits for local file storage to be
+  ready before continuing, reducing session recovery and settings loading races.
+- Fixed browser file storage edge cases that could hide matching entries from
+  folder/path views or leave nested copied content incomplete.
+- Fixed a Windows desktop build issue that could block the app from starting on
+  that platform.
+
+** Improvements
+- Browser startup and hard reloads now recover more reliably when app code is
+  still loading or needs to be recreated.
+- Command Line state-path commands can start the local Spacewave runtime
+  automatically, so status, session, Space, and sign-out commands reach useful
+  session state instead of stopping at a missing daemon.
+- Browser update recovery now includes more complete app content during rollout,
+  reducing broken or incomplete loads after an update.
+
 * v0.51.4
 <2026-05-09 Sat>
 
