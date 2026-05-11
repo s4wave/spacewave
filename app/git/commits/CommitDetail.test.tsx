@@ -50,7 +50,7 @@ describe('CommitDetail', () => {
       expect(handle.getDiffPatch).toHaveBeenCalledWith('abc1234567890')
     })
 
-    expect(screen.getByText('add file')).toBeTruthy()
+    expect(await screen.findByText('add file')).toBeTruthy()
     expect(screen.getByText('README.md')).toBeTruthy()
     expect(screen.getByTestId('patch-diff').textContent).toContain('+new')
     expect(mockPatchDiff).toHaveBeenCalledTimes(1)
@@ -92,7 +92,7 @@ describe('CommitDetail', () => {
     })
 
     expect(
-      screen.getByText(/Showing the first 512.0 KiB of 1.0 MiB/),
+      await screen.findByText(/Showing the first 512.0 KiB of 1.0 MiB/),
     ).toBeTruthy()
     expect(screen.getByText('README.md')).toBeTruthy()
     expect(screen.queryByText('large.bin')).toBeNull()
