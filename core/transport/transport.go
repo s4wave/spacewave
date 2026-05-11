@@ -3,6 +3,7 @@ package transport
 import (
 	"context"
 	"strings"
+	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	bus_bridge "github.com/aperturerobotics/controllerbus/bus/bridge"
@@ -15,6 +16,7 @@ import (
 	link_solicit_controller "github.com/s4wave/spacewave/net/link/solicit/controller"
 	"github.com/s4wave/spacewave/net/peer"
 	peer_controller "github.com/s4wave/spacewave/net/peer/controller"
+	transport_controller "github.com/s4wave/spacewave/net/transport/controller"
 	"github.com/s4wave/spacewave/net/transport/webrtc"
 	"github.com/s4wave/spacewave/net/transport/websocket"
 	"github.com/sirupsen/logrus"
@@ -26,8 +28,11 @@ type SessionTransport struct {
 	le *logrus.Entry
 	// parentBus is the parent controller bus to bridge directives to.
 	parentBus bus.Bus
+	mtx       sync.RWMutex
 	// childBus is the session-scoped child bus.
 	childBus bus.Bus
+	// linkController is the active transport controller that owns link state.
+	linkController *transport_controller.Controller
 	// sessionKey is the session's Ed25519 private key.
 	sessionKey bifrost_crypto.PrivKey
 	// peerID is the peer ID derived from the session key.
@@ -76,7 +81,21 @@ func (t *SessionTransport) GetPeerID() peer.ID {
 
 // GetChildBus returns the child bus, or nil if not yet started.
 func (t *SessionTransport) GetChildBus() bus.Bus {
+	t.mtx.RLock()
+	defer t.mtx.RUnlock()
 	return t.childBus
+}
+
+// GetLinkedPeerIDsSnapshotWithWait returns linked peer IDs and a wait channel
+// that closes when the transport link set changes.
+func (t *SessionTransport) GetLinkedPeerIDsSnapshotWithWait(peerIDs []peer.ID) (map[peer.ID]struct{}, <-chan struct{}) {
+	t.mtx.RLock()
+	linkController := t.linkController
+	t.mtx.RUnlock()
+	if linkController == nil {
+		return nil, nil
+	}
+	return linkController.GetLinkedPeerIDsSnapshotWithWait(peerIDs)
 }
 
 // Ready returns a channel that is closed when the child bus and base
@@ -106,7 +125,15 @@ func (t *SessionTransport) Execute(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	t.mtx.Lock()
 	t.childBus = b
+	t.mtx.Unlock()
+	defer func() {
+		t.mtx.Lock()
+		t.childBus = nil
+		t.linkController = nil
+		t.mtx.Unlock()
+	}()
 
 	// Bridge directives from child to parent.
 	// Exclude GetPeer since the child has its own peer controller.
@@ -177,7 +204,7 @@ func (t *SessionTransport) Execute(ctx context.Context) error {
 		}
 
 		// WebRTC transport for peer-to-peer connections.
-		_, _, rtcRef, err := loader.WaitExecControllerRunning(
+		rtcCtrl, _, rtcRef, err := loader.WaitExecControllerRunningTyped[*transport_controller.Controller](
 			ctx, b,
 			resolver.NewLoadControllerWithConfig(&webrtc.Config{
 				SignalingId: "webrtc",
@@ -194,6 +221,9 @@ func (t *SessionTransport) Execute(ctx context.Context) error {
 			return err
 		}
 		defer rtcRef.Release()
+		t.mtx.Lock()
+		t.linkController = rtcCtrl
+		t.mtx.Unlock()
 
 		le.Debug("signaling and webrtc controllers started")
 	}

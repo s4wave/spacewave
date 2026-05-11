@@ -9,7 +9,6 @@ import (
 	provider "github.com/s4wave/spacewave/core/provider"
 	"github.com/s4wave/spacewave/core/transport"
 	"github.com/s4wave/spacewave/net/crypto"
-	"github.com/s4wave/spacewave/net/link"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
@@ -230,31 +229,32 @@ func (a *ProviderAccount) ensureSessionTransport(
 	return sts, true, err
 }
 
-// GetOnlinePeerIDs returns the base58 peer IDs of paired devices that
-// currently have an active bifrost link on the session transport.
-func (a *ProviderAccount) GetOnlinePeerIDs(ctx context.Context, peerIDs []string) []string {
+// GetOnlinePeerIDsWithWait returns the base58 peer IDs of paired devices that
+// currently have an active bifrost link and change channels for transport and
+// link state.
+func (a *ProviderAccount) GetOnlinePeerIDsWithWait(peerIDs []string) ([]string, []<-chan struct{}) {
+	_, transportCh := a.GetTransportSnapshotWithWait()
 	st := a.GetSessionTransport()
 	if st == nil {
-		return nil
+		return nil, []<-chan struct{}{transportCh}
 	}
-	childBus := st.GetChildBus()
-	if childBus == nil {
-		return nil
-	}
-	localPeerID := st.GetPeerID()
 
-	var online []string
+	decoded := make([]peer.ID, 0, len(peerIDs))
+	peerIDStrings := make(map[peer.ID]string, len(peerIDs))
 	for _, pidStr := range peerIDs {
 		remotePeerID, err := peer.IDB58Decode(pidStr)
 		if err != nil {
 			continue
 		}
-		lnk, rel, err := link.EstablishLinkWithPeerEx(ctx, childBus, localPeerID, remotePeerID, true)
-		if err != nil || lnk == nil {
-			continue
-		}
-		rel()
-		online = append(online, pidStr)
+		decoded = append(decoded, remotePeerID)
+		peerIDStrings[remotePeerID] = pidStr
 	}
-	return online
+	linked, linkCh := st.GetLinkedPeerIDsSnapshotWithWait(decoded)
+	online := make([]string, 0, len(linked))
+	for _, peerID := range decoded {
+		if _, ok := linked[peerID]; ok {
+			online = append(online, peerIDStrings[peerID])
+		}
+	}
+	return online, []<-chan struct{}{transportCh, linkCh}
 }

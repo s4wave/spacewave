@@ -92,6 +92,7 @@ func (h *transportHandler) HandleLinkLost(lnk link.Link) {
 		if el, elOk := h.c.links[luuid]; elOk {
 			delete(h.c.links, luuid)
 			h.c.flushEstablishedLink(el, false)
+			broadcast()
 			return
 		}
 
@@ -101,6 +102,7 @@ func (h *transportHandler) HandleLinkLost(lnk link.Link) {
 			if l.lnk == lnk {
 				delete(h.c.links, k)
 				h.c.flushEstablishedLink(l, false)
+				broadcast()
 				break
 			}
 		}

@@ -148,6 +148,22 @@ func (c *Controller) GetPeerLinks(peerID peer.ID) []link.Link {
 	return lnks
 }
 
+// GetLinkedPeerIDsSnapshotWithWait returns linked peer IDs and a wait channel
+// that closes when the transport link set changes.
+func (c *Controller) GetLinkedPeerIDsSnapshotWithWait(peerIDs []peer.ID) (map[peer.ID]struct{}, <-chan struct{}) {
+	linked := make(map[peer.ID]struct{}, len(peerIDs))
+	var waitCh <-chan struct{}
+	c.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		waitCh = getWaitCh()
+		for _, peerID := range peerIDs {
+			if len(c.linksByPeerID[peerID]) != 0 {
+				linked[peerID] = struct{}{}
+			}
+		}
+	})
+	return linked, waitCh
+}
+
 // Execute executes the transport controller and the transport.
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
