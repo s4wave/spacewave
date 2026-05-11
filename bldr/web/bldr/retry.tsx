@@ -59,6 +59,8 @@ export class Retry<T = void> {
   private _errorCb?: (err: unknown) => void
   // _abortSignal is the current abort signal (if set).
   private _abortSignal?: AbortSignal
+  // _abortListener cancels retry when the abort signal fires.
+  private _abortListener?: () => void
 
   // _canceled indicates retrying this has been canceled
   private _canceled?: boolean
@@ -80,8 +82,13 @@ export class Retry<T = void> {
     private fn: () => Promise<T>,
     opts?: RetryOpts,
   ) {
-    opts?.abortSignal?.addEventListener('abort', this.cancel.bind(this))
     this._abortSignal = opts?.abortSignal
+    if (this._abortSignal) {
+      this._abortListener = () => this.cancel()
+      this._abortSignal.addEventListener('abort', this._abortListener, {
+        once: true,
+      })
+    }
 
     this._backoffFn = opts?.backoffFn || constantBackoff()
     this._errorCb =
@@ -105,7 +112,11 @@ export class Retry<T = void> {
 
   // cancel prevents further retrying of the function.
   public cancel() {
+    if (this._canceled) {
+      return
+    }
     this._canceled = true
+    this._clearAbortListener()
     if (this._cancelRetry) {
       this._cancelRetry()
     }
@@ -125,6 +136,7 @@ export class Retry<T = void> {
 
         const res = await this.fn()
         if (this._resolve) {
+          this._clearAbortListener()
           this._resolve(res)
         }
         return
@@ -133,6 +145,7 @@ export class Retry<T = void> {
         this._currError = err
         if (this._canceled || abortSignal?.aborted) {
           if (this._reject) {
+            this._clearAbortListener()
             this._reject(err)
           }
           return
@@ -157,6 +170,14 @@ export class Retry<T = void> {
         })
       }
     } while (true) /* eslint-disable-line */
+  }
+
+  private _clearAbortListener() {
+    if (!this._abortSignal || !this._abortListener) {
+      return
+    }
+    this._abortSignal.removeEventListener('abort', this._abortListener)
+    this._abortListener = undefined
   }
 }
 

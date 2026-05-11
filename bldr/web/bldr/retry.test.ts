@@ -11,6 +11,23 @@ describe('Retry', () => {
     expect(fn).toHaveBeenCalledTimes(1)
   })
 
+  test('removes abort listener after success', async () => {
+    const controller = new AbortController()
+    const removeEventListener = vi.spyOn(
+      controller.signal,
+      'removeEventListener',
+    )
+    const fn = vi.fn().mockResolvedValue('success')
+    const retry = new Retry(fn, { abortSignal: controller.signal })
+
+    await expect(retry.result).resolves.toBe('success')
+
+    expect(removeEventListener).toHaveBeenCalledWith(
+      'abort',
+      expect.any(Function),
+    )
+  })
+
   test('should retry on failure and then succeed', async () => {
     const fn = vi
       .fn()
@@ -62,6 +79,28 @@ describe('Retry', () => {
     await expect(retry.result).rejects.toThrow('fail')
     expect(fn).toHaveBeenCalledTimes(1)
     expect(retry.canceled).toBe(true)
+  })
+
+  test('removes abort listener on cancel', async () => {
+    const controller = new AbortController()
+    const removeEventListener = vi.spyOn(
+      controller.signal,
+      'removeEventListener',
+    )
+    const fn = vi.fn().mockRejectedValue(new Error('fail'))
+    const retry = new Retry(fn, {
+      abortSignal: controller.signal,
+      backoffFn: constantBackoff(10),
+    })
+
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    retry.cancel()
+    await expect(retry.result).rejects.toThrow('fail')
+
+    expect(removeEventListener).toHaveBeenCalledWith(
+      'abort',
+      expect.any(Function),
+    )
   })
 
   test('should retry multiple times before succeeding', async () => {
