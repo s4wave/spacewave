@@ -6,7 +6,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/playwright-community/playwright-go"
@@ -135,12 +137,24 @@ func runFixture(t *testing.T, browserName, fixture string) map[string]any {
 		t.Fatalf("new page: %v", err)
 	}
 
-	// Forward console messages to test log.
+	var failureMu sync.Mutex
+	var browserFailures []string
+
+	// Forward console messages to test log and retain browser-side failures so
+	// fixture crashes do not collapse into opaque DONE timeouts.
 	page.On("console", func(msg playwright.ConsoleMessage) {
 		t.Logf("[%s console.%s] %s", browserName, msg.Type(), msg.Text())
+		if msg.Type() == "error" {
+			failureMu.Lock()
+			browserFailures = append(browserFailures, "console.error: "+msg.Text())
+			failureMu.Unlock()
+		}
 	})
 	page.On("pageerror", func(err error) {
 		t.Logf("[%s pageerror] %s", browserName, err.Error())
+		failureMu.Lock()
+		browserFailures = append(browserFailures, "pageerror: "+err.Error())
+		failureMu.Unlock()
 	})
 
 	url := fmt.Sprintf("%s/%s.html", testServer.url, fixture)
@@ -162,7 +176,20 @@ func runFixture(t *testing.T, browserName, fixture string) map[string]any {
 		Timeout: playwright.Float(30000),
 	}); err != nil {
 		text, _ := logSel.TextContent()
+		failureMu.Lock()
+		failures := strings.Join(browserFailures, "; ")
+		failureMu.Unlock()
+		if failures != "" {
+			t.Fatalf("fixture did not complete (text=%q, browser failures=%s): %v", text, failures, err)
+		}
 		t.Fatalf("fixture did not complete (text=%q): %v", text, err)
+	}
+
+	failureMu.Lock()
+	failures := strings.Join(browserFailures, "; ")
+	failureMu.Unlock()
+	if failures != "" {
+		t.Fatalf("fixture reported browser failures: %s", failures)
 	}
 
 	// Extract results.
@@ -181,7 +208,7 @@ func runFixture(t *testing.T, browserName, fixture string) map[string]any {
 
 // TestDetect verifies feature detection probes across all 3 browsers.
 func TestDetect(t *testing.T) {
-	browsers := []string{"chromium"}
+	browsers := []string{"chromium", "firefox", "webkit"}
 	for _, browser := range browsers {
 		t.Run(browser, func(t *testing.T) {
 			t.Parallel()
@@ -211,8 +238,8 @@ func TestDetect(t *testing.T) {
 			// SAB should be available on all browsers when cross-origin isolated.
 			assertBoolCap(t, caps, "sabAvailable", true)
 
-			// OPFS available on Chromium and Firefox over http://127.0.0.1.
-			// WebKit does not grant OPFS to http://127.0.0.1 (requires https
+			// OPFS available on Chromium and Firefox over localhost.
+			// WebKit may not grant OPFS to insecure local origins (requires https
 			// or localhost). This is a known WebKit limitation.
 			if browser != "webkit" {
 				assertBoolCap(t, caps, "opfsAvailable", true)
@@ -398,7 +425,8 @@ func waitForMessageText(t *testing.T, page playwright.Page, label, msg string) {
 }
 
 // toFloat64 converts a Playwright evaluate result to float64.
-// Playwright-Go may return int, float64, or json.Number depending on the value.
+// Playwright-Go may return int, float64, or a string-backed number depending
+// on the value and browser.
 func toFloat64(v any) float64 {
 	switch n := v.(type) {
 	case float64:
@@ -407,6 +435,11 @@ func toFloat64(v any) float64 {
 		return float64(n)
 	case int64:
 		return float64(n)
+	case fmt.Stringer:
+		f, err := strconv.ParseFloat(n.String(), 64)
+		if err == nil {
+			return f
+		}
 	}
 	return 0
 }
