@@ -61,6 +61,70 @@ exec:
 	}
 }
 
+func TestWritePluginTargetRouteMarksBrowserRequiredUnavailable(t *testing.T) {
+	var out bytes.Buffer
+	err := writePluginTargetRoute(&out, &space_exec.PluginExecConfig{
+		PluginId:         "spacewave-v86",
+		ControllerId:     "glados/container-runtime/v86/browser",
+		ControllerConfig: []byte{1, 2, 3},
+	}, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	for _, want := range []string{
+		"plugin: spacewave-v86",
+		"controller: glados/container-runtime/v86/browser",
+		"controller-config-bytes: 3",
+		"plugin-substrate: browser-required-unavailable",
+		"browser-required: true",
+	} {
+		if !strings.Contains(out.String(), want) {
+			t.Fatalf("output missing %q:\n%s", want, out.String())
+		}
+	}
+}
+
+func TestRunPluginTargetRejectsBrowserRequiredNativeBridge(t *testing.T) {
+	err := (&ForgeArgs{
+		BrowserRequired: true,
+	}).runParsedPluginTarget(
+		context.Background(),
+		&space_exec.PluginExecConfig{
+			PluginId:         "spacewave-v86",
+			ControllerId:     "glados/container-runtime/v86/browser",
+			ControllerConfig: []byte{1},
+		},
+		&bytes.Buffer{},
+	)
+	if err == nil || !strings.Contains(err.Error(), "browser-required target cannot run through the current native debug bridge") {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestRunPluginTargetInfersBrowserRequiredTarget(t *testing.T) {
+	var out bytes.Buffer
+	err := (&ForgeArgs{}).runParsedPluginTarget(
+		context.Background(),
+		&space_exec.PluginExecConfig{
+			PluginId:         "spacewave-v86",
+			ControllerId:     "glados/container-runtime/v86/browser",
+			ControllerConfig: []byte{1},
+		},
+		&out,
+	)
+	if err == nil || !strings.Contains(err.Error(), "browser-required target cannot run through the current native debug bridge") {
+		t.Fatalf("err: %v", err)
+	}
+	for _, want := range []string{
+		"plugin-substrate: browser-required-unavailable",
+		"browser-required: true",
+	} {
+		if !strings.Contains(out.String(), want) {
+			t.Fatalf("output missing %q:\n%s", want, out.String())
+		}
+	}
+}
+
 func TestPrintPluginExecResponse(t *testing.T) {
 	var out bytes.Buffer
 	err := printPluginExecResponse(context.Background(), &out, &space_exec.PluginExecResponse{

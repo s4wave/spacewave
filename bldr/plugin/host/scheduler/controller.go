@@ -118,6 +118,21 @@ func (s *pluginHostSet) toPlatformIDsMap() map[string]bldr_plugin_host.PluginHos
 	return hostMap
 }
 
+// toPluginPlatformIDsMap converts the host set to a policy-filtered map of
+// platform ids to plugin hosts for one plugin.
+func (s *pluginHostSet) toPluginPlatformIDsMap(conf *Config, pluginID string) map[string]bldr_plugin_host.PluginHost {
+	hostMap := s.toPlatformIDsMap()
+	if len(hostMap) == 0 {
+		return nil
+	}
+	for platformID := range hostMap {
+		if !conf.pluginPlatformAllowed(pluginID, platformID) {
+			delete(hostMap, platformID)
+		}
+	}
+	return hostMap
+}
+
 func pluginHostSetEqual(a, b *pluginHostSet) bool {
 	if a == nil || b == nil {
 		return a == b

@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"strconv"
+	"strings"
 
 	appcli "github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/fastjson"
@@ -27,6 +28,8 @@ type ForgeArgs struct {
 	TargetPath string
 	// DryRun validates the target without opening the debug bridge.
 	DryRun bool
+	// BrowserRequired refuses to execute through the native debug bridge.
+	BrowserRequired bool
 }
 
 // BuildForgeCommand returns debug commands for live Forge execution probes.
@@ -52,6 +55,11 @@ func (a *ClientArgs) BuildForgeCommand() *appcli.Command {
 						Usage:       "validate and print the target route without executing it",
 						Destination: &fa.DryRun,
 					},
+					&appcli.BoolFlag{
+						Name:        "browser-required",
+						Usage:       "require a browser plugin host route instead of the native debug bridge",
+						Destination: &fa.BrowserRequired,
+					},
 				},
 				Action: fa.RunPluginTarget,
 			},
@@ -70,12 +78,23 @@ func (fa *ForgeArgs) RunPluginTarget(c *appcli.Context) error {
 	if err != nil {
 		return err
 	}
-	w := os.Stdout
-	w.WriteString("plugin: " + conf.GetPluginId() + "\n")
-	w.WriteString("controller: " + conf.GetControllerId() + "\n")
-	w.WriteString("controller-config-bytes: " + strconv.Itoa(len(conf.GetControllerConfig())) + "\n")
+	return fa.runParsedPluginTarget(ctx, conf, os.Stdout)
+}
+
+func (fa *ForgeArgs) runParsedPluginTarget(
+	ctx context.Context,
+	conf *space_exec.PluginExecConfig,
+	w io.Writer,
+) error {
+	browserRequired := fa.BrowserRequired || isBrowserRequiredPluginTarget(conf)
+	if err := writePluginTargetRoute(w, conf, browserRequired); err != nil {
+		return err
+	}
 	if fa.DryRun {
 		return nil
+	}
+	if browserRequired {
+		return errors.New("browser-required target cannot run through the current native debug bridge")
 	}
 	client, err := fa.client.BuildPluginExecServiceClient(ctx, conf.GetPluginId())
 	if err != nil {
@@ -95,6 +114,38 @@ func (fa *ForgeArgs) RunPluginTarget(c *appcli.Context) error {
 		return errors.Wrap(err, "execute plugin target")
 	}
 	return printPluginExecResponse(ctx, w, resp)
+}
+
+func isBrowserRequiredPluginTarget(conf *space_exec.PluginExecConfig) bool {
+	controllerID := conf.GetControllerId()
+	return controllerID == "browser" ||
+		strings.HasSuffix(controllerID, "/browser") ||
+		strings.Contains(controllerID, "/browser/")
+}
+
+func writePluginTargetRoute(w io.Writer, conf *space_exec.PluginExecConfig, browserRequired bool) error {
+	if _, err := io.WriteString(w, "plugin: "+conf.GetPluginId()+"\n"); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, "controller: "+conf.GetControllerId()+"\n"); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, "controller-config-bytes: "+strconv.Itoa(len(conf.GetControllerConfig()))+"\n"); err != nil {
+		return err
+	}
+	substrate := "native-debug"
+	if browserRequired {
+		substrate = "browser-required-unavailable"
+	}
+	if _, err := io.WriteString(w, "plugin-substrate: "+substrate+"\n"); err != nil {
+		return err
+	}
+	if browserRequired {
+		if _, err := io.WriteString(w, "browser-required: true\n"); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // BuildPluginExecServiceClient returns the PluginExecService for a live plugin.

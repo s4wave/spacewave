@@ -47,4 +47,18 @@ message Config {
 
   // Verbose enables verbose logging for world ops (slower).
   bool verbose = 11;
+
+  // PlatformSelectionPolicies restrict selected platform IDs to selected
+  // plugin IDs. If empty, every discovered plugin host platform is selectable
+  // for every plugin.
+  repeated PlatformSelectionPolicy platform_selection_policies = 12;
+}
+
+// PlatformSelectionPolicy restricts a plugin host platform to a plugin ID list.
+message PlatformSelectionPolicy {
+  // PlatformId is the plugin host platform ID to restrict, such as
+  // "web/js/wasm".
+  string platform_id = 1;
+  // AllowedPluginIds are the plugin IDs that may select PlatformId.
+  repeated string allowed_plugin_ids = 2;
 }

@@ -316,7 +316,7 @@
       "protoFiles": ["bldr/plugin/host/process/config.proto"]
     },
     "github.com/s4wave/spacewave/bldr/plugin/host/scheduler": {
-      "hash": "ec5234a37d62d22a26c5cb1342ca6dc345cc8704f425153bea8153aee6665689",
+      "hash": "a09728be2344b8c47ee4b851d175ca23a1495e7ec6870933df364b835b9167f1",
       "generatedFiles": [
         "bldr/plugin/host/scheduler/config.pb.cc",
         "bldr/plugin/host/scheduler/config.pb.go",

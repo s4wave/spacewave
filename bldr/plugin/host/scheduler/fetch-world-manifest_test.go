@@ -188,6 +188,63 @@ func TestDirectFetchCandidateBetterPrefersNativePlatform(t *testing.T) {
 	}
 }
 
+func TestFilterPluginPlatformIDsHonorsPlatformPolicy(t *testing.T) {
+	conf := webPlatformAllowlistConfig("spacewave-v86")
+	got := conf.FilterPluginPlatformIDs("spacewave-core", []string{
+		"js",
+		"web/js/wasm",
+		"desktop/darwin/arm64",
+	})
+	want := []string{"js", "desktop/darwin/arm64"}
+	if len(got) != len(want) {
+		t.Fatalf("platform ids: got %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("platform ids: got %v, want %v", got, want)
+		}
+	}
+
+	got = conf.FilterPluginPlatformIDs("spacewave-v86", []string{"js", "web/js/wasm"})
+	want = []string{"js", "web/js/wasm"}
+	if len(got) != len(want) {
+		t.Fatalf("allowed platform ids: got %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("allowed platform ids: got %v, want %v", got, want)
+		}
+	}
+}
+
+func TestDirectFetchHandlerFiltersWebPlatformForUnlistedPlugin(t *testing.T) {
+	le := logrus.NewEntry(logrus.New())
+	webHost := &testPluginHost{id: "web/js/wasm"}
+	jsHost := &testPluginHost{id: "js"}
+	pi := &pluginInstance{
+		c: &Controller{
+			conf: webPlatformAllowlistConfig("spacewave-v86"),
+		},
+		le:                      le,
+		pluginID:                "spacewave-core",
+		downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.ManifestSnapshot](le),
+		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
+	}
+	handler := pi.newDirectFetchHandler(&pluginHostSet{
+		pluginHosts: []bldr_plugin_host.PluginHost{jsHost, webHost},
+	})
+
+	handler.HandleValueAdded(nil, directive.NewAttachedValue(1, bldr_manifest.NewFetchManifestValue([]*bldr_manifest.ManifestRef{
+		newTestManifestRef("spacewave-core", "web/js/wasm", 99, "bucket-web"),
+		newTestManifestRef("spacewave-core", "js", 1, "bucket-js"),
+	})))
+
+	execState := pi.executePluginRoutine.GetState()
+	if execState == nil || execState.pluginHost != jsHost {
+		t.Fatal("expected unlisted plugin to use js fallback instead of web/js/wasm")
+	}
+}
+
 func TestFetchManifestValueStorerRepairsMissingManifestLink(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
@@ -356,6 +413,82 @@ func TestWatchWorldManifestUsesStartupManifestRefsAndSkipsBadCandidate(t *testin
 	}
 	if !execState.manifestSnapshot.GetManifestRef().EqualVT(goodRef.GetManifestRef()) {
 		t.Fatal("expected skipped bad ref not to clear the good execute candidate")
+	}
+}
+
+func TestWatchWorldManifestFiltersWebPlatformForUnlistedPlugin(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const objKey = "plugin-host"
+	if _, err := bldr_manifest_world.CreateManifestStore(ctx, ws, objKey); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	webRef, webRefKey := storeTestWorldManifest(t, ctx, ws, "spacewave-core", "web/js/wasm", 99)
+	if err := ws.SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad(objKey, webRefKey, "spacewave-core")); err != nil {
+		t.Fatal(err.Error())
+	}
+	jsRef, jsRefKey := storeTestWorldManifest(t, ctx, ws, "spacewave-core", "js", 1)
+	if err := ws.SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad(objKey, jsRefKey, "spacewave-core")); err != nil {
+		t.Fatal(err.Error())
+	}
+	_ = webRef
+
+	webHost := &testPluginHost{id: "web/js/wasm"}
+	jsHost := &testPluginHost{id: "js"}
+	pi := &pluginInstance{
+		c: &Controller{
+			conf:   webPlatformAllowlistConfig("spacewave-v86"),
+			objKey: objKey,
+		},
+		le:                      le,
+		pluginID:                "spacewave-core",
+		downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.ManifestSnapshot](le),
+		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
+	}
+
+	obj, ok, err := ws.GetObject(ctx, objKey)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !ok {
+		t.Fatal("expected plugin host object")
+	}
+
+	wait, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
+		pluginHosts: []bldr_plugin_host.PluginHost{jsHost, webHost},
+	}, ws, obj)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !wait {
+		t.Fatal("expected watch loop to wait for changes")
+	}
+
+	execState := pi.executePluginRoutine.GetState()
+	if execState == nil || execState.pluginHost != jsHost {
+		t.Fatal("expected unlisted startup plugin to use js fallback")
+	}
+	if !execState.manifestSnapshot.GetManifestRef().EqualVT(jsRef.GetManifestRef()) {
+		t.Fatal("expected unlisted startup plugin not to select web/js/wasm manifest")
 	}
 }
 
@@ -1953,6 +2086,17 @@ func corruptTestWorldObjectRoot(
 	corruptRef.RootRef.Hash.Hash[0] ^= 0xff
 	if _, err := obj.SetRootRef(ctx, corruptRef); err != nil {
 		t.Fatal(err.Error())
+	}
+}
+
+func webPlatformAllowlistConfig(pluginIDs ...string) *Config {
+	return &Config{
+		PlatformSelectionPolicies: []*PlatformSelectionPolicy{
+			{
+				PlatformId:       "web/js/wasm",
+				AllowedPluginIds: pluginIDs,
+			},
+		},
 	}
 }
 

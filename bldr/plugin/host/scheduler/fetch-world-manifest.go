@@ -36,7 +36,7 @@ func (t *pluginInstance) execFetchWorldManifest(ctx context.Context, hosts *plug
 		return nil
 	}
 
-	platformIDs := hosts.toPlatformIDs()
+	platformIDs := t.c.conf.FilterPluginPlatformIDs(t.pluginID, hosts.toPlatformIDs())
 	t.le.
 		WithField("platform-ids", platformIDs).
 		Debugf("starting fetch plugin manifests")
@@ -189,7 +189,7 @@ func (t *fetchManifestValueStorer) execFetchManifestValueStorer(ctx context.Cont
 func (t *pluginInstance) newDirectFetchHandler(hosts *pluginHostSet) directive.ReferenceHandler {
 	var mtx sync.Mutex
 	allRefs := make(map[uint32][]*bldr_manifest.ManifestRef)
-	platformIDsMap := hosts.toPlatformIDsMap()
+	platformIDsMap := hosts.toPluginPlatformIDsMap(t.c.conf, t.pluginID)
 
 	selectBest := func() {
 		var best *directFetchCandidate

@@ -2,11 +2,49 @@
 // @generated from file github.com/s4wave/spacewave/bldr/plugin/host/scheduler/config.proto (package plugin.host.scheduler, syntax proto3)
 /* eslint-disable */
 
-import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
 
 export const protobufPackage = 'plugin.host.scheduler'
+
+/**
+ * PlatformSelectionPolicy restricts a plugin host platform to a plugin ID list.
+ *
+ * @generated from message plugin.host.scheduler.PlatformSelectionPolicy
+ */
+export interface PlatformSelectionPolicy {
+  /**
+   * PlatformId is the plugin host platform ID to restrict, such as
+   * "web/js/wasm".
+   *
+   * @generated from field: string platform_id = 1;
+   */
+  platformId?: string
+  /**
+   * AllowedPluginIds are the plugin IDs that may select PlatformId.
+   *
+   * @generated from field: repeated string allowed_plugin_ids = 2;
+   */
+  allowedPluginIds?: string[]
+}
+
+// PlatformSelectionPolicy contains the message type declaration for PlatformSelectionPolicy.
+export const PlatformSelectionPolicy: MessageType<PlatformSelectionPolicy> =
+  createMessageType({
+    typeName: 'plugin.host.scheduler.PlatformSelectionPolicy',
+    fields: [
+      { no: 1, name: 'platform_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'allowed_plugin_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * Config is the plugin host scheduler controller configuration.
@@ -98,6 +136,14 @@ export interface Config {
    * @generated from field: bool verbose = 11;
    */
   verbose?: boolean
+  /**
+   * PlatformSelectionPolicies restrict selected platform IDs to selected
+   * plugin IDs. If empty, every discovered plugin host platform is selectable
+   * for every plugin.
+   *
+   * @generated from field: repeated plugin.host.scheduler.PlatformSelectionPolicy platform_selection_policies = 12;
+   */
+  platformSelectionPolicies?: PlatformSelectionPolicy[]
 }
 
 // Config contains the message type declaration for Config.
@@ -125,6 +171,13 @@ export const Config: MessageType<Config> = createMessageType({
     { no: 8, name: 'fetch_backoff', kind: 'message', T: () => Backoff },
     { no: 9, name: 'exec_backoff', kind: 'message', T: () => Backoff },
     { no: 11, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
+    {
+      no: 12,
+      name: 'platform_selection_policies',
+      kind: 'message',
+      T: () => PlatformSelectionPolicy,
+      repeated: true,
+    },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

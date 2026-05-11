@@ -62,7 +62,7 @@ func (t *pluginInstance) processManifestWorldState(
 	}
 
 	// Lookup PluginManifests matching our plugin linked to PluginHost.
-	platformIDsMap := hosts.toPlatformIDsMap()
+	platformIDsMap := hosts.toPluginPlatformIDsMap(t.c.conf, t.pluginID)
 	platformIDs := slices.Collect(maps.Keys(platformIDsMap))
 	slices.Sort(platformIDs)
 

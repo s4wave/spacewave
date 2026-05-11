@@ -59,6 +59,10 @@ type Config struct {
 	ExecBackoff *backoff.Backoff `protobuf:"bytes,9,opt,name=exec_backoff,json=execBackoff,proto3" json:"execBackoff,omitempty"`
 	// Verbose enables verbose logging for world ops (slower).
 	Verbose bool `protobuf:"varint,11,opt,name=verbose,proto3" json:"verbose,omitempty"`
+	// PlatformSelectionPolicies restrict selected platform IDs to selected
+	// plugin IDs. If empty, every discovered plugin host platform is selectable
+	// for every plugin.
+	PlatformSelectionPolicies []*PlatformSelectionPolicy `protobuf:"bytes,12,rep,name=platform_selection_policies,json=platformSelectionPolicies,proto3" json:"platformSelectionPolicies,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -144,6 +148,43 @@ func (x *Config) GetVerbose() bool {
 	return false
 }
 
+func (x *Config) GetPlatformSelectionPolicies() []*PlatformSelectionPolicy {
+	if x != nil {
+		return x.PlatformSelectionPolicies
+	}
+	return nil
+}
+
+// PlatformSelectionPolicy restricts a plugin host platform to a plugin ID list.
+type PlatformSelectionPolicy struct {
+	unknownFields []byte
+	// PlatformId is the plugin host platform ID to restrict, such as
+	// "web/js/wasm".
+	PlatformId string `protobuf:"bytes,1,opt,name=platform_id,json=platformId,proto3" json:"platformId,omitempty"`
+	// AllowedPluginIds are the plugin IDs that may select PlatformId.
+	AllowedPluginIds []string `protobuf:"bytes,2,rep,name=allowed_plugin_ids,json=allowedPluginIds,proto3" json:"allowedPluginIds,omitempty"`
+}
+
+func (x *PlatformSelectionPolicy) Reset() {
+	*x = PlatformSelectionPolicy{}
+}
+
+func (*PlatformSelectionPolicy) ProtoMessage() {}
+
+func (x *PlatformSelectionPolicy) GetPlatformId() string {
+	if x != nil {
+		return x.PlatformId
+	}
+	return ""
+}
+
+func (x *PlatformSelectionPolicy) GetAllowedPluginIds() []string {
+	if x != nil {
+		return x.AllowedPluginIds
+	}
+	return nil
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -164,6 +205,12 @@ func (m *Config) CloneVT() *Config {
 	if rhs := m.ExecBackoff; rhs != nil {
 		r.ExecBackoff = rhs.CloneVT()
 	}
+	if rhs := m.PlatformSelectionPolicies; rhs != nil {
+		r.PlatformSelectionPolicies = make([]*PlatformSelectionPolicy, len(rhs))
+		for k, v := range rhs {
+			r.PlatformSelectionPolicies[k] = v.CloneVT()
+		}
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -171,6 +218,25 @@ func (m *Config) CloneVT() *Config {
 }
 
 func (m *Config) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *PlatformSelectionPolicy) CloneVT() *PlatformSelectionPolicy {
+	if m == nil {
+		return (*PlatformSelectionPolicy)(nil)
+	}
+	r := new(PlatformSelectionPolicy)
+	r.PlatformId = m.PlatformId
+	if rhs := m.AllowedPluginIds; rhs != nil {
+		r.AllowedPluginIds = slices.Clone(rhs)
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *PlatformSelectionPolicy) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -213,11 +279,57 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.Verbose != that.Verbose {
 		return false
 	}
+	if len(this.PlatformSelectionPolicies) != len(that.PlatformSelectionPolicies) {
+		return false
+	}
+	for i, vx := range this.PlatformSelectionPolicies {
+		vy := that.PlatformSelectionPolicies[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &PlatformSelectionPolicy{}
+			}
+			if q == nil {
+				q = &PlatformSelectionPolicy{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *Config) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*Config)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *PlatformSelectionPolicy) EqualVT(that *PlatformSelectionPolicy) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.PlatformId != that.PlatformId {
+		return false
+	}
+	if len(this.AllowedPluginIds) != len(that.AllowedPluginIds) {
+		return false
+	}
+	for i, vx := range this.AllowedPluginIds {
+		vy := that.AllowedPluginIds[i]
+		if vx != vy {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *PlatformSelectionPolicy) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*PlatformSelectionPolicy)
 	if !ok {
 		return false
 	}
@@ -287,6 +399,17 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("verbose")
 		s.WriteBool(x.Verbose)
 	}
+	if len(x.PlatformSelectionPolicies) > 0 || s.HasField("platformSelectionPolicies") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("platformSelectionPolicies")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.PlatformSelectionPolicies {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("platformSelectionPolicies"))
+		}
+		s.WriteArrayEnd()
+	}
 	s.WriteObjectEnd()
 }
 
@@ -345,12 +468,84 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "verbose":
 			s.AddField("verbose")
 			x.Verbose = s.ReadBool()
+		case "platform_selection_policies", "platformSelectionPolicies":
+			s.AddField("platform_selection_policies")
+			if s.ReadNil() {
+				x.PlatformSelectionPolicies = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.PlatformSelectionPolicies = append(x.PlatformSelectionPolicies, nil)
+					return
+				}
+				v := &PlatformSelectionPolicy{}
+				v.UnmarshalProtoJSON(s.WithField("platform_selection_policies", false))
+				if s.Err() != nil {
+					return
+				}
+				x.PlatformSelectionPolicies = append(x.PlatformSelectionPolicies, v)
+			})
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the Config from JSON.
 func (x *Config) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the PlatformSelectionPolicy message to JSON.
+func (x *PlatformSelectionPolicy) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.PlatformId != "" || s.HasField("platformId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("platformId")
+		s.WriteString(x.PlatformId)
+	}
+	if len(x.AllowedPluginIds) > 0 || s.HasField("allowedPluginIds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("allowedPluginIds")
+		s.WriteStringArray(x.AllowedPluginIds)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the PlatformSelectionPolicy to JSON.
+func (x *PlatformSelectionPolicy) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PlatformSelectionPolicy message from JSON.
+func (x *PlatformSelectionPolicy) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "platform_id", "platformId":
+			s.AddField("platform_id")
+			x.PlatformId = s.ReadString()
+		case "allowed_plugin_ids", "allowedPluginIds":
+			s.AddField("allowed_plugin_ids")
+			if s.ReadNil() {
+				x.AllowedPluginIds = nil
+				return
+			}
+			x.AllowedPluginIds = s.ReadStringArray()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the PlatformSelectionPolicy from JSON.
+func (x *PlatformSelectionPolicy) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -383,6 +578,18 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.PlatformSelectionPolicies) > 0 {
+		for iNdEx := len(m.PlatformSelectionPolicies) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.PlatformSelectionPolicies[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x62
+		}
 	}
 	if m.Verbose {
 		i--
@@ -480,6 +687,55 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *PlatformSelectionPolicy) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PlatformSelectionPolicy) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PlatformSelectionPolicy) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.AllowedPluginIds) > 0 {
+		for iNdEx := len(m.AllowedPluginIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.AllowedPluginIds[iNdEx])
+			copy(dAtA[i:], m.AllowedPluginIds[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.AllowedPluginIds[iNdEx])))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.PlatformId) > 0 {
+		i -= len(m.PlatformId)
+		copy(dAtA[i:], m.PlatformId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.PlatformId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Config) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -524,6 +780,32 @@ func (m *Config) SizeVT() (n int) {
 	}
 	if m.Verbose {
 		n += 2
+	}
+	if len(m.PlatformSelectionPolicies) > 0 {
+		for _, e := range m.PlatformSelectionPolicies {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *PlatformSelectionPolicy) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.PlatformId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if len(m.AllowedPluginIds) > 0 {
+		for _, s := range m.AllowedPluginIds {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
 	}
 	n += len(m.unknownFields)
 	return n
@@ -609,11 +891,55 @@ func (x *Config) MarshalProtoText() string {
 		sb.WriteString("verbose: ")
 		sb.WriteString(strconv.FormatBool(x.Verbose))
 	}
+	if len(x.PlatformSelectionPolicies) > 0 {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("platform_selection_policies: [")
+		for i, v := range x.PlatformSelectionPolicies {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
 	sb.WriteString("}")
 	return sb.String()
 }
 
 func (x *Config) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *PlatformSelectionPolicy) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("PlatformSelectionPolicy {")
+	if x.PlatformId != "" {
+		if sb.Len() > 25 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("platform_id: ")
+		sb.WriteString(strconv.Quote(x.PlatformId))
+	}
+	if len(x.AllowedPluginIds) > 0 {
+		if sb.Len() > 25 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("allowed_plugin_ids: [")
+		for i, v := range x.AllowedPluginIds {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *PlatformSelectionPolicy) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -838,6 +1164,119 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Verbose = bool(v != 0)
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PlatformSelectionPolicies", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PlatformSelectionPolicies = append(m.PlatformSelectionPolicies, &PlatformSelectionPolicy{})
+			if err := m.PlatformSelectionPolicies[len(m.PlatformSelectionPolicies)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *PlatformSelectionPolicy) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PlatformSelectionPolicy: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PlatformSelectionPolicy: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PlatformId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PlatformId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AllowedPluginIds", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.AllowedPluginIds = append(m.AllowedPluginIds, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

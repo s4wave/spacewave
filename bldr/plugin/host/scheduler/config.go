@@ -1,6 +1,8 @@
 package plugin_host_scheduler
 
 import (
+	"slices"
+
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/pkg/errors"
@@ -54,6 +56,14 @@ func (c *Config) Validate() error {
 	if len(c.GetVolumeId()) == 0 {
 		return volume.ErrVolumeIDEmpty
 	}
+	for _, policy := range c.GetPlatformSelectionPolicies() {
+		if policy.GetPlatformId() == "" {
+			return errors.New("platform_selection_policies: platform_id is required")
+		}
+		if slices.Contains(policy.GetAllowedPluginIds(), "") {
+			return errors.New("platform_selection_policies: allowed_plugin_ids cannot contain empty values")
+		}
+	}
 	if err := c.GetFetchBackoff().Validate(true); err != nil {
 		return errors.Wrap(err, "fetch_backoff")
 	}
@@ -92,6 +102,32 @@ func (c *Config) BuildExecBackoff() *backoff.Backoff {
 		backoffConf.Exponential.MaxInterval = 2100
 	}
 	return backoffConf
+}
+
+// FilterPluginPlatformIDs filters platform IDs through PlatformSelectionPolicies.
+func (c *Config) FilterPluginPlatformIDs(pluginID string, platformIDs []string) []string {
+	policies := c.GetPlatformSelectionPolicies()
+	if len(policies) == 0 || len(platformIDs) == 0 {
+		return platformIDs
+	}
+
+	filtered := make([]string, 0, len(platformIDs))
+	for _, platformID := range platformIDs {
+		if c.pluginPlatformAllowed(pluginID, platformID) {
+			filtered = append(filtered, platformID)
+		}
+	}
+	return filtered
+}
+
+func (c *Config) pluginPlatformAllowed(pluginID, platformID string) bool {
+	for _, policy := range c.GetPlatformSelectionPolicies() {
+		if policy.GetPlatformId() != platformID {
+			continue
+		}
+		return slices.Contains(policy.GetAllowedPluginIds(), pluginID)
+	}
+	return true
 }
 
 // BuildFetchBackoff gets the FetchBackoff and fills defaults if applicable.

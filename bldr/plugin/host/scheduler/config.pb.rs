@@ -54,5 +54,21 @@ pub struct Config {
     /// Verbose enables verbose logging for world ops (slower).
     #[prost(bool, tag="11")]
     pub verbose: bool,
+    /// PlatformSelectionPolicies restrict selected platform IDs to selected
+    /// plugin IDs. If empty, every discovered plugin host platform is selectable
+    /// for every plugin.
+    #[prost(message, repeated, tag="12")]
+    pub platform_selection_policies: ::prost::alloc::vec::Vec<PlatformSelectionPolicy>,
+}
+/// PlatformSelectionPolicy restricts a plugin host platform to a plugin ID list.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PlatformSelectionPolicy {
+    /// PlatformId is the plugin host platform ID to restrict, such as
+    /// "web/js/wasm".
+    #[prost(string, tag="1")]
+    pub platform_id: ::prost::alloc::string::String,
+    /// AllowedPluginIds are the plugin IDs that may select PlatformId.
+    #[prost(string, repeated, tag="2")]
+    pub allowed_plugin_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 // @@protoc_insertion_point(module)
