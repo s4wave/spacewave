@@ -60,6 +60,8 @@ extern const ::google::protobuf::internal::DescriptorTable descriptor_table_gith
 }  // extern "C"
 namespace s4wave {
 namespace world {
+enum GraphEdgeBucketDirection : int;
+extern const uint32_t GraphEdgeBucketDirection_internal_data_[];
 enum GraphPathDirection : int;
 extern const uint32_t GraphPathDirection_internal_data_[];
 class AccessTypedObjectRequest;
@@ -234,6 +236,10 @@ class GetSeqnoResponse;
 struct GetSeqnoResponseDefaultTypeInternal;
 extern GetSeqnoResponseDefaultTypeInternal _GetSeqnoResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull GetSeqnoResponse_class_data_;
+class GraphEdgeBucket;
+struct GraphEdgeBucketDefaultTypeInternal;
+extern GraphEdgeBucketDefaultTypeInternal _GraphEdgeBucket_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull GraphEdgeBucket_class_data_;
 class GraphPathStep;
 struct GraphPathStepDefaultTypeInternal;
 extern GraphPathStepDefaultTypeInternal _GraphPathStep_default_instance_;
@@ -262,6 +268,14 @@ class KeyResponse;
 struct KeyResponseDefaultTypeInternal;
 extern KeyResponseDefaultTypeInternal _KeyResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull KeyResponse_class_data_;
+class ListGraphEdgeBucketsRequest;
+struct ListGraphEdgeBucketsRequestDefaultTypeInternal;
+extern ListGraphEdgeBucketsRequestDefaultTypeInternal _ListGraphEdgeBucketsRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull ListGraphEdgeBucketsRequest_class_data_;
+class ListGraphEdgeBucketsResponse;
+struct ListGraphEdgeBucketsResponseDefaultTypeInternal;
+extern ListGraphEdgeBucketsResponseDefaultTypeInternal _ListGraphEdgeBucketsResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull ListGraphEdgeBucketsResponse_class_data_;
 class ListObjectsWithTypeRequest;
 struct ListObjectsWithTypeRequestDefaultTypeInternal;
 extern ListObjectsWithTypeRequestDefaultTypeInternal _ListObjectsWithTypeRequest_default_instance_;
@@ -403,6 +417,9 @@ extern const ::google::protobuf::internal::ClassDataFull WatchWorldStateResponse
 namespace google {
 namespace protobuf {
 template <>
+internal::EnumTraitsT<::s4wave::world::GraphEdgeBucketDirection_internal_data_>
+    internal::EnumTraitsImpl::value<::s4wave::world::GraphEdgeBucketDirection>;
+template <>
 internal::EnumTraitsT<::s4wave::world::GraphPathDirection_internal_data_>
     internal::EnumTraitsImpl::value<::s4wave::world::GraphPathDirection>;
 }  // namespace protobuf
@@ -410,6 +427,44 @@ internal::EnumTraitsT<::s4wave::world::GraphPathDirection_internal_data_>
 
 namespace s4wave {
 namespace world {
+enum GraphEdgeBucketDirection : int {
+  GRAPH_EDGE_BUCKET_DIRECTION_UNSPECIFIED = 0,
+  GRAPH_EDGE_BUCKET_DIRECTION_OUT = 1,
+  GRAPH_EDGE_BUCKET_DIRECTION_IN = 2,
+  GRAPH_EDGE_BUCKET_DIRECTION_BOTH = 3,
+  GraphEdgeBucketDirection_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  GraphEdgeBucketDirection_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t GraphEdgeBucketDirection_internal_data_[];
+inline constexpr GraphEdgeBucketDirection GraphEdgeBucketDirection_MIN =
+    static_cast<GraphEdgeBucketDirection>(0);
+inline constexpr GraphEdgeBucketDirection GraphEdgeBucketDirection_MAX =
+    static_cast<GraphEdgeBucketDirection>(3);
+inline bool GraphEdgeBucketDirection_IsValid(int value) {
+  return 0 <= value && value <= 3;
+}
+inline constexpr int GraphEdgeBucketDirection_ARRAYSIZE = 3 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL GraphEdgeBucketDirection_descriptor();
+template <typename T>
+const ::std::string& GraphEdgeBucketDirection_Name(T value) {
+  static_assert(::std::is_same<T, GraphEdgeBucketDirection>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to GraphEdgeBucketDirection_Name().");
+  return GraphEdgeBucketDirection_Name(static_cast<GraphEdgeBucketDirection>(value));
+}
+template <>
+inline const ::std::string& GraphEdgeBucketDirection_Name(GraphEdgeBucketDirection value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<GraphEdgeBucketDirection_descriptor, 0, 3>(
+      static_cast<int>(value));
+}
+inline bool GraphEdgeBucketDirection_Parse(
+    ::absl::string_view name, GraphEdgeBucketDirection* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<GraphEdgeBucketDirection>(GraphEdgeBucketDirection_descriptor(), name,
+                                           value);
+}
 enum GraphPathDirection : int {
   GRAPH_PATH_DIRECTION_UNSPECIFIED = 0,
   GRAPH_PATH_DIRECTION_OUT = 1,
@@ -509,7 +564,7 @@ class WatchWorldStateResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchWorldStateResponse*>(
         &_WatchWorldStateResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 51;
+  static constexpr int kIndexInFileMessages = 54;
   friend void swap(WatchWorldStateResponse& a, WatchWorldStateResponse& b) { a.Swap(&b); }
   inline void Swap(WatchWorldStateResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -698,7 +753,7 @@ class WatchWorldStateRequest final : public ::google::protobuf::internal::ZeroFi
     return *reinterpret_cast<const WatchWorldStateRequest*>(
         &_WatchWorldStateRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 50;
+  static constexpr int kIndexInFileMessages = 53;
   friend void swap(WatchWorldStateRequest& a, WatchWorldStateRequest& b) { a.Swap(&b); }
   inline void Swap(WatchWorldStateRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1213,7 +1268,7 @@ class WaitRevResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WaitRevResponse*>(
         &_WaitRevResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 81;
+  static constexpr int kIndexInFileMessages = 84;
   friend void swap(WaitRevResponse& a, WaitRevResponse& b) { a.Swap(&b); }
   inline void Swap(WaitRevResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1403,7 +1458,7 @@ class WaitRevRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const WaitRevRequest*>(
         &_WaitRevRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 80;
+  static constexpr int kIndexInFileMessages = 83;
   friend void swap(WaitRevRequest& a, WaitRevRequest& b) { a.Swap(&b); }
   inline void Swap(WaitRevRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1605,7 +1660,7 @@ class ValidResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ValidResponse*>(
         &_ValidResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 57;
+  static constexpr int kIndexInFileMessages = 60;
   friend void swap(ValidResponse& a, ValidResponse& b) { a.Swap(&b); }
   inline void Swap(ValidResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1794,7 +1849,7 @@ class ValidRequest final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const ValidRequest*>(
         &_ValidRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 56;
+  static constexpr int kIndexInFileMessages = 59;
   friend void swap(ValidRequest& a, ValidRequest& b) { a.Swap(&b); }
   inline void Swap(ValidRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1929,7 +1984,7 @@ class TrackedWorldStateSnapshot_ObjectAccess final : public ::google::protobuf::
     return *reinterpret_cast<const TrackedWorldStateSnapshot_ObjectAccess*>(
         &_TrackedWorldStateSnapshot_ObjectAccess_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 52;
+  static constexpr int kIndexInFileMessages = 55;
   friend void swap(TrackedWorldStateSnapshot_ObjectAccess& a, TrackedWorldStateSnapshot_ObjectAccess& b) { a.Swap(&b); }
   inline void Swap(TrackedWorldStateSnapshot_ObjectAccess* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2136,7 +2191,7 @@ class SetRootRefResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const SetRootRefResponse*>(
         &_SetRootRefResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 75;
+  static constexpr int kIndexInFileMessages = 78;
   friend void swap(SetRootRefResponse& a, SetRootRefResponse& b) { a.Swap(&b); }
   inline void Swap(SetRootRefResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2459,7 +2514,7 @@ class SeekResponse final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const SeekResponse*>(
         &_SeekResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 63;
+  static constexpr int kIndexInFileMessages = 66;
   friend void swap(SeekResponse& a, SeekResponse& b) { a.Swap(&b); }
   inline void Swap(SeekResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2594,7 +2649,7 @@ class SeekRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const SeekRequest*>(
         &_SeekRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 62;
+  static constexpr int kIndexInFileMessages = 65;
   friend void swap(SeekRequest& a, SeekRequest& b) { a.Swap(&b); }
   inline void Swap(SeekRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3220,7 +3275,7 @@ class QueryGraphPathResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const QueryGraphPathResponse*>(
         &_QueryGraphPathResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 45;
+  static constexpr int kIndexInFileMessages = 48;
   friend void swap(QueryGraphPathResponse& a, QueryGraphPathResponse& b) { a.Swap(&b); }
   inline void Swap(QueryGraphPathResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3410,7 +3465,7 @@ class ObjectMetadata final : public ::google::protobuf::Message
     return *reinterpret_cast<const ObjectMetadata*>(
         &_ObjectMetadata_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 40;
+  static constexpr int kIndexInFileMessages = 43;
   friend void swap(ObjectMetadata& a, ObjectMetadata& b) { a.Swap(&b); }
   inline void Swap(ObjectMetadata* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3639,7 +3694,7 @@ class NextResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const NextResponse*>(
         &_NextResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 61;
+  static constexpr int kIndexInFileMessages = 64;
   friend void swap(NextResponse& a, NextResponse& b) { a.Swap(&b); }
   inline void Swap(NextResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3828,7 +3883,7 @@ class NextRequest final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const NextRequest*>(
         &_NextRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 60;
+  static constexpr int kIndexInFileMessages = 63;
   friend void swap(NextRequest& a, NextRequest& b) { a.Swap(&b); }
   inline void Swap(NextRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3962,7 +4017,7 @@ class NextGraphPathQueryRequest final : public ::google::protobuf::internal::Zer
     return *reinterpret_cast<const NextGraphPathQueryRequest*>(
         &_NextGraphPathQueryRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 66;
+  static constexpr int kIndexInFileMessages = 69;
   friend void swap(NextGraphPathQueryRequest& a, NextGraphPathQueryRequest& b) { a.Swap(&b); }
   inline void Swap(NextGraphPathQueryRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4489,7 +4544,7 @@ class ListObjectsWithTypeResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ListObjectsWithTypeResponse*>(
         &_ListObjectsWithTypeResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 39;
+  static constexpr int kIndexInFileMessages = 42;
   friend void swap(ListObjectsWithTypeResponse& a, ListObjectsWithTypeResponse& b) { a.Swap(&b); }
   inline void Swap(ListObjectsWithTypeResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4691,7 +4746,7 @@ class ListObjectsWithTypeRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ListObjectsWithTypeRequest*>(
         &_ListObjectsWithTypeRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 38;
+  static constexpr int kIndexInFileMessages = 41;
   friend void swap(ListObjectsWithTypeRequest& a, ListObjectsWithTypeRequest& b) { a.Swap(&b); }
   inline void Swap(ListObjectsWithTypeRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4831,6 +4886,249 @@ class ListObjectsWithTypeRequest final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull ListObjectsWithTypeRequest_class_data_;
 // -------------------------------------------------------------------
 
+class ListGraphEdgeBucketsRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.world.ListGraphEdgeBucketsRequest) */ {
+ public:
+  inline ListGraphEdgeBucketsRequest() : ListGraphEdgeBucketsRequest(nullptr) {}
+  ~ListGraphEdgeBucketsRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ListGraphEdgeBucketsRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ListGraphEdgeBucketsRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ListGraphEdgeBucketsRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline ListGraphEdgeBucketsRequest(const ListGraphEdgeBucketsRequest& from) : ListGraphEdgeBucketsRequest(nullptr, from) {}
+  inline ListGraphEdgeBucketsRequest(ListGraphEdgeBucketsRequest&& from) noexcept
+      : ListGraphEdgeBucketsRequest(nullptr, ::std::move(from)) {}
+  inline ListGraphEdgeBucketsRequest& operator=(const ListGraphEdgeBucketsRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ListGraphEdgeBucketsRequest& operator=(ListGraphEdgeBucketsRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ListGraphEdgeBucketsRequest& default_instance() {
+    return *reinterpret_cast<const ListGraphEdgeBucketsRequest*>(
+        &_ListGraphEdgeBucketsRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 38;
+  friend void swap(ListGraphEdgeBucketsRequest& a, ListGraphEdgeBucketsRequest& b) { a.Swap(&b); }
+  inline void Swap(ListGraphEdgeBucketsRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ListGraphEdgeBucketsRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ListGraphEdgeBucketsRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<ListGraphEdgeBucketsRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ListGraphEdgeBucketsRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const ListGraphEdgeBucketsRequest& from) { ListGraphEdgeBucketsRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(ListGraphEdgeBucketsRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.world.ListGraphEdgeBucketsRequest"; }
+
+  explicit ListGraphEdgeBucketsRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  ListGraphEdgeBucketsRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ListGraphEdgeBucketsRequest& from);
+  ListGraphEdgeBucketsRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ListGraphEdgeBucketsRequest&& from) noexcept
+      : ListGraphEdgeBucketsRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kOriginObjectKeysFieldNumber = 1,
+    kPredicateFieldNumber = 2,
+    kLimitPerOriginFieldNumber = 3,
+    kDirectionFieldNumber = 4,
+  };
+  // repeated string origin_object_keys = 1;
+  int origin_object_keys_size() const;
+  private:
+  int _internal_origin_object_keys_size() const;
+
+  public:
+  void clear_origin_object_keys() ;
+  const ::std::string& origin_object_keys(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_origin_object_keys(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_origin_object_keys(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_origin_object_keys();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_origin_object_keys(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& origin_object_keys() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_origin_object_keys();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_origin_object_keys() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_origin_object_keys();
+
+  public:
+  // string predicate = 2;
+  void clear_predicate() ;
+  const ::std::string& predicate() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_predicate(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_predicate();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_predicate();
+  void set_allocated_predicate(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_predicate() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_predicate(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_predicate();
+
+  public:
+  // uint32 limit_per_origin = 3;
+  void clear_limit_per_origin() ;
+  ::uint32_t limit_per_origin() const;
+  void set_limit_per_origin(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_limit_per_origin() const;
+  void _internal_set_limit_per_origin(::uint32_t value);
+
+  public:
+  // .s4wave.world.GraphEdgeBucketDirection direction = 4;
+  void clear_direction() ;
+  ::s4wave::world::GraphEdgeBucketDirection direction() const;
+  void set_direction(::s4wave::world::GraphEdgeBucketDirection value);
+
+  private:
+  ::s4wave::world::GraphEdgeBucketDirection _internal_direction() const;
+  void _internal_set_direction(::s4wave::world::GraphEdgeBucketDirection value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.world.ListGraphEdgeBucketsRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   0, 76,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const ListGraphEdgeBucketsRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField<::std::string> origin_object_keys_;
+    ::google::protobuf::internal::ArenaStringPtr predicate_;
+    ::uint32_t limit_per_origin_;
+    int direction_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull ListGraphEdgeBucketsRequest_class_data_;
+// -------------------------------------------------------------------
+
 class KeyResponse final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.world.KeyResponse) */ {
  public:
@@ -4886,7 +5184,7 @@ class KeyResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const KeyResponse*>(
         &_KeyResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 59;
+  static constexpr int kIndexInFileMessages = 62;
   friend void swap(KeyResponse& a, KeyResponse& b) { a.Swap(&b); }
   inline void Swap(KeyResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5080,7 +5378,7 @@ class KeyRequest final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const KeyRequest*>(
         &_KeyRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 58;
+  static constexpr int kIndexInFileMessages = 61;
   friend void swap(KeyRequest& a, KeyRequest& b) { a.Swap(&b); }
   inline void Swap(KeyRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5612,7 +5910,7 @@ class IncrementRevResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const IncrementRevResponse*>(
         &_IncrementRevResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 79;
+  static constexpr int kIndexInFileMessages = 82;
   friend void swap(IncrementRevResponse& a, IncrementRevResponse& b) { a.Swap(&b); }
   inline void Swap(IncrementRevResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5801,7 +6099,7 @@ class IncrementRevRequest final : public ::google::protobuf::internal::ZeroField
     return *reinterpret_cast<const IncrementRevRequest*>(
         &_IncrementRevRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 78;
+  static constexpr int kIndexInFileMessages = 81;
   friend void swap(IncrementRevRequest& a, IncrementRevRequest& b) { a.Swap(&b); }
   inline void Swap(IncrementRevRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5936,7 +6234,7 @@ class GraphPathStep final : public ::google::protobuf::Message
     return *reinterpret_cast<const GraphPathStep*>(
         &_GraphPathStep_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 43;
+  static constexpr int kIndexInFileMessages = 46;
   friend void swap(GraphPathStep& a, GraphPathStep& b) { a.Swap(&b); }
   inline void Swap(GraphPathStep* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6478,7 +6776,7 @@ class GetRootRefRequest final : public ::google::protobuf::internal::ZeroFieldsB
     return *reinterpret_cast<const GetRootRefRequest*>(
         &_GetRootRefRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 72;
+  static constexpr int kIndexInFileMessages = 75;
   friend void swap(GetRootRefRequest& a, GetRootRefRequest& b) { a.Swap(&b); }
   inline void Swap(GetRootRefRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7351,7 +7649,7 @@ class GetObjectMetadataBatchRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetObjectMetadataBatchRequest*>(
         &_GetObjectMetadataBatchRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 41;
+  static constexpr int kIndexInFileMessages = 44;
   friend void swap(GetObjectMetadataBatchRequest& a, GetObjectMetadataBatchRequest& b) { a.Swap(&b); }
   inline void Swap(GetObjectMetadataBatchRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7553,7 +7851,7 @@ class GetKeyResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetKeyResponse*>(
         &_GetKeyResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 71;
+  static constexpr int kIndexInFileMessages = 74;
   friend void swap(GetKeyResponse& a, GetKeyResponse& b) { a.Swap(&b); }
   inline void Swap(GetKeyResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7747,7 +8045,7 @@ class GetKeyRequest final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const GetKeyRequest*>(
         &_GetKeyRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 70;
+  static constexpr int kIndexInFileMessages = 73;
   friend void swap(GetKeyRequest& a, GetKeyRequest& b) { a.Swap(&b); }
   inline void Swap(GetKeyRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -8016,7 +8314,7 @@ class ErrResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ErrResponse*>(
         &_ErrResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 55;
+  static constexpr int kIndexInFileMessages = 58;
   friend void swap(ErrResponse& a, ErrResponse& b) { a.Swap(&b); }
   inline void Swap(ErrResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -8210,7 +8508,7 @@ class ErrRequest final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const ErrRequest*>(
         &_ErrRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 54;
+  static constexpr int kIndexInFileMessages = 57;
   friend void swap(ErrRequest& a, ErrRequest& b) { a.Swap(&b); }
   inline void Swap(ErrRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9343,7 +9641,7 @@ class DeleteGraphObjectResponse final : public ::google::protobuf::internal::Zer
     return *reinterpret_cast<const DeleteGraphObjectResponse*>(
         &_DeleteGraphObjectResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 47;
+  static constexpr int kIndexInFileMessages = 50;
   friend void swap(DeleteGraphObjectResponse& a, DeleteGraphObjectResponse& b) { a.Swap(&b); }
   inline void Swap(DeleteGraphObjectResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9478,7 +9776,7 @@ class DeleteGraphObjectRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const DeleteGraphObjectRequest*>(
         &_DeleteGraphObjectRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 46;
+  static constexpr int kIndexInFileMessages = 49;
   friend void swap(DeleteGraphObjectRequest& a, DeleteGraphObjectRequest& b) { a.Swap(&b); }
   inline void Swap(DeleteGraphObjectRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -10147,7 +10445,7 @@ class CloseResponse final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const CloseResponse*>(
         &_CloseResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 65;
+  static constexpr int kIndexInFileMessages = 68;
   friend void swap(CloseResponse& a, CloseResponse& b) { a.Swap(&b); }
   inline void Swap(CloseResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -10281,7 +10579,7 @@ class CloseRequest final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const CloseRequest*>(
         &_CloseRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 64;
+  static constexpr int kIndexInFileMessages = 67;
   friend void swap(CloseRequest& a, CloseRequest& b) { a.Swap(&b); }
   inline void Swap(CloseRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -10415,7 +10713,7 @@ class CloseGraphPathQueryResponse final : public ::google::protobuf::internal::Z
     return *reinterpret_cast<const CloseGraphPathQueryResponse*>(
         &_CloseGraphPathQueryResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 69;
+  static constexpr int kIndexInFileMessages = 72;
   friend void swap(CloseGraphPathQueryResponse& a, CloseGraphPathQueryResponse& b) { a.Swap(&b); }
   inline void Swap(CloseGraphPathQueryResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -10549,7 +10847,7 @@ class CloseGraphPathQueryRequest final : public ::google::protobuf::internal::Ze
     return *reinterpret_cast<const CloseGraphPathQueryRequest*>(
         &_CloseGraphPathQueryRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 68;
+  static constexpr int kIndexInFileMessages = 71;
   friend void swap(CloseGraphPathQueryRequest& a, CloseGraphPathQueryRequest& b) { a.Swap(&b); }
   inline void Swap(CloseGraphPathQueryRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11008,7 +11306,7 @@ class ApplyWorldOpResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ApplyWorldOpResponse*>(
         &_ApplyWorldOpResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 49;
+  static constexpr int kIndexInFileMessages = 52;
   friend void swap(ApplyWorldOpResponse& a, ApplyWorldOpResponse& b) { a.Swap(&b); }
   inline void Swap(ApplyWorldOpResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11210,7 +11508,7 @@ class ApplyWorldOpRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ApplyWorldOpRequest*>(
         &_ApplyWorldOpRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 48;
+  static constexpr int kIndexInFileMessages = 51;
   friend void swap(ApplyWorldOpRequest& a, ApplyWorldOpRequest& b) { a.Swap(&b); }
   inline void Swap(ApplyWorldOpRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11439,7 +11737,7 @@ class ApplyObjectOpResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ApplyObjectOpResponse*>(
         &_ApplyObjectOpResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 77;
+  static constexpr int kIndexInFileMessages = 80;
   friend void swap(ApplyObjectOpResponse& a, ApplyObjectOpResponse& b) { a.Swap(&b); }
   inline void Swap(ApplyObjectOpResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11641,7 +11939,7 @@ class ApplyObjectOpRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ApplyObjectOpRequest*>(
         &_ApplyObjectOpRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 76;
+  static constexpr int kIndexInFileMessages = 79;
   friend void swap(ApplyObjectOpRequest& a, ApplyObjectOpRequest& b) { a.Swap(&b); }
   inline void Swap(ApplyObjectOpRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -12060,7 +12358,7 @@ class AccessTypedObjectResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccessTypedObjectResponse*>(
         &_AccessTypedObjectResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 83;
+  static constexpr int kIndexInFileMessages = 86;
   friend void swap(AccessTypedObjectResponse& a, AccessTypedObjectResponse& b) { a.Swap(&b); }
   inline void Swap(AccessTypedObjectResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -12267,7 +12565,7 @@ class AccessTypedObjectRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccessTypedObjectRequest*>(
         &_AccessTypedObjectRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 82;
+  static constexpr int kIndexInFileMessages = 85;
   friend void swap(AccessTypedObjectRequest& a, AccessTypedObjectRequest& b) { a.Swap(&b); }
   inline void Swap(AccessTypedObjectRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -12462,7 +12760,7 @@ class TrackedWorldStateSnapshot final : public ::google::protobuf::Message
     return *reinterpret_cast<const TrackedWorldStateSnapshot*>(
         &_TrackedWorldStateSnapshot_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 53;
+  static constexpr int kIndexInFileMessages = 56;
   friend void swap(TrackedWorldStateSnapshot& a, TrackedWorldStateSnapshot& b) { a.Swap(&b); }
   inline void Swap(TrackedWorldStateSnapshot* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -12879,7 +13177,7 @@ class QueryGraphPathRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const QueryGraphPathRequest*>(
         &_QueryGraphPathRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 44;
+  static constexpr int kIndexInFileMessages = 47;
   friend void swap(QueryGraphPathRequest& a, QueryGraphPathRequest& b) { a.Swap(&b); }
   inline void Swap(QueryGraphPathRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -13136,7 +13434,7 @@ class NextGraphPathQueryResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const NextGraphPathQueryResponse*>(
         &_NextGraphPathQueryResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 67;
+  static constexpr int kIndexInFileMessages = 70;
   friend void swap(NextGraphPathQueryResponse& a, NextGraphPathQueryResponse& b) { a.Swap(&b); }
   inline void Swap(NextGraphPathQueryResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -14124,6 +14422,263 @@ class LookupGraphQuadsBatchRequest final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull LookupGraphQuadsBatchRequest_class_data_;
 // -------------------------------------------------------------------
 
+class GraphEdgeBucket final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.world.GraphEdgeBucket) */ {
+ public:
+  inline GraphEdgeBucket() : GraphEdgeBucket(nullptr) {}
+  ~GraphEdgeBucket() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(GraphEdgeBucket* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(GraphEdgeBucket));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR GraphEdgeBucket(::google::protobuf::internal::ConstantInitialized);
+
+  inline GraphEdgeBucket(const GraphEdgeBucket& from) : GraphEdgeBucket(nullptr, from) {}
+  inline GraphEdgeBucket(GraphEdgeBucket&& from) noexcept
+      : GraphEdgeBucket(nullptr, ::std::move(from)) {}
+  inline GraphEdgeBucket& operator=(const GraphEdgeBucket& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline GraphEdgeBucket& operator=(GraphEdgeBucket&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const GraphEdgeBucket& default_instance() {
+    return *reinterpret_cast<const GraphEdgeBucket*>(
+        &_GraphEdgeBucket_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 39;
+  friend void swap(GraphEdgeBucket& a, GraphEdgeBucket& b) { a.Swap(&b); }
+  inline void Swap(GraphEdgeBucket* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(GraphEdgeBucket* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  GraphEdgeBucket* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<GraphEdgeBucket>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const GraphEdgeBucket& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const GraphEdgeBucket& from) { GraphEdgeBucket::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(GraphEdgeBucket* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.world.GraphEdgeBucket"; }
+
+  explicit GraphEdgeBucket(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  GraphEdgeBucket(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const GraphEdgeBucket& from);
+  GraphEdgeBucket(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, GraphEdgeBucket&& from) noexcept
+      : GraphEdgeBucket(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kOutgoingFieldNumber = 2,
+    kIncomingFieldNumber = 3,
+    kOriginObjectKeyFieldNumber = 1,
+    kOutgoingTruncatedFieldNumber = 4,
+    kIncomingTruncatedFieldNumber = 5,
+  };
+  // repeated .quad.Quad outgoing = 2;
+  int outgoing_size() const;
+  private:
+  int _internal_outgoing_size() const;
+
+  public:
+  void clear_outgoing() ;
+  ::quad::Quad* PROTOBUF_NONNULL mutable_outgoing(int index);
+  ::google::protobuf::RepeatedPtrField<::quad::Quad>* PROTOBUF_NONNULL mutable_outgoing();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::quad::Quad>& _internal_outgoing() const;
+  ::google::protobuf::RepeatedPtrField<::quad::Quad>* PROTOBUF_NONNULL _internal_mutable_outgoing();
+  public:
+  const ::quad::Quad& outgoing(int index) const;
+  ::quad::Quad* PROTOBUF_NONNULL add_outgoing();
+  const ::google::protobuf::RepeatedPtrField<::quad::Quad>& outgoing() const;
+  // repeated .quad.Quad incoming = 3;
+  int incoming_size() const;
+  private:
+  int _internal_incoming_size() const;
+
+  public:
+  void clear_incoming() ;
+  ::quad::Quad* PROTOBUF_NONNULL mutable_incoming(int index);
+  ::google::protobuf::RepeatedPtrField<::quad::Quad>* PROTOBUF_NONNULL mutable_incoming();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::quad::Quad>& _internal_incoming() const;
+  ::google::protobuf::RepeatedPtrField<::quad::Quad>* PROTOBUF_NONNULL _internal_mutable_incoming();
+  public:
+  const ::quad::Quad& incoming(int index) const;
+  ::quad::Quad* PROTOBUF_NONNULL add_incoming();
+  const ::google::protobuf::RepeatedPtrField<::quad::Quad>& incoming() const;
+  // string origin_object_key = 1;
+  void clear_origin_object_key() ;
+  const ::std::string& origin_object_key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_origin_object_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_origin_object_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_origin_object_key();
+  void set_allocated_origin_object_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_origin_object_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_origin_object_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_origin_object_key();
+
+  public:
+  // bool outgoing_truncated = 4;
+  void clear_outgoing_truncated() ;
+  bool outgoing_truncated() const;
+  void set_outgoing_truncated(bool value);
+
+  private:
+  bool _internal_outgoing_truncated() const;
+  void _internal_set_outgoing_truncated(bool value);
+
+  public:
+  // bool incoming_truncated = 5;
+  void clear_incoming_truncated() ;
+  bool incoming_truncated() const;
+  void set_incoming_truncated(bool value);
+
+  private:
+  bool _internal_incoming_truncated() const;
+  void _internal_set_incoming_truncated(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.world.GraphEdgeBucket)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 5,
+                                   2, 54,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const GraphEdgeBucket& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField< ::quad::Quad > outgoing_;
+    ::google::protobuf::RepeatedPtrField< ::quad::Quad > incoming_;
+    ::google::protobuf::internal::ArenaStringPtr origin_object_key_;
+    bool outgoing_truncated_;
+    bool incoming_truncated_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull GraphEdgeBucket_class_data_;
+// -------------------------------------------------------------------
+
 class GetObjectMetadataBatchResponse final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.world.GetObjectMetadataBatchResponse) */ {
  public:
@@ -14179,7 +14734,7 @@ class GetObjectMetadataBatchResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetObjectMetadataBatchResponse*>(
         &_GetObjectMetadataBatchResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 42;
+  static constexpr int kIndexInFileMessages = 45;
   friend void swap(GetObjectMetadataBatchResponse& a, GetObjectMetadataBatchResponse& b) { a.Swap(&b); }
   inline void Swap(GetObjectMetadataBatchResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -14908,6 +15463,203 @@ class LookupGraphQuadsBatchResponse final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull LookupGraphQuadsBatchResponse_class_data_;
 // -------------------------------------------------------------------
 
+class ListGraphEdgeBucketsResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.world.ListGraphEdgeBucketsResponse) */ {
+ public:
+  inline ListGraphEdgeBucketsResponse() : ListGraphEdgeBucketsResponse(nullptr) {}
+  ~ListGraphEdgeBucketsResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ListGraphEdgeBucketsResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ListGraphEdgeBucketsResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ListGraphEdgeBucketsResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline ListGraphEdgeBucketsResponse(const ListGraphEdgeBucketsResponse& from) : ListGraphEdgeBucketsResponse(nullptr, from) {}
+  inline ListGraphEdgeBucketsResponse(ListGraphEdgeBucketsResponse&& from) noexcept
+      : ListGraphEdgeBucketsResponse(nullptr, ::std::move(from)) {}
+  inline ListGraphEdgeBucketsResponse& operator=(const ListGraphEdgeBucketsResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ListGraphEdgeBucketsResponse& operator=(ListGraphEdgeBucketsResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ListGraphEdgeBucketsResponse& default_instance() {
+    return *reinterpret_cast<const ListGraphEdgeBucketsResponse*>(
+        &_ListGraphEdgeBucketsResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 40;
+  friend void swap(ListGraphEdgeBucketsResponse& a, ListGraphEdgeBucketsResponse& b) { a.Swap(&b); }
+  inline void Swap(ListGraphEdgeBucketsResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ListGraphEdgeBucketsResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ListGraphEdgeBucketsResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<ListGraphEdgeBucketsResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ListGraphEdgeBucketsResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const ListGraphEdgeBucketsResponse& from) { ListGraphEdgeBucketsResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(ListGraphEdgeBucketsResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.world.ListGraphEdgeBucketsResponse"; }
+
+  explicit ListGraphEdgeBucketsResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  ListGraphEdgeBucketsResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ListGraphEdgeBucketsResponse& from);
+  ListGraphEdgeBucketsResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ListGraphEdgeBucketsResponse&& from) noexcept
+      : ListGraphEdgeBucketsResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kBucketsFieldNumber = 1,
+  };
+  // repeated .s4wave.world.GraphEdgeBucket buckets = 1;
+  int buckets_size() const;
+  private:
+  int _internal_buckets_size() const;
+
+  public:
+  void clear_buckets() ;
+  ::s4wave::world::GraphEdgeBucket* PROTOBUF_NONNULL mutable_buckets(int index);
+  ::google::protobuf::RepeatedPtrField<::s4wave::world::GraphEdgeBucket>* PROTOBUF_NONNULL mutable_buckets();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::s4wave::world::GraphEdgeBucket>& _internal_buckets() const;
+  ::google::protobuf::RepeatedPtrField<::s4wave::world::GraphEdgeBucket>* PROTOBUF_NONNULL _internal_mutable_buckets();
+  public:
+  const ::s4wave::world::GraphEdgeBucket& buckets(int index) const;
+  ::s4wave::world::GraphEdgeBucket* PROTOBUF_NONNULL add_buckets();
+  const ::google::protobuf::RepeatedPtrField<::s4wave::world::GraphEdgeBucket>& buckets() const;
+  // @@protoc_insertion_point(class_scope:s4wave.world.ListGraphEdgeBucketsResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const ListGraphEdgeBucketsResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField< ::s4wave::world::GraphEdgeBucket > buckets_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull ListGraphEdgeBucketsResponse_class_data_;
+// -------------------------------------------------------------------
+
 class SetRootRefRequest final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.world.SetRootRefRequest) */ {
  public:
@@ -14963,7 +15715,7 @@ class SetRootRefRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const SetRootRefRequest*>(
         &_SetRootRefRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 74;
+  static constexpr int kIndexInFileMessages = 77;
   friend void swap(SetRootRefRequest& a, SetRootRefRequest& b) { a.Swap(&b); }
   inline void Swap(SetRootRefRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -15158,7 +15910,7 @@ class GetRootRefResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetRootRefResponse*>(
         &_GetRootRefResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 73;
+  static constexpr int kIndexInFileMessages = 76;
   friend void swap(GetRootRefResponse& a, GetRootRefResponse& b) { a.Swap(&b); }
   inline void Swap(GetRootRefResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -17838,6 +18590,476 @@ inline ::google::protobuf::RepeatedPtrField<::s4wave::world::LookupGraphQuadsBat
 LookupGraphQuadsBatchResponse::_internal_mutable_results() {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return &_impl_.results_;
+}
+
+// -------------------------------------------------------------------
+
+// ListGraphEdgeBucketsRequest
+
+// repeated string origin_object_keys = 1;
+inline int ListGraphEdgeBucketsRequest::_internal_origin_object_keys_size() const {
+  return _internal_origin_object_keys().size();
+}
+inline int ListGraphEdgeBucketsRequest::origin_object_keys_size() const {
+  return _internal_origin_object_keys_size();
+}
+inline void ListGraphEdgeBucketsRequest::clear_origin_object_keys() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.origin_object_keys_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::std::string* PROTOBUF_NONNULL ListGraphEdgeBucketsRequest::add_origin_object_keys()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_origin_object_keys()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add_mutable:s4wave.world.ListGraphEdgeBucketsRequest.origin_object_keys)
+  return _s;
+}
+inline const ::std::string& ListGraphEdgeBucketsRequest::origin_object_keys(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.world.ListGraphEdgeBucketsRequest.origin_object_keys)
+  return _internal_origin_object_keys().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL ListGraphEdgeBucketsRequest::mutable_origin_object_keys(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.world.ListGraphEdgeBucketsRequest.origin_object_keys)
+  return _internal_mutable_origin_object_keys()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void ListGraphEdgeBucketsRequest::set_origin_object_keys(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_origin_object_keys()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:s4wave.world.ListGraphEdgeBucketsRequest.origin_object_keys)
+}
+template <typename Arg_, typename... Args_>
+inline void ListGraphEdgeBucketsRequest::add_origin_object_keys(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_origin_object_keys(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:s4wave.world.ListGraphEdgeBucketsRequest.origin_object_keys)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& ListGraphEdgeBucketsRequest::origin_object_keys()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.world.ListGraphEdgeBucketsRequest.origin_object_keys)
+  return _internal_origin_object_keys();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+ListGraphEdgeBucketsRequest::mutable_origin_object_keys() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.world.ListGraphEdgeBucketsRequest.origin_object_keys)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_origin_object_keys();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+ListGraphEdgeBucketsRequest::_internal_origin_object_keys() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.origin_object_keys_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+ListGraphEdgeBucketsRequest::_internal_mutable_origin_object_keys() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.origin_object_keys_;
+}
+
+// string predicate = 2;
+inline void ListGraphEdgeBucketsRequest::clear_predicate() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.predicate_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& ListGraphEdgeBucketsRequest::predicate() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.world.ListGraphEdgeBucketsRequest.predicate)
+  return _internal_predicate();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ListGraphEdgeBucketsRequest::set_predicate(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.predicate_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.world.ListGraphEdgeBucketsRequest.predicate)
+}
+inline ::std::string* PROTOBUF_NONNULL ListGraphEdgeBucketsRequest::mutable_predicate()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_predicate();
+  // @@protoc_insertion_point(field_mutable:s4wave.world.ListGraphEdgeBucketsRequest.predicate)
+  return _s;
+}
+inline const ::std::string& ListGraphEdgeBucketsRequest::_internal_predicate() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.predicate_.Get();
+}
+inline void ListGraphEdgeBucketsRequest::_internal_set_predicate(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.predicate_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ListGraphEdgeBucketsRequest::_internal_mutable_predicate() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.predicate_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ListGraphEdgeBucketsRequest::release_predicate() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.world.ListGraphEdgeBucketsRequest.predicate)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.predicate_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.predicate_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ListGraphEdgeBucketsRequest::set_allocated_predicate(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.predicate_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.predicate_.IsDefault()) {
+    _impl_.predicate_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.world.ListGraphEdgeBucketsRequest.predicate)
+}
+
+// uint32 limit_per_origin = 3;
+inline void ListGraphEdgeBucketsRequest::clear_limit_per_origin() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.limit_per_origin_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::uint32_t ListGraphEdgeBucketsRequest::limit_per_origin() const {
+  // @@protoc_insertion_point(field_get:s4wave.world.ListGraphEdgeBucketsRequest.limit_per_origin)
+  return _internal_limit_per_origin();
+}
+inline void ListGraphEdgeBucketsRequest::set_limit_per_origin(::uint32_t value) {
+  _internal_set_limit_per_origin(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:s4wave.world.ListGraphEdgeBucketsRequest.limit_per_origin)
+}
+inline ::uint32_t ListGraphEdgeBucketsRequest::_internal_limit_per_origin() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.limit_per_origin_;
+}
+inline void ListGraphEdgeBucketsRequest::_internal_set_limit_per_origin(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.limit_per_origin_ = value;
+}
+
+// .s4wave.world.GraphEdgeBucketDirection direction = 4;
+inline void ListGraphEdgeBucketsRequest::clear_direction() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.direction_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline ::s4wave::world::GraphEdgeBucketDirection ListGraphEdgeBucketsRequest::direction() const {
+  // @@protoc_insertion_point(field_get:s4wave.world.ListGraphEdgeBucketsRequest.direction)
+  return _internal_direction();
+}
+inline void ListGraphEdgeBucketsRequest::set_direction(::s4wave::world::GraphEdgeBucketDirection value) {
+  _internal_set_direction(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:s4wave.world.ListGraphEdgeBucketsRequest.direction)
+}
+inline ::s4wave::world::GraphEdgeBucketDirection ListGraphEdgeBucketsRequest::_internal_direction() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::s4wave::world::GraphEdgeBucketDirection>(_impl_.direction_);
+}
+inline void ListGraphEdgeBucketsRequest::_internal_set_direction(::s4wave::world::GraphEdgeBucketDirection value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.direction_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// GraphEdgeBucket
+
+// string origin_object_key = 1;
+inline void GraphEdgeBucket::clear_origin_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.origin_object_key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& GraphEdgeBucket::origin_object_key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.world.GraphEdgeBucket.origin_object_key)
+  return _internal_origin_object_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void GraphEdgeBucket::set_origin_object_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.origin_object_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.world.GraphEdgeBucket.origin_object_key)
+}
+inline ::std::string* PROTOBUF_NONNULL GraphEdgeBucket::mutable_origin_object_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_origin_object_key();
+  // @@protoc_insertion_point(field_mutable:s4wave.world.GraphEdgeBucket.origin_object_key)
+  return _s;
+}
+inline const ::std::string& GraphEdgeBucket::_internal_origin_object_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.origin_object_key_.Get();
+}
+inline void GraphEdgeBucket::_internal_set_origin_object_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.origin_object_key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL GraphEdgeBucket::_internal_mutable_origin_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.origin_object_key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE GraphEdgeBucket::release_origin_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.world.GraphEdgeBucket.origin_object_key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.origin_object_key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.origin_object_key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void GraphEdgeBucket::set_allocated_origin_object_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.origin_object_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.origin_object_key_.IsDefault()) {
+    _impl_.origin_object_key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.world.GraphEdgeBucket.origin_object_key)
+}
+
+// repeated .quad.Quad outgoing = 2;
+inline int GraphEdgeBucket::_internal_outgoing_size() const {
+  return _internal_outgoing().size();
+}
+inline int GraphEdgeBucket::outgoing_size() const {
+  return _internal_outgoing_size();
+}
+inline ::quad::Quad* PROTOBUF_NONNULL GraphEdgeBucket::mutable_outgoing(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.world.GraphEdgeBucket.outgoing)
+  return _internal_mutable_outgoing()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::quad::Quad>* PROTOBUF_NONNULL GraphEdgeBucket::mutable_outgoing()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.world.GraphEdgeBucket.outgoing)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_outgoing();
+}
+inline const ::quad::Quad& GraphEdgeBucket::outgoing(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.world.GraphEdgeBucket.outgoing)
+  return _internal_outgoing().Get(index);
+}
+inline ::quad::Quad* PROTOBUF_NONNULL GraphEdgeBucket::add_outgoing()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::quad::Quad* _add =
+      _internal_mutable_outgoing()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:s4wave.world.GraphEdgeBucket.outgoing)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::quad::Quad>& GraphEdgeBucket::outgoing() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.world.GraphEdgeBucket.outgoing)
+  return _internal_outgoing();
+}
+inline const ::google::protobuf::RepeatedPtrField<::quad::Quad>&
+GraphEdgeBucket::_internal_outgoing() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.outgoing_;
+}
+inline ::google::protobuf::RepeatedPtrField<::quad::Quad>* PROTOBUF_NONNULL
+GraphEdgeBucket::_internal_mutable_outgoing() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.outgoing_;
+}
+
+// repeated .quad.Quad incoming = 3;
+inline int GraphEdgeBucket::_internal_incoming_size() const {
+  return _internal_incoming().size();
+}
+inline int GraphEdgeBucket::incoming_size() const {
+  return _internal_incoming_size();
+}
+inline ::quad::Quad* PROTOBUF_NONNULL GraphEdgeBucket::mutable_incoming(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.world.GraphEdgeBucket.incoming)
+  return _internal_mutable_incoming()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::quad::Quad>* PROTOBUF_NONNULL GraphEdgeBucket::mutable_incoming()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.world.GraphEdgeBucket.incoming)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_incoming();
+}
+inline const ::quad::Quad& GraphEdgeBucket::incoming(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.world.GraphEdgeBucket.incoming)
+  return _internal_incoming().Get(index);
+}
+inline ::quad::Quad* PROTOBUF_NONNULL GraphEdgeBucket::add_incoming()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::quad::Quad* _add =
+      _internal_mutable_incoming()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_add:s4wave.world.GraphEdgeBucket.incoming)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::quad::Quad>& GraphEdgeBucket::incoming() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.world.GraphEdgeBucket.incoming)
+  return _internal_incoming();
+}
+inline const ::google::protobuf::RepeatedPtrField<::quad::Quad>&
+GraphEdgeBucket::_internal_incoming() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.incoming_;
+}
+inline ::google::protobuf::RepeatedPtrField<::quad::Quad>* PROTOBUF_NONNULL
+GraphEdgeBucket::_internal_mutable_incoming() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.incoming_;
+}
+
+// bool outgoing_truncated = 4;
+inline void GraphEdgeBucket::clear_outgoing_truncated() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.outgoing_truncated_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline bool GraphEdgeBucket::outgoing_truncated() const {
+  // @@protoc_insertion_point(field_get:s4wave.world.GraphEdgeBucket.outgoing_truncated)
+  return _internal_outgoing_truncated();
+}
+inline void GraphEdgeBucket::set_outgoing_truncated(bool value) {
+  _internal_set_outgoing_truncated(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:s4wave.world.GraphEdgeBucket.outgoing_truncated)
+}
+inline bool GraphEdgeBucket::_internal_outgoing_truncated() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.outgoing_truncated_;
+}
+inline void GraphEdgeBucket::_internal_set_outgoing_truncated(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.outgoing_truncated_ = value;
+}
+
+// bool incoming_truncated = 5;
+inline void GraphEdgeBucket::clear_incoming_truncated() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.incoming_truncated_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline bool GraphEdgeBucket::incoming_truncated() const {
+  // @@protoc_insertion_point(field_get:s4wave.world.GraphEdgeBucket.incoming_truncated)
+  return _internal_incoming_truncated();
+}
+inline void GraphEdgeBucket::set_incoming_truncated(bool value) {
+  _internal_set_incoming_truncated(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  // @@protoc_insertion_point(field_set:s4wave.world.GraphEdgeBucket.incoming_truncated)
+}
+inline bool GraphEdgeBucket::_internal_incoming_truncated() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.incoming_truncated_;
+}
+inline void GraphEdgeBucket::_internal_set_incoming_truncated(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.incoming_truncated_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// ListGraphEdgeBucketsResponse
+
+// repeated .s4wave.world.GraphEdgeBucket buckets = 1;
+inline int ListGraphEdgeBucketsResponse::_internal_buckets_size() const {
+  return _internal_buckets().size();
+}
+inline int ListGraphEdgeBucketsResponse::buckets_size() const {
+  return _internal_buckets_size();
+}
+inline void ListGraphEdgeBucketsResponse::clear_buckets() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.buckets_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::s4wave::world::GraphEdgeBucket* PROTOBUF_NONNULL ListGraphEdgeBucketsResponse::mutable_buckets(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.world.ListGraphEdgeBucketsResponse.buckets)
+  return _internal_mutable_buckets()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::s4wave::world::GraphEdgeBucket>* PROTOBUF_NONNULL ListGraphEdgeBucketsResponse::mutable_buckets()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.world.ListGraphEdgeBucketsResponse.buckets)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_buckets();
+}
+inline const ::s4wave::world::GraphEdgeBucket& ListGraphEdgeBucketsResponse::buckets(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.world.ListGraphEdgeBucketsResponse.buckets)
+  return _internal_buckets().Get(index);
+}
+inline ::s4wave::world::GraphEdgeBucket* PROTOBUF_NONNULL ListGraphEdgeBucketsResponse::add_buckets()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::s4wave::world::GraphEdgeBucket* _add =
+      _internal_mutable_buckets()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:s4wave.world.ListGraphEdgeBucketsResponse.buckets)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::s4wave::world::GraphEdgeBucket>& ListGraphEdgeBucketsResponse::buckets() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.world.ListGraphEdgeBucketsResponse.buckets)
+  return _internal_buckets();
+}
+inline const ::google::protobuf::RepeatedPtrField<::s4wave::world::GraphEdgeBucket>&
+ListGraphEdgeBucketsResponse::_internal_buckets() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.buckets_;
+}
+inline ::google::protobuf::RepeatedPtrField<::s4wave::world::GraphEdgeBucket>* PROTOBUF_NONNULL
+ListGraphEdgeBucketsResponse::_internal_mutable_buckets() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.buckets_;
 }
 
 // -------------------------------------------------------------------
@@ -20563,6 +21785,12 @@ inline void AccessTypedObjectResponse::set_allocated_type_id(::std::string* PROT
 namespace google {
 namespace protobuf {
 
+template <>
+struct is_proto_enum<::s4wave::world::GraphEdgeBucketDirection> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::s4wave::world::GraphEdgeBucketDirection>() {
+  return ::s4wave::world::GraphEdgeBucketDirection_descriptor();
+}
 template <>
 struct is_proto_enum<::s4wave::world::GraphPathDirection> : std::true_type {};
 template <>

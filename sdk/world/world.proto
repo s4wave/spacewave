@@ -112,6 +112,8 @@ service WorldStateResourceService {
 
   rpc LookupGraphQuadsBatch(LookupGraphQuadsBatchRequest) returns (LookupGraphQuadsBatchResponse);
 
+  rpc ListGraphEdgeBuckets(ListGraphEdgeBucketsRequest) returns (ListGraphEdgeBucketsResponse);
+
   rpc ListObjectsWithType(ListObjectsWithTypeRequest) returns (ListObjectsWithTypeResponse);
 
   rpc GetObjectMetadataBatch(GetObjectMetadataBatchRequest) returns (GetObjectMetadataBatchResponse);
@@ -296,6 +298,54 @@ message LookupGraphQuadsBatchResult {
 message LookupGraphQuadsBatchResponse {
   // Results preserves the request filter order.
   repeated LookupGraphQuadsBatchResult results = 1;
+}
+
+// GraphEdgeBucketDirection indicates which edge directions to list.
+enum GraphEdgeBucketDirection {
+  // GRAPH_EDGE_BUCKET_DIRECTION_UNSPECIFIED lists incoming and outgoing edges.
+  GRAPH_EDGE_BUCKET_DIRECTION_UNSPECIFIED = 0;
+  // GRAPH_EDGE_BUCKET_DIRECTION_OUT lists only outgoing edges.
+  GRAPH_EDGE_BUCKET_DIRECTION_OUT = 1;
+  // GRAPH_EDGE_BUCKET_DIRECTION_IN lists only incoming edges.
+  GRAPH_EDGE_BUCKET_DIRECTION_IN = 2;
+  // GRAPH_EDGE_BUCKET_DIRECTION_BOTH lists incoming and outgoing edges.
+  GRAPH_EDGE_BUCKET_DIRECTION_BOTH = 3;
+}
+
+// ListGraphEdgeBucketsRequest lists grouped inbound/outbound graph edges for
+// origin object keys.
+message ListGraphEdgeBucketsRequest {
+  // OriginObjectKeys are object keys whose graph edges should be grouped.
+  // The response contains one bucket per requested origin in request order.
+  repeated string origin_object_keys = 1;
+  // Predicate optionally restricts the grouped edges.
+  string predicate = 2;
+  // LimitPerOrigin is the maximum edge count returned per origin direction.
+  // It must be non-zero.
+  uint32 limit_per_origin = 3;
+  // Direction selects which edge directions are included.
+  // Unspecified means both incoming and outgoing.
+  GraphEdgeBucketDirection direction = 4;
+}
+
+// GraphEdgeBucket contains grouped graph edges for one origin object key.
+message GraphEdgeBucket {
+  // OriginObjectKey is the requested origin object key for this bucket.
+  string origin_object_key = 1;
+  // Outgoing contains quads where the origin is the subject.
+  repeated .quad.Quad outgoing = 2;
+  // Incoming contains quads where the origin is the object.
+  repeated .quad.Quad incoming = 3;
+  // OutgoingTruncated indicates more outgoing edges matched than were returned.
+  bool outgoing_truncated = 4;
+  // IncomingTruncated indicates more incoming edges matched than were returned.
+  bool incoming_truncated = 5;
+}
+
+// ListGraphEdgeBucketsResponse returns grouped graph edge buckets.
+message ListGraphEdgeBucketsResponse {
+  // Buckets preserves the request origin order.
+  repeated GraphEdgeBucket buckets = 1;
 }
 
 // ListObjectsWithTypeRequest is the request type for ListObjectsWithType.

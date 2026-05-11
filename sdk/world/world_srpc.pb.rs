@@ -250,6 +250,8 @@ pub trait WorldStateResourceServiceClient: Send + Sync {
     async fn lookup_graph_quads(&self, request: &LookupGraphQuadsRequest) -> starpc::Result<LookupGraphQuadsResponse>;
     /// LookupGraphQuadsBatch.
     async fn lookup_graph_quads_batch(&self, request: &LookupGraphQuadsBatchRequest) -> starpc::Result<LookupGraphQuadsBatchResponse>;
+    /// ListGraphEdgeBuckets.
+    async fn list_graph_edge_buckets(&self, request: &ListGraphEdgeBucketsRequest) -> starpc::Result<ListGraphEdgeBucketsResponse>;
     /// ListObjectsWithType.
     async fn list_objects_with_type(&self, request: &ListObjectsWithTypeRequest) -> starpc::Result<ListObjectsWithTypeResponse>;
     /// GetObjectMetadataBatch.
@@ -318,6 +320,9 @@ impl<C: starpc::Client + 'static> WorldStateResourceServiceClient for WorldState
     async fn lookup_graph_quads_batch(&self, request: &LookupGraphQuadsBatchRequest) -> starpc::Result<LookupGraphQuadsBatchResponse> {
         self.client.exec_call("s4wave.world.WorldStateResourceService", "LookupGraphQuadsBatch", request).await
     }
+    async fn list_graph_edge_buckets(&self, request: &ListGraphEdgeBucketsRequest) -> starpc::Result<ListGraphEdgeBucketsResponse> {
+        self.client.exec_call("s4wave.world.WorldStateResourceService", "ListGraphEdgeBuckets", request).await
+    }
     async fn list_objects_with_type(&self, request: &ListObjectsWithTypeRequest) -> starpc::Result<ListObjectsWithTypeResponse> {
         self.client.exec_call("s4wave.world.WorldStateResourceService", "ListObjectsWithType", request).await
     }
@@ -366,6 +371,8 @@ pub trait WorldStateResourceServiceServer: Send + Sync {
     async fn lookup_graph_quads(&self, request: LookupGraphQuadsRequest) -> starpc::Result<LookupGraphQuadsResponse>;
     /// LookupGraphQuadsBatch.
     async fn lookup_graph_quads_batch(&self, request: LookupGraphQuadsBatchRequest) -> starpc::Result<LookupGraphQuadsBatchResponse>;
+    /// ListGraphEdgeBuckets.
+    async fn list_graph_edge_buckets(&self, request: ListGraphEdgeBucketsRequest) -> starpc::Result<ListGraphEdgeBucketsResponse>;
     /// ListObjectsWithType.
     async fn list_objects_with_type(&self, request: ListObjectsWithTypeRequest) -> starpc::Result<ListObjectsWithTypeResponse>;
     /// GetObjectMetadataBatch.
@@ -393,6 +400,7 @@ const WORLD_STATE_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
     "DeleteGraphQuad",
     "LookupGraphQuads",
     "LookupGraphQuadsBatch",
+    "ListGraphEdgeBuckets",
     "ListObjectsWithType",
     "GetObjectMetadataBatch",
     "QueryGraphPath",
@@ -627,6 +635,21 @@ impl<S: WorldStateResourceServiceServer + 'static> starpc::Invoker for WorldStat
                     Err(e) => return (true, Err(e)),
                 };
                 match self.server.lookup_graph_quads_batch(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "ListGraphEdgeBuckets" => {
+                let request: ListGraphEdgeBucketsRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.list_graph_edge_buckets(request).await {
                     Ok(response) => {
                         if let Err(e) = stream.msg_send(&response).await {
                             return (true, Err(e));

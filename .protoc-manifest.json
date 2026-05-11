@@ -4267,7 +4267,7 @@
       "protoFiles": ["sdk/vm/v86-wizard.proto", "sdk/vm/v86.proto"]
     },
     "github.com/s4wave/spacewave/sdk/world": {
-      "hash": "516ee8ab6224faef7f589955f80c2680e58ddf638118ed3accdb06e031158e9f",
+      "hash": "8882237d5eb2dc9427f1a1164e9c0cb6e9db58d8dc7491fd41cc36a515060625",
       "generatedFiles": [
         "sdk/world/world.pb.cc",
         "sdk/world/world.pb.go",

@@ -14,6 +14,52 @@ import { Quad } from '../../db/block/quad/quad.pb.js'
 export const protobufPackage = 's4wave.world'
 
 /**
+ * GraphEdgeBucketDirection indicates which edge directions to list.
+ *
+ * @generated from enum s4wave.world.GraphEdgeBucketDirection
+ */
+export enum GraphEdgeBucketDirection {
+  /**
+   * GRAPH_EDGE_BUCKET_DIRECTION_UNSPECIFIED lists incoming and outgoing edges.
+   *
+   * @generated from enum value: GRAPH_EDGE_BUCKET_DIRECTION_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * GRAPH_EDGE_BUCKET_DIRECTION_OUT lists only outgoing edges.
+   *
+   * @generated from enum value: GRAPH_EDGE_BUCKET_DIRECTION_OUT = 1;
+   */
+  OUT = 1,
+
+  /**
+   * GRAPH_EDGE_BUCKET_DIRECTION_IN lists only incoming edges.
+   *
+   * @generated from enum value: GRAPH_EDGE_BUCKET_DIRECTION_IN = 2;
+   */
+  IN = 2,
+
+  /**
+   * GRAPH_EDGE_BUCKET_DIRECTION_BOTH lists incoming and outgoing edges.
+   *
+   * @generated from enum value: GRAPH_EDGE_BUCKET_DIRECTION_BOTH = 3;
+   */
+  BOTH = 3,
+}
+
+// GraphEdgeBucketDirection_Enum is the enum type for GraphEdgeBucketDirection.
+export const GraphEdgeBucketDirection_Enum = createEnumType(
+  's4wave.world.GraphEdgeBucketDirection',
+  [
+    { no: 0, name: 'GRAPH_EDGE_BUCKET_DIRECTION_UNSPECIFIED' },
+    { no: 1, name: 'GRAPH_EDGE_BUCKET_DIRECTION_OUT' },
+    { no: 2, name: 'GRAPH_EDGE_BUCKET_DIRECTION_IN' },
+    { no: 3, name: 'GRAPH_EDGE_BUCKET_DIRECTION_BOTH' },
+  ],
+)
+
+/**
  * GraphPathDirection indicates which side of the current object key to follow.
  *
  * @generated from enum s4wave.world.GraphPathDirection
@@ -972,6 +1018,147 @@ export const LookupGraphQuadsBatchResponse: MessageType<LookupGraphQuadsBatchRes
         name: 'results',
         kind: 'message',
         T: () => LookupGraphQuadsBatchResult,
+        repeated: true,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ListGraphEdgeBucketsRequest lists grouped inbound/outbound graph edges for
+ * origin object keys.
+ *
+ * @generated from message s4wave.world.ListGraphEdgeBucketsRequest
+ */
+export interface ListGraphEdgeBucketsRequest {
+  /**
+   * OriginObjectKeys are object keys whose graph edges should be grouped.
+   * The response contains one bucket per requested origin in request order.
+   *
+   * @generated from field: repeated string origin_object_keys = 1;
+   */
+  originObjectKeys?: string[]
+  /**
+   * Predicate optionally restricts the grouped edges.
+   *
+   * @generated from field: string predicate = 2;
+   */
+  predicate?: string
+  /**
+   * LimitPerOrigin is the maximum edge count returned per origin direction.
+   * It must be non-zero.
+   *
+   * @generated from field: uint32 limit_per_origin = 3;
+   */
+  limitPerOrigin?: number
+  /**
+   * Direction selects which edge directions are included.
+   * Unspecified means both incoming and outgoing.
+   *
+   * @generated from field: s4wave.world.GraphEdgeBucketDirection direction = 4;
+   */
+  direction?: GraphEdgeBucketDirection
+}
+
+// ListGraphEdgeBucketsRequest contains the message type declaration for ListGraphEdgeBucketsRequest.
+export const ListGraphEdgeBucketsRequest: MessageType<ListGraphEdgeBucketsRequest> =
+  createMessageType({
+    typeName: 's4wave.world.ListGraphEdgeBucketsRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'origin_object_keys',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      { no: 2, name: 'predicate', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'limit_per_origin', kind: 'scalar', T: ScalarType.UINT32 },
+      {
+        no: 4,
+        name: 'direction',
+        kind: 'enum',
+        T: GraphEdgeBucketDirection_Enum,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * GraphEdgeBucket contains grouped graph edges for one origin object key.
+ *
+ * @generated from message s4wave.world.GraphEdgeBucket
+ */
+export interface GraphEdgeBucket {
+  /**
+   * OriginObjectKey is the requested origin object key for this bucket.
+   *
+   * @generated from field: string origin_object_key = 1;
+   */
+  originObjectKey?: string
+  /**
+   * Outgoing contains quads where the origin is the subject.
+   *
+   * @generated from field: repeated quad.Quad outgoing = 2;
+   */
+  outgoing?: Quad[]
+  /**
+   * Incoming contains quads where the origin is the object.
+   *
+   * @generated from field: repeated quad.Quad incoming = 3;
+   */
+  incoming?: Quad[]
+  /**
+   * OutgoingTruncated indicates more outgoing edges matched than were returned.
+   *
+   * @generated from field: bool outgoing_truncated = 4;
+   */
+  outgoingTruncated?: boolean
+  /**
+   * IncomingTruncated indicates more incoming edges matched than were returned.
+   *
+   * @generated from field: bool incoming_truncated = 5;
+   */
+  incomingTruncated?: boolean
+}
+
+// GraphEdgeBucket contains the message type declaration for GraphEdgeBucket.
+export const GraphEdgeBucket: MessageType<GraphEdgeBucket> = createMessageType({
+  typeName: 's4wave.world.GraphEdgeBucket',
+  fields: [
+    { no: 1, name: 'origin_object_key', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'outgoing', kind: 'message', T: () => Quad, repeated: true },
+    { no: 3, name: 'incoming', kind: 'message', T: () => Quad, repeated: true },
+    { no: 4, name: 'outgoing_truncated', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 5, name: 'incoming_truncated', kind: 'scalar', T: ScalarType.BOOL },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
+
+/**
+ * ListGraphEdgeBucketsResponse returns grouped graph edge buckets.
+ *
+ * @generated from message s4wave.world.ListGraphEdgeBucketsResponse
+ */
+export interface ListGraphEdgeBucketsResponse {
+  /**
+   * Buckets preserves the request origin order.
+   *
+   * @generated from field: repeated s4wave.world.GraphEdgeBucket buckets = 1;
+   */
+  buckets?: GraphEdgeBucket[]
+}
+
+// ListGraphEdgeBucketsResponse contains the message type declaration for ListGraphEdgeBucketsResponse.
+export const ListGraphEdgeBucketsResponse: MessageType<ListGraphEdgeBucketsResponse> =
+  createMessageType({
+    typeName: 's4wave.world.ListGraphEdgeBucketsResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'buckets',
+        kind: 'message',
+        T: () => GraphEdgeBucket,
         repeated: true,
       },
     ] as readonly PartialFieldInfo[],

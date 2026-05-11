@@ -167,6 +167,89 @@ func TestGraphPathQueryResourceClose(t *testing.T) {
 	}
 }
 
+func TestWorldStateListGraphEdgeBuckets(t *testing.T) {
+	ctx := context.Background()
+
+	tb, tbCleanup := setupWorldTestbed(ctx, t)
+	defer tbCleanup()
+
+	_, engine, cleanup := setupWorldResourceClient(ctx, t, tb)
+	defer cleanup()
+
+	tx, err := engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tx.Release()
+
+	for _, key := range []string{
+		"bucket/origin",
+		"bucket/source-a",
+		"bucket/source-b",
+		"bucket/target-a",
+		"bucket/target-b",
+		"bucket/target-c",
+	} {
+		if _, err := tx.CreateObject(ctx, key, nil); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+	for _, edge := range [][3]string{
+		{"bucket/origin", "<bucket-z>", "bucket/target-c"},
+		{"bucket/origin", "<bucket-a>", "bucket/target-a"},
+		{"bucket/origin", "<bucket-b>", "bucket/target-b"},
+		{"bucket/source-b", "<bucket-in-b>", "bucket/origin"},
+		{"bucket/source-a", "<bucket-in-a>", "bucket/origin"},
+	} {
+		if err := tx.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(edge[0], edge[1], edge[2], "")); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	readTx, err := engine.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer readTx.Release()
+
+	srpcClient, err := readTx.GetResourceRef().GetClient()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	worldService := s4wave_world.NewSRPCWorldStateResourceServiceClient(srpcClient)
+	resp, err := worldService.ListGraphEdgeBuckets(ctx, &s4wave_world.ListGraphEdgeBucketsRequest{
+		OriginObjectKeys: []string{"bucket/origin"},
+		LimitPerOrigin:   2,
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	buckets := resp.GetBuckets()
+	if len(buckets) != 1 {
+		t.Fatalf("expected one bucket, got %d", len(buckets))
+	}
+	bucket := buckets[0]
+	if bucket.GetOriginObjectKey() != "bucket/origin" {
+		t.Fatalf("expected origin bucket, got %q", bucket.GetOriginObjectKey())
+	}
+	if len(bucket.GetOutgoing()) != 2 || len(bucket.GetIncoming()) != 2 {
+		t.Fatalf("expected limited outgoing/incoming buckets, got outgoing=%d incoming=%d", len(bucket.GetOutgoing()), len(bucket.GetIncoming()))
+	}
+	if !bucket.GetOutgoingTruncated() || bucket.GetIncomingTruncated() {
+		t.Fatalf("unexpected truncation outgoing=%v incoming=%v", bucket.GetOutgoingTruncated(), bucket.GetIncomingTruncated())
+	}
+	if got := bucket.GetOutgoing()[0].GetPredicate(); got != "<bucket-a>" {
+		t.Fatalf("expected sorted outgoing first predicate <bucket-a>, got %q", got)
+	}
+	if got := bucket.GetIncoming()[0].GetSubject(); got != "<bucket/source-a>" {
+		t.Fatalf("expected sorted incoming first subject <bucket/source-a>, got %q", got)
+	}
+}
+
 // TestWorldStateBasicOperations tests basic WorldState operations using the SDK.
 func TestWorldStateBasicOperations(t *testing.T) {
 	ctx := context.Background()

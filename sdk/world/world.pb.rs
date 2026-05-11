@@ -279,6 +279,52 @@ pub struct LookupGraphQuadsBatchResponse {
     #[prost(message, repeated, tag="1")]
     pub results: ::prost::alloc::vec::Vec<LookupGraphQuadsBatchResult>,
 }
+/// ListGraphEdgeBucketsRequest lists grouped inbound/outbound graph edges for
+/// origin object keys.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListGraphEdgeBucketsRequest {
+    /// OriginObjectKeys are object keys whose graph edges should be grouped.
+    /// The response contains one bucket per requested origin in request order.
+    #[prost(string, repeated, tag="1")]
+    pub origin_object_keys: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// Predicate optionally restricts the grouped edges.
+    #[prost(string, tag="2")]
+    pub predicate: ::prost::alloc::string::String,
+    /// LimitPerOrigin is the maximum edge count returned per origin direction.
+    /// It must be non-zero.
+    #[prost(uint32, tag="3")]
+    pub limit_per_origin: u32,
+    /// Direction selects which edge directions are included.
+    /// Unspecified means both incoming and outgoing.
+    #[prost(enumeration="GraphEdgeBucketDirection", tag="4")]
+    pub direction: i32,
+}
+/// GraphEdgeBucket contains grouped graph edges for one origin object key.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GraphEdgeBucket {
+    /// OriginObjectKey is the requested origin object key for this bucket.
+    #[prost(string, tag="1")]
+    pub origin_object_key: ::prost::alloc::string::String,
+    /// Outgoing contains quads where the origin is the subject.
+    #[prost(message, repeated, tag="2")]
+    pub outgoing: ::prost::alloc::vec::Vec<super::super::quad::Quad>,
+    /// Incoming contains quads where the origin is the object.
+    #[prost(message, repeated, tag="3")]
+    pub incoming: ::prost::alloc::vec::Vec<super::super::quad::Quad>,
+    /// OutgoingTruncated indicates more outgoing edges matched than were returned.
+    #[prost(bool, tag="4")]
+    pub outgoing_truncated: bool,
+    /// IncomingTruncated indicates more incoming edges matched than were returned.
+    #[prost(bool, tag="5")]
+    pub incoming_truncated: bool,
+}
+/// ListGraphEdgeBucketsResponse returns grouped graph edge buckets.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListGraphEdgeBucketsResponse {
+    /// Buckets preserves the request origin order.
+    #[prost(message, repeated, tag="1")]
+    pub buckets: ::prost::alloc::vec::Vec<GraphEdgeBucket>,
+}
 /// ListObjectsWithTypeRequest is the request type for ListObjectsWithType.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListObjectsWithTypeRequest {
@@ -631,6 +677,43 @@ pub struct AccessTypedObjectResponse {
     /// TypeId is the type identifier of the object.
     #[prost(string, tag="2")]
     pub type_id: ::prost::alloc::string::String,
+}
+/// GraphEdgeBucketDirection indicates which edge directions to list.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum GraphEdgeBucketDirection {
+    /// GRAPH_EDGE_BUCKET_DIRECTION_UNSPECIFIED lists incoming and outgoing edges.
+    Unspecified = 0,
+    /// GRAPH_EDGE_BUCKET_DIRECTION_OUT lists only outgoing edges.
+    Out = 1,
+    /// GRAPH_EDGE_BUCKET_DIRECTION_IN lists only incoming edges.
+    In = 2,
+    /// GRAPH_EDGE_BUCKET_DIRECTION_BOTH lists incoming and outgoing edges.
+    Both = 3,
+}
+impl GraphEdgeBucketDirection {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "GRAPH_EDGE_BUCKET_DIRECTION_UNSPECIFIED",
+            Self::Out => "GRAPH_EDGE_BUCKET_DIRECTION_OUT",
+            Self::In => "GRAPH_EDGE_BUCKET_DIRECTION_IN",
+            Self::Both => "GRAPH_EDGE_BUCKET_DIRECTION_BOTH",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "GRAPH_EDGE_BUCKET_DIRECTION_UNSPECIFIED" => Some(Self::Unspecified),
+            "GRAPH_EDGE_BUCKET_DIRECTION_OUT" => Some(Self::Out),
+            "GRAPH_EDGE_BUCKET_DIRECTION_IN" => Some(Self::In),
+            "GRAPH_EDGE_BUCKET_DIRECTION_BOTH" => Some(Self::Both),
+            _ => None,
+        }
+    }
 }
 /// GraphPathDirection indicates which side of the current object key to follow.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]

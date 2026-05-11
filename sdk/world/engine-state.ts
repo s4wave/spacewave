@@ -7,6 +7,7 @@ import { type IObjectState } from './object-state.js'
 import {
   normalizeRenameObjectOptions,
   type IWorldState,
+  type ListGraphEdgeBucketsOptions,
   type RenameObjectOptions,
   type TypedObjectAccess,
 } from './world-state.js'
@@ -14,6 +15,7 @@ import { ObjectIterator } from './object_iterator.js'
 import { BucketLookupCursor } from '../bucket/lookup/lookup.js'
 import type {
   GetRootRefResponse,
+  ListGraphEdgeBucketsResponse,
   SetRootRefResponse,
   ApplyObjectOpResponse,
   IncrementRevResponse,
@@ -200,6 +202,21 @@ export class EngineWorldState implements IWorldState {
         label,
         limit,
         abortSignal,
+      )
+    })
+  }
+
+  // listGraphEdgeBuckets lists grouped inbound/outbound graph edges for origin object keys.
+  public async listGraphEdgeBuckets(
+    originObjectKeys: string[],
+    limitPerOrigin: number,
+    options: ListGraphEdgeBucketsOptions = {},
+  ): Promise<ListGraphEdgeBucketsResponse> {
+    return this.performOp(false, options.abortSignal, async (tx) => {
+      return await tx.listGraphEdgeBuckets(
+        originObjectKeys,
+        limitPerOrigin,
+        options,
       )
     })
   }

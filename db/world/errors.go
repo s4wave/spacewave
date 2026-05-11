@@ -47,6 +47,10 @@ var (
 	ErrGraphPathPredicate = errors.New("graph path step predicate cannot be empty")
 	// ErrGraphPathDirection is returned if a graph path step has no valid direction.
 	ErrGraphPathDirection = errors.New("graph path step direction is invalid")
+	// ErrGraphEdgeBucketLimit is returned if a grouped edge query has no per-origin limit.
+	ErrGraphEdgeBucketLimit = errors.New("graph edge bucket limit must be non-zero")
+	// ErrGraphEdgeBucketDirection is returned if a grouped edge query direction is invalid.
+	ErrGraphEdgeBucketDirection = errors.New("graph edge bucket direction is invalid")
 
 	// ErrNilQuad is returned if the quad is nil and cannot be.
 	ErrNilQuad = errors.New("quad cannot be nil")

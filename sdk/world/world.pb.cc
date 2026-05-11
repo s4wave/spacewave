@@ -613,6 +613,36 @@ struct ListObjectsWithTypeRequestDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ListObjectsWithTypeRequestDefaultTypeInternal _ListObjectsWithTypeRequest_default_instance_;
 
+inline constexpr ListGraphEdgeBucketsRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        origin_object_keys_{},
+        predicate_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        limit_per_origin_{0u},
+        direction_{static_cast< ::s4wave::world::GraphEdgeBucketDirection >(0)} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR ListGraphEdgeBucketsRequest::ListGraphEdgeBucketsRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(ListGraphEdgeBucketsRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct ListGraphEdgeBucketsRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ListGraphEdgeBucketsRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ListGraphEdgeBucketsRequestDefaultTypeInternal() {}
+  union {
+    ListGraphEdgeBucketsRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ListGraphEdgeBucketsRequestDefaultTypeInternal _ListGraphEdgeBucketsRequest_default_instance_;
+
 inline constexpr KeyResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -1844,6 +1874,37 @@ struct LookupGraphQuadsBatchRequestDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 LookupGraphQuadsBatchRequestDefaultTypeInternal _LookupGraphQuadsBatchRequest_default_instance_;
 
+inline constexpr GraphEdgeBucket::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        outgoing_{},
+        incoming_{},
+        origin_object_key_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        outgoing_truncated_{false},
+        incoming_truncated_{false} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR GraphEdgeBucket::GraphEdgeBucket(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(GraphEdgeBucket_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct GraphEdgeBucketDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR GraphEdgeBucketDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~GraphEdgeBucketDefaultTypeInternal() {}
+  union {
+    GraphEdgeBucket _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GraphEdgeBucketDefaultTypeInternal _GraphEdgeBucket_default_instance_;
+
 inline constexpr GetObjectMetadataBatchResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -1943,6 +2004,31 @@ struct LookupGraphQuadsBatchResponseDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 LookupGraphQuadsBatchResponseDefaultTypeInternal _LookupGraphQuadsBatchResponse_default_instance_;
+
+inline constexpr ListGraphEdgeBucketsResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        buckets_{} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR ListGraphEdgeBucketsResponse::ListGraphEdgeBucketsResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(ListGraphEdgeBucketsResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct ListGraphEdgeBucketsResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ListGraphEdgeBucketsResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ListGraphEdgeBucketsResponseDefaultTypeInternal() {}
+  union {
+    ListGraphEdgeBucketsResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ListGraphEdgeBucketsResponseDefaultTypeInternal _ListGraphEdgeBucketsResponse_default_instance_;
 
 inline constexpr SetRootRefRequest::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -2050,7 +2136,7 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace world
 }  // namespace s4wave
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
-    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto[1];
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto[2];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
     file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto = nullptr;
 const ::uint32_t
@@ -2229,6 +2315,35 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::s4wave::world::LookupGraphQuadsBatchResponse, _impl_._has_bits_),
         4, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::world::LookupGraphQuadsBatchResponse, _impl_.results_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::ListGraphEdgeBucketsRequest, _impl_._has_bits_),
+        7, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::ListGraphEdgeBucketsRequest, _impl_.origin_object_keys_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::ListGraphEdgeBucketsRequest, _impl_.predicate_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::ListGraphEdgeBucketsRequest, _impl_.limit_per_origin_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::ListGraphEdgeBucketsRequest, _impl_.direction_),
+        0,
+        1,
+        2,
+        3,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::GraphEdgeBucket, _impl_._has_bits_),
+        8, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::GraphEdgeBucket, _impl_.origin_object_key_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::GraphEdgeBucket, _impl_.outgoing_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::GraphEdgeBucket, _impl_.incoming_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::GraphEdgeBucket, _impl_.outgoing_truncated_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::GraphEdgeBucket, _impl_.incoming_truncated_),
+        2,
+        0,
+        1,
+        3,
+        4,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::ListGraphEdgeBucketsResponse, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::ListGraphEdgeBucketsResponse, _impl_.buckets_),
         0,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::world::ListObjectsWithTypeRequest, _impl_._has_bits_),
@@ -2486,52 +2601,55 @@ static const ::_pbi::MigrationSchema
         {157, sizeof(::s4wave::world::LookupGraphQuadsBatchRequest)},
         {164, sizeof(::s4wave::world::LookupGraphQuadsBatchResult)},
         {169, sizeof(::s4wave::world::LookupGraphQuadsBatchResponse)},
-        {174, sizeof(::s4wave::world::ListObjectsWithTypeRequest)},
-        {179, sizeof(::s4wave::world::ListObjectsWithTypeResponse)},
-        {184, sizeof(::s4wave::world::ObjectMetadata)},
-        {193, sizeof(::s4wave::world::GetObjectMetadataBatchRequest)},
-        {198, sizeof(::s4wave::world::GetObjectMetadataBatchResponse)},
-        {203, sizeof(::s4wave::world::GraphPathStep)},
-        {212, sizeof(::s4wave::world::QueryGraphPathRequest)},
-        {225, sizeof(::s4wave::world::QueryGraphPathResponse)},
-        {230, sizeof(::s4wave::world::DeleteGraphObjectRequest)},
-        {235, sizeof(::s4wave::world::DeleteGraphObjectResponse)},
-        {236, sizeof(::s4wave::world::ApplyWorldOpRequest)},
-        {245, sizeof(::s4wave::world::ApplyWorldOpResponse)},
-        {252, sizeof(::s4wave::world::WatchWorldStateRequest)},
-        {253, sizeof(::s4wave::world::WatchWorldStateResponse)},
-        {258, sizeof(::s4wave::world::TrackedWorldStateSnapshot_ObjectAccess)},
-        {265, sizeof(::s4wave::world::TrackedWorldStateSnapshot)},
-        {274, sizeof(::s4wave::world::ErrRequest)},
-        {275, sizeof(::s4wave::world::ErrResponse)},
-        {280, sizeof(::s4wave::world::ValidRequest)},
-        {281, sizeof(::s4wave::world::ValidResponse)},
-        {286, sizeof(::s4wave::world::KeyRequest)},
-        {287, sizeof(::s4wave::world::KeyResponse)},
-        {292, sizeof(::s4wave::world::NextRequest)},
-        {293, sizeof(::s4wave::world::NextResponse)},
-        {298, sizeof(::s4wave::world::SeekRequest)},
-        {303, sizeof(::s4wave::world::SeekResponse)},
-        {304, sizeof(::s4wave::world::CloseRequest)},
-        {305, sizeof(::s4wave::world::CloseResponse)},
-        {306, sizeof(::s4wave::world::NextGraphPathQueryRequest)},
-        {307, sizeof(::s4wave::world::NextGraphPathQueryResponse)},
-        {316, sizeof(::s4wave::world::CloseGraphPathQueryRequest)},
-        {317, sizeof(::s4wave::world::CloseGraphPathQueryResponse)},
-        {318, sizeof(::s4wave::world::GetKeyRequest)},
-        {319, sizeof(::s4wave::world::GetKeyResponse)},
-        {324, sizeof(::s4wave::world::GetRootRefRequest)},
-        {325, sizeof(::s4wave::world::GetRootRefResponse)},
-        {332, sizeof(::s4wave::world::SetRootRefRequest)},
-        {337, sizeof(::s4wave::world::SetRootRefResponse)},
-        {342, sizeof(::s4wave::world::ApplyObjectOpRequest)},
-        {351, sizeof(::s4wave::world::ApplyObjectOpResponse)},
-        {358, sizeof(::s4wave::world::IncrementRevRequest)},
-        {359, sizeof(::s4wave::world::IncrementRevResponse)},
-        {364, sizeof(::s4wave::world::WaitRevRequest)},
-        {371, sizeof(::s4wave::world::WaitRevResponse)},
-        {376, sizeof(::s4wave::world::AccessTypedObjectRequest)},
-        {381, sizeof(::s4wave::world::AccessTypedObjectResponse)},
+        {174, sizeof(::s4wave::world::ListGraphEdgeBucketsRequest)},
+        {185, sizeof(::s4wave::world::GraphEdgeBucket)},
+        {198, sizeof(::s4wave::world::ListGraphEdgeBucketsResponse)},
+        {203, sizeof(::s4wave::world::ListObjectsWithTypeRequest)},
+        {208, sizeof(::s4wave::world::ListObjectsWithTypeResponse)},
+        {213, sizeof(::s4wave::world::ObjectMetadata)},
+        {222, sizeof(::s4wave::world::GetObjectMetadataBatchRequest)},
+        {227, sizeof(::s4wave::world::GetObjectMetadataBatchResponse)},
+        {232, sizeof(::s4wave::world::GraphPathStep)},
+        {241, sizeof(::s4wave::world::QueryGraphPathRequest)},
+        {254, sizeof(::s4wave::world::QueryGraphPathResponse)},
+        {259, sizeof(::s4wave::world::DeleteGraphObjectRequest)},
+        {264, sizeof(::s4wave::world::DeleteGraphObjectResponse)},
+        {265, sizeof(::s4wave::world::ApplyWorldOpRequest)},
+        {274, sizeof(::s4wave::world::ApplyWorldOpResponse)},
+        {281, sizeof(::s4wave::world::WatchWorldStateRequest)},
+        {282, sizeof(::s4wave::world::WatchWorldStateResponse)},
+        {287, sizeof(::s4wave::world::TrackedWorldStateSnapshot_ObjectAccess)},
+        {294, sizeof(::s4wave::world::TrackedWorldStateSnapshot)},
+        {303, sizeof(::s4wave::world::ErrRequest)},
+        {304, sizeof(::s4wave::world::ErrResponse)},
+        {309, sizeof(::s4wave::world::ValidRequest)},
+        {310, sizeof(::s4wave::world::ValidResponse)},
+        {315, sizeof(::s4wave::world::KeyRequest)},
+        {316, sizeof(::s4wave::world::KeyResponse)},
+        {321, sizeof(::s4wave::world::NextRequest)},
+        {322, sizeof(::s4wave::world::NextResponse)},
+        {327, sizeof(::s4wave::world::SeekRequest)},
+        {332, sizeof(::s4wave::world::SeekResponse)},
+        {333, sizeof(::s4wave::world::CloseRequest)},
+        {334, sizeof(::s4wave::world::CloseResponse)},
+        {335, sizeof(::s4wave::world::NextGraphPathQueryRequest)},
+        {336, sizeof(::s4wave::world::NextGraphPathQueryResponse)},
+        {345, sizeof(::s4wave::world::CloseGraphPathQueryRequest)},
+        {346, sizeof(::s4wave::world::CloseGraphPathQueryResponse)},
+        {347, sizeof(::s4wave::world::GetKeyRequest)},
+        {348, sizeof(::s4wave::world::GetKeyResponse)},
+        {353, sizeof(::s4wave::world::GetRootRefRequest)},
+        {354, sizeof(::s4wave::world::GetRootRefResponse)},
+        {361, sizeof(::s4wave::world::SetRootRefRequest)},
+        {366, sizeof(::s4wave::world::SetRootRefResponse)},
+        {371, sizeof(::s4wave::world::ApplyObjectOpRequest)},
+        {380, sizeof(::s4wave::world::ApplyObjectOpResponse)},
+        {387, sizeof(::s4wave::world::IncrementRevRequest)},
+        {388, sizeof(::s4wave::world::IncrementRevResponse)},
+        {393, sizeof(::s4wave::world::WaitRevRequest)},
+        {400, sizeof(::s4wave::world::WaitRevResponse)},
+        {405, sizeof(::s4wave::world::AccessTypedObjectRequest)},
+        {410, sizeof(::s4wave::world::AccessTypedObjectResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::world::_EngineInfo_default_instance_._instance,
@@ -2572,6 +2690,9 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::world::_LookupGraphQuadsBatchRequest_default_instance_._instance,
     &::s4wave::world::_LookupGraphQuadsBatchResult_default_instance_._instance,
     &::s4wave::world::_LookupGraphQuadsBatchResponse_default_instance_._instance,
+    &::s4wave::world::_ListGraphEdgeBucketsRequest_default_instance_._instance,
+    &::s4wave::world::_GraphEdgeBucket_default_instance_._instance,
+    &::s4wave::world::_ListGraphEdgeBucketsResponse_default_instance_._instance,
     &::s4wave::world::_ListObjectsWithTypeRequest_default_instance_._instance,
     &::s4wave::world::_ListObjectsWithTypeResponse_default_instance_._instance,
     &::s4wave::world::_ObjectMetadata_default_instance_._instance,
@@ -2670,167 +2791,185 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fw
     "r\030\002 \001(\r\"8\n\033LookupGraphQuadsBatchResult\022\031"
     "\n\005quads\030\001 \003(\0132\n.quad.Quad\"[\n\035LookupGraph"
     "QuadsBatchResponse\022:\n\007results\030\001 \003(\0132).s4"
-    "wave.world.LookupGraphQuadsBatchResult\"-"
-    "\n\032ListObjectsWithTypeRequest\022\017\n\007type_id\030"
-    "\001 \001(\t\"2\n\033ListObjectsWithTypeResponse\022\023\n\013"
-    "object_keys\030\001 \003(\t\"P\n\016ObjectMetadata\022\022\n\no"
-    "bject_key\030\001 \001(\t\022\017\n\007type_id\030\002 \001(\t\022\031\n\021pare"
-    "nt_object_key\030\003 \001(\t\"4\n\035GetObjectMetadata"
-    "BatchRequest\022\023\n\013object_keys\030\001 \003(\t\"P\n\036Get"
-    "ObjectMetadataBatchResponse\022.\n\010metadata\030"
-    "\001 \003(\0132\034.s4wave.world.ObjectMetadata\"f\n\rG"
-    "raphPathStep\0223\n\tdirection\030\001 \001(\0162 .s4wave"
-    ".world.GraphPathDirection\022\021\n\tpredicate\030\002"
-    " \001(\t\022\r\n\005limit\030\003 \001(\r\"\227\001\n\025QueryGraphPathRe"
-    "quest\022\022\n\nstart_keys\030\001 \003(\t\022*\n\005steps\030\002 \003(\013"
-    "2\033.s4wave.world.GraphPathStep\022\024\n\014result_"
-    "limit\030\003 \001(\r\022\025\n\rinclude_quads\030\004 \001(\010\022\021\n\tpa"
-    "ge_size\030\005 \001(\r\"-\n\026QueryGraphPathResponse\022"
-    "\023\n\013resource_id\030\001 \001(\r\".\n\030DeleteGraphObjec"
-    "tRequest\022\022\n\nobject_key\030\001 \001(\t\"\033\n\031DeleteGr"
-    "aphObjectResponse\"M\n\023ApplyWorldOpRequest"
-    "\022\022\n\nop_type_id\030\001 \001(\t\022\017\n\007op_data\030\002 \001(\014\022\021\n"
-    "\top_sender\030\003 \001(\t\"6\n\024ApplyWorldOpResponse"
-    "\022\r\n\005seqno\030\001 \001(\004\022\017\n\007sys_err\030\002 \001(\010\"\030\n\026Watc"
-    "hWorldStateRequest\".\n\027WatchWorldStateRes"
-    "ponse\022\023\n\013resource_id\030\001 \001(\r\"\304\001\n\031TrackedWo"
-    "rldStateSnapshot\022M\n\017object_accesses\030\001 \003("
-    "\01324.s4wave.world.TrackedWorldStateSnapsh"
-    "ot.ObjectAccess\022\027\n\017has_quad_access\030\002 \001(\010"
-    "\022\025\n\rinitial_seqno\030\003 \001(\004\032(\n\014ObjectAccess\022"
-    "\013\n\003key\030\001 \001(\t\022\013\n\003rev\030\002 \001(\004\"\014\n\nErrRequest\""
-    "\034\n\013ErrResponse\022\r\n\005error\030\001 \001(\t\"\016\n\014ValidRe"
-    "quest\"\036\n\rValidResponse\022\r\n\005valid\030\001 \001(\010\"\014\n"
-    "\nKeyRequest\"!\n\013KeyResponse\022\022\n\nobject_key"
-    "\030\001 \001(\t\"\r\n\013NextRequest\"\035\n\014NextResponse\022\r\n"
-    "\005valid\030\001 \001(\010\"!\n\013SeekRequest\022\022\n\nobject_ke"
-    "y\030\001 \001(\t\"\016\n\014SeekResponse\"\016\n\014CloseRequest\""
-    "\017\n\rCloseResponse\"\033\n\031NextGraphPathQueryRe"
-    "quest\"Z\n\032NextGraphPathQueryResponse\022\023\n\013o"
-    "bject_keys\030\001 \003(\t\022\031\n\005quads\030\002 \003(\0132\n.quad.Q"
-    "uad\022\014\n\004done\030\003 \001(\010\"\034\n\032CloseGraphPathQuery"
-    "Request\"\035\n\033CloseGraphPathQueryResponse\"\017"
-    "\n\rGetKeyRequest\"$\n\016GetKeyResponse\022\022\n\nobj"
-    "ect_key\030\001 \001(\t\"\023\n\021GetRootRefRequest\"F\n\022Ge"
-    "tRootRefResponse\022#\n\010root_ref\030\001 \001(\0132\021.buc"
-    "ket.ObjectRef\022\013\n\003rev\030\002 \001(\004\"8\n\021SetRootRef"
-    "Request\022#\n\010root_ref\030\001 \001(\0132\021.bucket.Objec"
-    "tRef\"!\n\022SetRootRefResponse\022\013\n\003rev\030\001 \001(\004\""
-    "N\n\024ApplyObjectOpRequest\022\022\n\nop_type_id\030\001 "
-    "\001(\t\022\017\n\007op_data\030\002 \001(\014\022\021\n\top_sender\030\003 \001(\t\""
-    "5\n\025ApplyObjectOpResponse\022\013\n\003rev\030\001 \001(\004\022\017\n"
-    "\007sys_err\030\002 \001(\010\"\025\n\023IncrementRevRequest\"#\n"
-    "\024IncrementRevResponse\022\013\n\003rev\030\001 \001(\004\"7\n\016Wa"
-    "itRevRequest\022\013\n\003rev\030\001 \001(\004\022\030\n\020ignore_not_"
-    "found\030\002 \001(\010\"\036\n\017WaitRevResponse\022\013\n\003rev\030\001 "
-    "\001(\004\".\n\030AccessTypedObjectRequest\022\022\n\nobjec"
-    "t_key\030\001 \001(\t\"A\n\031AccessTypedObjectResponse"
-    "\022\023\n\013resource_id\030\001 \001(\r\022\017\n\007type_id\030\002 \001(\t*\224"
-    "\001\n\022GraphPathDirection\022$\n GRAPH_PATH_DIRE"
-    "CTION_UNSPECIFIED\020\000\022\034\n\030GRAPH_PATH_DIRECT"
-    "ION_OUT\020\001\022\033\n\027GRAPH_PATH_DIRECTION_IN\020\002\022\035"
-    "\n\031GRAPH_PATH_DIRECTION_BOTH\020\0032\263\004\n\025Engine"
-    "ResourceService\022X\n\rGetEngineInfo\022\".s4wav"
-    "e.world.GetEngineInfoRequest\032#.s4wave.wo"
-    "rld.GetEngineInfoResponse\022[\n\016NewTransact"
-    "ion\022#.s4wave.world.NewTransactionRequest"
-    "\032$.s4wave.world.NewTransactionResponse\022I"
-    "\n\010GetSeqno\022\035.s4wave.world.GetSeqnoReques"
-    "t\032\036.s4wave.world.GetSeqnoResponse\022L\n\tWai"
-    "tSeqno\022\036.s4wave.world.WaitSeqnoRequest\032\037"
-    ".s4wave.world.WaitSeqnoResponse\022g\n\022Build"
-    "StorageCursor\022\'.s4wave.world.BuildStorag"
-    "eCursorRequest\032(.s4wave.world.BuildStora"
-    "geCursorResponse\022a\n\020AccessWorldState\022%.s"
-    "4wave.world.AccessWorldStateRequest\032&.s4"
-    "wave.world.AccessWorldStateResponse2\213\016\n\031"
-    "WorldStateResourceService\022R\n\013GetReadOnly"
-    "\022 .s4wave.world.GetReadOnlyRequest\032!.s4w"
-    "ave.world.GetReadOnlyResponse\022I\n\010GetSeqn"
-    "o\022\035.s4wave.world.GetSeqnoRequest\032\036.s4wav"
-    "e.world.GetSeqnoResponse\022L\n\tWaitSeqno\022\036."
-    "s4wave.world.WaitSeqnoRequest\032\037.s4wave.w"
-    "orld.WaitSeqnoResponse\022g\n\022BuildStorageCu"
-    "rsor\022\'.s4wave.world.BuildStorageCursorRe"
-    "quest\032(.s4wave.world.BuildStorageCursorR"
-    "esponse\022a\n\020AccessWorldState\022%.s4wave.wor"
-    "ld.AccessWorldStateRequest\032&.s4wave.worl"
-    "d.AccessWorldStateResponse\022U\n\014CreateObje"
-    "ct\022!.s4wave.world.CreateObjectRequest\032\"."
-    "s4wave.world.CreateObjectResponse\022L\n\tGet"
-    "Object\022\036.s4wave.world.GetObjectRequest\032\037"
-    ".s4wave.world.GetObjectResponse\022[\n\016Itera"
-    "teObjects\022#.s4wave.world.IterateObjectsR"
-    "equest\032$.s4wave.world.IterateObjectsResp"
-    "onse\022U\n\014RenameObject\022!.s4wave.world.Rena"
-    "meObjectRequest\032\".s4wave.world.RenameObj"
-    "ectResponse\022U\n\014DeleteObject\022!.s4wave.wor"
-    "ld.DeleteObjectRequest\032\".s4wave.world.De"
-    "leteObjectResponse\022U\n\014SetGraphQuad\022!.s4w"
-    "ave.world.SetGraphQuadRequest\032\".s4wave.w"
-    "orld.SetGraphQuadResponse\022^\n\017DeleteGraph"
-    "Quad\022$.s4wave.world.DeleteGraphQuadReque"
-    "st\032%.s4wave.world.DeleteGraphQuadRespons"
-    "e\022a\n\020LookupGraphQuads\022%.s4wave.world.Loo"
-    "kupGraphQuadsRequest\032&.s4wave.world.Look"
-    "upGraphQuadsResponse\022p\n\025LookupGraphQuads"
-    "Batch\022*.s4wave.world.LookupGraphQuadsBat"
-    "chRequest\032+.s4wave.world.LookupGraphQuad"
-    "sBatchResponse\022j\n\023ListObjectsWithType\022(."
-    "s4wave.world.ListObjectsWithTypeRequest\032"
-    ").s4wave.world.ListObjectsWithTypeRespon"
-    "se\022s\n\026GetObjectMetadataBatch\022+.s4wave.wo"
-    "rld.GetObjectMetadataBatchRequest\032,.s4wa"
-    "ve.world.GetObjectMetadataBatchResponse\022"
-    "[\n\016QueryGraphPath\022#.s4wave.world.QueryGr"
-    "aphPathRequest\032$.s4wave.world.QueryGraph"
-    "PathResponse\022d\n\021DeleteGraphObject\022&.s4wa"
-    "ve.world.DeleteGraphObjectRequest\032\'.s4wa"
-    "ve.world.DeleteGraphObjectResponse\022U\n\014Ap"
-    "plyWorldOp\022!.s4wave.world.ApplyWorldOpRe"
-    "quest\032\".s4wave.world.ApplyWorldOpRespons"
-    "e2\202\001\n\036WatchWorldStateResourceService\022`\n\017"
-    "WatchWorldState\022$.s4wave.world.WatchWorl"
-    "dStateRequest\032%.s4wave.world.WatchWorldS"
-    "tateResponse0\0012\240\001\n\021TxResourceService\022C\n\006"
-    "Commit\022\033.s4wave.world.CommitRequest\032\034.s4"
-    "wave.world.CommitResponse\022F\n\007Discard\022\034.s"
-    "4wave.world.DiscardRequest\032\035.s4wave.worl"
-    "d.DiscardResponse2\231\003\n\035ObjectIteratorReso"
-    "urceService\022:\n\003Err\022\030.s4wave.world.ErrReq"
-    "uest\032\031.s4wave.world.ErrResponse\022@\n\005Valid"
-    "\022\032.s4wave.world.ValidRequest\032\033.s4wave.wo"
-    "rld.ValidResponse\022:\n\003Key\022\030.s4wave.world."
-    "KeyRequest\032\031.s4wave.world.KeyResponse\022=\n"
-    "\004Next\022\031.s4wave.world.NextRequest\032\032.s4wav"
-    "e.world.NextResponse\022=\n\004Seek\022\031.s4wave.wo"
-    "rld.SeekRequest\032\032.s4wave.world.SeekRespo"
-    "nse\022@\n\005Close\022\032.s4wave.world.CloseRequest"
-    "\032\033.s4wave.world.CloseResponse2\330\001\n\035GraphP"
-    "athQueryResourceService\022Y\n\004Next\022\'.s4wave"
-    ".world.NextGraphPathQueryRequest\032(.s4wav"
-    "e.world.NextGraphPathQueryResponse\022\\\n\005Cl"
-    "ose\022(.s4wave.world.CloseGraphPathQueryRe"
-    "quest\032).s4wave.world.CloseGraphPathQuery"
-    "Response2\337\004\n\032ObjectStateResourceService\022"
-    "C\n\006GetKey\022\033.s4wave.world.GetKeyRequest\032\034"
-    ".s4wave.world.GetKeyResponse\022O\n\nGetRootR"
-    "ef\022\037.s4wave.world.GetRootRefRequest\032 .s4"
-    "wave.world.GetRootRefResponse\022O\n\nSetRoot"
-    "Ref\022\037.s4wave.world.SetRootRefRequest\032 .s"
-    "4wave.world.SetRootRefResponse\022a\n\020Access"
-    "WorldState\022%.s4wave.world.AccessWorldSta"
-    "teRequest\032&.s4wave.world.AccessWorldStat"
-    "eResponse\022X\n\rApplyObjectOp\022\".s4wave.worl"
-    "d.ApplyObjectOpRequest\032#.s4wave.world.Ap"
-    "plyObjectOpResponse\022U\n\014IncrementRev\022!.s4"
-    "wave.world.IncrementRevRequest\032\".s4wave."
-    "world.IncrementRevResponse\022F\n\007WaitRev\022\034."
-    "s4wave.world.WaitRevRequest\032\035.s4wave.wor"
-    "ld.WaitRevResponse2\202\001\n\032TypedObjectResour"
-    "ceService\022d\n\021AccessTypedObject\022&.s4wave."
-    "world.AccessTypedObjectRequest\032\'.s4wave."
-    "world.AccessTypedObjectResponseb\006proto3"
+    "wave.world.LookupGraphQuadsBatchResult\"\241"
+    "\001\n\033ListGraphEdgeBucketsRequest\022\032\n\022origin"
+    "_object_keys\030\001 \003(\t\022\021\n\tpredicate\030\002 \001(\t\022\030\n"
+    "\020limit_per_origin\030\003 \001(\r\0229\n\tdirection\030\004 \001"
+    "(\0162&.s4wave.world.GraphEdgeBucketDirecti"
+    "on\"\240\001\n\017GraphEdgeBucket\022\031\n\021origin_object_"
+    "key\030\001 \001(\t\022\034\n\010outgoing\030\002 \003(\0132\n.quad.Quad\022"
+    "\034\n\010incoming\030\003 \003(\0132\n.quad.Quad\022\032\n\022outgoin"
+    "g_truncated\030\004 \001(\010\022\032\n\022incoming_truncated\030"
+    "\005 \001(\010\"N\n\034ListGraphEdgeBucketsResponse\022.\n"
+    "\007buckets\030\001 \003(\0132\035.s4wave.world.GraphEdgeB"
+    "ucket\"-\n\032ListObjectsWithTypeRequest\022\017\n\007t"
+    "ype_id\030\001 \001(\t\"2\n\033ListObjectsWithTypeRespo"
+    "nse\022\023\n\013object_keys\030\001 \003(\t\"P\n\016ObjectMetada"
+    "ta\022\022\n\nobject_key\030\001 \001(\t\022\017\n\007type_id\030\002 \001(\t\022"
+    "\031\n\021parent_object_key\030\003 \001(\t\"4\n\035GetObjectM"
+    "etadataBatchRequest\022\023\n\013object_keys\030\001 \003(\t"
+    "\"P\n\036GetObjectMetadataBatchResponse\022.\n\010me"
+    "tadata\030\001 \003(\0132\034.s4wave.world.ObjectMetada"
+    "ta\"f\n\rGraphPathStep\0223\n\tdirection\030\001 \001(\0162 "
+    ".s4wave.world.GraphPathDirection\022\021\n\tpred"
+    "icate\030\002 \001(\t\022\r\n\005limit\030\003 \001(\r\"\227\001\n\025QueryGrap"
+    "hPathRequest\022\022\n\nstart_keys\030\001 \003(\t\022*\n\005step"
+    "s\030\002 \003(\0132\033.s4wave.world.GraphPathStep\022\024\n\014"
+    "result_limit\030\003 \001(\r\022\025\n\rinclude_quads\030\004 \001("
+    "\010\022\021\n\tpage_size\030\005 \001(\r\"-\n\026QueryGraphPathRe"
+    "sponse\022\023\n\013resource_id\030\001 \001(\r\".\n\030DeleteGra"
+    "phObjectRequest\022\022\n\nobject_key\030\001 \001(\t\"\033\n\031D"
+    "eleteGraphObjectResponse\"M\n\023ApplyWorldOp"
+    "Request\022\022\n\nop_type_id\030\001 \001(\t\022\017\n\007op_data\030\002"
+    " \001(\014\022\021\n\top_sender\030\003 \001(\t\"6\n\024ApplyWorldOpR"
+    "esponse\022\r\n\005seqno\030\001 \001(\004\022\017\n\007sys_err\030\002 \001(\010\""
+    "\030\n\026WatchWorldStateRequest\".\n\027WatchWorldS"
+    "tateResponse\022\023\n\013resource_id\030\001 \001(\r\"\304\001\n\031Tr"
+    "ackedWorldStateSnapshot\022M\n\017object_access"
+    "es\030\001 \003(\01324.s4wave.world.TrackedWorldStat"
+    "eSnapshot.ObjectAccess\022\027\n\017has_quad_acces"
+    "s\030\002 \001(\010\022\025\n\rinitial_seqno\030\003 \001(\004\032(\n\014Object"
+    "Access\022\013\n\003key\030\001 \001(\t\022\013\n\003rev\030\002 \001(\004\"\014\n\nErrR"
+    "equest\"\034\n\013ErrResponse\022\r\n\005error\030\001 \001(\t\"\016\n\014"
+    "ValidRequest\"\036\n\rValidResponse\022\r\n\005valid\030\001"
+    " \001(\010\"\014\n\nKeyRequest\"!\n\013KeyResponse\022\022\n\nobj"
+    "ect_key\030\001 \001(\t\"\r\n\013NextRequest\"\035\n\014NextResp"
+    "onse\022\r\n\005valid\030\001 \001(\010\"!\n\013SeekRequest\022\022\n\nob"
+    "ject_key\030\001 \001(\t\"\016\n\014SeekResponse\"\016\n\014CloseR"
+    "equest\"\017\n\rCloseResponse\"\033\n\031NextGraphPath"
+    "QueryRequest\"Z\n\032NextGraphPathQueryRespon"
+    "se\022\023\n\013object_keys\030\001 \003(\t\022\031\n\005quads\030\002 \003(\0132\n"
+    ".quad.Quad\022\014\n\004done\030\003 \001(\010\"\034\n\032CloseGraphPa"
+    "thQueryRequest\"\035\n\033CloseGraphPathQueryRes"
+    "ponse\"\017\n\rGetKeyRequest\"$\n\016GetKeyResponse"
+    "\022\022\n\nobject_key\030\001 \001(\t\"\023\n\021GetRootRefReques"
+    "t\"F\n\022GetRootRefResponse\022#\n\010root_ref\030\001 \001("
+    "\0132\021.bucket.ObjectRef\022\013\n\003rev\030\002 \001(\004\"8\n\021Set"
+    "RootRefRequest\022#\n\010root_ref\030\001 \001(\0132\021.bucke"
+    "t.ObjectRef\"!\n\022SetRootRefResponse\022\013\n\003rev"
+    "\030\001 \001(\004\"N\n\024ApplyObjectOpRequest\022\022\n\nop_typ"
+    "e_id\030\001 \001(\t\022\017\n\007op_data\030\002 \001(\014\022\021\n\top_sender"
+    "\030\003 \001(\t\"5\n\025ApplyObjectOpResponse\022\013\n\003rev\030\001"
+    " \001(\004\022\017\n\007sys_err\030\002 \001(\010\"\025\n\023IncrementRevReq"
+    "uest\"#\n\024IncrementRevResponse\022\013\n\003rev\030\001 \001("
+    "\004\"7\n\016WaitRevRequest\022\013\n\003rev\030\001 \001(\004\022\030\n\020igno"
+    "re_not_found\030\002 \001(\010\"\036\n\017WaitRevResponse\022\013\n"
+    "\003rev\030\001 \001(\004\".\n\030AccessTypedObjectRequest\022\022"
+    "\n\nobject_key\030\001 \001(\t\"A\n\031AccessTypedObjectR"
+    "esponse\022\023\n\013resource_id\030\001 \001(\r\022\017\n\007type_id\030"
+    "\002 \001(\t*\266\001\n\030GraphEdgeBucketDirection\022+\n\'GR"
+    "APH_EDGE_BUCKET_DIRECTION_UNSPECIFIED\020\000\022"
+    "#\n\037GRAPH_EDGE_BUCKET_DIRECTION_OUT\020\001\022\"\n\036"
+    "GRAPH_EDGE_BUCKET_DIRECTION_IN\020\002\022$\n GRAP"
+    "H_EDGE_BUCKET_DIRECTION_BOTH\020\003*\224\001\n\022Graph"
+    "PathDirection\022$\n GRAPH_PATH_DIRECTION_UN"
+    "SPECIFIED\020\000\022\034\n\030GRAPH_PATH_DIRECTION_OUT\020"
+    "\001\022\033\n\027GRAPH_PATH_DIRECTION_IN\020\002\022\035\n\031GRAPH_"
+    "PATH_DIRECTION_BOTH\020\0032\263\004\n\025EngineResource"
+    "Service\022X\n\rGetEngineInfo\022\".s4wave.world."
+    "GetEngineInfoRequest\032#.s4wave.world.GetE"
+    "ngineInfoResponse\022[\n\016NewTransaction\022#.s4"
+    "wave.world.NewTransactionRequest\032$.s4wav"
+    "e.world.NewTransactionResponse\022I\n\010GetSeq"
+    "no\022\035.s4wave.world.GetSeqnoRequest\032\036.s4wa"
+    "ve.world.GetSeqnoResponse\022L\n\tWaitSeqno\022\036"
+    ".s4wave.world.WaitSeqnoRequest\032\037.s4wave."
+    "world.WaitSeqnoResponse\022g\n\022BuildStorageC"
+    "ursor\022\'.s4wave.world.BuildStorageCursorR"
+    "equest\032(.s4wave.world.BuildStorageCursor"
+    "Response\022a\n\020AccessWorldState\022%.s4wave.wo"
+    "rld.AccessWorldStateRequest\032&.s4wave.wor"
+    "ld.AccessWorldStateResponse2\372\016\n\031WorldSta"
+    "teResourceService\022R\n\013GetReadOnly\022 .s4wav"
+    "e.world.GetReadOnlyRequest\032!.s4wave.worl"
+    "d.GetReadOnlyResponse\022I\n\010GetSeqno\022\035.s4wa"
+    "ve.world.GetSeqnoRequest\032\036.s4wave.world."
+    "GetSeqnoResponse\022L\n\tWaitSeqno\022\036.s4wave.w"
+    "orld.WaitSeqnoRequest\032\037.s4wave.world.Wai"
+    "tSeqnoResponse\022g\n\022BuildStorageCursor\022\'.s"
+    "4wave.world.BuildStorageCursorRequest\032(."
+    "s4wave.world.BuildStorageCursorResponse\022"
+    "a\n\020AccessWorldState\022%.s4wave.world.Acces"
+    "sWorldStateRequest\032&.s4wave.world.Access"
+    "WorldStateResponse\022U\n\014CreateObject\022!.s4w"
+    "ave.world.CreateObjectRequest\032\".s4wave.w"
+    "orld.CreateObjectResponse\022L\n\tGetObject\022\036"
+    ".s4wave.world.GetObjectRequest\032\037.s4wave."
+    "world.GetObjectResponse\022[\n\016IterateObject"
+    "s\022#.s4wave.world.IterateObjectsRequest\032$"
+    ".s4wave.world.IterateObjectsResponse\022U\n\014"
+    "RenameObject\022!.s4wave.world.RenameObject"
+    "Request\032\".s4wave.world.RenameObjectRespo"
+    "nse\022U\n\014DeleteObject\022!.s4wave.world.Delet"
+    "eObjectRequest\032\".s4wave.world.DeleteObje"
+    "ctResponse\022U\n\014SetGraphQuad\022!.s4wave.worl"
+    "d.SetGraphQuadRequest\032\".s4wave.world.Set"
+    "GraphQuadResponse\022^\n\017DeleteGraphQuad\022$.s"
+    "4wave.world.DeleteGraphQuadRequest\032%.s4w"
+    "ave.world.DeleteGraphQuadResponse\022a\n\020Loo"
+    "kupGraphQuads\022%.s4wave.world.LookupGraph"
+    "QuadsRequest\032&.s4wave.world.LookupGraphQ"
+    "uadsResponse\022p\n\025LookupGraphQuadsBatch\022*."
+    "s4wave.world.LookupGraphQuadsBatchReques"
+    "t\032+.s4wave.world.LookupGraphQuadsBatchRe"
+    "sponse\022m\n\024ListGraphEdgeBuckets\022).s4wave."
+    "world.ListGraphEdgeBucketsRequest\032*.s4wa"
+    "ve.world.ListGraphEdgeBucketsResponse\022j\n"
+    "\023ListObjectsWithType\022(.s4wave.world.List"
+    "ObjectsWithTypeRequest\032).s4wave.world.Li"
+    "stObjectsWithTypeResponse\022s\n\026GetObjectMe"
+    "tadataBatch\022+.s4wave.world.GetObjectMeta"
+    "dataBatchRequest\032,.s4wave.world.GetObjec"
+    "tMetadataBatchResponse\022[\n\016QueryGraphPath"
+    "\022#.s4wave.world.QueryGraphPathRequest\032$."
+    "s4wave.world.QueryGraphPathResponse\022d\n\021D"
+    "eleteGraphObject\022&.s4wave.world.DeleteGr"
+    "aphObjectRequest\032\'.s4wave.world.DeleteGr"
+    "aphObjectResponse\022U\n\014ApplyWorldOp\022!.s4wa"
+    "ve.world.ApplyWorldOpRequest\032\".s4wave.wo"
+    "rld.ApplyWorldOpResponse2\202\001\n\036WatchWorldS"
+    "tateResourceService\022`\n\017WatchWorldState\022$"
+    ".s4wave.world.WatchWorldStateRequest\032%.s"
+    "4wave.world.WatchWorldStateResponse0\0012\240\001"
+    "\n\021TxResourceService\022C\n\006Commit\022\033.s4wave.w"
+    "orld.CommitRequest\032\034.s4wave.world.Commit"
+    "Response\022F\n\007Discard\022\034.s4wave.world.Disca"
+    "rdRequest\032\035.s4wave.world.DiscardResponse"
+    "2\231\003\n\035ObjectIteratorResourceService\022:\n\003Er"
+    "r\022\030.s4wave.world.ErrRequest\032\031.s4wave.wor"
+    "ld.ErrResponse\022@\n\005Valid\022\032.s4wave.world.V"
+    "alidRequest\032\033.s4wave.world.ValidResponse"
+    "\022:\n\003Key\022\030.s4wave.world.KeyRequest\032\031.s4wa"
+    "ve.world.KeyResponse\022=\n\004Next\022\031.s4wave.wo"
+    "rld.NextRequest\032\032.s4wave.world.NextRespo"
+    "nse\022=\n\004Seek\022\031.s4wave.world.SeekRequest\032\032"
+    ".s4wave.world.SeekResponse\022@\n\005Close\022\032.s4"
+    "wave.world.CloseRequest\032\033.s4wave.world.C"
+    "loseResponse2\330\001\n\035GraphPathQueryResourceS"
+    "ervice\022Y\n\004Next\022\'.s4wave.world.NextGraphP"
+    "athQueryRequest\032(.s4wave.world.NextGraph"
+    "PathQueryResponse\022\\\n\005Close\022(.s4wave.worl"
+    "d.CloseGraphPathQueryRequest\032).s4wave.wo"
+    "rld.CloseGraphPathQueryResponse2\337\004\n\032Obje"
+    "ctStateResourceService\022C\n\006GetKey\022\033.s4wav"
+    "e.world.GetKeyRequest\032\034.s4wave.world.Get"
+    "KeyResponse\022O\n\nGetRootRef\022\037.s4wave.world"
+    ".GetRootRefRequest\032 .s4wave.world.GetRoo"
+    "tRefResponse\022O\n\nSetRootRef\022\037.s4wave.worl"
+    "d.SetRootRefRequest\032 .s4wave.world.SetRo"
+    "otRefResponse\022a\n\020AccessWorldState\022%.s4wa"
+    "ve.world.AccessWorldStateRequest\032&.s4wav"
+    "e.world.AccessWorldStateResponse\022X\n\rAppl"
+    "yObjectOp\022\".s4wave.world.ApplyObjectOpRe"
+    "quest\032#.s4wave.world.ApplyObjectOpRespon"
+    "se\022U\n\014IncrementRev\022!.s4wave.world.Increm"
+    "entRevRequest\032\".s4wave.world.IncrementRe"
+    "vResponse\022F\n\007WaitRev\022\034.s4wave.world.Wait"
+    "RevRequest\032\035.s4wave.world.WaitRevRespons"
+    "e2\202\001\n\032TypedObjectResourceService\022d\n\021Acce"
+    "ssTypedObject\022&.s4wave.world.AccessTyped"
+    "ObjectRequest\032\'.s4wave.world.AccessTyped"
+    "ObjectResponseb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto_deps[2] = {
@@ -2841,13 +2980,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto = {
     false,
     false,
-    8399,
+    9102,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto,
     "github.com/s4wave/spacewave/sdk/world/world.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto_deps,
     2,
-    84,
+    87,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto::offsets,
@@ -2856,9 +2995,15 @@ PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2
 };
 namespace s4wave {
 namespace world {
-const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL GraphPathDirection_descriptor() {
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL GraphEdgeBucketDirection_descriptor() {
   ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto);
   return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto[0];
+}
+PROTOBUF_CONSTINIT const uint32_t GraphEdgeBucketDirection_internal_data_[] = {
+    262144u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL GraphPathDirection_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto[1];
 }
 PROTOBUF_CONSTINIT const uint32_t GraphPathDirection_internal_data_[] = {
     262144u, 0u, };
@@ -11908,6 +12053,1161 @@ void LookupGraphQuadsBatchResponse::InternalSwap(LookupGraphQuadsBatchResponse* 
 }
 
 ::google::protobuf::Metadata LookupGraphQuadsBatchResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class ListGraphEdgeBucketsRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<ListGraphEdgeBucketsRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(ListGraphEdgeBucketsRequest, _impl_._has_bits_);
+};
+
+ListGraphEdgeBucketsRequest::ListGraphEdgeBucketsRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ListGraphEdgeBucketsRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.world.ListGraphEdgeBucketsRequest)
+}
+PROTOBUF_NDEBUG_INLINE ListGraphEdgeBucketsRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::world::ListGraphEdgeBucketsRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        origin_object_keys_{visibility, arena, from.origin_object_keys_},
+        predicate_(arena, from.predicate_) {}
+
+ListGraphEdgeBucketsRequest::ListGraphEdgeBucketsRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const ListGraphEdgeBucketsRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ListGraphEdgeBucketsRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  ListGraphEdgeBucketsRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, limit_per_origin_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, limit_per_origin_),
+           offsetof(Impl_, direction_) -
+               offsetof(Impl_, limit_per_origin_) +
+               sizeof(Impl_::direction_));
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.world.ListGraphEdgeBucketsRequest)
+}
+PROTOBUF_NDEBUG_INLINE ListGraphEdgeBucketsRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        origin_object_keys_{visibility, arena},
+        predicate_(arena) {}
+
+inline void ListGraphEdgeBucketsRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, limit_per_origin_),
+           0,
+           offsetof(Impl_, direction_) -
+               offsetof(Impl_, limit_per_origin_) +
+               sizeof(Impl_::direction_));
+}
+ListGraphEdgeBucketsRequest::~ListGraphEdgeBucketsRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.world.ListGraphEdgeBucketsRequest)
+  SharedDtor(*this);
+}
+inline void ListGraphEdgeBucketsRequest::SharedDtor(MessageLite& self) {
+  ListGraphEdgeBucketsRequest& this_ = static_cast<ListGraphEdgeBucketsRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.predicate_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL ListGraphEdgeBucketsRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) ListGraphEdgeBucketsRequest(arena);
+}
+constexpr auto ListGraphEdgeBucketsRequest::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(ListGraphEdgeBucketsRequest, _impl_.origin_object_keys_) +
+          decltype(ListGraphEdgeBucketsRequest::_impl_.origin_object_keys_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
+        sizeof(ListGraphEdgeBucketsRequest), alignof(ListGraphEdgeBucketsRequest), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&ListGraphEdgeBucketsRequest::PlacementNew_,
+                                 sizeof(ListGraphEdgeBucketsRequest),
+                                 alignof(ListGraphEdgeBucketsRequest));
+  }
+}
+constexpr auto ListGraphEdgeBucketsRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_ListGraphEdgeBucketsRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &ListGraphEdgeBucketsRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<ListGraphEdgeBucketsRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &ListGraphEdgeBucketsRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<ListGraphEdgeBucketsRequest>(), &ListGraphEdgeBucketsRequest::ByteSizeLong,
+              &ListGraphEdgeBucketsRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(ListGraphEdgeBucketsRequest, _impl_._cached_size_),
+          false,
+      },
+      &ListGraphEdgeBucketsRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull ListGraphEdgeBucketsRequest_class_data_ =
+        ListGraphEdgeBucketsRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+ListGraphEdgeBucketsRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&ListGraphEdgeBucketsRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(ListGraphEdgeBucketsRequest_class_data_.tc_table);
+  return ListGraphEdgeBucketsRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 4, 0, 76, 2>
+ListGraphEdgeBucketsRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(ListGraphEdgeBucketsRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    4, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967280,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    4,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    ListGraphEdgeBucketsRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::world::ListGraphEdgeBucketsRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .s4wave.world.GraphEdgeBucketDirection direction = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(ListGraphEdgeBucketsRequest, _impl_.direction_), 3>(),
+     {32, 3, 0,
+      PROTOBUF_FIELD_OFFSET(ListGraphEdgeBucketsRequest, _impl_.direction_)}},
+    // repeated string origin_object_keys = 1;
+    {::_pbi::TcParser::FastUR1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(ListGraphEdgeBucketsRequest, _impl_.origin_object_keys_)}},
+    // string predicate = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(ListGraphEdgeBucketsRequest, _impl_.predicate_)}},
+    // uint32 limit_per_origin = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(ListGraphEdgeBucketsRequest, _impl_.limit_per_origin_), 2>(),
+     {24, 2, 0,
+      PROTOBUF_FIELD_OFFSET(ListGraphEdgeBucketsRequest, _impl_.limit_per_origin_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // repeated string origin_object_keys = 1;
+    {PROTOBUF_FIELD_OFFSET(ListGraphEdgeBucketsRequest, _impl_.origin_object_keys_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+    // string predicate = 2;
+    {PROTOBUF_FIELD_OFFSET(ListGraphEdgeBucketsRequest, _impl_.predicate_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // uint32 limit_per_origin = 3;
+    {PROTOBUF_FIELD_OFFSET(ListGraphEdgeBucketsRequest, _impl_.limit_per_origin_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // .s4wave.world.GraphEdgeBucketDirection direction = 4;
+    {PROTOBUF_FIELD_OFFSET(ListGraphEdgeBucketsRequest, _impl_.direction_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+  }},
+  // no aux_entries
+  {{
+    "\50\22\11\0\0\0\0\0"
+    "s4wave.world.ListGraphEdgeBucketsRequest"
+    "origin_object_keys"
+    "predicate"
+  }},
+};
+PROTOBUF_NOINLINE void ListGraphEdgeBucketsRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.world.ListGraphEdgeBucketsRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.origin_object_keys_.Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.predicate_.ClearNonDefaultToEmpty();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000cU)) {
+    ::memset(&_impl_.limit_per_origin_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.direction_) -
+        reinterpret_cast<char*>(&_impl_.limit_per_origin_)) + sizeof(_impl_.direction_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL ListGraphEdgeBucketsRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const ListGraphEdgeBucketsRequest& this_ = static_cast<const ListGraphEdgeBucketsRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL ListGraphEdgeBucketsRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const ListGraphEdgeBucketsRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.world.ListGraphEdgeBucketsRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // repeated string origin_object_keys = 1;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (int i = 0, n = this_._internal_origin_object_keys_size(); i < n; ++i) {
+      const auto& s = this_._internal_origin_object_keys().Get(i);
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.world.ListGraphEdgeBucketsRequest.origin_object_keys");
+      target = stream->WriteString(1, s, target);
+    }
+  }
+
+  // string predicate = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_predicate().empty()) {
+      const ::std::string& _s = this_._internal_predicate();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.world.ListGraphEdgeBucketsRequest.predicate");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // uint32 limit_per_origin = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (this_._internal_limit_per_origin() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          3, this_._internal_limit_per_origin(), target);
+    }
+  }
+
+  // .s4wave.world.GraphEdgeBucketDirection direction = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (this_._internal_direction() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          4, this_._internal_direction(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.world.ListGraphEdgeBucketsRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t ListGraphEdgeBucketsRequest::ByteSizeLong(const MessageLite& base) {
+  const ListGraphEdgeBucketsRequest& this_ = static_cast<const ListGraphEdgeBucketsRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t ListGraphEdgeBucketsRequest::ByteSizeLong() const {
+  const ListGraphEdgeBucketsRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.world.ListGraphEdgeBucketsRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    // repeated string origin_object_keys = 1;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_origin_object_keys().size());
+      for (int i = 0, n = this_._internal_origin_object_keys().size(); i < n; ++i) {
+        total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+            this_._internal_origin_object_keys().Get(i));
+      }
+    }
+    // string predicate = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_predicate().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_predicate());
+      }
+    }
+    // uint32 limit_per_origin = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (this_._internal_limit_per_origin() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_limit_per_origin());
+      }
+    }
+    // .s4wave.world.GraphEdgeBucketDirection direction = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (this_._internal_direction() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_direction());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void ListGraphEdgeBucketsRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<ListGraphEdgeBucketsRequest*>(&to_msg);
+  auto& from = static_cast<const ListGraphEdgeBucketsRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.world.ListGraphEdgeBucketsRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_origin_object_keys()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_origin_object_keys());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_predicate().empty()) {
+        _this->_internal_set_predicate(from._internal_predicate());
+      } else {
+        if (_this->_impl_.predicate_.IsDefault()) {
+          _this->_internal_set_predicate("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (from._internal_limit_per_origin() != 0) {
+        _this->_impl_.limit_per_origin_ = from._impl_.limit_per_origin_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (from._internal_direction() != 0) {
+        _this->_impl_.direction_ = from._impl_.direction_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void ListGraphEdgeBucketsRequest::CopyFrom(const ListGraphEdgeBucketsRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.world.ListGraphEdgeBucketsRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void ListGraphEdgeBucketsRequest::InternalSwap(ListGraphEdgeBucketsRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.origin_object_keys_.InternalSwap(&other->_impl_.origin_object_keys_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.predicate_, &other->_impl_.predicate_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(ListGraphEdgeBucketsRequest, _impl_.direction_)
+      + sizeof(ListGraphEdgeBucketsRequest::_impl_.direction_)
+      - PROTOBUF_FIELD_OFFSET(ListGraphEdgeBucketsRequest, _impl_.limit_per_origin_)>(
+          reinterpret_cast<char*>(&_impl_.limit_per_origin_),
+          reinterpret_cast<char*>(&other->_impl_.limit_per_origin_));
+}
+
+::google::protobuf::Metadata ListGraphEdgeBucketsRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class GraphEdgeBucket::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<GraphEdgeBucket>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(GraphEdgeBucket, _impl_._has_bits_);
+};
+
+void GraphEdgeBucket::clear_outgoing() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.outgoing_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+void GraphEdgeBucket::clear_incoming() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.incoming_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+GraphEdgeBucket::GraphEdgeBucket(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, GraphEdgeBucket_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.world.GraphEdgeBucket)
+}
+PROTOBUF_NDEBUG_INLINE GraphEdgeBucket::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::world::GraphEdgeBucket& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        outgoing_{visibility, arena, from.outgoing_},
+        incoming_{visibility, arena, from.incoming_},
+        origin_object_key_(arena, from.origin_object_key_) {}
+
+GraphEdgeBucket::GraphEdgeBucket(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const GraphEdgeBucket& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, GraphEdgeBucket_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  GraphEdgeBucket* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, outgoing_truncated_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, outgoing_truncated_),
+           offsetof(Impl_, incoming_truncated_) -
+               offsetof(Impl_, outgoing_truncated_) +
+               sizeof(Impl_::incoming_truncated_));
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.world.GraphEdgeBucket)
+}
+PROTOBUF_NDEBUG_INLINE GraphEdgeBucket::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        outgoing_{visibility, arena},
+        incoming_{visibility, arena},
+        origin_object_key_(arena) {}
+
+inline void GraphEdgeBucket::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, outgoing_truncated_),
+           0,
+           offsetof(Impl_, incoming_truncated_) -
+               offsetof(Impl_, outgoing_truncated_) +
+               sizeof(Impl_::incoming_truncated_));
+}
+GraphEdgeBucket::~GraphEdgeBucket() {
+  // @@protoc_insertion_point(destructor:s4wave.world.GraphEdgeBucket)
+  SharedDtor(*this);
+}
+inline void GraphEdgeBucket::SharedDtor(MessageLite& self) {
+  GraphEdgeBucket& this_ = static_cast<GraphEdgeBucket&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.origin_object_key_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL GraphEdgeBucket::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) GraphEdgeBucket(arena);
+}
+constexpr auto GraphEdgeBucket::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(GraphEdgeBucket, _impl_.outgoing_) +
+          decltype(GraphEdgeBucket::_impl_.outgoing_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(GraphEdgeBucket, _impl_.incoming_) +
+          decltype(GraphEdgeBucket::_impl_.incoming_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
+        sizeof(GraphEdgeBucket), alignof(GraphEdgeBucket), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&GraphEdgeBucket::PlacementNew_,
+                                 sizeof(GraphEdgeBucket),
+                                 alignof(GraphEdgeBucket));
+  }
+}
+constexpr auto GraphEdgeBucket::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_GraphEdgeBucket_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &GraphEdgeBucket::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<GraphEdgeBucket>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &GraphEdgeBucket::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<GraphEdgeBucket>(), &GraphEdgeBucket::ByteSizeLong,
+              &GraphEdgeBucket::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(GraphEdgeBucket, _impl_._cached_size_),
+          false,
+      },
+      &GraphEdgeBucket::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull GraphEdgeBucket_class_data_ =
+        GraphEdgeBucket::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+GraphEdgeBucket::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&GraphEdgeBucket_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(GraphEdgeBucket_class_data_.tc_table);
+  return GraphEdgeBucket_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 5, 2, 54, 2>
+GraphEdgeBucket::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(GraphEdgeBucket, _impl_._has_bits_),
+    0, // no _extensions_
+    5, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967264,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    5,  // num_field_entries
+    2,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    GraphEdgeBucket_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::world::GraphEdgeBucket>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // string origin_object_key = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 2, 0,
+      PROTOBUF_FIELD_OFFSET(GraphEdgeBucket, _impl_.origin_object_key_)}},
+    // repeated .quad.Quad outgoing = 2;
+    {::_pbi::TcParser::FastMtR1,
+     {18, 0, 0,
+      PROTOBUF_FIELD_OFFSET(GraphEdgeBucket, _impl_.outgoing_)}},
+    // repeated .quad.Quad incoming = 3;
+    {::_pbi::TcParser::FastMtR1,
+     {26, 1, 1,
+      PROTOBUF_FIELD_OFFSET(GraphEdgeBucket, _impl_.incoming_)}},
+    // bool outgoing_truncated = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(GraphEdgeBucket, _impl_.outgoing_truncated_), 3>(),
+     {32, 3, 0,
+      PROTOBUF_FIELD_OFFSET(GraphEdgeBucket, _impl_.outgoing_truncated_)}},
+    // bool incoming_truncated = 5;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(GraphEdgeBucket, _impl_.incoming_truncated_), 4>(),
+     {40, 4, 0,
+      PROTOBUF_FIELD_OFFSET(GraphEdgeBucket, _impl_.incoming_truncated_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string origin_object_key = 1;
+    {PROTOBUF_FIELD_OFFSET(GraphEdgeBucket, _impl_.origin_object_key_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // repeated .quad.Quad outgoing = 2;
+    {PROTOBUF_FIELD_OFFSET(GraphEdgeBucket, _impl_.outgoing_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    // repeated .quad.Quad incoming = 3;
+    {PROTOBUF_FIELD_OFFSET(GraphEdgeBucket, _impl_.incoming_), _Internal::kHasBitsOffset + 1, 1, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    // bool outgoing_truncated = 4;
+    {PROTOBUF_FIELD_OFFSET(GraphEdgeBucket, _impl_.outgoing_truncated_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // bool incoming_truncated = 5;
+    {PROTOBUF_FIELD_OFFSET(GraphEdgeBucket, _impl_.incoming_truncated_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::quad::Quad>()},
+      {::_pbi::TcParser::GetTable<::quad::Quad>()},
+  }},
+  {{
+    "\34\21\0\0\0\0\0\0"
+    "s4wave.world.GraphEdgeBucket"
+    "origin_object_key"
+  }},
+};
+PROTOBUF_NOINLINE void GraphEdgeBucket::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.world.GraphEdgeBucket)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.outgoing_.Clear();
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      _impl_.incoming_.Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.origin_object_key_.ClearNonDefaultToEmpty();
+    }
+  }
+  ::memset(&_impl_.outgoing_truncated_, 0, static_cast<::size_t>(
+      reinterpret_cast<char*>(&_impl_.incoming_truncated_) -
+      reinterpret_cast<char*>(&_impl_.outgoing_truncated_)) + sizeof(_impl_.incoming_truncated_));
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL GraphEdgeBucket::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const GraphEdgeBucket& this_ = static_cast<const GraphEdgeBucket&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL GraphEdgeBucket::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const GraphEdgeBucket& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.world.GraphEdgeBucket)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string origin_object_key = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_origin_object_key().empty()) {
+      const ::std::string& _s = this_._internal_origin_object_key();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.world.GraphEdgeBucket.origin_object_key");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // repeated .quad.Quad outgoing = 2;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_outgoing_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_outgoing().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              2, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  // repeated .quad.Quad incoming = 3;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_incoming_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_incoming().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              3, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  // bool outgoing_truncated = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (this_._internal_outgoing_truncated() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          4, this_._internal_outgoing_truncated(), target);
+    }
+  }
+
+  // bool incoming_truncated = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (this_._internal_incoming_truncated() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          5, this_._internal_incoming_truncated(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.world.GraphEdgeBucket)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t GraphEdgeBucket::ByteSizeLong(const MessageLite& base) {
+  const GraphEdgeBucket& this_ = static_cast<const GraphEdgeBucket&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t GraphEdgeBucket::ByteSizeLong() const {
+  const GraphEdgeBucket& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.world.GraphEdgeBucket)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    // repeated .quad.Quad outgoing = 2;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size += 1UL * this_._internal_outgoing_size();
+      for (const auto& msg : this_._internal_outgoing()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+    // repeated .quad.Quad incoming = 3;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      total_size += 1UL * this_._internal_incoming_size();
+      for (const auto& msg : this_._internal_incoming()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+    // string origin_object_key = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_origin_object_key().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_origin_object_key());
+      }
+    }
+    // bool outgoing_truncated = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (this_._internal_outgoing_truncated() != 0) {
+        total_size += 2;
+      }
+    }
+    // bool incoming_truncated = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (this_._internal_incoming_truncated() != 0) {
+        total_size += 2;
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void GraphEdgeBucket::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<GraphEdgeBucket*>(&to_msg);
+  auto& from = static_cast<const GraphEdgeBucket&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.world.GraphEdgeBucket)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_outgoing()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_outgoing());
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      _this->_internal_mutable_incoming()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_incoming());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_origin_object_key().empty()) {
+        _this->_internal_set_origin_object_key(from._internal_origin_object_key());
+      } else {
+        if (_this->_impl_.origin_object_key_.IsDefault()) {
+          _this->_internal_set_origin_object_key("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (from._internal_outgoing_truncated() != 0) {
+        _this->_impl_.outgoing_truncated_ = from._impl_.outgoing_truncated_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (from._internal_incoming_truncated() != 0) {
+        _this->_impl_.incoming_truncated_ = from._impl_.incoming_truncated_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void GraphEdgeBucket::CopyFrom(const GraphEdgeBucket& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.world.GraphEdgeBucket)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void GraphEdgeBucket::InternalSwap(GraphEdgeBucket* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.outgoing_.InternalSwap(&other->_impl_.outgoing_);
+  _impl_.incoming_.InternalSwap(&other->_impl_.incoming_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.origin_object_key_, &other->_impl_.origin_object_key_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(GraphEdgeBucket, _impl_.incoming_truncated_)
+      + sizeof(GraphEdgeBucket::_impl_.incoming_truncated_)
+      - PROTOBUF_FIELD_OFFSET(GraphEdgeBucket, _impl_.outgoing_truncated_)>(
+          reinterpret_cast<char*>(&_impl_.outgoing_truncated_),
+          reinterpret_cast<char*>(&other->_impl_.outgoing_truncated_));
+}
+
+::google::protobuf::Metadata GraphEdgeBucket::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class ListGraphEdgeBucketsResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<ListGraphEdgeBucketsResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(ListGraphEdgeBucketsResponse, _impl_._has_bits_);
+};
+
+ListGraphEdgeBucketsResponse::ListGraphEdgeBucketsResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ListGraphEdgeBucketsResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.world.ListGraphEdgeBucketsResponse)
+}
+PROTOBUF_NDEBUG_INLINE ListGraphEdgeBucketsResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::world::ListGraphEdgeBucketsResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        buckets_{visibility, arena, from.buckets_} {}
+
+ListGraphEdgeBucketsResponse::ListGraphEdgeBucketsResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const ListGraphEdgeBucketsResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ListGraphEdgeBucketsResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  ListGraphEdgeBucketsResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.world.ListGraphEdgeBucketsResponse)
+}
+PROTOBUF_NDEBUG_INLINE ListGraphEdgeBucketsResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        buckets_{visibility, arena} {}
+
+inline void ListGraphEdgeBucketsResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+ListGraphEdgeBucketsResponse::~ListGraphEdgeBucketsResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.world.ListGraphEdgeBucketsResponse)
+  SharedDtor(*this);
+}
+inline void ListGraphEdgeBucketsResponse::SharedDtor(MessageLite& self) {
+  ListGraphEdgeBucketsResponse& this_ = static_cast<ListGraphEdgeBucketsResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL ListGraphEdgeBucketsResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) ListGraphEdgeBucketsResponse(arena);
+}
+constexpr auto ListGraphEdgeBucketsResponse::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(ListGraphEdgeBucketsResponse, _impl_.buckets_) +
+          decltype(ListGraphEdgeBucketsResponse::_impl_.buckets_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::ZeroInit(
+        sizeof(ListGraphEdgeBucketsResponse), alignof(ListGraphEdgeBucketsResponse), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&ListGraphEdgeBucketsResponse::PlacementNew_,
+                                 sizeof(ListGraphEdgeBucketsResponse),
+                                 alignof(ListGraphEdgeBucketsResponse));
+  }
+}
+constexpr auto ListGraphEdgeBucketsResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_ListGraphEdgeBucketsResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &ListGraphEdgeBucketsResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<ListGraphEdgeBucketsResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &ListGraphEdgeBucketsResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<ListGraphEdgeBucketsResponse>(), &ListGraphEdgeBucketsResponse::ByteSizeLong,
+              &ListGraphEdgeBucketsResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(ListGraphEdgeBucketsResponse, _impl_._cached_size_),
+          false,
+      },
+      &ListGraphEdgeBucketsResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull ListGraphEdgeBucketsResponse_class_data_ =
+        ListGraphEdgeBucketsResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+ListGraphEdgeBucketsResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&ListGraphEdgeBucketsResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(ListGraphEdgeBucketsResponse_class_data_.tc_table);
+  return ListGraphEdgeBucketsResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 1, 0, 2>
+ListGraphEdgeBucketsResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(ListGraphEdgeBucketsResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    ListGraphEdgeBucketsResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::world::ListGraphEdgeBucketsResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // repeated .s4wave.world.GraphEdgeBucket buckets = 1;
+    {::_pbi::TcParser::FastMtR1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(ListGraphEdgeBucketsResponse, _impl_.buckets_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // repeated .s4wave.world.GraphEdgeBucket buckets = 1;
+    {PROTOBUF_FIELD_OFFSET(ListGraphEdgeBucketsResponse, _impl_.buckets_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::world::GraphEdgeBucket>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void ListGraphEdgeBucketsResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.world.ListGraphEdgeBucketsResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    _impl_.buckets_.Clear();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL ListGraphEdgeBucketsResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const ListGraphEdgeBucketsResponse& this_ = static_cast<const ListGraphEdgeBucketsResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL ListGraphEdgeBucketsResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const ListGraphEdgeBucketsResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.world.ListGraphEdgeBucketsResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // repeated .s4wave.world.GraphEdgeBucket buckets = 1;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_buckets_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_buckets().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              1, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.world.ListGraphEdgeBucketsResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t ListGraphEdgeBucketsResponse::ByteSizeLong(const MessageLite& base) {
+  const ListGraphEdgeBucketsResponse& this_ = static_cast<const ListGraphEdgeBucketsResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t ListGraphEdgeBucketsResponse::ByteSizeLong() const {
+  const ListGraphEdgeBucketsResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.world.ListGraphEdgeBucketsResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+   {
+    // repeated .s4wave.world.GraphEdgeBucket buckets = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size += 1UL * this_._internal_buckets_size();
+      for (const auto& msg : this_._internal_buckets()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void ListGraphEdgeBucketsResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<ListGraphEdgeBucketsResponse*>(&to_msg);
+  auto& from = static_cast<const ListGraphEdgeBucketsResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.world.ListGraphEdgeBucketsResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    _this->_internal_mutable_buckets()->InternalMergeFromWithArena(
+        ::google::protobuf::MessageLite::internal_visibility(), arena,
+        from._internal_buckets());
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void ListGraphEdgeBucketsResponse::CopyFrom(const ListGraphEdgeBucketsResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.world.ListGraphEdgeBucketsResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void ListGraphEdgeBucketsResponse::InternalSwap(ListGraphEdgeBucketsResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.buckets_.InternalSwap(&other->_impl_.buckets_);
+}
+
+::google::protobuf::Metadata ListGraphEdgeBucketsResponse::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================

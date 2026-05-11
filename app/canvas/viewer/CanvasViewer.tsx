@@ -309,40 +309,24 @@ export function CanvasViewer({
           return
         }
 
-        // Query outgoing+incoming edges for all selected nodes in parallel.
         // eslint-disable-next-line react-doctor/async-defer-await
-        const perNodeResults = await Promise.all(
-          selectedNodes.map(async (selected) => {
-            const [outgoing, incoming] = await Promise.all([
-              world.lookupGraphQuads(
-                selected.iri,
-                undefined,
-                undefined,
-                undefined,
-                graphLinkLookupLimit,
-                signal,
-              ),
-              world.lookupGraphQuads(
-                undefined,
-                undefined,
-                selected.iri,
-                undefined,
-                graphLinkLookupLimit,
-                signal,
-              ),
-            ])
-            return {
-              selected,
-              outgoing: outgoing.quads ?? [],
-              incoming: incoming.quads ?? [],
-              outgoingTruncated:
-                (outgoing.quads?.length ?? 0) >= graphLinkLookupLimit,
-              incomingTruncated:
-                (incoming.quads?.length ?? 0) >= graphLinkLookupLimit,
-            }
-          }),
+        const bucketResponse = await world.listGraphEdgeBuckets(
+          selectedNodes.map((selected) => selected.node.objectKey ?? ''),
+          graphLinkLookupLimit,
+          { abortSignal: signal },
         )
         if (signal.aborted) return
+        const buckets = bucketResponse.buckets ?? []
+        const perNodeResults = selectedNodes.map((selected, index) => {
+          const bucket = buckets[index]
+          return {
+            selected,
+            outgoing: bucket.outgoing ?? [],
+            incoming: bucket.incoming ?? [],
+            outgoingTruncated: bucket.outgoingTruncated ?? false,
+            incomingTruncated: bucket.incomingTruncated ?? false,
+          }
+        })
 
         const edges = buildGraphLinkViewModel(
           perNodeResults,

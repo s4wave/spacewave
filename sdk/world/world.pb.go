@@ -18,6 +18,50 @@ import (
 	bucket "github.com/s4wave/spacewave/db/bucket"
 )
 
+// GraphEdgeBucketDirection indicates which edge directions to list.
+type GraphEdgeBucketDirection int32
+
+const (
+	// GRAPH_EDGE_BUCKET_DIRECTION_UNSPECIFIED lists incoming and outgoing edges.
+	GraphEdgeBucketDirection_GRAPH_EDGE_BUCKET_DIRECTION_UNSPECIFIED GraphEdgeBucketDirection = 0
+	// GRAPH_EDGE_BUCKET_DIRECTION_OUT lists only outgoing edges.
+	GraphEdgeBucketDirection_GRAPH_EDGE_BUCKET_DIRECTION_OUT GraphEdgeBucketDirection = 1
+	// GRAPH_EDGE_BUCKET_DIRECTION_IN lists only incoming edges.
+	GraphEdgeBucketDirection_GRAPH_EDGE_BUCKET_DIRECTION_IN GraphEdgeBucketDirection = 2
+	// GRAPH_EDGE_BUCKET_DIRECTION_BOTH lists incoming and outgoing edges.
+	GraphEdgeBucketDirection_GRAPH_EDGE_BUCKET_DIRECTION_BOTH GraphEdgeBucketDirection = 3
+)
+
+// Enum value maps for GraphEdgeBucketDirection.
+var (
+	GraphEdgeBucketDirection_name = map[int32]string{
+		0: "GRAPH_EDGE_BUCKET_DIRECTION_UNSPECIFIED",
+		1: "GRAPH_EDGE_BUCKET_DIRECTION_OUT",
+		2: "GRAPH_EDGE_BUCKET_DIRECTION_IN",
+		3: "GRAPH_EDGE_BUCKET_DIRECTION_BOTH",
+	}
+	GraphEdgeBucketDirection_value = map[string]int32{
+		"GRAPH_EDGE_BUCKET_DIRECTION_UNSPECIFIED": 0,
+		"GRAPH_EDGE_BUCKET_DIRECTION_OUT":         1,
+		"GRAPH_EDGE_BUCKET_DIRECTION_IN":          2,
+		"GRAPH_EDGE_BUCKET_DIRECTION_BOTH":        3,
+	}
+)
+
+func (x GraphEdgeBucketDirection) Enum() *GraphEdgeBucketDirection {
+	p := new(GraphEdgeBucketDirection)
+	*p = x
+	return p
+}
+
+func (x GraphEdgeBucketDirection) String() string {
+	name, valid := GraphEdgeBucketDirection_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // GraphPathDirection indicates which side of the current object key to follow.
 type GraphPathDirection int32
 
@@ -843,6 +887,133 @@ func (*LookupGraphQuadsBatchResponse) ProtoMessage() {}
 func (x *LookupGraphQuadsBatchResponse) GetResults() []*LookupGraphQuadsBatchResult {
 	if x != nil {
 		return x.Results
+	}
+	return nil
+}
+
+// ListGraphEdgeBucketsRequest lists grouped inbound/outbound graph edges for
+// origin object keys.
+type ListGraphEdgeBucketsRequest struct {
+	unknownFields []byte
+	// OriginObjectKeys are object keys whose graph edges should be grouped.
+	// The response contains one bucket per requested origin in request order.
+	OriginObjectKeys []string `protobuf:"bytes,1,rep,name=origin_object_keys,json=originObjectKeys,proto3" json:"originObjectKeys,omitempty"`
+	// Predicate optionally restricts the grouped edges.
+	Predicate string `protobuf:"bytes,2,opt,name=predicate,proto3" json:"predicate,omitempty"`
+	// LimitPerOrigin is the maximum edge count returned per origin direction.
+	// It must be non-zero.
+	LimitPerOrigin uint32 `protobuf:"varint,3,opt,name=limit_per_origin,json=limitPerOrigin,proto3" json:"limitPerOrigin,omitempty"`
+	// Direction selects which edge directions are included.
+	// Unspecified means both incoming and outgoing.
+	Direction GraphEdgeBucketDirection `protobuf:"varint,4,opt,name=direction,proto3" json:"direction,omitempty"`
+}
+
+func (x *ListGraphEdgeBucketsRequest) Reset() {
+	*x = ListGraphEdgeBucketsRequest{}
+}
+
+func (*ListGraphEdgeBucketsRequest) ProtoMessage() {}
+
+func (x *ListGraphEdgeBucketsRequest) GetOriginObjectKeys() []string {
+	if x != nil {
+		return x.OriginObjectKeys
+	}
+	return nil
+}
+
+func (x *ListGraphEdgeBucketsRequest) GetPredicate() string {
+	if x != nil {
+		return x.Predicate
+	}
+	return ""
+}
+
+func (x *ListGraphEdgeBucketsRequest) GetLimitPerOrigin() uint32 {
+	if x != nil {
+		return x.LimitPerOrigin
+	}
+	return 0
+}
+
+func (x *ListGraphEdgeBucketsRequest) GetDirection() GraphEdgeBucketDirection {
+	if x != nil {
+		return x.Direction
+	}
+	return GraphEdgeBucketDirection_GRAPH_EDGE_BUCKET_DIRECTION_UNSPECIFIED
+}
+
+// GraphEdgeBucket contains grouped graph edges for one origin object key.
+type GraphEdgeBucket struct {
+	unknownFields []byte
+	// OriginObjectKey is the requested origin object key for this bucket.
+	OriginObjectKey string `protobuf:"bytes,1,opt,name=origin_object_key,json=originObjectKey,proto3" json:"originObjectKey,omitempty"`
+	// Outgoing contains quads where the origin is the subject.
+	Outgoing []*quad.Quad `protobuf:"bytes,2,rep,name=outgoing,proto3" json:"outgoing,omitempty"`
+	// Incoming contains quads where the origin is the object.
+	Incoming []*quad.Quad `protobuf:"bytes,3,rep,name=incoming,proto3" json:"incoming,omitempty"`
+	// OutgoingTruncated indicates more outgoing edges matched than were returned.
+	OutgoingTruncated bool `protobuf:"varint,4,opt,name=outgoing_truncated,json=outgoingTruncated,proto3" json:"outgoingTruncated,omitempty"`
+	// IncomingTruncated indicates more incoming edges matched than were returned.
+	IncomingTruncated bool `protobuf:"varint,5,opt,name=incoming_truncated,json=incomingTruncated,proto3" json:"incomingTruncated,omitempty"`
+}
+
+func (x *GraphEdgeBucket) Reset() {
+	*x = GraphEdgeBucket{}
+}
+
+func (*GraphEdgeBucket) ProtoMessage() {}
+
+func (x *GraphEdgeBucket) GetOriginObjectKey() string {
+	if x != nil {
+		return x.OriginObjectKey
+	}
+	return ""
+}
+
+func (x *GraphEdgeBucket) GetOutgoing() []*quad.Quad {
+	if x != nil {
+		return x.Outgoing
+	}
+	return nil
+}
+
+func (x *GraphEdgeBucket) GetIncoming() []*quad.Quad {
+	if x != nil {
+		return x.Incoming
+	}
+	return nil
+}
+
+func (x *GraphEdgeBucket) GetOutgoingTruncated() bool {
+	if x != nil {
+		return x.OutgoingTruncated
+	}
+	return false
+}
+
+func (x *GraphEdgeBucket) GetIncomingTruncated() bool {
+	if x != nil {
+		return x.IncomingTruncated
+	}
+	return false
+}
+
+// ListGraphEdgeBucketsResponse returns grouped graph edge buckets.
+type ListGraphEdgeBucketsResponse struct {
+	unknownFields []byte
+	// Buckets preserves the request origin order.
+	Buckets []*GraphEdgeBucket `protobuf:"bytes,1,rep,name=buckets,proto3" json:"buckets,omitempty"`
+}
+
+func (x *ListGraphEdgeBucketsResponse) Reset() {
+	*x = ListGraphEdgeBucketsResponse{}
+}
+
+func (*ListGraphEdgeBucketsResponse) ProtoMessage() {}
+
+func (x *ListGraphEdgeBucketsResponse) GetBuckets() []*GraphEdgeBucket {
+	if x != nil {
+		return x.Buckets
 	}
 	return nil
 }
@@ -1986,9 +2157,7 @@ func (m *AccessWorldStateRequest) CloneVT() *AccessWorldStateRequest {
 		return (*AccessWorldStateRequest)(nil)
 	}
 	r := new(AccessWorldStateRequest)
-	if rhs := m.Ref; rhs != nil {
-		r.Ref = rhs.CloneVT()
-	}
+	r.Ref = m.Ref.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2143,9 +2312,7 @@ func (m *CreateObjectRequest) CloneVT() *CreateObjectRequest {
 	}
 	r := new(CreateObjectRequest)
 	r.ObjectKey = m.ObjectKey
-	if rhs := m.RootRef; rhs != nil {
-		r.RootRef = rhs.CloneVT()
-	}
+	r.RootRef = m.RootRef.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2312,9 +2479,7 @@ func (m *SetGraphQuadRequest) CloneVT() *SetGraphQuadRequest {
 		return (*SetGraphQuadRequest)(nil)
 	}
 	r := new(SetGraphQuadRequest)
-	if rhs := m.Quad; rhs != nil {
-		r.Quad = rhs.CloneVT()
-	}
+	r.Quad = m.Quad.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2345,9 +2510,7 @@ func (m *DeleteGraphQuadRequest) CloneVT() *DeleteGraphQuadRequest {
 		return (*DeleteGraphQuadRequest)(nil)
 	}
 	r := new(DeleteGraphQuadRequest)
-	if rhs := m.Quad; rhs != nil {
-		r.Quad = rhs.CloneVT()
-	}
+	r.Quad = m.Quad.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2378,10 +2541,8 @@ func (m *LookupGraphQuadsRequest) CloneVT() *LookupGraphQuadsRequest {
 		return (*LookupGraphQuadsRequest)(nil)
 	}
 	r := new(LookupGraphQuadsRequest)
+	r.Filter = m.Filter.CloneVT()
 	r.Limit = m.Limit
-	if rhs := m.Filter; rhs != nil {
-		r.Filter = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2474,6 +2635,78 @@ func (m *LookupGraphQuadsBatchResponse) CloneVT() *LookupGraphQuadsBatchResponse
 }
 
 func (m *LookupGraphQuadsBatchResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ListGraphEdgeBucketsRequest) CloneVT() *ListGraphEdgeBucketsRequest {
+	if m == nil {
+		return (*ListGraphEdgeBucketsRequest)(nil)
+	}
+	r := new(ListGraphEdgeBucketsRequest)
+	r.Predicate = m.Predicate
+	r.LimitPerOrigin = m.LimitPerOrigin
+	r.Direction = m.Direction
+	if rhs := m.OriginObjectKeys; rhs != nil {
+		r.OriginObjectKeys = slices.Clone(rhs)
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ListGraphEdgeBucketsRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *GraphEdgeBucket) CloneVT() *GraphEdgeBucket {
+	if m == nil {
+		return (*GraphEdgeBucket)(nil)
+	}
+	r := new(GraphEdgeBucket)
+	r.OriginObjectKey = m.OriginObjectKey
+	r.OutgoingTruncated = m.OutgoingTruncated
+	r.IncomingTruncated = m.IncomingTruncated
+	if rhs := m.Outgoing; rhs != nil {
+		r.Outgoing = make([]*quad.Quad, len(rhs))
+		for k, v := range rhs {
+			r.Outgoing[k] = v.CloneVT()
+		}
+	}
+	if rhs := m.Incoming; rhs != nil {
+		r.Incoming = make([]*quad.Quad, len(rhs))
+		for k, v := range rhs {
+			r.Incoming[k] = v.CloneVT()
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GraphEdgeBucket) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ListGraphEdgeBucketsResponse) CloneVT() *ListGraphEdgeBucketsResponse {
+	if m == nil {
+		return (*ListGraphEdgeBucketsResponse)(nil)
+	}
+	r := new(ListGraphEdgeBucketsResponse)
+	if rhs := m.Buckets; rhs != nil {
+		r.Buckets = make([]*GraphEdgeBucket, len(rhs))
+		for k, v := range rhs {
+			r.Buckets[k] = v.CloneVT()
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ListGraphEdgeBucketsResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -3074,10 +3307,8 @@ func (m *GetRootRefResponse) CloneVT() *GetRootRefResponse {
 		return (*GetRootRefResponse)(nil)
 	}
 	r := new(GetRootRefResponse)
+	r.RootRef = m.RootRef.CloneVT()
 	r.Rev = m.Rev
-	if rhs := m.RootRef; rhs != nil {
-		r.RootRef = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3093,9 +3324,7 @@ func (m *SetRootRefRequest) CloneVT() *SetRootRefRequest {
 		return (*SetRootRefRequest)(nil)
 	}
 	r := new(SetRootRefRequest)
-	if rhs := m.RootRef; rhs != nil {
-		r.RootRef = rhs.CloneVT()
-	}
+	r.RootRef = m.RootRef.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -4072,6 +4301,135 @@ func (this *LookupGraphQuadsBatchResponse) EqualVT(that *LookupGraphQuadsBatchRe
 
 func (this *LookupGraphQuadsBatchResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*LookupGraphQuadsBatchResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ListGraphEdgeBucketsRequest) EqualVT(that *ListGraphEdgeBucketsRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if len(this.OriginObjectKeys) != len(that.OriginObjectKeys) {
+		return false
+	}
+	for i, vx := range this.OriginObjectKeys {
+		vy := that.OriginObjectKeys[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if this.Predicate != that.Predicate {
+		return false
+	}
+	if this.LimitPerOrigin != that.LimitPerOrigin {
+		return false
+	}
+	if this.Direction != that.Direction {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ListGraphEdgeBucketsRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ListGraphEdgeBucketsRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *GraphEdgeBucket) EqualVT(that *GraphEdgeBucket) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.OriginObjectKey != that.OriginObjectKey {
+		return false
+	}
+	if len(this.Outgoing) != len(that.Outgoing) {
+		return false
+	}
+	for i, vx := range this.Outgoing {
+		vy := that.Outgoing[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &quad.Quad{}
+			}
+			if q == nil {
+				q = &quad.Quad{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	if len(this.Incoming) != len(that.Incoming) {
+		return false
+	}
+	for i, vx := range this.Incoming {
+		vy := that.Incoming[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &quad.Quad{}
+			}
+			if q == nil {
+				q = &quad.Quad{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	if this.OutgoingTruncated != that.OutgoingTruncated {
+		return false
+	}
+	if this.IncomingTruncated != that.IncomingTruncated {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GraphEdgeBucket) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GraphEdgeBucket)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ListGraphEdgeBucketsResponse) EqualVT(that *ListGraphEdgeBucketsResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if len(this.Buckets) != len(that.Buckets) {
+		return false
+	}
+	for i, vx := range this.Buckets {
+		vy := that.Buckets[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &GraphEdgeBucket{}
+			}
+			if q == nil {
+				q = &GraphEdgeBucket{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ListGraphEdgeBucketsResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ListGraphEdgeBucketsResponse)
 	if !ok {
 		return false
 	}
@@ -5097,6 +5455,46 @@ func (this *AccessTypedObjectResponse) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+// MarshalProtoJSON marshals the GraphEdgeBucketDirection to JSON.
+func (x GraphEdgeBucketDirection) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), GraphEdgeBucketDirection_name)
+}
+
+// MarshalText marshals the GraphEdgeBucketDirection to text.
+func (x GraphEdgeBucketDirection) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), GraphEdgeBucketDirection_name)), nil
+}
+
+// MarshalJSON marshals the GraphEdgeBucketDirection to JSON.
+func (x GraphEdgeBucketDirection) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GraphEdgeBucketDirection from JSON.
+func (x *GraphEdgeBucketDirection) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(GraphEdgeBucketDirection_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read GraphEdgeBucketDirection enum: %v", err)
+		return
+	}
+	*x = GraphEdgeBucketDirection(v)
+}
+
+// UnmarshalText unmarshals the GraphEdgeBucketDirection from text.
+func (x *GraphEdgeBucketDirection) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), GraphEdgeBucketDirection_value)
+	if err != nil {
+		return err
+	}
+	*x = GraphEdgeBucketDirection(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the GraphEdgeBucketDirection from JSON.
+func (x *GraphEdgeBucketDirection) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the GraphPathDirection to JSON.
@@ -6816,6 +7214,255 @@ func (x *LookupGraphQuadsBatchResponse) UnmarshalProtoJSON(s *json.UnmarshalStat
 
 // UnmarshalJSON unmarshals the LookupGraphQuadsBatchResponse from JSON.
 func (x *LookupGraphQuadsBatchResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ListGraphEdgeBucketsRequest message to JSON.
+func (x *ListGraphEdgeBucketsRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.OriginObjectKeys) > 0 || s.HasField("originObjectKeys") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("originObjectKeys")
+		s.WriteStringArray(x.OriginObjectKeys)
+	}
+	if x.Predicate != "" || s.HasField("predicate") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("predicate")
+		s.WriteString(x.Predicate)
+	}
+	if x.LimitPerOrigin != 0 || s.HasField("limitPerOrigin") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("limitPerOrigin")
+		s.WriteUint32(x.LimitPerOrigin)
+	}
+	if x.Direction != 0 || s.HasField("direction") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("direction")
+		x.Direction.MarshalProtoJSON(s)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ListGraphEdgeBucketsRequest to JSON.
+func (x *ListGraphEdgeBucketsRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ListGraphEdgeBucketsRequest message from JSON.
+func (x *ListGraphEdgeBucketsRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "origin_object_keys", "originObjectKeys":
+			s.AddField("origin_object_keys")
+			if s.ReadNil() {
+				x.OriginObjectKeys = nil
+				return
+			}
+			x.OriginObjectKeys = s.ReadStringArray()
+		case "predicate":
+			s.AddField("predicate")
+			x.Predicate = s.ReadString()
+		case "limit_per_origin", "limitPerOrigin":
+			s.AddField("limit_per_origin")
+			x.LimitPerOrigin = s.ReadUint32()
+		case "direction":
+			s.AddField("direction")
+			x.Direction.UnmarshalProtoJSON(s)
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ListGraphEdgeBucketsRequest from JSON.
+func (x *ListGraphEdgeBucketsRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the GraphEdgeBucket message to JSON.
+func (x *GraphEdgeBucket) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.OriginObjectKey != "" || s.HasField("originObjectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("originObjectKey")
+		s.WriteString(x.OriginObjectKey)
+	}
+	if len(x.Outgoing) > 0 || s.HasField("outgoing") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("outgoing")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Outgoing {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("outgoing"))
+		}
+		s.WriteArrayEnd()
+	}
+	if len(x.Incoming) > 0 || s.HasField("incoming") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("incoming")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Incoming {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("incoming"))
+		}
+		s.WriteArrayEnd()
+	}
+	if x.OutgoingTruncated || s.HasField("outgoingTruncated") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("outgoingTruncated")
+		s.WriteBool(x.OutgoingTruncated)
+	}
+	if x.IncomingTruncated || s.HasField("incomingTruncated") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("incomingTruncated")
+		s.WriteBool(x.IncomingTruncated)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GraphEdgeBucket to JSON.
+func (x *GraphEdgeBucket) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GraphEdgeBucket message from JSON.
+func (x *GraphEdgeBucket) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "origin_object_key", "originObjectKey":
+			s.AddField("origin_object_key")
+			x.OriginObjectKey = s.ReadString()
+		case "outgoing":
+			s.AddField("outgoing")
+			if s.ReadNil() {
+				x.Outgoing = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Outgoing = append(x.Outgoing, nil)
+					return
+				}
+				v := &quad.Quad{}
+				v.UnmarshalProtoJSON(s.WithField("outgoing", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Outgoing = append(x.Outgoing, v)
+			})
+		case "incoming":
+			s.AddField("incoming")
+			if s.ReadNil() {
+				x.Incoming = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Incoming = append(x.Incoming, nil)
+					return
+				}
+				v := &quad.Quad{}
+				v.UnmarshalProtoJSON(s.WithField("incoming", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Incoming = append(x.Incoming, v)
+			})
+		case "outgoing_truncated", "outgoingTruncated":
+			s.AddField("outgoing_truncated")
+			x.OutgoingTruncated = s.ReadBool()
+		case "incoming_truncated", "incomingTruncated":
+			s.AddField("incoming_truncated")
+			x.IncomingTruncated = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the GraphEdgeBucket from JSON.
+func (x *GraphEdgeBucket) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ListGraphEdgeBucketsResponse message to JSON.
+func (x *ListGraphEdgeBucketsResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Buckets) > 0 || s.HasField("buckets") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("buckets")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Buckets {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("buckets"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ListGraphEdgeBucketsResponse to JSON.
+func (x *ListGraphEdgeBucketsResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ListGraphEdgeBucketsResponse message from JSON.
+func (x *ListGraphEdgeBucketsResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "buckets":
+			s.AddField("buckets")
+			if s.ReadNil() {
+				x.Buckets = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Buckets = append(x.Buckets, nil)
+					return
+				}
+				v := &GraphEdgeBucket{}
+				v.UnmarshalProtoJSON(s.WithField("buckets", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Buckets = append(x.Buckets, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ListGraphEdgeBucketsResponse from JSON.
+func (x *ListGraphEdgeBucketsResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -10424,6 +11071,194 @@ func (m *LookupGraphQuadsBatchResponse) MarshalToSizedBufferVT(dAtA []byte) (int
 	return len(dAtA) - i, nil
 }
 
+func (m *ListGraphEdgeBucketsRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ListGraphEdgeBucketsRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ListGraphEdgeBucketsRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Direction != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Direction))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.LimitPerOrigin != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.LimitPerOrigin))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.Predicate) > 0 {
+		i -= len(m.Predicate)
+		copy(dAtA[i:], m.Predicate)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Predicate)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.OriginObjectKeys) > 0 {
+		for iNdEx := len(m.OriginObjectKeys) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.OriginObjectKeys[iNdEx])
+			copy(dAtA[i:], m.OriginObjectKeys[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.OriginObjectKeys[iNdEx])))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *GraphEdgeBucket) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GraphEdgeBucket) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GraphEdgeBucket) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.IncomingTruncated {
+		i--
+		if m.IncomingTruncated {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.OutgoingTruncated {
+		i--
+		if m.OutgoingTruncated {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.Incoming) > 0 {
+		for iNdEx := len(m.Incoming) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Incoming[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if len(m.Outgoing) > 0 {
+		for iNdEx := len(m.Outgoing) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Outgoing[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.OriginObjectKey) > 0 {
+		i -= len(m.OriginObjectKey)
+		copy(dAtA[i:], m.OriginObjectKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.OriginObjectKey)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ListGraphEdgeBucketsResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ListGraphEdgeBucketsResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ListGraphEdgeBucketsResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Buckets) > 0 {
+		for iNdEx := len(m.Buckets) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Buckets[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *ListObjectsWithTypeRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -12868,6 +13703,80 @@ func (m *LookupGraphQuadsBatchResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *ListGraphEdgeBucketsRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.OriginObjectKeys) > 0 {
+		for _, s := range m.OriginObjectKeys {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	l = len(m.Predicate)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.LimitPerOrigin != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.LimitPerOrigin))
+	}
+	if m.Direction != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Direction))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GraphEdgeBucket) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.OriginObjectKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if len(m.Outgoing) > 0 {
+		for _, e := range m.Outgoing {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.Incoming) > 0 {
+		for _, e := range m.Incoming {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if m.OutgoingTruncated {
+		n += 2
+	}
+	if m.IncomingTruncated {
+		n += 2
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ListGraphEdgeBucketsResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Buckets) > 0 {
+		for _, e := range m.Buckets {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *ListObjectsWithTypeRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -13530,6 +14439,10 @@ func (m *AccessTypedObjectResponse) SizeVT() (n int) {
 	}
 	n += len(m.unknownFields)
 	return n
+}
+
+func (x GraphEdgeBucketDirection) MarshalProtoText() string {
+	return x.String()
 }
 
 func (x GraphPathDirection) MarshalProtoText() string {
@@ -14255,6 +15168,135 @@ func (x *LookupGraphQuadsBatchResponse) MarshalProtoText() string {
 }
 
 func (x *LookupGraphQuadsBatchResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ListGraphEdgeBucketsRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("ListGraphEdgeBucketsRequest {")
+	if len(x.OriginObjectKeys) > 0 {
+		if sb.Len() > 29 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("origin_object_keys: [")
+		for i, v := range x.OriginObjectKeys {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	if x.Predicate != "" {
+		if sb.Len() > 29 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("predicate: ")
+		sb.WriteString(strconv.Quote(x.Predicate))
+	}
+	if x.LimitPerOrigin != 0 {
+		if sb.Len() > 29 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("limit_per_origin: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.LimitPerOrigin), 10))
+	}
+	if x.Direction != 0 {
+		if sb.Len() > 29 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("direction: ")
+		sb.WriteString("\"")
+		sb.WriteString(GraphEdgeBucketDirection(x.Direction).String())
+		sb.WriteString("\"")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *ListGraphEdgeBucketsRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *GraphEdgeBucket) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("GraphEdgeBucket {")
+	if x.OriginObjectKey != "" {
+		if sb.Len() > 17 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("origin_object_key: ")
+		sb.WriteString(strconv.Quote(x.OriginObjectKey))
+	}
+	if len(x.Outgoing) > 0 {
+		if sb.Len() > 17 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("outgoing: [")
+		for i, v := range x.Outgoing {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
+	if len(x.Incoming) > 0 {
+		if sb.Len() > 17 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("incoming: [")
+		for i, v := range x.Incoming {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
+	if x.OutgoingTruncated != false {
+		if sb.Len() > 17 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("outgoing_truncated: ")
+		sb.WriteString(strconv.FormatBool(x.OutgoingTruncated))
+	}
+	if x.IncomingTruncated != false {
+		if sb.Len() > 17 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("incoming_truncated: ")
+		sb.WriteString(strconv.FormatBool(x.IncomingTruncated))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *GraphEdgeBucket) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ListGraphEdgeBucketsResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("ListGraphEdgeBucketsResponse {")
+	if len(x.Buckets) > 0 {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("buckets: [")
+		for i, v := range x.Buckets {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *ListGraphEdgeBucketsResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -17503,6 +18545,323 @@ func (m *LookupGraphQuadsBatchResponse) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Results = append(m.Results, &LookupGraphQuadsBatchResult{})
 			if err := m.Results[len(m.Results)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ListGraphEdgeBucketsRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ListGraphEdgeBucketsRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ListGraphEdgeBucketsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OriginObjectKeys", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.OriginObjectKeys = append(m.OriginObjectKeys, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Predicate", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Predicate = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LimitPerOrigin", wireType)
+			}
+			m.LimitPerOrigin = 0
+			m.LimitPerOrigin, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Direction", wireType)
+			}
+			m.Direction = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Direction = GraphEdgeBucketDirection(_v)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *GraphEdgeBucket) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GraphEdgeBucket: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GraphEdgeBucket: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OriginObjectKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.OriginObjectKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Outgoing", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Outgoing = append(m.Outgoing, &quad.Quad{})
+			if err := m.Outgoing[len(m.Outgoing)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Incoming", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Incoming = append(m.Incoming, &quad.Quad{})
+			if err := m.Incoming[len(m.Incoming)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OutgoingTruncated", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.OutgoingTruncated = bool(v != 0)
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IncomingTruncated", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.IncomingTruncated = bool(v != 0)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ListGraphEdgeBucketsResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ListGraphEdgeBucketsResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ListGraphEdgeBucketsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Buckets", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Buckets = append(m.Buckets, &GraphEdgeBucket{})
+			if err := m.Buckets[len(m.Buckets)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

@@ -266,6 +266,35 @@ func (ws *SDKWorldState) LookupGraphQuadsBatch(ctx context.Context, filters []wo
 	return results, nil
 }
 
+// ListGraphEdgeBuckets lists grouped inbound/outbound graph edge buckets.
+func (ws *SDKWorldState) ListGraphEdgeBuckets(ctx context.Context, query *world.GraphEdgeBucketQuery) ([]*world.GraphEdgeBucket, error) {
+	req := graphEdgeBucketQueryToProto(query)
+	resp, err := ws.service.ListGraphEdgeBuckets(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	buckets := make([]*world.GraphEdgeBucket, len(resp.GetBuckets()))
+	for i, bucket := range resp.GetBuckets() {
+		outgoing := make([]world.GraphQuad, len(bucket.GetOutgoing()))
+		for j, q := range bucket.GetOutgoing() {
+			outgoing[j] = q
+		}
+		incoming := make([]world.GraphQuad, len(bucket.GetIncoming()))
+		for j, q := range bucket.GetIncoming() {
+			incoming[j] = q
+		}
+		buckets[i] = &world.GraphEdgeBucket{
+			OriginObjectKey:   bucket.GetOriginObjectKey(),
+			Outgoing:          outgoing,
+			Incoming:          incoming,
+			OutgoingTruncated: bucket.GetOutgoingTruncated(),
+			IncomingTruncated: bucket.GetIncomingTruncated(),
+		}
+	}
+	return buckets, nil
+}
+
 // ListObjectsWithType lists object keys with the given type identifier.
 func (ws *SDKWorldState) ListObjectsWithType(ctx context.Context, typeID string) ([]string, error) {
 	resp, err := ws.service.ListObjectsWithType(ctx, &s4wave_world.ListObjectsWithTypeRequest{
@@ -397,5 +426,30 @@ func graphPathDirectionToProto(dir world.GraphPathDirection) (s4wave_world.Graph
 		return s4wave_world.GraphPathDirection_GRAPH_PATH_DIRECTION_BOTH, nil
 	default:
 		return 0, world.ErrGraphPathDirection
+	}
+}
+
+func graphEdgeBucketQueryToProto(query *world.GraphEdgeBucketQuery) *s4wave_world.ListGraphEdgeBucketsRequest {
+	if query == nil {
+		return &s4wave_world.ListGraphEdgeBucketsRequest{}
+	}
+	return &s4wave_world.ListGraphEdgeBucketsRequest{
+		OriginObjectKeys: query.OriginObjectKeys,
+		Predicate:        query.Predicate,
+		LimitPerOrigin:   query.LimitPerOrigin,
+		Direction:        graphEdgeBucketDirectionToProto(query.Direction),
+	}
+}
+
+func graphEdgeBucketDirectionToProto(dir world.GraphEdgeBucketDirection) s4wave_world.GraphEdgeBucketDirection {
+	switch dir {
+	case world.GraphEdgeBucketDirectionOut:
+		return s4wave_world.GraphEdgeBucketDirection_GRAPH_EDGE_BUCKET_DIRECTION_OUT
+	case world.GraphEdgeBucketDirectionIn:
+		return s4wave_world.GraphEdgeBucketDirection_GRAPH_EDGE_BUCKET_DIRECTION_IN
+	case world.GraphEdgeBucketDirectionBoth:
+		return s4wave_world.GraphEdgeBucketDirection_GRAPH_EDGE_BUCKET_DIRECTION_BOTH
+	default:
+		return s4wave_world.GraphEdgeBucketDirection_GRAPH_EDGE_BUCKET_DIRECTION_UNSPECIFIED
 	}
 }

@@ -13,7 +13,11 @@ import {
 import { ObjectState, type IObjectState } from './object-state.js'
 import { ObjectIterator } from './object_iterator.js'
 import { BucketLookupCursor } from '../bucket/lookup/lookup.js'
-import type { LookupGraphQuadsResponse } from './world.pb.js'
+import type {
+  GraphEdgeBucketDirection,
+  ListGraphEdgeBucketsResponse,
+  LookupGraphQuadsResponse,
+} from './world.pb.js'
 
 // TypedObjectAccess represents access to a typed resource from a world object.
 // The resourceId can be used with resourceRef.createRef() to access the typed resource.
@@ -27,6 +31,13 @@ export interface TypedObjectAccess {
 // RenameObjectOptions configures a world object rename request.
 export interface RenameObjectOptions {
   descendants?: boolean
+  abortSignal?: AbortSignal
+}
+
+// ListGraphEdgeBucketsOptions configures grouped graph edge bucket lookup.
+export interface ListGraphEdgeBucketsOptions {
+  predicate?: string
+  direction?: GraphEdgeBucketDirection
   abortSignal?: AbortSignal
 }
 
@@ -144,6 +155,14 @@ export interface IWorldState {
     limit?: number,
     abortSignal?: AbortSignal,
   ): Promise<LookupGraphQuadsResponse>
+
+  // ListGraphEdgeBuckets lists grouped inbound/outbound graph edges for origin object keys.
+  // The response contains one bucket per requested origin in request order.
+  listGraphEdgeBuckets(
+    originObjectKeys: string[],
+    limitPerOrigin: number,
+    options?: ListGraphEdgeBucketsOptions,
+  ): Promise<ListGraphEdgeBucketsResponse>
 
   // ListObjectsWithType lists object keys with the given type identifier.
   listObjectsWithType(
@@ -423,6 +442,23 @@ export class WorldStateResource extends Resource implements IWorldState {
         limit,
       },
       abortSignal,
+    )
+  }
+
+  // ListGraphEdgeBuckets lists grouped inbound/outbound graph edges for origin object keys.
+  public async listGraphEdgeBuckets(
+    originObjectKeys: string[],
+    limitPerOrigin: number,
+    options: ListGraphEdgeBucketsOptions = {},
+  ): Promise<ListGraphEdgeBucketsResponse> {
+    return await this.service.ListGraphEdgeBuckets(
+      {
+        originObjectKeys,
+        predicate: options.predicate,
+        limitPerOrigin,
+        direction: options.direction,
+      },
+      options.abortSignal,
     )
   }
 

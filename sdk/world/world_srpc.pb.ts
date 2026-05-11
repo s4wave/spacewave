@@ -51,6 +51,8 @@ import {
   IterateObjectsResponse,
   KeyRequest,
   KeyResponse,
+  ListGraphEdgeBucketsRequest,
+  ListGraphEdgeBucketsResponse,
   ListObjectsWithTypeRequest,
   ListObjectsWithTypeResponse,
   LookupGraphQuadsBatchRequest,
@@ -452,6 +454,15 @@ export const WorldStateResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * @generated from rpc s4wave.world.WorldStateResourceService.ListGraphEdgeBuckets
+     */
+    ListGraphEdgeBuckets: {
+      name: 'ListGraphEdgeBuckets',
+      I: ListGraphEdgeBucketsRequest,
+      O: ListGraphEdgeBucketsResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
      * @generated from rpc s4wave.world.WorldStateResourceService.ListObjectsWithType
      */
     ListObjectsWithType: {
@@ -616,6 +627,14 @@ export interface WorldStateResourceService {
   ): Promise<LookupGraphQuadsBatchResponse>
 
   /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.ListGraphEdgeBuckets
+   */
+  ListGraphEdgeBuckets(
+    request: ListGraphEdgeBucketsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ListGraphEdgeBucketsResponse>
+
+  /**
    * @generated from rpc s4wave.world.WorldStateResourceService.ListObjectsWithType
    */
   ListObjectsWithType(
@@ -679,6 +698,7 @@ export class WorldStateResourceServiceClient implements WorldStateResourceServic
     this.DeleteGraphQuad = this.DeleteGraphQuad.bind(this)
     this.LookupGraphQuads = this.LookupGraphQuads.bind(this)
     this.LookupGraphQuadsBatch = this.LookupGraphQuadsBatch.bind(this)
+    this.ListGraphEdgeBuckets = this.ListGraphEdgeBuckets.bind(this)
     this.ListObjectsWithType = this.ListObjectsWithType.bind(this)
     this.GetObjectMetadataBatch = this.GetObjectMetadataBatch.bind(this)
     this.QueryGraphPath = this.QueryGraphPath.bind(this)
@@ -921,6 +941,23 @@ export class WorldStateResourceServiceClient implements WorldStateResourceServic
       abortSignal || undefined,
     )
     return LookupGraphQuadsBatchResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.ListGraphEdgeBuckets
+   */
+  async ListGraphEdgeBuckets(
+    request: ListGraphEdgeBucketsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ListGraphEdgeBucketsResponse> {
+    const requestMsg = ListGraphEdgeBucketsRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      WorldStateResourceServiceDefinition.methods.ListGraphEdgeBuckets.name,
+      ListGraphEdgeBucketsRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return ListGraphEdgeBucketsResponse.fromBinary(result)
   }
 
   /**

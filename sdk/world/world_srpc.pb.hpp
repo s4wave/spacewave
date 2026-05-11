@@ -167,6 +167,8 @@ class SRPCWorldStateResourceServiceClient {
   virtual starpc::Error LookupGraphQuads(const s4wave::world::LookupGraphQuadsRequest& in, s4wave::world::LookupGraphQuadsResponse* out) = 0;
   // LookupGraphQuadsBatch
   virtual starpc::Error LookupGraphQuadsBatch(const s4wave::world::LookupGraphQuadsBatchRequest& in, s4wave::world::LookupGraphQuadsBatchResponse* out) = 0;
+  // ListGraphEdgeBuckets
+  virtual starpc::Error ListGraphEdgeBuckets(const s4wave::world::ListGraphEdgeBucketsRequest& in, s4wave::world::ListGraphEdgeBucketsResponse* out) = 0;
   // ListObjectsWithType
   virtual starpc::Error ListObjectsWithType(const s4wave::world::ListObjectsWithTypeRequest& in, s4wave::world::ListObjectsWithTypeResponse* out) = 0;
   // GetObjectMetadataBatch
@@ -215,6 +217,8 @@ class SRPCWorldStateResourceServiceClientImpl : public SRPCWorldStateResourceSer
   virtual starpc::Error LookupGraphQuads(const s4wave::world::LookupGraphQuadsRequest& in, s4wave::world::LookupGraphQuadsResponse* out) override;
   // LookupGraphQuadsBatch
   virtual starpc::Error LookupGraphQuadsBatch(const s4wave::world::LookupGraphQuadsBatchRequest& in, s4wave::world::LookupGraphQuadsBatchResponse* out) override;
+  // ListGraphEdgeBuckets
+  virtual starpc::Error ListGraphEdgeBuckets(const s4wave::world::ListGraphEdgeBucketsRequest& in, s4wave::world::ListGraphEdgeBucketsResponse* out) override;
   // ListObjectsWithType
   virtual starpc::Error ListObjectsWithType(const s4wave::world::ListObjectsWithTypeRequest& in, s4wave::world::ListObjectsWithTypeResponse* out) override;
   // GetObjectMetadataBatch
@@ -269,6 +273,8 @@ class SRPCWorldStateResourceServiceServer {
   virtual starpc::Error LookupGraphQuads(const s4wave::world::LookupGraphQuadsRequest& req, s4wave::world::LookupGraphQuadsResponse* resp) = 0;
   // LookupGraphQuadsBatch
   virtual starpc::Error LookupGraphQuadsBatch(const s4wave::world::LookupGraphQuadsBatchRequest& req, s4wave::world::LookupGraphQuadsBatchResponse* resp) = 0;
+  // ListGraphEdgeBuckets
+  virtual starpc::Error ListGraphEdgeBuckets(const s4wave::world::ListGraphEdgeBucketsRequest& req, s4wave::world::ListGraphEdgeBucketsResponse* resp) = 0;
   // ListObjectsWithType
   virtual starpc::Error ListObjectsWithType(const s4wave::world::ListObjectsWithTypeRequest& req, s4wave::world::ListObjectsWithTypeResponse* resp) = 0;
   // GetObjectMetadataBatch
