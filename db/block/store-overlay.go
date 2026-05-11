@@ -476,8 +476,8 @@ func (o *StoreOverlay) RmBlock(ctx context.Context, ref *BlockRef) error {
 		// removes go to the upper (write) store only.
 		return o.upper.RmBlock(ctx, ref)
 	case OverlayMode_LOWER_WRITE_CACHE:
-		// removes go to both stores.
-		return cacheMode(o.lower, o.upper)
+		// removes go to the lower (write) store only.
+		return o.lower.RmBlock(ctx, ref)
 	case OverlayMode_UPPER_READBACK_CACHE:
 		// removes go to the upper store only; lower lifecycle is external.
 		return o.upper.RmBlock(ctx, ref)

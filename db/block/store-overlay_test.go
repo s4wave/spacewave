@@ -244,6 +244,34 @@ func TestStoreOverlayUpperReadbackCache(t *testing.T) {
 	}
 }
 
+func TestStoreOverlayWriteCacheRemoveUsesWriteStore(t *testing.T) {
+	ctx := context.Background()
+	ref := &BlockRef{Hash: hash.NewHash(hash.HashType_HashType_BLAKE3, []byte{5})}
+
+	for _, tt := range []struct {
+		name      string
+		mode      OverlayMode
+		wantLower int
+		wantUpper int
+	}{
+		{name: "upper", mode: OverlayMode_UPPER_WRITE_CACHE, wantUpper: 1},
+		{name: "lower", mode: OverlayMode_LOWER_WRITE_CACHE, wantLower: 1},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			lower := &overlayBatchTestStore{}
+			upper := &overlayBatchTestStore{}
+			overlay := NewOverlay(ctx, nil, lower, upper, tt.mode, 0, nil)
+
+			if err := overlay.RmBlock(ctx, ref); err != nil {
+				t.Fatal(err.Error())
+			}
+			if lower.rmCalls != tt.wantLower || upper.rmCalls != tt.wantUpper {
+				t.Fatalf("unexpected rm calls: lower=%d upper=%d", lower.rmCalls, upper.rmCalls)
+			}
+		})
+	}
+}
+
 func TestStoreOverlayGetBlockExistsBatchForwards(t *testing.T) {
 	ctx := context.Background()
 	lower := &overlayBatchTestStore{}
