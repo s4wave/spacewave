@@ -4,8 +4,9 @@ import {
   useResource,
   type Resource,
 } from '@aptre/bldr-sdk/hooks/useResource.js'
-import { iriToKey, keyToIRI } from '@s4wave/sdk/world/graph-utils.js'
+import { iriToKey } from '@s4wave/sdk/world/graph-utils.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
+import { GraphEdgeBucketDirection } from '@s4wave/sdk/world/world.pb.js'
 import type { ForgeLinkedEntity } from '@s4wave/web/forge/useForgeLinkedEntities.js'
 import {
   PRED_TASK_TO_CACHED,
@@ -18,6 +19,76 @@ export interface ForgeTaskDependencyEdge {
   kind: 'subtask' | 'cached'
 }
 
+const forgeTaskDependencyLimit = 50
+
+type EdgeBucket = NonNullable<
+  Awaited<ReturnType<IWorldState['listGraphEdgeBuckets']>>['buckets']
+>[number]
+
+function dependencyEdgesFromBucket(
+  bucket: EdgeBucket | undefined,
+  taskKeys: Set<string>,
+  kind: ForgeTaskDependencyEdge['kind'],
+): ForgeTaskDependencyEdge[] {
+  const from = bucket?.originObjectKey ?? ''
+  if (!from) return []
+  return (bucket?.outgoing ?? []).flatMap((quad) => {
+    if (!quad.obj) return []
+    const to = iriToKey(quad.obj)
+    return taskKeys.has(to) ? [{ from, to, kind }] : []
+  })
+}
+
+async function loadDependencyBuckets(
+  world: IWorldState,
+  taskKeys: string[],
+  predicate: string,
+  signal: AbortSignal,
+): Promise<Map<string, EdgeBucket>> {
+  if (taskKeys.length === 0) return new Map()
+  const response = await world.listGraphEdgeBuckets(
+    taskKeys,
+    forgeTaskDependencyLimit,
+    {
+      predicate,
+      direction: GraphEdgeBucketDirection.OUT,
+      abortSignal: signal,
+    },
+  )
+  return new Map(
+    (response.buckets ?? []).map((bucket) => [
+      bucket.originObjectKey ?? '',
+      bucket,
+    ]),
+  )
+}
+
+export async function loadForgeTaskDependencyGraph(
+  world: IWorldState,
+  tasks: ForgeLinkedEntity[],
+  signal: AbortSignal,
+): Promise<ForgeTaskDependencyEdge[]> {
+  const taskKeys = [...new Set(tasks.map((task) => task.objectKey))]
+  const taskKeySet = new Set(taskKeys)
+  const [subtaskBuckets, cachedBuckets] = await Promise.all([
+    loadDependencyBuckets(world, taskKeys, PRED_TASK_TO_SUBTASK, signal),
+    loadDependencyBuckets(world, taskKeys, PRED_TASK_TO_CACHED, signal),
+  ])
+
+  return taskKeys.flatMap((taskKey) => [
+    ...dependencyEdgesFromBucket(
+      subtaskBuckets.get(taskKey),
+      taskKeySet,
+      'subtask',
+    ),
+    ...dependencyEdgesFromBucket(
+      cachedBuckets.get(taskKey),
+      taskKeySet,
+      'cached',
+    ),
+  ])
+}
+
 export function useForgeTaskDependencyGraph(
   worldState: Resource<IWorldState>,
   tasks: ForgeLinkedEntity[],
@@ -26,47 +97,7 @@ export function useForgeTaskDependencyGraph(
     worldState,
     async (world, signal) => {
       if (!world) return []
-
-      const taskKeys = new Set(tasks.map((task) => task.objectKey))
-      const edgeSets = await Promise.all(
-        tasks.map(async (task) => {
-          const queryEdgeSet = async (
-            predicate: string,
-            kind: ForgeTaskDependencyEdge['kind'],
-          ) => {
-            const result = await world.lookupGraphQuads(
-              keyToIRI(task.objectKey),
-              predicate,
-              undefined,
-              undefined,
-              50,
-              signal,
-            )
-            return (result.quads ?? []).flatMap((quad) => {
-              if (!quad.obj) return []
-              const objKey = iriToKey(quad.obj)
-              return taskKeys.has(objKey) ?
-                  [
-                    {
-                      from: task.objectKey,
-                      to: objKey,
-                      kind,
-                    },
-                  ]
-                : []
-            })
-          }
-
-          const [subtaskEdges, cachedEdges] = await Promise.all([
-            queryEdgeSet(PRED_TASK_TO_SUBTASK, 'subtask'),
-            queryEdgeSet(PRED_TASK_TO_CACHED, 'cached'),
-          ])
-
-          return [...subtaskEdges, ...cachedEdges]
-        }),
-      )
-
-      return edgeSets.flat()
+      return loadForgeTaskDependencyGraph(world, tasks, signal)
     },
     [tasks],
   )
