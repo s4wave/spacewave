@@ -34,6 +34,17 @@ describe('buildSpacewaveCommand', () => {
     ).toBe('spacewave status')
   })
 
+  it('emits --socket-path for project-local .spacewave sockets', () => {
+    expect(
+      buildSpacewaveCommand('status', {
+        sessionIndex: DEFAULT_SESSION_INDEX,
+        socketPath: '/Users/example/project/.spacewave/spacewave.sock',
+      }),
+    ).toBe(
+      "spacewave --socket-path '/Users/example/project/.spacewave/spacewave.sock' status",
+    )
+  })
+
   it('emits --socket-path when the listener path differs from the default', () => {
     expect(
       buildSpacewaveCommand('status', {

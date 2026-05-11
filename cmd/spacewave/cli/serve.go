@@ -24,7 +24,6 @@ import (
 	resource_root "github.com/s4wave/spacewave/core/resource/root"
 	db_world "github.com/s4wave/spacewave/db/world"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
-	"github.com/sirupsen/logrus"
 )
 
 const daemonPluginHostObjectKey = "plugin-host"
@@ -72,7 +71,6 @@ func runServeCommand(
 	takeover bool,
 ) (retErr error) {
 	ctx := c.Context
-	le := logrus.NewEntry(logrus.New())
 
 	resolved, err := resolveStatePathFromContext(c, "")
 	if err != nil {
@@ -98,7 +96,7 @@ func runServeCommand(
 	if cliBus == nil {
 		return errors.New("bus not initialized")
 	}
-	le = cliBus.GetLogger()
+	le := cliBus.GetLogger()
 	serveCtx, serveCancel := context.WithCancel(ctx)
 	handoffBroker := resource_listener.GetProcessYieldBroker()
 	handoffBroker.BeginHandoff("spacewave serve", sockPath)

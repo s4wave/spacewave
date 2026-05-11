@@ -100,6 +100,7 @@ describe('DownloadPage', () => {
     expect(
       screen.getByText(/macOS.*ships as a signed and notarized zip/i),
     ).toBeTruthy()
+    expect(screen.queryByText('spacewave-cli')).toBeNull()
   })
 
   it('renders a Windows zip-extract instruction in the CLI section', () => {

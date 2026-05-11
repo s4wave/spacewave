@@ -11,9 +11,10 @@ export interface CommandOptions {
 // SHARED_DEFAULT_SOCKET_PATH is the user-facing socket path the CLI
 // picks up with no flags when the desktop app is running. The native
 // listener reports an absolute path, so isSharedDefaultSocketPath also
-// accepts any resolved home path ending in the same suffix.
+// accepts the common resolved home-directory shapes.
 export const SHARED_DEFAULT_SOCKET_PATH = '~/.spacewave/spacewave.sock'
-const SHARED_DEFAULT_SOCKET_SUFFIX = '/.spacewave/spacewave.sock'
+const UNIX_SHARED_DEFAULT_SOCKET_PATH =
+  /^\/(?:Users|home)\/[^/]+\/\.spacewave\/spacewave\.sock$/
 
 // DEFAULT_SESSION_INDEX matches the CLI's own default for
 // --session-index, so session 1 produces the shortest command with no
@@ -54,7 +55,7 @@ export function buildSpacewaveCommand(
 export function isSharedDefaultSocketPath(path: string): boolean {
   return (
     path === SHARED_DEFAULT_SOCKET_PATH ||
-    path.endsWith(SHARED_DEFAULT_SOCKET_SUFFIX)
+    UNIX_SHARED_DEFAULT_SOCKET_PATH.test(path)
   )
 }
 

@@ -49,8 +49,8 @@ function MacOSSnippet({ entry }: { entry: DownloadEntry }) {
           extract it.
         </li>
         <li>
-          Move <code className="font-mono">spacewave-cli</code> somewhere on
-          your PATH, such as <code className="font-mono">/usr/local/bin</code>.
+          Move <code className="font-mono">spacewave</code> somewhere on your
+          PATH, such as <code className="font-mono">/usr/local/bin</code>.
         </li>
         <li>
           Open a new terminal and run{' '}
