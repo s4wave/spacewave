@@ -46,6 +46,7 @@ type Harness struct {
 	projRef       directive.Reference
 	manifestRefs  []directive.Reference
 	manifestWaits []manifestWait
+	le            *logrus.Entry
 	port          int
 	baseURL       string
 	headless      bool
@@ -122,6 +123,7 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 		ctx:      hctx,
 		cancel:   cancel,
 		headless: resolveHeadless(o.headless),
+		le:       le,
 	}
 	defer func() {
 		if retErr != nil {
@@ -490,7 +492,7 @@ func findFreePort() (int, error) {
 }
 
 func (h *Harness) assertStartupManifestFetches() error {
-	le := logrus.WithField("component", "harness")
+	le := h.le.WithField("component", "harness")
 	b := h.devtool.GetBus()
 	for _, req := range h.startupManifestRequests() {
 		if _, ok := h.projConfig.GetManifests()[req.pluginID]; !ok {
@@ -536,7 +538,7 @@ func (h *Harness) assertStartupManifestFetches() error {
 // directives to resolve on the devtool bus. This ensures builds are complete
 // before Playwright loads the app.
 func (h *Harness) waitForManifests(ctx context.Context) error {
-	le := logrus.WithField("component", "harness")
+	le := h.le.WithField("component", "harness")
 	waitCtx, cancel := context.WithTimeout(ctx, manifestBuildTimeout)
 	defer cancel()
 

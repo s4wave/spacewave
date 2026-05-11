@@ -34,6 +34,7 @@ type TestSession struct {
 	resClient      *resource_client.Client
 	root           *s4wave_root.Root
 	browserPeer    peer.ID
+	peerAfterSeq   uint64
 	resourceTiming ResourceConnectionTiming
 }
 
@@ -151,7 +152,7 @@ func (s *TestSession) LoadApp() error {
 // ConnectResources connects the session Resource SDK client through the
 // devtool/browser RPC link.
 func (s *TestSession) ConnectResources(ctx context.Context) error {
-	return s.h.connectSessionResources(ctx, s)
+	return s.h.connectSessionResources(ctx, s, s.peerAfterSeq)
 }
 
 // addWorker tracks a worker spawned by the page.

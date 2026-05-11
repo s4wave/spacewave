@@ -83,7 +83,7 @@ func (h *Harness) newBrowserPage(s *TestSession) (playwright.Page, error) {
 		if !shouldLogBrowserConsole(msg.Type(), text) {
 			return
 		}
-		logrus.WithFields(logrus.Fields{
+		s.h.le.WithFields(logrus.Fields{
 			"type":    msg.Type(),
 			"browser": true,
 		}).Info(text)
@@ -92,14 +92,14 @@ func (h *Harness) newBrowserPage(s *TestSession) (playwright.Page, error) {
 	page.OnWorker(func(w playwright.Worker) {
 		url := w.URL()
 		s.addWorker(w)
-		logrus.WithField("worker", url).Debug("worker spawned")
+		s.h.le.WithField("worker", url).Debug("worker spawned")
 		w.OnConsole(func(msg playwright.ConsoleMessage) {
 			text := msg.Text()
 			s.emitConsole(text)
 			if !shouldLogBrowserConsole(msg.Type(), text) {
 				return
 			}
-			le := logrus.WithFields(logrus.Fields{
+			le := s.h.le.WithFields(logrus.Fields{
 				"type":   msg.Type(),
 				"worker": url,
 			})
@@ -114,16 +114,16 @@ func (h *Harness) newBrowserPage(s *TestSession) (playwright.Page, error) {
 		})
 		w.OnClose(func(_ playwright.Worker) {
 			s.removeWorker(w)
-			logrus.WithField("worker", url).Debug("worker closed")
+			s.h.le.WithField("worker", url).Debug("worker closed")
 		})
 	})
 
 	page.On("pageerror", func(err error) {
-		logrus.WithField("browser", true).Error("page error: " + err.Error())
+		s.h.le.WithField("browser", true).Error("page error: " + err.Error())
 	})
 	page.On("response", func(resp playwright.Response) {
 		if resp.Status() >= 400 {
-			logrus.WithFields(logrus.Fields{
+			s.h.le.WithFields(logrus.Fields{
 				"url":     resp.URL(),
 				"status":  resp.Status(),
 				"browser": true,
@@ -155,6 +155,8 @@ func (h *Harness) loadAppPageURL(s *TestSession, targetURL string) error {
 	if s.page == nil {
 		return errors.New("session page not initialized")
 	}
+
+	s.peerAfterSeq = h.getPeerWatcher().LatestSequence()
 
 	waitUntil := playwright.WaitUntilStateDomcontentloaded
 	timeout := float64(120000)

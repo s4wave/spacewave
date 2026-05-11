@@ -47,6 +47,25 @@ func TestPeerWatcherReturnsNewestObservation(t *testing.T) {
 	}
 }
 
+func TestPeerWatcherObservationAfterSkipsStalePeers(t *testing.T) {
+	pw := &PeerWatcher{pending: make(chan BrowserPeerObservation, 8)}
+
+	pw.observePeer(peer.ID("peer-a"))
+	afterSeq := pw.LatestSequence()
+	pw.observePeer(peer.ID("peer-b"))
+
+	obs, err := pw.WaitForPeerObservationAfter(context.Background(), afterSeq)
+	if err != nil {
+		t.Fatalf("WaitForPeerObservationAfter: %v", err)
+	}
+	if obs.PeerID != peer.ID("peer-b") {
+		t.Fatalf("expected peer-b after checkpoint, got %q", obs.PeerID)
+	}
+	if obs.Sequence <= afterSeq {
+		t.Fatalf("expected sequence after %d, got %d", afterSeq, obs.Sequence)
+	}
+}
+
 func TestResourceConnectionTimingSnapshot(t *testing.T) {
 	sess := &TestSession{}
 	start := time.Now()

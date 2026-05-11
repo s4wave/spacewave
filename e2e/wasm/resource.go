@@ -25,8 +25,8 @@ var browserProtocolID = devtool_web.BrowserProtocolID
 // connectSessionResources connects a Resource SDK client on the given
 // TestSession through the bifrost link between the devtool bus and the
 // browser context's WASM process.
-func (h *Harness) connectSessionResources(ctx context.Context, s *TestSession) error {
-	le := logrus.WithField("component", "harness")
+func (h *Harness) connectSessionResources(ctx context.Context, s *TestSession, afterSeq uint64) error {
+	le := h.le.WithField("component", "harness")
 	startedAt := time.Now()
 	s.beginResourceConnectionTiming(startedAt)
 	var retErr error
@@ -44,7 +44,7 @@ func (h *Harness) connectSessionResources(ctx context.Context, s *TestSession) e
 	for {
 		le.Info("waiting for new browser peer")
 		waitStartedAt := time.Now()
-		peerObs, err := h.getPeerWatcher().WaitForPeerObservation(ctx)
+		peerObs, err := h.getPeerWatcher().WaitForPeerObservationAfter(ctx, afterSeq)
 		waitCompletedAt := time.Now()
 		s.recordPeerWaitTiming(waitStartedAt, waitCompletedAt, peerObs, err)
 		if err != nil {
