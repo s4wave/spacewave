@@ -54,7 +54,7 @@ func (s *Service) StopTrace(_ *s4wave_trace.StopTraceRequest, strm s4wave_trace.
 	}
 
 	runtime_trace.Stop()
-	data := s.buf.Bytes()
+	data := bytes.Clone(s.buf.Bytes())
 	s.buf.Reset()
 	s.active = false
 	s.mu.Unlock()
