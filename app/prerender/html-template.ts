@@ -1,3 +1,5 @@
+import { serializeJsonScriptData } from './json-script.js'
+
 interface PageHtmlOptions {
   body: string
   title: string
@@ -44,7 +46,7 @@ export function buildPageHtml(opts: PageHtmlOptions): string {
     : ''
   const jsonLdTag =
     opts.jsonLd ?
-      `\n  <script type="application/ld+json">${JSON.stringify(opts.jsonLd)}</script>`
+      `\n  <script type="application/ld+json">${serializeJsonScriptData(opts.jsonLd)}</script>`
     : ''
   const criticalStyle =
     opts.criticalCss ? `\n  <style>${opts.criticalCss}</style>` : ''

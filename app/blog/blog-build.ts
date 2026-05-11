@@ -20,6 +20,7 @@ import matter from 'gray-matter'
 import { createHighlighter } from 'shiki'
 
 import { buildPageHtml } from '../prerender/html-template.js'
+import { serializeJsonScriptData } from '../prerender/json-script.js'
 import { prerenderElement, type PrerenderContext } from '../prerender/build.js'
 import { authors } from './authors.js'
 import { BlogIndex, metadata as blogIndexMetadata } from './BlogIndex.js'
@@ -238,7 +239,7 @@ export async function buildBlog(
     createElement(BlogIndex, { posts }),
     '/blog',
   )
-  const indexBlogData = JSON.stringify({
+  const indexBlogData = serializeJsonScriptData({
     type: 'index',
     posts: postListForHydration,
   })
@@ -297,7 +298,7 @@ export async function buildBlog(
       prev: prevPost ? { title: prevPost.title, url: prevPost.url } : null,
       next: nextPost ? { title: nextPost.title, url: nextPost.url } : null,
     }
-    const blogDataTag = `<script type="application/json" id="blog-data">${JSON.stringify(blogData)}</script>`
+    const blogDataTag = `<script type="application/json" id="blog-data">${serializeJsonScriptData(blogData)}</script>`
 
     const postHtml = buildPageHtml({
       body: postBody + blogDataTag,
@@ -333,7 +334,7 @@ export async function buildBlog(
       `/blog/tag/${tag}`,
     )
     const tagPostsForHydration = tagPosts.map(postToHydrationMeta)
-    const tagBlogData = JSON.stringify({
+    const tagBlogData = serializeJsonScriptData({
       type: 'tag',
       tag,
       posts: tagPostsForHydration,
