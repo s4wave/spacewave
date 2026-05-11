@@ -159,6 +159,37 @@ describe('SabRingStream', () => {
     b.close()
   })
 
+  it('unblocks a writer when the remote reader closes with a full buffer', async () => {
+    const { aSab, bSab } = createSabPair({ slotSize: 128, numSlots: 1 })
+    const a = new SabRingStream(aSab, bSab, { slotSize: 128, numSlots: 1 })
+    const b = new SabRingStream(bSab, aSab, { slotSize: 128, numSlots: 1 })
+    let firstWritten = false
+
+    const done = a.sink(
+      (async function* () {
+        yield new Uint8Array([1])
+        firstWritten = true
+        yield new Uint8Array([2])
+      })(),
+    )
+
+    while (!firstWritten) {
+      await Promise.resolve()
+    }
+    b.close()
+
+    await Promise.race([
+      done,
+      new Promise((_, reject) => {
+        setTimeout(
+          () => reject(new Error('writer stayed blocked after reader close')),
+          100,
+        )
+      }),
+    ])
+    a.close()
+  })
+
   it('handles bidirectional communication', async () => {
     const { a, b } = makePair()
     const msgAB = new Uint8Array([11, 22, 33])

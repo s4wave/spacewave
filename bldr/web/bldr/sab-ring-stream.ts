@@ -190,6 +190,9 @@ export class SabRingStream
 
     // Wait for a free slot.
     while (!this.closed) {
+      if (Atomics.load(this.txCtrl, CTRL_STATE) !== STATE_OPEN) {
+        return
+      }
       const writeIdx = Atomics.load(this.txCtrl, CTRL_WRITE_IDX)
       const readIdx = Atomics.load(this.txCtrl, CTRL_READ_IDX)
       if (writeIdx - readIdx < this.numSlots) {
@@ -197,7 +200,7 @@ export class SabRingStream
       }
       await waitForChange(this.txCtrl, CTRL_READ_IDX, readIdx)
     }
-    if (this.closed) {
+    if (this.closed || Atomics.load(this.txCtrl, CTRL_STATE) !== STATE_OPEN) {
       return
     }
 
@@ -217,6 +220,13 @@ export class SabRingStream
     Atomics.store(this.txCtrl, CTRL_STATE, STATE_CLOSED)
     // Wake the remote reader so it sees the closed state.
     Atomics.notify(this.txCtrl, CTRL_WRITE_IDX)
+  }
+
+  // _closeRx tells the remote writer that this side will not drain rx slots.
+  private _closeRx(): void {
+    Atomics.store(this.rxCtrl, CTRL_STATE, STATE_CLOSED)
+    // Wake a writer blocked on backpressure so it sees the closed state.
+    Atomics.notify(this.rxCtrl, CTRL_READ_IDX)
   }
 
   private _createSink(): Sink<Source<Uint8Array>, Promise<void>> {
@@ -240,6 +250,7 @@ export class SabRingStream
     }
     this.closed = true
     this._closeTx()
+    this._closeRx()
     this._source.end(error)
   }
 }
