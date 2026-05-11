@@ -2,7 +2,6 @@ package e2e_wasm_session
 
 import (
 	"context"
-	"log"
 
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/s4wave/spacewave/net/peer"
@@ -29,7 +28,6 @@ func (s *signalPeerSession) GetRemotePeerID() peer.ID {
 
 // Send transmits a message to the remote peer via the relay.
 func (s *signalPeerSession) Send(ctx context.Context, msg []byte) error {
-	log.Printf("e2e signal relay send local=%s remote=%s bytes=%d", s.localPeerID.String(), s.remotePeerID.String(), len(msg))
 	return s.relay.Send(ctx, msg)
 }
 
@@ -39,7 +37,6 @@ func (s *signalPeerSession) Recv(ctx context.Context) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("e2e signal relay recv local=%s remote=%s bytes=%d", s.localPeerID.String(), s.remotePeerID.String(), len(msg))
 	return msg, nil
 }
 
@@ -84,7 +81,9 @@ func (r *signalPeerResolver) Resolve(ctx context.Context, handler directive.Reso
 		remotePeerID: remotePeerID,
 		relay:        rs,
 	}
-	_, _ = handler.AddValue(signaling.SignalPeerValue(sess))
+	if _, accepted := handler.AddValue(signaling.SignalPeerValue(sess)); !accepted {
+		return nil
+	}
 	return nil
 }
 

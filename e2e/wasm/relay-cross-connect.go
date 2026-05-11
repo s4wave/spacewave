@@ -4,7 +4,6 @@ package wasm
 
 import (
 	"context"
-	"log"
 	"slices"
 
 	"github.com/pkg/errors"
@@ -32,7 +31,6 @@ func RelayCrossConnect(
 				return
 			}
 			data := slices.Clone(msg.GetData())
-			log.Printf("e2e relay cross-connect forward bytes=%d", len(data))
 			if err := dst.Send(&e2e_wasm_session.SignalRelayMessage{
 				Body: &e2e_wasm_session.SignalRelayMessage_Data{
 					Data: data,
