@@ -43,6 +43,46 @@ func TestAnalyzeCjsExports_UnsupportedExt(t *testing.T) {
 	}
 }
 
+func TestAnalyzeCjsExports_NodeEnvConditionalRequire(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(
+		filepath.Join(dir, "index.js"),
+		[]byte(`
+if (process.env.NODE_ENV === "production") {
+	module.exports = require("./prod.js")
+}
+if (process.env.NODE_ENV !== "production") {
+	module.exports = require("./dev.js")
+}
+`),
+		0o644,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "prod.js"), []byte(`exports.prodOnly = true`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "dev.js"), []byte(`exports.devOnly = true`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	prodResult, err := AnalyzeCjsExports(dir, "./index.js", nil, "production")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(prodResult.Exports, "prodOnly") || slices.Contains(prodResult.Exports, "devOnly") {
+		t.Fatalf("unexpected production exports: %v", prodResult.Exports)
+	}
+
+	devResult, err := AnalyzeCjsExports(dir, "./index.js", nil, "development")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(devResult.Exports, "devOnly") || slices.Contains(devResult.Exports, "prodOnly") {
+		t.Fatalf("unexpected development exports: %v", devResult.Exports)
+	}
+}
+
 func TestVerifyExports(t *testing.T) {
 	names := []string{"default", "foo", "bar", "class", "123invalid", "valid$name", "foo"}
 	result := verifyExports(names)

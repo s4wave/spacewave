@@ -128,8 +128,11 @@ func TestBuildWebPkgsViteKeepsCjsWrappersOutsideOutDir(t *testing.T) {
 	if strings.HasPrefix(wrapperPath, outPrefix) {
 		t.Fatalf("wrapper path %s is inside outDir %s", wrapperPath, req.GetOutDir())
 	}
-	expectedPrefix := filepath.Join(outDir, ".cjs-wrappers", "cjs-pkg") + string(os.PathSeparator)
+	expectedPrefix := filepath.Join(outDir, ".cjs-wrappers") + string(os.PathSeparator)
 	if !strings.HasPrefix(wrapperPath, expectedPrefix) {
 		t.Fatalf("wrapper path %s does not use wrapper dir prefix %s", wrapperPath, expectedPrefix)
+	}
+	if strings.Contains(filepath.ToSlash(wrapperPath), "/cjs-pkg/index.mjs") {
+		t.Fatalf("wrapper path %s includes package id in entrypoint name", wrapperPath)
 	}
 }

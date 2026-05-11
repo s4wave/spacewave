@@ -68,7 +68,7 @@ func BuildWebPkgsVite(
 		// empties OutDir before building and wrapper files are build inputs.
 		pkgRoot := webPkgRef.GetWebPkgRoot()
 		imports := webPkgRef.GetImports()
-		wrapperDir := filepath.Join(outputPath, ".cjs-wrappers", webPkgID)
+		wrapperDir := filepath.Join(outputPath, ".cjs-wrappers")
 		imports, wrapperErr := generateCjsWrappers(le, pkgRoot, imports, wrapperDir, isRelease)
 		if wrapperErr != nil {
 			return nil, nil, nil, errors.Wrapf(wrapperErr, "generate cjs wrappers for %s", webPkgID)
