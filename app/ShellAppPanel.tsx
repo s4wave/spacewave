@@ -60,7 +60,8 @@ function ShellAppPanelInner({
 }) {
   const [openMenu, setOpenMenu] = useStateAtom<string>(null, 'openMenu', '')
   const tabId = useTabId()
-  const { tabs, setTabs, setActiveTabId, updateTabPath } = useShellTabs()
+  const { tabs, activeTabId, setTabs, setActiveTabId, updateTabPath } =
+    useShellTabs()
 
   const addTab = useCallback(
     (request: AddTabRequest) => {
@@ -105,11 +106,12 @@ function ShellAppPanelInner({
   const handleNavigate = useCallback(
     (to: To) => {
       if (!tabId) return
+      if (syncAppPath && tabId !== activeTabId) return
       const newPath = resolvePath(path, to)
       updateTabPath(tabId, newPath)
       if (syncAppPath) setAppPath(newPath)
     },
-    [tabId, path, updateTabPath, syncAppPath],
+    [tabId, activeTabId, path, updateTabPath, syncAppPath],
   )
 
   return (

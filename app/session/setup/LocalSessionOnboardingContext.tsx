@@ -1,4 +1,12 @@
-import { createContext, useCallback, use, useMemo, type ReactNode } from 'react'
+import {
+  createContext,
+  useCallback,
+  use,
+  useEffect,
+  useMemo,
+  useRef,
+  type ReactNode,
+} from 'react'
 
 import type { SessionMetadata } from '@s4wave/core/session/session.pb.js'
 import {
@@ -18,17 +26,17 @@ import {
   type LocalSessionOnboardingState,
 } from './local-session-onboarding-state.js'
 
-interface LocalSessionOnboardingContextValue {
+type LocalSessionOnboardingUpdate =
+  | LocalSessionOnboardingState
+  | ((prev: LocalSessionOnboardingState) => LocalSessionOnboardingState)
+
+export interface LocalSessionOnboardingContextValue {
   onboarding: LocalSessionOnboardingState
   loading: boolean
   metadataLoaded: boolean
   providerChoiceComplete: boolean
   isComplete: boolean
-  setOnboarding: (
-    update:
-      | LocalSessionOnboardingState
-      | ((prev: LocalSessionOnboardingState) => LocalSessionOnboardingState),
-  ) => void
+  setOnboarding: (update: LocalSessionOnboardingUpdate) => void
   markProviderChoiceComplete: () => void
   markBackupComplete: () => void
   markLockComplete: () => void
@@ -42,6 +50,14 @@ const nullStateAtomAccessor: StateAtomAccessor = {
   loading: false,
   error: null,
   retry: () => {},
+}
+
+function applyLocalSessionOnboardingUpdate(
+  state: LocalSessionOnboardingState,
+  update: LocalSessionOnboardingUpdate,
+): LocalSessionOnboardingState {
+  if (typeof update === 'function') return update(state)
+  return update
 }
 
 export function useSessionOnboardingState(
@@ -61,18 +77,29 @@ export function useSessionOnboardingState(
     storeId,
     defaultLocalSessionOnboardingState,
   )
+  const pendingUpdatesRef = useRef<LocalSessionOnboardingUpdate[]>([])
 
   const setOnboarding = useCallback(
-    (
-      update:
-        | LocalSessionOnboardingState
-        | ((prev: LocalSessionOnboardingState) => LocalSessionOnboardingState),
-    ) => {
-      if (loading) return
+    (update: LocalSessionOnboardingUpdate) => {
+      if (loading) {
+        pendingUpdatesRef.current = [...pendingUpdatesRef.current, update]
+        return
+      }
       setBackendOnboarding(update)
     },
     [loading, setBackendOnboarding],
   )
+
+  useEffect(() => {
+    if (loading) return
+    if (pendingUpdatesRef.current.length === 0) return
+
+    const updates = pendingUpdatesRef.current
+    pendingUpdatesRef.current = []
+    setBackendOnboarding((state) =>
+      updates.reduce(applyLocalSessionOnboardingUpdate, state),
+    )
+  }, [loading, setBackendOnboarding])
 
   const markProviderChoiceComplete = useCallback(() => {
     setOnboarding(completeLocalSessionOnboardingProviderChoice)

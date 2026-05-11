@@ -21,7 +21,11 @@ import { useSetupWizard } from '@s4wave/app/session/setup/useSetupWizard.js'
 import { CloudSetupWizard } from '@s4wave/app/provider/spacewave/CloudSetupWizard.js'
 import { WarningCard } from '@s4wave/app/session/setup/LocalSessionSetup.js'
 import { useDownloadDesktopApp } from '@s4wave/app/download/handler.js'
-import { useSessionOnboardingState } from '@s4wave/app/session/setup/LocalSessionOnboardingContext.js'
+import {
+  useOptionalLocalSessionOnboardingContext,
+  useSessionOnboardingState,
+  type LocalSessionOnboardingContextValue,
+} from '@s4wave/app/session/setup/LocalSessionOnboardingContext.js'
 import { completeAndDismissLocalSessionOnboardingProviderChoice } from '@s4wave/app/session/setup/local-session-onboarding-state.js'
 
 import type { SetupWizardState } from '@s4wave/app/session/setup/useSetupWizard.js'
@@ -29,19 +33,44 @@ import type { SetupWizardState } from '@s4wave/app/session/setup/useSetupWizard.
 // SetupWizard dispatches to the cloud or local variant based on
 // the session's provider ID.
 export function SetupWizard() {
+  const localOnboarding = useOptionalLocalSessionOnboardingContext()
+  if (localOnboarding) {
+    return <SetupWizardWithOnboarding onboarding={localOnboarding} />
+  }
+
+  return <SetupWizardWithOwnedOnboarding />
+}
+
+function SetupWizardWithOwnedOnboarding() {
+  const onboarding = useSessionOnboardingState()
+  return <SetupWizardWithOnboarding onboarding={onboarding} />
+}
+
+function SetupWizardWithOnboarding({
+  onboarding,
+}: {
+  onboarding: LocalSessionOnboardingContextValue
+}) {
   const navigate = useNavigate()
   const params = useParams()
   const isReturning = params['*'] === 'returning'
   const exitPath = isReturning ? '../../' : '../'
 
-  const wiz = useSetupWizard()
+  const wiz = useSetupWizard(onboarding)
 
   if (wiz.providerId === 'spacewave' && !isReturning) {
     return (
       <CloudSetupWizard wiz={wiz} exitPath={exitPath} navigate={navigate} />
     )
   }
-  return <LocalSetupWizard wiz={wiz} exitPath={exitPath} navigate={navigate} />
+  return (
+    <LocalSetupWizard
+      wiz={wiz}
+      onboarding={onboarding}
+      exitPath={exitPath}
+      navigate={navigate}
+    />
+  )
 }
 
 // LocalSetupWizard renders a single page for local session setup.
@@ -49,10 +78,12 @@ export function SetupWizard() {
 // collapsible backup key and PIN lock cards, continue button.
 function LocalSetupWizard({
   wiz,
+  onboarding,
   exitPath,
   navigate,
 }: {
   wiz: SetupWizardState
+  onboarding: LocalSessionOnboardingContextValue
   exitPath: string
   navigate: (to: { path: string }) => void
 }) {
@@ -62,12 +93,12 @@ function LocalSetupWizard({
   const downloadDesktopApp = useDownloadDesktopApp()
   const pinInputId = useId()
   const confirmPinInputId = useId()
+  const requestedProviderChoiceRef = useRef(false)
   const {
     loading: onboardingLoading,
     providerChoiceComplete,
     setOnboarding,
-  } = useSessionOnboardingState()
-  const requestedProviderChoiceRef = useRef(false)
+  } = onboarding
 
   // Mark provider complete on mount (user already chose local to get here).
   useEffect(() => {

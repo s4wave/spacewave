@@ -6,14 +6,14 @@ import { useMountAccount } from '@s4wave/web/hooks/useMountAccount.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { SessionLockMode } from '@s4wave/core/session/session.pb.js'
-import { useSessionOnboardingState } from '@s4wave/app/session/setup/LocalSessionOnboardingContext.js'
+import type { LocalSessionOnboardingContextValue } from '@s4wave/app/session/setup/LocalSessionOnboardingContext.js'
 
 // SetupWizardState is the return type of useSetupWizard.
 export type SetupWizardState = ReturnType<typeof useSetupWizard>
 
 // useSetupWizard provides shared state and handlers for the setup wizard.
 // Used by both CloudSetupWizard and LocalSetupWizard.
-export function useSetupWizard() {
+export function useSetupWizard(onboarding: LocalSessionOnboardingContextValue) {
   const sessionResource = SessionContext.useContext()
   const session = useResourceValue(sessionResource)
   const [lockMode, setLockMode] = useState<'auto' | 'pin'>('auto')
@@ -25,8 +25,6 @@ export function useSetupWizard() {
   const [downloading, setDownloading] = useState(false)
 
   const { providerId, accountId, isCloud } = useSessionInfo(session)
-  const onboarding = useSessionOnboardingState()
-
   // Mount account resource for cloud sessions (GenerateBackupKey RPC).
   // Local sessions use session.exportBackupKey instead.
   const accountResource = useMountAccount(providerId, accountId, isCloud)
