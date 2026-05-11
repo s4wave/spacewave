@@ -1011,6 +1011,7 @@ export function UnixFSBrowser({
             />
             <button
               tabIndex={0}
+              aria-label="Confirm rename"
               className="text-brand hover:text-brand-highlight shrink-0 p-0.5"
               onClick={(e) => {
                 e.preventDefault()
@@ -1022,6 +1023,7 @@ export function UnixFSBrowser({
             </button>
             <button
               tabIndex={0}
+              aria-label="Cancel rename"
               className="text-foreground-alt hover:text-foreground shrink-0 p-0.5"
               onClick={(e) => {
                 e.preventDefault()

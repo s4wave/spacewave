@@ -154,6 +154,7 @@ vi.mock('@s4wave/web/hooks/useUnixFSHandle.js', () => ({
       lookup: h.mockLookup,
       mkdirAll: h.mockMkdirAll,
       mknod: h.mockMknod,
+      rename: h.mockRename,
     }),
   useUnixFSHandleEntries: () =>
     h.mockEntriesResource ?? buildResource(h.mockFileEntries),
@@ -383,6 +384,14 @@ function triggerDownloadCommand() {
   const handler = h.registeredCommands.get('spacewave.file.download')?.handler
   if (!handler) {
     throw new Error('download command was not registered')
+  }
+  handler()
+}
+
+function triggerRenameCommand() {
+  const handler = h.registeredCommands.get('spacewave.file.rename')?.handler
+  if (!handler) {
+    throw new Error('rename command was not registered')
   }
   handler()
 }
@@ -730,6 +739,61 @@ describe('UnixFSBrowser drag gating', () => {
         77,
         undefined,
       )
+    })
+  })
+
+  it('confirms inline rename with Enter', async () => {
+    const user = userEvent.setup()
+    render(
+      <UnixFSBrowser
+        unixfsId="files"
+        basePath="/"
+        currentPath="/"
+        worldState={buildResource({} as IWorldState)}
+      />,
+    )
+
+    act(() => {
+      setSelection(['file'])
+    })
+    act(() => {
+      triggerRenameCommand()
+    })
+
+    const input = screen.getByDisplayValue('file.txt')
+    await user.clear(input)
+    await user.type(input, 'renamed.txt{Enter}')
+
+    await waitFor(() => {
+      expect(h.mockRename).toHaveBeenCalledWith('file.txt', 'renamed.txt')
+    })
+  })
+
+  it('confirms inline rename with the confirm button', async () => {
+    const user = userEvent.setup()
+    render(
+      <UnixFSBrowser
+        unixfsId="files"
+        basePath="/"
+        currentPath="/"
+        worldState={buildResource({} as IWorldState)}
+      />,
+    )
+
+    act(() => {
+      setSelection(['file'])
+    })
+    act(() => {
+      triggerRenameCommand()
+    })
+
+    const input = screen.getByDisplayValue('file.txt')
+    await user.clear(input)
+    await user.type(input, 'confirmed.txt')
+    await user.click(screen.getByRole('button', { name: 'Confirm rename' }))
+
+    await waitFor(() => {
+      expect(h.mockRename).toHaveBeenCalledWith('file.txt', 'confirmed.txt')
     })
   })
 

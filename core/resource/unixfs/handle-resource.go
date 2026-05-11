@@ -690,6 +690,7 @@ func (r *FSHandleResource) readAllEntries(ctx context.Context) ([]*s4wave_unixfs
 func (r *FSHandleResource) WatchReaddir(req *s4wave_unixfs.HandleWatchReaddirRequest, strm s4wave_unixfs.SRPCFSHandleResourceService_WatchReaddirStream) error {
 	ctx := strm.Context()
 
+	var prev *s4wave_unixfs.HandleWatchReaddirResponse
 	for {
 		var ch <-chan struct{}
 		r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
@@ -701,10 +702,14 @@ func (r *FSHandleResource) WatchReaddir(req *s4wave_unixfs.HandleWatchReaddirReq
 			return err
 		}
 
-		if err := strm.Send(&s4wave_unixfs.HandleWatchReaddirResponse{
+		resp := &s4wave_unixfs.HandleWatchReaddirResponse{
 			Entries: entries,
-		}); err != nil {
-			return err
+		}
+		if prev == nil || !resp.EqualVT(prev) {
+			if err := strm.Send(resp); err != nil {
+				return err
+			}
+			prev = resp
 		}
 
 		select {

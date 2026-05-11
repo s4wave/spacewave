@@ -28,6 +28,7 @@ func setupFSHandleResourceClient(
 	context.Context,
 	*resource_client.Client,
 	*unixfs_sdk.FSHandle,
+	*FSHandleResource,
 	func(),
 ) {
 	t.Helper()
@@ -109,14 +110,15 @@ func setupFSHandleResourceClient(
 	}
 	srpcClient := srpc.NewClientWithMuxedConn(clientMp)
 
-	rootMux := NewFSHandleObjectResource(
+	rootResource := NewFSHandleObjectResource(
 		rootHandle,
 		nil,
 		ws,
 		"test-fs",
 		fsType,
 		nil,
-	).GetMux()
+	)
+	rootMux := rootResource.GetMux()
 	resourceSrv := resource_server.NewResourceServer(rootMux)
 	serverMux := srpc.NewMux()
 	if err := resourceSrv.Register(serverMux); err != nil {
@@ -147,11 +149,11 @@ func setupFSHandleResourceClient(
 		serverPipe.Close()
 	}
 
-	return ctx, resClient, rootHandle, cleanup
+	return ctx, resClient, rootHandle, rootResource, cleanup
 }
 
 func TestFSHandleResourceRenameCrossDirectory(t *testing.T) {
-	ctx, resClient, rootHandle, cleanup := setupFSHandleResourceClient(t)
+	ctx, resClient, rootHandle, _, cleanup := setupFSHandleResourceClient(t)
 	defer cleanup()
 
 	rootRef := resClient.AccessRootResource()
@@ -217,7 +219,7 @@ func TestFSHandleResourceRenameCrossDirectory(t *testing.T) {
 }
 
 func TestFSHandleResourceWatchReaddirSeesSiblingRename(t *testing.T) {
-	ctx, resClient, _, cleanup := setupFSHandleResourceClient(t)
+	ctx, resClient, _, rootResource, cleanup := setupFSHandleResourceClient(t)
 	defer cleanup()
 
 	rootRef := resClient.AccessRootResource()
@@ -267,6 +269,28 @@ func TestFSHandleResourceWatchReaddirSeesSiblingRename(t *testing.T) {
 		t.Fatalf("unexpected initial entries: %v", extractEntryNames(initial.GetEntries()))
 	}
 
+	dedupCtx, cancelDedup := context.WithCancel(ctx)
+	defer cancelDedup()
+	dedupWatch, err := srcSvc.WatchReaddir(
+		dedupCtx,
+		&s4wave_unixfs.HandleWatchReaddirRequest{},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := dedupWatch.Recv(); err != nil {
+		t.Fatal(err)
+	}
+	rootResource.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		broadcast()
+	})
+	select {
+	case dup := <-recvWatchReaddir(t, dedupWatch):
+		t.Fatalf("unexpected duplicate watch emission: %v", extractEntryNames(dup.GetEntries()))
+	case <-time.After(50 * time.Millisecond):
+	}
+	cancelDedup()
+
 	if _, err := srcSvc.Rename(ctx, &s4wave_unixfs.HandleRenameRequest{
 		SourceName:           "file.txt",
 		DestName:             "moved.txt",
@@ -284,8 +308,24 @@ func TestFSHandleResourceWatchReaddirSeesSiblingRename(t *testing.T) {
 	}
 }
 
+func recvWatchReaddir(
+	t *testing.T,
+	watch s4wave_unixfs.SRPCFSHandleResourceService_WatchReaddirClient,
+) <-chan *s4wave_unixfs.HandleWatchReaddirResponse {
+	t.Helper()
+	ch := make(chan *s4wave_unixfs.HandleWatchReaddirResponse, 1)
+	go func() {
+		resp, err := watch.Recv()
+		if err != nil {
+			return
+		}
+		ch <- resp
+	}()
+	return ch
+}
+
 func TestFSHandleResourceUploadTreeNested(t *testing.T) {
-	ctx, resClient, _, cleanup := setupFSHandleResourceClient(t)
+	ctx, resClient, _, _, cleanup := setupFSHandleResourceClient(t)
 	defer cleanup()
 
 	rootRef := resClient.AccessRootResource()
@@ -417,7 +457,7 @@ func TestFSHandleResourceUploadTreeNested(t *testing.T) {
 }
 
 func TestFSHandleResourceUploadTreeRejectsAbsolutePath(t *testing.T) {
-	ctx, resClient, _, cleanup := setupFSHandleResourceClient(t)
+	ctx, resClient, _, _, cleanup := setupFSHandleResourceClient(t)
 	defer cleanup()
 
 	rootRef := resClient.AccessRootResource()
@@ -449,7 +489,7 @@ func TestFSHandleResourceUploadTreeRejectsAbsolutePath(t *testing.T) {
 }
 
 func TestFSHandleResourceUploadTreeRejectsOversizedData(t *testing.T) {
-	ctx, resClient, _, cleanup := setupFSHandleResourceClient(t)
+	ctx, resClient, _, _, cleanup := setupFSHandleResourceClient(t)
 	defer cleanup()
 
 	rootRef := resClient.AccessRootResource()
