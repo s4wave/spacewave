@@ -67,8 +67,16 @@ func (r *GraphPathQueryResource) Next(ctx context.Context, req *s4wave_world.Nex
 
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if r.closed || r.offset >= len(r.objectKeys) {
+	if r.closed {
 		return &s4wave_world.NextGraphPathQueryResponse{Done: true}, nil
+	}
+	if r.offset >= len(r.objectKeys) {
+		quads := append([]world.GraphQuad(nil), r.quads...)
+		r.quads = nil
+		return &s4wave_world.NextGraphPathQueryResponse{
+			Quads: graphQuadsToProto(quads),
+			Done:  true,
+		}, nil
 	}
 
 	end := min(r.offset+int(r.pageSize), len(r.objectKeys))
@@ -79,6 +87,7 @@ func (r *GraphPathQueryResource) Next(ctx context.Context, req *s4wave_world.Nex
 	var quads []world.GraphQuad
 	if done {
 		quads = append([]world.GraphQuad(nil), r.quads...)
+		r.quads = nil
 	}
 	return &s4wave_world.NextGraphPathQueryResponse{
 		ObjectKeys: objectKeys,

@@ -244,6 +244,37 @@ func TestWorldStateListGraphEdgeBuckets(t *testing.T) {
 	}
 }
 
+func TestGraphPathQueryResourceReturnsQuadsWithoutObjectKeys(t *testing.T) {
+	ctx := context.Background()
+	resource := resource_world.NewGraphPathQueryResource(nil, nil, &world.GraphPathQueryResult{
+		Quads: []world.GraphQuad{
+			world.NewGraphQuadWithKeys("query/a", "<query-rel>", "query/b", ""),
+		},
+	}, 1)
+
+	page, err := resource.Next(ctx, &s4wave_world.NextGraphPathQueryRequest{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !page.GetDone() {
+		t.Fatal("expected terminal page")
+	}
+	if len(page.GetObjectKeys()) != 0 {
+		t.Fatalf("expected no object keys, got %#v", page.GetObjectKeys())
+	}
+	if len(page.GetQuads()) != 1 {
+		t.Fatalf("expected traversed quad on terminal empty-key page, got %d", len(page.GetQuads()))
+	}
+
+	page, err = resource.Next(ctx, &s4wave_world.NextGraphPathQueryRequest{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !page.GetDone() || len(page.GetQuads()) != 0 {
+		t.Fatalf("expected already drained terminal page, got done=%v quads=%d", page.GetDone(), len(page.GetQuads()))
+	}
+}
+
 // TestWorldStateBasicOperations tests basic WorldState operations using the SDK.
 func TestWorldStateBasicOperations(t *testing.T) {
 	ctx := context.Background()
