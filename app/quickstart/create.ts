@@ -79,8 +79,10 @@ export interface QuickstartPhaseTiming {
 
 export interface QuickstartSetupTiming {
   quickstartId: QuickstartSpaceCreateId
+  state: 'loading' | 'progress-ready' | 'content-ready' | 'error' | 'cancelled'
   startedMs: number
   progressReadyMs?: number
+  contentReadyMs?: number
   finishedMs?: number
   elapsedMs?: number
   error?: string
@@ -144,6 +146,7 @@ function startQuickstartTiming(
 ): QuickstartSetupTiming {
   const timing: QuickstartSetupTiming = {
     quickstartId,
+    state: 'loading',
     startedMs: nowMs(),
     phases: [],
   }
@@ -161,12 +164,17 @@ function publishQuickstartTiming(timing: QuickstartSetupTiming): void {
 function finishQuickstartTiming(
   timing: QuickstartSetupTiming,
   err?: unknown,
+  abortSignal?: AbortSignal,
 ): void {
   const finishedMs = nowMs()
   timing.finishedMs = finishedMs
   timing.elapsedMs = finishedMs - timing.startedMs
   if (err) {
     timing.error = getErrorMessage(err)
+    timing.state = abortSignal?.aborted ? 'cancelled' : 'error'
+  } else {
+    timing.state = 'content-ready'
+    timing.contentReadyMs = finishedMs
   }
   publishQuickstartTiming(timing)
   if (globalThis.__s4waveLogQuickstartTiming) {
@@ -177,6 +185,7 @@ function finishQuickstartTiming(
 function markQuickstartProgressReady(timing: QuickstartSetupTiming): void {
   if (typeof timing.progressReadyMs === 'number') return
   timing.progressReadyMs = nowMs()
+  timing.state = 'progress-ready'
   publishQuickstartTiming(timing)
   if (globalThis.__s4waveLogQuickstartTiming) {
     console.log('quickstart progress ready: ' + JSON.stringify(timing))
@@ -578,7 +587,7 @@ export async function createQuickstartSetup(
     finishQuickstartTiming(timing)
     return result
   } catch (err) {
-    finishQuickstartTiming(timing, err)
+    finishQuickstartTiming(timing, err, abortSignal)
     throw err
   }
 }

@@ -370,7 +370,9 @@ describe('quickstart create', () => {
     )
 
     const timing = globalThis.__s4waveQuickstartTiming
+    expect(timing?.state).toBe('content-ready')
     expect(timing?.progressReadyMs).toEqual(expect.any(Number))
+    expect(timing?.contentReadyMs).toEqual(timing?.finishedMs)
     expect(timing?.finishedMs).toEqual(expect.any(Number))
     expect(timing?.finishedMs ?? 0).toBeGreaterThanOrEqual(
       timing?.progressReadyMs ?? 0,
@@ -399,6 +401,99 @@ describe('quickstart create', () => {
         detail: 'Seeding My Drive content',
       }),
     )
+  })
+
+  it('records a setup error after progress-ready without marking content-ready', async () => {
+    vi.stubGlobal('__s4waveQuickstartTiming', undefined)
+    vi.stubGlobal('__s4wave_debug', {})
+    const abortSignal = new AbortController().signal
+    const cleanup: RegisterCleanup = (value) => value
+    localProviderMocks.createAccount.mockResolvedValue({
+      sessionListEntry: {
+        sessionIndex: 3,
+        sessionRef: { providerResourceRef: { providerId: 'local' } },
+      },
+    })
+    const root = {
+      listSessions: vi.fn().mockResolvedValue({ sessions: [] }),
+      lookupProvider: vi.fn().mockResolvedValue({
+        resourceRef: { providerId: 'local' },
+        release: vi.fn(),
+        [Symbol.dispose]: vi.fn(),
+      }),
+      mountSession: vi.fn().mockResolvedValue({
+        createSpace: vi.fn().mockResolvedValue({
+          sharedObjectRef: { providerResourceRef: { id: 'space-1' } },
+        }),
+        release: vi.fn(),
+        [Symbol.dispose]: vi.fn(),
+      }),
+    }
+    const { world, applyWorldOp } = buildQuickstartWorld()
+    const seedError = new Error('drive seed failed')
+    applyWorldOp.mockRejectedValue(seedError)
+    Object.assign(world, {
+      accessWorldState: vi.fn().mockResolvedValue({
+        release: vi.fn(),
+        [Symbol.dispose]: vi.fn(),
+      }),
+    })
+    spaceMocks.mountSpace.mockResolvedValue({
+      accessWorldState: vi.fn().mockResolvedValue(world),
+      mountSpaceContents: vi.fn().mockResolvedValue({
+        release: vi.fn(),
+        [Symbol.dispose]: vi.fn(),
+      }),
+    })
+
+    await expect(
+      createQuickstartSetup(root as never, 'drive', abortSignal, cleanup),
+    ).rejects.toThrow('drive seed failed')
+
+    const timing = globalThis.__s4waveQuickstartTiming
+    expect(timing?.state).toBe('error')
+    expect(timing?.progressReadyMs).toEqual(expect.any(Number))
+    expect(timing?.contentReadyMs).toBeUndefined()
+    expect(timing?.finishedMs).toEqual(expect.any(Number))
+    expect(timing?.error).toBe('drive seed failed')
+    expect(globalThis.__s4wave_debug?.quickstartTiming?.state).toBe('error')
+  })
+
+  it('records aborted setup as cancelled without progress-ready or content-ready', async () => {
+    vi.stubGlobal('__s4waveQuickstartTiming', undefined)
+    vi.stubGlobal('__s4wave_debug', {})
+    vi.stubGlobal('localStorage', {
+      getItem: vi.fn(() => null),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+    })
+    const abort = new AbortController()
+    abort.abort()
+    const cleanup: RegisterCleanup = (value) => value
+    localProviderMocks.createAccount.mockRejectedValue(
+      new DOMException('Aborted', 'AbortError'),
+    )
+    const root = {
+      listSessions: vi.fn().mockResolvedValue({ sessions: [] }),
+      lookupProvider: vi.fn().mockResolvedValue({
+        resourceRef: { providerId: 'local' },
+        release: vi.fn(),
+        [Symbol.dispose]: vi.fn(),
+      }),
+      mountSession: vi.fn(),
+    }
+
+    await expect(
+      createQuickstartSetup(root as never, 'drive', abort.signal, cleanup),
+    ).rejects.toThrow('Aborted')
+
+    const timing = globalThis.__s4waveQuickstartTiming
+    expect(timing?.state).toBe('cancelled')
+    expect(timing?.progressReadyMs).toBeUndefined()
+    expect(timing?.contentReadyMs).toBeUndefined()
+    expect(timing?.finishedMs).toEqual(expect.any(Number))
+    expect(timing?.error).toBe('Aborted')
+    expect(globalThis.__s4wave_debug?.quickstartTiming?.state).toBe('cancelled')
   })
 
   it('creates Drive storage before pointing the index at the Drive object', async () => {

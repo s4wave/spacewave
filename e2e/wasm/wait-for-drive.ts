@@ -3,7 +3,9 @@ interface DriveReadyResult {
   contentReadyMs: number
   hash: string
   quickstartTiming: {
+    state?: string
     progressReadyMs?: number
+    contentReadyMs?: number
     finishedMs?: number
     error?: string
   } | null
@@ -43,7 +45,9 @@ export default async function (args: {
           quickstartTiming:
             timing ?
               {
+                state: timing.state,
                 progressReadyMs: timing.progressReadyMs,
+                contentReadyMs: timing.contentReadyMs,
                 finishedMs: timing.finishedMs,
                 error: timing.error,
               }

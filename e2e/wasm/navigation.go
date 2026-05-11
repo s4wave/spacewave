@@ -18,7 +18,9 @@ type DriveReadyResult struct {
 	Body                      string
 	Hash                      string
 	ContentReadyMs            int
+	QuickstartState           string
 	QuickstartProgressReadyMs *int
+	QuickstartContentReadyMs  *int
 	QuickstartFinishedMs      *int
 	QuickstartError           string
 }
@@ -155,7 +157,9 @@ func parseDriveReadyResult(t testing.TB, raw any) DriveReadyResult {
 		ContentReadyMs: intField(m, "contentReadyMs"),
 	}
 	if timing, ok := m["quickstartTiming"].(map[string]any); ok {
+		result.QuickstartState = stringField(timing, "state")
 		result.QuickstartProgressReadyMs = optionalIntField(timing, "progressReadyMs")
+		result.QuickstartContentReadyMs = optionalIntField(timing, "contentReadyMs")
 		result.QuickstartFinishedMs = optionalIntField(timing, "finishedMs")
 		result.QuickstartError = stringField(timing, "error")
 	}
@@ -196,8 +200,14 @@ func AssertQuickstartContentAfterProgress(t testing.TB, result DriveReadyResult)
 	if result.QuickstartError != "" {
 		t.Fatalf("quickstart timing recorded an error: %s", result.QuickstartError)
 	}
+	if result.QuickstartState != "" && result.QuickstartState != "content-ready" {
+		t.Fatalf("expected quickstart state content-ready, got %q", result.QuickstartState)
+	}
 	if result.QuickstartProgressReadyMs == nil {
 		t.Fatal("expected quickstart progress-ready timing before Drive content-ready")
+	}
+	if result.QuickstartContentReadyMs == nil {
+		t.Fatal("expected quickstart content-ready timing before Drive content-ready")
 	}
 	if result.QuickstartFinishedMs == nil {
 		t.Fatal("expected quickstart finished timing before Drive content-ready")
@@ -213,6 +223,13 @@ func AssertQuickstartContentAfterProgress(t testing.TB, result DriveReadyResult)
 		t.Fatalf(
 			"expected Drive content-ready after quickstart progress-ready, got progress=%s content=%dms",
 			formatOptionalMs(result.QuickstartProgressReadyMs),
+			result.ContentReadyMs,
+		)
+	}
+	if result.ContentReadyMs < *result.QuickstartContentReadyMs {
+		t.Fatalf(
+			"expected Drive content-ready after quickstart content-ready, got quickstart=%s content=%dms",
+			formatOptionalMs(result.QuickstartContentReadyMs),
 			result.ContentReadyMs,
 		)
 	}
