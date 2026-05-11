@@ -114,6 +114,64 @@ func TestPromoteNoOpWhenDestinationMatches(t *testing.T) {
 	}
 }
 
+func TestFetchDestinationHeadRefRejectsMalformedRootInner(t *testing.T) {
+	const dstSpaceID = "01DSTSPACE000000000000000000"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/"+dstSpaceID+"/root.packedmsg" {
+			http.NotFound(w, r)
+			return
+		}
+		ptrBytes, err := (&alpha_cdn.CdnRootPointer{
+			SpaceId: dstSpaceID,
+			Root:    &sobject.SORoot{Inner: []byte("not-a-root-inner")},
+		}).MarshalVT()
+		if err != nil {
+			t.Fatalf("MarshalVT() error = %v", err)
+		}
+		_, _ = w.Write([]byte(packedmsg.EncodePackedMessage(ptrBytes)))
+	}))
+	defer srv.Close()
+
+	_, err := FetchDestinationHeadRef(context.Background(), srv.URL, dstSpaceID)
+	if err == nil {
+		t.Fatal("expected malformed destination root error")
+	}
+	if !strings.Contains(err.Error(), "unmarshal destination SORootInner") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestFetchDestinationHeadRefRejectsMalformedInnerState(t *testing.T) {
+	const dstSpaceID = "01DSTSPACE000000000000000000"
+	rootInner, err := (&sobject.SORootInner{StateData: []byte("not-inner-state")}).MarshalVT()
+	if err != nil {
+		t.Fatalf("MarshalVT() error = %v", err)
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/"+dstSpaceID+"/root.packedmsg" {
+			http.NotFound(w, r)
+			return
+		}
+		ptrBytes, err := (&alpha_cdn.CdnRootPointer{
+			SpaceId: dstSpaceID,
+			Root:    &sobject.SORoot{Inner: rootInner},
+		}).MarshalVT()
+		if err != nil {
+			t.Fatalf("MarshalVT() error = %v", err)
+		}
+		_, _ = w.Write([]byte(packedmsg.EncodePackedMessage(ptrBytes)))
+	}))
+	defer srv.Close()
+
+	_, err = FetchDestinationHeadRef(context.Background(), srv.URL, dstSpaceID)
+	if err == nil {
+		t.Fatal("expected malformed destination inner state error")
+	}
+	if !strings.Contains(err.Error(), "unmarshal inner state") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func testPublishHeadRef(id string) *bucket.ObjectRef {
 	return &bucket.ObjectRef{
 		BucketId: id,

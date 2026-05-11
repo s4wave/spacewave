@@ -71,11 +71,11 @@ func FetchDestinationHeadRef(ctx context.Context, cdnBaseURL string, spaceID str
 	}
 	sori := &sobject.SORootInner{}
 	if err := sori.UnmarshalVT(ptr.GetRoot().GetInner()); err != nil {
-		return nil, nil
+		return nil, errors.Wrap(err, "unmarshal destination SORootInner")
 	}
 	headRef, err := DecodeHeadRefFromRootInner(sori)
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
 	return headRef, nil
 }
