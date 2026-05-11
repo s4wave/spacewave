@@ -16,6 +16,8 @@ import (
 type uploadTreeFile struct {
 	parentPath []string
 	name       string
+	totalSize  int64
+	written    int64
 	pw         *io.PipeWriter
 	done       chan error
 }
@@ -152,6 +154,7 @@ func (r *FSHandleResource) handleUploadTreeMessage(
 		state.current = &uploadTreeFile{
 			parentPath: parentPath,
 			name:       parts[len(parts)-1],
+			totalSize:  fileStart.GetTotalSize(),
 			pw:         pw,
 			done:       done,
 		}
@@ -166,8 +169,12 @@ func (r *FSHandleResource) handleUploadTreeMessage(
 	if state.current == nil {
 		return errors.New("tree upload data received before file_start")
 	}
+	if int64(len(data)) > state.current.totalSize-state.current.written {
+		return errors.Errorf("tree upload data exceeds declared size for %q", state.current.name)
+	}
 	n, err := state.current.pw.Write(data)
 	state.resp.BytesWritten += int64(n)
+	state.current.written += int64(n)
 	if err != nil {
 		return err
 	}
@@ -223,6 +230,19 @@ func finishUploadTreeFile(state *uploadTreeState) error {
 	}
 	curr := state.current
 	state.current = nil
+	if curr.written != curr.totalSize {
+		sizeErr := errors.Errorf(
+			"tree upload file %q wrote %d bytes, expected %d",
+			curr.name,
+			curr.written,
+			curr.totalSize,
+		)
+		if err := curr.pw.CloseWithError(sizeErr); err != nil {
+			return err
+		}
+		<-curr.done
+		return sizeErr
+	}
 	if err := curr.pw.Close(); err != nil {
 		return err
 	}
@@ -250,6 +270,9 @@ func abortUploadTreeFile(state *uploadTreeState, cause error) error {
 func parseUploadTreePath(path string) ([]string, error) {
 	if path == "" {
 		return nil, errors.New("empty upload path")
+	}
+	if strings.HasPrefix(path, "/") {
+		return nil, errors.New("upload path must be relative")
 	}
 	parts := strings.Split(path, "/")
 	out := make([]string, 0, len(parts))

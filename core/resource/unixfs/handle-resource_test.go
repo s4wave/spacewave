@@ -416,6 +416,78 @@ func TestFSHandleResourceUploadTreeNested(t *testing.T) {
 	}
 }
 
+func TestFSHandleResourceUploadTreeRejectsAbsolutePath(t *testing.T) {
+	ctx, resClient, _, cleanup := setupFSHandleResourceClient(t)
+	defer cleanup()
+
+	rootRef := resClient.AccessRootResource()
+	defer rootRef.Release()
+
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+
+	strm, err := rootSvc.UploadTree(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := strm.Send(&s4wave_unixfs.HandleUploadTreeRequest{
+		Body: &s4wave_unixfs.HandleUploadTreeRequest_Directory{
+			Directory: &s4wave_unixfs.HandleUploadTreeDirectory{
+				Path: "/nested",
+				Mode: 0o755,
+			},
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := strm.CloseAndRecv(); err == nil {
+		t.Fatal("expected absolute upload path to fail")
+	}
+}
+
+func TestFSHandleResourceUploadTreeRejectsOversizedData(t *testing.T) {
+	ctx, resClient, _, cleanup := setupFSHandleResourceClient(t)
+	defer cleanup()
+
+	rootRef := resClient.AccessRootResource()
+	defer rootRef.Release()
+
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+
+	strm, err := rootSvc.UploadTree(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := strm.Send(&s4wave_unixfs.HandleUploadTreeRequest{
+		Body: &s4wave_unixfs.HandleUploadTreeRequest_FileStart{
+			FileStart: &s4wave_unixfs.HandleUploadTreeFileStart{
+				Path:      "oversized.txt",
+				TotalSize: 1,
+				Mode:      0o644,
+			},
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := strm.Send(&s4wave_unixfs.HandleUploadTreeRequest{
+		Body: &s4wave_unixfs.HandleUploadTreeRequest_Data{
+			Data: []byte("too much"),
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := strm.CloseAndRecv(); err == nil {
+		t.Fatal("expected oversized upload data to fail")
+	}
+}
+
 func extractEntryNames(entries []*s4wave_unixfs.DirEntry) []string {
 	names := make([]string, 0, len(entries))
 	for _, entry := range entries {

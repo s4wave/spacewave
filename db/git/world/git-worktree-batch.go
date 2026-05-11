@@ -4,6 +4,7 @@ import (
 	"context"
 	"io/fs"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/go-git/go-billy/v6"
@@ -44,7 +45,7 @@ func materializeRepoToTempWorkdir(
 			ctx,
 			tempBfs,
 			seedHandle,
-			unixfs_sync.DeleteMode_DeleteMode_DURING,
+			unixfs_sync.DeleteMode_DeleteMode_NONE,
 			nil,
 		); err != nil {
 			os.RemoveAll(tempDir)
@@ -164,8 +165,43 @@ func checkoutRepoWorktree(
 	} else if opts.Keep {
 		ro.Mode = git.SoftReset
 	}
+	var sentinelPath string
+	if ro.Mode == git.HardReset {
+		// go-git prunes empty parent dirs after deleting tracked files; keep
+		// the temp worktree root non-empty so it does not try to remove ".".
+		for i := range 10 {
+			candidate := ".spacewave-checkout-sentinel-" + strconv.Itoa(i)
+			_, err := wt.Filesystem.Stat(candidate)
+			if err == nil {
+				continue
+			}
+			if !os.IsNotExist(err) {
+				return err
+			}
+			f, err := wt.Filesystem.Create(candidate)
+			if err != nil {
+				return err
+			}
+			if err := f.Close(); err != nil {
+				return err
+			}
+			sentinelPath = candidate
+			break
+		}
+		if sentinelPath == "" {
+			return errors.New("unable to reserve checkout sentinel")
+		}
+	}
 	if err := wt.Reset(ro); err != nil {
+		if sentinelPath != "" {
+			_ = wt.Filesystem.Remove(sentinelPath)
+		}
 		return err
+	}
+	if sentinelPath != "" {
+		if err := wt.Filesystem.Remove(sentinelPath); err != nil && !os.IsNotExist(err) {
+			return err
+		}
 	}
 	if headRef == nil {
 		return nil
