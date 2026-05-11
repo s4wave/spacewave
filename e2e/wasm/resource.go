@@ -113,6 +113,7 @@ func (h *Harness) connectSessionResources(ctx context.Context, s *TestSession, a
 						retErr = errors.Wrap(err, "reload app after resource startup timeout")
 						return retErr
 					}
+					afterSeq = s.peerAfterSeq
 					break
 				}
 			} else if shouldAbandonBrowserPeer(err) {
