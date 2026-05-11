@@ -112,6 +112,15 @@ func shouldSkipBrowserLaunch(browserName string, err error) bool {
 // runFixture opens a fixture page in the given browser, waits for "DONE" in
 // #log, and returns window.__results as a map.
 func runFixture(t *testing.T, browserName, fixture string) map[string]any {
+	return runFixtureWithAllowedBrowserFailures(t, browserName, fixture, nil)
+}
+
+func runFixtureWithAllowedBrowserFailures(
+	t *testing.T,
+	browserName string,
+	fixture string,
+	allowedBrowserFailures []string,
+) map[string]any {
 	t.Helper()
 
 	bt := browserType(browserName)
@@ -145,6 +154,11 @@ func runFixture(t *testing.T, browserName, fixture string) map[string]any {
 	page.On("console", func(msg playwright.ConsoleMessage) {
 		t.Logf("[%s console.%s] %s", browserName, msg.Type(), msg.Text())
 		if msg.Type() == "error" {
+			for _, allowed := range allowedBrowserFailures {
+				if strings.Contains(msg.Text(), allowed) {
+					return
+				}
+			}
 			failureMu.Lock()
 			browserFailures = append(browserFailures, "console.error: "+msg.Text())
 			failureMu.Unlock()
@@ -323,7 +337,15 @@ func TestStartupFailures(t *testing.T) {
 	for _, browser := range browsers {
 		t.Run(browser, func(t *testing.T) {
 			t.Parallel()
-			results := runFixture(t, browser, "startup-failures")
+			results := runFixtureWithAllowedBrowserFailures(
+				t,
+				browser,
+				"startup-failures",
+				[]string{
+					"ServiceWorker: connecting via WebDocument failed: startup-failures-slow-doc",
+					"ServiceWorker: connecting via WebDocument failed: startup-failures-close-doc",
+				},
+			)
 
 			if pass, ok := results["pass"].(bool); !ok || !pass {
 				t.Fatalf("startup failures fixture failed: %v", results["detail"])
