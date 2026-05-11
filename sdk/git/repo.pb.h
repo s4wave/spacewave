@@ -2411,6 +2411,9 @@ class GetDiffPatchResponse final : public ::google::protobuf::Message
   // accessors -------------------------------------------------------
   enum : int {
     kPatchFieldNumber = 1,
+    kTotalBytesFieldNumber = 3,
+    kTruncatedFieldNumber = 2,
+    kLimitBytesFieldNumber = 4,
   };
   // string patch = 1;
   void clear_patch() ;
@@ -2427,11 +2430,41 @@ class GetDiffPatchResponse final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_patch();
 
   public:
+  // uint64 total_bytes = 3;
+  void clear_total_bytes() ;
+  ::uint64_t total_bytes() const;
+  void set_total_bytes(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_total_bytes() const;
+  void _internal_set_total_bytes(::uint64_t value);
+
+  public:
+  // bool truncated = 2;
+  void clear_truncated() ;
+  bool truncated() const;
+  void set_truncated(bool value);
+
+  private:
+  bool _internal_truncated() const;
+  void _internal_set_truncated(bool value);
+
+  public:
+  // uint32 limit_bytes = 4;
+  void clear_limit_bytes() ;
+  ::uint32_t limit_bytes() const;
+  void set_limit_bytes(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_limit_bytes() const;
+  void _internal_set_limit_bytes(::uint32_t value);
+
+  public:
   // @@protoc_insertion_point(class_scope:s4wave.git.GetDiffPatchResponse)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<0, 1,
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
                                    0, 45,
                                    2>
       _table_;
@@ -2454,6 +2487,9 @@ class GetDiffPatchResponse final : public ::google::protobuf::Message
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::internal::ArenaStringPtr patch_;
+    ::uint64_t total_bytes_;
+    bool truncated_;
+    ::uint32_t limit_bytes_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -6775,6 +6811,81 @@ inline void GetDiffPatchResponse::set_allocated_patch(::std::string* PROTOBUF_NU
     _impl_.patch_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:s4wave.git.GetDiffPatchResponse.patch)
+}
+
+// bool truncated = 2;
+inline void GetDiffPatchResponse::clear_truncated() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.truncated_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline bool GetDiffPatchResponse::truncated() const {
+  // @@protoc_insertion_point(field_get:s4wave.git.GetDiffPatchResponse.truncated)
+  return _internal_truncated();
+}
+inline void GetDiffPatchResponse::set_truncated(bool value) {
+  _internal_set_truncated(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:s4wave.git.GetDiffPatchResponse.truncated)
+}
+inline bool GetDiffPatchResponse::_internal_truncated() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.truncated_;
+}
+inline void GetDiffPatchResponse::_internal_set_truncated(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.truncated_ = value;
+}
+
+// uint64 total_bytes = 3;
+inline void GetDiffPatchResponse::clear_total_bytes() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.total_bytes_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::uint64_t GetDiffPatchResponse::total_bytes() const {
+  // @@protoc_insertion_point(field_get:s4wave.git.GetDiffPatchResponse.total_bytes)
+  return _internal_total_bytes();
+}
+inline void GetDiffPatchResponse::set_total_bytes(::uint64_t value) {
+  _internal_set_total_bytes(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_set:s4wave.git.GetDiffPatchResponse.total_bytes)
+}
+inline ::uint64_t GetDiffPatchResponse::_internal_total_bytes() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.total_bytes_;
+}
+inline void GetDiffPatchResponse::_internal_set_total_bytes(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.total_bytes_ = value;
+}
+
+// uint32 limit_bytes = 4;
+inline void GetDiffPatchResponse::clear_limit_bytes() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.limit_bytes_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline ::uint32_t GetDiffPatchResponse::limit_bytes() const {
+  // @@protoc_insertion_point(field_get:s4wave.git.GetDiffPatchResponse.limit_bytes)
+  return _internal_limit_bytes();
+}
+inline void GetDiffPatchResponse::set_limit_bytes(::uint32_t value) {
+  _internal_set_limit_bytes(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:s4wave.git.GetDiffPatchResponse.limit_bytes)
+}
+inline ::uint32_t GetDiffPatchResponse::_internal_limit_bytes() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.limit_bytes_;
+}
+inline void GetDiffPatchResponse::_internal_set_limit_bytes(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.limit_bytes_ = value;
 }
 
 // -------------------------------------------------------------------

@@ -3866,7 +3866,7 @@
       "protoFiles": ["sdk/docs/docs.proto"]
     },
     "github.com/s4wave/spacewave/sdk/git": {
-      "hash": "a2c8603cef541f92375dd437740a1f7528500ebba35bc1cdef1ba55e85ff5f13",
+      "hash": "2d8543440237f9325cb9a6d9a26ca55e19d9162ced997903ba97a3d5d4c769c5",
       "generatedFiles": [
         "sdk/git/repo.pb.cc",
         "sdk/git/repo.pb.go",

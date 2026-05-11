@@ -153,6 +153,9 @@ export function CommitDetail({
           files={diffStatResource.value?.files}
           patch={diffPatchResource.value?.patch}
           loading={diffStatResource.loading || diffPatchResource.loading}
+          truncated={diffPatchResource.value?.truncated}
+          totalBytes={diffPatchResource.value?.totalBytes}
+          limitBytes={diffPatchResource.value?.limitBytes}
           error={diffPatchResource.error}
         />
       </div>

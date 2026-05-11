@@ -322,7 +322,10 @@ inline constexpr GetDiffPatchResponse::Impl_::Impl_(
       : _cached_size_{0},
         patch_(
             &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()) {}
+            ::_pbi::ConstantInitialized()),
+        total_bytes_{::uint64_t{0u}},
+        truncated_{false},
+        limit_bytes_{0u} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR GetDiffPatchResponse::GetDiffPatchResponse(::_pbi::ConstantInitialized)
@@ -751,9 +754,15 @@ const ::uint32_t
         1,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::git::GetDiffPatchResponse, _impl_._has_bits_),
-        4, // hasbit index offset
+        7, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::git::GetDiffPatchResponse, _impl_.patch_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::git::GetDiffPatchResponse, _impl_.truncated_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::git::GetDiffPatchResponse, _impl_.total_bytes_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::git::GetDiffPatchResponse, _impl_.limit_bytes_),
         0,
+        2,
+        1,
+        3,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::git::DiffFileStat, _impl_._has_bits_),
         6, // hasbit index offset
@@ -787,7 +796,7 @@ static const ::_pbi::MigrationSchema
         {115, sizeof(::s4wave::git::GetDiffStatResponse)},
         {124, sizeof(::s4wave::git::GetDiffPatchRequest)},
         {131, sizeof(::s4wave::git::GetDiffPatchResponse)},
-        {136, sizeof(::s4wave::git::DiffFileStat)},
+        {142, sizeof(::s4wave::git::DiffFileStat)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::git::_RefInfo_default_instance_._instance,
@@ -847,36 +856,38 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fg
     "\005files\030\001 \003(\0132\030.s4wave.git.DiffFileStat\022\027"
     "\n\017total_additions\030\002 \001(\r\022\027\n\017total_deletio"
     "ns\030\003 \001(\r\"3\n\023GetDiffPatchRequest\022\r\n\005ref_a"
-    "\030\001 \001(\t\022\r\n\005ref_b\030\002 \001(\t\"%\n\024GetDiffPatchRes"
-    "ponse\022\r\n\005patch\030\001 \001(\t\"B\n\014DiffFileStat\022\014\n\004"
-    "path\030\001 \001(\t\022\021\n\tadditions\030\002 \001(\r\022\021\n\tdeletio"
-    "ns\030\003 \001(\r2\367\005\n\026GitRepoResourceService\022E\n\010L"
-    "istRefs\022\033.s4wave.git.ListRefsRequest\032\034.s"
-    "4wave.git.ListRefsResponse\022K\n\nResolveRef"
-    "\022\035.s4wave.git.ResolveRefRequest\032\036.s4wave"
-    ".git.ResolveRefResponse\022N\n\013GetRepoInfo\022\036"
-    ".s4wave.git.GetRepoInfoRequest\032\037.s4wave."
-    "git.GetRepoInfoResponse\022Z\n\017GetTreeResour"
-    "ce\022\".s4wave.git.GetTreeResourceRequest\032#"
-    ".s4wave.git.GetTreeResourceResponse\022x\n\031G"
-    "etRepoFilesystemResource\022,.s4wave.git.Ge"
-    "tRepoFilesystemResourceRequest\032-.s4wave."
-    "git.GetRepoFilesystemResourceResponse\0226\n"
-    "\003Log\022\026.s4wave.git.LogRequest\032\027.s4wave.gi"
-    "t.LogResponse\022H\n\tGetCommit\022\034.s4wave.git."
-    "GetCommitRequest\032\035.s4wave.git.GetCommitR"
-    "esponse\022N\n\013GetDiffStat\022\036.s4wave.git.GetD"
-    "iffStatRequest\032\037.s4wave.git.GetDiffStatR"
-    "esponse\022Q\n\014GetDiffPatch\022\037.s4wave.git.Get"
-    "DiffPatchRequest\032 .s4wave.git.GetDiffPat"
-    "chResponseB0Z.github.com/s4wave/spacewav"
-    "e/sdk/git;s4wave_gitb\006proto3"
+    "\030\001 \001(\t\022\r\n\005ref_b\030\002 \001(\t\"b\n\024GetDiffPatchRes"
+    "ponse\022\r\n\005patch\030\001 \001(\t\022\021\n\ttruncated\030\002 \001(\010\022"
+    "\023\n\013total_bytes\030\003 \001(\004\022\023\n\013limit_bytes\030\004 \001("
+    "\r\"B\n\014DiffFileStat\022\014\n\004path\030\001 \001(\t\022\021\n\taddit"
+    "ions\030\002 \001(\r\022\021\n\tdeletions\030\003 \001(\r2\367\005\n\026GitRep"
+    "oResourceService\022E\n\010ListRefs\022\033.s4wave.gi"
+    "t.ListRefsRequest\032\034.s4wave.git.ListRefsR"
+    "esponse\022K\n\nResolveRef\022\035.s4wave.git.Resol"
+    "veRefRequest\032\036.s4wave.git.ResolveRefResp"
+    "onse\022N\n\013GetRepoInfo\022\036.s4wave.git.GetRepo"
+    "InfoRequest\032\037.s4wave.git.GetRepoInfoResp"
+    "onse\022Z\n\017GetTreeResource\022\".s4wave.git.Get"
+    "TreeResourceRequest\032#.s4wave.git.GetTree"
+    "ResourceResponse\022x\n\031GetRepoFilesystemRes"
+    "ource\022,.s4wave.git.GetRepoFilesystemReso"
+    "urceRequest\032-.s4wave.git.GetRepoFilesyst"
+    "emResourceResponse\0226\n\003Log\022\026.s4wave.git.L"
+    "ogRequest\032\027.s4wave.git.LogResponse\022H\n\tGe"
+    "tCommit\022\034.s4wave.git.GetCommitRequest\032\035."
+    "s4wave.git.GetCommitResponse\022N\n\013GetDiffS"
+    "tat\022\036.s4wave.git.GetDiffStatRequest\032\037.s4"
+    "wave.git.GetDiffStatResponse\022Q\n\014GetDiffP"
+    "atch\022\037.s4wave.git.GetDiffPatchRequest\032 ."
+    "s4wave.git.GetDiffPatchResponseB0Z.githu"
+    "b.com/s4wave/spacewave/sdk/git;s4wave_gi"
+    "tb\006proto3"
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fgit_2frepo_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fgit_2frepo_2eproto = {
     false,
     false,
-    2268,
+    2329,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fgit_2frepo_2eproto,
     "github.com/s4wave/spacewave/sdk/git/repo.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fgit_2frepo_2eproto_once,
@@ -6677,6 +6688,13 @@ GetDiffPatchResponse::GetDiffPatchResponse(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, total_bytes_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, total_bytes_),
+           offsetof(Impl_, limit_bytes_) -
+               offsetof(Impl_, total_bytes_) +
+               sizeof(Impl_::limit_bytes_));
 
   // @@protoc_insertion_point(copy_constructor:s4wave.git.GetDiffPatchResponse)
 }
@@ -6688,6 +6706,12 @@ PROTOBUF_NDEBUG_INLINE GetDiffPatchResponse::Impl_::Impl_(
 
 inline void GetDiffPatchResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, total_bytes_),
+           0,
+           offsetof(Impl_, limit_bytes_) -
+               offsetof(Impl_, total_bytes_) +
+               sizeof(Impl_::limit_bytes_));
 }
 GetDiffPatchResponse::~GetDiffPatchResponse() {
   // @@protoc_insertion_point(destructor:s4wave.git.GetDiffPatchResponse)
@@ -6747,16 +6771,16 @@ GetDiffPatchResponse::GetClassData() const {
   return GetDiffPatchResponse_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<0, 1, 0, 45, 2>
+const ::_pbi::TcParseTable<2, 4, 0, 45, 2>
 GetDiffPatchResponse::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(GetDiffPatchResponse, _impl_._has_bits_),
     0, // no _extensions_
-    1, 0,  // max_field_number, fast_idx_mask
+    4, 24,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967294,  // skipmap
+    4294967280,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    1,  // num_field_entries
+    4,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     GetDiffPatchResponse_class_data_.base(),
@@ -6766,15 +6790,33 @@ GetDiffPatchResponse::_table_ = {
     ::_pbi::TcParser::GetTable<::s4wave::git::GetDiffPatchResponse>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
+    // uint32 limit_bytes = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(GetDiffPatchResponse, _impl_.limit_bytes_), 3>(),
+     {32, 3, 0,
+      PROTOBUF_FIELD_OFFSET(GetDiffPatchResponse, _impl_.limit_bytes_)}},
     // string patch = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
       PROTOBUF_FIELD_OFFSET(GetDiffPatchResponse, _impl_.patch_)}},
+    // bool truncated = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(GetDiffPatchResponse, _impl_.truncated_), 2>(),
+     {16, 2, 0,
+      PROTOBUF_FIELD_OFFSET(GetDiffPatchResponse, _impl_.truncated_)}},
+    // uint64 total_bytes = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(GetDiffPatchResponse, _impl_.total_bytes_), 1>(),
+     {24, 1, 0,
+      PROTOBUF_FIELD_OFFSET(GetDiffPatchResponse, _impl_.total_bytes_)}},
   }}, {{
     65535, 65535
   }}, {{
     // string patch = 1;
     {PROTOBUF_FIELD_OFFSET(GetDiffPatchResponse, _impl_.patch_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // bool truncated = 2;
+    {PROTOBUF_FIELD_OFFSET(GetDiffPatchResponse, _impl_.truncated_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // uint64 total_bytes = 3;
+    {PROTOBUF_FIELD_OFFSET(GetDiffPatchResponse, _impl_.total_bytes_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // uint32 limit_bytes = 4;
+    {PROTOBUF_FIELD_OFFSET(GetDiffPatchResponse, _impl_.limit_bytes_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
   }},
   // no aux_entries
   {{
@@ -6793,6 +6835,11 @@ PROTOBUF_NOINLINE void GetDiffPatchResponse::Clear() {
   cached_has_bits = _impl_._has_bits_[0];
   if (CheckHasBit(cached_has_bits, 0x00000001U)) {
     _impl_.patch_.ClearNonDefaultToEmpty();
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000eU)) {
+    ::memset(&_impl_.total_bytes_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.limit_bytes_) -
+        reinterpret_cast<char*>(&_impl_.total_bytes_)) + sizeof(_impl_.limit_bytes_));
   }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
@@ -6827,6 +6874,33 @@ PROTOBUF_NOINLINE void GetDiffPatchResponse::Clear() {
     }
   }
 
+  // bool truncated = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (this_._internal_truncated() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          2, this_._internal_truncated(), target);
+    }
+  }
+
+  // uint64 total_bytes = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (this_._internal_total_bytes() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          3, this_._internal_total_bytes(), target);
+    }
+  }
+
+  // uint32 limit_bytes = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (this_._internal_limit_bytes() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          4, this_._internal_limit_bytes(), target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -6850,13 +6924,34 @@ PROTOBUF_NOINLINE void GetDiffPatchResponse::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void)cached_has_bits;
 
-   {
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
     // string patch = 1;
-    cached_has_bits = this_._impl_._has_bits_[0];
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_patch().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_patch());
+      }
+    }
+    // uint64 total_bytes = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (this_._internal_total_bytes() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_total_bytes());
+      }
+    }
+    // bool truncated = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (this_._internal_truncated() != 0) {
+        total_size += 2;
+      }
+    }
+    // uint32 limit_bytes = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (this_._internal_limit_bytes() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_limit_bytes());
       }
     }
   }
@@ -6878,12 +6973,29 @@ void GetDiffPatchResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    if (!from._internal_patch().empty()) {
-      _this->_internal_set_patch(from._internal_patch());
-    } else {
-      if (_this->_impl_.patch_.IsDefault()) {
-        _this->_internal_set_patch("");
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_patch().empty()) {
+        _this->_internal_set_patch(from._internal_patch());
+      } else {
+        if (_this->_impl_.patch_.IsDefault()) {
+          _this->_internal_set_patch("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (from._internal_total_bytes() != 0) {
+        _this->_impl_.total_bytes_ = from._impl_.total_bytes_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (from._internal_truncated() != 0) {
+        _this->_impl_.truncated_ = from._impl_.truncated_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (from._internal_limit_bytes() != 0) {
+        _this->_impl_.limit_bytes_ = from._impl_.limit_bytes_;
       }
     }
   }
@@ -6907,6 +7019,12 @@ void GetDiffPatchResponse::InternalSwap(GetDiffPatchResponse* PROTOBUF_RESTRICT 
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.patch_, &other->_impl_.patch_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(GetDiffPatchResponse, _impl_.limit_bytes_)
+      + sizeof(GetDiffPatchResponse::_impl_.limit_bytes_)
+      - PROTOBUF_FIELD_OFFSET(GetDiffPatchResponse, _impl_.total_bytes_)>(
+          reinterpret_cast<char*>(&_impl_.total_bytes_),
+          reinterpret_cast<char*>(&other->_impl_.total_bytes_));
 }
 
 ::google::protobuf::Metadata GetDiffPatchResponse::GetMetadata() const {

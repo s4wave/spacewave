@@ -581,6 +581,12 @@ type GetDiffPatchResponse struct {
 	unknownFields []byte
 	// Patch is the unified diff patch text.
 	Patch string `protobuf:"bytes,1,opt,name=patch,proto3" json:"patch,omitempty"`
+	// Truncated is true when patch was shortened to keep the response bounded.
+	Truncated bool `protobuf:"varint,2,opt,name=truncated,proto3" json:"truncated,omitempty"`
+	// TotalBytes is the original patch size in bytes before truncation.
+	TotalBytes uint64 `protobuf:"varint,3,opt,name=total_bytes,json=totalBytes,proto3" json:"totalBytes,omitempty"`
+	// LimitBytes is the maximum patch bytes returned by the resource.
+	LimitBytes uint32 `protobuf:"varint,4,opt,name=limit_bytes,json=limitBytes,proto3" json:"limitBytes,omitempty"`
 }
 
 func (x *GetDiffPatchResponse) Reset() {
@@ -594,6 +600,27 @@ func (x *GetDiffPatchResponse) GetPatch() string {
 		return x.Patch
 	}
 	return ""
+}
+
+func (x *GetDiffPatchResponse) GetTruncated() bool {
+	if x != nil {
+		return x.Truncated
+	}
+	return false
+}
+
+func (x *GetDiffPatchResponse) GetTotalBytes() uint64 {
+	if x != nil {
+		return x.TotalBytes
+	}
+	return 0
+}
+
+func (x *GetDiffPatchResponse) GetLimitBytes() uint32 {
+	if x != nil {
+		return x.LimitBytes
+	}
+	return 0
 }
 
 // DiffFileStat contains line change stats for a single file.
@@ -986,6 +1013,9 @@ func (m *GetDiffPatchResponse) CloneVT() *GetDiffPatchResponse {
 	}
 	r := new(GetDiffPatchResponse)
 	r.Patch = m.Patch
+	r.Truncated = m.Truncated
+	r.TotalBytes = m.TotalBytes
+	r.LimitBytes = m.LimitBytes
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1523,6 +1553,15 @@ func (this *GetDiffPatchResponse) EqualVT(that *GetDiffPatchResponse) bool {
 		return false
 	}
 	if this.Patch != that.Patch {
+		return false
+	}
+	if this.Truncated != that.Truncated {
+		return false
+	}
+	if this.TotalBytes != that.TotalBytes {
+		return false
+	}
+	if this.LimitBytes != that.LimitBytes {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2621,6 +2660,21 @@ func (x *GetDiffPatchResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("patch")
 		s.WriteString(x.Patch)
 	}
+	if x.Truncated || s.HasField("truncated") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("truncated")
+		s.WriteBool(x.Truncated)
+	}
+	if x.TotalBytes != 0 || s.HasField("totalBytes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("totalBytes")
+		s.WriteUint64(x.TotalBytes)
+	}
+	if x.LimitBytes != 0 || s.HasField("limitBytes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("limitBytes")
+		s.WriteUint32(x.LimitBytes)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2641,6 +2695,15 @@ func (x *GetDiffPatchResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "patch":
 			s.AddField("patch")
 			x.Patch = s.ReadString()
+		case "truncated":
+			s.AddField("truncated")
+			x.Truncated = s.ReadBool()
+		case "total_bytes", "totalBytes":
+			s.AddField("total_bytes")
+			x.TotalBytes = s.ReadUint64()
+		case "limit_bytes", "limitBytes":
+			s.AddField("limit_bytes")
+			x.LimitBytes = s.ReadUint32()
 		}
 	})
 }
@@ -3664,6 +3727,26 @@ func (m *GetDiffPatchResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.LimitBytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.LimitBytes))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.TotalBytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.TotalBytes))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.Truncated {
+		i--
+		if m.Truncated {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x10
+	}
 	if len(m.Patch) > 0 {
 		i -= len(m.Patch)
 		copy(dAtA[i:], m.Patch)
@@ -4078,6 +4161,15 @@ func (m *GetDiffPatchResponse) SizeVT() (n int) {
 	l = len(m.Patch)
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Truncated {
+		n += 2
+	}
+	if m.TotalBytes != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.TotalBytes))
+	}
+	if m.LimitBytes != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.LimitBytes))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -4624,6 +4716,27 @@ func (x *GetDiffPatchResponse) MarshalProtoText() string {
 		}
 		sb.WriteString("patch: ")
 		sb.WriteString(strconv.Quote(x.Patch))
+	}
+	if x.Truncated != false {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("truncated: ")
+		sb.WriteString(strconv.FormatBool(x.Truncated))
+	}
+	if x.TotalBytes != 0 {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("total_bytes: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.TotalBytes), 10))
+	}
+	if x.LimitBytes != 0 {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("limit_bytes: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.LimitBytes), 10))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -6279,6 +6392,36 @@ func (m *GetDiffPatchResponse) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Patch = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Truncated", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.Truncated = bool(v != 0)
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TotalBytes", wireType)
+			}
+			m.TotalBytes = 0
+			m.TotalBytes, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LimitBytes", wireType)
+			}
+			m.LimitBytes = 0
+			m.LimitBytes, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

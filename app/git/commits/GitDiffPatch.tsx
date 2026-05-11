@@ -45,6 +45,9 @@ export interface GitDiffPatchFilesProps {
   files: DiffFileStat[] | undefined
   patch: string | undefined
   loading: boolean
+  truncated?: boolean
+  totalBytes?: bigint | number
+  limitBytes?: number
   error?: Error | null
 }
 
@@ -53,9 +56,15 @@ export function GitDiffPatchFiles({
   files,
   patch,
   loading,
+  truncated,
+  totalBytes,
+  limitBytes,
   error,
 }: GitDiffPatchFilesProps) {
-  const sections = useMemo(() => splitPatchFiles(patch, files), [patch, files])
+  const sections = useMemo(
+    () => splitPatchFiles(patch, files, truncated ?? false),
+    [patch, files, truncated],
+  )
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set())
 
   const toggle = useCallback((path: string) => {
@@ -94,6 +103,12 @@ export function GitDiffPatchFiles({
 
   return (
     <div className="space-y-2">
+      {truncated && (
+        <div className="border-warning/30 bg-warning/10 text-warning rounded-lg border px-3 py-2 text-xs">
+          Showing the first {formatBytes(limitBytes ?? 0)} of{' '}
+          {formatBytes(totalBytes ?? 0)}.
+        </div>
+      )}
       {sections.map((section) => {
         const isCollapsed = collapsed.has(section.path)
         return (
@@ -144,6 +159,7 @@ interface PatchSection {
 function splitPatchFiles(
   patch: string | undefined,
   files: DiffFileStat[] | undefined,
+  truncated: boolean,
 ): PatchSection[] {
   if (!patch) return []
 
@@ -155,12 +171,16 @@ function splitPatchFiles(
   }
 
   if (files?.length) {
-    return files.map((file) => ({
+    const sections = files.map((file) => ({
       path: file.path ?? '',
       additions: file.additions ?? 0,
       deletions: file.deletions ?? 0,
       patch: byPath.get(file.path ?? ''),
     }))
+    if (truncated) {
+      return sections.filter((section) => section.patch)
+    }
+    return sections
   }
 
   return chunks.map((chunk) => ({
@@ -214,4 +234,17 @@ function stripPatchPathPrefix(path: string | undefined): string | undefined {
   if (!path) return undefined
   if (path === '/dev/null') return undefined
   return path.replace(/^"?[ab]\//, '').replace(/"$/, '')
+}
+
+function formatBytes(bytes: bigint | number): string {
+  const value = Number(bytes)
+  if (!Number.isFinite(value) || value <= 0) return '0 B'
+  const units = ['B', 'KiB', 'MiB', 'GiB']
+  let scaled = value
+  let unit = 0
+  while (scaled >= 1024 && unit < units.length - 1) {
+    scaled /= 1024
+    unit++
+  }
+  return `${scaled.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`
 }

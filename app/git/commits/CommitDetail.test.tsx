@@ -55,4 +55,46 @@ describe('CommitDetail', () => {
     expect(screen.getByTestId('patch-diff').textContent).toContain('+new')
     expect(mockPatchDiff).toHaveBeenCalledTimes(1)
   })
+
+  it('shows when the commit patch is truncated', async () => {
+    const handle = {
+      getCommit: vi.fn().mockResolvedValue({
+        hash: 'abc1234567890',
+        message: 'large change',
+        authorName: 'Alice',
+        authorTimestamp: 1_700_000_000n,
+      }),
+      getDiffStat: vi.fn().mockResolvedValue({
+        files: [
+          { path: 'README.md', additions: 2, deletions: 1 },
+          { path: 'large.bin', additions: 1000, deletions: 0 },
+        ],
+      }),
+      getDiffPatch: vi.fn().mockResolvedValue({
+        patch: [
+          'diff --git a/README.md b/README.md',
+          '--- a/README.md',
+          '+++ b/README.md',
+          '@@ -1 +1 @@',
+          '-old',
+          '+new',
+        ].join('\n'),
+        truncated: true,
+        totalBytes: 1_048_576n,
+        limitBytes: 524_288,
+      }),
+    }
+
+    render(<CommitDetail handle={handle as never} commitHash="abc1234567890" />)
+
+    await waitFor(() => {
+      expect(handle.getDiffPatch).toHaveBeenCalledWith('abc1234567890')
+    })
+
+    expect(
+      screen.getByText(/Showing the first 512.0 KiB of 1.0 MiB/),
+    ).toBeTruthy()
+    expect(screen.getByText('README.md')).toBeTruthy()
+    expect(screen.queryByText('large.bin')).toBeNull()
+  })
 })

@@ -3,6 +3,8 @@ package resource_git
 import (
 	"context"
 	"io"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/go-git/go-billy/v6/memfs"
@@ -21,6 +23,8 @@ import (
 	s4wave_git "github.com/s4wave/spacewave/sdk/git"
 	git_repofs "github.com/s4wave/spacewave/sdk/git/repofs"
 )
+
+const maxDiffPatchBytes = 512 * 1024
 
 // RepoSnapshot holds a snapshot of repo state collected during factory init.
 type RepoSnapshot struct {
@@ -472,7 +476,10 @@ func (r *GitRepoResource) GetDiffPatch(ctx context.Context, req *s4wave_git.GetD
 			if err != nil {
 				return err
 			}
-			resp.Patch = patch.String()
+			resp.Patch, resp.Truncated, resp.TotalBytes = boundedDiffPatch(
+				patch.String(),
+			)
+			resp.LimitBytes = maxDiffPatchBytes
 			return nil
 		},
 	)
@@ -508,6 +515,22 @@ func diffRefs(repo *git.Repository, refA, refB string) (*object.Patch, error) {
 		return nil, errors.Wrap(err, "compute patch")
 	}
 	return patch, nil
+}
+
+func boundedDiffPatch(patch string) (string, bool, uint64) {
+	totalBytes := uint64(len(patch))
+	if len(patch) <= maxDiffPatchBytes {
+		return patch, false, totalBytes
+	}
+
+	cut := maxDiffPatchBytes
+	if idx := strings.LastIndexByte(patch[:maxDiffPatchBytes], '\n'); idx > 0 {
+		cut = idx + 1
+	}
+	for cut > 0 && !utf8.ValidString(patch[:cut]) {
+		cut--
+	}
+	return patch[:cut], true, totalBytes
 }
 
 // resolveRefToCommitObject resolves a ref name to a commit object.

@@ -200,6 +200,15 @@ pub struct GetDiffPatchResponse {
     /// Patch is the unified diff patch text.
     #[prost(string, tag="1")]
     pub patch: ::prost::alloc::string::String,
+    /// Truncated is true when patch was shortened to keep the response bounded.
+    #[prost(bool, tag="2")]
+    pub truncated: bool,
+    /// TotalBytes is the original patch size in bytes before truncation.
+    #[prost(uint64, tag="3")]
+    pub total_bytes: u64,
+    /// LimitBytes is the maximum patch bytes returned by the resource.
+    #[prost(uint32, tag="4")]
+    pub limit_bytes: u32,
 }
 /// DiffFileStat contains line change stats for a single file.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

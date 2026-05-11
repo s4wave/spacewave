@@ -674,6 +674,24 @@ export interface GetDiffPatchResponse {
    * @generated from field: string patch = 1;
    */
   patch?: string
+  /**
+   * Truncated is true when patch was shortened to keep the response bounded.
+   *
+   * @generated from field: bool truncated = 2;
+   */
+  truncated?: boolean
+  /**
+   * TotalBytes is the original patch size in bytes before truncation.
+   *
+   * @generated from field: uint64 total_bytes = 3;
+   */
+  totalBytes?: bigint
+  /**
+   * LimitBytes is the maximum patch bytes returned by the resource.
+   *
+   * @generated from field: uint32 limit_bytes = 4;
+   */
+  limitBytes?: number
 }
 
 // GetDiffPatchResponse contains the message type declaration for GetDiffPatchResponse.
@@ -682,6 +700,9 @@ export const GetDiffPatchResponse: MessageType<GetDiffPatchResponse> =
     typeName: 's4wave.git.GetDiffPatchResponse',
     fields: [
       { no: 1, name: 'patch', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'truncated', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 3, name: 'total_bytes', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 4, name: 'limit_bytes', kind: 'scalar', T: ScalarType.UINT32 },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

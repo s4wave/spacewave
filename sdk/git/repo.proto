@@ -181,6 +181,12 @@ message GetDiffPatchRequest {
 message GetDiffPatchResponse {
   // Patch is the unified diff patch text.
   string patch = 1;
+  // Truncated is true when patch was shortened to keep the response bounded.
+  bool truncated = 2;
+  // TotalBytes is the original patch size in bytes before truncation.
+  uint64 total_bytes = 3;
+  // LimitBytes is the maximum patch bytes returned by the resource.
+  uint32 limit_bytes = 4;
 }
 
 // DiffFileStat contains line change stats for a single file.
