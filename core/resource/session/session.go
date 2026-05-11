@@ -226,12 +226,12 @@ func (r *SessionResource) GetSessionInfo(ctx context.Context, req *s4wave_sessio
 		SessionRef: r.session.GetSessionRef(),
 		PeerId:     r.session.GetPeerId().String(),
 	}
-	resp.CryptoInfo = r.buildCryptoInfo(ctx)
+	resp.CryptoInfo = r.buildCryptoInfo()
 	return resp, nil
 }
 
-// buildCryptoInfo extracts crypto identity and storage stats from the session.
-func (r *SessionResource) buildCryptoInfo(ctx context.Context) *s4wave_session.SessionCryptoInfo {
+// buildCryptoInfo extracts cheap crypto identity from the session.
+func (r *SessionResource) buildCryptoInfo() *s4wave_session.SessionCryptoInfo {
 	info := &s4wave_session.SessionCryptoInfo{}
 	pubKey, err := r.session.GetPeerId().ExtractPublicKey()
 	if err != nil {
@@ -246,29 +246,6 @@ func (r *SessionResource) buildCryptoInfo(ctx context.Context) *s4wave_session.S
 	if err == nil {
 		info.PublicKeyPem = string(pemData)
 	}
-
-	// Populate storage stats if the provider account supports it.
-	providerAcc := r.session.GetProviderAccount()
-	if ssp, ok := providerAcc.(provider.StorageStatsProvider); ok {
-		stats, err := ssp.GetStorageStats(ctx)
-		if err == nil && stats != nil {
-			info.TotalStorageBytes = stats.GetTotalBytes()
-		}
-	}
-
-	// Populate space count from the shared object list.
-	soProvider, err := sobject.GetSharedObjectProviderAccountFeature(ctx, providerAcc)
-	if err == nil {
-		soListWatchable, relSoList, err := soProvider.AccessSharedObjectList(ctx, nil)
-		if err == nil {
-			soList := soListWatchable.GetValue()
-			if soList != nil {
-				info.SpaceCount = uint32(len(soList.GetSharedObjects()))
-			}
-			relSoList()
-		}
-	}
-
 	return info
 }
 
