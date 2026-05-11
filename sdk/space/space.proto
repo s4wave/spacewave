@@ -6,6 +6,7 @@ import "github.com/s4wave/spacewave/core/sobject/sobject.proto";
 import "github.com/s4wave/spacewave/core/space/world/world.proto";
 import "github.com/s4wave/spacewave/sdk/provider/spacewave/spacewave.proto";
 import "github.com/s4wave/spacewave/sdk/deploy/deploy.proto";
+import "github.com/s4wave/spacewave/sdk/secret/secret.proto";
 import "github.com/s4wave/spacewave/db/block/transform/transform.proto";
 import "google/protobuf/timestamp.proto";
 // import "github.com/s4wave/spacewave/core/space/space.proto";
@@ -18,6 +19,8 @@ service SpaceResourceService {
   rpc AccessWorld(AccessWorldRequest) returns (AccessWorldResponse) {}
 
   rpc MountSpaceContents(MountSpaceContentsRequest) returns (MountSpaceContentsResponse) {}
+
+  rpc CreateSecret(CreateSecretRequest) returns (CreateSecretResponse) {}
 
   rpc DeployManifest(stream .s4wave.deploy.DeployManifestMessage) returns (stream .s4wave.deploy.DeployManifestMessage) {}
 
@@ -109,6 +112,28 @@ message MountSpaceContentsRequest {}
 message MountSpaceContentsResponse {
   // ResourceId is the resource ID for the SpaceContents resource.
   uint32 resource_id = 1;
+}
+
+// CreateSecretRequest creates a Secret object and nested SharedObject payload.
+message CreateSecretRequest {
+  // ObjectKey is the parent Secret object key.
+  string object_key = 1;
+  // DisplayName is the human-readable Secret name.
+  string display_name = 2;
+  // Kind is the semantic Secret kind.
+  string kind = 3;
+  // ContentType is the Secret payload MIME type.
+  string content_type = 4;
+  // Value is the raw payload stored inside the nested SharedObject.
+  bytes value = 5;
+  // ReaderPublicKeyPem optionally grants read access to this peer key.
+  bytes reader_public_key_pem = 6;
+}
+
+// CreateSecretResponse returns the redacted Secret parent metadata.
+message CreateSecretResponse {
+  // Secret is the created parent Secret object metadata.
+  .s4wave.secret.Secret secret = 1;
 }
 
 // WatchSpaceContentsStateRequest is a request to watch the space contents state.

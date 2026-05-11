@@ -23,6 +23,8 @@ type SRPCSpaceResourceServiceClient interface {
 
 	MountSpaceContents(ctx context.Context, in *MountSpaceContentsRequest) (*MountSpaceContentsResponse, error)
 
+	CreateSecret(ctx context.Context, in *CreateSecretRequest) (*CreateSecretResponse, error)
+
 	DeployManifest(ctx context.Context) (SRPCSpaceResourceService_DeployManifestClient, error)
 
 	AddSpacePlugin(ctx context.Context, in *AddSpacePluginRequest) (*AddSpacePluginResponse, error)
@@ -134,6 +136,15 @@ func (c *srpcSpaceResourceServiceClient) MountSpaceContents(ctx context.Context,
 	return out, nil
 }
 
+func (c *srpcSpaceResourceServiceClient) CreateSecret(ctx context.Context, in *CreateSecretRequest) (*CreateSecretResponse, error) {
+	out := new(CreateSecretResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "CreateSecret", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcSpaceResourceServiceClient) DeployManifest(ctx context.Context) (SRPCSpaceResourceService_DeployManifestClient, error) {
 	stream, err := c.cc.NewStream(ctx, c.serviceID, "DeployManifest", nil)
 	if err != nil {
@@ -200,6 +211,8 @@ type SRPCSpaceResourceServiceServer interface {
 
 	MountSpaceContents(context.Context, *MountSpaceContentsRequest) (*MountSpaceContentsResponse, error)
 
+	CreateSecret(context.Context, *CreateSecretRequest) (*CreateSecretResponse, error)
+
 	DeployManifest(SRPCSpaceResourceService_DeployManifestStream) error
 
 	AddSpacePlugin(context.Context, *AddSpacePluginRequest) (*AddSpacePluginResponse, error)
@@ -237,6 +250,7 @@ func (SRPCSpaceResourceServiceHandler) GetMethodIDs() []string {
 		"WatchSpaceSharingState",
 		"AccessWorld",
 		"MountSpaceContents",
+		"CreateSecret",
 		"DeployManifest",
 		"AddSpacePlugin",
 		"RemoveSpacePlugin",
@@ -260,6 +274,8 @@ func (d *SRPCSpaceResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_AccessWorld(d.impl, strm)
 	case "MountSpaceContents":
 		return true, d.InvokeMethod_MountSpaceContents(d.impl, strm)
+	case "CreateSecret":
+		return true, d.InvokeMethod_CreateSecret(d.impl, strm)
 	case "DeployManifest":
 		return true, d.InvokeMethod_DeployManifest(d.impl, strm)
 	case "AddSpacePlugin":
@@ -307,6 +323,18 @@ func (SRPCSpaceResourceServiceHandler) InvokeMethod_MountSpaceContents(impl SRPC
 		return err
 	}
 	out, err := impl.MountSpaceContents(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSpaceResourceServiceHandler) InvokeMethod_CreateSecret(impl SRPCSpaceResourceServiceServer, strm srpc.Stream) error {
+	req := new(CreateSecretRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.CreateSecret(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -401,6 +429,14 @@ type SRPCSpaceResourceService_MountSpaceContentsStream interface {
 }
 
 type srpcSpaceResourceService_MountSpaceContentsStream struct {
+	srpc.Stream
+}
+
+type SRPCSpaceResourceService_CreateSecretStream interface {
+	srpc.Stream
+}
+
+type srpcSpaceResourceService_CreateSecretStream struct {
 	srpc.Stream
 }
 

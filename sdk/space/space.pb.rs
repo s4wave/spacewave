@@ -101,6 +101,35 @@ pub struct MountSpaceContentsResponse {
     #[prost(uint32, tag="1")]
     pub resource_id: u32,
 }
+/// CreateSecretRequest creates a Secret object and nested SharedObject payload.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CreateSecretRequest {
+    /// ObjectKey is the parent Secret object key.
+    #[prost(string, tag="1")]
+    pub object_key: ::prost::alloc::string::String,
+    /// DisplayName is the human-readable Secret name.
+    #[prost(string, tag="2")]
+    pub display_name: ::prost::alloc::string::String,
+    /// Kind is the semantic Secret kind.
+    #[prost(string, tag="3")]
+    pub kind: ::prost::alloc::string::String,
+    /// ContentType is the Secret payload MIME type.
+    #[prost(string, tag="4")]
+    pub content_type: ::prost::alloc::string::String,
+    /// Value is the raw payload stored inside the nested SharedObject.
+    #[prost(bytes="vec", tag="5")]
+    pub value: ::prost::alloc::vec::Vec<u8>,
+    /// ReaderPublicKeyPem optionally grants read access to this peer key.
+    #[prost(bytes="vec", tag="6")]
+    pub reader_public_key_pem: ::prost::alloc::vec::Vec<u8>,
+}
+/// CreateSecretResponse returns the redacted Secret parent metadata.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CreateSecretResponse {
+    /// Secret is the created parent Secret object metadata.
+    #[prost(message, optional, tag="1")]
+    pub secret: ::core::option::Option<super::secret::Secret>,
+}
 /// WatchSpaceContentsStateRequest is a request to watch the space contents state.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct WatchSpaceContentsStateRequest {

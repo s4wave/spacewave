@@ -43,6 +43,8 @@ class SRPCSpaceResourceServiceClient {
   virtual starpc::Error AccessWorld(const s4wave::space::AccessWorldRequest& in, s4wave::space::AccessWorldResponse* out) = 0;
   // MountSpaceContents
   virtual starpc::Error MountSpaceContents(const s4wave::space::MountSpaceContentsRequest& in, s4wave::space::MountSpaceContentsResponse* out) = 0;
+  // CreateSecret
+  virtual starpc::Error CreateSecret(const s4wave::space::CreateSecretRequest& in, s4wave::space::CreateSecretResponse* out) = 0;
   // DeployManifest
   virtual std::pair<std::unique_ptr<SRPCSpaceResourceService_DeployManifestClient>, starpc::Error> DeployManifest() = 0;
   // AddSpacePlugin
@@ -67,6 +69,8 @@ class SRPCSpaceResourceServiceClientImpl : public SRPCSpaceResourceServiceClient
   virtual starpc::Error AccessWorld(const s4wave::space::AccessWorldRequest& in, s4wave::space::AccessWorldResponse* out) override;
   // MountSpaceContents
   virtual starpc::Error MountSpaceContents(const s4wave::space::MountSpaceContentsRequest& in, s4wave::space::MountSpaceContentsResponse* out) override;
+  // CreateSecret
+  virtual starpc::Error CreateSecret(const s4wave::space::CreateSecretRequest& in, s4wave::space::CreateSecretResponse* out) override;
   // DeployManifest
   virtual std::pair<std::unique_ptr<SRPCSpaceResourceService_DeployManifestClient>, starpc::Error> DeployManifest() override;
   // AddSpacePlugin
@@ -97,6 +101,8 @@ class SRPCSpaceResourceServiceServer {
   virtual starpc::Error AccessWorld(const s4wave::space::AccessWorldRequest& req, s4wave::space::AccessWorldResponse* resp) = 0;
   // MountSpaceContents
   virtual starpc::Error MountSpaceContents(const s4wave::space::MountSpaceContentsRequest& req, s4wave::space::MountSpaceContentsResponse* resp) = 0;
+  // CreateSecret
+  virtual starpc::Error CreateSecret(const s4wave::space::CreateSecretRequest& req, s4wave::space::CreateSecretResponse* resp) = 0;
   // DeployManifest
   virtual starpc::Error DeployManifest(SRPCSpaceResourceService_DeployManifestStream* strm) = 0;
   // AddSpacePlugin

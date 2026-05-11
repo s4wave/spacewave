@@ -16,6 +16,7 @@ import {
   SOParticipantRole_Enum,
 } from '../../core/sobject/sobject.pb.js'
 import { MailboxEntryInfo } from '../provider/spacewave/spacewave.pb.js'
+import { Secret } from '../secret/secret.pb.js'
 import type { PluginApprovalState } from '../../core/plugin/approval/approval.pb.js'
 import { PluginApprovalState_Enum } from '../../core/plugin/approval/approval.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
@@ -355,6 +356,94 @@ export const MountSpaceContentsResponse: MessageType<MountSpaceContentsResponse>
     typeName: 's4wave.space.MountSpaceContentsResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * CreateSecretRequest creates a Secret object and nested SharedObject payload.
+ *
+ * @generated from message s4wave.space.CreateSecretRequest
+ */
+export interface CreateSecretRequest {
+  /**
+   * ObjectKey is the parent Secret object key.
+   *
+   * @generated from field: string object_key = 1;
+   */
+  objectKey?: string
+  /**
+   * DisplayName is the human-readable Secret name.
+   *
+   * @generated from field: string display_name = 2;
+   */
+  displayName?: string
+  /**
+   * Kind is the semantic Secret kind.
+   *
+   * @generated from field: string kind = 3;
+   */
+  kind?: string
+  /**
+   * ContentType is the Secret payload MIME type.
+   *
+   * @generated from field: string content_type = 4;
+   */
+  contentType?: string
+  /**
+   * Value is the raw payload stored inside the nested SharedObject.
+   *
+   * @generated from field: bytes value = 5;
+   */
+  value?: Uint8Array
+  /**
+   * ReaderPublicKeyPem optionally grants read access to this peer key.
+   *
+   * @generated from field: bytes reader_public_key_pem = 6;
+   */
+  readerPublicKeyPem?: Uint8Array
+}
+
+// CreateSecretRequest contains the message type declaration for CreateSecretRequest.
+export const CreateSecretRequest: MessageType<CreateSecretRequest> =
+  createMessageType({
+    typeName: 's4wave.space.CreateSecretRequest',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'kind', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'content_type', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'value', kind: 'scalar', T: ScalarType.BYTES },
+      {
+        no: 6,
+        name: 'reader_public_key_pem',
+        kind: 'scalar',
+        T: ScalarType.BYTES,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * CreateSecretResponse returns the redacted Secret parent metadata.
+ *
+ * @generated from message s4wave.space.CreateSecretResponse
+ */
+export interface CreateSecretResponse {
+  /**
+   * Secret is the created parent Secret object metadata.
+   *
+   * @generated from field: s4wave.secret.Secret secret = 1;
+   */
+  secret?: Secret
+}
+
+// CreateSecretResponse contains the message type declaration for CreateSecretResponse.
+export const CreateSecretResponse: MessageType<CreateSecretResponse> =
+  createMessageType({
+    typeName: 's4wave.space.CreateSecretResponse',
+    fields: [
+      { no: 1, name: 'secret', kind: 'message', T: () => Secret },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

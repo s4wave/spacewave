@@ -37,6 +37,7 @@
 #include "../../core/space/world/world.pb.h"
 #include "../provider/spacewave/spacewave.pb.h"
 #include "../deploy/deploy.pb.h"
+#include "../secret/secret.pb.h"
 #include "../../db/block/transform/transform.pb.h"
 #include "google/protobuf/timestamp.pb.h"
 // @@protoc_insertion_point(includes)
@@ -80,6 +81,14 @@ class AddSpacePluginResponse;
 struct AddSpacePluginResponseDefaultTypeInternal;
 extern AddSpacePluginResponseDefaultTypeInternal _AddSpacePluginResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull AddSpacePluginResponse_class_data_;
+class CreateSecretRequest;
+struct CreateSecretRequestDefaultTypeInternal;
+extern CreateSecretRequestDefaultTypeInternal _CreateSecretRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull CreateSecretRequest_class_data_;
+class CreateSecretResponse;
+struct CreateSecretResponseDefaultTypeInternal;
+extern CreateSecretResponseDefaultTypeInternal _CreateSecretResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull CreateSecretResponse_class_data_;
 class MountSpaceContentsRequest;
 struct MountSpaceContentsRequestDefaultTypeInternal;
 extern MountSpaceContentsRequestDefaultTypeInternal _MountSpaceContentsRequest_default_instance_;
@@ -489,7 +498,7 @@ class WatchSpaceContentsStateRequest final : public ::google::protobuf::internal
     return *reinterpret_cast<const WatchSpaceContentsStateRequest*>(
         &_WatchSpaceContentsStateRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 10;
+  static constexpr int kIndexInFileMessages = 12;
   friend void swap(WatchSpaceContentsStateRequest& a, WatchSpaceContentsStateRequest& b) { a.Swap(&b); }
   inline void Swap(WatchSpaceContentsStateRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -624,7 +633,7 @@ class SpacePluginStatus final : public ::google::protobuf::Message
     return *reinterpret_cast<const SpacePluginStatus*>(
         &_SpacePluginStatus_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 12;
+  static constexpr int kIndexInFileMessages = 14;
   friend void swap(SpacePluginStatus& a, SpacePluginStatus& b) { a.Swap(&b); }
   inline void Swap(SpacePluginStatus* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1119,7 +1128,7 @@ class SetProcessBindingResponse final : public ::google::protobuf::internal::Zer
     return *reinterpret_cast<const SetProcessBindingResponse*>(
         &_SetProcessBindingResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 20;
+  static constexpr int kIndexInFileMessages = 22;
   friend void swap(SetProcessBindingResponse& a, SetProcessBindingResponse& b) { a.Swap(&b); }
   inline void Swap(SetProcessBindingResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1254,7 +1263,7 @@ class SetProcessBindingRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const SetProcessBindingRequest*>(
         &_SetProcessBindingRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 19;
+  static constexpr int kIndexInFileMessages = 21;
   friend void swap(SetProcessBindingRequest& a, SetProcessBindingRequest& b) { a.Swap(&b); }
   inline void Swap(SetProcessBindingRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1477,7 +1486,7 @@ class SetPluginApprovalResponse final : public ::google::protobuf::internal::Zer
     return *reinterpret_cast<const SetPluginApprovalResponse*>(
         &_SetPluginApprovalResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 14;
+  static constexpr int kIndexInFileMessages = 16;
   friend void swap(SetPluginApprovalResponse& a, SetPluginApprovalResponse& b) { a.Swap(&b); }
   inline void Swap(SetPluginApprovalResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1612,7 +1621,7 @@ class SetPluginApprovalRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const SetPluginApprovalRequest*>(
         &_SetPluginApprovalRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 13;
+  static constexpr int kIndexInFileMessages = 15;
   friend void swap(SetPluginApprovalRequest& a, SetPluginApprovalRequest& b) { a.Swap(&b); }
   inline void Swap(SetPluginApprovalRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1818,7 +1827,7 @@ class RemoveSpacePluginResponse final : public ::google::protobuf::internal::Zer
     return *reinterpret_cast<const RemoveSpacePluginResponse*>(
         &_RemoveSpacePluginResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 18;
+  static constexpr int kIndexInFileMessages = 20;
   friend void swap(RemoveSpacePluginResponse& a, RemoveSpacePluginResponse& b) { a.Swap(&b); }
   inline void Swap(RemoveSpacePluginResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1953,7 +1962,7 @@ class RemoveSpacePluginRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const RemoveSpacePluginRequest*>(
         &_RemoveSpacePluginRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 17;
+  static constexpr int kIndexInFileMessages = 19;
   friend void swap(RemoveSpacePluginRequest& a, RemoveSpacePluginRequest& b) { a.Swap(&b); }
   inline void Swap(RemoveSpacePluginRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2417,6 +2426,286 @@ class MountSpaceContentsRequest final : public ::google::protobuf::internal::Zer
 extern const ::google::protobuf::internal::ClassDataFull MountSpaceContentsRequest_class_data_;
 // -------------------------------------------------------------------
 
+class CreateSecretRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.space.CreateSecretRequest) */ {
+ public:
+  inline CreateSecretRequest() : CreateSecretRequest(nullptr) {}
+  ~CreateSecretRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(CreateSecretRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(CreateSecretRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR CreateSecretRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline CreateSecretRequest(const CreateSecretRequest& from) : CreateSecretRequest(nullptr, from) {}
+  inline CreateSecretRequest(CreateSecretRequest&& from) noexcept
+      : CreateSecretRequest(nullptr, ::std::move(from)) {}
+  inline CreateSecretRequest& operator=(const CreateSecretRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline CreateSecretRequest& operator=(CreateSecretRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const CreateSecretRequest& default_instance() {
+    return *reinterpret_cast<const CreateSecretRequest*>(
+        &_CreateSecretRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 10;
+  friend void swap(CreateSecretRequest& a, CreateSecretRequest& b) { a.Swap(&b); }
+  inline void Swap(CreateSecretRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(CreateSecretRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  CreateSecretRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<CreateSecretRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const CreateSecretRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const CreateSecretRequest& from) { CreateSecretRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(CreateSecretRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.space.CreateSecretRequest"; }
+
+  explicit CreateSecretRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  CreateSecretRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const CreateSecretRequest& from);
+  CreateSecretRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, CreateSecretRequest&& from) noexcept
+      : CreateSecretRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kObjectKeyFieldNumber = 1,
+    kDisplayNameFieldNumber = 2,
+    kKindFieldNumber = 3,
+    kContentTypeFieldNumber = 4,
+    kValueFieldNumber = 5,
+    kReaderPublicKeyPemFieldNumber = 6,
+  };
+  // string object_key = 1;
+  void clear_object_key() ;
+  const ::std::string& object_key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_object_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_object_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_object_key();
+  void set_allocated_object_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_object_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_object_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_object_key();
+
+  public:
+  // string display_name = 2;
+  void clear_display_name() ;
+  const ::std::string& display_name() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_display_name(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_display_name();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_display_name();
+  void set_allocated_display_name(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_display_name() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_display_name(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_display_name();
+
+  public:
+  // string kind = 3;
+  void clear_kind() ;
+  const ::std::string& kind() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_kind(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_kind();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_kind();
+  void set_allocated_kind(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_kind() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_kind(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_kind();
+
+  public:
+  // string content_type = 4;
+  void clear_content_type() ;
+  const ::std::string& content_type() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_content_type(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_content_type();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_content_type();
+  void set_allocated_content_type(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_content_type() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_content_type(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_content_type();
+
+  public:
+  // bytes value = 5;
+  void clear_value() ;
+  const ::std::string& value() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_value(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_value();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_value();
+  void set_allocated_value(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_value() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_value(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_value();
+
+  public:
+  // bytes reader_public_key_pem = 6;
+  void clear_reader_public_key_pem() ;
+  const ::std::string& reader_public_key_pem() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_reader_public_key_pem(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_reader_public_key_pem();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_reader_public_key_pem();
+  void set_allocated_reader_public_key_pem(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_reader_public_key_pem() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_reader_public_key_pem(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_reader_public_key_pem();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.space.CreateSecretRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 6,
+                                   0, 79,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const CreateSecretRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr object_key_;
+    ::google::protobuf::internal::ArenaStringPtr display_name_;
+    ::google::protobuf::internal::ArenaStringPtr kind_;
+    ::google::protobuf::internal::ArenaStringPtr content_type_;
+    ::google::protobuf::internal::ArenaStringPtr value_;
+    ::google::protobuf::internal::ArenaStringPtr reader_public_key_pem_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fspace_2fspace_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull CreateSecretRequest_class_data_;
+// -------------------------------------------------------------------
+
 class AddSpacePluginResponse final : public ::google::protobuf::internal::ZeroFieldsBase
 /* @@protoc_insertion_point(class_definition:s4wave.space.AddSpacePluginResponse) */ {
  public:
@@ -2471,7 +2760,7 @@ class AddSpacePluginResponse final : public ::google::protobuf::internal::ZeroFi
     return *reinterpret_cast<const AddSpacePluginResponse*>(
         &_AddSpacePluginResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 16;
+  static constexpr int kIndexInFileMessages = 18;
   friend void swap(AddSpacePluginResponse& a, AddSpacePluginResponse& b) { a.Swap(&b); }
   inline void Swap(AddSpacePluginResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2606,7 +2895,7 @@ class AddSpacePluginRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const AddSpacePluginRequest*>(
         &_AddSpacePluginRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 15;
+  static constexpr int kIndexInFileMessages = 17;
   friend void swap(AddSpacePluginRequest& a, AddSpacePluginRequest& b) { a.Swap(&b); }
   inline void Swap(AddSpacePluginRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3346,7 +3635,7 @@ class ProcessBindingInfo final : public ::google::protobuf::Message
     return *reinterpret_cast<const ProcessBindingInfo*>(
         &_ProcessBindingInfo_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 21;
+  static constexpr int kIndexInFileMessages = 23;
   friend void swap(ProcessBindingInfo& a, ProcessBindingInfo& b) { a.Swap(&b); }
   inline void Swap(ProcessBindingInfo* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4106,7 +4395,7 @@ class SpaceContentsState final : public ::google::protobuf::Message
     return *reinterpret_cast<const SpaceContentsState*>(
         &_SpaceContentsState_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 11;
+  static constexpr int kIndexInFileMessages = 13;
   friend void swap(SpaceContentsState& a, SpaceContentsState& b) { a.Swap(&b); }
   inline void Swap(SpaceContentsState* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4277,6 +4566,201 @@ class SpaceContentsState final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull SpaceContentsState_class_data_;
+// -------------------------------------------------------------------
+
+class CreateSecretResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.space.CreateSecretResponse) */ {
+ public:
+  inline CreateSecretResponse() : CreateSecretResponse(nullptr) {}
+  ~CreateSecretResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(CreateSecretResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(CreateSecretResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR CreateSecretResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline CreateSecretResponse(const CreateSecretResponse& from) : CreateSecretResponse(nullptr, from) {}
+  inline CreateSecretResponse(CreateSecretResponse&& from) noexcept
+      : CreateSecretResponse(nullptr, ::std::move(from)) {}
+  inline CreateSecretResponse& operator=(const CreateSecretResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline CreateSecretResponse& operator=(CreateSecretResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const CreateSecretResponse& default_instance() {
+    return *reinterpret_cast<const CreateSecretResponse*>(
+        &_CreateSecretResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 11;
+  friend void swap(CreateSecretResponse& a, CreateSecretResponse& b) { a.Swap(&b); }
+  inline void Swap(CreateSecretResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(CreateSecretResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  CreateSecretResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<CreateSecretResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const CreateSecretResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const CreateSecretResponse& from) { CreateSecretResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(CreateSecretResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.space.CreateSecretResponse"; }
+
+  explicit CreateSecretResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  CreateSecretResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const CreateSecretResponse& from);
+  CreateSecretResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, CreateSecretResponse&& from) noexcept
+      : CreateSecretResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kSecretFieldNumber = 1,
+  };
+  // .s4wave.secret.Secret secret = 1;
+  bool has_secret() const;
+  void clear_secret() ;
+  const ::s4wave::secret::Secret& secret() const;
+  [[nodiscard]] ::s4wave::secret::Secret* PROTOBUF_NULLABLE release_secret();
+  ::s4wave::secret::Secret* PROTOBUF_NONNULL mutable_secret();
+  void set_allocated_secret(::s4wave::secret::Secret* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_secret(::s4wave::secret::Secret* PROTOBUF_NULLABLE value);
+  ::s4wave::secret::Secret* PROTOBUF_NULLABLE unsafe_arena_release_secret();
+
+  private:
+  const ::s4wave::secret::Secret& _internal_secret() const;
+  ::s4wave::secret::Secret* PROTOBUF_NONNULL _internal_mutable_secret();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.space.CreateSecretResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const CreateSecretResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::s4wave::secret::Secret* PROTOBUF_NULLABLE secret_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fspace_2fspace_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull CreateSecretResponse_class_data_;
 
 // ===================================================================
 
@@ -5296,6 +5780,497 @@ inline ::uint32_t MountSpaceContentsResponse::_internal_resource_id() const {
 inline void MountSpaceContentsResponse::_internal_set_resource_id(::uint32_t value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.resource_id_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// CreateSecretRequest
+
+// string object_key = 1;
+inline void CreateSecretRequest::clear_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.object_key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& CreateSecretRequest::object_key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.space.CreateSecretRequest.object_key)
+  return _internal_object_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CreateSecretRequest::set_object_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.object_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.space.CreateSecretRequest.object_key)
+}
+inline ::std::string* PROTOBUF_NONNULL CreateSecretRequest::mutable_object_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_object_key();
+  // @@protoc_insertion_point(field_mutable:s4wave.space.CreateSecretRequest.object_key)
+  return _s;
+}
+inline const ::std::string& CreateSecretRequest::_internal_object_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.object_key_.Get();
+}
+inline void CreateSecretRequest::_internal_set_object_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.object_key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CreateSecretRequest::_internal_mutable_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.object_key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CreateSecretRequest::release_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.space.CreateSecretRequest.object_key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.object_key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.object_key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CreateSecretRequest::set_allocated_object_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.object_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.object_key_.IsDefault()) {
+    _impl_.object_key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.space.CreateSecretRequest.object_key)
+}
+
+// string display_name = 2;
+inline void CreateSecretRequest::clear_display_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.display_name_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& CreateSecretRequest::display_name() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.space.CreateSecretRequest.display_name)
+  return _internal_display_name();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CreateSecretRequest::set_display_name(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.display_name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.space.CreateSecretRequest.display_name)
+}
+inline ::std::string* PROTOBUF_NONNULL CreateSecretRequest::mutable_display_name()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_display_name();
+  // @@protoc_insertion_point(field_mutable:s4wave.space.CreateSecretRequest.display_name)
+  return _s;
+}
+inline const ::std::string& CreateSecretRequest::_internal_display_name() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.display_name_.Get();
+}
+inline void CreateSecretRequest::_internal_set_display_name(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.display_name_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CreateSecretRequest::_internal_mutable_display_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.display_name_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CreateSecretRequest::release_display_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.space.CreateSecretRequest.display_name)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.display_name_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.display_name_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CreateSecretRequest::set_allocated_display_name(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.display_name_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.display_name_.IsDefault()) {
+    _impl_.display_name_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.space.CreateSecretRequest.display_name)
+}
+
+// string kind = 3;
+inline void CreateSecretRequest::clear_kind() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.kind_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& CreateSecretRequest::kind() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.space.CreateSecretRequest.kind)
+  return _internal_kind();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CreateSecretRequest::set_kind(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.kind_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.space.CreateSecretRequest.kind)
+}
+inline ::std::string* PROTOBUF_NONNULL CreateSecretRequest::mutable_kind()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_kind();
+  // @@protoc_insertion_point(field_mutable:s4wave.space.CreateSecretRequest.kind)
+  return _s;
+}
+inline const ::std::string& CreateSecretRequest::_internal_kind() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.kind_.Get();
+}
+inline void CreateSecretRequest::_internal_set_kind(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.kind_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CreateSecretRequest::_internal_mutable_kind() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.kind_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CreateSecretRequest::release_kind() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.space.CreateSecretRequest.kind)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.kind_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.kind_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CreateSecretRequest::set_allocated_kind(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.kind_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.kind_.IsDefault()) {
+    _impl_.kind_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.space.CreateSecretRequest.kind)
+}
+
+// string content_type = 4;
+inline void CreateSecretRequest::clear_content_type() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.content_type_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& CreateSecretRequest::content_type() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.space.CreateSecretRequest.content_type)
+  return _internal_content_type();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CreateSecretRequest::set_content_type(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.content_type_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.space.CreateSecretRequest.content_type)
+}
+inline ::std::string* PROTOBUF_NONNULL CreateSecretRequest::mutable_content_type()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_content_type();
+  // @@protoc_insertion_point(field_mutable:s4wave.space.CreateSecretRequest.content_type)
+  return _s;
+}
+inline const ::std::string& CreateSecretRequest::_internal_content_type() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.content_type_.Get();
+}
+inline void CreateSecretRequest::_internal_set_content_type(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.content_type_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CreateSecretRequest::_internal_mutable_content_type() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.content_type_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CreateSecretRequest::release_content_type() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.space.CreateSecretRequest.content_type)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.content_type_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.content_type_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CreateSecretRequest::set_allocated_content_type(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.content_type_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.content_type_.IsDefault()) {
+    _impl_.content_type_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.space.CreateSecretRequest.content_type)
+}
+
+// bytes value = 5;
+inline void CreateSecretRequest::clear_value() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.value_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::std::string& CreateSecretRequest::value() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.space.CreateSecretRequest.value)
+  return _internal_value();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CreateSecretRequest::set_value(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  _impl_.value_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.space.CreateSecretRequest.value)
+}
+inline ::std::string* PROTOBUF_NONNULL CreateSecretRequest::mutable_value()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::std::string* _s = _internal_mutable_value();
+  // @@protoc_insertion_point(field_mutable:s4wave.space.CreateSecretRequest.value)
+  return _s;
+}
+inline const ::std::string& CreateSecretRequest::_internal_value() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.value_.Get();
+}
+inline void CreateSecretRequest::_internal_set_value(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.value_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CreateSecretRequest::_internal_mutable_value() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.value_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CreateSecretRequest::release_value() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.space.CreateSecretRequest.value)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  auto* released = _impl_.value_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.value_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CreateSecretRequest::set_allocated_value(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  _impl_.value_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.value_.IsDefault()) {
+    _impl_.value_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.space.CreateSecretRequest.value)
+}
+
+// bytes reader_public_key_pem = 6;
+inline void CreateSecretRequest::clear_reader_public_key_pem() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.reader_public_key_pem_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline const ::std::string& CreateSecretRequest::reader_public_key_pem() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.space.CreateSecretRequest.reader_public_key_pem)
+  return _internal_reader_public_key_pem();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CreateSecretRequest::set_reader_public_key_pem(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  _impl_.reader_public_key_pem_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.space.CreateSecretRequest.reader_public_key_pem)
+}
+inline ::std::string* PROTOBUF_NONNULL CreateSecretRequest::mutable_reader_public_key_pem()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::std::string* _s = _internal_mutable_reader_public_key_pem();
+  // @@protoc_insertion_point(field_mutable:s4wave.space.CreateSecretRequest.reader_public_key_pem)
+  return _s;
+}
+inline const ::std::string& CreateSecretRequest::_internal_reader_public_key_pem() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.reader_public_key_pem_.Get();
+}
+inline void CreateSecretRequest::_internal_set_reader_public_key_pem(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.reader_public_key_pem_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CreateSecretRequest::_internal_mutable_reader_public_key_pem() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.reader_public_key_pem_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CreateSecretRequest::release_reader_public_key_pem() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.space.CreateSecretRequest.reader_public_key_pem)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000020U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  auto* released = _impl_.reader_public_key_pem_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.reader_public_key_pem_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CreateSecretRequest::set_allocated_reader_public_key_pem(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+  _impl_.reader_public_key_pem_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.reader_public_key_pem_.IsDefault()) {
+    _impl_.reader_public_key_pem_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.space.CreateSecretRequest.reader_public_key_pem)
+}
+
+// -------------------------------------------------------------------
+
+// CreateSecretResponse
+
+// .s4wave.secret.Secret secret = 1;
+inline bool CreateSecretResponse::has_secret() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  PROTOBUF_ASSUME(!value || _impl_.secret_ != nullptr);
+  return value;
+}
+inline const ::s4wave::secret::Secret& CreateSecretResponse::_internal_secret() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::secret::Secret* p = _impl_.secret_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::secret::Secret&>(::s4wave::secret::_Secret_default_instance_);
+}
+inline const ::s4wave::secret::Secret& CreateSecretResponse::secret() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.space.CreateSecretResponse.secret)
+  return _internal_secret();
+}
+inline void CreateSecretResponse::unsafe_arena_set_allocated_secret(
+    ::s4wave::secret::Secret* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.secret_);
+  }
+  _impl_.secret_ = reinterpret_cast<::s4wave::secret::Secret*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.space.CreateSecretResponse.secret)
+}
+inline ::s4wave::secret::Secret* PROTOBUF_NULLABLE CreateSecretResponse::release_secret() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::secret::Secret* released = _impl_.secret_;
+  _impl_.secret_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::secret::Secret* PROTOBUF_NULLABLE CreateSecretResponse::unsafe_arena_release_secret() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.space.CreateSecretResponse.secret)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::secret::Secret* temp = _impl_.secret_;
+  _impl_.secret_ = nullptr;
+  return temp;
+}
+inline ::s4wave::secret::Secret* PROTOBUF_NONNULL CreateSecretResponse::_internal_mutable_secret() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.secret_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::secret::Secret>(GetArena());
+    _impl_.secret_ = reinterpret_cast<::s4wave::secret::Secret*>(p);
+  }
+  return _impl_.secret_;
+}
+inline ::s4wave::secret::Secret* PROTOBUF_NONNULL CreateSecretResponse::mutable_secret()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::secret::Secret* _msg = _internal_mutable_secret();
+  // @@protoc_insertion_point(field_mutable:s4wave.space.CreateSecretResponse.secret)
+  return _msg;
+}
+inline void CreateSecretResponse::set_allocated_secret(::s4wave::secret::Secret* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.secret_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+
+  _impl_.secret_ = reinterpret_cast<::s4wave::secret::Secret*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.space.CreateSecretResponse.secret)
 }
 
 // -------------------------------------------------------------------

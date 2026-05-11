@@ -5,6 +5,7 @@
 package s4wave_space
 
 import (
+	base64 "encoding/base64"
 	fmt "fmt"
 	io "io"
 	slices "slices"
@@ -20,6 +21,7 @@ import (
 	transform "github.com/s4wave/spacewave/db/block/transform"
 	_ "github.com/s4wave/spacewave/sdk/deploy"
 	spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
+	secret "github.com/s4wave/spacewave/sdk/secret"
 )
 
 // WatchSpaceStateRequest is a request to watch the Workspace state.
@@ -311,6 +313,91 @@ func (x *MountSpaceContentsResponse) GetResourceId() uint32 {
 		return x.ResourceId
 	}
 	return 0
+}
+
+// CreateSecretRequest creates a Secret object and nested SharedObject payload.
+type CreateSecretRequest struct {
+	unknownFields []byte
+	// ObjectKey is the parent Secret object key.
+	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+	// DisplayName is the human-readable Secret name.
+	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"displayName,omitempty"`
+	// Kind is the semantic Secret kind.
+	Kind string `protobuf:"bytes,3,opt,name=kind,proto3" json:"kind,omitempty"`
+	// ContentType is the Secret payload MIME type.
+	ContentType string `protobuf:"bytes,4,opt,name=content_type,json=contentType,proto3" json:"contentType,omitempty"`
+	// Value is the raw payload stored inside the nested SharedObject.
+	Value []byte `protobuf:"bytes,5,opt,name=value,proto3" json:"value,omitempty"`
+	// ReaderPublicKeyPem optionally grants read access to this peer key.
+	ReaderPublicKeyPem []byte `protobuf:"bytes,6,opt,name=reader_public_key_pem,json=readerPublicKeyPem,proto3" json:"readerPublicKeyPem,omitempty"`
+}
+
+func (x *CreateSecretRequest) Reset() {
+	*x = CreateSecretRequest{}
+}
+
+func (*CreateSecretRequest) ProtoMessage() {}
+
+func (x *CreateSecretRequest) GetObjectKey() string {
+	if x != nil {
+		return x.ObjectKey
+	}
+	return ""
+}
+
+func (x *CreateSecretRequest) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+func (x *CreateSecretRequest) GetKind() string {
+	if x != nil {
+		return x.Kind
+	}
+	return ""
+}
+
+func (x *CreateSecretRequest) GetContentType() string {
+	if x != nil {
+		return x.ContentType
+	}
+	return ""
+}
+
+func (x *CreateSecretRequest) GetValue() []byte {
+	if x != nil {
+		return x.Value
+	}
+	return nil
+}
+
+func (x *CreateSecretRequest) GetReaderPublicKeyPem() []byte {
+	if x != nil {
+		return x.ReaderPublicKeyPem
+	}
+	return nil
+}
+
+// CreateSecretResponse returns the redacted Secret parent metadata.
+type CreateSecretResponse struct {
+	unknownFields []byte
+	// Secret is the created parent Secret object metadata.
+	Secret *secret.Secret `protobuf:"bytes,1,opt,name=secret,proto3" json:"secret,omitempty"`
+}
+
+func (x *CreateSecretResponse) Reset() {
+	*x = CreateSecretResponse{}
+}
+
+func (*CreateSecretResponse) ProtoMessage() {}
+
+func (x *CreateSecretResponse) GetSecret() *secret.Secret {
+	if x != nil {
+		return x.Secret
+	}
+	return nil
 }
 
 // WatchSpaceContentsStateRequest is a request to watch the space contents state.
@@ -628,9 +715,13 @@ func (m *SpaceState) CloneVT() *SpaceState {
 	}
 	r := new(SpaceState)
 	r.Ready = m.Ready
-	r.WorldContents = m.WorldContents.CloneVT()
-	r.Settings = m.Settings.CloneVT()
 	r.TransformInfo = m.TransformInfo.CloneVT()
+	if rhs := m.WorldContents; rhs != nil {
+		r.WorldContents = rhs.CloneVT()
+	}
+	if rhs := m.Settings; rhs != nil {
+		r.Settings = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -801,6 +892,49 @@ func (m *MountSpaceContentsResponse) CloneVT() *MountSpaceContentsResponse {
 }
 
 func (m *MountSpaceContentsResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CreateSecretRequest) CloneVT() *CreateSecretRequest {
+	if m == nil {
+		return (*CreateSecretRequest)(nil)
+	}
+	r := new(CreateSecretRequest)
+	r.ObjectKey = m.ObjectKey
+	r.DisplayName = m.DisplayName
+	r.Kind = m.Kind
+	r.ContentType = m.ContentType
+	if rhs := m.Value; rhs != nil {
+		r.Value = slices.Clone(rhs)
+	}
+	if rhs := m.ReaderPublicKeyPem; rhs != nil {
+		r.ReaderPublicKeyPem = slices.Clone(rhs)
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CreateSecretRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CreateSecretResponse) CloneVT() *CreateSecretResponse {
+	if m == nil {
+		return (*CreateSecretResponse)(nil)
+	}
+	r := new(CreateSecretResponse)
+	if rhs := m.Secret; rhs != nil {
+		r.Secret = rhs.CloneVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CreateSecretResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -1314,6 +1448,61 @@ func (this *MountSpaceContentsResponse) EqualVT(that *MountSpaceContentsResponse
 
 func (this *MountSpaceContentsResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*MountSpaceContentsResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *CreateSecretRequest) EqualVT(that *CreateSecretRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ObjectKey != that.ObjectKey {
+		return false
+	}
+	if this.DisplayName != that.DisplayName {
+		return false
+	}
+	if this.Kind != that.Kind {
+		return false
+	}
+	if this.ContentType != that.ContentType {
+		return false
+	}
+	if string(this.Value) != string(that.Value) {
+		return false
+	}
+	if string(this.ReaderPublicKeyPem) != string(that.ReaderPublicKeyPem) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CreateSecretRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CreateSecretRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *CreateSecretResponse) EqualVT(that *CreateSecretResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.Secret.EqualVT(that.Secret) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CreateSecretResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CreateSecretResponse)
 	if !ok {
 		return false
 	}
@@ -2208,6 +2397,134 @@ func (x *MountSpaceContentsResponse) UnmarshalProtoJSON(s *json.UnmarshalState) 
 
 // UnmarshalJSON unmarshals the MountSpaceContentsResponse from JSON.
 func (x *MountSpaceContentsResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the CreateSecretRequest message to JSON.
+func (x *CreateSecretRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ObjectKey != "" || s.HasField("objectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectKey")
+		s.WriteString(x.ObjectKey)
+	}
+	if x.DisplayName != "" || s.HasField("displayName") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("displayName")
+		s.WriteString(x.DisplayName)
+	}
+	if x.Kind != "" || s.HasField("kind") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("kind")
+		s.WriteString(x.Kind)
+	}
+	if x.ContentType != "" || s.HasField("contentType") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("contentType")
+		s.WriteString(x.ContentType)
+	}
+	if len(x.Value) > 0 || s.HasField("value") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("value")
+		s.WriteBytes(x.Value)
+	}
+	if len(x.ReaderPublicKeyPem) > 0 || s.HasField("readerPublicKeyPem") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("readerPublicKeyPem")
+		s.WriteBytes(x.ReaderPublicKeyPem)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CreateSecretRequest to JSON.
+func (x *CreateSecretRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CreateSecretRequest message from JSON.
+func (x *CreateSecretRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "object_key", "objectKey":
+			s.AddField("object_key")
+			x.ObjectKey = s.ReadString()
+		case "display_name", "displayName":
+			s.AddField("display_name")
+			x.DisplayName = s.ReadString()
+		case "kind":
+			s.AddField("kind")
+			x.Kind = s.ReadString()
+		case "content_type", "contentType":
+			s.AddField("content_type")
+			x.ContentType = s.ReadString()
+		case "value":
+			s.AddField("value")
+			x.Value = s.ReadBytes()
+		case "reader_public_key_pem", "readerPublicKeyPem":
+			s.AddField("reader_public_key_pem")
+			x.ReaderPublicKeyPem = s.ReadBytes()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the CreateSecretRequest from JSON.
+func (x *CreateSecretRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the CreateSecretResponse message to JSON.
+func (x *CreateSecretResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Secret != nil || s.HasField("secret") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("secret")
+		x.Secret.MarshalProtoJSON(s.WithField("secret"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CreateSecretResponse to JSON.
+func (x *CreateSecretResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CreateSecretResponse message from JSON.
+func (x *CreateSecretResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "secret":
+			if s.ReadNil() {
+				x.Secret = nil
+				return
+			}
+			x.Secret = &secret.Secret{}
+			x.Secret.UnmarshalProtoJSON(s.WithField("secret", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the CreateSecretResponse from JSON.
+func (x *CreateSecretResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -3292,6 +3609,124 @@ func (m *MountSpaceContentsResponse) MarshalToSizedBufferVT(dAtA []byte) (int, e
 	return len(dAtA) - i, nil
 }
 
+func (m *CreateSecretRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CreateSecretRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CreateSecretRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.ReaderPublicKeyPem) > 0 {
+		i -= len(m.ReaderPublicKeyPem)
+		copy(dAtA[i:], m.ReaderPublicKeyPem)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ReaderPublicKeyPem)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if len(m.Value) > 0 {
+		i -= len(m.Value)
+		copy(dAtA[i:], m.Value)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Value)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.ContentType) > 0 {
+		i -= len(m.ContentType)
+		copy(dAtA[i:], m.ContentType)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ContentType)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.Kind) > 0 {
+		i -= len(m.Kind)
+		copy(dAtA[i:], m.Kind)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Kind)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.DisplayName) > 0 {
+		i -= len(m.DisplayName)
+		copy(dAtA[i:], m.DisplayName)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.DisplayName)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ObjectKey) > 0 {
+		i -= len(m.ObjectKey)
+		copy(dAtA[i:], m.ObjectKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ObjectKey)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CreateSecretResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CreateSecretResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CreateSecretResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Secret != nil {
+		size, err := m.Secret.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *WatchSpaceContentsStateRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -4023,6 +4458,54 @@ func (m *MountSpaceContentsResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *CreateSecretRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.ObjectKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.DisplayName)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Kind)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ContentType)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Value)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ReaderPublicKeyPem)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CreateSecretResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Secret != nil {
+		l = m.Secret.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *WatchSpaceContentsStateRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -4500,6 +4983,81 @@ func (x *MountSpaceContentsResponse) MarshalProtoText() string {
 }
 
 func (x *MountSpaceContentsResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CreateSecretRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("CreateSecretRequest {")
+	if x.ObjectKey != "" {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("object_key: ")
+		sb.WriteString(strconv.Quote(x.ObjectKey))
+	}
+	if x.DisplayName != "" {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("display_name: ")
+		sb.WriteString(strconv.Quote(x.DisplayName))
+	}
+	if x.Kind != "" {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("kind: ")
+		sb.WriteString(strconv.Quote(x.Kind))
+	}
+	if x.ContentType != "" {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("content_type: ")
+		sb.WriteString(strconv.Quote(x.ContentType))
+	}
+	if x.Value != nil {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("value: ")
+		sb.WriteString("\"")
+		sb.WriteString(base64.StdEncoding.EncodeToString(x.Value))
+		sb.WriteString("\"")
+	}
+	if x.ReaderPublicKeyPem != nil {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("reader_public_key_pem: ")
+		sb.WriteString("\"")
+		sb.WriteString(base64.StdEncoding.EncodeToString(x.ReaderPublicKeyPem))
+		sb.WriteString("\"")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *CreateSecretRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CreateSecretResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("CreateSecretResponse {")
+	if x.Secret != nil {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("secret: ")
+		sb.WriteString(x.Secret.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *CreateSecretResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -5556,6 +6114,260 @@ func (m *MountSpaceContentsResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CreateSecretRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CreateSecretRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CreateSecretRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ObjectKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DisplayName", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DisplayName = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Kind", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Kind = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ContentType", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ContentType = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Value", wireType)
+			}
+			var byteLen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			byteLen = int(_v)
+			if err != nil {
+				return err
+			}
+			if byteLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Value = append(m.Value[:0], dAtA[iNdEx:postIndex]...)
+			if m.Value == nil {
+				m.Value = []byte{}
+			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReaderPublicKeyPem", wireType)
+			}
+			var byteLen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			byteLen = int(_v)
+			if err != nil {
+				return err
+			}
+			if byteLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ReaderPublicKeyPem = append(m.ReaderPublicKeyPem[:0], dAtA[iNdEx:postIndex]...)
+			if m.ReaderPublicKeyPem == nil {
+				m.ReaderPublicKeyPem = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CreateSecretResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CreateSecretResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CreateSecretResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Secret", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Secret == nil {
+				m.Secret = &secret.Secret{}
+			}
+			if err := m.Secret.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

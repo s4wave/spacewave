@@ -4134,7 +4134,7 @@
       "protoFiles": ["sdk/sobject/sobject.proto"]
     },
     "github.com/s4wave/spacewave/sdk/space": {
-      "hash": "eddd432ba1ac3b059165a6313f2e726ae021145214b89fe01ec72bcba7c0ba93",
+      "hash": "1c81900c062419af0629a36f79706ec9b747bd54be04dfce2c3ddb18f98a20b2",
       "generatedFiles": [
         "sdk/space/space.pb.cc",
         "sdk/space/space.pb.go",

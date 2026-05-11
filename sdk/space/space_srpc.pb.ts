@@ -7,6 +7,8 @@ import {
   AccessWorldResponse,
   AddSpacePluginRequest,
   AddSpacePluginResponse,
+  CreateSecretRequest,
+  CreateSecretResponse,
   MountSpaceContentsRequest,
   MountSpaceContentsResponse,
   RemoveSpacePluginRequest,
@@ -71,6 +73,15 @@ export const SpaceResourceServiceDefinition = {
       name: 'MountSpaceContents',
       I: MountSpaceContentsRequest,
       O: MountSpaceContentsResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.space.SpaceResourceService.CreateSecret
+     */
+    CreateSecret: {
+      name: 'CreateSecret',
+      I: CreateSecretRequest,
+      O: CreateSecretResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -140,6 +151,14 @@ export interface SpaceResourceService {
   ): Promise<MountSpaceContentsResponse>
 
   /**
+   * @generated from rpc s4wave.space.SpaceResourceService.CreateSecret
+   */
+  CreateSecret(
+    request: CreateSecretRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CreateSecretResponse>
+
+  /**
    * @generated from rpc s4wave.space.SpaceResourceService.DeployManifest
    */
   DeployManifest(
@@ -177,6 +196,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
     this.WatchSpaceSharingState = this.WatchSpaceSharingState.bind(this)
     this.AccessWorld = this.AccessWorld.bind(this)
     this.MountSpaceContents = this.MountSpaceContents.bind(this)
+    this.CreateSecret = this.CreateSecret.bind(this)
     this.DeployManifest = this.DeployManifest.bind(this)
     this.AddSpacePlugin = this.AddSpacePlugin.bind(this)
     this.RemoveSpacePlugin = this.RemoveSpacePlugin.bind(this)
@@ -247,6 +267,23 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
       abortSignal || undefined,
     )
     return MountSpaceContentsResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.space.SpaceResourceService.CreateSecret
+   */
+  async CreateSecret(
+    request: CreateSecretRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CreateSecretResponse> {
+    const requestMsg = CreateSecretRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpaceResourceServiceDefinition.methods.CreateSecret.name,
+      CreateSecretRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return CreateSecretResponse.fromBinary(result)
   }
 
   /**
