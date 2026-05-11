@@ -3,6 +3,7 @@
 package wasm
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"testing"
@@ -10,6 +11,17 @@ import (
 	"github.com/pkg/errors"
 	playwright "github.com/playwright-community/playwright-go"
 )
+
+// DriveReadyResult is the browser-observed evidence that the Drive quickstart
+// reached content-ready, beyond merely rendering the file browser frame.
+type DriveReadyResult struct {
+	Body                      string
+	Hash                      string
+	ContentReadyMs            int
+	QuickstartProgressReadyMs *int
+	QuickstartFinishedMs      *int
+	QuickstartError           string
+}
 
 // WaitForApp waits for the real app runtime, not the prerendered shell, to be
 // connected to the Resource SDK.
@@ -112,22 +124,105 @@ func EnableQuickstartTimingLogs(t testing.TB, page playwright.Page) {
 }
 
 // WaitForDriveReady waits for the drive viewer to render its demo content.
-func WaitForDriveReady(t testing.TB, h *Harness, page playwright.Page) {
+func WaitForDriveReady(t testing.TB, h *Harness, page playwright.Page) DriveReadyResult {
 	t.Helper()
 
 	WaitForDriveShell(t, page)
 
-	body, err := page.Locator("[data-testid='unixfs-browser']").TextContent()
-	if err == nil && strings.Contains(body, "getting-started.md") {
-		return
-	}
-
-	_, err = page.Evaluate(h.Script("wait-for-drive.ts"), map[string]any{
+	raw, err := page.Evaluate(h.Script("wait-for-drive.ts"), map[string]any{
 		"deadlineMs": 120000,
 	})
 	if err != nil {
 		t.Fatalf("wait for drive ready: %v", err)
 	}
+	result := parseDriveReadyResult(t, raw)
+	if !strings.Contains(result.Body, "getting-started.md") {
+		t.Fatalf("drive ready result did not include getting-started.md: %q", result.Body)
+	}
+	return result
+}
+
+func parseDriveReadyResult(t testing.TB, raw any) DriveReadyResult {
+	t.Helper()
+
+	m, ok := raw.(map[string]any)
+	if !ok {
+		t.Fatalf("unexpected drive ready result %T: %#v", raw, raw)
+	}
+	result := DriveReadyResult{
+		Body:           stringField(m, "body"),
+		Hash:           stringField(m, "hash"),
+		ContentReadyMs: intField(m, "contentReadyMs"),
+	}
+	if timing, ok := m["quickstartTiming"].(map[string]any); ok {
+		result.QuickstartProgressReadyMs = optionalIntField(timing, "progressReadyMs")
+		result.QuickstartFinishedMs = optionalIntField(timing, "finishedMs")
+		result.QuickstartError = stringField(timing, "error")
+	}
+	return result
+}
+
+func stringField(m map[string]any, key string) string {
+	v, _ := m[key].(string)
+	return v
+}
+
+func intField(m map[string]any, key string) int {
+	switch v := m[key].(type) {
+	case float64:
+		return int(v)
+	case int:
+		return v
+	default:
+		return 0
+	}
+}
+
+func optionalIntField(m map[string]any, key string) *int {
+	switch v := m[key].(type) {
+	case float64:
+		n := int(v)
+		return &n
+	case int:
+		return &v
+	default:
+		return nil
+	}
+}
+
+func AssertQuickstartContentAfterProgress(t testing.TB, result DriveReadyResult) {
+	t.Helper()
+
+	if result.QuickstartError != "" {
+		t.Fatalf("quickstart timing recorded an error: %s", result.QuickstartError)
+	}
+	if result.QuickstartProgressReadyMs == nil {
+		t.Fatal("expected quickstart progress-ready timing before Drive content-ready")
+	}
+	if result.QuickstartFinishedMs == nil {
+		t.Fatal("expected quickstart finished timing before Drive content-ready")
+	}
+	if *result.QuickstartFinishedMs < *result.QuickstartProgressReadyMs {
+		t.Fatalf(
+			"expected quickstart finished timing after progress-ready, got progress=%s finished=%s",
+			formatOptionalMs(result.QuickstartProgressReadyMs),
+			formatOptionalMs(result.QuickstartFinishedMs),
+		)
+	}
+	if result.ContentReadyMs < *result.QuickstartProgressReadyMs {
+		t.Fatalf(
+			"expected Drive content-ready after quickstart progress-ready, got progress=%s content=%dms",
+			formatOptionalMs(result.QuickstartProgressReadyMs),
+			result.ContentReadyMs,
+		)
+	}
+}
+
+func formatOptionalMs(v *int) string {
+	if v == nil {
+		return "<missing>"
+	}
+	return fmt.Sprintf("%dms", *v)
 }
 
 func containsAll(s string, subs ...string) bool {

@@ -1,23 +1,62 @@
-// Polls the drive viewer DOM until current demo content
-// appears. Uses requestAnimationFrame for frame-synced polling with a deadline.
-export default async function (args: { deadlineMs: number }): Promise<null> {
+interface DriveReadyResult {
+  body: string
+  contentReadyMs: number
+  hash: string
+  quickstartTiming: {
+    progressReadyMs?: number
+    finishedMs?: number
+    error?: string
+  } | null
+}
+
+type DriveReadyGlobals = typeof globalThis & {
+  __s4waveQuickstartTiming?: DriveReadyResult['quickstartTiming']
+  __s4wave_debug?: { quickstartTiming?: DriveReadyResult['quickstartTiming'] }
+}
+
+// Polls the drive viewer DOM until current demo content appears. Uses
+// requestAnimationFrame for frame-synced polling with a deadline.
+export default async function (args: {
+  deadlineMs: number
+}): Promise<DriveReadyResult> {
   return new Promise((resolve, reject) => {
     const deadline = Date.now() + args.deadlineMs
-    const hasFiles = () => {
+    const readBrowserText = () => {
       const root = document.querySelector('[data-testid="unixfs-browser"]')
       if (!root) {
-        return false
+        return ''
       }
-      const text = root.textContent ?? ''
-      return text.includes('getting-started.md')
+      return root.textContent ?? ''
     }
     const tick = () => {
-      if (hasFiles()) {
-        resolve(null)
+      const text = readBrowserText()
+      if (text.includes('getting-started.md')) {
+        const store = globalThis as DriveReadyGlobals
+        const timing =
+          store.__s4waveQuickstartTiming ??
+          store.__s4wave_debug?.quickstartTiming ??
+          null
+        resolve({
+          body: text.slice(0, 2000),
+          contentReadyMs: Math.round(performance.now()),
+          hash: window.location.hash,
+          quickstartTiming:
+            timing ?
+              {
+                progressReadyMs: timing.progressReadyMs,
+                finishedMs: timing.finishedMs,
+                error: timing.error,
+              }
+            : null,
+        })
         return
       }
       if (Date.now() > deadline) {
-        reject(new Error('drive viewer demo content did not appear'))
+        reject(
+          new Error(
+            `drive viewer demo content did not appear (hash=${window.location.hash}, body=${readBrowserText().slice(0, 500)})`,
+          ),
+        )
         return
       }
       requestAnimationFrame(tick)

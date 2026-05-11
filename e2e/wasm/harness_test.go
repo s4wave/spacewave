@@ -701,7 +701,8 @@ func TestDriveScenarioSequence(t *testing.T) {
 	})
 
 	t.Run("contents", func(t *testing.T) {
-		WaitForDriveReady(t, testHarness, page)
+		ready := WaitForDriveReady(t, testHarness, page)
+		AssertQuickstartContentAfterProgress(t, ready)
 	})
 
 	t.Run("state-ready", func(t *testing.T) {
