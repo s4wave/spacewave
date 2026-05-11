@@ -61,8 +61,15 @@ func TestBuildAutoDefaultSpec_None(t *testing.T) {
 
 func TestBuildAutoDefaultSpec_EmptyString(t *testing.T) {
 	t.Setenv(AutoDefaultEnvVar, "")
-	if _, ok := BuildAutoDefaultSpec("/tmp/storage", time.Now()); ok {
-		t.Errorf("auto-default should not fire when BLDR_LOG_FILE='' (key still present)")
+	if _, ok := BuildAutoDefaultSpec("/tmp/storage", time.Now()); !ok {
+		t.Errorf("auto-default should fire when BLDR_LOG_FILE=''")
+	}
+}
+
+func TestBuildAutoDefaultSpec_BlankString(t *testing.T) {
+	t.Setenv(AutoDefaultEnvVar, "   ")
+	if _, ok := BuildAutoDefaultSpec("/tmp/storage", time.Now()); !ok {
+		t.Errorf("auto-default should fire when BLDR_LOG_FILE is blank")
 	}
 }
 

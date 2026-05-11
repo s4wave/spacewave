@@ -11,7 +11,7 @@ import (
 )
 
 // AutoDefaultEnvVar is the environment variable that controls the file
-// logging spec. When set (to any value, including "none"), the user's
+// logging spec. When set to a non-empty value, including "none", the user's
 // configuration wins and BuildAutoDefaultSpec returns no spec.
 const AutoDefaultEnvVar = "BLDR_LOG_FILE"
 
@@ -24,14 +24,15 @@ const DefaultRetention = 7 * 24 * time.Hour
 //
 // The resolved spec writes DEBUG-level text records to
 // <storageRoot>/logs/{ts}.log, where {ts} is expanded against now.
-// If BLDR_LOG_FILE is set in the environment (any value, including
-// "none"), the user's configuration takes precedence and this function
-// returns ok=false so the caller defers to the existing parsing path.
+// If BLDR_LOG_FILE is set to a non-empty value (including "none"), the user's
+// configuration takes precedence and this function returns ok=false so the
+// caller defers to the existing parsing path. Empty values behave like the
+// variable is unset and still get the auto-default.
 //
 // Callers receive the spec but are responsible for opening the file via
 // AttachLogFiles and pruning old logs via PruneOldLogs.
 func BuildAutoDefaultSpec(storageRoot string, now time.Time) (LogFileSpec, bool) {
-	if _, ok := os.LookupEnv(AutoDefaultEnvVar); ok {
+	if raw, ok := os.LookupEnv(AutoDefaultEnvVar); ok && strings.TrimSpace(raw) != "" {
 		return LogFileSpec{}, false
 	}
 	if storageRoot == "" {

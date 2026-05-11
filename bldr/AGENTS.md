@@ -69,7 +69,7 @@ In dev mode (`--build-type dev`), file logging is auto-enabled with
 
 Distribution and CLI entrypoints (the dist top-level native host, the dist
 CLI surface, the bldr CLI `Main`, and the spacewave-cli daemon) auto-enable a
-DEBUG-level text log file when `BLDR_LOG_FILE` is unset. The path is
+DEBUG-level text log file when `BLDR_LOG_FILE` is unset or blank. The path is
 `<storageRoot>/logs/{ts}.log`, where `<storageRoot>` is the same directory
 the binary uses for state (e.g. `~/.spacewave/`). The file is always written
 at DEBUG level regardless of the console verbosity, so support diagnostics
@@ -79,7 +79,7 @@ do not lose detail when an operator runs the binary at INFO or WARN.
 |---|---|
 | `BLDR_LOG_FILE=<spec>` | User-specified spec wins; auto-default does not fire. |
 | `BLDR_LOG_FILE=none` | Disables file logging entirely. |
-| `BLDR_LOG_FILE` unset | Auto-default fires at `<storageRoot>/logs/{ts}.log`. |
+| `BLDR_LOG_FILE` unset or blank | Auto-default fires at `<storageRoot>/logs/{ts}.log`. |
 | `<PROJECT>_LOG_LEVEL` (e.g. `SPACEWAVE_LOG_LEVEL`) | Overrides the console level only; the file always records DEBUG. |
 | `BLDR_LOG_LEVEL` | Same as above; checked after `<PROJECT>_LOG_LEVEL`. |
 | `<PROJECT>_LOG_RETENTION_DAYS` (e.g. `SPACEWAVE_LOG_RETENTION_DAYS`) | Override retention; default `7` (days). Non-positive or unparseable values fall back to the default. |
