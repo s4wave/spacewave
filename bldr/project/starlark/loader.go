@@ -54,13 +54,14 @@ func (e *evaluator) load(thread *starlark.Thread, module string) (starlark.Strin
 func (e *evaluator) resolveModulePath(thread *starlark.Thread, module string) (string, error) {
 	if after, ok := strings.CutPrefix(module, goVendorPrefix); ok {
 		// @go/github.com/foo/bar/file.star -> vendor/github.com/foo/bar/file.star
-		relPath := after
-		resolved := filepath.Join(e.vendorDir, filepath.FromSlash(relPath))
-		return resolved, nil
+		return resolveModuleUnder(e.vendorDir, after, module)
 	}
 
 	// Relative path: resolve from the directory of the calling file,
 	// or from the project directory if no caller frame is available.
+	if filepath.IsAbs(module) {
+		return "", errors.Errorf("load %q: absolute paths are not allowed", module)
+	}
 	baseDir := e.projectDir
 	if depth := thread.CallStackDepth(); depth > 1 {
 		callerFile := thread.CallFrame(1).Pos.Filename()
@@ -68,6 +69,63 @@ func (e *evaluator) resolveModulePath(thread *starlark.Thread, module string) (s
 			baseDir = filepath.Dir(callerFile)
 		}
 	}
-	resolved := filepath.Join(baseDir, filepath.FromSlash(module))
-	return filepath.Abs(resolved)
+	resolved, err := filepath.Abs(filepath.Join(baseDir, filepath.FromSlash(module)))
+	if err != nil {
+		return "", errors.Wrapf(err, "resolve load %q", module)
+	}
+	if !isPathWithin(e.projectDir, resolved) {
+		return "", errors.Errorf("load %q: path escapes project root", module)
+	}
+	if ok, err := isExistingPathWithin(e.projectDir, resolved); err != nil {
+		return "", errors.Wrapf(err, "resolve load %q", module)
+	} else if !ok {
+		return "", errors.Errorf("load %q: path escapes project root", module)
+	}
+	return resolved, nil
+}
+
+func resolveModuleUnder(root, module, display string) (string, error) {
+	if module == "" {
+		return "", errors.Errorf("load %q: empty module path", display)
+	}
+	if filepath.IsAbs(module) {
+		return "", errors.Errorf("load %q: absolute paths are not allowed", display)
+	}
+	resolved, err := filepath.Abs(filepath.Join(root, filepath.FromSlash(module)))
+	if err != nil {
+		return "", errors.Wrapf(err, "resolve load %q", display)
+	}
+	if !isPathWithin(root, resolved) {
+		return "", errors.Errorf("load %q: path escapes vendor root", display)
+	}
+	if ok, err := isExistingPathWithin(root, resolved); err != nil {
+		return "", errors.Wrapf(err, "resolve load %q", display)
+	} else if !ok {
+		return "", errors.Errorf("load %q: path escapes vendor root", display)
+	}
+	return resolved, nil
+}
+
+func isPathWithin(root, path string) bool {
+	rootAbs, err := filepath.Abs(root)
+	if err != nil {
+		return false
+	}
+	rel, err := filepath.Rel(rootAbs, path)
+	if err != nil {
+		return false
+	}
+	return rel == "." || (rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)))
+}
+
+func isExistingPathWithin(root, path string) (bool, error) {
+	rootReal, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		return false, err
+	}
+	pathReal, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		return false, err
+	}
+	return isPathWithin(rootReal, pathReal), nil
 }

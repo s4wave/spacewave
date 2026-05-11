@@ -157,6 +157,88 @@ build("release-desktop-darwin-arm64",
 	}
 }
 
+func TestEvaluateRejectsRelativeLoadOutsideProject(t *testing.T) {
+	dir := t.TempDir()
+	projectDir := filepath.Join(dir, "project")
+	if err := os.Mkdir(projectDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "outside.star"), []byte("VALUE = 1\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	starFile := filepath.Join(projectDir, "bldr.star")
+	if err := os.WriteFile(starFile, []byte(`
+load("../outside.star", "VALUE")
+project(id="test")
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := Evaluate(starFile)
+	if err == nil {
+		t.Fatal("expected load outside project root to fail")
+	}
+	if !strings.Contains(err.Error(), "path escapes project root") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestEvaluateRejectsGoVendorLoadOutsideVendor(t *testing.T) {
+	dir := t.TempDir()
+	vendorDir := filepath.Join(dir, "vendor")
+	if err := os.Mkdir(vendorDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "outside.star"), []byte("VALUE = 1\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	starFile := filepath.Join(dir, "bldr.star")
+	if err := os.WriteFile(starFile, []byte(`
+load("@go/../outside.star", "VALUE")
+project(id="test")
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := Evaluate(starFile)
+	if err == nil {
+		t.Fatal("expected @go load outside vendor root to fail")
+	}
+	if !strings.Contains(err.Error(), "path escapes vendor root") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestEvaluateRejectsLoadSymlinkOutsideProject(t *testing.T) {
+	dir := t.TempDir()
+	projectDir := filepath.Join(dir, "project")
+	if err := os.Mkdir(projectDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	outside := filepath.Join(dir, "outside.star")
+	if err := os.WriteFile(outside, []byte("VALUE = 1\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outside, filepath.Join(projectDir, "outside-link.star")); err != nil {
+		t.Fatal(err)
+	}
+	starFile := filepath.Join(projectDir, "bldr.star")
+	if err := os.WriteFile(starFile, []byte(`
+load("outside-link.star", "VALUE")
+project(id="test")
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := Evaluate(starFile)
+	if err == nil {
+		t.Fatal("expected load symlink outside project root to fail")
+	}
+	if !strings.Contains(err.Error(), "path escapes project root") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 	starPath := "../../../bldr.star"
 	if _, err := os.Stat(starPath); err != nil {
