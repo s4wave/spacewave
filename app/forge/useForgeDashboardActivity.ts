@@ -52,6 +52,8 @@ const executionStateLabels: Record<number, string> = {
   3: 'COMPLETE',
 }
 
+const activitySourceTypeIds = new Set(Object.keys(entityTypeLabels))
+
 interface ForgeDashboardActivitySource {
   objectKey: string
   typeId: string
@@ -129,6 +131,38 @@ function describeActivitySource(
   return null
 }
 
+export async function loadForgeDashboardActivityEntries(
+  world: IWorldState,
+  dashboard: ForgeDashboard | undefined,
+  entities: ForgeLinkedEntity[],
+  signal: AbortSignal,
+): Promise<ForgeDashboardActivityEntry[]> {
+  const activityEntities: ForgeLinkedEntity[] = []
+  for (const entity of entities) {
+    if (activitySourceTypeIds.has(entity.typeId)) {
+      activityEntities.push(entity)
+    }
+  }
+
+  const sources = await Promise.all(
+    activityEntities.map(async (entity) => {
+      using objectState = await world.getObject(entity.objectKey, signal)
+      if (!objectState) return null
+      using cursor = await objectState.accessWorldState(undefined, signal)
+      const resp = await cursor.unmarshal({}, signal)
+      if (!resp.found || !resp.data?.length) return null
+      return describeActivitySource(entity, resp.data)
+    }),
+  )
+
+  return buildForgeDashboardActivityEntries(
+    dashboard,
+    sources.filter(
+      (source): source is ForgeDashboardActivitySource => source !== null,
+    ),
+  )
+}
+
 export function buildForgeDashboardActivityEntries(
   dashboard: ForgeDashboard | undefined,
   sources: ForgeDashboardActivitySource[],
@@ -183,23 +217,11 @@ export function useForgeDashboardActivity(
     worldState,
     async (world, signal) => {
       if (!world) return []
-
-      const sources = await Promise.all(
-        entities.map(async (entity) => {
-          using objectState = await world.getObject(entity.objectKey, signal)
-          if (!objectState) return null
-          using cursor = await objectState.accessWorldState(undefined, signal)
-          const resp = await cursor.unmarshal({}, signal)
-          if (!resp.found || !resp.data?.length) return null
-          return describeActivitySource(entity, resp.data)
-        }),
-      )
-
-      return buildForgeDashboardActivityEntries(
+      return loadForgeDashboardActivityEntries(
+        world,
         dashboard,
-        sources.filter(
-          (source): source is ForgeDashboardActivitySource => source !== null,
-        ),
+        entities,
+        signal,
       )
     },
     [dashboard?.createdAt?.toISOString(), dashboard?.name, entities],
