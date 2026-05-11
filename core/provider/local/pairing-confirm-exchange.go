@@ -237,9 +237,9 @@ func (a *ProviderAccount) runConfirmExchangeOnStream(
 	a.setPairingStatus(PairingStatusWaitingForRemote)
 
 	// Read remote confirmation.
-	var remoteMsg PairingConfirmMessage
-	if err := sess.RecvMsg(&remoteMsg); err != nil {
-		if timeoutCtx.Err() != nil && ctx.Err() == nil {
+	remoteMsg, err, timedOut := recvPairingConfirm(timeoutCtx, sess)
+	if err != nil {
+		if timedOut && ctx.Err() == nil {
 			a.setPairingError(PairingStatusConfirmationTimeout, "remote confirmation timed out")
 		}
 		return
@@ -253,4 +253,24 @@ func (a *ProviderAccount) runConfirmExchangeOnStream(
 	// Both confirmed.
 	a.setPairingStatus(PairingStatusBothConfirmed)
 	le.Debug("both sides confirmed pairing")
+}
+
+func recvPairingConfirm(ctx context.Context, sess *stream_packet.Session) (PairingConfirmMessage, error, bool) {
+	type recvResult struct {
+		msg PairingConfirmMessage
+		err error
+	}
+	done := make(chan recvResult, 1)
+	go func() {
+		var msg PairingConfirmMessage
+		done <- recvResult{msg: msg, err: sess.RecvMsg(&msg)}
+	}()
+
+	select {
+	case res := <-done:
+		return res.msg, res.err, false
+	case <-ctx.Done():
+		_ = sess.Close()
+		return PairingConfirmMessage{}, ctx.Err(), true
+	}
 }
