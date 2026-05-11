@@ -4051,6 +4051,22 @@
       ],
       "protoFiles": ["sdk/root/root.proto"]
     },
+    "github.com/s4wave/spacewave/sdk/secret": {
+      "hash": "9c586e818d8a52403239c597feff9ce85aef3e331569fce20af4498c8827ae62",
+      "generatedFiles": [
+        "sdk/secret/secret.pb.cc",
+        "sdk/secret/secret.pb.go",
+        "sdk/secret/secret.pb.h",
+        "sdk/secret/secret.pb.rs",
+        "sdk/secret/secret.pb.ts",
+        "sdk/secret/secret_srpc.pb.cpp",
+        "sdk/secret/secret_srpc.pb.go",
+        "sdk/secret/secret_srpc.pb.hpp",
+        "sdk/secret/secret_srpc.pb.rs",
+        "sdk/secret/secret_srpc.pb.ts"
+      ],
+      "protoFiles": ["sdk/secret/secret.proto"]
+    },
     "github.com/s4wave/spacewave/sdk/session": {
       "hash": "0fbd040caa10a1882b89ac5e3361329c42730aa91db38c23b7de2f15fd937df4",
       "generatedFiles": [
