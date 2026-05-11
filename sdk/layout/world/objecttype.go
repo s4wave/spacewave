@@ -145,7 +145,6 @@ func ObjectLayoutFactory(
 
 		tabID := req.GetTabId()
 		newPath := req.GetPath()
-		logrus.Infof("navigateTab called: tabID=%s newPath=%s", tabID, newPath)
 		if tabID == "" {
 			return &s4wave_layout.NavigateTabResponse{}, nil
 		}
@@ -153,7 +152,6 @@ func ObjectLayoutFactory(
 		// Get current model
 		currentModel := stateCtr.GetValue()
 		if currentModel == nil {
-			logrus.Info("navigateTab: no current model")
 			return &s4wave_layout.NavigateTabResponse{}, nil
 		}
 
@@ -162,6 +160,7 @@ func ObjectLayoutFactory(
 
 		// Find the tab by ID and update its path
 		var tabFound bool
+		var walkErr error
 		{
 			_, task := trace.NewTask(ctx, "alpha/layout/navigate-tab/update-model")
 			resource_layout.WalkLayoutModel(updatedModel, func(node any) bool {
@@ -177,27 +176,29 @@ func ObjectLayoutFactory(
 				var tabData ObjectLayoutTab
 				if len(tabDef.GetData()) > 0 {
 					if err := tabData.UnmarshalVT(tabDef.GetData()); err != nil {
-						logrus.Infof("navigateTab: unmarshal error: %v", err)
-						return true
+						walkErr = err
+						return false
 					}
 				}
 
 				// Update the path using CleanupPath to handle relative paths
 				currentPath := tabData.GetPath()
 				tabData.Path = resource_layout.CleanupPath(currentPath, newPath)
-				logrus.Infof("navigateTab: tabID=%s currentPath=%s newPath=%s resolvedPath=%s", tabID, currentPath, newPath, tabData.Path)
 
 				// Marshal back to data
 				data, err := tabData.MarshalVT()
 				if err != nil {
-					logrus.Infof("navigateTab: marshal error: %v", err)
-					return true
+					walkErr = err
+					return false
 				}
 				tabDef.Data = data
 				tabFound = true
 				return false
 			})
 			task.End()
+		}
+		if walkErr != nil {
+			return nil, walkErr
 		}
 
 		if !tabFound {
