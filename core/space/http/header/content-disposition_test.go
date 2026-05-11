@@ -25,3 +25,12 @@ func TestSetAttachmentHeaderUnicode(t *testing.T) {
 		t.Fatalf("content disposition missing filename*: %q", got)
 	}
 }
+
+func TestSetAttachmentHeaderStripsControlCharacters(t *testing.T) {
+	w := httptest.NewRecorder()
+	SetAttachmentHeader(w, "report\r\nX-Spacewave-Test: bad.zip")
+	got := w.Header().Get("Content-Disposition")
+	if strings.ContainsAny(got, "\r\n") {
+		t.Fatalf("content disposition contains raw newline: %q", got)
+	}
+}
