@@ -43,7 +43,7 @@ require (
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
 	github.com/aperturerobotics/protobuf-go-lite v0.13.0 // master
 	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect
-	github.com/aperturerobotics/starpc v0.49.8 // latest
+	github.com/aperturerobotics/starpc v0.49.9 // latest
 	github.com/aperturerobotics/util v1.34.3 // latest
 )
 
@@ -69,7 +69,7 @@ require (
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gorm.io/gorm v1.31.1
 	gotest.tools/v3 v3.5.2
-	modernc.org/sqlite v1.50.0
+	modernc.org/sqlite v1.50.1
 )
 
 require (
@@ -85,7 +85,7 @@ require (
 	github.com/emirpasic/gods v1.18.1
 	github.com/fatih/color v1.19.0
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-git/go-billy/v6 v6.0.0-20260509100505-20932ef6e926 // main
+	github.com/go-git/go-billy/v6 v6.0.0-alpha.1 // main
 	github.com/go-git/go-git/v6 v6.0.0-alpha.3 // main
 	github.com/goccy/go-json v0.10.6
 	github.com/gomodule/redigo v1.9.3
@@ -106,7 +106,7 @@ require (
 	github.com/pion/webrtc/v4 v4.2.12
 	github.com/pkg/errors v0.9.1
 	github.com/playwright-community/playwright-go v0.5700.1
-	github.com/quic-go/quic-go v0.59.0
+	github.com/quic-go/quic-go v0.59.1
 	github.com/restic/chunker v0.4.0
 	github.com/sasha-s/go-deadlock v0.3.9
 	github.com/satori/go.uuid v1.2.0
@@ -195,7 +195,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect
-	modernc.org/libc v1.72.0 // indirect
+	modernc.org/libc v1.72.3 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 )
