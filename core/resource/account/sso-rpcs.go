@@ -74,10 +74,10 @@ func (r *AccountResource) LinkSSO(
 		return &s4wave_account.LinkSSOResponse{}, nil
 	}
 
-	// Fall back to tracker-signed path.
-	trackerKeys, trackerPeerIDs := r.account.GetEntityKeypairTracker().
+	// Fall back to the key-store signed path.
+	storeKeys, storePeerIDs := r.account.GetEntityKeyStore().
 		GetUnlockedKeysAndPeerIDs()
-	if len(trackerKeys) == 0 {
+	if len(storeKeys) == 0 {
 		return nil, errors.New("no credentials provided and no keypairs unlocked")
 	}
 
@@ -87,8 +87,8 @@ func (r *AccountResource) LinkSSO(
 		code,
 		redirectUri,
 		req.GetPin(),
-		trackerKeys,
-		trackerPeerIDs,
+		storeKeys,
+		storePeerIDs,
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "link sso")

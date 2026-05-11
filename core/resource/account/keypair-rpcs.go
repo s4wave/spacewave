@@ -16,28 +16,28 @@ import (
 
 // WatchEntityKeypairs streams entity keypairs with their lock state.
 //
-// Account state and tracker unlock state are folded into one local broadcast
+// Account state and key-store unlock state are folded into one local broadcast
 // so the watch loop reads both inputs under the same HoldLock that obtains
 // the wait channel. This eliminates the missed-wakeup race that the previous
 // dual-channel select had to defend against and coalesces near-simultaneous
-// changes (e.g. an account-state update landing alongside a tracker unlock)
+// changes (e.g. an account-state update landing alongside a key-store unlock)
 // into a single emission instead of one per source.
 func (r *AccountResource) WatchEntityKeypairs(
 	req *s4wave_account.WatchEntityKeypairsRequest,
 	strm s4wave_account.SRPCAccountResourceService_WatchEntityKeypairsStream,
 ) error {
 	ctx := strm.Context()
-	tracker := r.account.GetEntityKeypairTracker()
+	store := r.account.GetEntityKeyStore()
 	state := &entityKeypairsWatchState{
 		keypairs:      r.account.KeypairsSnapshot(),
 		valid:         r.account.AccountStateSnapshot() != nil,
-		unlockedPeers: tracker.GetUnlockedPeerIDs(),
+		unlockedPeers: store.GetUnlockedPeerIDs(),
 	}
 
 	bridgeCtx, cancelBridges := context.WithCancel(ctx)
 	defer cancelBridges()
 	go state.bridgeAccount(bridgeCtx, r.account)
-	go state.bridgeTracker(bridgeCtx, tracker)
+	go state.bridgeStore(bridgeCtx, store)
 
 	return state.runWatchLoop(ctx, strm.Send)
 }
@@ -82,16 +82,16 @@ func (s *entityKeypairsWatchState) bridgeAccount(
 	}
 }
 
-// bridgeTracker forwards tracker broadcast wakeups into the local broadcast,
+// bridgeStore forwards key-store broadcast wakeups into the local broadcast,
 // re-snapshotting the unlocked peer set on each update.
-func (s *entityKeypairsWatchState) bridgeTracker(
+func (s *entityKeypairsWatchState) bridgeStore(
 	ctx context.Context,
-	tracker *provider_spacewave.EntityKeyStore,
+	store *provider_spacewave.EntityKeyStore,
 ) {
-	trackerBcast := tracker.GetBroadcast()
+	storeBcast := store.GetBroadcast()
 	for {
 		var waitCh <-chan struct{}
-		trackerBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		storeBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			waitCh = getWaitCh()
 		})
 		select {
@@ -99,7 +99,7 @@ func (s *entityKeypairsWatchState) bridgeTracker(
 			return
 		case <-waitCh:
 		}
-		unlockedPeers := tracker.GetUnlockedPeerIDs()
+		unlockedPeers := store.GetUnlockedPeerIDs()
 		s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			s.unlockedPeers = unlockedPeers
 			broadcast()
@@ -175,7 +175,7 @@ func (r *AccountResource) UnlockEntityKeypair(
 	if requestedPeerID != "" && resolvedPeerID.String() != requestedPeerID {
 		return nil, errors.Errorf("resolved peer ID %s does not match requested %s", resolvedPeerID.String(), requestedPeerID)
 	}
-	r.account.GetEntityKeypairTracker().Unlock(resolvedPeerID, privKey)
+	r.account.GetEntityKeyStore().Unlock(resolvedPeerID, privKey)
 	return &s4wave_account.UnlockEntityKeypairResponse{}, nil
 }
 
@@ -192,7 +192,7 @@ func (r *AccountResource) LockEntityKeypair(
 	if err != nil {
 		return nil, errors.Wrap(err, "decode peer ID")
 	}
-	r.account.GetEntityKeypairTracker().Lock(pid)
+	r.account.GetEntityKeyStore().Lock(pid)
 	return &s4wave_account.LockEntityKeypairResponse{}, nil
 }
 
@@ -201,20 +201,20 @@ func (r *AccountResource) LockAllEntityKeypairs(
 	ctx context.Context,
 	_ *s4wave_account.LockAllEntityKeypairsRequest,
 ) (*s4wave_account.LockAllEntityKeypairsResponse, error) {
-	r.account.GetEntityKeypairTracker().LockAll()
+	r.account.GetEntityKeyStore().LockAll()
 	return &s4wave_account.LockAllEntityKeypairsResponse{}, nil
 }
 
-// resolveOrSignWithTracker builds the MultiSigActionEnvelope and produces
+// resolveOrSignWithStore builds the MultiSigActionEnvelope and produces
 // signatures over the envelope bytes using either a caller-supplied credential
-// or any keys currently unlocked in the keypair tracker. Returns the envelope
+// or any keys currently unlocked in the key store. Returns the envelope
 // bytes plus the resolved signatures.
 //
 // The precedence is:
 //  1. credential != nil: resolve entity key, sign envelope
-//  2. tracker has unlocked keys: sign envelope with all unlocked keys
+//  2. key store has unlocked keys: sign envelope with all unlocked keys
 //  3. error: no credentials and no unlocked keys
-func (r *AccountResource) resolveOrSignWithTracker(
+func (r *AccountResource) resolveOrSignWithStore(
 	ctx context.Context,
 	cred *session.EntityCredential,
 	kind api.MultiSigActionKind,
@@ -242,12 +242,12 @@ func (r *AccountResource) resolveOrSignWithTracker(
 			SignedAt:  now,
 		}}, nil
 	}
-	trackerSigs, err := r.account.GetEntityKeypairTracker().SignAll(envelope)
+	storeSigs, err := r.account.GetEntityKeyStore().SignAll(envelope)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "tracker sign")
+		return nil, nil, errors.Wrap(err, "key store sign")
 	}
-	if len(trackerSigs) == 0 {
+	if len(storeSigs) == 0 {
 		return nil, nil, errors.New("no credentials provided and no keypairs unlocked")
 	}
-	return envelope, trackerSigs, nil
+	return envelope, storeSigs, nil
 }

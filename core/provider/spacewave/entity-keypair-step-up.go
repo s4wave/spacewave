@@ -11,11 +11,6 @@ func (a *ProviderAccount) GetEntityKeyStore() *EntityKeyStore {
 	return a.getEntityKeyStore()
 }
 
-// GetEntityKeypairTracker returns the shared entity key store.
-func (a *ProviderAccount) GetEntityKeypairTracker() *EntityKeyStore {
-	return a.getEntityKeyStore()
-}
-
 // RetainEntityKeypairStepUp retains unlocked entity keypairs until the returned
 // reference is released.
 func (a *ProviderAccount) RetainEntityKeypairStepUp() *refcount.Ref[struct{}] {

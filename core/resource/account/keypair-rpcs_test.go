@@ -14,7 +14,7 @@ import (
 )
 
 // TestEntityKeypairsWatchStateCoalescesNearSimultaneousChanges asserts that
-// an account-state update and a tracker unlock landing while the loop is
+// an account-state update and a key-store unlock landing while the loop is
 // mid-emission coalesce into a single follow-on emission. The unified
 // broadcast pattern reads both inputs under the same HoldLock that obtains
 // the wait channel, so updates that race with the loop's send fold into
@@ -88,7 +88,7 @@ func TestEntityKeypairsWatchStateCoalescesNearSimultaneousChanges(t *testing.T) 
 		t.Fatalf("coalesced emission missing keypairs update: got %d, want 2", got)
 	}
 	if got := emissions[1].GetUnlockedCount(); got != 1 {
-		t.Fatalf("coalesced emission missing tracker update: got UnlockedCount=%d, want 1", got)
+		t.Fatalf("coalesced emission missing key-store update: got UnlockedCount=%d, want 1", got)
 	}
 	var pid1Unlocked bool
 	for _, kp := range emissions[1].GetKeypairs() {

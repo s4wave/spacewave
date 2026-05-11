@@ -620,7 +620,7 @@ func (r *AccountResource) submitTrackedAction(
 	actionBody []byte,
 	wrapMsg string,
 ) error {
-	envelope, sigs, err := r.resolveOrSignWithTracker(ctx, cred, kind, method, reqPath, actionBody)
+	envelope, sigs, err := r.resolveOrSignWithStore(ctx, cred, kind, method, reqPath, actionBody)
 	if err != nil {
 		return err
 	}
@@ -712,7 +712,7 @@ func (r *AccountResource) SetSecurityLevel(
 // When credential is nil and the requested session_peer_id matches the
 // current session, uses the session self-revoke endpoint (no entity key
 // needed). Otherwise falls through to the entity multi-sig path, with
-// tracker fallback.
+// key-store fallback.
 func (r *AccountResource) RevokeSession(
 	ctx context.Context,
 	req *s4wave_account.RevokeSessionRequest,
