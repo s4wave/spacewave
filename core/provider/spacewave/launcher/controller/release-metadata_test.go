@@ -155,6 +155,54 @@ func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
 	}
 }
 
+func TestRefreshReleaseMetadataStatusRejectsDirectoryEntrypoint(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+	ws := buildReleaseMetadataTestWorld(t, ctx, "stable", nativeTestPlatformID())
+	src := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(src, "spacewave"), 0o755); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := os.WriteFile(filepath.Join(src, "spacewave", "binary"), []byte("binary"), 0o755); err != nil {
+		t.Fatal(err.Error())
+	}
+	manifestRef := writeReleaseManifestTestBlock(t, ctx, ws, "release/manifests/native", src)
+	metadata := testReleaseMetadata("stable", nativeTestPlatformID(), manifestRef.GetManifestRef().GetRootRef())
+	metadata.ManifestRefs = []*bldr_manifest.ManifestRef{manifestRef}
+	metadataRef := writeReleaseMetadataTestBlock(t, ctx, ws, releaseMetadataObjectKey("stable"), metadata)
+	writeReleaseMetadataTestBlock(t, ctx, ws, releaseMetadataDirectoryObjectKey, &spacewave_release.ChannelDirectory{
+		Channels: []*spacewave_release.ChannelEntry{{
+			ChannelKey:         "stable",
+			ReleaseMetadataRef: metadataRef,
+		}},
+	})
+
+	dc := cdc.NewController(ctx, le)
+	b := inmem.NewBus(dc)
+	rel, err := b.AddController(ctx, &releaseWorldLookupTestController{ws: ws}, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer rel()
+
+	stagingDir := t.TempDir()
+	ctrl := newReleaseMetadataRoutineTestController(le, b, stagingDir)
+	err = ctrl.refreshReleaseMetadataStatus(ctx, ctrl.launcherInfoCtr.GetValue().GetDistConfig())
+	if err == nil {
+		t.Fatal("expected directory entrypoint error")
+	}
+	if !strings.Contains(err.Error(), "staged directory entrypoint must be a .app bundle") {
+		t.Fatalf("error = %q", err.Error())
+	}
+	state := ctrl.launcherInfoCtr.GetValue().GetUpdateState()
+	if state.GetPhase() != spacewave_launcher.UpdatePhase_UpdatePhase_ERROR {
+		t.Fatalf("phase = %v, want ERROR", state.GetPhase())
+	}
+	if _, err := os.Stat(filepath.Join(stagingDir, "0.1.0")); !os.IsNotExist(err) {
+		t.Fatalf("stage root should be removed, stat err = %v", err)
+	}
+}
+
 func TestReleaseMetadataRoutineRetriesUntilReleaseWorldMounted(t *testing.T) {
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())

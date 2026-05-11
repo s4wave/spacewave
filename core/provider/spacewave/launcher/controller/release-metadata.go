@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
@@ -147,6 +148,9 @@ func (c *Controller) stageReleaseManifestUpdate(
 	if err != nil {
 		return errors.Wrap(err, "checkout release manifest")
 	}
+	if err := verifyStagedReleaseEntrypoint(ctx, stageRoot, stagedPath); err != nil {
+		return err
+	}
 	c.setUpdateStaged(metadata.GetVersion(), stagedPath)
 	return nil
 }
@@ -178,6 +182,25 @@ func (c *Controller) setUpdateStaged(version, stagedPath string) {
 		}
 		return true, nil
 	})
+}
+
+func verifyStagedReleaseEntrypoint(ctx context.Context, stageRoot, stagedPath string) error {
+	stagedInfo, err := os.Stat(stagedPath)
+	if err != nil {
+		return errors.Wrap(err, "stat staged release entrypoint")
+	}
+	if !stagedInfo.IsDir() {
+		return nil
+	}
+	if !strings.HasSuffix(stagedPath, ".app") {
+		_ = os.RemoveAll(stageRoot)
+		return errors.New("staged directory entrypoint must be a .app bundle")
+	}
+	if err := verifyAppBundleCodesign(ctx, stagedPath); err != nil {
+		_ = os.RemoveAll(stageRoot)
+		return errors.Wrap(err, "verify staged app bundle")
+	}
+	return nil
 }
 
 func readSelectedReleaseMetadata(
