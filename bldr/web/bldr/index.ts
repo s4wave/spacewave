@@ -1,10 +1,6 @@
 export { formatBytes } from './format.js'
 export { compareUint8Arrays } from './binary.js'
-export {
-  Retry,
-  retryWithAbort,
-  constantBackoff,
-} from './retry.js'
+export { Retry, retryWithAbort, constantBackoff } from './retry.js'
 export type { RetryWithAbortOpts, RetryOpts, BackoffFn } from './retry.js'
 export { WebRuntime } from './web-runtime.js'
 export type {
@@ -36,6 +32,7 @@ export {
   isLinux,
   isWindows,
   openElectronDirectory,
+  quitDesktopRuntime,
 } from '../electron/electron.js'
 export {
   pathSeparator,

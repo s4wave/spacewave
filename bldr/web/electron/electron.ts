@@ -28,6 +28,8 @@ export interface BldrElectron {
   ): Promise<void>
   // openDirectory opens a native directory picker and returns the selected path.
   openDirectory(): Promise<string | null>
+  // quitDesktopRuntime requests a clean user-initiated desktop runtime quit.
+  quitDesktopRuntime(): Promise<void>
 }
 
 // BLDR_ELECTRON is declared if this is Electron.
@@ -90,6 +92,15 @@ export async function openElectronDirectory(): Promise<string | null> {
   return BLDR_ELECTRON.openDirectory()
 }
 
+// quitDesktopRuntime requests a clean user-initiated desktop runtime quit.
+export async function quitDesktopRuntime(): Promise<void> {
+  if (!BLDR_ELECTRON) {
+    throw new Error('not running in electron')
+  }
+
+  await BLDR_ELECTRON.quitDesktopRuntime()
+}
+
 // handleElectronWorkerPort handles the other end of the WebDocument.webRuntimePort.
 export function handleElectronWorkerPort(port: MessagePort) {
   port.onmessage = (ev) => {
@@ -109,10 +120,7 @@ export function handleElectronWorkerPort(port: MessagePort) {
 
     const clientPort = msg.connectWebRuntime?.port ?? ev.ports?.[0]
     if (msg.connectWebRuntime && clientPort) {
-      openElectronPort(
-        msg.connectWebRuntime.init,
-        clientPort,
-      )
+      openElectronPort(msg.connectWebRuntime.init, clientPort)
     }
   }
 

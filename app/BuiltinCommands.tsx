@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { isDesktop, quitDesktopRuntime } from '@aptre/bldr'
 
 import { getAppPath, setAppPath } from '@s4wave/web/router/app-path.js'
 import { useCommand } from '@s4wave/web/command/useCommand.js'
@@ -165,6 +166,7 @@ export function BuiltinCommands() {
 
   return (
     <>
+      {isDesktop && <DesktopBuiltinCommands />}
       <KeyboardShortcutsDialog
         open={shortcutsOpen}
         onOpenChange={setShortcutsOpen}
@@ -176,4 +178,37 @@ export function BuiltinCommands() {
       />
     </>
   )
+}
+
+function DesktopBuiltinCommands() {
+  useCommand({
+    commandId: 'spacewave.file.close-window',
+    label: 'Close Window',
+    keybinding: 'CmdOrCtrl+W',
+    menuPath: 'File/Close Window',
+    menuGroup: 90,
+    menuOrder: 1,
+    handler: useCallback(() => {
+      window.close()
+    }, []),
+  })
+
+  useCommand({
+    commandId: 'spacewave.file.quit',
+    label: 'Quit',
+    keybinding: 'CmdOrCtrl+Q',
+    menuPath: 'File/Quit',
+    menuGroup: 90,
+    menuOrder: 2,
+    handler: useCallback(() => {
+      quitDesktopRuntime().catch((err: unknown) => {
+        console.error('Quit desktop runtime failed:', err)
+        toast.error('Quit failed', {
+          description: 'Could not request desktop shutdown.',
+        })
+      })
+    }, []),
+  })
+
+  return null
 }

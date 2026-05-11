@@ -25,8 +25,14 @@ async function openDirectory(): Promise<string | null> {
   return await ipcRenderer.invoke('BLDR_ELECTRON_OPEN_DIRECTORY')
 }
 
+// quitDesktopRuntime requests a clean user-initiated desktop runtime quit.
+async function quitDesktopRuntime(): Promise<void> {
+  await ipcRenderer.invoke('BLDR_ELECTRON_QUIT_DESKTOP_RUNTIME')
+}
+
 const exposeContext: BldrElectron = {
   openClientPort,
   openDirectory,
+  quitDesktopRuntime,
 }
 contextBridge.exposeInMainWorld('BLDR_ELECTRON', exposeContext)

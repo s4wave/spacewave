@@ -500,11 +500,39 @@ describe('BldrElectronApp', () => {
       filePaths: [],
     })
 
-    await handler({} as Electron.IpcMainInvokeEvent)
+    await Reflect.apply(handler, null, [{}])
 
     expect(electron.dialog.showOpenDialog).toHaveBeenCalledWith({
       properties: ['openDirectory', 'showHiddenFiles'],
     })
+  })
+
+  it('registers renderer ipc for explicit desktop quit', async () => {
+    const [electron, { BldrElectronApp }] = await Promise.all([
+      import('electron'),
+      import('./app.js'),
+    ])
+    const app = Reflect.construct(BldrElectronApp, [
+      mockElectronApp,
+      'runtime-1',
+      {},
+    ])
+    Reflect.apply(Reflect.get(app, 'init'), app, [])
+
+    const ready = getAppHandler('ready')
+    ready()
+
+    const handler = vi
+      .mocked(electron.ipcMain.handle)
+      .mock.calls.find(
+        ([channel]) => channel === 'BLDR_ELECTRON_QUIT_DESKTOP_RUNTIME',
+      )?.[1]
+    if (!handler) throw new Error('desktop quit handler not registered')
+
+    await Reflect.apply(handler, null, [{}])
+
+    const resource = Reflect.get(app, 'desktopRuntimeResource')
+    expect(resource.QuitDesktopRuntime).toHaveBeenCalledWith({})
   })
 })
 

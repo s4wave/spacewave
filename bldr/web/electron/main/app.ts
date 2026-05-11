@@ -221,6 +221,8 @@ export class BldrElectronApp {
     this.setupWebRuntimeClientPort()
     // setup native filesystem picker ipc
     this.setupNativeDirectoryPicker()
+    // setup renderer desktop runtime lifecycle ipc
+    this.setupDesktopRuntimeIpc()
     // setup test-only control surface for windowless Electron e2e assertions
     this.setupE2EControlServer()
 
@@ -252,6 +254,12 @@ export class BldrElectronApp {
         return null
       }
       return result.filePaths[0] ?? null
+    })
+  }
+
+  private setupDesktopRuntimeIpc() {
+    ipcMain.handle('BLDR_ELECTRON_QUIT_DESKTOP_RUNTIME', async () => {
+      await this.desktopRuntimeResource.QuitDesktopRuntime({})
     })
   }
 
