@@ -46,6 +46,14 @@ function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
+function relativePathInsideRoot(root: string, filename: string): string | null {
+  const relPath = path.relative(root, filename)
+  if (relPath === '' || relPath.startsWith('..') || path.isAbsolute(relPath)) {
+    return null
+  }
+  return relPath
+}
+
 export function createWebPkgRemapPlugin(
   config: WebPkgRemapPluginConfig,
 ): Plugin {
@@ -79,8 +87,9 @@ export function createWebPkgRemapPlugin(
           const find =
             typeof alias.find === 'string' ? alias.find : alias.find?.source
           if (find && webPkgIDSet.has(find) && alias.replacement) {
-            const resolved = path.isAbsolute(alias.replacement)
-              ? alias.replacement
+            const resolved =
+              path.isAbsolute(alias.replacement) ?
+                alias.replacement
               : path.resolve(root, alias.replacement)
             webPkgRoots[find] = resolved
             if (debug)
@@ -128,15 +137,15 @@ export function createWebPkgRemapPlugin(
         if (firstSlash === -1) return null
         const secondSlash = normalizedImportId.indexOf('/', firstSlash + 1)
         pkgID =
-          secondSlash === -1
-            ? normalizedImportId
-            : normalizedImportId.substring(0, secondSlash)
+          secondSlash === -1 ? normalizedImportId : (
+            normalizedImportId.substring(0, secondSlash)
+          )
       } else {
         const firstSlash = normalizedImportId.indexOf('/')
         pkgID =
-          firstSlash === -1
-            ? normalizedImportId
-            : normalizedImportId.substring(0, firstSlash)
+          firstSlash === -1 ? normalizedImportId : (
+            normalizedImportId.substring(0, firstSlash)
+          )
       }
 
       const pkgNameRegex =
@@ -163,10 +172,9 @@ export function createWebPkgRemapPlugin(
 
       // Compute relative path within the package root.
       const pkgRoot = webPkgRoots[pkgID]
-      let relPath: string
-      if (pkgRoot && resolved.id.startsWith(pkgRoot)) {
-        relPath = resolved.id.substring(pkgRoot.length).replace(/^\//, '')
-      } else {
+      const resolvedRelPath =
+        pkgRoot ? relativePathInsideRoot(pkgRoot, resolved.id) : null
+      if (!resolvedRelPath) {
         // Could not determine relative path, use the specifier subpath.
         const result = remapWebPkgSpecifier(importId, config.webPkgIDs)
         if (!result) return null
@@ -178,10 +186,12 @@ export function createWebPkgRemapPlugin(
       }
 
       // Remap JS extensions to .mjs to match web pkg output.
-      const ext = path.extname(relPath)
-      if (JS_EXTENSIONS.includes(ext)) {
-        relPath = relPath.substring(0, relPath.length - ext.length) + '.mjs'
-      }
+      const ext = path.extname(resolvedRelPath)
+      const relPath =
+        JS_EXTENSIONS.includes(ext) ?
+          resolvedRelPath.substring(0, resolvedRelPath.length - ext.length) +
+          '.mjs'
+        : resolvedRelPath
 
       const remapped = `/b/pkg/${pkgID}/${relPath}`
 
@@ -191,9 +201,7 @@ export function createWebPkgRemapPlugin(
       }
 
       if (debug)
-        console.log(
-          `[bldr-pkg-resolve] resolveId: ${importId} -> ${remapped}`,
-        )
+        console.log(`[bldr-pkg-resolve] resolveId: ${importId} -> ${remapped}`)
 
       return { id: remapped, external: true }
     },

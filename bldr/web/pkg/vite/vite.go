@@ -64,10 +64,11 @@ func BuildWebPkgsVite(
 			Debug("building web pkg bundle with vite")
 
 		// Generate ESM wrappers for CJS imports so Rolldown produces
-		// named exports. Wrappers go in a temp dir under the output path.
+		// named exports. Keep wrappers outside pkgOutputPath because Vite
+		// empties OutDir before building and wrapper files are build inputs.
 		pkgRoot := webPkgRef.GetWebPkgRoot()
 		imports := webPkgRef.GetImports()
-		wrapperDir := filepath.Join(pkgOutputPath, ".cjs-wrappers")
+		wrapperDir := filepath.Join(outputPath, ".cjs-wrappers", webPkgID)
 		imports, wrapperErr := generateCjsWrappers(le, pkgRoot, imports, wrapperDir, isRelease)
 		if wrapperErr != nil {
 			return nil, nil, nil, errors.Wrapf(wrapperErr, "generate cjs wrappers for %s", webPkgID)

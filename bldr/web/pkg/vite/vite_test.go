@@ -4,8 +4,10 @@ package web_pkg_vite
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 
 	srpc "github.com/aperturerobotics/starpc/srpc"
@@ -15,7 +17,8 @@ import (
 )
 
 type fakeViteBundlerClient struct {
-	resp *bldr_vite.BuildWebPkgResponse
+	resp     *bldr_vite.BuildWebPkgResponse
+	requests []*bldr_vite.BuildWebPkgRequest
 }
 
 func (f *fakeViteBundlerClient) SRPCClient() srpc.Client { return nil }
@@ -24,7 +27,8 @@ func (f *fakeViteBundlerClient) Build(context.Context, *bldr_vite.BuildRequest) 
 	return nil, nil
 }
 
-func (f *fakeViteBundlerClient) BuildWebPkg(context.Context, *bldr_vite.BuildWebPkgRequest) (*bldr_vite.BuildWebPkgResponse, error) {
+func (f *fakeViteBundlerClient) BuildWebPkg(_ context.Context, req *bldr_vite.BuildWebPkgRequest) (*bldr_vite.BuildWebPkgResponse, error) {
+	f.requests = append(f.requests, req)
 	return f.resp, nil
 }
 
@@ -68,5 +72,64 @@ func TestBuildWebPkgsViteKeepsRelativeSourceFiles(t *testing.T) {
 	}
 	if !slices.Equal(srcFiles, expected) {
 		t.Fatalf("unexpected source files: got %v want %v", srcFiles, expected)
+	}
+}
+
+func TestBuildWebPkgsViteKeepsCjsWrappersOutsideOutDir(t *testing.T) {
+	codeRootPath := t.TempDir()
+	pkgRoot := filepath.Join(codeRootPath, "node_modules", "cjs-pkg")
+	if err := os.MkdirAll(pkgRoot, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(
+		filepath.Join(pkgRoot, "index.cjs"),
+		[]byte("exports.alpha = 1;\nexports.beta = 2;\n"),
+		0o644,
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	outDir := filepath.Join(t.TempDir(), "out")
+	client := &fakeViteBundlerClient{
+		resp: &bldr_vite.BuildWebPkgResponse{Success: true},
+	}
+
+	_, _, _, err := BuildWebPkgsVite(
+		context.Background(),
+		logrus.NewEntry(logrus.New()),
+		codeRootPath,
+		[]*web_pkg.WebPkgRef{{
+			WebPkgId:   "cjs-pkg",
+			WebPkgRoot: pkgRoot,
+			Imports:    []string{"index.cjs"},
+		}},
+		outDir,
+		"/b/pkg/",
+		false,
+		client,
+		filepath.Join(t.TempDir(), "cache"),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(client.requests) != 1 {
+		t.Fatalf("unexpected request count: got %d want 1", len(client.requests))
+	}
+
+	req := client.requests[0]
+	if len(req.GetImports()) != 1 {
+		t.Fatalf("unexpected imports: %v", req.GetImports())
+	}
+	wrapperPath := req.GetImports()[0]
+	if !filepath.IsAbs(wrapperPath) {
+		t.Fatalf("wrapper path is not absolute: %s", wrapperPath)
+	}
+	outPrefix := req.GetOutDir() + string(os.PathSeparator)
+	if strings.HasPrefix(wrapperPath, outPrefix) {
+		t.Fatalf("wrapper path %s is inside outDir %s", wrapperPath, req.GetOutDir())
+	}
+	expectedPrefix := filepath.Join(outDir, ".cjs-wrappers", "cjs-pkg") + string(os.PathSeparator)
+	if !strings.HasPrefix(wrapperPath, expectedPrefix) {
+		t.Fatalf("wrapper path %s does not use wrapper dir prefix %s", wrapperPath, expectedPrefix)
 	}
 }
