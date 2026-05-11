@@ -66,7 +66,11 @@ func NewCoordinator(
 
 // Role returns the current role.
 func (c *Coordinator) Role() ParticipantRole {
-	return c.role
+	var role ParticipantRole
+	c.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		role = c.role
+	})
+	return role
 }
 
 // Election returns the election manager.
