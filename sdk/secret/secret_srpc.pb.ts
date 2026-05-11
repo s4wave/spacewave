@@ -2,7 +2,14 @@
 // @generated from file github.com/s4wave/spacewave/sdk/secret/secret.proto (package s4wave.secret, syntax proto3)
 /* eslint-disable */
 
-import { WatchStateRequest, WatchStateResponse } from './secret.pb.js'
+import {
+  BeginReadPayloadRequest,
+  BeginReadPayloadResponse,
+  ReadPayloadRequest,
+  ReadPayloadResponse,
+  WatchStateRequest,
+  WatchStateResponse,
+} from './secret.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
 import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
 
@@ -21,6 +28,24 @@ export const SecretResourceServiceDefinition = {
       O: WatchStateResponse,
       kind: MethodKind.ServerStreaming,
     },
+    /**
+     * @generated from rpc s4wave.secret.SecretResourceService.BeginReadPayload
+     */
+    BeginReadPayload: {
+      name: 'BeginReadPayload',
+      I: BeginReadPayloadRequest,
+      O: BeginReadPayloadResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.secret.SecretResourceService.ReadPayload
+     */
+    ReadPayload: {
+      name: 'ReadPayload',
+      I: ReadPayloadRequest,
+      O: ReadPayloadResponse,
+      kind: MethodKind.Unary,
+    },
   },
 } as const
 
@@ -35,6 +60,22 @@ export interface SecretResourceService {
     request: WatchStateRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<WatchStateResponse>
+
+  /**
+   * @generated from rpc s4wave.secret.SecretResourceService.BeginReadPayload
+   */
+  BeginReadPayload(
+    request: BeginReadPayloadRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<BeginReadPayloadResponse>
+
+  /**
+   * @generated from rpc s4wave.secret.SecretResourceService.ReadPayload
+   */
+  ReadPayload(
+    request: ReadPayloadRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ReadPayloadResponse>
 }
 
 export const SecretResourceServiceServiceName =
@@ -47,6 +88,8 @@ export class SecretResourceServiceClient implements SecretResourceService {
     this.service = opts?.service || SecretResourceServiceServiceName
     this.rpc = rpc
     this.WatchState = this.WatchState.bind(this)
+    this.BeginReadPayload = this.BeginReadPayload.bind(this)
+    this.ReadPayload = this.ReadPayload.bind(this)
   }
   /**
    * @generated from rpc s4wave.secret.SecretResourceService.WatchState
@@ -63,5 +106,39 @@ export class SecretResourceServiceClient implements SecretResourceService {
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(WatchStateResponse)(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.secret.SecretResourceService.BeginReadPayload
+   */
+  async BeginReadPayload(
+    request: BeginReadPayloadRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<BeginReadPayloadResponse> {
+    const requestMsg = BeginReadPayloadRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SecretResourceServiceDefinition.methods.BeginReadPayload.name,
+      BeginReadPayloadRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return BeginReadPayloadResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.secret.SecretResourceService.ReadPayload
+   */
+  async ReadPayload(
+    request: ReadPayloadRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ReadPayloadResponse> {
+    const requestMsg = ReadPayloadRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SecretResourceServiceDefinition.methods.ReadPayload.name,
+      ReadPayloadRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return ReadPayloadResponse.fromBinary(result)
   }
 }

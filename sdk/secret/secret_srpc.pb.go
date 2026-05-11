@@ -15,6 +15,10 @@ type SRPCSecretResourceServiceClient interface {
 	SRPCClient() srpc.Client
 
 	WatchState(ctx context.Context, in *WatchStateRequest) (SRPCSecretResourceService_WatchStateClient, error)
+
+	BeginReadPayload(ctx context.Context, in *BeginReadPayloadRequest) (*BeginReadPayloadResponse, error)
+
+	ReadPayload(ctx context.Context, in *ReadPayloadRequest) (*ReadPayloadResponse, error)
 }
 
 type srpcSecretResourceServiceClient struct {
@@ -69,8 +73,30 @@ func (x *srpcSecretResourceService_WatchStateClient) RecvTo(m *WatchStateRespons
 	return x.MsgRecv(m)
 }
 
+func (c *srpcSecretResourceServiceClient) BeginReadPayload(ctx context.Context, in *BeginReadPayloadRequest) (*BeginReadPayloadResponse, error) {
+	out := new(BeginReadPayloadResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "BeginReadPayload", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcSecretResourceServiceClient) ReadPayload(ctx context.Context, in *ReadPayloadRequest) (*ReadPayloadResponse, error) {
+	out := new(ReadPayloadResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "ReadPayload", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 type SRPCSecretResourceServiceServer interface {
 	WatchState(*WatchStateRequest, SRPCSecretResourceService_WatchStateStream) error
+
+	BeginReadPayload(context.Context, *BeginReadPayloadRequest) (*BeginReadPayloadResponse, error)
+
+	ReadPayload(context.Context, *ReadPayloadRequest) (*ReadPayloadResponse, error)
 }
 
 const SRPCSecretResourceServiceServiceID = "s4wave.secret.SecretResourceService"
@@ -100,6 +126,8 @@ func (d *SRPCSecretResourceServiceHandler) GetServiceID() string { return d.serv
 func (SRPCSecretResourceServiceHandler) GetMethodIDs() []string {
 	return []string{
 		"WatchState",
+		"BeginReadPayload",
+		"ReadPayload",
 	}
 }
 
@@ -114,6 +142,10 @@ func (d *SRPCSecretResourceServiceHandler) InvokeMethod(
 	switch methodID {
 	case "WatchState":
 		return true, d.InvokeMethod_WatchState(d.impl, strm)
+	case "BeginReadPayload":
+		return true, d.InvokeMethod_BeginReadPayload(d.impl, strm)
+	case "ReadPayload":
+		return true, d.InvokeMethod_ReadPayload(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -126,6 +158,30 @@ func (SRPCSecretResourceServiceHandler) InvokeMethod_WatchState(impl SRPCSecretR
 	}
 	serverStrm := &srpcSecretResourceService_WatchStateStream{strm}
 	return impl.WatchState(req, serverStrm)
+}
+
+func (SRPCSecretResourceServiceHandler) InvokeMethod_BeginReadPayload(impl SRPCSecretResourceServiceServer, strm srpc.Stream) error {
+	req := new(BeginReadPayloadRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.BeginReadPayload(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSecretResourceServiceHandler) InvokeMethod_ReadPayload(impl SRPCSecretResourceServiceServer, strm srpc.Stream) error {
+	req := new(ReadPayloadRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.ReadPayload(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
 }
 
 type SRPCSecretResourceService_WatchStateStream interface {
@@ -149,4 +205,20 @@ func (x *srpcSecretResourceService_WatchStateStream) SendAndClose(m *WatchStateR
 		}
 	}
 	return x.CloseSend()
+}
+
+type SRPCSecretResourceService_BeginReadPayloadStream interface {
+	srpc.Stream
+}
+
+type srpcSecretResourceService_BeginReadPayloadStream struct {
+	srpc.Stream
+}
+
+type SRPCSecretResourceService_ReadPayloadStream interface {
+	srpc.Stream
+}
+
+type srpcSecretResourceService_ReadPayloadStream struct {
+	srpc.Stream
 }

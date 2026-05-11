@@ -33,6 +33,10 @@ class SRPCSecretResourceServiceClient {
 
   // WatchState
   virtual std::pair<std::unique_ptr<SRPCSecretResourceService_WatchStateClient>, starpc::Error> WatchState(const s4wave::secret::WatchStateRequest& in) = 0;
+  // BeginReadPayload
+  virtual starpc::Error BeginReadPayload(const s4wave::secret::BeginReadPayloadRequest& in, s4wave::secret::BeginReadPayloadResponse* out) = 0;
+  // ReadPayload
+  virtual starpc::Error ReadPayload(const s4wave::secret::ReadPayloadRequest& in, s4wave::secret::ReadPayloadResponse* out) = 0;
 };
 
 // SRPCSecretResourceServiceClientImpl implements SRPCSecretResourceServiceClient.
@@ -45,6 +49,10 @@ class SRPCSecretResourceServiceClientImpl : public SRPCSecretResourceServiceClie
 
   // WatchState
   virtual std::pair<std::unique_ptr<SRPCSecretResourceService_WatchStateClient>, starpc::Error> WatchState(const s4wave::secret::WatchStateRequest& in) override;
+  // BeginReadPayload
+  virtual starpc::Error BeginReadPayload(const s4wave::secret::BeginReadPayloadRequest& in, s4wave::secret::BeginReadPayloadResponse* out) override;
+  // ReadPayload
+  virtual starpc::Error ReadPayload(const s4wave::secret::ReadPayloadRequest& in, s4wave::secret::ReadPayloadResponse* out) override;
 
  private:
   starpc::Client* cc_;
@@ -63,6 +71,10 @@ class SRPCSecretResourceServiceServer {
 
   // WatchState
   virtual starpc::Error WatchState(const s4wave::secret::WatchStateRequest& req, SRPCSecretResourceService_WatchStateStream* strm) = 0;
+  // BeginReadPayload
+  virtual starpc::Error BeginReadPayload(const s4wave::secret::BeginReadPayloadRequest& req, s4wave::secret::BeginReadPayloadResponse* resp) = 0;
+  // ReadPayload
+  virtual starpc::Error ReadPayload(const s4wave::secret::ReadPayloadRequest& req, s4wave::secret::ReadPayloadResponse* resp) = 0;
 };
 
 // SRPCSecretResourceServiceHandler implements starpc::Handler for SecretResourceService.

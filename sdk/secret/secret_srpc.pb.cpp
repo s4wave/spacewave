@@ -20,9 +20,19 @@ std::pair<std::unique_ptr<SRPCSecretResourceService_WatchStateClient>, starpc::E
   return {std::make_unique<SRPCSecretResourceService_WatchStateClient>(std::move(strm)), starpc::Error::OK};
 }
 
+starpc::Error SRPCSecretResourceServiceClientImpl::BeginReadPayload(const s4wave::secret::BeginReadPayloadRequest& in, s4wave::secret::BeginReadPayloadResponse* out) {
+  return cc_->ExecCall(service_id_, "BeginReadPayload", in, out);
+}
+
+starpc::Error SRPCSecretResourceServiceClientImpl::ReadPayload(const s4wave::secret::ReadPayloadRequest& in, s4wave::secret::ReadPayloadResponse* out) {
+  return cc_->ExecCall(service_id_, "ReadPayload", in, out);
+}
+
 std::vector<std::string> SRPCSecretResourceServiceHandler::GetMethodIDs() const {
   return {
     "WatchState",
+    "BeginReadPayload",
+    "ReadPayload",
   };
 }
 
@@ -40,6 +50,22 @@ std::pair<bool, starpc::Error> SRPCSecretResourceServiceHandler::InvokeMethod(
     if (err != starpc::Error::OK) return {true, err};
     SRPCSecretResourceService_WatchStateStream serverStrm(strm);
     return {true, impl_->WatchState(req, &serverStrm)};
+  } else if (method_id == "BeginReadPayload") {
+    s4wave::secret::BeginReadPayloadRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::secret::BeginReadPayloadResponse resp;
+    err = impl_->BeginReadPayload(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "ReadPayload") {
+    s4wave::secret::ReadPayloadRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::secret::ReadPayloadResponse resp;
+    err = impl_->ReadPayload(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
   }
 
   return {false, starpc::Error::OK};

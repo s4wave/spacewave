@@ -16,6 +16,7 @@ import (
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	sobject "github.com/s4wave/spacewave/core/sobject"
+	peer "github.com/s4wave/spacewave/net/peer"
 )
 
 // Secret is the parent World object for redacted secret metadata.
@@ -264,6 +265,214 @@ func (x *WatchStateResponse) GetState() *SecretState {
 	return nil
 }
 
+// BeginReadPayloadRequest starts a peer-authenticated payload read.
+type BeginReadPayloadRequest struct {
+	unknownFields []byte
+	// ReaderPeerId is the peer expected to sign the returned challenge.
+	ReaderPeerId string `protobuf:"bytes,1,opt,name=reader_peer_id,json=readerPeerId,proto3" json:"readerPeerId,omitempty"`
+	// ExpectedKind rejects the read if the Secret kind has drifted.
+	ExpectedKind string `protobuf:"bytes,2,opt,name=expected_kind,json=expectedKind,proto3" json:"expectedKind,omitempty"`
+}
+
+func (x *BeginReadPayloadRequest) Reset() {
+	*x = BeginReadPayloadRequest{}
+}
+
+func (*BeginReadPayloadRequest) ProtoMessage() {}
+
+func (x *BeginReadPayloadRequest) GetReaderPeerId() string {
+	if x != nil {
+		return x.ReaderPeerId
+	}
+	return ""
+}
+
+func (x *BeginReadPayloadRequest) GetExpectedKind() string {
+	if x != nil {
+		return x.ExpectedKind
+	}
+	return ""
+}
+
+// BeginReadPayloadResponse returns the challenge bytes the reader signs.
+type BeginReadPayloadResponse struct {
+	unknownFields []byte
+	// ChallengeId identifies the pending challenge.
+	ChallengeId string `protobuf:"bytes,1,opt,name=challenge_id,json=challengeId,proto3" json:"challengeId,omitempty"`
+	// Challenge is the canonical bytes to sign.
+	Challenge []byte `protobuf:"bytes,2,opt,name=challenge,proto3" json:"challenge,omitempty"`
+	// ExpiresAt is when the challenge becomes invalid.
+	ExpiresAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=expires_at,json=expiresAt,proto3" json:"expiresAt,omitempty"`
+	// Secret is the redacted parent Secret metadata.
+	Secret *Secret `protobuf:"bytes,4,opt,name=secret,proto3" json:"secret,omitempty"`
+}
+
+func (x *BeginReadPayloadResponse) Reset() {
+	*x = BeginReadPayloadResponse{}
+}
+
+func (*BeginReadPayloadResponse) ProtoMessage() {}
+
+func (x *BeginReadPayloadResponse) GetChallengeId() string {
+	if x != nil {
+		return x.ChallengeId
+	}
+	return ""
+}
+
+func (x *BeginReadPayloadResponse) GetChallenge() []byte {
+	if x != nil {
+		return x.Challenge
+	}
+	return nil
+}
+
+func (x *BeginReadPayloadResponse) GetExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return nil
+}
+
+func (x *BeginReadPayloadResponse) GetSecret() *Secret {
+	if x != nil {
+		return x.Secret
+	}
+	return nil
+}
+
+// ReadPayloadChallenge is the canonical challenge signed by the reader.
+type ReadPayloadChallenge struct {
+	unknownFields []byte
+	// ChallengeId identifies the pending challenge.
+	ChallengeId string `protobuf:"bytes,1,opt,name=challenge_id,json=challengeId,proto3" json:"challengeId,omitempty"`
+	// ReaderPeerId is the peer expected to sign Challenge.
+	ReaderPeerId string `protobuf:"bytes,2,opt,name=reader_peer_id,json=readerPeerId,proto3" json:"readerPeerId,omitempty"`
+	// ObjectKey is the parent Secret object key.
+	ObjectKey string `protobuf:"bytes,3,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+	// SecretKind is the kind observed when the challenge was issued.
+	SecretKind string `protobuf:"bytes,4,opt,name=secret_kind,json=secretKind,proto3" json:"secretKind,omitempty"`
+	// ExpectedKind is the requested kind, if any.
+	ExpectedKind string `protobuf:"bytes,5,opt,name=expected_kind,json=expectedKind,proto3" json:"expectedKind,omitempty"`
+	// NestedSharedObjectId is the nested SharedObject id storing the payload.
+	NestedSharedObjectId string `protobuf:"bytes,6,opt,name=nested_shared_object_id,json=nestedSharedObjectId,proto3" json:"nestedSharedObjectId,omitempty"`
+	// Nonce prevents challenge reuse across requests.
+	Nonce []byte `protobuf:"bytes,7,opt,name=nonce,proto3" json:"nonce,omitempty"`
+	// ExpiresAt is when the challenge becomes invalid.
+	ExpiresAt *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=expires_at,json=expiresAt,proto3" json:"expiresAt,omitempty"`
+}
+
+func (x *ReadPayloadChallenge) Reset() {
+	*x = ReadPayloadChallenge{}
+}
+
+func (*ReadPayloadChallenge) ProtoMessage() {}
+
+func (x *ReadPayloadChallenge) GetChallengeId() string {
+	if x != nil {
+		return x.ChallengeId
+	}
+	return ""
+}
+
+func (x *ReadPayloadChallenge) GetReaderPeerId() string {
+	if x != nil {
+		return x.ReaderPeerId
+	}
+	return ""
+}
+
+func (x *ReadPayloadChallenge) GetObjectKey() string {
+	if x != nil {
+		return x.ObjectKey
+	}
+	return ""
+}
+
+func (x *ReadPayloadChallenge) GetSecretKind() string {
+	if x != nil {
+		return x.SecretKind
+	}
+	return ""
+}
+
+func (x *ReadPayloadChallenge) GetExpectedKind() string {
+	if x != nil {
+		return x.ExpectedKind
+	}
+	return ""
+}
+
+func (x *ReadPayloadChallenge) GetNestedSharedObjectId() string {
+	if x != nil {
+		return x.NestedSharedObjectId
+	}
+	return ""
+}
+
+func (x *ReadPayloadChallenge) GetNonce() []byte {
+	if x != nil {
+		return x.Nonce
+	}
+	return nil
+}
+
+func (x *ReadPayloadChallenge) GetExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return nil
+}
+
+// ReadPayloadRequest completes a signed payload read.
+type ReadPayloadRequest struct {
+	unknownFields []byte
+	// ChallengeId is the pending challenge identifier.
+	ChallengeId string `protobuf:"bytes,1,opt,name=challenge_id,json=challengeId,proto3" json:"challengeId,omitempty"`
+	// Signature signs the challenge bytes using the reader peer key.
+	Signature *peer.Signature `protobuf:"bytes,2,opt,name=signature,proto3" json:"signature,omitempty"`
+}
+
+func (x *ReadPayloadRequest) Reset() {
+	*x = ReadPayloadRequest{}
+}
+
+func (*ReadPayloadRequest) ProtoMessage() {}
+
+func (x *ReadPayloadRequest) GetChallengeId() string {
+	if x != nil {
+		return x.ChallengeId
+	}
+	return ""
+}
+
+func (x *ReadPayloadRequest) GetSignature() *peer.Signature {
+	if x != nil {
+		return x.Signature
+	}
+	return nil
+}
+
+// ReadPayloadResponse contains the Secret payload bytes.
+type ReadPayloadResponse struct {
+	unknownFields []byte
+	// Payload is the nested SharedObject payload.
+	Payload *SecretPayload `protobuf:"bytes,1,opt,name=payload,proto3" json:"payload,omitempty"`
+}
+
+func (x *ReadPayloadResponse) Reset() {
+	*x = ReadPayloadResponse{}
+}
+
+func (*ReadPayloadResponse) ProtoMessage() {}
+
+func (x *ReadPayloadResponse) GetPayload() *SecretPayload {
+	if x != nil {
+		return x.Payload
+	}
+	return nil
+}
+
 func (m *Secret) CloneVT() *Secret {
 	if m == nil {
 		return (*Secret)(nil)
@@ -383,6 +592,108 @@ func (m *WatchStateResponse) CloneVT() *WatchStateResponse {
 }
 
 func (m *WatchStateResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *BeginReadPayloadRequest) CloneVT() *BeginReadPayloadRequest {
+	if m == nil {
+		return (*BeginReadPayloadRequest)(nil)
+	}
+	r := new(BeginReadPayloadRequest)
+	r.ReaderPeerId = m.ReaderPeerId
+	r.ExpectedKind = m.ExpectedKind
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *BeginReadPayloadRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *BeginReadPayloadResponse) CloneVT() *BeginReadPayloadResponse {
+	if m == nil {
+		return (*BeginReadPayloadResponse)(nil)
+	}
+	r := new(BeginReadPayloadResponse)
+	r.ChallengeId = m.ChallengeId
+	r.Secret = m.Secret.CloneVT()
+	if rhs := m.Challenge; rhs != nil {
+		r.Challenge = slices.Clone(rhs)
+	}
+	if rhs := m.ExpiresAt; rhs != nil {
+		r.ExpiresAt = rhs.CloneVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *BeginReadPayloadResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReadPayloadChallenge) CloneVT() *ReadPayloadChallenge {
+	if m == nil {
+		return (*ReadPayloadChallenge)(nil)
+	}
+	r := new(ReadPayloadChallenge)
+	r.ChallengeId = m.ChallengeId
+	r.ReaderPeerId = m.ReaderPeerId
+	r.ObjectKey = m.ObjectKey
+	r.SecretKind = m.SecretKind
+	r.ExpectedKind = m.ExpectedKind
+	r.NestedSharedObjectId = m.NestedSharedObjectId
+	if rhs := m.Nonce; rhs != nil {
+		r.Nonce = slices.Clone(rhs)
+	}
+	if rhs := m.ExpiresAt; rhs != nil {
+		r.ExpiresAt = rhs.CloneVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReadPayloadChallenge) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReadPayloadRequest) CloneVT() *ReadPayloadRequest {
+	if m == nil {
+		return (*ReadPayloadRequest)(nil)
+	}
+	r := new(ReadPayloadRequest)
+	r.ChallengeId = m.ChallengeId
+	if rhs := m.Signature; rhs != nil {
+		r.Signature = rhs.CloneVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReadPayloadRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReadPayloadResponse) CloneVT() *ReadPayloadResponse {
+	if m == nil {
+		return (*ReadPayloadResponse)(nil)
+	}
+	r := new(ReadPayloadResponse)
+	r.Payload = m.Payload.CloneVT()
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReadPayloadResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -542,6 +853,142 @@ func (this *WatchStateResponse) EqualVT(that *WatchStateResponse) bool {
 
 func (this *WatchStateResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*WatchStateResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *BeginReadPayloadRequest) EqualVT(that *BeginReadPayloadRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ReaderPeerId != that.ReaderPeerId {
+		return false
+	}
+	if this.ExpectedKind != that.ExpectedKind {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *BeginReadPayloadRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*BeginReadPayloadRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *BeginReadPayloadResponse) EqualVT(that *BeginReadPayloadResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ChallengeId != that.ChallengeId {
+		return false
+	}
+	if string(this.Challenge) != string(that.Challenge) {
+		return false
+	}
+	if !this.ExpiresAt.EqualVT(that.ExpiresAt) {
+		return false
+	}
+	if !this.Secret.EqualVT(that.Secret) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *BeginReadPayloadResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*BeginReadPayloadResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReadPayloadChallenge) EqualVT(that *ReadPayloadChallenge) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ChallengeId != that.ChallengeId {
+		return false
+	}
+	if this.ReaderPeerId != that.ReaderPeerId {
+		return false
+	}
+	if this.ObjectKey != that.ObjectKey {
+		return false
+	}
+	if this.SecretKind != that.SecretKind {
+		return false
+	}
+	if this.ExpectedKind != that.ExpectedKind {
+		return false
+	}
+	if this.NestedSharedObjectId != that.NestedSharedObjectId {
+		return false
+	}
+	if string(this.Nonce) != string(that.Nonce) {
+		return false
+	}
+	if !this.ExpiresAt.EqualVT(that.ExpiresAt) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReadPayloadChallenge) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReadPayloadChallenge)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReadPayloadRequest) EqualVT(that *ReadPayloadRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ChallengeId != that.ChallengeId {
+		return false
+	}
+	if !this.Signature.EqualVT(that.Signature) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReadPayloadRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReadPayloadRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReadPayloadResponse) EqualVT(that *ReadPayloadResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.Payload.EqualVT(that.Payload) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReadPayloadResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReadPayloadResponse)
 	if !ok {
 		return false
 	}
@@ -940,6 +1387,332 @@ func (x *WatchStateResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the BeginReadPayloadRequest message to JSON.
+func (x *BeginReadPayloadRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ReaderPeerId != "" || s.HasField("readerPeerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("readerPeerId")
+		s.WriteString(x.ReaderPeerId)
+	}
+	if x.ExpectedKind != "" || s.HasField("expectedKind") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("expectedKind")
+		s.WriteString(x.ExpectedKind)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the BeginReadPayloadRequest to JSON.
+func (x *BeginReadPayloadRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the BeginReadPayloadRequest message from JSON.
+func (x *BeginReadPayloadRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "reader_peer_id", "readerPeerId":
+			s.AddField("reader_peer_id")
+			x.ReaderPeerId = s.ReadString()
+		case "expected_kind", "expectedKind":
+			s.AddField("expected_kind")
+			x.ExpectedKind = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the BeginReadPayloadRequest from JSON.
+func (x *BeginReadPayloadRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the BeginReadPayloadResponse message to JSON.
+func (x *BeginReadPayloadResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ChallengeId != "" || s.HasField("challengeId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("challengeId")
+		s.WriteString(x.ChallengeId)
+	}
+	if len(x.Challenge) > 0 || s.HasField("challenge") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("challenge")
+		s.WriteBytes(x.Challenge)
+	}
+	if x.ExpiresAt != nil || s.HasField("expiresAt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("expiresAt")
+		x.ExpiresAt.MarshalProtoJSON(s.WithField("expiresAt"))
+	}
+	if x.Secret != nil || s.HasField("secret") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("secret")
+		x.Secret.MarshalProtoJSON(s.WithField("secret"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the BeginReadPayloadResponse to JSON.
+func (x *BeginReadPayloadResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the BeginReadPayloadResponse message from JSON.
+func (x *BeginReadPayloadResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "challenge_id", "challengeId":
+			s.AddField("challenge_id")
+			x.ChallengeId = s.ReadString()
+		case "challenge":
+			s.AddField("challenge")
+			x.Challenge = s.ReadBytes()
+		case "expires_at", "expiresAt":
+			if s.ReadNil() {
+				x.ExpiresAt = nil
+				return
+			}
+			x.ExpiresAt = &timestamppb.Timestamp{}
+			x.ExpiresAt.UnmarshalProtoJSON(s.WithField("expires_at", true))
+		case "secret":
+			if s.ReadNil() {
+				x.Secret = nil
+				return
+			}
+			x.Secret = &Secret{}
+			x.Secret.UnmarshalProtoJSON(s.WithField("secret", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the BeginReadPayloadResponse from JSON.
+func (x *BeginReadPayloadResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReadPayloadChallenge message to JSON.
+func (x *ReadPayloadChallenge) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ChallengeId != "" || s.HasField("challengeId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("challengeId")
+		s.WriteString(x.ChallengeId)
+	}
+	if x.ReaderPeerId != "" || s.HasField("readerPeerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("readerPeerId")
+		s.WriteString(x.ReaderPeerId)
+	}
+	if x.ObjectKey != "" || s.HasField("objectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectKey")
+		s.WriteString(x.ObjectKey)
+	}
+	if x.SecretKind != "" || s.HasField("secretKind") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("secretKind")
+		s.WriteString(x.SecretKind)
+	}
+	if x.ExpectedKind != "" || s.HasField("expectedKind") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("expectedKind")
+		s.WriteString(x.ExpectedKind)
+	}
+	if x.NestedSharedObjectId != "" || s.HasField("nestedSharedObjectId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("nestedSharedObjectId")
+		s.WriteString(x.NestedSharedObjectId)
+	}
+	if len(x.Nonce) > 0 || s.HasField("nonce") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("nonce")
+		s.WriteBytes(x.Nonce)
+	}
+	if x.ExpiresAt != nil || s.HasField("expiresAt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("expiresAt")
+		x.ExpiresAt.MarshalProtoJSON(s.WithField("expiresAt"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReadPayloadChallenge to JSON.
+func (x *ReadPayloadChallenge) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReadPayloadChallenge message from JSON.
+func (x *ReadPayloadChallenge) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "challenge_id", "challengeId":
+			s.AddField("challenge_id")
+			x.ChallengeId = s.ReadString()
+		case "reader_peer_id", "readerPeerId":
+			s.AddField("reader_peer_id")
+			x.ReaderPeerId = s.ReadString()
+		case "object_key", "objectKey":
+			s.AddField("object_key")
+			x.ObjectKey = s.ReadString()
+		case "secret_kind", "secretKind":
+			s.AddField("secret_kind")
+			x.SecretKind = s.ReadString()
+		case "expected_kind", "expectedKind":
+			s.AddField("expected_kind")
+			x.ExpectedKind = s.ReadString()
+		case "nested_shared_object_id", "nestedSharedObjectId":
+			s.AddField("nested_shared_object_id")
+			x.NestedSharedObjectId = s.ReadString()
+		case "nonce":
+			s.AddField("nonce")
+			x.Nonce = s.ReadBytes()
+		case "expires_at", "expiresAt":
+			if s.ReadNil() {
+				x.ExpiresAt = nil
+				return
+			}
+			x.ExpiresAt = &timestamppb.Timestamp{}
+			x.ExpiresAt.UnmarshalProtoJSON(s.WithField("expires_at", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReadPayloadChallenge from JSON.
+func (x *ReadPayloadChallenge) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReadPayloadRequest message to JSON.
+func (x *ReadPayloadRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ChallengeId != "" || s.HasField("challengeId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("challengeId")
+		s.WriteString(x.ChallengeId)
+	}
+	if x.Signature != nil || s.HasField("signature") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("signature")
+		x.Signature.MarshalProtoJSON(s.WithField("signature"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReadPayloadRequest to JSON.
+func (x *ReadPayloadRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReadPayloadRequest message from JSON.
+func (x *ReadPayloadRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "challenge_id", "challengeId":
+			s.AddField("challenge_id")
+			x.ChallengeId = s.ReadString()
+		case "signature":
+			if s.ReadNil() {
+				x.Signature = nil
+				return
+			}
+			x.Signature = &peer.Signature{}
+			x.Signature.UnmarshalProtoJSON(s.WithField("signature", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReadPayloadRequest from JSON.
+func (x *ReadPayloadRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReadPayloadResponse message to JSON.
+func (x *ReadPayloadResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Payload != nil || s.HasField("payload") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("payload")
+		x.Payload.MarshalProtoJSON(s.WithField("payload"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReadPayloadResponse to JSON.
+func (x *ReadPayloadResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReadPayloadResponse message from JSON.
+func (x *ReadPayloadResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "payload":
+			if s.ReadNil() {
+				x.Payload = nil
+				return
+			}
+			x.Payload = &SecretPayload{}
+			x.Payload.UnmarshalProtoJSON(s.WithField("payload", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReadPayloadResponse from JSON.
+func (x *ReadPayloadResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *Secret) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1302,6 +2075,305 @@ func (m *WatchStateResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *BeginReadPayloadRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *BeginReadPayloadRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *BeginReadPayloadRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.ExpectedKind) > 0 {
+		i -= len(m.ExpectedKind)
+		copy(dAtA[i:], m.ExpectedKind)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ExpectedKind)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ReaderPeerId) > 0 {
+		i -= len(m.ReaderPeerId)
+		copy(dAtA[i:], m.ReaderPeerId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ReaderPeerId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *BeginReadPayloadResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *BeginReadPayloadResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *BeginReadPayloadResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Secret != nil {
+		size, err := m.Secret.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.ExpiresAt != nil {
+		size, err := m.ExpiresAt.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Challenge) > 0 {
+		i -= len(m.Challenge)
+		copy(dAtA[i:], m.Challenge)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Challenge)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ChallengeId) > 0 {
+		i -= len(m.ChallengeId)
+		copy(dAtA[i:], m.ChallengeId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ChallengeId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReadPayloadChallenge) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReadPayloadChallenge) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReadPayloadChallenge) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.ExpiresAt != nil {
+		size, err := m.ExpiresAt.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x42
+	}
+	if len(m.Nonce) > 0 {
+		i -= len(m.Nonce)
+		copy(dAtA[i:], m.Nonce)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Nonce)))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if len(m.NestedSharedObjectId) > 0 {
+		i -= len(m.NestedSharedObjectId)
+		copy(dAtA[i:], m.NestedSharedObjectId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.NestedSharedObjectId)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if len(m.ExpectedKind) > 0 {
+		i -= len(m.ExpectedKind)
+		copy(dAtA[i:], m.ExpectedKind)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ExpectedKind)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.SecretKind) > 0 {
+		i -= len(m.SecretKind)
+		copy(dAtA[i:], m.SecretKind)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SecretKind)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.ObjectKey) > 0 {
+		i -= len(m.ObjectKey)
+		copy(dAtA[i:], m.ObjectKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ObjectKey)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.ReaderPeerId) > 0 {
+		i -= len(m.ReaderPeerId)
+		copy(dAtA[i:], m.ReaderPeerId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ReaderPeerId)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ChallengeId) > 0 {
+		i -= len(m.ChallengeId)
+		copy(dAtA[i:], m.ChallengeId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ChallengeId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReadPayloadRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReadPayloadRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReadPayloadRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Signature != nil {
+		size, err := m.Signature.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ChallengeId) > 0 {
+		i -= len(m.ChallengeId)
+		copy(dAtA[i:], m.ChallengeId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ChallengeId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReadPayloadResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReadPayloadResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReadPayloadResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Payload != nil {
+		size, err := m.Payload.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Secret) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1431,6 +2503,124 @@ func (m *WatchStateResponse) SizeVT() (n int) {
 	_ = l
 	if m.State != nil {
 		l = m.State.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *BeginReadPayloadRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.ReaderPeerId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ExpectedKind)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *BeginReadPayloadResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.ChallengeId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Challenge)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.ExpiresAt != nil {
+		l = m.ExpiresAt.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Secret != nil {
+		l = m.Secret.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReadPayloadChallenge) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.ChallengeId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ReaderPeerId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ObjectKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.SecretKind)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ExpectedKind)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.NestedSharedObjectId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Nonce)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.ExpiresAt != nil {
+		l = m.ExpiresAt.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReadPayloadRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.ChallengeId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Signature != nil {
+		l = m.Signature.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReadPayloadResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Payload != nil {
+		l = m.Payload.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
@@ -1644,6 +2834,184 @@ func (x *WatchStateResponse) MarshalProtoText() string {
 }
 
 func (x *WatchStateResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *BeginReadPayloadRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("BeginReadPayloadRequest {")
+	if x.ReaderPeerId != "" {
+		if sb.Len() > 25 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("reader_peer_id: ")
+		sb.WriteString(strconv.Quote(x.ReaderPeerId))
+	}
+	if x.ExpectedKind != "" {
+		if sb.Len() > 25 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("expected_kind: ")
+		sb.WriteString(strconv.Quote(x.ExpectedKind))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *BeginReadPayloadRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *BeginReadPayloadResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("BeginReadPayloadResponse {")
+	if x.ChallengeId != "" {
+		if sb.Len() > 26 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("challenge_id: ")
+		sb.WriteString(strconv.Quote(x.ChallengeId))
+	}
+	if x.Challenge != nil {
+		if sb.Len() > 26 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("challenge: ")
+		sb.WriteString("\"")
+		sb.WriteString(base64.StdEncoding.EncodeToString(x.Challenge))
+		sb.WriteString("\"")
+	}
+	if x.ExpiresAt != nil {
+		if sb.Len() > 26 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("expires_at: ")
+		sb.WriteString(x.ExpiresAt.MarshalProtoText())
+	}
+	if x.Secret != nil {
+		if sb.Len() > 26 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("secret: ")
+		sb.WriteString(x.Secret.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *BeginReadPayloadResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReadPayloadChallenge) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("ReadPayloadChallenge {")
+	if x.ChallengeId != "" {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("challenge_id: ")
+		sb.WriteString(strconv.Quote(x.ChallengeId))
+	}
+	if x.ReaderPeerId != "" {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("reader_peer_id: ")
+		sb.WriteString(strconv.Quote(x.ReaderPeerId))
+	}
+	if x.ObjectKey != "" {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("object_key: ")
+		sb.WriteString(strconv.Quote(x.ObjectKey))
+	}
+	if x.SecretKind != "" {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("secret_kind: ")
+		sb.WriteString(strconv.Quote(x.SecretKind))
+	}
+	if x.ExpectedKind != "" {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("expected_kind: ")
+		sb.WriteString(strconv.Quote(x.ExpectedKind))
+	}
+	if x.NestedSharedObjectId != "" {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("nested_shared_object_id: ")
+		sb.WriteString(strconv.Quote(x.NestedSharedObjectId))
+	}
+	if x.Nonce != nil {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("nonce: ")
+		sb.WriteString("\"")
+		sb.WriteString(base64.StdEncoding.EncodeToString(x.Nonce))
+		sb.WriteString("\"")
+	}
+	if x.ExpiresAt != nil {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("expires_at: ")
+		sb.WriteString(x.ExpiresAt.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *ReadPayloadChallenge) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReadPayloadRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("ReadPayloadRequest {")
+	if x.ChallengeId != "" {
+		if sb.Len() > 20 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("challenge_id: ")
+		sb.WriteString(strconv.Quote(x.ChallengeId))
+	}
+	if x.Signature != nil {
+		if sb.Len() > 20 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("signature: ")
+		sb.WriteString(x.Signature.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *ReadPayloadRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReadPayloadResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("ReadPayloadResponse {")
+	if x.Payload != nil {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("payload: ")
+		sb.WriteString(x.Payload.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *ReadPayloadResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -2314,6 +3682,633 @@ func (m *WatchStateResponse) UnmarshalVT(dAtA []byte) error {
 				m.State = &SecretState{}
 			}
 			if err := m.State.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *BeginReadPayloadRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: BeginReadPayloadRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: BeginReadPayloadRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReaderPeerId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ReaderPeerId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExpectedKind", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ExpectedKind = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *BeginReadPayloadResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: BeginReadPayloadResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: BeginReadPayloadResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ChallengeId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ChallengeId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Challenge", wireType)
+			}
+			var byteLen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			byteLen = int(_v)
+			if err != nil {
+				return err
+			}
+			if byteLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Challenge = append(m.Challenge[:0], dAtA[iNdEx:postIndex]...)
+			if m.Challenge == nil {
+				m.Challenge = []byte{}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExpiresAt", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.ExpiresAt == nil {
+				m.ExpiresAt = &timestamppb.Timestamp{}
+			}
+			if err := m.ExpiresAt.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Secret", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Secret == nil {
+				m.Secret = &Secret{}
+			}
+			if err := m.Secret.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReadPayloadChallenge) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReadPayloadChallenge: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReadPayloadChallenge: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ChallengeId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ChallengeId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReaderPeerId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ReaderPeerId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ObjectKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SecretKind", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SecretKind = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExpectedKind", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ExpectedKind = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NestedSharedObjectId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.NestedSharedObjectId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Nonce", wireType)
+			}
+			var byteLen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			byteLen = int(_v)
+			if err != nil {
+				return err
+			}
+			if byteLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Nonce = append(m.Nonce[:0], dAtA[iNdEx:postIndex]...)
+			if m.Nonce == nil {
+				m.Nonce = []byte{}
+			}
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExpiresAt", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.ExpiresAt == nil {
+				m.ExpiresAt = &timestamppb.Timestamp{}
+			}
+			if err := m.ExpiresAt.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReadPayloadRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReadPayloadRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReadPayloadRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ChallengeId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ChallengeId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Signature", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Signature == nil {
+				m.Signature = &peer.Signature{}
+			}
+			if err := m.Signature.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReadPayloadResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReadPayloadResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReadPayloadResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Payload", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Payload == nil {
+				m.Payload = &SecretPayload{}
+			}
+			if err := m.Payload.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

@@ -4052,7 +4052,7 @@
       "protoFiles": ["sdk/root/root.proto"]
     },
     "github.com/s4wave/spacewave/sdk/secret": {
-      "hash": "9c586e818d8a52403239c597feff9ce85aef3e331569fce20af4498c8827ae62",
+      "hash": "0017714fe83010bd9a944bf6213dd1623ed4f55e29ca02e9463a0c0d09c75777",
       "generatedFiles": [
         "sdk/secret/secret.pb.cc",
         "sdk/secret/secret.pb.go",

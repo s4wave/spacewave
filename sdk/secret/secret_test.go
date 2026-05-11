@@ -16,6 +16,7 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	spacewave_crypto "github.com/s4wave/spacewave/net/crypto"
+	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/testbed"
 )
@@ -187,6 +188,140 @@ func TestSecretPayloadAccessUsesSharedObjectGrants(t *testing.T) {
 	)
 	if _, err := ReadSecretPayloadFromSnapshot(ctx, revokedSnap); !errors.Is(err, ErrPayloadAccessDenied) {
 		t.Fatalf("expected revoked access denied, got %v", err)
+	}
+}
+
+func TestSecretResourceReadPayloadRequiresSignedGrantedPeer(t *testing.T) {
+	ctx := t.Context()
+	tb, soProvider, release := setupSecretTest(ctx, t)
+	defer release()
+
+	value := []byte("resource-read-secret")
+	secret, err := CreateSecret(ctx, tb.Bus, soProvider, tb.BusEngine, CreateSecretOptions{
+		ObjectKey:   "secrets/resource-read",
+		DisplayName: "Resource read",
+		Kind:        "api_key",
+		Value:       value,
+		Timestamp:   time.Unix(300, 0),
+	})
+	if err != nil {
+		t.Fatalf("CreateSecret: %v", err)
+	}
+
+	grantedPriv, grantedPub, grantedPeerID := makePeer(t)
+	ungrantedPriv, _, ungrantedPeerID := makePeer(t)
+	if _, err := AddSecretParticipant(
+		ctx,
+		tb.Bus,
+		secret,
+		grantedPeerID.String(),
+		grantedPub,
+		sobject.SOParticipantRole_SOParticipantRole_READER,
+		"",
+	); err != nil {
+		t.Fatalf("AddSecretParticipant: %v", err)
+	}
+
+	res := NewSecretResource(tb.Logger, tb.Bus, tb.WorldState, "secrets/resource-read")
+	if _, err := res.BeginReadPayload(ctx, &BeginReadPayloadRequest{
+		ReaderPeerId: ungrantedPeerID.String(),
+		ExpectedKind: "api_key",
+	}); !errors.Is(err, ErrPayloadAccessDenied) {
+		t.Fatalf("expected ungranted BeginReadPayload access denied, got %v", err)
+	}
+	if _, err := res.BeginReadPayload(ctx, &BeginReadPayloadRequest{
+		ReaderPeerId: grantedPeerID.String(),
+		ExpectedKind: "wrong-kind",
+	}); !errors.Is(err, ErrSecretKindMismatch) {
+		t.Fatalf("expected kind mismatch, got %v", err)
+	}
+
+	begin, err := res.BeginReadPayload(ctx, &BeginReadPayloadRequest{
+		ReaderPeerId: grantedPeerID.String(),
+		ExpectedKind: "api_key",
+	})
+	if err != nil {
+		t.Fatalf("BeginReadPayload: %v", err)
+	}
+	sig, err := peer.NewSignature(
+		ReadPayloadChallengeSignatureContext,
+		grantedPriv,
+		hash.HashType_HashType_BLAKE3,
+		begin.GetChallenge(),
+		true,
+	)
+	if err != nil {
+		t.Fatalf("NewSignature: %v", err)
+	}
+	read, err := res.ReadPayload(ctx, &ReadPayloadRequest{
+		ChallengeId: begin.GetChallengeId(),
+		Signature:   sig,
+	})
+	if err != nil {
+		t.Fatalf("ReadPayload: %v", err)
+	}
+	if !bytes.Equal(read.GetPayload().GetValue(), value) {
+		t.Fatalf("payload mismatch: %q", read.GetPayload().GetValue())
+	}
+	if _, err := res.ReadPayload(ctx, &ReadPayloadRequest{
+		ChallengeId: begin.GetChallengeId(),
+		Signature:   sig,
+	}); !errors.Is(err, ErrReadChallengeNotFound) {
+		t.Fatalf("expected replay failure, got %v", err)
+	}
+
+	begin, err = res.BeginReadPayload(ctx, &BeginReadPayloadRequest{
+		ReaderPeerId: grantedPeerID.String(),
+		ExpectedKind: "api_key",
+	})
+	if err != nil {
+		t.Fatalf("BeginReadPayload before revocation: %v", err)
+	}
+	sig, err = peer.NewSignature(
+		ReadPayloadChallengeSignatureContext,
+		grantedPriv,
+		hash.HashType_HashType_BLAKE3,
+		begin.GetChallenge(),
+		true,
+	)
+	if err != nil {
+		t.Fatalf("NewSignature before revocation: %v", err)
+	}
+	removed, err := RemoveSecretParticipant(ctx, tb.Bus, secret, grantedPeerID.String(), nil)
+	if err != nil {
+		t.Fatalf("RemoveSecretParticipant: %v", err)
+	}
+	if !removed {
+		t.Fatal("expected participant removal")
+	}
+	if _, err := res.ReadPayload(ctx, &ReadPayloadRequest{
+		ChallengeId: begin.GetChallengeId(),
+		Signature:   sig,
+	}); !errors.Is(err, ErrPayloadAccessDenied) {
+		t.Fatalf("expected revoked read access denied, got %v", err)
+	}
+
+	begin, err = res.BeginReadPayload(ctx, &BeginReadPayloadRequest{
+		ReaderPeerId: ungrantedPeerID.String(),
+	})
+	if !errors.Is(err, ErrPayloadAccessDenied) {
+		t.Fatalf("expected ungranted access denied after revocation, got begin=%v err=%v", begin, err)
+	}
+	badSig, err := peer.NewSignature(
+		ReadPayloadChallengeSignatureContext,
+		ungrantedPriv,
+		hash.HashType_HashType_BLAKE3,
+		[]byte("not the issued challenge"),
+		true,
+	)
+	if err != nil {
+		t.Fatalf("bad NewSignature: %v", err)
+	}
+	if _, err := res.ReadPayload(ctx, &ReadPayloadRequest{
+		ChallengeId: "missing",
+		Signature:   badSig,
+	}); !errors.Is(err, ErrReadChallengeNotFound) {
+		t.Fatalf("expected missing challenge failure, got %v", err)
 	}
 }
 

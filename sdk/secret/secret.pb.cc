@@ -78,6 +78,36 @@ struct SecretGrantStatusDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SecretGrantStatusDefaultTypeInternal _SecretGrantStatus_default_instance_;
 
+inline constexpr BeginReadPayloadRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        reader_peer_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        expected_kind_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR BeginReadPayloadRequest::BeginReadPayloadRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(BeginReadPayloadRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct BeginReadPayloadRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR BeginReadPayloadRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~BeginReadPayloadRequestDefaultTypeInternal() {}
+  union {
+    BeginReadPayloadRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 BeginReadPayloadRequestDefaultTypeInternal _BeginReadPayloadRequest_default_instance_;
+
 inline constexpr SecretPayload::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -109,6 +139,80 @@ struct SecretPayloadDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SecretPayloadDefaultTypeInternal _SecretPayload_default_instance_;
+
+inline constexpr ReadPayloadRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        challenge_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        signature_{nullptr} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR ReadPayloadRequest::ReadPayloadRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(ReadPayloadRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct ReadPayloadRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ReadPayloadRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ReadPayloadRequestDefaultTypeInternal() {}
+  union {
+    ReadPayloadRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ReadPayloadRequestDefaultTypeInternal _ReadPayloadRequest_default_instance_;
+
+inline constexpr ReadPayloadChallenge::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        challenge_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        reader_peer_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        object_key_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        secret_kind_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        expected_kind_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        nested_shared_object_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        nonce_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        expires_at_{nullptr} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR ReadPayloadChallenge::ReadPayloadChallenge(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(ReadPayloadChallenge_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct ReadPayloadChallengeDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ReadPayloadChallengeDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ReadPayloadChallengeDefaultTypeInternal() {}
+  union {
+    ReadPayloadChallenge _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ReadPayloadChallengeDefaultTypeInternal _ReadPayloadChallenge_default_instance_;
 
 inline constexpr Secret::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -149,6 +253,31 @@ struct SecretDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SecretDefaultTypeInternal _Secret_default_instance_;
 
+inline constexpr ReadPayloadResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        payload_{nullptr} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR ReadPayloadResponse::ReadPayloadResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(ReadPayloadResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct ReadPayloadResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ReadPayloadResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ReadPayloadResponseDefaultTypeInternal() {}
+  union {
+    ReadPayloadResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ReadPayloadResponseDefaultTypeInternal _ReadPayloadResponse_default_instance_;
+
 inline constexpr SecretState::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -175,6 +304,38 @@ struct SecretStateDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SecretStateDefaultTypeInternal _SecretState_default_instance_;
+
+inline constexpr BeginReadPayloadResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        challenge_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        challenge_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        expires_at_{nullptr},
+        secret_{nullptr} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR BeginReadPayloadResponse::BeginReadPayloadResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(BeginReadPayloadResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct BeginReadPayloadResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR BeginReadPayloadResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~BeginReadPayloadResponseDefaultTypeInternal() {}
+  union {
+    BeginReadPayloadResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 BeginReadPayloadResponseDefaultTypeInternal _BeginReadPayloadResponse_default_instance_;
 
 inline constexpr WatchStateResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -265,6 +426,55 @@ const ::uint32_t
         4, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::secret::WatchStateResponse, _impl_.state_),
         0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::secret::BeginReadPayloadRequest, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::secret::BeginReadPayloadRequest, _impl_.reader_peer_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::secret::BeginReadPayloadRequest, _impl_.expected_kind_),
+        0,
+        1,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::secret::BeginReadPayloadResponse, _impl_._has_bits_),
+        7, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::secret::BeginReadPayloadResponse, _impl_.challenge_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::secret::BeginReadPayloadResponse, _impl_.challenge_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::secret::BeginReadPayloadResponse, _impl_.expires_at_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::secret::BeginReadPayloadResponse, _impl_.secret_),
+        0,
+        1,
+        2,
+        3,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::secret::ReadPayloadChallenge, _impl_._has_bits_),
+        11, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::secret::ReadPayloadChallenge, _impl_.challenge_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::secret::ReadPayloadChallenge, _impl_.reader_peer_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::secret::ReadPayloadChallenge, _impl_.object_key_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::secret::ReadPayloadChallenge, _impl_.secret_kind_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::secret::ReadPayloadChallenge, _impl_.expected_kind_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::secret::ReadPayloadChallenge, _impl_.nested_shared_object_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::secret::ReadPayloadChallenge, _impl_.nonce_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::secret::ReadPayloadChallenge, _impl_.expires_at_),
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::secret::ReadPayloadRequest, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::secret::ReadPayloadRequest, _impl_.challenge_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::secret::ReadPayloadRequest, _impl_.signature_),
+        0,
+        1,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::secret::ReadPayloadResponse, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::secret::ReadPayloadResponse, _impl_.payload_),
+        0,
 };
 
 static const ::_pbi::MigrationSchema
@@ -275,6 +485,11 @@ static const ::_pbi::MigrationSchema
         {41, sizeof(::s4wave::secret::SecretState)},
         {50, sizeof(::s4wave::secret::WatchStateRequest)},
         {51, sizeof(::s4wave::secret::WatchStateResponse)},
+        {56, sizeof(::s4wave::secret::BeginReadPayloadRequest)},
+        {63, sizeof(::s4wave::secret::BeginReadPayloadResponse)},
+        {74, sizeof(::s4wave::secret::ReadPayloadChallenge)},
+        {93, sizeof(::s4wave::secret::ReadPayloadRequest)},
+        {100, sizeof(::s4wave::secret::ReadPayloadResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::secret::_Secret_default_instance_._instance,
@@ -283,53 +498,80 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::secret::_SecretState_default_instance_._instance,
     &::s4wave::secret::_WatchStateRequest_default_instance_._instance,
     &::s4wave::secret::_WatchStateResponse_default_instance_._instance,
+    &::s4wave::secret::_BeginReadPayloadRequest_default_instance_._instance,
+    &::s4wave::secret::_BeginReadPayloadResponse_default_instance_._instance,
+    &::s4wave::secret::_ReadPayloadChallenge_default_instance_._instance,
+    &::s4wave::secret::_ReadPayloadRequest_default_instance_._instance,
+    &::s4wave::secret::_ReadPayloadResponse_default_instance_._instance,
 };
 const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsecret_2fsecret_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
     "\n3github.com/s4wave/spacewave/sdk/secret"
     "/secret.proto\022\rs4wave.secret\0326github.com"
     "/s4wave/spacewave/core/sobject/sobject.p"
-    "roto\032\037google/protobuf/timestamp.proto\"\350\001"
-    "\n\006Secret\022\024\n\014display_name\030\001 \001(\t\022\014\n\004kind\030\002"
-    " \001(\t\022\037\n\027nested_shared_object_id\030\003 \001(\t\022%\n"
-    "\003ref\030\004 \001(\0132\030.sobject.SharedObjectRef\022\022\n\n"
-    "value_hash\030\005 \001(\t\022.\n\ncreated_at\030\006 \001(\0132\032.g"
-    "oogle.protobuf.Timestamp\022.\n\nupdated_at\030\007"
-    " \001(\0132\032.google.protobuf.Timestamp\"u\n\rSecr"
-    "etPayload\022\r\n\005value\030\001 \001(\014\022\024\n\014content_type"
-    "\030\002 \001(\t\022\017\n\007version\030\003 \001(\004\022.\n\nupdated_at\030\004 "
-    "\001(\0132\032.google.protobuf.Timestamp\"\212\001\n\021Secr"
-    "etGrantStatus\022\017\n\007peer_id\030\001 \001(\t\022\023\n\013partic"
-    "ipant\030\002 \001(\010\022\020\n\010readable\030\003 \001(\010\022(\n\004role\030\004 "
-    "\001(\0162\032.sobject.SOParticipantRole\022\023\n\013grant"
-    "_count\030\005 \001(\r\"\231\001\n\013SecretState\022%\n\006secret\030\001"
-    " \001(\0132\025.s4wave.secret.Secret\0226\n\014grant_sta"
-    "tus\030\002 \001(\0132 .s4wave.secret.SecretGrantSta"
-    "tus\022+\n\006health\030\003 \001(\0132\033.sobject.SharedObje"
-    "ctHealth\"\023\n\021WatchStateRequest\"\?\n\022WatchSt"
-    "ateResponse\022)\n\005state\030\001 \001(\0132\032.s4wave.secr"
-    "et.SecretState2l\n\025SecretResourceService\022"
-    "S\n\nWatchState\022 .s4wave.secret.WatchState"
-    "Request\032!.s4wave.secret.WatchStateRespon"
-    "se0\001B6Z4github.com/s4wave/spacewave/sdk/"
-    "secret;s4wave_secretb\006proto3"
+    "roto\032/github.com/s4wave/spacewave/net/pe"
+    "er/peer.proto\032\037google/protobuf/timestamp"
+    ".proto\"\350\001\n\006Secret\022\024\n\014display_name\030\001 \001(\t\022"
+    "\014\n\004kind\030\002 \001(\t\022\037\n\027nested_shared_object_id"
+    "\030\003 \001(\t\022%\n\003ref\030\004 \001(\0132\030.sobject.SharedObje"
+    "ctRef\022\022\n\nvalue_hash\030\005 \001(\t\022.\n\ncreated_at\030"
+    "\006 \001(\0132\032.google.protobuf.Timestamp\022.\n\nupd"
+    "ated_at\030\007 \001(\0132\032.google.protobuf.Timestam"
+    "p\"u\n\rSecretPayload\022\r\n\005value\030\001 \001(\014\022\024\n\014con"
+    "tent_type\030\002 \001(\t\022\017\n\007version\030\003 \001(\004\022.\n\nupda"
+    "ted_at\030\004 \001(\0132\032.google.protobuf.Timestamp"
+    "\"\212\001\n\021SecretGrantStatus\022\017\n\007peer_id\030\001 \001(\t\022"
+    "\023\n\013participant\030\002 \001(\010\022\020\n\010readable\030\003 \001(\010\022("
+    "\n\004role\030\004 \001(\0162\032.sobject.SOParticipantRole"
+    "\022\023\n\013grant_count\030\005 \001(\r\"\231\001\n\013SecretState\022%\n"
+    "\006secret\030\001 \001(\0132\025.s4wave.secret.Secret\0226\n\014"
+    "grant_status\030\002 \001(\0132 .s4wave.secret.Secre"
+    "tGrantStatus\022+\n\006health\030\003 \001(\0132\033.sobject.S"
+    "haredObjectHealth\"\023\n\021WatchStateRequest\"\?"
+    "\n\022WatchStateResponse\022)\n\005state\030\001 \001(\0132\032.s4"
+    "wave.secret.SecretState\"H\n\027BeginReadPayl"
+    "oadRequest\022\026\n\016reader_peer_id\030\001 \001(\t\022\025\n\rex"
+    "pected_kind\030\002 \001(\t\"\232\001\n\030BeginReadPayloadRe"
+    "sponse\022\024\n\014challenge_id\030\001 \001(\t\022\021\n\tchalleng"
+    "e\030\002 \001(\014\022.\n\nexpires_at\030\003 \001(\0132\032.google.pro"
+    "tobuf.Timestamp\022%\n\006secret\030\004 \001(\0132\025.s4wave"
+    ".secret.Secret\"\344\001\n\024ReadPayloadChallenge\022"
+    "\024\n\014challenge_id\030\001 \001(\t\022\026\n\016reader_peer_id\030"
+    "\002 \001(\t\022\022\n\nobject_key\030\003 \001(\t\022\023\n\013secret_kind"
+    "\030\004 \001(\t\022\025\n\rexpected_kind\030\005 \001(\t\022\037\n\027nested_"
+    "shared_object_id\030\006 \001(\t\022\r\n\005nonce\030\007 \001(\014\022.\n"
+    "\nexpires_at\030\010 \001(\0132\032.google.protobuf.Time"
+    "stamp\"N\n\022ReadPayloadRequest\022\024\n\014challenge"
+    "_id\030\001 \001(\t\022\"\n\tsignature\030\002 \001(\0132\017.peer.Sign"
+    "ature\"D\n\023ReadPayloadResponse\022-\n\007payload\030"
+    "\001 \001(\0132\034.s4wave.secret.SecretPayload2\247\002\n\025"
+    "SecretResourceService\022S\n\nWatchState\022 .s4"
+    "wave.secret.WatchStateRequest\032!.s4wave.s"
+    "ecret.WatchStateResponse0\001\022c\n\020BeginReadP"
+    "ayload\022&.s4wave.secret.BeginReadPayloadR"
+    "equest\032\'.s4wave.secret.BeginReadPayloadR"
+    "esponse\022T\n\013ReadPayload\022!.s4wave.secret.R"
+    "eadPayloadRequest\032\".s4wave.secret.ReadPa"
+    "yloadResponseB6Z4github.com/s4wave/space"
+    "wave/sdk/secret;s4wave_secretb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsecret_2fsecret_2eproto_deps[2] = {
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsecret_2fsecret_2eproto_deps[3] = {
         &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fnet_2fpeer_2fpeer_2eproto,
         &::descriptor_table_google_2fprotobuf_2ftimestamp_2eproto,
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsecret_2fsecret_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsecret_2fsecret_2eproto = {
     false,
     false,
-    1068,
+    1917,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsecret_2fsecret_2eproto,
     "github.com/s4wave/spacewave/sdk/secret/secret.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsecret_2fsecret_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsecret_2fsecret_2eproto_deps,
-    2,
-    6,
+    3,
+    11,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsecret_2fsecret_2eproto::offsets,
@@ -2431,6 +2673,1894 @@ void WatchStateResponse::InternalSwap(WatchStateResponse* PROTOBUF_RESTRICT PROT
 }
 
 ::google::protobuf::Metadata WatchStateResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class BeginReadPayloadRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<BeginReadPayloadRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(BeginReadPayloadRequest, _impl_._has_bits_);
+};
+
+BeginReadPayloadRequest::BeginReadPayloadRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, BeginReadPayloadRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.secret.BeginReadPayloadRequest)
+}
+PROTOBUF_NDEBUG_INLINE BeginReadPayloadRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::secret::BeginReadPayloadRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        reader_peer_id_(arena, from.reader_peer_id_),
+        expected_kind_(arena, from.expected_kind_) {}
+
+BeginReadPayloadRequest::BeginReadPayloadRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const BeginReadPayloadRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, BeginReadPayloadRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  BeginReadPayloadRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.secret.BeginReadPayloadRequest)
+}
+PROTOBUF_NDEBUG_INLINE BeginReadPayloadRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        reader_peer_id_(arena),
+        expected_kind_(arena) {}
+
+inline void BeginReadPayloadRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+BeginReadPayloadRequest::~BeginReadPayloadRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.secret.BeginReadPayloadRequest)
+  SharedDtor(*this);
+}
+inline void BeginReadPayloadRequest::SharedDtor(MessageLite& self) {
+  BeginReadPayloadRequest& this_ = static_cast<BeginReadPayloadRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.reader_peer_id_.Destroy();
+  this_._impl_.expected_kind_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL BeginReadPayloadRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) BeginReadPayloadRequest(arena);
+}
+constexpr auto BeginReadPayloadRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(BeginReadPayloadRequest),
+                                            alignof(BeginReadPayloadRequest));
+}
+constexpr auto BeginReadPayloadRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_BeginReadPayloadRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &BeginReadPayloadRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<BeginReadPayloadRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &BeginReadPayloadRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<BeginReadPayloadRequest>(), &BeginReadPayloadRequest::ByteSizeLong,
+              &BeginReadPayloadRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(BeginReadPayloadRequest, _impl_._cached_size_),
+          false,
+      },
+      &BeginReadPayloadRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsecret_2fsecret_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull BeginReadPayloadRequest_class_data_ =
+        BeginReadPayloadRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+BeginReadPayloadRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&BeginReadPayloadRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(BeginReadPayloadRequest_class_data_.tc_table);
+  return BeginReadPayloadRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 0, 73, 2>
+BeginReadPayloadRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(BeginReadPayloadRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    BeginReadPayloadRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::secret::BeginReadPayloadRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string expected_kind = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(BeginReadPayloadRequest, _impl_.expected_kind_)}},
+    // string reader_peer_id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(BeginReadPayloadRequest, _impl_.reader_peer_id_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string reader_peer_id = 1;
+    {PROTOBUF_FIELD_OFFSET(BeginReadPayloadRequest, _impl_.reader_peer_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string expected_kind = 2;
+    {PROTOBUF_FIELD_OFFSET(BeginReadPayloadRequest, _impl_.expected_kind_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\45\16\15\0\0\0\0\0"
+    "s4wave.secret.BeginReadPayloadRequest"
+    "reader_peer_id"
+    "expected_kind"
+  }},
+};
+PROTOBUF_NOINLINE void BeginReadPayloadRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.secret.BeginReadPayloadRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.reader_peer_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.expected_kind_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL BeginReadPayloadRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const BeginReadPayloadRequest& this_ = static_cast<const BeginReadPayloadRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL BeginReadPayloadRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const BeginReadPayloadRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.secret.BeginReadPayloadRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string reader_peer_id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_reader_peer_id().empty()) {
+      const ::std::string& _s = this_._internal_reader_peer_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.secret.BeginReadPayloadRequest.reader_peer_id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string expected_kind = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_expected_kind().empty()) {
+      const ::std::string& _s = this_._internal_expected_kind();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.secret.BeginReadPayloadRequest.expected_kind");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.secret.BeginReadPayloadRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t BeginReadPayloadRequest::ByteSizeLong(const MessageLite& base) {
+  const BeginReadPayloadRequest& this_ = static_cast<const BeginReadPayloadRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t BeginReadPayloadRequest::ByteSizeLong() const {
+  const BeginReadPayloadRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.secret.BeginReadPayloadRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    // string reader_peer_id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_reader_peer_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_reader_peer_id());
+      }
+    }
+    // string expected_kind = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_expected_kind().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_expected_kind());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void BeginReadPayloadRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<BeginReadPayloadRequest*>(&to_msg);
+  auto& from = static_cast<const BeginReadPayloadRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.secret.BeginReadPayloadRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_reader_peer_id().empty()) {
+        _this->_internal_set_reader_peer_id(from._internal_reader_peer_id());
+      } else {
+        if (_this->_impl_.reader_peer_id_.IsDefault()) {
+          _this->_internal_set_reader_peer_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_expected_kind().empty()) {
+        _this->_internal_set_expected_kind(from._internal_expected_kind());
+      } else {
+        if (_this->_impl_.expected_kind_.IsDefault()) {
+          _this->_internal_set_expected_kind("");
+        }
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void BeginReadPayloadRequest::CopyFrom(const BeginReadPayloadRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.secret.BeginReadPayloadRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void BeginReadPayloadRequest::InternalSwap(BeginReadPayloadRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.reader_peer_id_, &other->_impl_.reader_peer_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.expected_kind_, &other->_impl_.expected_kind_, arena);
+}
+
+::google::protobuf::Metadata BeginReadPayloadRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class BeginReadPayloadResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<BeginReadPayloadResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(BeginReadPayloadResponse, _impl_._has_bits_);
+};
+
+void BeginReadPayloadResponse::clear_expires_at() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.expires_at_ != nullptr) _impl_.expires_at_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+BeginReadPayloadResponse::BeginReadPayloadResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, BeginReadPayloadResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.secret.BeginReadPayloadResponse)
+}
+PROTOBUF_NDEBUG_INLINE BeginReadPayloadResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::secret::BeginReadPayloadResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        challenge_id_(arena, from.challenge_id_),
+        challenge_(arena, from.challenge_) {}
+
+BeginReadPayloadResponse::BeginReadPayloadResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const BeginReadPayloadResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, BeginReadPayloadResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  BeginReadPayloadResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.expires_at_ = (CheckHasBit(cached_has_bits, 0x00000004U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.expires_at_)
+                : nullptr;
+  _impl_.secret_ = (CheckHasBit(cached_has_bits, 0x00000008U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.secret_)
+                : nullptr;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.secret.BeginReadPayloadResponse)
+}
+PROTOBUF_NDEBUG_INLINE BeginReadPayloadResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        challenge_id_(arena),
+        challenge_(arena) {}
+
+inline void BeginReadPayloadResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, expires_at_),
+           0,
+           offsetof(Impl_, secret_) -
+               offsetof(Impl_, expires_at_) +
+               sizeof(Impl_::secret_));
+}
+BeginReadPayloadResponse::~BeginReadPayloadResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.secret.BeginReadPayloadResponse)
+  SharedDtor(*this);
+}
+inline void BeginReadPayloadResponse::SharedDtor(MessageLite& self) {
+  BeginReadPayloadResponse& this_ = static_cast<BeginReadPayloadResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.challenge_id_.Destroy();
+  this_._impl_.challenge_.Destroy();
+  delete this_._impl_.expires_at_;
+  delete this_._impl_.secret_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL BeginReadPayloadResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) BeginReadPayloadResponse(arena);
+}
+constexpr auto BeginReadPayloadResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(BeginReadPayloadResponse),
+                                            alignof(BeginReadPayloadResponse));
+}
+constexpr auto BeginReadPayloadResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_BeginReadPayloadResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &BeginReadPayloadResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<BeginReadPayloadResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &BeginReadPayloadResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<BeginReadPayloadResponse>(), &BeginReadPayloadResponse::ByteSizeLong,
+              &BeginReadPayloadResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(BeginReadPayloadResponse, _impl_._cached_size_),
+          false,
+      },
+      &BeginReadPayloadResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsecret_2fsecret_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull BeginReadPayloadResponse_class_data_ =
+        BeginReadPayloadResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+BeginReadPayloadResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&BeginReadPayloadResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(BeginReadPayloadResponse_class_data_.tc_table);
+  return BeginReadPayloadResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 4, 2, 59, 2>
+BeginReadPayloadResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(BeginReadPayloadResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    4, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967280,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    4,  // num_field_entries
+    2,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    BeginReadPayloadResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::secret::BeginReadPayloadResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .s4wave.secret.Secret secret = 4;
+    {::_pbi::TcParser::FastMtS1,
+     {34, 3, 1,
+      PROTOBUF_FIELD_OFFSET(BeginReadPayloadResponse, _impl_.secret_)}},
+    // string challenge_id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(BeginReadPayloadResponse, _impl_.challenge_id_)}},
+    // bytes challenge = 2;
+    {::_pbi::TcParser::FastBS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(BeginReadPayloadResponse, _impl_.challenge_)}},
+    // .google.protobuf.Timestamp expires_at = 3;
+    {::_pbi::TcParser::FastMtS1,
+     {26, 2, 0,
+      PROTOBUF_FIELD_OFFSET(BeginReadPayloadResponse, _impl_.expires_at_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string challenge_id = 1;
+    {PROTOBUF_FIELD_OFFSET(BeginReadPayloadResponse, _impl_.challenge_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // bytes challenge = 2;
+    {PROTOBUF_FIELD_OFFSET(BeginReadPayloadResponse, _impl_.challenge_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // .google.protobuf.Timestamp expires_at = 3;
+    {PROTOBUF_FIELD_OFFSET(BeginReadPayloadResponse, _impl_.expires_at_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .s4wave.secret.Secret secret = 4;
+    {PROTOBUF_FIELD_OFFSET(BeginReadPayloadResponse, _impl_.secret_), _Internal::kHasBitsOffset + 3, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::google::protobuf::Timestamp>()},
+      {::_pbi::TcParser::GetTable<::s4wave::secret::Secret>()},
+  }},
+  {{
+    "\46\14\0\0\0\0\0\0"
+    "s4wave.secret.BeginReadPayloadResponse"
+    "challenge_id"
+  }},
+};
+PROTOBUF_NOINLINE void BeginReadPayloadResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.secret.BeginReadPayloadResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.challenge_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.challenge_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(_impl_.expires_at_ != nullptr);
+      _impl_.expires_at_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(_impl_.secret_ != nullptr);
+      _impl_.secret_->Clear();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL BeginReadPayloadResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const BeginReadPayloadResponse& this_ = static_cast<const BeginReadPayloadResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL BeginReadPayloadResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const BeginReadPayloadResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.secret.BeginReadPayloadResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string challenge_id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_challenge_id().empty()) {
+      const ::std::string& _s = this_._internal_challenge_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.secret.BeginReadPayloadResponse.challenge_id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // bytes challenge = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_challenge().empty()) {
+      const ::std::string& _s = this_._internal_challenge();
+      target = stream->WriteBytesMaybeAliased(2, _s, target);
+    }
+  }
+
+  // .google.protobuf.Timestamp expires_at = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        3, *this_._impl_.expires_at_, this_._impl_.expires_at_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .s4wave.secret.Secret secret = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        4, *this_._impl_.secret_, this_._impl_.secret_->GetCachedSize(), target,
+        stream);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.secret.BeginReadPayloadResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t BeginReadPayloadResponse::ByteSizeLong(const MessageLite& base) {
+  const BeginReadPayloadResponse& this_ = static_cast<const BeginReadPayloadResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t BeginReadPayloadResponse::ByteSizeLong() const {
+  const BeginReadPayloadResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.secret.BeginReadPayloadResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    // string challenge_id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_challenge_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_challenge_id());
+      }
+    }
+    // bytes challenge = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_challenge().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_challenge());
+      }
+    }
+    // .google.protobuf.Timestamp expires_at = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.expires_at_);
+    }
+    // .s4wave.secret.Secret secret = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.secret_);
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void BeginReadPayloadResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<BeginReadPayloadResponse*>(&to_msg);
+  auto& from = static_cast<const BeginReadPayloadResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.secret.BeginReadPayloadResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_challenge_id().empty()) {
+        _this->_internal_set_challenge_id(from._internal_challenge_id());
+      } else {
+        if (_this->_impl_.challenge_id_.IsDefault()) {
+          _this->_internal_set_challenge_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_challenge().empty()) {
+        _this->_internal_set_challenge(from._internal_challenge());
+      } else {
+        if (_this->_impl_.challenge_.IsDefault()) {
+          _this->_internal_set_challenge("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(from._impl_.expires_at_ != nullptr);
+      if (_this->_impl_.expires_at_ == nullptr) {
+        _this->_impl_.expires_at_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.expires_at_);
+      } else {
+        _this->_impl_.expires_at_->MergeFrom(*from._impl_.expires_at_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(from._impl_.secret_ != nullptr);
+      if (_this->_impl_.secret_ == nullptr) {
+        _this->_impl_.secret_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.secret_);
+      } else {
+        _this->_impl_.secret_->MergeFrom(*from._impl_.secret_);
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void BeginReadPayloadResponse::CopyFrom(const BeginReadPayloadResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.secret.BeginReadPayloadResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void BeginReadPayloadResponse::InternalSwap(BeginReadPayloadResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.challenge_id_, &other->_impl_.challenge_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.challenge_, &other->_impl_.challenge_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(BeginReadPayloadResponse, _impl_.secret_)
+      + sizeof(BeginReadPayloadResponse::_impl_.secret_)
+      - PROTOBUF_FIELD_OFFSET(BeginReadPayloadResponse, _impl_.expires_at_)>(
+          reinterpret_cast<char*>(&_impl_.expires_at_),
+          reinterpret_cast<char*>(&other->_impl_.expires_at_));
+}
+
+::google::protobuf::Metadata BeginReadPayloadResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class ReadPayloadChallenge::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<ReadPayloadChallenge>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(ReadPayloadChallenge, _impl_._has_bits_);
+};
+
+void ReadPayloadChallenge::clear_expires_at() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.expires_at_ != nullptr) _impl_.expires_at_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000080U);
+}
+ReadPayloadChallenge::ReadPayloadChallenge(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ReadPayloadChallenge_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.secret.ReadPayloadChallenge)
+}
+PROTOBUF_NDEBUG_INLINE ReadPayloadChallenge::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::secret::ReadPayloadChallenge& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        challenge_id_(arena, from.challenge_id_),
+        reader_peer_id_(arena, from.reader_peer_id_),
+        object_key_(arena, from.object_key_),
+        secret_kind_(arena, from.secret_kind_),
+        expected_kind_(arena, from.expected_kind_),
+        nested_shared_object_id_(arena, from.nested_shared_object_id_),
+        nonce_(arena, from.nonce_) {}
+
+ReadPayloadChallenge::ReadPayloadChallenge(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const ReadPayloadChallenge& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ReadPayloadChallenge_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  ReadPayloadChallenge* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.expires_at_ = (CheckHasBit(cached_has_bits, 0x00000080U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.expires_at_)
+                : nullptr;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.secret.ReadPayloadChallenge)
+}
+PROTOBUF_NDEBUG_INLINE ReadPayloadChallenge::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        challenge_id_(arena),
+        reader_peer_id_(arena),
+        object_key_(arena),
+        secret_kind_(arena),
+        expected_kind_(arena),
+        nested_shared_object_id_(arena),
+        nonce_(arena) {}
+
+inline void ReadPayloadChallenge::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.expires_at_ = {};
+}
+ReadPayloadChallenge::~ReadPayloadChallenge() {
+  // @@protoc_insertion_point(destructor:s4wave.secret.ReadPayloadChallenge)
+  SharedDtor(*this);
+}
+inline void ReadPayloadChallenge::SharedDtor(MessageLite& self) {
+  ReadPayloadChallenge& this_ = static_cast<ReadPayloadChallenge&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.challenge_id_.Destroy();
+  this_._impl_.reader_peer_id_.Destroy();
+  this_._impl_.object_key_.Destroy();
+  this_._impl_.secret_kind_.Destroy();
+  this_._impl_.expected_kind_.Destroy();
+  this_._impl_.nested_shared_object_id_.Destroy();
+  this_._impl_.nonce_.Destroy();
+  delete this_._impl_.expires_at_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL ReadPayloadChallenge::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) ReadPayloadChallenge(arena);
+}
+constexpr auto ReadPayloadChallenge::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(ReadPayloadChallenge),
+                                            alignof(ReadPayloadChallenge));
+}
+constexpr auto ReadPayloadChallenge::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_ReadPayloadChallenge_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &ReadPayloadChallenge::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<ReadPayloadChallenge>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &ReadPayloadChallenge::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<ReadPayloadChallenge>(), &ReadPayloadChallenge::ByteSizeLong,
+              &ReadPayloadChallenge::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(ReadPayloadChallenge, _impl_._cached_size_),
+          false,
+      },
+      &ReadPayloadChallenge::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsecret_2fsecret_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull ReadPayloadChallenge_class_data_ =
+        ReadPayloadChallenge::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+ReadPayloadChallenge::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&ReadPayloadChallenge_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(ReadPayloadChallenge_class_data_.tc_table);
+  return ReadPayloadChallenge_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 8, 1, 134, 2>
+ReadPayloadChallenge::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(ReadPayloadChallenge, _impl_._has_bits_),
+    0, // no _extensions_
+    8, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967040,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    8,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    ReadPayloadChallenge_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::secret::ReadPayloadChallenge>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .google.protobuf.Timestamp expires_at = 8;
+    {::_pbi::TcParser::FastMtS1,
+     {66, 7, 0,
+      PROTOBUF_FIELD_OFFSET(ReadPayloadChallenge, _impl_.expires_at_)}},
+    // string challenge_id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(ReadPayloadChallenge, _impl_.challenge_id_)}},
+    // string reader_peer_id = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(ReadPayloadChallenge, _impl_.reader_peer_id_)}},
+    // string object_key = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 2, 0,
+      PROTOBUF_FIELD_OFFSET(ReadPayloadChallenge, _impl_.object_key_)}},
+    // string secret_kind = 4;
+    {::_pbi::TcParser::FastUS1,
+     {34, 3, 0,
+      PROTOBUF_FIELD_OFFSET(ReadPayloadChallenge, _impl_.secret_kind_)}},
+    // string expected_kind = 5;
+    {::_pbi::TcParser::FastUS1,
+     {42, 4, 0,
+      PROTOBUF_FIELD_OFFSET(ReadPayloadChallenge, _impl_.expected_kind_)}},
+    // string nested_shared_object_id = 6;
+    {::_pbi::TcParser::FastUS1,
+     {50, 5, 0,
+      PROTOBUF_FIELD_OFFSET(ReadPayloadChallenge, _impl_.nested_shared_object_id_)}},
+    // bytes nonce = 7;
+    {::_pbi::TcParser::FastBS1,
+     {58, 6, 0,
+      PROTOBUF_FIELD_OFFSET(ReadPayloadChallenge, _impl_.nonce_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string challenge_id = 1;
+    {PROTOBUF_FIELD_OFFSET(ReadPayloadChallenge, _impl_.challenge_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string reader_peer_id = 2;
+    {PROTOBUF_FIELD_OFFSET(ReadPayloadChallenge, _impl_.reader_peer_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string object_key = 3;
+    {PROTOBUF_FIELD_OFFSET(ReadPayloadChallenge, _impl_.object_key_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string secret_kind = 4;
+    {PROTOBUF_FIELD_OFFSET(ReadPayloadChallenge, _impl_.secret_kind_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string expected_kind = 5;
+    {PROTOBUF_FIELD_OFFSET(ReadPayloadChallenge, _impl_.expected_kind_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string nested_shared_object_id = 6;
+    {PROTOBUF_FIELD_OFFSET(ReadPayloadChallenge, _impl_.nested_shared_object_id_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // bytes nonce = 7;
+    {PROTOBUF_FIELD_OFFSET(ReadPayloadChallenge, _impl_.nonce_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // .google.protobuf.Timestamp expires_at = 8;
+    {PROTOBUF_FIELD_OFFSET(ReadPayloadChallenge, _impl_.expires_at_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::google::protobuf::Timestamp>()},
+  }},
+  {{
+    "\42\14\16\12\13\15\27\0\0\0\0\0\0\0\0\0"
+    "s4wave.secret.ReadPayloadChallenge"
+    "challenge_id"
+    "reader_peer_id"
+    "object_key"
+    "secret_kind"
+    "expected_kind"
+    "nested_shared_object_id"
+  }},
+};
+PROTOBUF_NOINLINE void ReadPayloadChallenge::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.secret.ReadPayloadChallenge)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.challenge_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.reader_peer_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.object_key_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.secret_kind_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      _impl_.expected_kind_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      _impl_.nested_shared_object_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      _impl_.nonce_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      ABSL_DCHECK(_impl_.expires_at_ != nullptr);
+      _impl_.expires_at_->Clear();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL ReadPayloadChallenge::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const ReadPayloadChallenge& this_ = static_cast<const ReadPayloadChallenge&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL ReadPayloadChallenge::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const ReadPayloadChallenge& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.secret.ReadPayloadChallenge)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string challenge_id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_challenge_id().empty()) {
+      const ::std::string& _s = this_._internal_challenge_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.secret.ReadPayloadChallenge.challenge_id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string reader_peer_id = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_reader_peer_id().empty()) {
+      const ::std::string& _s = this_._internal_reader_peer_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.secret.ReadPayloadChallenge.reader_peer_id");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // string object_key = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_object_key().empty()) {
+      const ::std::string& _s = this_._internal_object_key();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.secret.ReadPayloadChallenge.object_key");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // string secret_kind = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_secret_kind().empty()) {
+      const ::std::string& _s = this_._internal_secret_kind();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.secret.ReadPayloadChallenge.secret_kind");
+      target = stream->WriteStringMaybeAliased(4, _s, target);
+    }
+  }
+
+  // string expected_kind = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (!this_._internal_expected_kind().empty()) {
+      const ::std::string& _s = this_._internal_expected_kind();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.secret.ReadPayloadChallenge.expected_kind");
+      target = stream->WriteStringMaybeAliased(5, _s, target);
+    }
+  }
+
+  // string nested_shared_object_id = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (!this_._internal_nested_shared_object_id().empty()) {
+      const ::std::string& _s = this_._internal_nested_shared_object_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.secret.ReadPayloadChallenge.nested_shared_object_id");
+      target = stream->WriteStringMaybeAliased(6, _s, target);
+    }
+  }
+
+  // bytes nonce = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (!this_._internal_nonce().empty()) {
+      const ::std::string& _s = this_._internal_nonce();
+      target = stream->WriteBytesMaybeAliased(7, _s, target);
+    }
+  }
+
+  // .google.protobuf.Timestamp expires_at = 8;
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        8, *this_._impl_.expires_at_, this_._impl_.expires_at_->GetCachedSize(), target,
+        stream);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.secret.ReadPayloadChallenge)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t ReadPayloadChallenge::ByteSizeLong(const MessageLite& base) {
+  const ReadPayloadChallenge& this_ = static_cast<const ReadPayloadChallenge&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t ReadPayloadChallenge::ByteSizeLong() const {
+  const ReadPayloadChallenge& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.secret.ReadPayloadChallenge)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    // string challenge_id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_challenge_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_challenge_id());
+      }
+    }
+    // string reader_peer_id = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_reader_peer_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_reader_peer_id());
+      }
+    }
+    // string object_key = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_object_key().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_object_key());
+      }
+    }
+    // string secret_kind = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_secret_kind().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_secret_kind());
+      }
+    }
+    // string expected_kind = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!this_._internal_expected_kind().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_expected_kind());
+      }
+    }
+    // string nested_shared_object_id = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (!this_._internal_nested_shared_object_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_nested_shared_object_id());
+      }
+    }
+    // bytes nonce = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (!this_._internal_nonce().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_nonce());
+      }
+    }
+    // .google.protobuf.Timestamp expires_at = 8;
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.expires_at_);
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void ReadPayloadChallenge::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<ReadPayloadChallenge*>(&to_msg);
+  auto& from = static_cast<const ReadPayloadChallenge&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.secret.ReadPayloadChallenge)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_challenge_id().empty()) {
+        _this->_internal_set_challenge_id(from._internal_challenge_id());
+      } else {
+        if (_this->_impl_.challenge_id_.IsDefault()) {
+          _this->_internal_set_challenge_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_reader_peer_id().empty()) {
+        _this->_internal_set_reader_peer_id(from._internal_reader_peer_id());
+      } else {
+        if (_this->_impl_.reader_peer_id_.IsDefault()) {
+          _this->_internal_set_reader_peer_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_object_key().empty()) {
+        _this->_internal_set_object_key(from._internal_object_key());
+      } else {
+        if (_this->_impl_.object_key_.IsDefault()) {
+          _this->_internal_set_object_key("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_secret_kind().empty()) {
+        _this->_internal_set_secret_kind(from._internal_secret_kind());
+      } else {
+        if (_this->_impl_.secret_kind_.IsDefault()) {
+          _this->_internal_set_secret_kind("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!from._internal_expected_kind().empty()) {
+        _this->_internal_set_expected_kind(from._internal_expected_kind());
+      } else {
+        if (_this->_impl_.expected_kind_.IsDefault()) {
+          _this->_internal_set_expected_kind("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (!from._internal_nested_shared_object_id().empty()) {
+        _this->_internal_set_nested_shared_object_id(from._internal_nested_shared_object_id());
+      } else {
+        if (_this->_impl_.nested_shared_object_id_.IsDefault()) {
+          _this->_internal_set_nested_shared_object_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (!from._internal_nonce().empty()) {
+        _this->_internal_set_nonce(from._internal_nonce());
+      } else {
+        if (_this->_impl_.nonce_.IsDefault()) {
+          _this->_internal_set_nonce("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      ABSL_DCHECK(from._impl_.expires_at_ != nullptr);
+      if (_this->_impl_.expires_at_ == nullptr) {
+        _this->_impl_.expires_at_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.expires_at_);
+      } else {
+        _this->_impl_.expires_at_->MergeFrom(*from._impl_.expires_at_);
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void ReadPayloadChallenge::CopyFrom(const ReadPayloadChallenge& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.secret.ReadPayloadChallenge)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void ReadPayloadChallenge::InternalSwap(ReadPayloadChallenge* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.challenge_id_, &other->_impl_.challenge_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.reader_peer_id_, &other->_impl_.reader_peer_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.object_key_, &other->_impl_.object_key_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.secret_kind_, &other->_impl_.secret_kind_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.expected_kind_, &other->_impl_.expected_kind_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.nested_shared_object_id_, &other->_impl_.nested_shared_object_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.nonce_, &other->_impl_.nonce_, arena);
+  swap(_impl_.expires_at_, other->_impl_.expires_at_);
+}
+
+::google::protobuf::Metadata ReadPayloadChallenge::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class ReadPayloadRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<ReadPayloadRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(ReadPayloadRequest, _impl_._has_bits_);
+};
+
+void ReadPayloadRequest::clear_signature() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.signature_ != nullptr) _impl_.signature_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+ReadPayloadRequest::ReadPayloadRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ReadPayloadRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.secret.ReadPayloadRequest)
+}
+PROTOBUF_NDEBUG_INLINE ReadPayloadRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::secret::ReadPayloadRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        challenge_id_(arena, from.challenge_id_) {}
+
+ReadPayloadRequest::ReadPayloadRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const ReadPayloadRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ReadPayloadRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  ReadPayloadRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.signature_ = (CheckHasBit(cached_has_bits, 0x00000002U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.signature_)
+                : nullptr;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.secret.ReadPayloadRequest)
+}
+PROTOBUF_NDEBUG_INLINE ReadPayloadRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        challenge_id_(arena) {}
+
+inline void ReadPayloadRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.signature_ = {};
+}
+ReadPayloadRequest::~ReadPayloadRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.secret.ReadPayloadRequest)
+  SharedDtor(*this);
+}
+inline void ReadPayloadRequest::SharedDtor(MessageLite& self) {
+  ReadPayloadRequest& this_ = static_cast<ReadPayloadRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.challenge_id_.Destroy();
+  delete this_._impl_.signature_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL ReadPayloadRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) ReadPayloadRequest(arena);
+}
+constexpr auto ReadPayloadRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(ReadPayloadRequest),
+                                            alignof(ReadPayloadRequest));
+}
+constexpr auto ReadPayloadRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_ReadPayloadRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &ReadPayloadRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<ReadPayloadRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &ReadPayloadRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<ReadPayloadRequest>(), &ReadPayloadRequest::ByteSizeLong,
+              &ReadPayloadRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(ReadPayloadRequest, _impl_._cached_size_),
+          false,
+      },
+      &ReadPayloadRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsecret_2fsecret_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull ReadPayloadRequest_class_data_ =
+        ReadPayloadRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+ReadPayloadRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&ReadPayloadRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(ReadPayloadRequest_class_data_.tc_table);
+  return ReadPayloadRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 1, 53, 2>
+ReadPayloadRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(ReadPayloadRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    ReadPayloadRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::secret::ReadPayloadRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .peer.Signature signature = 2;
+    {::_pbi::TcParser::FastMtS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(ReadPayloadRequest, _impl_.signature_)}},
+    // string challenge_id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(ReadPayloadRequest, _impl_.challenge_id_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string challenge_id = 1;
+    {PROTOBUF_FIELD_OFFSET(ReadPayloadRequest, _impl_.challenge_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .peer.Signature signature = 2;
+    {PROTOBUF_FIELD_OFFSET(ReadPayloadRequest, _impl_.signature_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::peer::Signature>()},
+  }},
+  {{
+    "\40\14\0\0\0\0\0\0"
+    "s4wave.secret.ReadPayloadRequest"
+    "challenge_id"
+  }},
+};
+PROTOBUF_NOINLINE void ReadPayloadRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.secret.ReadPayloadRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.challenge_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(_impl_.signature_ != nullptr);
+      _impl_.signature_->Clear();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL ReadPayloadRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const ReadPayloadRequest& this_ = static_cast<const ReadPayloadRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL ReadPayloadRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const ReadPayloadRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.secret.ReadPayloadRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string challenge_id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_challenge_id().empty()) {
+      const ::std::string& _s = this_._internal_challenge_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.secret.ReadPayloadRequest.challenge_id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // .peer.Signature signature = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        2, *this_._impl_.signature_, this_._impl_.signature_->GetCachedSize(), target,
+        stream);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.secret.ReadPayloadRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t ReadPayloadRequest::ByteSizeLong(const MessageLite& base) {
+  const ReadPayloadRequest& this_ = static_cast<const ReadPayloadRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t ReadPayloadRequest::ByteSizeLong() const {
+  const ReadPayloadRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.secret.ReadPayloadRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    // string challenge_id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_challenge_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_challenge_id());
+      }
+    }
+    // .peer.Signature signature = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.signature_);
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void ReadPayloadRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<ReadPayloadRequest*>(&to_msg);
+  auto& from = static_cast<const ReadPayloadRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.secret.ReadPayloadRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_challenge_id().empty()) {
+        _this->_internal_set_challenge_id(from._internal_challenge_id());
+      } else {
+        if (_this->_impl_.challenge_id_.IsDefault()) {
+          _this->_internal_set_challenge_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(from._impl_.signature_ != nullptr);
+      if (_this->_impl_.signature_ == nullptr) {
+        _this->_impl_.signature_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.signature_);
+      } else {
+        _this->_impl_.signature_->MergeFrom(*from._impl_.signature_);
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void ReadPayloadRequest::CopyFrom(const ReadPayloadRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.secret.ReadPayloadRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void ReadPayloadRequest::InternalSwap(ReadPayloadRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.challenge_id_, &other->_impl_.challenge_id_, arena);
+  swap(_impl_.signature_, other->_impl_.signature_);
+}
+
+::google::protobuf::Metadata ReadPayloadRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class ReadPayloadResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<ReadPayloadResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(ReadPayloadResponse, _impl_._has_bits_);
+};
+
+ReadPayloadResponse::ReadPayloadResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ReadPayloadResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.secret.ReadPayloadResponse)
+}
+PROTOBUF_NDEBUG_INLINE ReadPayloadResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::secret::ReadPayloadResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0} {}
+
+ReadPayloadResponse::ReadPayloadResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const ReadPayloadResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ReadPayloadResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  ReadPayloadResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.payload_ = (CheckHasBit(cached_has_bits, 0x00000001U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.payload_)
+                : nullptr;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.secret.ReadPayloadResponse)
+}
+PROTOBUF_NDEBUG_INLINE ReadPayloadResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void ReadPayloadResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.payload_ = {};
+}
+ReadPayloadResponse::~ReadPayloadResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.secret.ReadPayloadResponse)
+  SharedDtor(*this);
+}
+inline void ReadPayloadResponse::SharedDtor(MessageLite& self) {
+  ReadPayloadResponse& this_ = static_cast<ReadPayloadResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  delete this_._impl_.payload_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL ReadPayloadResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) ReadPayloadResponse(arena);
+}
+constexpr auto ReadPayloadResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(ReadPayloadResponse),
+                                            alignof(ReadPayloadResponse));
+}
+constexpr auto ReadPayloadResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_ReadPayloadResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &ReadPayloadResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<ReadPayloadResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &ReadPayloadResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<ReadPayloadResponse>(), &ReadPayloadResponse::ByteSizeLong,
+              &ReadPayloadResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(ReadPayloadResponse, _impl_._cached_size_),
+          false,
+      },
+      &ReadPayloadResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsecret_2fsecret_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull ReadPayloadResponse_class_data_ =
+        ReadPayloadResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+ReadPayloadResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&ReadPayloadResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(ReadPayloadResponse_class_data_.tc_table);
+  return ReadPayloadResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 1, 0, 2>
+ReadPayloadResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(ReadPayloadResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    ReadPayloadResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::secret::ReadPayloadResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .s4wave.secret.SecretPayload payload = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(ReadPayloadResponse, _impl_.payload_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .s4wave.secret.SecretPayload payload = 1;
+    {PROTOBUF_FIELD_OFFSET(ReadPayloadResponse, _impl_.payload_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::secret::SecretPayload>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void ReadPayloadResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.secret.ReadPayloadResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    ABSL_DCHECK(_impl_.payload_ != nullptr);
+    _impl_.payload_->Clear();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL ReadPayloadResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const ReadPayloadResponse& this_ = static_cast<const ReadPayloadResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL ReadPayloadResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const ReadPayloadResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.secret.ReadPayloadResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .s4wave.secret.SecretPayload payload = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        1, *this_._impl_.payload_, this_._impl_.payload_->GetCachedSize(), target,
+        stream);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.secret.ReadPayloadResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t ReadPayloadResponse::ByteSizeLong(const MessageLite& base) {
+  const ReadPayloadResponse& this_ = static_cast<const ReadPayloadResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t ReadPayloadResponse::ByteSizeLong() const {
+  const ReadPayloadResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.secret.ReadPayloadResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // .s4wave.secret.SecretPayload payload = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.payload_);
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void ReadPayloadResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<ReadPayloadResponse*>(&to_msg);
+  auto& from = static_cast<const ReadPayloadResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.secret.ReadPayloadResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    ABSL_DCHECK(from._impl_.payload_ != nullptr);
+    if (_this->_impl_.payload_ == nullptr) {
+      _this->_impl_.payload_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.payload_);
+    } else {
+      _this->_impl_.payload_->MergeFrom(*from._impl_.payload_);
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void ReadPayloadResponse::CopyFrom(const ReadPayloadResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.secret.ReadPayloadResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void ReadPayloadResponse::InternalSwap(ReadPayloadResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.payload_, other->_impl_.payload_);
+}
+
+::google::protobuf::Metadata ReadPayloadResponse::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // @@protoc_insertion_point(namespace_scope)

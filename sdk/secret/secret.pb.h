@@ -33,6 +33,7 @@
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
 #include "google/protobuf/unknown_field_set.h"
 #include "../../core/sobject/sobject.pb.h"
+#include "../../net/peer/peer.pb.h"
 #include "google/protobuf/timestamp.pb.h"
 // @@protoc_insertion_point(includes)
 
@@ -59,6 +60,26 @@ extern const ::google::protobuf::internal::DescriptorTable descriptor_table_gith
 }  // extern "C"
 namespace s4wave {
 namespace secret {
+class BeginReadPayloadRequest;
+struct BeginReadPayloadRequestDefaultTypeInternal;
+extern BeginReadPayloadRequestDefaultTypeInternal _BeginReadPayloadRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull BeginReadPayloadRequest_class_data_;
+class BeginReadPayloadResponse;
+struct BeginReadPayloadResponseDefaultTypeInternal;
+extern BeginReadPayloadResponseDefaultTypeInternal _BeginReadPayloadResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull BeginReadPayloadResponse_class_data_;
+class ReadPayloadChallenge;
+struct ReadPayloadChallengeDefaultTypeInternal;
+extern ReadPayloadChallengeDefaultTypeInternal _ReadPayloadChallenge_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull ReadPayloadChallenge_class_data_;
+class ReadPayloadRequest;
+struct ReadPayloadRequestDefaultTypeInternal;
+extern ReadPayloadRequestDefaultTypeInternal _ReadPayloadRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull ReadPayloadRequest_class_data_;
+class ReadPayloadResponse;
+struct ReadPayloadResponseDefaultTypeInternal;
+extern ReadPayloadResponseDefaultTypeInternal _ReadPayloadResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull ReadPayloadResponse_class_data_;
 class Secret;
 struct SecretDefaultTypeInternal;
 extern SecretDefaultTypeInternal _Secret_default_instance_;
@@ -475,6 +496,218 @@ class SecretGrantStatus final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull SecretGrantStatus_class_data_;
 // -------------------------------------------------------------------
 
+class BeginReadPayloadRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.secret.BeginReadPayloadRequest) */ {
+ public:
+  inline BeginReadPayloadRequest() : BeginReadPayloadRequest(nullptr) {}
+  ~BeginReadPayloadRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(BeginReadPayloadRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(BeginReadPayloadRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR BeginReadPayloadRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline BeginReadPayloadRequest(const BeginReadPayloadRequest& from) : BeginReadPayloadRequest(nullptr, from) {}
+  inline BeginReadPayloadRequest(BeginReadPayloadRequest&& from) noexcept
+      : BeginReadPayloadRequest(nullptr, ::std::move(from)) {}
+  inline BeginReadPayloadRequest& operator=(const BeginReadPayloadRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline BeginReadPayloadRequest& operator=(BeginReadPayloadRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const BeginReadPayloadRequest& default_instance() {
+    return *reinterpret_cast<const BeginReadPayloadRequest*>(
+        &_BeginReadPayloadRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 6;
+  friend void swap(BeginReadPayloadRequest& a, BeginReadPayloadRequest& b) { a.Swap(&b); }
+  inline void Swap(BeginReadPayloadRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(BeginReadPayloadRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  BeginReadPayloadRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<BeginReadPayloadRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const BeginReadPayloadRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const BeginReadPayloadRequest& from) { BeginReadPayloadRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(BeginReadPayloadRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.secret.BeginReadPayloadRequest"; }
+
+  explicit BeginReadPayloadRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  BeginReadPayloadRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const BeginReadPayloadRequest& from);
+  BeginReadPayloadRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, BeginReadPayloadRequest&& from) noexcept
+      : BeginReadPayloadRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kReaderPeerIdFieldNumber = 1,
+    kExpectedKindFieldNumber = 2,
+  };
+  // string reader_peer_id = 1;
+  void clear_reader_peer_id() ;
+  const ::std::string& reader_peer_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_reader_peer_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_reader_peer_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_reader_peer_id();
+  void set_allocated_reader_peer_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_reader_peer_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_reader_peer_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_reader_peer_id();
+
+  public:
+  // string expected_kind = 2;
+  void clear_expected_kind() ;
+  const ::std::string& expected_kind() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_expected_kind(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_expected_kind();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_expected_kind();
+  void set_allocated_expected_kind(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_expected_kind() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_expected_kind(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_expected_kind();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.secret.BeginReadPayloadRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   0, 73,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const BeginReadPayloadRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr reader_peer_id_;
+    ::google::protobuf::internal::ArenaStringPtr expected_kind_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsecret_2fsecret_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull BeginReadPayloadRequest_class_data_;
+// -------------------------------------------------------------------
+
 class SecretPayload final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.secret.SecretPayload) */ {
  public:
@@ -714,6 +947,532 @@ class SecretPayload final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull SecretPayload_class_data_;
+// -------------------------------------------------------------------
+
+class ReadPayloadRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.secret.ReadPayloadRequest) */ {
+ public:
+  inline ReadPayloadRequest() : ReadPayloadRequest(nullptr) {}
+  ~ReadPayloadRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ReadPayloadRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ReadPayloadRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ReadPayloadRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline ReadPayloadRequest(const ReadPayloadRequest& from) : ReadPayloadRequest(nullptr, from) {}
+  inline ReadPayloadRequest(ReadPayloadRequest&& from) noexcept
+      : ReadPayloadRequest(nullptr, ::std::move(from)) {}
+  inline ReadPayloadRequest& operator=(const ReadPayloadRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ReadPayloadRequest& operator=(ReadPayloadRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ReadPayloadRequest& default_instance() {
+    return *reinterpret_cast<const ReadPayloadRequest*>(
+        &_ReadPayloadRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 9;
+  friend void swap(ReadPayloadRequest& a, ReadPayloadRequest& b) { a.Swap(&b); }
+  inline void Swap(ReadPayloadRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ReadPayloadRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ReadPayloadRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<ReadPayloadRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ReadPayloadRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const ReadPayloadRequest& from) { ReadPayloadRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(ReadPayloadRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.secret.ReadPayloadRequest"; }
+
+  explicit ReadPayloadRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  ReadPayloadRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ReadPayloadRequest& from);
+  ReadPayloadRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ReadPayloadRequest&& from) noexcept
+      : ReadPayloadRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kChallengeIdFieldNumber = 1,
+    kSignatureFieldNumber = 2,
+  };
+  // string challenge_id = 1;
+  void clear_challenge_id() ;
+  const ::std::string& challenge_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_challenge_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_challenge_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_challenge_id();
+  void set_allocated_challenge_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_challenge_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_challenge_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_challenge_id();
+
+  public:
+  // .peer.Signature signature = 2;
+  bool has_signature() const;
+  void clear_signature() ;
+  const ::peer::Signature& signature() const;
+  [[nodiscard]] ::peer::Signature* PROTOBUF_NULLABLE release_signature();
+  ::peer::Signature* PROTOBUF_NONNULL mutable_signature();
+  void set_allocated_signature(::peer::Signature* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_signature(::peer::Signature* PROTOBUF_NULLABLE value);
+  ::peer::Signature* PROTOBUF_NULLABLE unsafe_arena_release_signature();
+
+  private:
+  const ::peer::Signature& _internal_signature() const;
+  ::peer::Signature* PROTOBUF_NONNULL _internal_mutable_signature();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.secret.ReadPayloadRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   1, 53,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const ReadPayloadRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr challenge_id_;
+    ::peer::Signature* PROTOBUF_NULLABLE signature_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsecret_2fsecret_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull ReadPayloadRequest_class_data_;
+// -------------------------------------------------------------------
+
+class ReadPayloadChallenge final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.secret.ReadPayloadChallenge) */ {
+ public:
+  inline ReadPayloadChallenge() : ReadPayloadChallenge(nullptr) {}
+  ~ReadPayloadChallenge() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ReadPayloadChallenge* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ReadPayloadChallenge));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ReadPayloadChallenge(::google::protobuf::internal::ConstantInitialized);
+
+  inline ReadPayloadChallenge(const ReadPayloadChallenge& from) : ReadPayloadChallenge(nullptr, from) {}
+  inline ReadPayloadChallenge(ReadPayloadChallenge&& from) noexcept
+      : ReadPayloadChallenge(nullptr, ::std::move(from)) {}
+  inline ReadPayloadChallenge& operator=(const ReadPayloadChallenge& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ReadPayloadChallenge& operator=(ReadPayloadChallenge&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ReadPayloadChallenge& default_instance() {
+    return *reinterpret_cast<const ReadPayloadChallenge*>(
+        &_ReadPayloadChallenge_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 8;
+  friend void swap(ReadPayloadChallenge& a, ReadPayloadChallenge& b) { a.Swap(&b); }
+  inline void Swap(ReadPayloadChallenge* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ReadPayloadChallenge* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ReadPayloadChallenge* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<ReadPayloadChallenge>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ReadPayloadChallenge& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const ReadPayloadChallenge& from) { ReadPayloadChallenge::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(ReadPayloadChallenge* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.secret.ReadPayloadChallenge"; }
+
+  explicit ReadPayloadChallenge(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  ReadPayloadChallenge(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ReadPayloadChallenge& from);
+  ReadPayloadChallenge(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ReadPayloadChallenge&& from) noexcept
+      : ReadPayloadChallenge(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kChallengeIdFieldNumber = 1,
+    kReaderPeerIdFieldNumber = 2,
+    kObjectKeyFieldNumber = 3,
+    kSecretKindFieldNumber = 4,
+    kExpectedKindFieldNumber = 5,
+    kNestedSharedObjectIdFieldNumber = 6,
+    kNonceFieldNumber = 7,
+    kExpiresAtFieldNumber = 8,
+  };
+  // string challenge_id = 1;
+  void clear_challenge_id() ;
+  const ::std::string& challenge_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_challenge_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_challenge_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_challenge_id();
+  void set_allocated_challenge_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_challenge_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_challenge_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_challenge_id();
+
+  public:
+  // string reader_peer_id = 2;
+  void clear_reader_peer_id() ;
+  const ::std::string& reader_peer_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_reader_peer_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_reader_peer_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_reader_peer_id();
+  void set_allocated_reader_peer_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_reader_peer_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_reader_peer_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_reader_peer_id();
+
+  public:
+  // string object_key = 3;
+  void clear_object_key() ;
+  const ::std::string& object_key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_object_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_object_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_object_key();
+  void set_allocated_object_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_object_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_object_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_object_key();
+
+  public:
+  // string secret_kind = 4;
+  void clear_secret_kind() ;
+  const ::std::string& secret_kind() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_secret_kind(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_secret_kind();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_secret_kind();
+  void set_allocated_secret_kind(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_secret_kind() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_secret_kind(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_secret_kind();
+
+  public:
+  // string expected_kind = 5;
+  void clear_expected_kind() ;
+  const ::std::string& expected_kind() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_expected_kind(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_expected_kind();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_expected_kind();
+  void set_allocated_expected_kind(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_expected_kind() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_expected_kind(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_expected_kind();
+
+  public:
+  // string nested_shared_object_id = 6;
+  void clear_nested_shared_object_id() ;
+  const ::std::string& nested_shared_object_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_nested_shared_object_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_nested_shared_object_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_nested_shared_object_id();
+  void set_allocated_nested_shared_object_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_nested_shared_object_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_nested_shared_object_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_nested_shared_object_id();
+
+  public:
+  // bytes nonce = 7;
+  void clear_nonce() ;
+  const ::std::string& nonce() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_nonce(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_nonce();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_nonce();
+  void set_allocated_nonce(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_nonce() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_nonce(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_nonce();
+
+  public:
+  // .google.protobuf.Timestamp expires_at = 8;
+  bool has_expires_at() const;
+  void clear_expires_at() ;
+  const ::google::protobuf::Timestamp& expires_at() const;
+  [[nodiscard]] ::google::protobuf::Timestamp* PROTOBUF_NULLABLE release_expires_at();
+  ::google::protobuf::Timestamp* PROTOBUF_NONNULL mutable_expires_at();
+  void set_allocated_expires_at(::google::protobuf::Timestamp* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_expires_at(::google::protobuf::Timestamp* PROTOBUF_NULLABLE value);
+  ::google::protobuf::Timestamp* PROTOBUF_NULLABLE unsafe_arena_release_expires_at();
+
+  private:
+  const ::google::protobuf::Timestamp& _internal_expires_at() const;
+  ::google::protobuf::Timestamp* PROTOBUF_NONNULL _internal_mutable_expires_at();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.secret.ReadPayloadChallenge)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 8,
+                                   1, 134,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const ReadPayloadChallenge& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr challenge_id_;
+    ::google::protobuf::internal::ArenaStringPtr reader_peer_id_;
+    ::google::protobuf::internal::ArenaStringPtr object_key_;
+    ::google::protobuf::internal::ArenaStringPtr secret_kind_;
+    ::google::protobuf::internal::ArenaStringPtr expected_kind_;
+    ::google::protobuf::internal::ArenaStringPtr nested_shared_object_id_;
+    ::google::protobuf::internal::ArenaStringPtr nonce_;
+    ::google::protobuf::Timestamp* PROTOBUF_NULLABLE expires_at_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsecret_2fsecret_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull ReadPayloadChallenge_class_data_;
 // -------------------------------------------------------------------
 
 class Secret final : public ::google::protobuf::Message
@@ -1013,6 +1772,201 @@ class Secret final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull Secret_class_data_;
 // -------------------------------------------------------------------
 
+class ReadPayloadResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.secret.ReadPayloadResponse) */ {
+ public:
+  inline ReadPayloadResponse() : ReadPayloadResponse(nullptr) {}
+  ~ReadPayloadResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ReadPayloadResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ReadPayloadResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ReadPayloadResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline ReadPayloadResponse(const ReadPayloadResponse& from) : ReadPayloadResponse(nullptr, from) {}
+  inline ReadPayloadResponse(ReadPayloadResponse&& from) noexcept
+      : ReadPayloadResponse(nullptr, ::std::move(from)) {}
+  inline ReadPayloadResponse& operator=(const ReadPayloadResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ReadPayloadResponse& operator=(ReadPayloadResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ReadPayloadResponse& default_instance() {
+    return *reinterpret_cast<const ReadPayloadResponse*>(
+        &_ReadPayloadResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 10;
+  friend void swap(ReadPayloadResponse& a, ReadPayloadResponse& b) { a.Swap(&b); }
+  inline void Swap(ReadPayloadResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ReadPayloadResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ReadPayloadResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<ReadPayloadResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ReadPayloadResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const ReadPayloadResponse& from) { ReadPayloadResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(ReadPayloadResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.secret.ReadPayloadResponse"; }
+
+  explicit ReadPayloadResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  ReadPayloadResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ReadPayloadResponse& from);
+  ReadPayloadResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ReadPayloadResponse&& from) noexcept
+      : ReadPayloadResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kPayloadFieldNumber = 1,
+  };
+  // .s4wave.secret.SecretPayload payload = 1;
+  bool has_payload() const;
+  void clear_payload() ;
+  const ::s4wave::secret::SecretPayload& payload() const;
+  [[nodiscard]] ::s4wave::secret::SecretPayload* PROTOBUF_NULLABLE release_payload();
+  ::s4wave::secret::SecretPayload* PROTOBUF_NONNULL mutable_payload();
+  void set_allocated_payload(::s4wave::secret::SecretPayload* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_payload(::s4wave::secret::SecretPayload* PROTOBUF_NULLABLE value);
+  ::s4wave::secret::SecretPayload* PROTOBUF_NULLABLE unsafe_arena_release_payload();
+
+  private:
+  const ::s4wave::secret::SecretPayload& _internal_payload() const;
+  ::s4wave::secret::SecretPayload* PROTOBUF_NONNULL _internal_mutable_payload();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.secret.ReadPayloadResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const ReadPayloadResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::s4wave::secret::SecretPayload* PROTOBUF_NULLABLE payload_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsecret_2fsecret_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull ReadPayloadResponse_class_data_;
+// -------------------------------------------------------------------
+
 class SecretState final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.secret.SecretState) */ {
  public:
@@ -1240,6 +2194,252 @@ class SecretState final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull SecretState_class_data_;
+// -------------------------------------------------------------------
+
+class BeginReadPayloadResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.secret.BeginReadPayloadResponse) */ {
+ public:
+  inline BeginReadPayloadResponse() : BeginReadPayloadResponse(nullptr) {}
+  ~BeginReadPayloadResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(BeginReadPayloadResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(BeginReadPayloadResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR BeginReadPayloadResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline BeginReadPayloadResponse(const BeginReadPayloadResponse& from) : BeginReadPayloadResponse(nullptr, from) {}
+  inline BeginReadPayloadResponse(BeginReadPayloadResponse&& from) noexcept
+      : BeginReadPayloadResponse(nullptr, ::std::move(from)) {}
+  inline BeginReadPayloadResponse& operator=(const BeginReadPayloadResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline BeginReadPayloadResponse& operator=(BeginReadPayloadResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const BeginReadPayloadResponse& default_instance() {
+    return *reinterpret_cast<const BeginReadPayloadResponse*>(
+        &_BeginReadPayloadResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 7;
+  friend void swap(BeginReadPayloadResponse& a, BeginReadPayloadResponse& b) { a.Swap(&b); }
+  inline void Swap(BeginReadPayloadResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(BeginReadPayloadResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  BeginReadPayloadResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<BeginReadPayloadResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const BeginReadPayloadResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const BeginReadPayloadResponse& from) { BeginReadPayloadResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(BeginReadPayloadResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.secret.BeginReadPayloadResponse"; }
+
+  explicit BeginReadPayloadResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  BeginReadPayloadResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const BeginReadPayloadResponse& from);
+  BeginReadPayloadResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, BeginReadPayloadResponse&& from) noexcept
+      : BeginReadPayloadResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kChallengeIdFieldNumber = 1,
+    kChallengeFieldNumber = 2,
+    kExpiresAtFieldNumber = 3,
+    kSecretFieldNumber = 4,
+  };
+  // string challenge_id = 1;
+  void clear_challenge_id() ;
+  const ::std::string& challenge_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_challenge_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_challenge_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_challenge_id();
+  void set_allocated_challenge_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_challenge_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_challenge_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_challenge_id();
+
+  public:
+  // bytes challenge = 2;
+  void clear_challenge() ;
+  const ::std::string& challenge() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_challenge(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_challenge();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_challenge();
+  void set_allocated_challenge(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_challenge() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_challenge(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_challenge();
+
+  public:
+  // .google.protobuf.Timestamp expires_at = 3;
+  bool has_expires_at() const;
+  void clear_expires_at() ;
+  const ::google::protobuf::Timestamp& expires_at() const;
+  [[nodiscard]] ::google::protobuf::Timestamp* PROTOBUF_NULLABLE release_expires_at();
+  ::google::protobuf::Timestamp* PROTOBUF_NONNULL mutable_expires_at();
+  void set_allocated_expires_at(::google::protobuf::Timestamp* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_expires_at(::google::protobuf::Timestamp* PROTOBUF_NULLABLE value);
+  ::google::protobuf::Timestamp* PROTOBUF_NULLABLE unsafe_arena_release_expires_at();
+
+  private:
+  const ::google::protobuf::Timestamp& _internal_expires_at() const;
+  ::google::protobuf::Timestamp* PROTOBUF_NONNULL _internal_mutable_expires_at();
+
+  public:
+  // .s4wave.secret.Secret secret = 4;
+  bool has_secret() const;
+  void clear_secret() ;
+  const ::s4wave::secret::Secret& secret() const;
+  [[nodiscard]] ::s4wave::secret::Secret* PROTOBUF_NULLABLE release_secret();
+  ::s4wave::secret::Secret* PROTOBUF_NONNULL mutable_secret();
+  void set_allocated_secret(::s4wave::secret::Secret* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_secret(::s4wave::secret::Secret* PROTOBUF_NULLABLE value);
+  ::s4wave::secret::Secret* PROTOBUF_NULLABLE unsafe_arena_release_secret();
+
+  private:
+  const ::s4wave::secret::Secret& _internal_secret() const;
+  ::s4wave::secret::Secret* PROTOBUF_NONNULL _internal_mutable_secret();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.secret.BeginReadPayloadResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   2, 59,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const BeginReadPayloadResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr challenge_id_;
+    ::google::protobuf::internal::ArenaStringPtr challenge_;
+    ::google::protobuf::Timestamp* PROTOBUF_NULLABLE expires_at_;
+    ::s4wave::secret::Secret* PROTOBUF_NULLABLE secret_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsecret_2fsecret_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull BeginReadPayloadResponse_class_data_;
 // -------------------------------------------------------------------
 
 class WatchStateResponse final : public ::google::protobuf::Message
@@ -2812,6 +4012,1283 @@ inline void WatchStateResponse::set_allocated_state(::s4wave::secret::SecretStat
 
   _impl_.state_ = reinterpret_cast<::s4wave::secret::SecretState*>(value);
   // @@protoc_insertion_point(field_set_allocated:s4wave.secret.WatchStateResponse.state)
+}
+
+// -------------------------------------------------------------------
+
+// BeginReadPayloadRequest
+
+// string reader_peer_id = 1;
+inline void BeginReadPayloadRequest::clear_reader_peer_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.reader_peer_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& BeginReadPayloadRequest::reader_peer_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.secret.BeginReadPayloadRequest.reader_peer_id)
+  return _internal_reader_peer_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void BeginReadPayloadRequest::set_reader_peer_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.reader_peer_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.secret.BeginReadPayloadRequest.reader_peer_id)
+}
+inline ::std::string* PROTOBUF_NONNULL BeginReadPayloadRequest::mutable_reader_peer_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_reader_peer_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.secret.BeginReadPayloadRequest.reader_peer_id)
+  return _s;
+}
+inline const ::std::string& BeginReadPayloadRequest::_internal_reader_peer_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.reader_peer_id_.Get();
+}
+inline void BeginReadPayloadRequest::_internal_set_reader_peer_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.reader_peer_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL BeginReadPayloadRequest::_internal_mutable_reader_peer_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.reader_peer_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE BeginReadPayloadRequest::release_reader_peer_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.secret.BeginReadPayloadRequest.reader_peer_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.reader_peer_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.reader_peer_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void BeginReadPayloadRequest::set_allocated_reader_peer_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.reader_peer_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.reader_peer_id_.IsDefault()) {
+    _impl_.reader_peer_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.secret.BeginReadPayloadRequest.reader_peer_id)
+}
+
+// string expected_kind = 2;
+inline void BeginReadPayloadRequest::clear_expected_kind() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.expected_kind_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& BeginReadPayloadRequest::expected_kind() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.secret.BeginReadPayloadRequest.expected_kind)
+  return _internal_expected_kind();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void BeginReadPayloadRequest::set_expected_kind(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.expected_kind_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.secret.BeginReadPayloadRequest.expected_kind)
+}
+inline ::std::string* PROTOBUF_NONNULL BeginReadPayloadRequest::mutable_expected_kind()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_expected_kind();
+  // @@protoc_insertion_point(field_mutable:s4wave.secret.BeginReadPayloadRequest.expected_kind)
+  return _s;
+}
+inline const ::std::string& BeginReadPayloadRequest::_internal_expected_kind() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.expected_kind_.Get();
+}
+inline void BeginReadPayloadRequest::_internal_set_expected_kind(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.expected_kind_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL BeginReadPayloadRequest::_internal_mutable_expected_kind() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.expected_kind_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE BeginReadPayloadRequest::release_expected_kind() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.secret.BeginReadPayloadRequest.expected_kind)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.expected_kind_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.expected_kind_.Set("", GetArena());
+  }
+  return released;
+}
+inline void BeginReadPayloadRequest::set_allocated_expected_kind(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.expected_kind_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.expected_kind_.IsDefault()) {
+    _impl_.expected_kind_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.secret.BeginReadPayloadRequest.expected_kind)
+}
+
+// -------------------------------------------------------------------
+
+// BeginReadPayloadResponse
+
+// string challenge_id = 1;
+inline void BeginReadPayloadResponse::clear_challenge_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.challenge_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& BeginReadPayloadResponse::challenge_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.secret.BeginReadPayloadResponse.challenge_id)
+  return _internal_challenge_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void BeginReadPayloadResponse::set_challenge_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.challenge_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.secret.BeginReadPayloadResponse.challenge_id)
+}
+inline ::std::string* PROTOBUF_NONNULL BeginReadPayloadResponse::mutable_challenge_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_challenge_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.secret.BeginReadPayloadResponse.challenge_id)
+  return _s;
+}
+inline const ::std::string& BeginReadPayloadResponse::_internal_challenge_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.challenge_id_.Get();
+}
+inline void BeginReadPayloadResponse::_internal_set_challenge_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.challenge_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL BeginReadPayloadResponse::_internal_mutable_challenge_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.challenge_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE BeginReadPayloadResponse::release_challenge_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.secret.BeginReadPayloadResponse.challenge_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.challenge_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.challenge_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void BeginReadPayloadResponse::set_allocated_challenge_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.challenge_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.challenge_id_.IsDefault()) {
+    _impl_.challenge_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.secret.BeginReadPayloadResponse.challenge_id)
+}
+
+// bytes challenge = 2;
+inline void BeginReadPayloadResponse::clear_challenge() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.challenge_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& BeginReadPayloadResponse::challenge() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.secret.BeginReadPayloadResponse.challenge)
+  return _internal_challenge();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void BeginReadPayloadResponse::set_challenge(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.challenge_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.secret.BeginReadPayloadResponse.challenge)
+}
+inline ::std::string* PROTOBUF_NONNULL BeginReadPayloadResponse::mutable_challenge()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_challenge();
+  // @@protoc_insertion_point(field_mutable:s4wave.secret.BeginReadPayloadResponse.challenge)
+  return _s;
+}
+inline const ::std::string& BeginReadPayloadResponse::_internal_challenge() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.challenge_.Get();
+}
+inline void BeginReadPayloadResponse::_internal_set_challenge(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.challenge_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL BeginReadPayloadResponse::_internal_mutable_challenge() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.challenge_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE BeginReadPayloadResponse::release_challenge() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.secret.BeginReadPayloadResponse.challenge)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.challenge_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.challenge_.Set("", GetArena());
+  }
+  return released;
+}
+inline void BeginReadPayloadResponse::set_allocated_challenge(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.challenge_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.challenge_.IsDefault()) {
+    _impl_.challenge_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.secret.BeginReadPayloadResponse.challenge)
+}
+
+// .google.protobuf.Timestamp expires_at = 3;
+inline bool BeginReadPayloadResponse::has_expires_at() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000004U);
+  PROTOBUF_ASSUME(!value || _impl_.expires_at_ != nullptr);
+  return value;
+}
+inline const ::google::protobuf::Timestamp& BeginReadPayloadResponse::_internal_expires_at() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::google::protobuf::Timestamp* p = _impl_.expires_at_;
+  return p != nullptr ? *p : reinterpret_cast<const ::google::protobuf::Timestamp&>(::google::protobuf::_Timestamp_default_instance_);
+}
+inline const ::google::protobuf::Timestamp& BeginReadPayloadResponse::expires_at() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.secret.BeginReadPayloadResponse.expires_at)
+  return _internal_expires_at();
+}
+inline void BeginReadPayloadResponse::unsafe_arena_set_allocated_expires_at(
+    ::google::protobuf::Timestamp* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.expires_at_);
+  }
+  _impl_.expires_at_ = reinterpret_cast<::google::protobuf::Timestamp*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.secret.BeginReadPayloadResponse.expires_at)
+}
+inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE BeginReadPayloadResponse::release_expires_at() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::google::protobuf::Timestamp* released = _impl_.expires_at_;
+  _impl_.expires_at_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE BeginReadPayloadResponse::unsafe_arena_release_expires_at() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.secret.BeginReadPayloadResponse.expires_at)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::google::protobuf::Timestamp* temp = _impl_.expires_at_;
+  _impl_.expires_at_ = nullptr;
+  return temp;
+}
+inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL BeginReadPayloadResponse::_internal_mutable_expires_at() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.expires_at_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::google::protobuf::Timestamp>(GetArena());
+    _impl_.expires_at_ = reinterpret_cast<::google::protobuf::Timestamp*>(p);
+  }
+  return _impl_.expires_at_;
+}
+inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL BeginReadPayloadResponse::mutable_expires_at()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::google::protobuf::Timestamp* _msg = _internal_mutable_expires_at();
+  // @@protoc_insertion_point(field_mutable:s4wave.secret.BeginReadPayloadResponse.expires_at)
+  return _msg;
+}
+inline void BeginReadPayloadResponse::set_allocated_expires_at(::google::protobuf::Timestamp* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.expires_at_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+
+  _impl_.expires_at_ = reinterpret_cast<::google::protobuf::Timestamp*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.secret.BeginReadPayloadResponse.expires_at)
+}
+
+// .s4wave.secret.Secret secret = 4;
+inline bool BeginReadPayloadResponse::has_secret() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000008U);
+  PROTOBUF_ASSUME(!value || _impl_.secret_ != nullptr);
+  return value;
+}
+inline void BeginReadPayloadResponse::clear_secret() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.secret_ != nullptr) _impl_.secret_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::s4wave::secret::Secret& BeginReadPayloadResponse::_internal_secret() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::secret::Secret* p = _impl_.secret_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::secret::Secret&>(::s4wave::secret::_Secret_default_instance_);
+}
+inline const ::s4wave::secret::Secret& BeginReadPayloadResponse::secret() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.secret.BeginReadPayloadResponse.secret)
+  return _internal_secret();
+}
+inline void BeginReadPayloadResponse::unsafe_arena_set_allocated_secret(
+    ::s4wave::secret::Secret* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.secret_);
+  }
+  _impl_.secret_ = reinterpret_cast<::s4wave::secret::Secret*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.secret.BeginReadPayloadResponse.secret)
+}
+inline ::s4wave::secret::Secret* PROTOBUF_NULLABLE BeginReadPayloadResponse::release_secret() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::s4wave::secret::Secret* released = _impl_.secret_;
+  _impl_.secret_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::secret::Secret* PROTOBUF_NULLABLE BeginReadPayloadResponse::unsafe_arena_release_secret() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.secret.BeginReadPayloadResponse.secret)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::s4wave::secret::Secret* temp = _impl_.secret_;
+  _impl_.secret_ = nullptr;
+  return temp;
+}
+inline ::s4wave::secret::Secret* PROTOBUF_NONNULL BeginReadPayloadResponse::_internal_mutable_secret() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.secret_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::secret::Secret>(GetArena());
+    _impl_.secret_ = reinterpret_cast<::s4wave::secret::Secret*>(p);
+  }
+  return _impl_.secret_;
+}
+inline ::s4wave::secret::Secret* PROTOBUF_NONNULL BeginReadPayloadResponse::mutable_secret()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::s4wave::secret::Secret* _msg = _internal_mutable_secret();
+  // @@protoc_insertion_point(field_mutable:s4wave.secret.BeginReadPayloadResponse.secret)
+  return _msg;
+}
+inline void BeginReadPayloadResponse::set_allocated_secret(::s4wave::secret::Secret* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.secret_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+
+  _impl_.secret_ = reinterpret_cast<::s4wave::secret::Secret*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.secret.BeginReadPayloadResponse.secret)
+}
+
+// -------------------------------------------------------------------
+
+// ReadPayloadChallenge
+
+// string challenge_id = 1;
+inline void ReadPayloadChallenge::clear_challenge_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.challenge_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& ReadPayloadChallenge::challenge_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.secret.ReadPayloadChallenge.challenge_id)
+  return _internal_challenge_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ReadPayloadChallenge::set_challenge_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.challenge_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.secret.ReadPayloadChallenge.challenge_id)
+}
+inline ::std::string* PROTOBUF_NONNULL ReadPayloadChallenge::mutable_challenge_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_challenge_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.secret.ReadPayloadChallenge.challenge_id)
+  return _s;
+}
+inline const ::std::string& ReadPayloadChallenge::_internal_challenge_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.challenge_id_.Get();
+}
+inline void ReadPayloadChallenge::_internal_set_challenge_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.challenge_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ReadPayloadChallenge::_internal_mutable_challenge_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.challenge_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ReadPayloadChallenge::release_challenge_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.secret.ReadPayloadChallenge.challenge_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.challenge_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.challenge_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ReadPayloadChallenge::set_allocated_challenge_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.challenge_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.challenge_id_.IsDefault()) {
+    _impl_.challenge_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.secret.ReadPayloadChallenge.challenge_id)
+}
+
+// string reader_peer_id = 2;
+inline void ReadPayloadChallenge::clear_reader_peer_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.reader_peer_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& ReadPayloadChallenge::reader_peer_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.secret.ReadPayloadChallenge.reader_peer_id)
+  return _internal_reader_peer_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ReadPayloadChallenge::set_reader_peer_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.reader_peer_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.secret.ReadPayloadChallenge.reader_peer_id)
+}
+inline ::std::string* PROTOBUF_NONNULL ReadPayloadChallenge::mutable_reader_peer_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_reader_peer_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.secret.ReadPayloadChallenge.reader_peer_id)
+  return _s;
+}
+inline const ::std::string& ReadPayloadChallenge::_internal_reader_peer_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.reader_peer_id_.Get();
+}
+inline void ReadPayloadChallenge::_internal_set_reader_peer_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.reader_peer_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ReadPayloadChallenge::_internal_mutable_reader_peer_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.reader_peer_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ReadPayloadChallenge::release_reader_peer_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.secret.ReadPayloadChallenge.reader_peer_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.reader_peer_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.reader_peer_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ReadPayloadChallenge::set_allocated_reader_peer_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.reader_peer_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.reader_peer_id_.IsDefault()) {
+    _impl_.reader_peer_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.secret.ReadPayloadChallenge.reader_peer_id)
+}
+
+// string object_key = 3;
+inline void ReadPayloadChallenge::clear_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.object_key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& ReadPayloadChallenge::object_key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.secret.ReadPayloadChallenge.object_key)
+  return _internal_object_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ReadPayloadChallenge::set_object_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.object_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.secret.ReadPayloadChallenge.object_key)
+}
+inline ::std::string* PROTOBUF_NONNULL ReadPayloadChallenge::mutable_object_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_object_key();
+  // @@protoc_insertion_point(field_mutable:s4wave.secret.ReadPayloadChallenge.object_key)
+  return _s;
+}
+inline const ::std::string& ReadPayloadChallenge::_internal_object_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.object_key_.Get();
+}
+inline void ReadPayloadChallenge::_internal_set_object_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.object_key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ReadPayloadChallenge::_internal_mutable_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.object_key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ReadPayloadChallenge::release_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.secret.ReadPayloadChallenge.object_key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.object_key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.object_key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ReadPayloadChallenge::set_allocated_object_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.object_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.object_key_.IsDefault()) {
+    _impl_.object_key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.secret.ReadPayloadChallenge.object_key)
+}
+
+// string secret_kind = 4;
+inline void ReadPayloadChallenge::clear_secret_kind() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.secret_kind_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& ReadPayloadChallenge::secret_kind() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.secret.ReadPayloadChallenge.secret_kind)
+  return _internal_secret_kind();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ReadPayloadChallenge::set_secret_kind(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.secret_kind_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.secret.ReadPayloadChallenge.secret_kind)
+}
+inline ::std::string* PROTOBUF_NONNULL ReadPayloadChallenge::mutable_secret_kind()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_secret_kind();
+  // @@protoc_insertion_point(field_mutable:s4wave.secret.ReadPayloadChallenge.secret_kind)
+  return _s;
+}
+inline const ::std::string& ReadPayloadChallenge::_internal_secret_kind() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.secret_kind_.Get();
+}
+inline void ReadPayloadChallenge::_internal_set_secret_kind(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.secret_kind_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ReadPayloadChallenge::_internal_mutable_secret_kind() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.secret_kind_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ReadPayloadChallenge::release_secret_kind() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.secret.ReadPayloadChallenge.secret_kind)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.secret_kind_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.secret_kind_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ReadPayloadChallenge::set_allocated_secret_kind(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.secret_kind_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.secret_kind_.IsDefault()) {
+    _impl_.secret_kind_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.secret.ReadPayloadChallenge.secret_kind)
+}
+
+// string expected_kind = 5;
+inline void ReadPayloadChallenge::clear_expected_kind() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.expected_kind_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::std::string& ReadPayloadChallenge::expected_kind() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.secret.ReadPayloadChallenge.expected_kind)
+  return _internal_expected_kind();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ReadPayloadChallenge::set_expected_kind(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  _impl_.expected_kind_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.secret.ReadPayloadChallenge.expected_kind)
+}
+inline ::std::string* PROTOBUF_NONNULL ReadPayloadChallenge::mutable_expected_kind()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::std::string* _s = _internal_mutable_expected_kind();
+  // @@protoc_insertion_point(field_mutable:s4wave.secret.ReadPayloadChallenge.expected_kind)
+  return _s;
+}
+inline const ::std::string& ReadPayloadChallenge::_internal_expected_kind() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.expected_kind_.Get();
+}
+inline void ReadPayloadChallenge::_internal_set_expected_kind(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.expected_kind_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ReadPayloadChallenge::_internal_mutable_expected_kind() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.expected_kind_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ReadPayloadChallenge::release_expected_kind() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.secret.ReadPayloadChallenge.expected_kind)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  auto* released = _impl_.expected_kind_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.expected_kind_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ReadPayloadChallenge::set_allocated_expected_kind(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  _impl_.expected_kind_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.expected_kind_.IsDefault()) {
+    _impl_.expected_kind_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.secret.ReadPayloadChallenge.expected_kind)
+}
+
+// string nested_shared_object_id = 6;
+inline void ReadPayloadChallenge::clear_nested_shared_object_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.nested_shared_object_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline const ::std::string& ReadPayloadChallenge::nested_shared_object_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.secret.ReadPayloadChallenge.nested_shared_object_id)
+  return _internal_nested_shared_object_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ReadPayloadChallenge::set_nested_shared_object_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  _impl_.nested_shared_object_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.secret.ReadPayloadChallenge.nested_shared_object_id)
+}
+inline ::std::string* PROTOBUF_NONNULL ReadPayloadChallenge::mutable_nested_shared_object_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::std::string* _s = _internal_mutable_nested_shared_object_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.secret.ReadPayloadChallenge.nested_shared_object_id)
+  return _s;
+}
+inline const ::std::string& ReadPayloadChallenge::_internal_nested_shared_object_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.nested_shared_object_id_.Get();
+}
+inline void ReadPayloadChallenge::_internal_set_nested_shared_object_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.nested_shared_object_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ReadPayloadChallenge::_internal_mutable_nested_shared_object_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.nested_shared_object_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ReadPayloadChallenge::release_nested_shared_object_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.secret.ReadPayloadChallenge.nested_shared_object_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000020U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  auto* released = _impl_.nested_shared_object_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.nested_shared_object_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ReadPayloadChallenge::set_allocated_nested_shared_object_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+  _impl_.nested_shared_object_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.nested_shared_object_id_.IsDefault()) {
+    _impl_.nested_shared_object_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.secret.ReadPayloadChallenge.nested_shared_object_id)
+}
+
+// bytes nonce = 7;
+inline void ReadPayloadChallenge::clear_nonce() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.nonce_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline const ::std::string& ReadPayloadChallenge::nonce() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.secret.ReadPayloadChallenge.nonce)
+  return _internal_nonce();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ReadPayloadChallenge::set_nonce(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  _impl_.nonce_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.secret.ReadPayloadChallenge.nonce)
+}
+inline ::std::string* PROTOBUF_NONNULL ReadPayloadChallenge::mutable_nonce()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::std::string* _s = _internal_mutable_nonce();
+  // @@protoc_insertion_point(field_mutable:s4wave.secret.ReadPayloadChallenge.nonce)
+  return _s;
+}
+inline const ::std::string& ReadPayloadChallenge::_internal_nonce() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.nonce_.Get();
+}
+inline void ReadPayloadChallenge::_internal_set_nonce(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.nonce_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ReadPayloadChallenge::_internal_mutable_nonce() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.nonce_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ReadPayloadChallenge::release_nonce() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.secret.ReadPayloadChallenge.nonce)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000040U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  auto* released = _impl_.nonce_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.nonce_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ReadPayloadChallenge::set_allocated_nonce(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  }
+  _impl_.nonce_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.nonce_.IsDefault()) {
+    _impl_.nonce_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.secret.ReadPayloadChallenge.nonce)
+}
+
+// .google.protobuf.Timestamp expires_at = 8;
+inline bool ReadPayloadChallenge::has_expires_at() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000080U);
+  PROTOBUF_ASSUME(!value || _impl_.expires_at_ != nullptr);
+  return value;
+}
+inline const ::google::protobuf::Timestamp& ReadPayloadChallenge::_internal_expires_at() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::google::protobuf::Timestamp* p = _impl_.expires_at_;
+  return p != nullptr ? *p : reinterpret_cast<const ::google::protobuf::Timestamp&>(::google::protobuf::_Timestamp_default_instance_);
+}
+inline const ::google::protobuf::Timestamp& ReadPayloadChallenge::expires_at() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.secret.ReadPayloadChallenge.expires_at)
+  return _internal_expires_at();
+}
+inline void ReadPayloadChallenge::unsafe_arena_set_allocated_expires_at(
+    ::google::protobuf::Timestamp* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.expires_at_);
+  }
+  _impl_.expires_at_ = reinterpret_cast<::google::protobuf::Timestamp*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.secret.ReadPayloadChallenge.expires_at)
+}
+inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE ReadPayloadChallenge::release_expires_at() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  ::google::protobuf::Timestamp* released = _impl_.expires_at_;
+  _impl_.expires_at_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE ReadPayloadChallenge::unsafe_arena_release_expires_at() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.secret.ReadPayloadChallenge.expires_at)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  ::google::protobuf::Timestamp* temp = _impl_.expires_at_;
+  _impl_.expires_at_ = nullptr;
+  return temp;
+}
+inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL ReadPayloadChallenge::_internal_mutable_expires_at() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.expires_at_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::google::protobuf::Timestamp>(GetArena());
+    _impl_.expires_at_ = reinterpret_cast<::google::protobuf::Timestamp*>(p);
+  }
+  return _impl_.expires_at_;
+}
+inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL ReadPayloadChallenge::mutable_expires_at()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  ::google::protobuf::Timestamp* _msg = _internal_mutable_expires_at();
+  // @@protoc_insertion_point(field_mutable:s4wave.secret.ReadPayloadChallenge.expires_at)
+  return _msg;
+}
+inline void ReadPayloadChallenge::set_allocated_expires_at(::google::protobuf::Timestamp* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.expires_at_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  }
+
+  _impl_.expires_at_ = reinterpret_cast<::google::protobuf::Timestamp*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.secret.ReadPayloadChallenge.expires_at)
+}
+
+// -------------------------------------------------------------------
+
+// ReadPayloadRequest
+
+// string challenge_id = 1;
+inline void ReadPayloadRequest::clear_challenge_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.challenge_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& ReadPayloadRequest::challenge_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.secret.ReadPayloadRequest.challenge_id)
+  return _internal_challenge_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ReadPayloadRequest::set_challenge_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.challenge_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.secret.ReadPayloadRequest.challenge_id)
+}
+inline ::std::string* PROTOBUF_NONNULL ReadPayloadRequest::mutable_challenge_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_challenge_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.secret.ReadPayloadRequest.challenge_id)
+  return _s;
+}
+inline const ::std::string& ReadPayloadRequest::_internal_challenge_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.challenge_id_.Get();
+}
+inline void ReadPayloadRequest::_internal_set_challenge_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.challenge_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ReadPayloadRequest::_internal_mutable_challenge_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.challenge_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ReadPayloadRequest::release_challenge_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.secret.ReadPayloadRequest.challenge_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.challenge_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.challenge_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ReadPayloadRequest::set_allocated_challenge_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.challenge_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.challenge_id_.IsDefault()) {
+    _impl_.challenge_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.secret.ReadPayloadRequest.challenge_id)
+}
+
+// .peer.Signature signature = 2;
+inline bool ReadPayloadRequest::has_signature() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
+  PROTOBUF_ASSUME(!value || _impl_.signature_ != nullptr);
+  return value;
+}
+inline const ::peer::Signature& ReadPayloadRequest::_internal_signature() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::peer::Signature* p = _impl_.signature_;
+  return p != nullptr ? *p : reinterpret_cast<const ::peer::Signature&>(::peer::_Signature_default_instance_);
+}
+inline const ::peer::Signature& ReadPayloadRequest::signature() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.secret.ReadPayloadRequest.signature)
+  return _internal_signature();
+}
+inline void ReadPayloadRequest::unsafe_arena_set_allocated_signature(
+    ::peer::Signature* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.signature_);
+  }
+  _impl_.signature_ = reinterpret_cast<::peer::Signature*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.secret.ReadPayloadRequest.signature)
+}
+inline ::peer::Signature* PROTOBUF_NULLABLE ReadPayloadRequest::release_signature() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::peer::Signature* released = _impl_.signature_;
+  _impl_.signature_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::peer::Signature* PROTOBUF_NULLABLE ReadPayloadRequest::unsafe_arena_release_signature() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.secret.ReadPayloadRequest.signature)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::peer::Signature* temp = _impl_.signature_;
+  _impl_.signature_ = nullptr;
+  return temp;
+}
+inline ::peer::Signature* PROTOBUF_NONNULL ReadPayloadRequest::_internal_mutable_signature() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.signature_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::peer::Signature>(GetArena());
+    _impl_.signature_ = reinterpret_cast<::peer::Signature*>(p);
+  }
+  return _impl_.signature_;
+}
+inline ::peer::Signature* PROTOBUF_NONNULL ReadPayloadRequest::mutable_signature()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::peer::Signature* _msg = _internal_mutable_signature();
+  // @@protoc_insertion_point(field_mutable:s4wave.secret.ReadPayloadRequest.signature)
+  return _msg;
+}
+inline void ReadPayloadRequest::set_allocated_signature(::peer::Signature* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.signature_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+
+  _impl_.signature_ = reinterpret_cast<::peer::Signature*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.secret.ReadPayloadRequest.signature)
+}
+
+// -------------------------------------------------------------------
+
+// ReadPayloadResponse
+
+// .s4wave.secret.SecretPayload payload = 1;
+inline bool ReadPayloadResponse::has_payload() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  PROTOBUF_ASSUME(!value || _impl_.payload_ != nullptr);
+  return value;
+}
+inline void ReadPayloadResponse::clear_payload() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.payload_ != nullptr) _impl_.payload_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::s4wave::secret::SecretPayload& ReadPayloadResponse::_internal_payload() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::secret::SecretPayload* p = _impl_.payload_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::secret::SecretPayload&>(::s4wave::secret::_SecretPayload_default_instance_);
+}
+inline const ::s4wave::secret::SecretPayload& ReadPayloadResponse::payload() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.secret.ReadPayloadResponse.payload)
+  return _internal_payload();
+}
+inline void ReadPayloadResponse::unsafe_arena_set_allocated_payload(
+    ::s4wave::secret::SecretPayload* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.payload_);
+  }
+  _impl_.payload_ = reinterpret_cast<::s4wave::secret::SecretPayload*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.secret.ReadPayloadResponse.payload)
+}
+inline ::s4wave::secret::SecretPayload* PROTOBUF_NULLABLE ReadPayloadResponse::release_payload() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::secret::SecretPayload* released = _impl_.payload_;
+  _impl_.payload_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::secret::SecretPayload* PROTOBUF_NULLABLE ReadPayloadResponse::unsafe_arena_release_payload() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.secret.ReadPayloadResponse.payload)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::secret::SecretPayload* temp = _impl_.payload_;
+  _impl_.payload_ = nullptr;
+  return temp;
+}
+inline ::s4wave::secret::SecretPayload* PROTOBUF_NONNULL ReadPayloadResponse::_internal_mutable_payload() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.payload_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::secret::SecretPayload>(GetArena());
+    _impl_.payload_ = reinterpret_cast<::s4wave::secret::SecretPayload*>(p);
+  }
+  return _impl_.payload_;
+}
+inline ::s4wave::secret::SecretPayload* PROTOBUF_NONNULL ReadPayloadResponse::mutable_payload()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::secret::SecretPayload* _msg = _internal_mutable_payload();
+  // @@protoc_insertion_point(field_mutable:s4wave.secret.ReadPayloadResponse.payload)
+  return _msg;
+}
+inline void ReadPayloadResponse::set_allocated_payload(::s4wave::secret::SecretPayload* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.payload_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+
+  _impl_.payload_ = reinterpret_cast<::s4wave::secret::SecretPayload*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.secret.ReadPayloadResponse.payload)
 }
 
 #ifdef __GNUC__

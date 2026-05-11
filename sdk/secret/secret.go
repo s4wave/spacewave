@@ -2,6 +2,7 @@ package s4wave_secret
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -31,11 +32,14 @@ const (
 
 // SecretResource implements the SecretResourceService SRPC interface.
 type SecretResource struct {
-	le     *logrus.Entry
-	b      bus.Bus
-	ws     world.WorldState
-	objKey string
-	mux    srpc.Mux
+	le           *logrus.Entry
+	b            bus.Bus
+	ws           world.WorldState
+	objKey       string
+	mux          srpc.Mux
+	challengeMu  sync.Mutex
+	challenges   map[string]*payloadReadChallenge
+	challengeTTL time.Duration
 }
 
 // CreateSecretOptions configures CreateSecret.
@@ -59,10 +63,11 @@ type CreateSecretOptions struct {
 // NewSecretResource creates a new SecretResource.
 func NewSecretResource(le *logrus.Entry, b bus.Bus, ws world.WorldState, objKey string) *SecretResource {
 	r := &SecretResource{
-		le:     le,
-		b:      b,
-		ws:     ws,
-		objKey: objKey,
+		le:           le,
+		b:            b,
+		ws:           ws,
+		objKey:       objKey,
+		challengeTTL: time.Minute,
 	}
 	r.mux = resource_server.NewResourceMux(func(mux srpc.Mux) error {
 		return SRPCRegisterSecretResourceService(mux, r)

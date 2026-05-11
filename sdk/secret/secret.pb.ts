@@ -11,6 +11,7 @@ import {
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
+import { Signature } from '../../net/peer/peer.pb.js'
 
 export const protobufPackage = 's4wave.secret'
 
@@ -257,6 +258,215 @@ export const WatchStateResponse: MessageType<WatchStateResponse> =
     typeName: 's4wave.secret.WatchStateResponse',
     fields: [
       { no: 1, name: 'state', kind: 'message', T: () => SecretState },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * BeginReadPayloadRequest starts a peer-authenticated payload read.
+ *
+ * @generated from message s4wave.secret.BeginReadPayloadRequest
+ */
+export interface BeginReadPayloadRequest {
+  /**
+   * ReaderPeerId is the peer expected to sign the returned challenge.
+   *
+   * @generated from field: string reader_peer_id = 1;
+   */
+  readerPeerId?: string
+  /**
+   * ExpectedKind rejects the read if the Secret kind has drifted.
+   *
+   * @generated from field: string expected_kind = 2;
+   */
+  expectedKind?: string
+}
+
+// BeginReadPayloadRequest contains the message type declaration for BeginReadPayloadRequest.
+export const BeginReadPayloadRequest: MessageType<BeginReadPayloadRequest> =
+  createMessageType({
+    typeName: 's4wave.secret.BeginReadPayloadRequest',
+    fields: [
+      { no: 1, name: 'reader_peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'expected_kind', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * BeginReadPayloadResponse returns the challenge bytes the reader signs.
+ *
+ * @generated from message s4wave.secret.BeginReadPayloadResponse
+ */
+export interface BeginReadPayloadResponse {
+  /**
+   * ChallengeId identifies the pending challenge.
+   *
+   * @generated from field: string challenge_id = 1;
+   */
+  challengeId?: string
+  /**
+   * Challenge is the canonical bytes to sign.
+   *
+   * @generated from field: bytes challenge = 2;
+   */
+  challenge?: Uint8Array
+  /**
+   * ExpiresAt is when the challenge becomes invalid.
+   *
+   * @generated from field: google.protobuf.Timestamp expires_at = 3;
+   */
+  expiresAt?: Date
+  /**
+   * Secret is the redacted parent Secret metadata.
+   *
+   * @generated from field: s4wave.secret.Secret secret = 4;
+   */
+  secret?: Secret
+}
+
+// BeginReadPayloadResponse contains the message type declaration for BeginReadPayloadResponse.
+export const BeginReadPayloadResponse: MessageType<BeginReadPayloadResponse> =
+  createMessageType({
+    typeName: 's4wave.secret.BeginReadPayloadResponse',
+    fields: [
+      { no: 1, name: 'challenge_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'challenge', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 3, name: 'expires_at', kind: 'message', T: () => Timestamp },
+      { no: 4, name: 'secret', kind: 'message', T: () => Secret },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ReadPayloadChallenge is the canonical challenge signed by the reader.
+ *
+ * @generated from message s4wave.secret.ReadPayloadChallenge
+ */
+export interface ReadPayloadChallenge {
+  /**
+   * ChallengeId identifies the pending challenge.
+   *
+   * @generated from field: string challenge_id = 1;
+   */
+  challengeId?: string
+  /**
+   * ReaderPeerId is the peer expected to sign Challenge.
+   *
+   * @generated from field: string reader_peer_id = 2;
+   */
+  readerPeerId?: string
+  /**
+   * ObjectKey is the parent Secret object key.
+   *
+   * @generated from field: string object_key = 3;
+   */
+  objectKey?: string
+  /**
+   * SecretKind is the kind observed when the challenge was issued.
+   *
+   * @generated from field: string secret_kind = 4;
+   */
+  secretKind?: string
+  /**
+   * ExpectedKind is the requested kind, if any.
+   *
+   * @generated from field: string expected_kind = 5;
+   */
+  expectedKind?: string
+  /**
+   * NestedSharedObjectId is the nested SharedObject id storing the payload.
+   *
+   * @generated from field: string nested_shared_object_id = 6;
+   */
+  nestedSharedObjectId?: string
+  /**
+   * Nonce prevents challenge reuse across requests.
+   *
+   * @generated from field: bytes nonce = 7;
+   */
+  nonce?: Uint8Array
+  /**
+   * ExpiresAt is when the challenge becomes invalid.
+   *
+   * @generated from field: google.protobuf.Timestamp expires_at = 8;
+   */
+  expiresAt?: Date
+}
+
+// ReadPayloadChallenge contains the message type declaration for ReadPayloadChallenge.
+export const ReadPayloadChallenge: MessageType<ReadPayloadChallenge> =
+  createMessageType({
+    typeName: 's4wave.secret.ReadPayloadChallenge',
+    fields: [
+      { no: 1, name: 'challenge_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'reader_peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'secret_kind', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'expected_kind', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 6,
+        name: 'nested_shared_object_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 7, name: 'nonce', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 8, name: 'expires_at', kind: 'message', T: () => Timestamp },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ReadPayloadRequest completes a signed payload read.
+ *
+ * @generated from message s4wave.secret.ReadPayloadRequest
+ */
+export interface ReadPayloadRequest {
+  /**
+   * ChallengeId is the pending challenge identifier.
+   *
+   * @generated from field: string challenge_id = 1;
+   */
+  challengeId?: string
+  /**
+   * Signature signs the challenge bytes using the reader peer key.
+   *
+   * @generated from field: peer.Signature signature = 2;
+   */
+  signature?: Signature
+}
+
+// ReadPayloadRequest contains the message type declaration for ReadPayloadRequest.
+export const ReadPayloadRequest: MessageType<ReadPayloadRequest> =
+  createMessageType({
+    typeName: 's4wave.secret.ReadPayloadRequest',
+    fields: [
+      { no: 1, name: 'challenge_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'signature', kind: 'message', T: () => Signature },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ReadPayloadResponse contains the Secret payload bytes.
+ *
+ * @generated from message s4wave.secret.ReadPayloadResponse
+ */
+export interface ReadPayloadResponse {
+  /**
+   * Payload is the nested SharedObject payload.
+   *
+   * @generated from field: s4wave.secret.SecretPayload payload = 1;
+   */
+  payload?: SecretPayload
+}
+
+// ReadPayloadResponse contains the message type declaration for ReadPayloadResponse.
+export const ReadPayloadResponse: MessageType<ReadPayloadResponse> =
+  createMessageType({
+    typeName: 's4wave.secret.ReadPayloadResponse',
+    fields: [
+      { no: 1, name: 'payload', kind: 'message', T: () => SecretPayload },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

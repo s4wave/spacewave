@@ -24,6 +24,10 @@ pub trait SecretResourceServiceWatchStateStream: Send + Sync {
 pub trait SecretResourceServiceClient: Send + Sync {
     /// WatchState.
     async fn watch_state(&self, request: &WatchStateRequest) -> starpc::Result<Box<dyn SecretResourceServiceWatchStateStream>>;
+    /// BeginReadPayload.
+    async fn begin_read_payload(&self, request: &BeginReadPayloadRequest) -> starpc::Result<BeginReadPayloadResponse>;
+    /// ReadPayload.
+    async fn read_payload(&self, request: &ReadPayloadRequest) -> starpc::Result<ReadPayloadResponse>;
 }
 
 /// Client implementation for SecretResourceService.
@@ -46,6 +50,12 @@ impl<C: starpc::Client + 'static> SecretResourceServiceClient for SecretResource
         let stream = self.client.new_stream("s4wave.secret.SecretResourceService", "WatchState", Some(&data)).await?;
         stream.close_send().await?;
         Ok(Box::new(SecretResourceServiceWatchStateStreamImpl { stream }))
+    }
+    async fn begin_read_payload(&self, request: &BeginReadPayloadRequest) -> starpc::Result<BeginReadPayloadResponse> {
+        self.client.exec_call("s4wave.secret.SecretResourceService", "BeginReadPayload", request).await
+    }
+    async fn read_payload(&self, request: &ReadPayloadRequest) -> starpc::Result<ReadPayloadResponse> {
+        self.client.exec_call("s4wave.secret.SecretResourceService", "ReadPayload", request).await
     }
 }
 
@@ -71,10 +81,16 @@ impl SecretResourceServiceWatchStateStream for SecretResourceServiceWatchStateSt
 pub trait SecretResourceServiceServer: Send + Sync {
     /// WatchState.
     async fn watch_state(&self, request: WatchStateRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
+    /// BeginReadPayload.
+    async fn begin_read_payload(&self, request: BeginReadPayloadRequest) -> starpc::Result<BeginReadPayloadResponse>;
+    /// ReadPayload.
+    async fn read_payload(&self, request: ReadPayloadRequest) -> starpc::Result<ReadPayloadResponse>;
 }
 
 const SECRET_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
     "WatchState",
+    "BeginReadPayload",
+    "ReadPayload",
 ];
 
 /// Handler for SecretResourceService.
@@ -109,6 +125,36 @@ impl<S: SecretResourceServiceServer + 'static> starpc::Invoker for SecretResourc
                     Err(e) => return (true, Err(e)),
                 };
                 (true, self.server.watch_state(request, stream).await)
+            }
+            "BeginReadPayload" => {
+                let request: BeginReadPayloadRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.begin_read_payload(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "ReadPayload" => {
+                let request: ReadPayloadRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.read_payload(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
             }
             _ => (false, Err(starpc::Error::Unimplemented)),
         }

@@ -84,4 +84,75 @@ pub struct WatchStateResponse {
     #[prost(message, optional, tag="1")]
     pub state: ::core::option::Option<SecretState>,
 }
+/// BeginReadPayloadRequest starts a peer-authenticated payload read.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct BeginReadPayloadRequest {
+    /// ReaderPeerId is the peer expected to sign the returned challenge.
+    #[prost(string, tag="1")]
+    pub reader_peer_id: ::prost::alloc::string::String,
+    /// ExpectedKind rejects the read if the Secret kind has drifted.
+    #[prost(string, tag="2")]
+    pub expected_kind: ::prost::alloc::string::String,
+}
+/// BeginReadPayloadResponse returns the challenge bytes the reader signs.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct BeginReadPayloadResponse {
+    /// ChallengeId identifies the pending challenge.
+    #[prost(string, tag="1")]
+    pub challenge_id: ::prost::alloc::string::String,
+    /// Challenge is the canonical bytes to sign.
+    #[prost(bytes="vec", tag="2")]
+    pub challenge: ::prost::alloc::vec::Vec<u8>,
+    /// ExpiresAt is when the challenge becomes invalid.
+    #[prost(message, optional, tag="3")]
+    pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
+    /// Secret is the redacted parent Secret metadata.
+    #[prost(message, optional, tag="4")]
+    pub secret: ::core::option::Option<Secret>,
+}
+/// ReadPayloadChallenge is the canonical challenge signed by the reader.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReadPayloadChallenge {
+    /// ChallengeId identifies the pending challenge.
+    #[prost(string, tag="1")]
+    pub challenge_id: ::prost::alloc::string::String,
+    /// ReaderPeerId is the peer expected to sign Challenge.
+    #[prost(string, tag="2")]
+    pub reader_peer_id: ::prost::alloc::string::String,
+    /// ObjectKey is the parent Secret object key.
+    #[prost(string, tag="3")]
+    pub object_key: ::prost::alloc::string::String,
+    /// SecretKind is the kind observed when the challenge was issued.
+    #[prost(string, tag="4")]
+    pub secret_kind: ::prost::alloc::string::String,
+    /// ExpectedKind is the requested kind, if any.
+    #[prost(string, tag="5")]
+    pub expected_kind: ::prost::alloc::string::String,
+    /// NestedSharedObjectId is the nested SharedObject id storing the payload.
+    #[prost(string, tag="6")]
+    pub nested_shared_object_id: ::prost::alloc::string::String,
+    /// Nonce prevents challenge reuse across requests.
+    #[prost(bytes="vec", tag="7")]
+    pub nonce: ::prost::alloc::vec::Vec<u8>,
+    /// ExpiresAt is when the challenge becomes invalid.
+    #[prost(message, optional, tag="8")]
+    pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+/// ReadPayloadRequest completes a signed payload read.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReadPayloadRequest {
+    /// ChallengeId is the pending challenge identifier.
+    #[prost(string, tag="1")]
+    pub challenge_id: ::prost::alloc::string::String,
+    /// Signature signs the challenge bytes using the reader peer key.
+    #[prost(message, optional, tag="2")]
+    pub signature: ::core::option::Option<super::super::peer::Signature>,
+}
+/// ReadPayloadResponse contains the Secret payload bytes.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReadPayloadResponse {
+    /// Payload is the nested SharedObject payload.
+    #[prost(message, optional, tag="1")]
+    pub payload: ::core::option::Option<SecretPayload>,
+}
 // @@protoc_insertion_point(module)
