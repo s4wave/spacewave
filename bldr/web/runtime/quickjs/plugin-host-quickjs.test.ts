@@ -10,6 +10,7 @@ import {
   loadBackendAssets,
   resolveBackendAssetPath,
   selectBackendAssetLoadingMode,
+  shouldPreloadBackendAssets,
   type BackendAssetCacheEntry,
 } from './plugin-host-quickjs.js'
 
@@ -256,6 +257,16 @@ describe('plugin-host-quickjs asset helpers', () => {
     })
     expect(canUseSynchronousBackendAssetFetch()).toBe(true)
     expect(selectBackendAssetLoadingMode()).toBe('lazy-http')
+  })
+
+  it('preloads backend assets only for bounded fallback mode', () => {
+    const entrypoints = ['/assets/v/b/be/plugin/app.mjs']
+
+    expect(shouldPreloadBackendAssets('lazy-http', entrypoints)).toBe(false)
+    expect(shouldPreloadBackendAssets('bounded-preload', entrypoints)).toBe(
+      true,
+    )
+    expect(shouldPreloadBackendAssets('bounded-preload', [])).toBe(false)
   })
 
   it('serves compiler-emitted backend import paths from lazy preopens', () => {

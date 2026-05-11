@@ -215,6 +215,13 @@ export function selectBackendAssetLoadingMode(): BackendAssetLoadingMode {
   return canUseSynchronousBackendAssetFetch() ? 'lazy-http' : 'bounded-preload'
 }
 
+export function shouldPreloadBackendAssets(
+  mode: BackendAssetLoadingMode,
+  entryAssetPaths: string[],
+): boolean {
+  return mode === 'bounded-preload' && entryAssetPaths.length !== 0
+}
+
 // createBackendAssetMount returns a synchronous read-only mount over plugin HTTP assets.
 export function createBackendAssetMount(
   api: BackendAssetAPI,
@@ -413,7 +420,7 @@ export default async function main(
   const entryAssetPaths = collectBackendEntrypointAssetPaths(pluginScript)
   const backendAssetCache = new Map<string, BackendAssetCacheEntry>()
   const loadedBackendAssets =
-    entryAssetPaths.length !== 0 ?
+    shouldPreloadBackendAssets(assetLoadingMode, entryAssetPaths) ?
       await loadBackendAssets(
         api,
         signal,
@@ -439,14 +446,7 @@ export default async function main(
     }
   }
   if (assetLoadingMode === 'lazy-http') {
-    if (loadedBackendAssets) {
-      console.log(
-        'quickjs-runner: using lazy backend asset mount with warmed entrypoint assets',
-      )
-    }
-    if (!loadedBackendAssets) {
-      console.log('quickjs-runner: using lazy backend asset mount for misses')
-    }
+    console.log('quickjs-runner: using lazy backend asset mount')
   }
 
   const fs = buildFileSystem(files)
