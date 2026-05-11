@@ -14,6 +14,7 @@ import (
 	go_git_packfile "github.com/go-git/go-git/v6/plumbing/format/packfile"
 	"github.com/go-git/go-git/v6/plumbing/object"
 	"github.com/go-git/go-git/v6/storage/memory"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/sirupsen/logrus"
 )
@@ -40,27 +41,7 @@ func TestPackfileBytesFileReadAt(t *testing.T) {
 }
 
 func TestStoragePackfileWriter(t *testing.T) {
-	ctx := context.Background()
-	le := logrus.NewEntry(logrus.New())
-
-	testbed.Verbose = false
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	oc, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	btx, bcs := oc.BuildTransaction(nil)
-	root := NewRepo()
-	bcs.SetBlock(root, true)
-	store, err := NewStore(ctx, btx, bcs, nil, nil)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	ctx, oc, store := newPackfileTestStore(t)
 	defer store.Close()
 
 	packData, blobHash := buildTestPackfile(t, []byte("packed data"))
@@ -87,7 +68,7 @@ func TestStoragePackfileWriter(t *testing.T) {
 
 	storeRef := store.GetRef()
 	oc.SetRootRef(storeRef)
-	btx, bcs = oc.BuildTransaction(nil)
+	btx, bcs := oc.BuildTransaction(nil)
 	store, err = NewStore(ctx, btx, bcs, nil, nil)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -110,27 +91,7 @@ func TestStoragePackfileWriter(t *testing.T) {
 }
 
 func TestStoragePackfileWriterReadsCommitTreeAndBlob(t *testing.T) {
-	ctx := context.Background()
-	le := logrus.NewEntry(logrus.New())
-
-	testbed.Verbose = false
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	oc, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	btx, bcs := oc.BuildTransaction(nil)
-	root := NewRepo()
-	bcs.SetBlock(root, true)
-	store, err := NewStore(ctx, btx, bcs, nil, nil)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	_, _, store := newPackfileTestStore(t)
 	defer store.Close()
 
 	packData, commitHash, objectCount := buildTestCommitPackfile(t)
@@ -180,6 +141,132 @@ func TestStoragePackfileWriterReadsCommitTreeAndBlob(t *testing.T) {
 	if gotCount != objectCount {
 		t.Fatalf("iter count mismatch: got %d want %d", gotCount, objectCount)
 	}
+}
+
+func TestStoragePackDeleteInvalidatesCachedReader(t *testing.T) {
+	_, _, store := newPackfileTestStore(t)
+	defer store.Close()
+
+	packData, blobHash := buildTestPackfile(t, []byte("packed data"))
+	wr, err := store.PackfileWriter()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := wr.Write(packData); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := wr.Close(); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	packs, err := store.ObjectPacks()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(packs) != 1 {
+		t.Fatalf("expected one pack, got %d", len(packs))
+	}
+	if _, err := store.EncodedObject(plumbing.BlobObject, blobHash); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	if err := store.DeleteOldObjectPackAndIndex(packs[0], time.Time{}); err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := store.EncodedObject(plumbing.BlobObject, blobHash); err != plumbing.ErrObjectNotFound {
+		t.Fatalf("expected deleted pack object to be unavailable, got %v", err)
+	}
+	packs, err = store.ObjectPacks()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(packs) != 0 {
+		t.Fatalf("expected pack deletion, got %d packs", len(packs))
+	}
+}
+
+func TestStoragePackIterationDedupesLooseObject(t *testing.T) {
+	_, _, store := newPackfileTestStore(t)
+	defer store.Close()
+
+	data := []byte("dedupe data")
+	packData, blobHash := buildTestPackfile(t, data)
+	wr, err := store.PackfileWriter()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := wr.Write(packData); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := wr.Close(); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	obj := store.NewEncodedObject()
+	obj.SetType(plumbing.BlobObject)
+	obj.SetSize(int64(len(data)))
+	objWriter, err := obj.Writer()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := objWriter.Write(data); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := objWriter.Close(); err != nil {
+		t.Fatal(err.Error())
+	}
+	got, err := store.SetEncodedObject(obj)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if got != blobHash {
+		t.Fatalf("loose object hash = %s, want %s", got, blobHash)
+	}
+
+	iter, err := store.IterEncodedObjects(plumbing.AnyObject)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer iter.Close()
+	var seen int
+	if err := iter.ForEach(func(obj plumbing.EncodedObject) error {
+		if obj.Hash() == blobHash {
+			seen++
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err.Error())
+	}
+	if seen != 1 {
+		t.Fatalf("expected one object for %s, got %d", blobHash, seen)
+	}
+}
+
+func newPackfileTestStore(t *testing.T) (context.Context, *bucket_lookup.Cursor, *Store) {
+	t.Helper()
+
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	testbed.Verbose = false
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	oc, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	btx, bcs := oc.BuildTransaction(nil)
+	root := NewRepo()
+	bcs.SetBlock(root, true)
+	store, err := NewStore(ctx, btx, bcs, nil, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return ctx, oc, store
 }
 
 func buildTestPackfile(t *testing.T, data []byte) ([]byte, plumbing.Hash) {
