@@ -95,6 +95,30 @@ func (s *TestSession) Page() playwright.Page { return s.page }
 // BrowserContext returns the Playwright BrowserContext for this session.
 func (s *TestSession) BrowserContext() playwright.BrowserContext { return s.browserCtx }
 
+// ReplacePageInRetainedContext closes the current page and opens a fresh page
+// in the same BrowserContext.
+func (s *TestSession) ReplacePageInRetainedContext() error {
+	if s.browserCtx == nil {
+		return errors.New("browser context not initialized")
+	}
+	if s.page != nil {
+		s.h.unregisterPageSession(s.page)
+		if err := s.page.Close(); err != nil {
+			return errors.Wrap(err, "close page")
+		}
+		s.page = nil
+		s.clearWorkers()
+	}
+
+	page, err := s.h.newBrowserPage(s)
+	if err != nil {
+		return err
+	}
+	s.page = page
+	s.h.registerPageSession(page, s)
+	return nil
+}
+
 // WatchConsole returns browser and worker console messages emitted after it is
 // called.
 func (s *TestSession) WatchConsole() (<-chan string, func()) {
@@ -161,6 +185,12 @@ func (s *TestSession) Workers() []playwright.Worker {
 	s.workersMu.Lock()
 	defer s.workersMu.Unlock()
 	return append([]playwright.Worker(nil), s.workers...)
+}
+
+func (s *TestSession) clearWorkers() {
+	s.workersMu.Lock()
+	defer s.workersMu.Unlock()
+	s.workers = nil
 }
 
 // BrowserClient returns the SRPC client connected to the browser peer, or

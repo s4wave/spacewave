@@ -127,6 +127,31 @@ func (pw *PeerWatcher) WaitForPeerObservation(ctx context.Context) (BrowserPeerO
 	}
 }
 
+// LatestSequence returns the latest peer observation sequence number. Callers
+// can use it as a checkpoint before triggering a browser action.
+func (pw *PeerWatcher) LatestSequence() uint64 {
+	pw.mu.Lock()
+	defer pw.mu.Unlock()
+	return pw.nextSeq
+}
+
+// WaitForPeerObservationAfter blocks until a browser peer mount event with a
+// sequence greater than afterSeq arrives.
+func (pw *PeerWatcher) WaitForPeerObservationAfter(
+	ctx context.Context,
+	afterSeq uint64,
+) (BrowserPeerObservation, error) {
+	for {
+		obs, err := pw.WaitForPeerObservation(ctx)
+		if err != nil {
+			return BrowserPeerObservation{}, err
+		}
+		if obs.Sequence > afterSeq {
+			return obs, nil
+		}
+	}
+}
+
 // Release removes the handler from the bus.
 func (pw *PeerWatcher) Release() {
 	if pw.rel != nil {

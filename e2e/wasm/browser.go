@@ -58,10 +58,21 @@ func (h *Harness) newBrowserContext(s *TestSession) (playwright.Page, error) {
 	}
 	s.browserCtx = ctx
 
-	page, err := ctx.NewPage()
+	page, err := h.newBrowserPage(s)
 	if err != nil {
 		ctx.Close()
 		s.browserCtx = nil
+		return nil, err
+	}
+	return page, nil
+}
+
+func (h *Harness) newBrowserPage(s *TestSession) (playwright.Page, error) {
+	if s.browserCtx == nil {
+		return nil, errors.New("browser context not initialized")
+	}
+	page, err := s.browserCtx.NewPage()
+	if err != nil {
 		return nil, errors.Wrap(err, "new page")
 	}
 
