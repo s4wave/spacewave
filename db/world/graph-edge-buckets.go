@@ -112,7 +112,7 @@ func lookupGraphEdgeBucketDirection(
 	filter GraphQuad,
 	limit uint32,
 ) ([]GraphQuad, bool, error) {
-	quads, err := ws.LookupGraphQuads(ctx, filter, limit+1)
+	quads, err := ws.LookupGraphQuads(ctx, filter, 0)
 	if err != nil {
 		return nil, false, err
 	}

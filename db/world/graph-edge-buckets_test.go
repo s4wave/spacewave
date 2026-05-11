@@ -61,6 +61,43 @@ func TestListGraphEdgeBucketsOrdersLimitsAndTruncates(t *testing.T) {
 	}
 }
 
+func TestListGraphEdgeBucketsLimitsAfterOrdering(t *testing.T) {
+	ctx := context.Background()
+	graph := &edgeBucketTestGraph{
+		quads: []world.GraphQuad{
+			world.NewGraphQuadWithKeys("origin-a", "<rel-z>", "target-z", ""),
+			world.NewGraphQuadWithKeys("origin-a", "<rel-y>", "target-y", ""),
+			world.NewGraphQuadWithKeys("origin-a", "<rel-a>", "target-a", ""),
+			world.NewGraphQuadWithKeys("origin-a", "<rel-b>", "target-b", ""),
+		},
+	}
+
+	buckets, err := world.ListGraphEdgeBuckets(ctx, graph, &world.GraphEdgeBucketQuery{
+		OriginObjectKeys: []string{"origin-a"},
+		LimitPerOrigin:   2,
+		Direction:        world.GraphEdgeBucketDirectionOut,
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(buckets) != 1 {
+		t.Fatalf("expected one bucket, got %d", len(buckets))
+	}
+	bucket := buckets[0]
+	if !bucket.OutgoingTruncated {
+		t.Fatal("expected outgoing bucket to be truncated")
+	}
+	if len(bucket.Outgoing) != 2 {
+		t.Fatalf("expected two outgoing quads, got %d", len(bucket.Outgoing))
+	}
+	if got := bucket.Outgoing[0].GetPredicate(); got != "<rel-a>" {
+		t.Fatalf("first ordered predicate: got %q want <rel-a>", got)
+	}
+	if got := bucket.Outgoing[1].GetPredicate(); got != "<rel-b>" {
+		t.Fatalf("second ordered predicate: got %q want <rel-b>", got)
+	}
+}
+
 type edgeBucketTestGraph struct {
 	quads []world.GraphQuad
 }

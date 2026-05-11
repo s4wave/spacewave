@@ -103,7 +103,7 @@ func selectQuadFilterIterator(ctx context.Context, h CayleyHandle, filter quad.Q
 	var bestRef graph.Ref
 	var bestSize refs.Size
 	var found bool
-	for _, dir := range quad.Directions {
+	for _, dir := range quadFilterIteratorDirections(filter) {
 		val := filter.Get(dir)
 		if val == nil {
 			continue
@@ -116,7 +116,9 @@ func selectQuadFilterIterator(ctx context.Context, h CayleyHandle, filter quad.Q
 		if err != nil {
 			return 0, nil, false, err
 		}
-		if !found || size.Value < bestSize.Value {
+		if !found ||
+			size.Value < bestSize.Value ||
+			(size.Value == bestSize.Value && quadFilterDirectionPriority(dir) < quadFilterDirectionPriority(bestDir)) {
 			bestDir = dir
 			bestRef = ref
 			bestSize = size
@@ -124,6 +126,35 @@ func selectQuadFilterIterator(ctx context.Context, h CayleyHandle, filter quad.Q
 		}
 	}
 	return bestDir, bestRef, found, nil
+}
+
+func quadFilterIteratorDirections(filter quad.Quad) []quad.Direction {
+	// Cayley kv has Subject and Object prefix indexes, while Predicate-only
+	// filters fall back to a full quad scan. Keep endpoint directions ahead of
+	// Predicate when estimated iterator sizes tie.
+	preferred := []quad.Direction{quad.Subject, quad.Object, quad.Predicate, quad.Label}
+	out := make([]quad.Direction, 0, len(preferred))
+	for _, dir := range preferred {
+		if filter.Get(dir) != nil {
+			out = append(out, dir)
+		}
+	}
+	return out
+}
+
+func quadFilterDirectionPriority(dir quad.Direction) int {
+	switch dir {
+	case quad.Subject:
+		return 0
+	case quad.Object:
+		return 1
+	case quad.Predicate:
+		return 2
+	case quad.Label:
+		return 3
+	default:
+		return 4
+	}
 }
 
 func hasQuadFilter(q quad.Quad) bool {
