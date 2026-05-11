@@ -1,0 +1,137 @@
+//go:build !skip_e2e && !js
+
+package wasm
+
+import (
+	"context"
+	"strings"
+	"testing"
+	"time"
+
+	playwright "github.com/playwright-community/playwright-go"
+	"github.com/s4wave/spacewave/core/sobject"
+)
+
+// TestRetainedStateSharedObjectHealthGuard verifies an existing drive still
+// opens with ready health after the page is recreated inside the same retained
+// browser context.
+func TestRetainedStateSharedObjectHealthGuard(t *testing.T) {
+	sess := testHarness.NewSession(t)
+	scenario := CreateDriveScenario(t, testHarness, sess)
+	page := scenario.GetSession().Page()
+
+	WaitForDriveReady(t, testHarness, page)
+	targetHash, err := currentHash(page.URL())
+	if err != nil {
+		t.Fatalf("current drive hash: %v", err)
+	}
+
+	if err := sess.ReplacePageInRetainedContext(); err != nil {
+		t.Fatalf("replace page in retained context: %v", err)
+	}
+	if err := testHarness.loadAppPageURL(sess, testHarness.BaseURL()+"/"+targetHash); err != nil {
+		t.Fatalf("load retained drive route: %v", err)
+	}
+
+	page = sess.Page()
+	WaitForApp(t, page)
+
+	ctx, cancel := context.WithTimeout(testHarness.Context(), 90*time.Second)
+	defer cancel()
+	if err := sess.ConnectResources(ctx); err != nil {
+		t.Fatalf("connect resources after retained route load: %v", err)
+	}
+	waitForSharedObjectReadyHealth(t, ctx, sess, scenario.GetSessionIndex(), scenario.GetSpaceID())
+
+	NavigateHash(t, testHarness, page, targetHash)
+	WaitForDriveReady(t, testHarness, page)
+	assertNoSharedObjectHealthCard(t, page)
+
+	t.Logf(
+		"retained shared-object health guard passed: session_index=%d space_id=%s url=%s",
+		scenario.GetSessionIndex(),
+		scenario.GetSpaceID(),
+		page.URL(),
+	)
+}
+
+func assertNoSharedObjectHealthCard(t testing.TB, page playwright.Page) {
+	t.Helper()
+
+	body, err := page.Locator("body").TextContent()
+	if err != nil {
+		t.Fatalf("read retained page text: %v", err)
+	}
+	for _, marker := range []string{
+		"Closed - Shared Object",
+		"Closed - Body",
+		"Degraded - Shared Object",
+		"Degraded - Body",
+		"Shared object unavailable",
+		"Shared object not found",
+		"Initial state rejected",
+		"Required block missing",
+		"Access revoked",
+		"Shared object body failed",
+		"Body configuration invalid",
+	} {
+		if strings.Contains(body, marker) {
+			t.Fatalf("retained route rendered shared-object health card marker %q\nbody: %s", marker, trimPageText(body))
+		}
+	}
+}
+
+func waitForSharedObjectReadyHealth(
+	t testing.TB,
+	ctx context.Context,
+	sess *TestSession,
+	sessionIndex uint32,
+	spaceID string,
+) {
+	t.Helper()
+
+	sdk, err := sess.MountSessionByIdx(ctx, sessionIndex)
+	if err != nil {
+		t.Fatalf("mount retained session %d for health check: %v", sessionIndex, err)
+	}
+	defer sdk.Release()
+
+	strm, err := sdk.WatchSharedObjectHealth(ctx, spaceID)
+	if err != nil {
+		t.Fatalf("watch retained shared-object health: %v", err)
+	}
+	defer strm.Close()
+
+	var last *sobject.SharedObjectHealth
+	for {
+		resp, err := strm.Recv()
+		if err != nil {
+			t.Fatalf("recv retained shared-object health: %v (last=%s)", err, sharedObjectHealthSummary(last))
+		}
+		health := resp.GetHealth()
+		last = health
+		switch health.GetStatus() {
+		case sobject.SharedObjectHealthStatus_SHARED_OBJECT_HEALTH_STATUS_READY:
+			return
+		case sobject.SharedObjectHealthStatus_SHARED_OBJECT_HEALTH_STATUS_CLOSED,
+			sobject.SharedObjectHealthStatus_SHARED_OBJECT_HEALTH_STATUS_DEGRADED:
+			t.Fatalf("retained shared-object health is not ready: %s", sharedObjectHealthSummary(health))
+		}
+	}
+}
+
+func sharedObjectHealthSummary(health *sobject.SharedObjectHealth) string {
+	if health == nil {
+		return "nil"
+	}
+	parts := []string{
+		"status=" + health.GetStatus().String(),
+		"layer=" + health.GetLayer().String(),
+		"reason=" + health.GetCommonReason().String(),
+		"hint=" + health.GetRemediationHint().String(),
+	}
+	if errText := strings.TrimSpace(health.GetError()); errText != "" {
+		parts = append(parts, "error="+errText)
+	}
+	return strings.Join(parts, " ")
+}

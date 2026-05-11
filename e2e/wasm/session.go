@@ -101,6 +101,7 @@ func (s *TestSession) ReplacePageInRetainedContext() error {
 	if s.browserCtx == nil {
 		return errors.New("browser context not initialized")
 	}
+	s.disconnectResources()
 	if s.page != nil {
 		s.h.unregisterPageSession(s.page)
 		if err := s.page.Close(); err != nil {
@@ -208,6 +209,20 @@ func (s *TestSession) Release() {
 	s.release()
 }
 
+func (s *TestSession) disconnectResources() {
+	s.h.releaseBrowserPeerLease(s, s.browserPeer)
+	s.browserPeer = ""
+	if s.root != nil {
+		s.root.Release()
+		s.root = nil
+	}
+	if s.resClient != nil {
+		s.resClient.Release()
+		s.resClient = nil
+	}
+	s.browserClient = nil
+}
+
 // MountSessionByIdx mounts a session by its 1-based index and returns the
 // Session SDK wrapper. The caller must call Release on the returned Session.
 func (s *TestSession) MountSessionByIdx(ctx context.Context, idx uint32) (*s4wave_session.Session, error) {
@@ -240,16 +255,7 @@ func (s *TestSession) release() {
 	}
 	s.consoleMu.Unlock()
 
-	s.h.releaseBrowserPeerLease(s, s.browserPeer)
-	s.browserPeer = ""
-	if s.root != nil {
-		s.root.Release()
-		s.root = nil
-	}
-	if s.resClient != nil {
-		s.resClient.Release()
-		s.resClient = nil
-	}
+	s.disconnectResources()
 	if s.browserCtx != nil {
 		if s.page != nil {
 			s.h.unregisterPageSession(s.page)

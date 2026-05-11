@@ -383,13 +383,15 @@ describe('service worker fetch release cache routing', () => {
     expect(proxyFetch).toHaveBeenCalledTimes(2)
   })
 
-  it('serves root navigation requests from the cached runtime browser index', async () => {
+  it('uses native fetch for root navigation requests with only the runtime browser index cached', async () => {
     await writeControlCacheResponse(
       globalThis.caches as unknown as FakeCacheStorage,
       '/b/__index.html',
       new Response('runtime index', { status: 200 }),
     )
-    vi.mocked(fetch).mockResolvedValue(new Response('network', { status: 200 }))
+    vi.mocked(fetch).mockResolvedValue(
+      new Response('network root', { status: 200 }),
+    )
 
     const response = await swFetch(
       buildFetchOnlyEvent('/', {
@@ -397,8 +399,8 @@ describe('service worker fetch release cache routing', () => {
       }),
     )
 
-    expect(await response.text()).toBe('runtime index')
-    expect(fetch).not.toHaveBeenCalled()
+    expect(await response.text()).toBe('network root')
+    expect(fetch).toHaveBeenCalledTimes(1)
     expect(proxyFetch).not.toHaveBeenCalled()
   })
 
@@ -503,12 +505,14 @@ describe('service worker messages', () => {
     const cache = await (globalThis.caches as unknown as FakeCacheStorage).open(
       'bldr-control',
     )
-    const [rootResponse, indexResponse] = await Promise.all([
-      cache.match(new Request(new URL('/', self.location.href))),
-      cache.match(new Request(new URL('/b/__index.html', self.location.href))),
-    ])
+    const rootResponse = await cache.match(
+      new Request(new URL('/', self.location.href)),
+    )
+    const indexResponse = await cache.match(
+      new Request(new URL('/b/__index.html', self.location.href)),
+    )
 
-    expect(await rootResponse?.text()).toBe('runtime index')
+    expect(rootResponse).toBeUndefined()
     expect(await indexResponse?.text()).toBe('runtime index')
     expect(proxyFetch).toHaveBeenCalledWith(
       expect.anything(),
@@ -518,7 +522,7 @@ describe('service worker messages', () => {
     )
   })
 
-  it('updates cached root content when the browser index cache is refreshed', async () => {
+  it('updates only cached browser index content when the browser index cache is refreshed', async () => {
     const caches = new FakeCacheStorage()
 
     vi.stubGlobal('BLDR_DEBUG', false)
@@ -531,12 +535,14 @@ describe('service worker messages', () => {
     await refreshBrowserIndexCache('client-a')
 
     const cache = await caches.open('bldr-control')
-    const [rootResponse, indexResponse] = await Promise.all([
-      cache.match(new Request(new URL('/', self.location.href))),
-      cache.match(new Request(new URL('/b/__index.html', self.location.href))),
-    ])
+    const rootResponse = await cache.match(
+      new Request(new URL('/', self.location.href)),
+    )
+    const indexResponse = await cache.match(
+      new Request(new URL('/b/__index.html', self.location.href)),
+    )
 
-    expect(await rootResponse?.text()).toBe('fresh index')
+    expect(rootResponse).toBeUndefined()
     expect(await indexResponse?.text()).toBe('fresh index')
   })
 })
