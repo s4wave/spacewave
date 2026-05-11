@@ -70,6 +70,18 @@ func deleteAuthSession(
 	return nil
 }
 
+func cleanupAuthSession(
+	httpCli *http.Client,
+	apiEndpoint string,
+	nonce string,
+	wsTicket string,
+) {
+	delCtx, cancel := context.WithTimeout(context.Background(), httpTimeout)
+	defer cancel()
+	// Auth-session cleanup is best-effort; this package has no logger.
+	deleteAuthSession(delCtx, httpCli, apiEndpoint, nonce, wsTicket)
+}
+
 // exchangeAuthSessionSignInResult exchanges a sign-in flow auth-session nonce
 // for the stored OAuth result via POST /api/auth/sso/result/exchange.
 // Returns nil if the cloud reports 404 (no result stored yet).

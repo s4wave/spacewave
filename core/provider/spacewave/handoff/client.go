@@ -6,7 +6,6 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -100,11 +99,7 @@ func StartHandoff(
 		return nil, "", "", errors.New("server did not return an auth session websocket ticket")
 	}
 	cleanupSession = func() {
-		delCtx, cancel := context.WithTimeout(context.Background(), httpTimeout)
-		defer cancel()
-		if err := deleteAuthSession(delCtx, httpCli, apiEndpoint, nonce, wsTicket); err != nil {
-			log.Println("warning: failed to delete handoff auth session:", err)
-		}
+		cleanupAuthSession(httpCli, apiEndpoint, nonce, wsTicket)
 	}
 
 	// 4. Open browser with handoff URL.

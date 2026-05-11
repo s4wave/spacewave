@@ -10,7 +10,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -125,11 +124,7 @@ func StartSSOHandoff(
 		return nil, nil, "", errors.Wrap(err, "parse desktop sso nonce")
 	}
 	cleanupSession = func() {
-		delCtx, cancel := context.WithTimeout(context.Background(), httpTimeout)
-		defer cancel()
-		if err := deleteAuthSession(delCtx, httpCli, endpoint, nonce, wsTicket); err != nil {
-			log.Println("warning: failed to delete SSO auth session:", err)
-		}
+		cleanupAuthSession(httpCli, endpoint, nonce, wsTicket)
 	}
 
 	// 3. Connect WebSocket for result relay.

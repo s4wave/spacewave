@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -192,11 +191,7 @@ func waitForDesktopPasskeyResult(
 	}
 
 	cleanupSession := func() {
-		delCtx, cancel := context.WithTimeout(context.Background(), httpTimeout)
-		defer cancel()
-		if err := deleteAuthSession(delCtx, httpCli, endpoint, nonce, wsTicket); err != nil {
-			log.Println("warning: failed to delete passkey auth session:", err)
-		}
+		cleanupAuthSession(httpCli, endpoint, nonce, wsTicket)
 	}
 	defer func() {
 		cleanupSession()
@@ -259,11 +254,7 @@ func waitForDesktopPasskeyRegisterRelay(
 	}
 
 	cleanupSession := func() {
-		delCtx, cancel := context.WithTimeout(context.Background(), httpTimeout)
-		defer cancel()
-		if err := deleteAuthSession(delCtx, httpCli, endpoint, nonce, wsTicket); err != nil {
-			log.Println("warning: failed to delete passkey auth session:", err)
-		}
+		cleanupAuthSession(httpCli, endpoint, nonce, wsTicket)
 	}
 	defer func() {
 		cleanupSession()
@@ -326,11 +317,7 @@ func waitForDesktopPasskeyReauthRelay(
 	}
 
 	cleanupSession := func() {
-		delCtx, cancel := context.WithTimeout(context.Background(), httpTimeout)
-		defer cancel()
-		if err := deleteAuthSession(delCtx, httpCli, endpoint, nonce, wsTicket); err != nil {
-			log.Println("warning: failed to delete passkey auth session:", err)
-		}
+		cleanupAuthSession(httpCli, endpoint, nonce, wsTicket)
 	}
 	defer func() {
 		cleanupSession()

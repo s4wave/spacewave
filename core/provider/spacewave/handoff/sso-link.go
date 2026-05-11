@@ -2,7 +2,6 @@ package provider_spacewave_handoff
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -47,11 +46,7 @@ func WaitForDesktopSSOLink(
 	}
 
 	cleanupSession := func() {
-		delCtx, cancel := context.WithTimeout(context.Background(), httpTimeout)
-		defer cancel()
-		if err := deleteAuthSession(delCtx, httpCli, endpoint, nonce, wsTicket); err != nil {
-			log.Println("warning: failed to delete SSO-link auth session:", err)
-		}
+		cleanupAuthSession(httpCli, endpoint, nonce, wsTicket)
 	}
 	defer func() {
 		cleanupSession()
