@@ -1,12 +1,16 @@
 package resource_account
 
 import (
+	"context"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	account_settings "github.com/s4wave/spacewave/core/account/settings"
+	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/core/session"
 	s4wave_account "github.com/s4wave/spacewave/sdk/account"
 )
 
@@ -118,5 +122,21 @@ func TestMarshalMultiSigRequestUsesProtoBinary(t *testing.T) {
 	}
 	if !decoded.EqualVT(req) {
 		t.Fatal("decoded multi-sig request does not match original")
+	}
+}
+
+// TestResolveEntityKeyRejectsLocalAccountResource verifies callers get a
+// clear error instead of a nil-pointer panic when cloud-only entity key
+// resolution is invoked on a local account resource.
+func TestResolveEntityKeyRejectsLocalAccountResource(t *testing.T) {
+	r := &AccountResource{localAccount: &provider_local.ProviderAccount{}}
+	_, _, err := r.ResolveEntityKey(context.Background(), &session.EntityCredential{
+		Credential: &session.EntityCredential_Password{Password: "pin-recovery-password"},
+	})
+	if err == nil {
+		t.Fatal("expected local account resource entity key resolution to fail")
+	}
+	if !strings.Contains(err.Error(), "cloud account") {
+		t.Fatalf("expected cloud account error, got %v", err)
 	}
 }

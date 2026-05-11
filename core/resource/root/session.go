@@ -517,9 +517,11 @@ func (s *CoreRootServer) ResetSession(
 	}
 	defer provAccRef.Release()
 
-	// Verify credential for cloud sessions (AccountResource handles this).
-	accResource := resource_account.NewAccountResource(provAcc)
-	if accResource != nil {
+	if provRef.GetProviderId() == "spacewave" {
+		accResource := resource_account.NewAccountResource(provAcc)
+		if accResource == nil {
+			return nil, errors.New("spacewave account resource unavailable")
+		}
 		defer accResource.Release()
 		if _, _, err := accResource.ResolveEntityKey(ctx, cred); err != nil {
 			return nil, errors.Wrap(err, "verify credential")

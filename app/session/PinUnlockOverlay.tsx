@@ -72,8 +72,6 @@ export function PinUnlockOverlay({
     try {
       const credential: EntityCredential = cred.credential!
       await onReset(sessionIdx, credential)
-      // Reset succeeded. The session tracker will restart with a fresh key.
-      // Navigate to sessions list so the user can re-enter.
       navigate({ path: '/sessions' })
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Recovery failed'

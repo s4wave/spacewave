@@ -500,6 +500,9 @@ func (r *AccountResource) ResolveEntityKey(ctx context.Context, cred *session.En
 	if cred == nil {
 		return nil, "", errors.New("credential is required")
 	}
+	if r.account == nil {
+		return nil, "", errors.New("entity key resolution requires a cloud account")
+	}
 	password := cred.GetPassword()
 	pemPrivateKey := cred.GetPemPrivateKey()
 	if password != "" {
