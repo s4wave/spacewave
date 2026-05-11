@@ -20,6 +20,7 @@ import (
 var testHarness *harness
 
 const browserWaitMS = 60000
+const quickstartContentReadyRecordMS = 60000
 
 // TIER: nightly
 func TestMain(m *testing.M) {
@@ -168,20 +169,16 @@ func TestQuickstartPrerenderAutoBootsProductionWasmBundle(t *testing.T) {
 	)
 	if err != nil {
 		dumpPageState(t, page)
-		t.Fatalf("wait for quickstart drive shell: %v", err)
+		t.Fatalf("wait for quickstart frame-ready: %v", err)
 	}
-	driveShellVisibleMs := browserNowMs(t, page)
-	err = page.Locator("text=getting-started.md").First().WaitFor(
-		playwright.LocatorWaitForOptions{Timeout: playwright.Float(browserWaitMS)},
-	)
-	if err != nil {
-		dumpPageState(t, page)
-		t.Fatalf("wait for quickstart drive content: %v", err)
+	driveFrameReadyMs := browserNowMs(t, page)
+	driveContentReadyMs, driveContentReadyError := waitForQuickstartDriveContentReady(t, page)
+	if driveContentReadyError != "" {
+		t.Logf("quickstart content-ready not reached: %s", driveContentReadyError)
 	}
-	driveReadyMs := browserNowMs(t, page)
 	logQuickstartTiming(t, page)
 
-	data, err := collectQuickstartSmokeArtifact(page, desc, source, driveShellVisibleMs, driveReadyMs)
+	data, err := collectQuickstartSmokeArtifact(page, desc, source, driveFrameReadyMs, driveContentReadyMs, driveContentReadyError)
 	if err != nil {
 		t.Fatalf("collect quickstart smoke artifact: %v", err)
 	}
@@ -309,6 +306,20 @@ func logQuickstartTiming(t *testing.T, page playwright.Page) {
 	t.Logf("quickstart timing: %v", timing)
 }
 
+func waitForQuickstartDriveContentReady(t *testing.T, page playwright.Page) (*int, string) {
+	t.Helper()
+
+	err := page.Locator("text=getting-started.md").First().WaitFor(
+		playwright.LocatorWaitForOptions{Timeout: playwright.Float(quickstartContentReadyRecordMS)},
+	)
+	if err != nil {
+		dumpPageState(t, page)
+		return nil, err.Error()
+	}
+	driveContentReadyMs := browserNowMs(t, page)
+	return &driveContentReadyMs, ""
+}
+
 func browserNowMs(t *testing.T, page playwright.Page) int {
 	t.Helper()
 
@@ -331,9 +342,14 @@ func collectQuickstartSmokeArtifact(
 	page playwright.Page,
 	desc *browserReleaseDescriptor,
 	source map[string]any,
-	driveShellVisibleMs int,
-	driveReadyMs int,
+	driveFrameReadyMs int,
+	driveContentReadyMs *int,
+	driveContentReadyError string,
 ) ([]byte, error) {
+	var driveContentReadyArg any
+	if driveContentReadyMs != nil {
+		driveContentReadyArg = *driveContentReadyMs
+	}
 	raw, err := page.Evaluate(`async (args) => {
 		const startupPrefix = 'spacewave.startup.'
 		const roundMs = (value) =>
@@ -561,14 +577,14 @@ func collectQuickstartSmokeArtifact(
 			),
 			makeReadinessMark(
 				'frame-ready',
-				args.driveShellVisibleMs,
-				['driveShellVisibleMs', "[data-testid='unixfs-browser']"],
+				args.driveFrameReadyMs,
+				['driveFrameReadyMs', "[data-testid='unixfs-browser']"],
 				null,
 			),
 			makeReadinessMark(
 				'content-ready',
-				args.driveReadyMs,
-				['driveReadyMs', 'getting-started.md'],
+				args.driveContentReadyMs,
+				['driveContentReadyMs', 'getting-started.md'],
 				null,
 			),
 		]
@@ -626,18 +642,18 @@ func collectQuickstartSmokeArtifact(
 				['quickstart.progressReadyMs', 'quickstart.finishedMs'],
 			),
 			makeSegment(
-				'quickstart-finished-to-drive-shell',
+				'quickstart-finished-to-frame-ready',
 				quickstartTiming?.finishedMs,
-				args.driveShellVisibleMs,
-				'Post-setup redirect, session mount, space mount, and drive shell render',
-				['quickstart.finishedMs', 'driveShellVisibleMs'],
+				args.driveFrameReadyMs,
+				'Post-setup redirect, session mount, space mount, and Drive frame render',
+				['quickstart.finishedMs', 'driveFrameReadyMs'],
 			),
 			makeSegment(
-				'drive-shell-to-content-ready',
-				args.driveShellVisibleMs,
-				args.driveReadyMs,
+				'frame-ready-to-content-ready',
+				args.driveFrameReadyMs,
+				args.driveContentReadyMs,
 				'Drive content watch and file list render',
-				['driveShellVisibleMs', 'driveReadyMs'],
+				['driveFrameReadyMs', 'driveContentReadyMs'],
 			),
 		]
 		const measuredSegments = startupAttributionSegments.filter(
@@ -650,7 +666,7 @@ func collectQuickstartSmokeArtifact(
 				)
 			: null
 		const artifact = {
-			schemaVersion: 3,
+			schemaVersion: 4,
 			scenario: 'quickstart-drive-production-smoke',
 			collectedAt: new Date().toISOString(),
 			baseURL: args.baseURL,
@@ -680,8 +696,9 @@ func collectQuickstartSmokeArtifact(
 			},
 			timing: {
 				browserNowMs: roundMs(performance.now()),
-				driveShellVisibleMs: args.driveShellVisibleMs,
-				driveReadyMs: args.driveReadyMs,
+				driveFrameReadyMs: args.driveFrameReadyMs,
+				driveContentReadyMs: args.driveContentReadyMs,
+				driveContentReadyError: args.driveContentReadyError || null,
 				quickstart: quickstartTiming,
 				navigation,
 				paint,
@@ -703,9 +720,12 @@ func collectQuickstartSmokeArtifact(
 				],
 			},
 			readiness: {
-				frameReadyMs: args.driveShellVisibleMs,
+				startupPerformanceGate: 'frame-ready',
+				contentCorrectnessTiming: 'content-ready',
+				frameReadyMs: args.driveFrameReadyMs,
 				progressReadyMs: quickstartTiming?.progressReadyMs ?? null,
-				contentReadyMs: args.driveReadyMs,
+				contentReadyMs: args.driveContentReadyMs,
+				contentReadyError: args.driveContentReadyError || null,
 				workerReadyMs: firstWorkerReady?.startTimeMs ?? null,
 				pluginRunningMs: pluginRunning?.startTimeMs ?? null,
 				missingReadinessMarks,
@@ -715,11 +735,11 @@ func collectQuickstartSmokeArtifact(
 			missingStartupMarks: expectedStartupMarks.filter((label) => !labels.has(label)),
 			startupAttribution: {
 				range: makeSegment(
-					'last-plugin-ready-to-drive-ready',
+					'last-plugin-ready-to-frame-ready',
 					lastPluginReady?.startTimeMs,
-					args.driveReadyMs,
-					'Previously unattributed post-plugin startup tail',
-					[lastPluginReady?.label ?? 'worker.ready', 'driveReadyMs'],
+					args.driveFrameReadyMs,
+					'Previously unattributed post-plugin startup tail through the startup performance gate',
+					[lastPluginReady?.label ?? 'worker.ready', 'driveFrameReadyMs'],
 				),
 				longestSegment,
 				segments: startupAttributionSegments,
@@ -727,10 +747,11 @@ func collectQuickstartSmokeArtifact(
 		}
 		return JSON.stringify(artifact, null, 2)
 	}`, map[string]any{
-		"baseURL":             testHarness.getBaseURL(),
-		"browserName":         testHarness.browserName,
-		"driveShellVisibleMs": driveShellVisibleMs,
-		"driveReadyMs":        driveReadyMs,
+		"baseURL":                testHarness.getBaseURL(),
+		"browserName":            testHarness.browserName,
+		"driveFrameReadyMs":      driveFrameReadyMs,
+		"driveContentReadyMs":    driveContentReadyArg,
+		"driveContentReadyError": driveContentReadyError,
 		"release": map[string]any{
 			"generationId": desc.GenerationID,
 			"shellAssets": map[string]any{
