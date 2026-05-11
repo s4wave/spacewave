@@ -3,10 +3,13 @@
 package spacewave_cli
 
 import (
+	"os"
 	"slices"
 	"sort"
 	"testing"
 	"time"
+
+	"github.com/aperturerobotics/util/pipesock"
 )
 
 func TestDaemonServeArgsPassStatePathToServe(t *testing.T) {
@@ -68,6 +71,25 @@ func TestGetDaemonStartupTimeoutInvalid(t *testing.T) {
 	_, err := getDaemonStartupTimeout()
 	if err == nil {
 		t.Fatal("expected error")
+	}
+}
+
+func TestDaemonStartupPipeLoggerCanBuildListener(t *testing.T) {
+	if err := os.MkdirAll(".tmp", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	root, err := os.MkdirTemp(".tmp", "startup-pipe-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(root)
+
+	listener, err := pipesock.BuildPipeListener(newDaemonStartupPipeLogger(), root, "startup")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := listener.Close(); err != nil {
+		t.Fatal(err)
 	}
 }
 

@@ -14,6 +14,7 @@ import (
 	"github.com/aperturerobotics/util/pipesock"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/net/util/randstring"
+	"github.com/sirupsen/logrus"
 )
 
 const daemonStartupReadyMessage = "ready"
@@ -38,7 +39,8 @@ func startDaemonProcess(ctx context.Context, statePath string) error {
 	defer cancel()
 
 	pipeID := "spacewave-daemon-" + randstring.RandomIdentifier(6)
-	pipeListener, err := pipesock.BuildPipeListener(nil, statePath, pipeID)
+	pipeLogger := newDaemonStartupPipeLogger()
+	pipeListener, err := pipesock.BuildPipeListener(pipeLogger, statePath, pipeID)
 	if err != nil {
 		return errors.Wrap(err, "listen for daemon startup")
 	}
@@ -204,11 +206,17 @@ func newDaemonStartupNotifier(
 		return nil, nil
 	}
 
-	conn, err := pipesock.DialPipeListener(ctx, nil, statePath, pipeID)
+	conn, err := pipesock.DialPipeListener(ctx, newDaemonStartupPipeLogger(), statePath, pipeID)
 	if err != nil {
 		return nil, errors.Wrap(err, "dial daemon startup pipe")
 	}
 	return &daemonStartupNotifier{conn: conn}, nil
+}
+
+func newDaemonStartupPipeLogger() *logrus.Entry {
+	logger := logrus.New()
+	logger.SetOutput(io.Discard)
+	return logrus.NewEntry(logger)
 }
 
 // reportReady sends the ready signal to the parent process.
