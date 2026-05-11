@@ -5,8 +5,11 @@ import (
 	"strings"
 	"testing"
 
+	b58 "github.com/mr-tron/base58/base58"
 	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/writer"
 )
+
+const allOnesDigestPackIDSuffix = "4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi"
 
 func TestBuildPackIDIsDeterministic(t *testing.T) {
 	result := &writer.PackResult{
@@ -70,5 +73,15 @@ func TestValidatePackIDRejectsHexSuffix(t *testing.T) {
 	err := ValidatePackID(PackIDPrefix + strings.Repeat("a", 64))
 	if err == nil {
 		t.Fatal("expected legacy hex pack id to be rejected")
+	}
+}
+
+func TestBase58DigestVector(t *testing.T) {
+	encoded := b58.Encode(bytes.Repeat([]byte{1}, 32))
+	if encoded != allOnesDigestPackIDSuffix {
+		t.Fatalf("base58 digest vector = %q, want %q", encoded, allOnesDigestPackIDSuffix)
+	}
+	if err := ValidatePackID(PackIDPrefix + allOnesDigestPackIDSuffix); err != nil {
+		t.Fatal(err)
 	}
 }
