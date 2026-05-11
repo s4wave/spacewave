@@ -42,6 +42,9 @@ func VerifyConfigChain(entries []*SOConfigChange) error {
 	if len(genesis.GetPreviousHash()) != 0 {
 		return errors.New("genesis entry must have empty previous_hash")
 	}
+	if genesis.GetChangeType() != SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS {
+		return errors.Errorf("genesis entry has change type %s, expected GENESIS", genesis.GetChangeType().String())
+	}
 
 	// Track the current effective config for authorization checks. After an
 	// entry is accepted, the config-chain head becomes that entry's hash/seqno

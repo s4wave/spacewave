@@ -57,6 +57,55 @@ func TestVerifyConfigChain(t *testing.T) {
 		}
 	})
 
+	t.Run("rejects unsigned first entry without genesis change type", func(t *testing.T) {
+		peers := createMockPeers(t, 1)
+		ownerID := peers[0].GetPeerID().String()
+
+		err := VerifyConfigChain([]*SOConfigChange{{
+			ConfigSeqno: 0,
+			Config: &SharedObjectConfig{
+				Participants: []*SOParticipantConfig{{
+					PeerId: ownerID,
+					Role:   SOParticipantRole_SOParticipantRole_OWNER,
+				}},
+			},
+			ChangeType: SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT,
+		}})
+		if err == nil {
+			t.Fatal("expected VerifyConfigChain to reject non-genesis first entry")
+		}
+	})
+
+	t.Run("rejects signed first entry without genesis change type", func(t *testing.T) {
+		ctx := context.Background()
+		peers := createMockPeers(t, 1)
+		ownerPriv, err := peers[0].GetPrivKey(ctx)
+		if err != nil {
+			t.Fatalf("get owner private key: %v", err)
+		}
+
+		cfg := &SharedObjectConfig{
+			Participants: []*SOParticipantConfig{{
+				PeerId: peers[0].GetPeerID().String(),
+				Role:   SOParticipantRole_SOParticipantRole_OWNER,
+			}},
+		}
+		entry, err := BuildSOConfigChange(
+			&SharedObjectConfig{},
+			cfg,
+			SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT,
+			ownerPriv,
+			nil,
+		)
+		if err != nil {
+			t.Fatalf("build first entry: %v", err)
+		}
+
+		if err := VerifyConfigChain([]*SOConfigChange{entry}); err == nil {
+			t.Fatal("expected VerifyConfigChain to reject signed non-genesis first entry")
+		}
+	})
+
 	t.Run("accepts add-participant followed by self-enroll peer", func(t *testing.T) {
 		ctx := context.Background()
 		peers := createMockPeers(t, 3)
