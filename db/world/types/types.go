@@ -6,7 +6,6 @@ import (
 
 	"github.com/aperturerobotics/cayley"
 	"github.com/aperturerobotics/cayley/quad"
-	"github.com/aperturerobotics/cayley/query/path"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
@@ -73,39 +72,23 @@ func GetObjectType(ctx context.Context, ws world.WorldState, key string) (string
 		return metadata[0].TypeID, nil
 	}
 
-	// AccessCayleyGraph calls a callback with a temporary Cayley graph handle.
-	// All accesses of the handle should complete before returning cb.
-	// Try to make access (queries) as short as possible.
-	// Write operations will fail if the store is read-only.
 	var typeKey string
-	err := ws.AccessCayleyGraph(ctx, false, func(ctx context.Context, h world.CayleyHandle) error {
-		it := path.StartPath(h, world.KeyToGraphValue(key)).
-			Out(TypePred).
-			BuildIterator(ctx).
-			Iterate(ctx)
-		defer it.Close()
-		// iterate until we find a suitable type key
-		for it.Next(ctx) && typeKey == "" {
-			res, err := it.Result(ctx)
-			if err != nil {
-				return err
-			}
-			qv, err := h.NameOf(ctx, res)
-			if err != nil {
-				return err
-			}
-			key, err := world.QuadValueToKey(qv)
-			if err != nil {
-				return err
-			}
-			if strings.HasPrefix(key, TypesPrefix) {
-				typeKey = key
-			}
-		}
-		return it.Err()
-	})
-	if err != nil || len(typeKey) == 0 {
+	quads, err := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys(key, TypePred.String(), "", ""), typeGraphLookupLimit)
+	if err != nil {
 		return "", err
+	}
+	for _, q := range quads {
+		objKey, err := world.GraphValueToKey(q.GetObj())
+		if err != nil {
+			return "", err
+		}
+		if strings.HasPrefix(objKey, TypesPrefix) {
+			typeKey = objKey
+			break
+		}
+	}
+	if len(typeKey) == 0 {
+		return "", nil
 	}
 	return typeKey[len(TypesPrefix):], nil
 }
@@ -201,36 +184,24 @@ func IterateObjectsWithType(
 		return nil
 	}
 
-	ctx, subCtxCancel := context.WithCancel(rctx)
-	defer subCtxCancel()
-
-	return ws.AccessCayleyGraph(ctx, false, func(ctx context.Context, h world.CayleyHandle) error {
-		it := path.StartPath(h, BuildTypeQuadValue(typeID)).
-			In(TypePred).
-			BuildIterator(ctx).
-			Iterate(ctx)
-		defer it.Close()
-
-		for it.Next(ctx) {
-			ref, err := it.Result(ctx)
-			if err != nil {
-				return err
-			}
-			qv, err := h.NameOf(ctx, ref)
-			if err != nil {
-				return err
-			}
-			objKey, err := world.QuadValueToKey(qv)
-			if err != nil {
-				return err
-			}
-			ctnu, err := cb(objKey)
-			if err != nil || !ctnu {
-				return err
-			}
+	objKeys, err := world.CollectGraphPathStepWithKeys(
+		rctx,
+		ws,
+		[]string{BuildTypeObjectKey(typeID)},
+		world.GraphPathDirectionIn,
+		TypePred.String(),
+		typeGraphLookupLimit,
+	)
+	if err != nil {
+		return err
+	}
+	for _, objKey := range objKeys {
+		ctnu, err := cb(objKey)
+		if err != nil || !ctnu {
+			return err
 		}
-		return it.Err()
-	})
+	}
+	return nil
 }
 
 // ListObjectsWithType returns the list of object keys with the given type id.

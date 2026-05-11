@@ -300,6 +300,53 @@ func TestSDKEngine_ListObjectsWithType(t *testing.T) {
 	}
 }
 
+func TestSDKEngine_CheckObjectTypeThroughEngineWorldState(t *testing.T) {
+	ctx := context.Background()
+	engine, cleanup := setupSDKEngine(ctx, t)
+	defer cleanup()
+
+	ws := world.NewEngineWorldState(engine, true)
+	if _, err := ws.CreateObject(ctx, "typed/check", nil); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := world_types.SetObjectType(ctx, ws, "typed/check", "sdk/type-check"); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	readWS := world.NewEngineWorldState(engine, false)
+	if err := world_types.CheckObjectType(ctx, readWS, "typed/check", "sdk/type-check"); err != nil {
+		t.Fatal(err.Error())
+	}
+}
+
+func TestSDKEngine_ListObjectsWithTypeThroughEngineWorldState(t *testing.T) {
+	ctx := context.Background()
+	engine, cleanup := setupSDKEngine(ctx, t)
+	defer cleanup()
+
+	ws := world.NewEngineWorldState(engine, true)
+	for _, key := range []string{"typed/engine-a", "typed/engine-b"} {
+		if _, err := ws.CreateObject(ctx, key, nil); err != nil {
+			t.Fatal(err.Error())
+		}
+		if err := world_types.SetObjectType(ctx, ws, key, "sdk/type-list"); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+
+	readWS := world.NewEngineWorldState(engine, false)
+	objKeys, err := world_types.ListObjectsWithType(ctx, readWS, "sdk/type-list")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(objKeys) != 2 {
+		t.Fatalf("expected 2 typed objects, got %d", len(objKeys))
+	}
+	if objKeys[0] != "typed/engine-a" || objKeys[1] != "typed/engine-b" {
+		t.Fatalf("unexpected typed object keys: %v", objKeys)
+	}
+}
+
 // TestSDKEngine_AccessCayleyGraphUnsupported verifies SDK-backed worlds never
 // synthesize a local Cayley handle by fetching every remote graph quad.
 func TestSDKEngine_AccessCayleyGraphUnsupported(t *testing.T) {
