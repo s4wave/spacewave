@@ -4,12 +4,19 @@
 // cross-tab broker. Maintains a map of peerId -> MessagePort. Wraps ports
 // as starpc ChannelStream for RPC compatibility.
 
-import { ChannelStream, type PacketStream, type ChannelStreamOpts } from 'starpc'
+import {
+  ChannelStream,
+  type HandleStreamFunc,
+  type PacketStream,
+  type ChannelStreamOpts,
+} from 'starpc'
 
 // CrossTabChannelStreamOpts configures ChannelStreams for cross-tab channels.
 // Cross-tab peers already have explicit broker lifecycle messages; leave idle
 // watchdogs disabled so background throttling does not tear down quiet streams.
 const CrossTabChannelStreamOpts: ChannelStreamOpts = {}
+
+type CreateCrossTabStream = (localId: string, port: MessagePort) => PacketStream
 
 // CrossTabManager receives brokered MessagePorts from the ServiceWorker
 // and maintains direct channels to peer tabs.
@@ -17,7 +24,12 @@ export class CrossTabManager {
   // peers maps ServiceWorker client ID -> MessagePort.
   private peers = new Map<string, MessagePort>()
 
-  constructor(private readonly localId: string) {}
+  constructor(
+    private readonly localId: string,
+    private readonly handleIncomingStream?: HandleStreamFunc,
+    private readonly createStream: CreateCrossTabStream = (localId, port) =>
+      new ChannelStream(localId, port, CrossTabChannelStreamOpts),
+  ) {}
 
   // handleMessage processes a cross-tab broker message from the ServiceWorker.
   // Returns true if the message was handled.
@@ -49,8 +61,24 @@ export class CrossTabManager {
       existing.close()
     }
     this.peers.set(peerId, port)
+    port.onmessage = (ev: MessageEvent) => {
+      if (ev.data?.type !== 'relay' || !ev.ports?.[0]) {
+        return
+      }
+      const subPort = ev.ports[0]
+      if (!this.handleIncomingStream) {
+        subPort.close()
+        return
+      }
+      const stream = this.createStream(peerId, subPort)
+      this.handleIncomingStream(stream).catch(() => {})
+    }
     port.start()
-    console.log('cross-tab: channel to peer', peerId, 'established (' + this.peers.size + ' peers)')
+    console.log(
+      'cross-tab: channel to peer',
+      peerId,
+      'established (' + this.peers.size + ' peers)',
+    )
   }
 
   // removePeer closes and removes the channel for a peer tab.
@@ -59,7 +87,11 @@ export class CrossTabManager {
     if (port) {
       port.close()
       this.peers.delete(peerId)
-      console.log('cross-tab: peer', peerId, 'disconnected (' + this.peers.size + ' peers)')
+      console.log(
+        'cross-tab: peer',
+        peerId,
+        'disconnected (' + this.peers.size + ' peers)',
+      )
     }
   }
 
@@ -72,7 +104,7 @@ export class CrossTabManager {
     // Create a sub-channel for this stream so the main port stays available.
     const { port1, port2 } = new MessageChannel()
     port.postMessage({ type: 'relay', port: port2 }, [port2])
-    return new ChannelStream(this.localId, port1, CrossTabChannelStreamOpts)
+    return this.createStream(this.localId, port1)
   }
 
   // peerIds returns the list of connected peer tab IDs.
