@@ -1,5 +1,37 @@
 #+TITLE: Spacewave Changelog
 
+* v0.51.6
+<2026-05-11 Mon>
+
+Spacewave 0.51.6 is a reliability release for setup, Quickstart, browser
+startup, and public pages. Local setup progress is less likely to get lost
+during startup, plugin-backed Spaces recover more reliably after reloads or
+browser updates, and public blog/video pages behave better across browsers and
+theme extensions.
+
+** Fixes
+- Fixed local setup and Quickstart routing so Spacewave is less likely to stay
+  on the plan page, reopen the wrong setup step, or let an inactive split-view
+  panel change the active route.
+- Fixed browser startup for plugin-backed Spaces so already-loaded app files are
+  reused during startup, reducing blank shells and failed app loads after
+  reloads or browser updates.
+- Fixed the About dialog so it stays centered and visible in the app window.
+- Fixed Spacewave blog video embeds in Firefox and other isolated browsers by
+  showing a safe Watch on YouTube link when inline playback is blocked.
+- Fixed browser theme-extension conflicts so Dark Reader does not restyle
+  Spacewave into unreadable colors.
+
+** Improvements
+- Local file storage does less background work while Spaces open, reducing
+  delays before local Spaces become ready.
+- Object views in large Spaces can load only the linked items they need,
+  reducing stalls in relationship-heavy views.
+- Browser tabs with several plugin-backed viewers use lighter startup
+  communication, reducing startup failures when many viewers are active.
+- Published release notes now include direct desktop download links for macOS,
+  Windows, and Linux.
+
 * v0.51.5
 <2026-05-09 Sat>
 
