@@ -19,6 +19,7 @@ import { ClusterCreateOp } from '@go/github.com/s4wave/spacewave/forge/cluster/c
 import { ForgeJobCreateOp } from '@s4wave/core/forge/job/job.pb.js'
 import { ForgeTaskCreateOp } from '@s4wave/core/forge/task/task.pb.js'
 import { CreateGitRepoWizardOp } from '@s4wave/core/git/git.pb.js'
+import { buildNotebookUnixfsObjectKey } from '../../plugin/notes/content-seed.js'
 
 const CANVAS_INIT_OP_ID = 'space/world/init-canvas'
 
@@ -44,16 +45,12 @@ const createOpBuilders = new Map<string, BuildCreateOpFn>([
   ],
   [
     INIT_NOTEBOOK_OP_ID,
-    (objectKey) => {
-      // The notebook op creates both a notebook and a companion unixfs object.
-      // Derive the unixfs key by replacing the notebook/ prefix with fs/.
-      const unixfsObjectKey = objectKey.replace(/^notebook\//, 'fs/')
-      return InitNotebookOp.toBinary({
+    (objectKey) =>
+      InitNotebookOp.toBinary({
         notebookObjectKey: objectKey,
-        unixfsObjectKey,
+        unixfsObjectKey: buildNotebookUnixfsObjectKey(objectKey),
         timestamp: new Date(),
-      })
-    },
+      }),
   ],
   [
     CREATE_CHAT_CHANNEL_OP_ID,

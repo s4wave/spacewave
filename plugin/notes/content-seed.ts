@@ -10,7 +10,10 @@ import { Documentation } from './proto/docs.pb.js'
 import { createObjectWithBlockData } from './object-block.js'
 import { uploadSeedTree } from './unixfs-seed.js'
 
-function runContentSeedStep<T>(label: string, cb: () => Promise<T>): Promise<T> {
+function runContentSeedStep<T>(
+  label: string,
+  cb: () => Promise<T>,
+): Promise<T> {
   return cb().catch((err) => {
     throw new Error(
       label + ': ' + (err instanceof Error ? err.message : String(err)),
@@ -43,10 +46,9 @@ async function withWritableNotesState<T>(
   }
 }
 
-export function buildNotebookUnixfsObjectKey(notebookObjectKey: string): string {
-  if (notebookObjectKey.startsWith('notebook/')) {
-    return notebookObjectKey.replace(/^notebook\//, 'fs/')
-  }
+export function buildNotebookUnixfsObjectKey(
+  notebookObjectKey: string,
+): string {
   return notebookObjectKey + '-fs'
 }
 

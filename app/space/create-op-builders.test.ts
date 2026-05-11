@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildObjectKey, buildWizardObjectKey } from './create-op-builders.js'
+import { INIT_NOTEBOOK_OP_ID } from '../../plugin/notes/proto/init-notebook.js'
+import { InitNotebookOp } from '../../plugin/notes/proto/notebook.pb.js'
+
+import {
+  buildObjectKey,
+  buildWizardObjectKey,
+  lookupCreateOpBuilder,
+} from './create-op-builders.js'
 
 describe('buildObjectKey', () => {
   it('uses simple name-based numbered keys', () => {
@@ -25,5 +32,18 @@ describe('buildObjectKey', () => {
     expect(
       buildWizardObjectKey('Git Repository', ['wizard/git-repository-1']),
     ).toBe('wizard/git-repository-2')
+  })
+})
+
+describe('lookupCreateOpBuilder', () => {
+  it('derives notebook unixfs keys from simple notebook keys', () => {
+    const builder = lookupCreateOpBuilder(INIT_NOTEBOOK_OP_ID)
+    if (!builder) {
+      throw new Error('expected notebook create-op builder')
+    }
+
+    const simple = InitNotebookOp.fromBinary(builder('notebook-1', 'Notebook'))
+    expect(simple.notebookObjectKey).toBe('notebook-1')
+    expect(simple.unixfsObjectKey).toBe('notebook-1-fs')
   })
 })
