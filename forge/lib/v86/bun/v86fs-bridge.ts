@@ -15,6 +15,12 @@ import type { ProtoRpc } from 'starpc'
 // Reply handler receives the full V86fsMessage and extracts what it needs.
 type ReplyHandler = (msg: V86fsMessageType) => void
 
+type V86fsRelayClient = {
+  RelayV86fs(
+    outgoing: AsyncIterable<V86fsMessageType>,
+  ): AsyncIterable<V86fsMessageType>
+}
+
 /**
  * Creates a V86FSAdapter backed by a v86fs SRPC client.
  *
@@ -28,7 +34,13 @@ export function createV86fsSrpcAdapter(rpc: ProtoRpc): {
   adapter: unknown
   close: () => void
 } {
-  const client = new V86fsServiceClient(rpc)
+  return createV86fsSrpcAdapterForClient(new V86fsServiceClient(rpc))
+}
+
+export function createV86fsSrpcAdapterForClient(client: V86fsRelayClient): {
+  adapter: unknown
+  close: () => void
+} {
   const outgoing = pushable<V86fsMessageType>({ objectMode: true })
   const pending = new Map<number, ReplyHandler>()
   let nextTag = 1
@@ -37,27 +49,33 @@ export function createV86fsSrpcAdapter(rpc: ProtoRpc): {
   const responses = client.RelayV86fs(outgoing)
 
   // Read responses in background, dispatch by tag.
-  void (async () => {
-    for await (const msg of responses) {
-      const tag = msg.tag ?? 0
-      if (tag === 0) {
-        // Notifications (invalidate, mount, umount) have no tag.
-        // Handled by the v86fs virtio device's page cache internally.
-        continue
-      }
-      const handler = pending.get(tag)
-      if (handler) {
-        pending.delete(tag)
-        handler(msg)
-      }
-    }
-  })().catch(() => {
-    // Stream closed. Reject all pending requests.
-    for (const [, handler] of pending) {
+  function rejectPending(): void {
+    const handlers = [...pending.values()]
+    pending.clear()
+    for (const handler of handlers) {
       handler({ tag: 0, body: { case: 'errorReply', value: { status: 5 } } })
     }
-    pending.clear()
-  })
+  }
+
+  void (async () => {
+    try {
+      for await (const msg of responses) {
+        const tag = msg.tag ?? 0
+        if (tag === 0) {
+          // Notifications (invalidate, mount, umount) have no tag.
+          // Handled by the v86fs virtio device's page cache internally.
+          continue
+        }
+        const handler = pending.get(tag)
+        if (handler) {
+          pending.delete(tag)
+          handler(msg)
+        }
+      }
+    } finally {
+      rejectPending()
+    }
+  })().catch(() => {})
 
   function send(
     body: V86fsMessageType['body'],
