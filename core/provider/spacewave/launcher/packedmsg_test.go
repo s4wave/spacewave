@@ -101,6 +101,13 @@ func TestParseDistConfigPackedMsgRejectsInvalidValidator(t *testing.T) {
 	}
 }
 
+func TestParseDistConfigPackedMsgHandlesNilLoggerForInvalidPackedMsg(t *testing.T) {
+	packedMsg := packedmsg.EncodePackedMessage([]byte("not a signed dist config"))
+	if _, _, _, err := ParseDistConfigPackedMsg(nil, []byte(packedMsg), nil, "bldr-test"); err == nil {
+		t.Fatal("expected invalid packed message to be rejected")
+	}
+}
+
 func TestParseDistConfigPackedMsgRejectsMissingChannelKey(t *testing.T) {
 	signerPeer, err := peer.NewPeer(nil)
 	if err != nil {

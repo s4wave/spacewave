@@ -215,7 +215,9 @@ func FindDistConfigUpdate(
 	for i, msg := range packedMsgs {
 		distConf, matchedPeerID, err := DecodeSignedDistConfig(msg, distPeerIDs, projectID)
 		if err != nil {
-			le.WithError(err).Warn("skipping invalid dist config packedmsg")
+			if le != nil {
+				le.WithError(err).Warn("skipping invalid dist config packedmsg")
+			}
 			continue
 		}
 
