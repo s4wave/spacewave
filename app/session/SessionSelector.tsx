@@ -2,7 +2,6 @@ import { useCallback, useState } from 'react'
 import {
   LuChevronRight,
   LuFolderOpen,
-  LuLoaderCircle,
   LuPlug,
   LuTrash2,
   LuTriangleAlert,
@@ -22,6 +21,7 @@ import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { BackButton } from '@s4wave/web/ui/BackButton.js'
 import { Button } from '@s4wave/web/ui/button.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
+import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { ProviderAccountStatus } from '@s4wave/core/provider/provider.pb.js'
 import type { SessionListEntry } from '@s4wave/core/session/session.pb.js'
@@ -270,7 +270,7 @@ function SpaceRootRuntimePanel(props: {
     <div className="border-foreground/10 mt-4 w-full max-w-md rounded-lg border px-4 py-3">
       <div className="flex items-center gap-2">
         {loading ?
-          <LuLoaderCircle className="size-4 animate-spin" />
+          <Spinner size="md" />
         : (
           runtime?.status ===
           SpaceRootRuntimeStatus.SpaceRootRuntimeStatus_ERROR

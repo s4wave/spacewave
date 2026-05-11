@@ -10,9 +10,15 @@ import { useEffect, useState } from 'react'
 export function useRenderDelay(ms = 300): boolean {
   const [ready, setReady] = useState(false)
   useEffect(() => {
-    queueMicrotask(() => setReady(false))
+    let canceled = false
+    queueMicrotask(() => {
+      if (!canceled) setReady(false)
+    })
     const id = setTimeout(() => setReady(true), ms)
-    return () => clearTimeout(id)
+    return () => {
+      canceled = true
+      clearTimeout(id)
+    }
   }, [ms])
   return ready
 }
