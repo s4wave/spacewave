@@ -6,6 +6,8 @@
  * mounting a session, and creating a new space with a specific quickstart ID.
  */
 
+import { useCallback, useState } from 'react'
+
 import { Redirect } from '@s4wave/web/router/Redirect.js'
 import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
@@ -13,7 +15,11 @@ import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { BackButton } from '@s4wave/web/ui/BackButton.js'
 import { ErrorState } from '@s4wave/web/ui/ErrorState.js'
 
-import { createQuickstartSetup, createLocalSession } from './create.js'
+import {
+  createQuickstartSetup,
+  createLocalSession,
+  type QuickstartProgressState,
+} from './create.js'
 import { LoadingScreen } from './LoadingScreen.js'
 import { isQuickstartCreateId, type QuickstartId } from './options.js'
 import { NavigatePath } from '@s4wave/web/router/NavigatePath.js'
@@ -61,14 +67,25 @@ export const Quickstart: React.FC<QuickstartProps> = ({ quickstartId }) => {
   const isCreate = isQuickstartCreateId(quickstartId)
   const isLocal = quickstartId === 'local'
   const rootResource = useRootResource()
+  const [progress, setProgress] = useState<QuickstartProgressState | null>(null)
+  const reportProgress = useCallback((state: QuickstartProgressState) => {
+    setProgress(state)
+  }, [])
 
   // For 'local' (login page "Continue without account"), always create new session.
   const localSessionResource = useResource(
     rootResource,
     async (root, signal, cleanup) => {
-      return createLocalSession(root, signal, cleanup, true)
+      return createLocalSession(
+        root,
+        signal,
+        cleanup,
+        true,
+        undefined,
+        reportProgress,
+      )
     },
-    [],
+    [reportProgress],
     { enabled: isLocal },
   )
 
@@ -77,9 +94,15 @@ export const Quickstart: React.FC<QuickstartProps> = ({ quickstartId }) => {
     rootResource,
     async (root, signal, cleanup) => {
       if (!isCreate || isLocal) return null
-      return createQuickstartSetup(root, quickstartId, signal, cleanup)
+      return createQuickstartSetup(
+        root,
+        quickstartId,
+        signal,
+        cleanup,
+        reportProgress,
+      )
     },
-    [isCreate, isLocal, quickstartId],
+    [isCreate, isLocal, quickstartId, reportProgress],
     { enabled: isCreate && !isLocal },
   )
 
@@ -108,7 +131,7 @@ export const Quickstart: React.FC<QuickstartProps> = ({ quickstartId }) => {
     const localSetup = localSessionResource.value
 
     if (localSessionResource.loading || !localSetup) {
-      return <LoadingScreen quickstartId={quickstartId} />
+      return <LoadingScreen quickstartId={quickstartId} progress={progress} />
     }
 
     return <Redirect to={`/u/${localSetup.sessionIndex}`} />
@@ -128,7 +151,7 @@ export const Quickstart: React.FC<QuickstartProps> = ({ quickstartId }) => {
   const spaceID = setup?.spaceResp.sharedObjectRef?.providerResourceRef?.id
 
   if (setupResource.loading || !setup || !spaceID) {
-    return <LoadingScreen quickstartId={quickstartId} />
+    return <LoadingScreen quickstartId={quickstartId} progress={progress} />
   }
 
   return <Redirect to={`/u/${setup.sessionIndex}/so/${spaceID}`} />

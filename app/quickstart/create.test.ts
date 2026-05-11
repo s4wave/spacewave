@@ -46,6 +46,7 @@ import {
   executeDynamicQuickstart,
   getQuickstartSpaceName,
   populateSpace,
+  type QuickstartProgressState,
 } from './create.js'
 import { NOTEBOOK_OBJECT_KEY } from '../../plugin/notes/proto/init-notebook.js'
 
@@ -356,7 +357,17 @@ describe('quickstart create', () => {
       mountSpaceContents: vi.fn().mockResolvedValue(spaceContents),
     })
 
-    await createQuickstartSetup(root as never, 'drive', abortSignal, cleanup)
+    const progressEvents: QuickstartProgressState[] = []
+
+    await createQuickstartSetup(
+      root as never,
+      'drive',
+      abortSignal,
+      cleanup,
+      (state) => {
+        progressEvents.push(state)
+      },
+    )
 
     const timing = globalThis.__s4waveQuickstartTiming
     expect(timing?.progressReadyMs).toEqual(expect.any(Number))
@@ -373,6 +384,20 @@ describe('quickstart create', () => {
     expect(applyWorldOp.mock.calls[0]?.[0]).toBe(INIT_UNIXFS_OP_ID)
     expect(globalThis.__s4wave_debug?.quickstartTiming?.progressReadyMs).toBe(
       timing?.progressReadyMs,
+    )
+    expect(progressEvents.map((event) => event.step)).toEqual(
+      expect.arrayContaining(['session', 'space', 'frame', 'content']),
+    )
+    expect(
+      progressEvents.findIndex((event) => event.step === 'content'),
+    ).toBeGreaterThan(
+      progressEvents.findIndex((event) => event.step === 'frame'),
+    )
+    expect(progressEvents.at(-1)).toEqual(
+      expect.objectContaining({
+        step: 'content',
+        detail: 'Seeding My Drive content',
+      }),
     )
   })
 

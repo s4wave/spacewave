@@ -87,10 +87,44 @@ export interface QuickstartSetupTiming {
   phases: QuickstartPhaseTiming[]
 }
 
+export type QuickstartProgressStep = 'session' | 'space' | 'frame' | 'content'
+
+export interface QuickstartProgressState {
+  step: QuickstartProgressStep
+  stepIndex: number
+  stepCount: number
+  detail: string
+}
+
+export type QuickstartProgressReporter = (
+  state: QuickstartProgressState,
+) => void
+
 declare global {
   var __s4waveQuickstartTiming: QuickstartSetupTiming | undefined
   var __s4waveLogQuickstartTiming: boolean | undefined
   var __s4wave_debug: { quickstartTiming?: QuickstartSetupTiming } | undefined
+}
+
+const quickstartProgressOrder: QuickstartProgressStep[] = [
+  'session',
+  'space',
+  'frame',
+  'content',
+]
+
+function reportQuickstartProgress(
+  progress: QuickstartProgressReporter | undefined,
+  step: QuickstartProgressStep,
+  detail: string,
+): void {
+  if (!progress) return
+  progress({
+    step,
+    stepIndex: quickstartProgressOrder.indexOf(step) + 1,
+    stepCount: quickstartProgressOrder.length,
+    detail,
+  })
 }
 
 function nowMs(): number {
@@ -291,16 +325,23 @@ export async function createLocalSession(
   cleanup: RegisterCleanup,
   forceNew?: boolean,
   timing?: QuickstartSetupTiming,
+  progress?: QuickstartProgressReporter,
 ): Promise<LocalSessionSetup> {
   // Check for an existing local session to reuse.
   const hasLocalSessionHint = hasStoredLocalSessionHint()
   if (!forceNew && hasLocalSessionHint) {
+    reportQuickstartProgress(
+      progress,
+      'session',
+      'Checking for an existing local session',
+    )
     const existing = await timeQuickstartPhase(
       timing,
       'find-existing-local-session',
       () => findMostRecentLocalSession(root, abortSignal),
     )
     if (existing) {
+      reportQuickstartProgress(progress, 'session', 'Mounting local session')
       const session = cleanup(
         await timeQuickstartPhase(timing, 'mount-existing-local-session', () =>
           root.mountSession({ sessionRef: existing.sessionRef }, abortSignal),
@@ -312,6 +353,7 @@ export async function createLocalSession(
   }
 
   // No existing local session (or forceNew): create a new account.
+  reportQuickstartProgress(progress, 'session', 'Opening the local provider')
   using provider = await timeQuickstartPhase(
     timing,
     'lookup-local-provider',
@@ -320,6 +362,7 @@ export async function createLocalSession(
   const lp = new LocalProvider(provider.resourceRef)
   let accountResp: CreateAccountResponse
   try {
+    reportQuickstartProgress(progress, 'session', 'Creating a local session')
     accountResp = await timeQuickstartPhase(
       timing,
       'create-local-account',
@@ -328,6 +371,11 @@ export async function createLocalSession(
   } catch (err) {
     if (!isQuickstartRpcAbort(err)) throw err
     if (!forceNew && !hasLocalSessionHint) {
+      reportQuickstartProgress(
+        progress,
+        'session',
+        'Recovering the created local session',
+      )
       const mounted = await timeQuickstartPhase(
         timing,
         'mount-created-local-session-by-index',
@@ -339,12 +387,22 @@ export async function createLocalSession(
         return { sessionIndex: 1, session }
       }
     }
+    reportQuickstartProgress(
+      progress,
+      'session',
+      'Finding the created local session',
+    )
     const existing = await timeQuickstartPhase(
       timing,
       'recover-created-local-session',
       () => findMostRecentLocalSession(root, abortSignal),
     )
     if (existing) {
+      reportQuickstartProgress(
+        progress,
+        'session',
+        'Mounting recovered local session',
+      )
       const session = cleanup(
         await timeQuickstartPhase(timing, 'mount-recovered-local-session', () =>
           root.mountSession({ sessionRef: existing.sessionRef }, abortSignal),
@@ -358,6 +416,7 @@ export async function createLocalSession(
   const sessionIndex = accountResp.sessionListEntry?.sessionIndex ?? 1
 
   // Mount the session using the account's session reference.
+  reportQuickstartProgress(progress, 'session', 'Mounting new local session')
   const session = cleanup(
     await timeQuickstartPhase(timing, 'mount-new-local-session', () =>
       root.mountSession(
@@ -397,6 +456,7 @@ export interface QuickstartSetupParams {
   abortSignal: AbortSignal
   cleanup: RegisterCleanup
   timing?: QuickstartSetupTiming
+  progress?: QuickstartProgressReporter
 }
 
 // createQuickstartSetupFromSession creates a quickstart setup from an existing session and space response.
@@ -408,9 +468,10 @@ export async function createQuickstartSetupFromSession(
     'accountResp' | 'sessionIndex' | 'session' | 'spaceResp'
   >
 > {
-  const { session, spaceResp, abortSignal, cleanup, timing } = params
+  const { session, spaceResp, abortSignal, cleanup, timing, progress } = params
 
   // Mount the space from the response.
+  reportQuickstartProgress(progress, 'frame', 'Mounting the new space')
   const space = await timeQuickstartPhase(timing, 'mount-space', () =>
     mountSpace({
       session,
@@ -421,11 +482,13 @@ export async function createQuickstartSetupFromSession(
   )
 
   // Access the World associated with the space as a WorldState.
+  reportQuickstartProgress(progress, 'frame', 'Loading the space frame')
   const spaceWorld = await timeQuickstartPhase(
     timing,
     'access-space-world',
     () => space.accessWorldState(true, abortSignal),
   )
+  reportQuickstartProgress(progress, 'frame', 'Mounting space contents')
   const spaceContents = cleanup(
     await timeQuickstartPhase(timing, 'mount-space-contents', () =>
       space.mountSpaceContents(abortSignal),
@@ -433,6 +496,7 @@ export async function createQuickstartSetupFromSession(
   )
 
   // Access the world state bucket storage.
+  reportQuickstartProgress(progress, 'frame', 'Preparing world state')
   const spaceWorldState = cleanup(
     await timeQuickstartPhase(timing, 'access-space-world-state', () =>
       spaceWorld.accessWorldState(undefined, abortSignal),
@@ -452,9 +516,11 @@ export async function createQuickstartSetup(
   quickstartId: QuickstartSpaceCreateId,
   abortSignal: AbortSignal,
   cleanup: RegisterCleanup,
+  progress?: QuickstartProgressReporter,
 ): Promise<QuickstartSetup> {
   const timing = startQuickstartTiming(quickstartId)
   try {
+    reportQuickstartProgress(progress, 'session', 'Preparing a local session')
     // Reuse existing local session or create a new one.
     const { accountResp, sessionIndex, session } = await createLocalSession(
       root,
@@ -462,9 +528,15 @@ export async function createQuickstartSetup(
       cleanup,
       undefined,
       timing,
+      progress,
     )
 
     // Create a new space with the quickstart ID as the name.
+    reportQuickstartProgress(
+      progress,
+      'space',
+      'Creating ' + getQuickstartSpaceName(quickstartId),
+    )
     const spaceResp = await timeQuickstartPhase(timing, 'create-space', () =>
       session.createSpace(
         { spaceName: getQuickstartSpaceName(quickstartId) },
@@ -479,6 +551,7 @@ export async function createQuickstartSetup(
       abortSignal,
       cleanup,
       timing,
+      progress,
     })
 
     // Construct the result
@@ -493,6 +566,11 @@ export async function createQuickstartSetup(
     markQuickstartProgressReady(timing)
 
     // Populate the space with quickstart-specific content.
+    reportQuickstartProgress(
+      progress,
+      'content',
+      'Seeding ' + getQuickstartSpaceName(quickstartId) + ' content',
+    )
     await timeQuickstartPhase(timing, 'populate-space', () =>
       populateSpace(quickstartId, result, abortSignal, timing),
     )
