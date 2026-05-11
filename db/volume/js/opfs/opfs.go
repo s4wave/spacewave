@@ -92,7 +92,12 @@ func NewOpfs(
 		return nil, errors.Wrap(err, "create meta directory")
 	}
 
-	meta, err := metashard.NewMetaShard(metaDir, lockPrefix+"/meta", int(conf.GetPageSize()))
+	meta, err := metashard.NewMetaShard(
+		metaDir,
+		lockPrefix+"/meta",
+		int(conf.GetPageSize()),
+		le.WithField("component", "opfs-metashard"),
+	)
 	if err != nil {
 		return nil, errors.Wrap(err, "create meta shard")
 	}

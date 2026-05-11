@@ -6,7 +6,6 @@ package metashard
 
 import (
 	"bytes"
-	"log"
 	"sync"
 	"syscall/js"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/s4wave/spacewave/db/opfs"
 	"github.com/s4wave/spacewave/db/opfs/filelock"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/pagestore"
+	"github.com/sirupsen/logrus"
 )
 
 // MetaShard is a metadata store backed by a single OPFS page file
@@ -23,6 +23,7 @@ type MetaShard struct {
 	lockPrefix string
 	pageSize   int
 	pager      *OpfsPager
+	le         *logrus.Entry
 
 	mu         sync.RWMutex
 	rootPage   pagestore.PageID
@@ -31,7 +32,7 @@ type MetaShard struct {
 }
 
 // NewMetaShard opens or creates a meta shard in the given OPFS directory.
-func NewMetaShard(dir js.Value, lockPrefix string, pageSize int) (*MetaShard, error) {
+func NewMetaShard(dir js.Value, lockPrefix string, pageSize int, le *logrus.Entry) (*MetaShard, error) {
 	if pageSize == 0 {
 		pageSize = pagestore.DefaultPageSize
 	}
@@ -41,6 +42,7 @@ func NewMetaShard(dir js.Value, lockPrefix string, pageSize int) (*MetaShard, er
 		lockPrefix: lockPrefix,
 		pageSize:   pageSize,
 		pager:      NewOpfsPager(dir, "pages.dat", pageSize),
+		le:         le,
 		rootPage:   pagestore.InvalidPage,
 	}
 	release, err := ms.acquireStateLock(false)
@@ -98,7 +100,7 @@ func (ms *MetaShard) WriteTx(fn func(tree *pagestore.Tree) error) error {
 		if !IsCorruptError(err) {
 			return errors.Wrap(err, "reload committed state")
 		}
-		if err := ms.resetCommittedStateLocked(); err != nil {
+		if err := ms.resetCorruptStateLocked(err); err != nil {
 			return errors.Wrap(err, "reset corrupt meta shard")
 		}
 	}
@@ -302,9 +304,8 @@ func (ms *MetaShard) recoverCorruptState() error {
 	} else if !IsCorruptError(err) {
 		return err
 	} else {
-		log.Printf("metashard: resetting corrupt OPFS metadata: %v", err)
+		return ms.resetCorruptStateLocked(err)
 	}
-	return ms.resetCommittedStateLocked()
 }
 
 func (ms *MetaShard) acquireStateLock(exclusive bool) (func(), error) {
@@ -321,6 +322,13 @@ func scanPrefixEntries(tree *pagestore.Tree, prefix []byte) ([]metaEntry, error)
 		return true
 	})
 	return entries, err
+}
+
+func (ms *MetaShard) resetCorruptStateLocked(cause error) error {
+	ms.le.WithError(cause).
+		WithField("lock-prefix", ms.lockPrefix).
+		Warn("resetting corrupt OPFS metadata")
+	return ms.resetCommittedStateLocked()
 }
 
 func (ms *MetaShard) resetCommittedStateLocked() error {

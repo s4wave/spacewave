@@ -370,10 +370,7 @@ func describeBlockShard(c *config, shard int) string {
 	sb.WriteString(strconv.FormatUint(m.Generation, 10))
 	sb.WriteString(" segments=")
 	sb.WriteString(strconv.Itoa(len(m.Segments)))
-	limit := len(m.Segments)
-	if limit > 8 {
-		limit = 8
-	}
+	limit := min(len(m.Segments), 8)
 	for i := 0; i < limit; i++ {
 		seg := m.Segments[i]
 		sb.WriteString(" ")
@@ -739,7 +736,7 @@ func openMetaStore(c *config) (*metashard.MetaStore, error) {
 	if err != nil {
 		return nil, err
 	}
-	shard, err := metashard.NewMetaShard(dir, c.root+"/meta", 4096)
+	shard, err := metashard.NewMetaShard(dir, c.root+"/meta", 4096, nil)
 	if err != nil {
 		return nil, err
 	}

@@ -29,7 +29,7 @@ func newTestMetaShard(t *testing.T, name string) *MetaShard {
 	t.Cleanup(func() {
 		_ = opfs.DeleteEntry(root, name, true)
 	})
-	ms, err := NewMetaShard(dir, name, 0)
+	ms, err := NewMetaShard(dir, name, 0, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +46,7 @@ func reopenTestMetaShard(t *testing.T, name string) *MetaShard {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ms, err := NewMetaShard(dir, name, 0)
+	ms, err := NewMetaShard(dir, name, 0, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,7 +63,7 @@ func openSecondTestMetaShard(t *testing.T, name string) *MetaShard {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ms, err := NewMetaShard(dir, name, 0)
+	ms, err := NewMetaShard(dir, name, 0, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
