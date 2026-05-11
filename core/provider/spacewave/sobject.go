@@ -898,7 +898,7 @@ func (s *SharedObject) AddParticipant(ctx context.Context, targetPeerIDStr strin
 			if p.GetPeerId() == targetPeerIDStr {
 				participantExists = true
 				participantIdx = i
-				if p.GetRole() != role {
+				if p.GetRole() != maxSOParticipantRole(p.GetRole(), role) {
 					participantNeedsUpdate = true
 				}
 				if p.GetEntityId() == "" && entityID != "" {
@@ -934,9 +934,13 @@ func (s *SharedObject) AddParticipant(ctx context.Context, targetPeerIDStr strin
 		var entryData []byte
 		if !participantExists || participantNeedsUpdate {
 			nextCfg := currentCfg.CloneVT()
+			nextRole := role
+			if participantExists {
+				nextRole = maxSOParticipantRole(currentCfg.GetParticipants()[participantIdx].GetRole(), role)
+			}
 			nextParticipant := &sobject.SOParticipantConfig{
 				PeerId:   targetPeerIDStr,
-				Role:     role,
+				Role:     nextRole,
 				EntityId: entityID,
 			}
 			if participantExists {
@@ -1183,6 +1187,13 @@ func (s *SharedObject) decryptLocalGrantInner(
 		return nil, errors.Wrap(err, "decrypt local grant")
 	}
 	return grantInner, nil
+}
+
+func maxSOParticipantRole(a, b sobject.SOParticipantRole) sobject.SOParticipantRole {
+	if b > a {
+		return b
+	}
+	return a
 }
 
 func (s *SharedObject) buildRecoveryEnvelopesForConfig(
