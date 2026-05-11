@@ -200,6 +200,14 @@ func (h *harness) quickstartSmokeArtifactPath(t testing.TB) string {
 	return filepath.Join(h.artifactDir, name+".json")
 }
 
+func (h *harness) quickstartRuntimeTraceArtifactPath(t testing.TB) string {
+	t.Helper()
+
+	name := strings.ReplaceAll(t.Name(), "/", "_")
+	name = strings.ReplaceAll(name, " ", "_")
+	return filepath.Join(h.artifactDir, name+".chromium-trace.json")
+}
+
 func (h *harness) newPage(t testing.TB) playwright.Page {
 	t.Helper()
 

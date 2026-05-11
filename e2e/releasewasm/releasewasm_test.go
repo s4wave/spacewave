@@ -155,6 +155,8 @@ func TestQuickstartPrerenderAutoBootsProductionWasmBundle(t *testing.T) {
 	}
 	source := sourceRevision(t)
 	page := testHarness.newPage(t)
+	traceCapture := beginQuickstartRuntimeTrace(t, page)
+	defer traceCapture.cleanup(t)
 	if _, err := page.Goto(testHarness.getBaseURL() + "/quickstart/drive"); err != nil {
 		t.Fatalf("goto quickstart drive: %v", err)
 	}
@@ -177,8 +179,9 @@ func TestQuickstartPrerenderAutoBootsProductionWasmBundle(t *testing.T) {
 		t.Logf("quickstart content-ready not reached: %s", driveContentReadyError)
 	}
 	logQuickstartTiming(t, page)
+	runtimeTrace := traceCapture.stop(t)
 
-	data, err := collectQuickstartSmokeArtifact(page, desc, source, driveFrameReadyMs, driveContentReadyMs, driveContentReadyError)
+	data, err := collectQuickstartSmokeArtifact(page, desc, source, driveFrameReadyMs, driveContentReadyMs, driveContentReadyError, runtimeTrace)
 	if err != nil {
 		t.Fatalf("collect quickstart smoke artifact: %v", err)
 	}
@@ -186,6 +189,78 @@ func TestQuickstartPrerenderAutoBootsProductionWasmBundle(t *testing.T) {
 		t.Fatalf("write quickstart smoke artifact: %v", err)
 	}
 	t.Logf("quickstart smoke artifact written to %s (%d bytes)", path, len(data))
+}
+
+type quickstartRuntimeTraceCapture struct {
+	started bool
+	stopped bool
+	info    map[string]any
+}
+
+func beginQuickstartRuntimeTrace(t *testing.T, page playwright.Page) *quickstartRuntimeTraceCapture {
+	t.Helper()
+
+	path := testHarness.quickstartRuntimeTraceArtifactPath(t)
+	info := map[string]any{
+		"kind":                   "chromium-devtools-runtime-trace",
+		"captured":               false,
+		"captureWindow":          "before-page-goto-through-drive-content-ready",
+		"startupPerformanceGate": "frame-ready",
+		"seedCompletionGate":     "drive-content-ready",
+		"path":                   path,
+	}
+	c := &quickstartRuntimeTraceCapture{info: info}
+	if testHarness.browserName != "chromium" {
+		info["skippedReason"] = "Chromium tracing is only available for the chromium release WASM browser"
+		return c
+	}
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		t.Fatalf("remove previous runtime trace artifact: %v", err)
+	}
+	screenshots := false
+	if err := testHarness.browser.StartTracing(playwright.BrowserStartTracingOptions{
+		Page:        page,
+		Path:        &path,
+		Screenshots: &screenshots,
+	}); err != nil {
+		t.Fatalf("start quickstart runtime trace: %v", err)
+	}
+	c.started = true
+	info["captured"] = true
+	info["startedBefore"] = "page.goto('/quickstart/drive')"
+	return c
+}
+
+func (c *quickstartRuntimeTraceCapture) stop(t *testing.T) map[string]any {
+	t.Helper()
+
+	if !c.started || c.stopped {
+		return c.info
+	}
+	data, err := testHarness.browser.StopTracing()
+	c.stopped = true
+	if err != nil {
+		t.Fatalf("stop quickstart runtime trace: %v", err)
+	}
+	if len(data) == 0 {
+		t.Fatal("expected non-empty quickstart runtime trace")
+	}
+	c.info["bytes"] = len(data)
+	c.info["stoppedAfter"] = "Drive content-ready"
+	t.Logf("quickstart runtime trace written to %s (%d bytes)", c.info["path"], len(data))
+	return c.info
+}
+
+func (c *quickstartRuntimeTraceCapture) cleanup(t *testing.T) {
+	t.Helper()
+
+	if !c.started || c.stopped {
+		return
+	}
+	if _, err := testHarness.browser.StopTracing(); err != nil {
+		t.Logf("stop abandoned quickstart runtime trace: %v", err)
+	}
+	c.stopped = true
 }
 
 func waitForCanonicalQuickstartURL(t *testing.T, page playwright.Page) {
@@ -345,6 +420,7 @@ func collectQuickstartSmokeArtifact(
 	driveFrameReadyMs int,
 	driveContentReadyMs *int,
 	driveContentReadyError string,
+	runtimeTrace map[string]any,
 ) ([]byte, error) {
 	var driveContentReadyArg any
 	if driveContentReadyMs != nil {
@@ -666,7 +742,7 @@ func collectQuickstartSmokeArtifact(
 				)
 			: null
 		const artifact = {
-			schemaVersion: 4,
+			schemaVersion: 5,
 			scenario: 'quickstart-drive-production-smoke',
 			collectedAt: new Date().toISOString(),
 			baseURL: args.baseURL,
@@ -733,6 +809,7 @@ func collectQuickstartSmokeArtifact(
 				missingReadinessMarks,
 				timeline: readinessTimeline,
 			},
+			runtimeTrace: args.runtimeTrace,
 			startupMarks,
 			missingStartupMarks: expectedStartupMarks.filter((label) => !labels.has(label)),
 			startupAttribution: {
@@ -754,6 +831,7 @@ func collectQuickstartSmokeArtifact(
 		"driveFrameReadyMs":      driveFrameReadyMs,
 		"driveContentReadyMs":    driveContentReadyArg,
 		"driveContentReadyError": driveContentReadyError,
+		"runtimeTrace":           runtimeTrace,
 		"release": map[string]any{
 			"generationId": desc.GenerationID,
 			"shellAssets": map[string]any{
