@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { getPublicQuickstartOptions } from '@s4wave/app/quickstart/options.js'
+import { isStaticRoute } from '@s4wave/web/router/static-routes.js'
 import { getMetadata } from './metadata.js'
 import { STATIC_PAGES } from './static-pages.js'
 import { buildQuickstartStaticPages } from './static-pages.js'
@@ -36,6 +37,12 @@ describe('buildQuickstartStaticPages', () => {
       expect(meta.description.length).toBeLessThanOrEqual(160)
       expect(meta.canonicalPath).toBeTruthy()
       expect(meta.ogImage).toBeTruthy()
+    }
+  })
+
+  it('keeps static route matching in sync with the static page inventory', () => {
+    for (const page of STATIC_PAGES) {
+      expect(isStaticRoute(page.path)).toBe(true)
     }
   })
 })

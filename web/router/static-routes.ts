@@ -19,6 +19,7 @@ export const STATIC_ROUTES = new Set([
   '/community',
   '/licenses',
   '/download',
+  '/download/cli',
   '/blog',
 ])
 
