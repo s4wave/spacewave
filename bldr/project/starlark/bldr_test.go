@@ -65,4 +65,22 @@ func TestEvaluateBldr(t *testing.T) {
 	if embedManifests[1].GetManifestId() != "bldr-demo" || embedManifests[1].GetPlatformId() != "web/js/wasm" {
 		t.Fatalf("unexpected second embed manifest: %s@%s", embedManifests[1].GetManifestId(), embedManifests[1].GetPlatformId())
 	}
+
+	publish := conf.GetPublish()["demo-dist"]
+	if publish == nil {
+		t.Fatal("missing publish target demo-dist")
+	}
+	wantPublishManifests := []string{"web", "bldr-demo", "bldr-demo-release"}
+	gotPublishManifests := publish.GetManifests()
+	if len(gotPublishManifests) != len(wantPublishManifests) {
+		t.Fatalf("publish manifests: got %v, want %v", gotPublishManifests, wantPublishManifests)
+	}
+	for i, want := range wantPublishManifests {
+		if gotPublishManifests[i] != want {
+			t.Fatalf("publish manifests: got %v, want %v", gotPublishManifests, wantPublishManifests)
+		}
+		if conf.GetManifests()[want] == nil {
+			t.Fatalf("publish manifest %q is not declared", want)
+		}
+	}
 }

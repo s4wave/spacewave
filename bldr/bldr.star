@@ -134,7 +134,7 @@ remote("demo-dist",
 
 publish("demo-dist",
     remotes=["demo-dist"],
-    manifests=["web", "bldr-demo", "bldr-demo-dist"],
+    manifests=["web", "bldr-demo", "bldr-demo-release"],
     storage={
         "timestamp": "2023-10-18T18:38:40Z",
         "transformConf": {
