@@ -6,6 +6,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -193,7 +194,7 @@ func TestReleaseMetadataRoutineRetriesUntilReleaseWorldMounted(t *testing.T) {
 	}
 }
 
-func TestRefreshReleaseMetadataStatusClearsPluginOnlyUpdateState(t *testing.T) {
+func TestRefreshReleaseMetadataStatusErrorsWhenNativeManifestMissing(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	ws := buildReleaseMetadataTestWorld(t, ctx, "stable", "js")
@@ -214,11 +215,20 @@ func TestRefreshReleaseMetadataStatusClearsPluginOnlyUpdateState(t *testing.T) {
 			ErrorMessage: "previous",
 		},
 	})
-	if err := ctrl.refreshCurrentReleaseMetadataStatus(ctx); err != nil {
-		t.Fatalf("refreshCurrentReleaseMetadataStatus() error = %v", err)
+	err = ctrl.refreshCurrentReleaseMetadataStatus(ctx)
+	if err == nil {
+		t.Fatal("expected missing native manifest error")
 	}
-	if state := ctrl.launcherInfoCtr.GetValue().GetUpdateState(); state != nil {
-		t.Fatalf("update state = %+v, want nil for plugin-only release", state)
+	want := "release metadata does not support platform " + nativeTestPlatformID()
+	if !strings.Contains(err.Error(), want) {
+		t.Fatalf("error = %q, want %q", err.Error(), want)
+	}
+	state := ctrl.launcherInfoCtr.GetValue().GetUpdateState()
+	if state.GetPhase() != spacewave_launcher.UpdatePhase_UpdatePhase_ERROR {
+		t.Fatalf("phase = %v, want ERROR", state.GetPhase())
+	}
+	if !strings.Contains(state.GetErrorMessage(), want) {
+		t.Fatalf("error message = %q, want %q", state.GetErrorMessage(), want)
 	}
 }
 

@@ -50,10 +50,6 @@ func (c *Controller) refreshReleaseMetadataStatus(ctx context.Context, distConf 
 		return err
 	}
 	manifestRef := selectReleaseManifestRef(metadata, platformID)
-	if manifestRef == nil {
-		c.clearUpdateState()
-		return nil
-	}
 	if err := c.stageReleaseManifestUpdate(ctx, metadata, platformID, manifestRef); err != nil {
 		c.setUpdateError(err)
 		return err
