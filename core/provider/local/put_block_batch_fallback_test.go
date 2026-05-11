@@ -82,6 +82,7 @@ func TestVolumeBlockStoreOverlayUsesBatchPutBlock(t *testing.T) {
 	upperBlocks := &countingBatchStore{}
 	overlay := block.NewOverlay(
 		ctx,
+		nil,
 		baseVol,
 		upperBlocks,
 		block.OverlayMode_UPPER_READ_CACHE,
@@ -147,6 +148,7 @@ func TestGCStoreOpsPreservesWrappedLowerBatchPath(t *testing.T) {
 	upperBlocks := &countingBatchStore{}
 	overlay := block.NewOverlay(
 		ctx,
+		nil,
 		baseVol,
 		upperBlocks,
 		block.OverlayMode_UPPER_READ_CACHE,

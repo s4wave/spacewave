@@ -614,7 +614,7 @@ func TestNewCloudOverlayDoesNotDirtyLowerReads(t *testing.T) {
 		},
 	}
 
-	overlay := newCloudOverlay(context.Background(), lower, dirtyUpper)
+	overlay := newCloudOverlay(context.Background(), nil, lower, dirtyUpper)
 	got, found, err := overlay.GetBlock(context.Background(), ref)
 	if err != nil {
 		t.Fatalf("GetBlock returned error: %v", err)

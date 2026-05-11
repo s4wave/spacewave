@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/sirupsen/logrus"
 )
 
 // OverlayBlock is a block store overlaying two other block stores.
@@ -15,13 +16,14 @@ type OverlayBlock = block.StoreOverlay
 // ctx is used for writeback requests
 func NewOverlayBlock(
 	ctx context.Context,
+	le *logrus.Entry,
 	lower,
 	upper block.StoreOps,
 	mode block.OverlayMode,
 	writebackTimeout time.Duration,
 	writebackPutOpts *block.PutOpts,
 ) *OverlayBlock {
-	return block.NewOverlay(ctx, lower, upper, mode, writebackTimeout, writebackPutOpts)
+	return block.NewOverlay(ctx, le, lower, upper, mode, writebackTimeout, writebackPutOpts)
 }
 
 // _ is a type assertion

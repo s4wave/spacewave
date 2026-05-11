@@ -13,6 +13,7 @@ import (
 // ctx is used for writeback requests
 type StoreOverlay struct {
 	ctx              context.Context
+	le               *logrus.Entry
 	lower, upper     StoreOps
 	mode             OverlayMode
 	writebackTimeout time.Duration
@@ -24,6 +25,7 @@ type StoreOverlay struct {
 // ctx is used for writeback requests
 func NewOverlay(
 	ctx context.Context,
+	le *logrus.Entry,
 	lower,
 	upper StoreOps,
 	mode OverlayMode,
@@ -32,6 +34,7 @@ func NewOverlay(
 ) *StoreOverlay {
 	return &StoreOverlay{
 		ctx:   ctx,
+		le:    le,
 		lower: lower,
 		upper: upper,
 		mode:  mode,
@@ -120,7 +123,7 @@ func (o *StoreOverlay) GetBlock(ctx context.Context, ref *BlockRef) ([]byte, boo
 				putOpts.ForceBlockRef = ref.Clone()
 
 				if _, _, err := writeBack.PutBlock(writebackCtx, data, putOpts); err != nil {
-					logrus.WithError(err).Debug("block overlay writeback failed")
+					o.le.WithError(err).Debug("block overlay writeback failed")
 				}
 			}()
 		}
@@ -258,6 +261,9 @@ func (o *StoreOverlay) PutBlock(ctx context.Context, data []byte, opts *PutOpts)
 			return nil, false, err
 		}
 		lowerOpts := opts.CloneVT()
+		if lowerOpts == nil {
+			lowerOpts = &PutOpts{}
+		}
 		lowerOpts.ForceBlockRef = ref
 		_, lowerExisted, err := s2.PutBlock(ctx, data, lowerOpts)
 		if err != nil {
@@ -342,6 +348,9 @@ func (o *StoreOverlay) PutBlockBackground(ctx context.Context, data []byte, opts
 			return nil, false, err
 		}
 		lowerOpts := opts.CloneVT()
+		if lowerOpts == nil {
+			lowerOpts = &PutOpts{}
+		}
 		lowerOpts.ForceBlockRef = ref
 		_, lowerExisted, err := s2.PutBlockBackground(ctx, data, lowerOpts)
 		if err != nil {

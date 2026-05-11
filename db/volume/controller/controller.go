@@ -135,6 +135,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 				v,
 				block.NewOverlay(
 					ctx,
+					le,
 					v,
 					blkStore,
 					overlayMode,

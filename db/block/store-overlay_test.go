@@ -21,6 +21,13 @@ type overlayBatchTestStore struct {
 	getData          []byte
 }
 
+type overlayNilOptsTestStore struct {
+	NopStoreOps
+
+	putOpts        []*PutOpts
+	backgroundOpts []*PutOpts
+}
+
 func (s *overlayBatchTestStore) GetHashType() hash.HashType {
 	return hash.HashType_HashType_BLAKE3
 }
@@ -69,11 +76,27 @@ func (s *overlayBatchTestStore) GetBlockExistsBatch(_ context.Context, refs []*B
 	return make([]bool, len(refs)), nil
 }
 
+func (s *overlayNilOptsTestStore) GetHashType() hash.HashType {
+	return hash.HashType_HashType_BLAKE3
+}
+
+func (s *overlayNilOptsTestStore) PutBlock(_ context.Context, data []byte, opts *PutOpts) (*BlockRef, bool, error) {
+	s.putOpts = append(s.putOpts, opts)
+	ref, err := BuildBlockRef(data, opts)
+	return ref, false, err
+}
+
+func (s *overlayNilOptsTestStore) PutBlockBackground(_ context.Context, data []byte, opts *PutOpts) (*BlockRef, bool, error) {
+	s.backgroundOpts = append(s.backgroundOpts, opts)
+	ref, err := BuildBlockRef(data, opts)
+	return ref, false, err
+}
+
 func TestStoreOverlayPutBlockBatchForwards(t *testing.T) {
 	ctx := context.Background()
 	lower := &overlayBatchTestStore{}
 	upper := &overlayBatchTestStore{}
-	overlay := NewOverlay(ctx, lower, upper, OverlayMode_UPPER_CACHE, 0, nil)
+	overlay := NewOverlay(ctx, nil, lower, upper, OverlayMode_UPPER_CACHE, 0, nil)
 	ref := &BlockRef{Hash: hash.NewHash(hash.HashType_HashType_BLAKE3, []byte{1})}
 	entries := []*PutBatchEntry{{Ref: ref, Data: []byte("hello")}}
 
@@ -89,11 +112,32 @@ func TestStoreOverlayPutBlockBatchForwards(t *testing.T) {
 	}
 }
 
+func TestStoreOverlayCachePutHandlesNilOpts(t *testing.T) {
+	ctx := context.Background()
+	lower := &overlayNilOptsTestStore{}
+	upper := &overlayNilOptsTestStore{}
+	overlay := NewOverlay(ctx, nil, lower, upper, OverlayMode_UPPER_CACHE, 0, nil)
+
+	ref, _, err := overlay.PutBlock(ctx, []byte("hello"), nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(lower.putOpts) != 1 || lower.putOpts[0] != nil {
+		t.Fatalf("expected primary put to receive original nil opts")
+	}
+	if len(upper.putOpts) != 1 {
+		t.Fatalf("expected secondary put to receive forced-ref opts")
+	}
+	if !upper.putOpts[0].GetForceBlockRef().EqualsRef(ref) {
+		t.Fatalf("expected secondary put force ref to match primary ref")
+	}
+}
+
 func TestStoreOverlayPutBlockBackgroundForwards(t *testing.T) {
 	ctx := context.Background()
 	lower := &overlayBatchTestStore{}
 	upper := &overlayBatchTestStore{}
-	overlay := NewOverlay(ctx, lower, upper, OverlayMode_UPPER_ONLY, 0, nil)
+	overlay := NewOverlay(ctx, nil, lower, upper, OverlayMode_UPPER_ONLY, 0, nil)
 	ref := &BlockRef{Hash: hash.NewHash(hash.HashType_HashType_BLAKE3, []byte{2})}
 
 	if _, _, err := overlay.PutBlockBackground(ctx, []byte("hello"), &PutOpts{ForceBlockRef: ref}); err != nil {
@@ -108,11 +152,32 @@ func TestStoreOverlayPutBlockBackgroundForwards(t *testing.T) {
 	}
 }
 
+func TestStoreOverlayCacheBackgroundPutHandlesNilOpts(t *testing.T) {
+	ctx := context.Background()
+	lower := &overlayNilOptsTestStore{}
+	upper := &overlayNilOptsTestStore{}
+	overlay := NewOverlay(ctx, nil, lower, upper, OverlayMode_UPPER_CACHE, 0, nil)
+
+	ref, _, err := overlay.PutBlockBackground(ctx, []byte("hello"), nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(lower.backgroundOpts) != 1 || lower.backgroundOpts[0] != nil {
+		t.Fatalf("expected primary background put to receive original nil opts")
+	}
+	if len(upper.backgroundOpts) != 1 {
+		t.Fatalf("expected secondary background put to receive forced-ref opts")
+	}
+	if !upper.backgroundOpts[0].GetForceBlockRef().EqualsRef(ref) {
+		t.Fatalf("expected secondary background put force ref to match primary ref")
+	}
+}
+
 func TestStoreOverlayUpperReadbackCache(t *testing.T) {
 	ctx := context.Background()
 	lower := &overlayBatchTestStore{getData: []byte("from-lower")}
 	upper := &overlayBatchTestStore{}
-	overlay := NewOverlay(ctx, lower, upper, OverlayMode_UPPER_READBACK_CACHE, 0, nil)
+	overlay := NewOverlay(ctx, nil, lower, upper, OverlayMode_UPPER_READBACK_CACHE, 0, nil)
 	ref := &BlockRef{Hash: hash.NewHash(hash.HashType_HashType_BLAKE3, []byte{4})}
 
 	data, found, err := overlay.GetBlock(ctx, ref)
@@ -183,7 +248,7 @@ func TestStoreOverlayGetBlockExistsBatchForwards(t *testing.T) {
 	ctx := context.Background()
 	lower := &overlayBatchTestStore{}
 	upper := &overlayBatchTestStore{}
-	overlay := NewOverlay(ctx, lower, upper, OverlayMode_UPPER_READ_CACHE, 0, nil)
+	overlay := NewOverlay(ctx, nil, lower, upper, OverlayMode_UPPER_READ_CACHE, 0, nil)
 	ref := &BlockRef{Hash: hash.NewHash(hash.HashType_HashType_BLAKE3, []byte{3})}
 
 	if _, err := overlay.GetBlockExistsBatch(ctx, []*BlockRef{ref}); err != nil {

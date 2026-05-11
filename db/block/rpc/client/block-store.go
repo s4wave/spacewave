@@ -59,7 +59,14 @@ func (v *BlockStore) GetSupportedFeatures() block.StoreFeature {
 			v.supportedFeatures = block.StoreFeature_STORE_FEATURE_UNKNOWN
 			return
 		}
-		v.supportedFeatures = resp.GetFeatures()
+		features := resp.GetFeatures()
+		if v.readOnly {
+			features &^= block.StoreFeatureNativeBatchPut |
+				block.StoreFeatureNativeBackgroundPut |
+				block.StoreFeatureNativeFlush |
+				block.StoreFeatureNativeDeferFlush
+		}
+		v.supportedFeatures = features
 	})
 	return v.supportedFeatures
 }

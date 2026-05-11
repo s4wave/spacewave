@@ -57,7 +57,7 @@ func NewBlockStoreBuilder(le *logrus.Entry, b bus.Bus, conf *Config) block_store
 		}
 
 		// Construct the overlay
-		overlayBlock := NewOverlayBlock(ctx, lowerBlockStore, upperBlockStore, conf.GetOverlayMode(), writebackTimeout, conf.GetWritebackPutOpts())
+		overlayBlock := NewOverlayBlock(ctx, le, lowerBlockStore, upperBlockStore, conf.GetOverlayMode(), writebackTimeout, conf.GetWritebackPutOpts())
 		store := block_store.NewStore(conf.GetBlockStoreId(), overlayBlock)
 		return store, func() {
 			upperBlockStoreRef.Release()

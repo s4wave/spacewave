@@ -27,6 +27,7 @@ import (
 	"github.com/s4wave/spacewave/db/volume"
 	kvtx_volume "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	"github.com/s4wave/spacewave/net/hash"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -250,7 +251,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	// Build overlay: upper-first cache lookups with lower reads handled by the
 	// packfile store's own non-dirty persistence path.
 	localID := BlockStoreID(accountID, t.id)
-	overlay := newCloudOverlay(ctx, lower, dirtyUpper)
+	overlay := newCloudOverlay(ctx, le, lower, dirtyUpper)
 
 	// Build the block store handle.
 	bstoreHandle := &BlockStore{store: block_store.NewStore(localID, overlay)}
@@ -343,8 +344,8 @@ func (t *bstoreTracker) getRefGraph() packfile_order.RefGraph {
 }
 
 // newCloudOverlay builds the cloud block-store overlay.
-func newCloudOverlay(ctx context.Context, lower, upper block.StoreOps) block.StoreOps {
-	return block.NewOverlay(ctx, lower, upper, block.OverlayMode_UPPER_WRITE_CACHE, 0, nil)
+func newCloudOverlay(ctx context.Context, le *logrus.Entry, lower, upper block.StoreOps) block.StoreOps {
+	return block.NewOverlay(ctx, le, lower, upper, block.OverlayMode_UPPER_WRITE_CACHE, 0, nil)
 }
 
 // buildBucketConf builds the bucket config for the block store cache.
