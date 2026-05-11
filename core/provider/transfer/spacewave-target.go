@@ -38,8 +38,10 @@ func (t *SpacewaveTransferTarget) GetAccount() *provider_spacewave.ProviderAccou
 // Creates the block store if it does not exist.
 func (t *SpacewaveTransferTarget) GetBlockStore(ctx context.Context, ref *sobject.SharedObjectRef) (block.StoreOps, func(), error) {
 	blockStoreID := ref.GetBlockStoreId()
-	if _, err := t.account.CreateBlockStore(ctx, blockStoreID); err != nil {
-		_ = err
+	if _, err := t.account.CreateBlockStore(ctx, blockStoreID); err != nil &&
+		!errors.Is(err, bstore.ErrBlockStoreExists) &&
+		!provider_spacewave.IsCloudErrorStatus(err, 409) {
+		return nil, nil, err
 	}
 
 	bsRef := &bstore.BlockStoreRef{

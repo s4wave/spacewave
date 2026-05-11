@@ -252,7 +252,7 @@ func (r *SessionResource) StartTransfer(
 	r.transferMgr.mtx.Unlock()
 	rc.SetContext(r.ctx, false)
 	for {
-		state := xfer.GetState()
+		state, ch := xfer.WatchState()
 		if state.GetPhase() != provider_transfer.TransferPhase_TransferPhase_IDLE {
 			break
 		}
@@ -260,7 +260,7 @@ func (r *SessionResource) StartTransfer(
 		case <-ctx.Done():
 			rc.ClearContext()
 			return nil, ctx.Err()
-		case <-xfer.WaitState():
+		case <-ch:
 		}
 	}
 
@@ -284,8 +284,7 @@ func (r *SessionResource) WatchTransferProgress(
 
 	var prev *provider_transfer.TransferState
 	for {
-		ch := xfer.WaitState()
-		state := xfer.GetState()
+		state, ch := xfer.WatchState()
 
 		if prev == nil || !state.EqualVT(prev) {
 			if err := strm.Send(&s4wave_session.WatchTransferProgressResponse{

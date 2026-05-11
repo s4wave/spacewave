@@ -210,8 +210,7 @@ func TestStartTransfer(t *testing.T) {
 		t.Fatal("expected active transfer")
 	}
 	for {
-		ch := xfer.WaitState()
-		state := xfer.GetState()
+		state, ch := xfer.WatchState()
 		if state.GetPhase() == provider_transfer.TransferPhase_TransferPhase_COMPLETE {
 			break
 		}
@@ -356,8 +355,7 @@ func TestLocalToCloudMigrate(t *testing.T) {
 		t.Fatal("expected active transfer")
 	}
 	for {
-		ch := xfer.WaitState()
-		state := xfer.GetState()
+		state, ch := xfer.WatchState()
 		if state.GetPhase() == provider_transfer.TransferPhase_TransferPhase_COMPLETE {
 			break
 		}
@@ -414,8 +412,7 @@ func TestMirror(t *testing.T) {
 		t.Fatal("expected active transfer")
 	}
 	for {
-		ch := xfer.WaitState()
-		state := xfer.GetState()
+		state, ch := xfer.WatchState()
 		if state.GetPhase() == provider_transfer.TransferPhase_TransferPhase_COMPLETE {
 			break
 		}

@@ -44,9 +44,8 @@ func (t *LocalTransferTarget) GetAccount() *provider_local.ProviderAccount {
 // Creates the block store bucket if it does not exist.
 func (t *LocalTransferTarget) GetBlockStore(ctx context.Context, ref *sobject.SharedObjectRef) (block.StoreOps, func(), error) {
 	blockStoreID := ref.GetBlockStoreId()
-	if _, err := t.account.CreateBlockStore(ctx, blockStoreID); err != nil {
-		// Ignore if already exists, CreateBlockStore is idempotent for local.
-		_ = err
+	if _, err := t.account.CreateBlockStore(ctx, blockStoreID); err != nil && !errors.Is(err, bstore.ErrBlockStoreExists) {
+		return nil, nil, err
 	}
 
 	bsRef := &bstore.BlockStoreRef{

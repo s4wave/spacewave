@@ -69,18 +69,20 @@ func (t *Transfer) GetState() *TransferState {
 	return state
 }
 
+// WatchState returns a state snapshot and wait channel from the same broadcast lock.
+func (t *Transfer) WatchState() (*TransferState, <-chan struct{}) {
+	var state *TransferState
+	var ch <-chan struct{}
+	t.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		state = t.state.CloneVT()
+		ch = getWaitCh()
+	})
+	return state, ch
+}
+
 // Fail marks the transfer failed and returns the failure error.
 func (t *Transfer) Fail(err error) error {
 	return t.fail(err)
-}
-
-// WaitState returns the wait channel for state changes.
-func (t *Transfer) WaitState() <-chan struct{} {
-	var ch <-chan struct{}
-	t.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-		ch = getWaitCh()
-	})
-	return ch
 }
 
 // setPhase updates the overall phase and broadcasts.

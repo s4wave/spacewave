@@ -2,6 +2,7 @@ package provider_transfer_test
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 
@@ -54,6 +55,42 @@ func (t *orderTestTarget) AddSharedObject(_ context.Context, ref *sobject.Shared
 func (t *orderTestTarget) WriteSharedObjectState(_ context.Context, sharedObjectID string, _ *sobject.SOState) error {
 	t.calls = append(t.calls, "write:"+sharedObjectID)
 	return nil
+}
+
+func TestTransferWatchStatePairsSnapshotAndWaitChannel(t *testing.T) {
+	xfer := provider_transfer.NewTransfer(
+		nil,
+		provider_transfer.TransferMode_TransferMode_MERGE,
+		nil,
+		nil,
+		1,
+		2,
+		nil,
+		nil,
+		nil,
+		nil,
+	)
+
+	state, ch := xfer.WatchState()
+	if state.GetPhase() != provider_transfer.TransferPhase_TransferPhase_IDLE {
+		t.Fatalf("initial phase = %s, want IDLE", state.GetPhase())
+	}
+	if err := xfer.Fail(errors.New("stop")); err == nil {
+		t.Fatal("expected failure error")
+	}
+	select {
+	case <-ch:
+	default:
+		t.Fatal("watch channel did not close after state change")
+	}
+
+	state, _ = xfer.WatchState()
+	if state.GetPhase() != provider_transfer.TransferPhase_TransferPhase_FAILED {
+		t.Fatalf("final phase = %s, want FAILED", state.GetPhase())
+	}
+	if state.GetErrorMessage() != "stop" {
+		t.Fatalf("error message = %q, want stop", state.GetErrorMessage())
+	}
 }
 
 // setupLocalProvider starts a local provider on the testbed.
