@@ -241,7 +241,7 @@ describe('plugin-host-quickjs asset helpers', () => {
     ])
   })
 
-  it('selects lazy or bounded backend asset loading from sync XHR availability', () => {
+  it('selects bounded backend asset loading independent of sync XHR availability', () => {
     Object.defineProperty(globalThis, 'XMLHttpRequest', {
       value: undefined,
       configurable: true,
@@ -256,7 +256,7 @@ describe('plugin-host-quickjs asset helpers', () => {
       writable: true,
     })
     expect(canUseSynchronousBackendAssetFetch()).toBe(true)
-    expect(selectBackendAssetLoadingMode()).toBe('lazy-http')
+    expect(selectBackendAssetLoadingMode()).toBe('bounded-preload')
   })
 
   it('preloads backend assets only for bounded fallback mode', () => {

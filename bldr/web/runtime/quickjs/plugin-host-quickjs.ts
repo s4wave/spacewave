@@ -212,7 +212,7 @@ export function canUseSynchronousBackendAssetFetch(): boolean {
 }
 
 export function selectBackendAssetLoadingMode(): BackendAssetLoadingMode {
-  return canUseSynchronousBackendAssetFetch() ? 'lazy-http' : 'bounded-preload'
+  return 'bounded-preload'
 }
 
 export function shouldPreloadBackendAssets(
