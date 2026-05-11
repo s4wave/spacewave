@@ -13,6 +13,8 @@ import {
   ApplyWorldOpResponse,
   BuildStorageCursorRequest,
   BuildStorageCursorResponse,
+  CloseGraphPathQueryRequest,
+  CloseGraphPathQueryResponse,
   CloseRequest,
   CloseResponse,
   CommitRequest,
@@ -33,6 +35,8 @@ import {
   GetEngineInfoResponse,
   GetKeyRequest,
   GetKeyResponse,
+  GetObjectMetadataBatchRequest,
+  GetObjectMetadataBatchResponse,
   GetObjectRequest,
   GetObjectResponse,
   GetReadOnlyRequest,
@@ -49,12 +53,18 @@ import {
   KeyResponse,
   ListObjectsWithTypeRequest,
   ListObjectsWithTypeResponse,
+  LookupGraphQuadsBatchRequest,
+  LookupGraphQuadsBatchResponse,
   LookupGraphQuadsRequest,
   LookupGraphQuadsResponse,
   NewTransactionRequest,
   NewTransactionResponse,
+  NextGraphPathQueryRequest,
+  NextGraphPathQueryResponse,
   NextRequest,
   NextResponse,
+  QueryGraphPathRequest,
+  QueryGraphPathResponse,
   RenameObjectRequest,
   RenameObjectResponse,
   SeekRequest,
@@ -433,12 +443,39 @@ export const WorldStateResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * @generated from rpc s4wave.world.WorldStateResourceService.LookupGraphQuadsBatch
+     */
+    LookupGraphQuadsBatch: {
+      name: 'LookupGraphQuadsBatch',
+      I: LookupGraphQuadsBatchRequest,
+      O: LookupGraphQuadsBatchResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
      * @generated from rpc s4wave.world.WorldStateResourceService.ListObjectsWithType
      */
     ListObjectsWithType: {
       name: 'ListObjectsWithType',
       I: ListObjectsWithTypeRequest,
       O: ListObjectsWithTypeResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.world.WorldStateResourceService.GetObjectMetadataBatch
+     */
+    GetObjectMetadataBatch: {
+      name: 'GetObjectMetadataBatch',
+      I: GetObjectMetadataBatchRequest,
+      O: GetObjectMetadataBatchResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.world.WorldStateResourceService.QueryGraphPath
+     */
+    QueryGraphPath: {
+      name: 'QueryGraphPath',
+      I: QueryGraphPathRequest,
+      O: QueryGraphPathResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -571,12 +608,36 @@ export interface WorldStateResourceService {
   ): Promise<LookupGraphQuadsResponse>
 
   /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.LookupGraphQuadsBatch
+   */
+  LookupGraphQuadsBatch(
+    request: LookupGraphQuadsBatchRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<LookupGraphQuadsBatchResponse>
+
+  /**
    * @generated from rpc s4wave.world.WorldStateResourceService.ListObjectsWithType
    */
   ListObjectsWithType(
     request: ListObjectsWithTypeRequest,
     abortSignal?: AbortSignal,
   ): Promise<ListObjectsWithTypeResponse>
+
+  /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.GetObjectMetadataBatch
+   */
+  GetObjectMetadataBatch(
+    request: GetObjectMetadataBatchRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetObjectMetadataBatchResponse>
+
+  /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.QueryGraphPath
+   */
+  QueryGraphPath(
+    request: QueryGraphPathRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<QueryGraphPathResponse>
 
   /**
    * @generated from rpc s4wave.world.WorldStateResourceService.DeleteGraphObject
@@ -617,7 +678,10 @@ export class WorldStateResourceServiceClient implements WorldStateResourceServic
     this.SetGraphQuad = this.SetGraphQuad.bind(this)
     this.DeleteGraphQuad = this.DeleteGraphQuad.bind(this)
     this.LookupGraphQuads = this.LookupGraphQuads.bind(this)
+    this.LookupGraphQuadsBatch = this.LookupGraphQuadsBatch.bind(this)
     this.ListObjectsWithType = this.ListObjectsWithType.bind(this)
+    this.GetObjectMetadataBatch = this.GetObjectMetadataBatch.bind(this)
+    this.QueryGraphPath = this.QueryGraphPath.bind(this)
     this.DeleteGraphObject = this.DeleteGraphObject.bind(this)
     this.ApplyWorldOp = this.ApplyWorldOp.bind(this)
   }
@@ -843,6 +907,23 @@ export class WorldStateResourceServiceClient implements WorldStateResourceServic
   }
 
   /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.LookupGraphQuadsBatch
+   */
+  async LookupGraphQuadsBatch(
+    request: LookupGraphQuadsBatchRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<LookupGraphQuadsBatchResponse> {
+    const requestMsg = LookupGraphQuadsBatchRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      WorldStateResourceServiceDefinition.methods.LookupGraphQuadsBatch.name,
+      LookupGraphQuadsBatchRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return LookupGraphQuadsBatchResponse.fromBinary(result)
+  }
+
+  /**
    * @generated from rpc s4wave.world.WorldStateResourceService.ListObjectsWithType
    */
   async ListObjectsWithType(
@@ -857,6 +938,40 @@ export class WorldStateResourceServiceClient implements WorldStateResourceServic
       abortSignal || undefined,
     )
     return ListObjectsWithTypeResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.GetObjectMetadataBatch
+   */
+  async GetObjectMetadataBatch(
+    request: GetObjectMetadataBatchRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetObjectMetadataBatchResponse> {
+    const requestMsg = GetObjectMetadataBatchRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      WorldStateResourceServiceDefinition.methods.GetObjectMetadataBatch.name,
+      GetObjectMetadataBatchRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return GetObjectMetadataBatchResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.QueryGraphPath
+   */
+  async QueryGraphPath(
+    request: QueryGraphPathRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<QueryGraphPathResponse> {
+    const requestMsg = QueryGraphPathRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      WorldStateResourceServiceDefinition.methods.QueryGraphPath.name,
+      QueryGraphPathRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return QueryGraphPathResponse.fromBinary(result)
   }
 
   /**
@@ -1265,6 +1380,100 @@ export class ObjectIteratorResourceServiceClient implements ObjectIteratorResour
       abortSignal || undefined,
     )
     return CloseResponse.fromBinary(result)
+  }
+}
+/**
+ * @generated from service s4wave.world.GraphPathQueryResourceService
+ */
+export const GraphPathQueryResourceServiceDefinition = {
+  typeName: 's4wave.world.GraphPathQueryResourceService',
+  methods: {
+    /**
+     * @generated from rpc s4wave.world.GraphPathQueryResourceService.Next
+     */
+    Next: {
+      name: 'Next',
+      I: NextGraphPathQueryRequest,
+      O: NextGraphPathQueryResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.world.GraphPathQueryResourceService.Close
+     */
+    Close: {
+      name: 'Close',
+      I: CloseGraphPathQueryRequest,
+      O: CloseGraphPathQueryResponse,
+      kind: MethodKind.Unary,
+    },
+  },
+} as const
+
+/**
+ * @generated from service s4wave.world.GraphPathQueryResourceService
+ */
+export interface GraphPathQueryResourceService {
+  /**
+   * @generated from rpc s4wave.world.GraphPathQueryResourceService.Next
+   */
+  Next(
+    request: NextGraphPathQueryRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<NextGraphPathQueryResponse>
+
+  /**
+   * @generated from rpc s4wave.world.GraphPathQueryResourceService.Close
+   */
+  Close(
+    request: CloseGraphPathQueryRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CloseGraphPathQueryResponse>
+}
+
+export const GraphPathQueryResourceServiceServiceName =
+  GraphPathQueryResourceServiceDefinition.typeName
+
+export class GraphPathQueryResourceServiceClient implements GraphPathQueryResourceService {
+  private readonly rpc: ProtoRpc
+  private readonly service: string
+  constructor(rpc: ProtoRpc, opts?: { service?: string }) {
+    this.service = opts?.service || GraphPathQueryResourceServiceServiceName
+    this.rpc = rpc
+    this.Next = this.Next.bind(this)
+    this.Close = this.Close.bind(this)
+  }
+  /**
+   * @generated from rpc s4wave.world.GraphPathQueryResourceService.Next
+   */
+  async Next(
+    request: NextGraphPathQueryRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<NextGraphPathQueryResponse> {
+    const requestMsg = NextGraphPathQueryRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      GraphPathQueryResourceServiceDefinition.methods.Next.name,
+      NextGraphPathQueryRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return NextGraphPathQueryResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.world.GraphPathQueryResourceService.Close
+   */
+  async Close(
+    request: CloseGraphPathQueryRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CloseGraphPathQueryResponse> {
+    const requestMsg = CloseGraphPathQueryRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      GraphPathQueryResourceServiceDefinition.methods.Close.name,
+      CloseGraphPathQueryRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return CloseGraphPathQueryResponse.fromBinary(result)
   }
 }
 /**

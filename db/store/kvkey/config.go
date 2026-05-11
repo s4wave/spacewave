@@ -9,9 +9,6 @@ func DefaultConfig() *Config {
 		PeerPrivKey:        []byte("priv"),
 		BlockPrefix:        []byte("b/"), // short for "blocks"
 		ObjectStorePrefix:  []byte("objs/"),
-		MqueuePrefix:       []byte("mq/q/"),
-		MqueueMetaPrefix:   []byte("mq/m/"),
-		BucketMqueuePrefix: []byte("bkt/"),
 	}
 }
 

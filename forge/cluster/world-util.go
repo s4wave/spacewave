@@ -3,13 +3,14 @@ package forge_cluster
 import (
 	"context"
 
-	"github.com/aperturerobotics/cayley"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	forge_job "github.com/s4wave/spacewave/forge/job"
 	forge_worker "github.com/s4wave/spacewave/forge/worker"
 )
+
+const clusterGraphPathLimit uint32 = 1_000_000
 
 // LookupCluster looks up a cluster in the world.
 func LookupCluster(ctx context.Context, ws world.WorldState, objKey string) (*Cluster, world.ObjectState, error) {
@@ -23,13 +24,13 @@ func CheckClusterType(ctx context.Context, ws world.WorldState, objKey string) e
 
 // ListClusterJobs lists all Job object keys that are linked to by the Cluster.
 func ListClusterJobs(ctx context.Context, w world.WorldState, clusterKeys ...string) ([]string, error) {
-	return world.CollectPathWithKeys(
+	return world.CollectGraphPathStepWithKeys(
 		ctx,
 		w,
 		clusterKeys,
-		func(p *cayley.Path) (*cayley.Path, error) {
-			return p.Out(PredClusterToJob), nil
-		},
+		world.GraphPathDirectionOut,
+		PredClusterToJob.String(),
+		clusterGraphPathLimit,
 	)
 }
 
@@ -84,13 +85,13 @@ func EnsureClusterHasJob(ctx context.Context, w world.WorldState, clusterKey, jo
 
 // ListClusterWorkers lists all Worker object keys that are linked to by the Cluster.
 func ListClusterWorkers(ctx context.Context, w world.WorldState, clusterKeys ...string) ([]string, error) {
-	return world.CollectPathWithKeys(
+	return world.CollectGraphPathStepWithKeys(
 		ctx,
 		w,
 		clusterKeys,
-		func(p *cayley.Path) (*cayley.Path, error) {
-			return p.Out(PredClusterToWorker), nil
-		},
+		world.GraphPathDirectionOut,
+		PredClusterToWorker.String(),
+		clusterGraphPathLimit,
 	)
 }
 

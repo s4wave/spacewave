@@ -10,14 +10,12 @@ import (
 func NewConfig(
 	id string,
 	rev uint32,
-	recConfigs []*ReconcilerConfig,
 	lkConfig *LookupConfig,
 ) (*Config, error) {
 	c := &Config{
-		Id:          id,
-		Rev:         rev,
-		Reconcilers: recConfigs,
-		Lookup:      lkConfig,
+		Id:     id,
+		Rev:    rev,
+		Lookup: lkConfig,
 	}
 	if err := c.Validate(); err != nil {
 		return nil, err

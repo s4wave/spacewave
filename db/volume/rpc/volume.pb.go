@@ -181,7 +181,9 @@ func (m *WatchVolumeInfoResponse) CloneVT() *WatchVolumeInfoResponse {
 	}
 	r := new(WatchVolumeInfoResponse)
 	r.NotFound = m.NotFound
-	r.VolumeInfo = m.VolumeInfo.CloneVT()
+	if rhs := m.VolumeInfo; rhs != nil {
+		r.VolumeInfo = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -212,7 +214,9 @@ func (m *GetVolumeInfoResponse) CloneVT() *GetVolumeInfoResponse {
 		return (*GetVolumeInfoResponse)(nil)
 	}
 	r := new(GetVolumeInfoResponse)
-	r.VolumeInfo = m.VolumeInfo.CloneVT()
+	if rhs := m.VolumeInfo; rhs != nil {
+		r.VolumeInfo = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -274,7 +278,9 @@ func (m *GetStorageStatsResponse) CloneVT() *GetStorageStatsResponse {
 		return (*GetStorageStatsResponse)(nil)
 	}
 	r := new(GetStorageStatsResponse)
-	r.StorageStats = m.StorageStats.CloneVT()
+	if rhs := m.StorageStats; rhs != nil {
+		r.StorageStats = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

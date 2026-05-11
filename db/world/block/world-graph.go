@@ -54,6 +54,14 @@ func (t *WorldState) LookupGraphQuads(ctx context.Context, filter world.GraphQua
 	return quads, err
 }
 
+// QueryGraphPath executes a bounded graph traversal.
+func (t *WorldState) QueryGraphPath(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
+	if t.discarded.Load() {
+		return nil, tx.ErrDiscarded
+	}
+	return world.QueryGraphPathWithLookups(ctx, t, query)
+}
+
 // SetGraphQuad sets a quad in the graph store.
 // If already exists, returns nil.
 func (t *WorldState) SetGraphQuad(ctx context.Context, q world.GraphQuad) error {

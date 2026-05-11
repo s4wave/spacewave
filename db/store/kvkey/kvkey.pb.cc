@@ -46,15 +46,6 @@ inline constexpr Config::Impl_::Impl_(
             ::_pbi::ConstantInitialized()),
         object_store_prefix_(
             &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
-        mqueue_prefix_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
-        mqueue_meta_prefix_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
-        bucket_mqueue_prefix_(
-            &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()) {}
 
 template <typename>
@@ -87,23 +78,17 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::store::kvkey::Config, _impl_._has_bits_),
-        11, // hasbit index offset
+        8, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::store::kvkey::Config, _impl_.prefix_),
         PROTOBUF_FIELD_OFFSET(::store::kvkey::Config, _impl_.bucket_config_prefix_),
         PROTOBUF_FIELD_OFFSET(::store::kvkey::Config, _impl_.peer_priv_key_),
         PROTOBUF_FIELD_OFFSET(::store::kvkey::Config, _impl_.block_prefix_),
         PROTOBUF_FIELD_OFFSET(::store::kvkey::Config, _impl_.object_store_prefix_),
-        PROTOBUF_FIELD_OFFSET(::store::kvkey::Config, _impl_.mqueue_prefix_),
-        PROTOBUF_FIELD_OFFSET(::store::kvkey::Config, _impl_.mqueue_meta_prefix_),
-        PROTOBUF_FIELD_OFFSET(::store::kvkey::Config, _impl_.bucket_mqueue_prefix_),
         0,
         1,
         2,
         3,
         4,
-        5,
-        6,
-        7,
 };
 
 static const ::_pbi::MigrationSchema
@@ -116,19 +101,17 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
 const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fstore_2fkvkey_2fkvkey_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
     "\n6github.com/s4wave/spacewave/db/store/k"
-    "vkey/kvkey.proto\022\013store.kvkey\"\321\001\n\006Config"
+    "vkey/kvkey.proto\022\013store.kvkey\"\200\001\n\006Config"
     "\022\016\n\006prefix\030\001 \001(\014\022\034\n\024bucket_config_prefix"
     "\030\002 \001(\014\022\025\n\rpeer_priv_key\030\003 \001(\014\022\024\n\014block_p"
     "refix\030\005 \001(\014\022\033\n\023object_store_prefix\030\006 \001(\014"
-    "\022\025\n\rmqueue_prefix\030\007 \001(\014\022\032\n\022mqueue_meta_p"
-    "refix\030\010 \001(\014\022\034\n\024bucket_mqueue_prefix\030\t \001("
-    "\014b\006proto3"
+    "b\006proto3"
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fstore_2fkvkey_2fkvkey_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fstore_2fkvkey_2fkvkey_2eproto = {
     false,
     false,
-    289,
+    208,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fstore_2fkvkey_2fkvkey_2eproto,
     "github.com/s4wave/spacewave/db/store/kvkey/kvkey.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fstore_2fkvkey_2fkvkey_2eproto_once,
@@ -172,10 +155,7 @@ PROTOBUF_NDEBUG_INLINE Config::Impl_::Impl_(
         bucket_config_prefix_(arena, from.bucket_config_prefix_),
         peer_priv_key_(arena, from.peer_priv_key_),
         block_prefix_(arena, from.block_prefix_),
-        object_store_prefix_(arena, from.object_store_prefix_),
-        mqueue_prefix_(arena, from.mqueue_prefix_),
-        mqueue_meta_prefix_(arena, from.mqueue_meta_prefix_),
-        bucket_mqueue_prefix_(arena, from.bucket_mqueue_prefix_) {}
+        object_store_prefix_(arena, from.object_store_prefix_) {}
 
 Config::Config(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -201,10 +181,7 @@ PROTOBUF_NDEBUG_INLINE Config::Impl_::Impl_(
         bucket_config_prefix_(arena),
         peer_priv_key_(arena),
         block_prefix_(arena),
-        object_store_prefix_(arena),
-        mqueue_prefix_(arena),
-        mqueue_meta_prefix_(arena),
-        bucket_mqueue_prefix_(arena) {}
+        object_store_prefix_(arena) {}
 
 inline void Config::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -225,9 +202,6 @@ inline void Config::SharedDtor(MessageLite& self) {
   this_._impl_.peer_priv_key_.Destroy();
   this_._impl_.block_prefix_.Destroy();
   this_._impl_.object_store_prefix_.Destroy();
-  this_._impl_.mqueue_prefix_.Destroy();
-  this_._impl_.mqueue_meta_prefix_.Destroy();
-  this_._impl_.bucket_mqueue_prefix_.Destroy();
   this_._impl_.~Impl_();
 }
 
@@ -274,16 +248,16 @@ Config::GetClassData() const {
   return Config_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<4, 8, 0, 0, 2>
+const ::_pbi::TcParseTable<3, 5, 0, 0, 2>
 Config::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(Config, _impl_._has_bits_),
     0, // no _extensions_
-    9, 120,  // max_field_number, fast_idx_mask
+    6, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294966792,  // skipmap
+    4294967240,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    8,  // num_field_entries
+    5,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     Config_class_data_.base(),
@@ -315,23 +289,6 @@ Config::_table_ = {
     {::_pbi::TcParser::FastBS1,
      {50, 4, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.object_store_prefix_)}},
-    // bytes mqueue_prefix = 7;
-    {::_pbi::TcParser::FastBS1,
-     {58, 5, 0,
-      PROTOBUF_FIELD_OFFSET(Config, _impl_.mqueue_prefix_)}},
-    // bytes mqueue_meta_prefix = 8;
-    {::_pbi::TcParser::FastBS1,
-     {66, 6, 0,
-      PROTOBUF_FIELD_OFFSET(Config, _impl_.mqueue_meta_prefix_)}},
-    // bytes bucket_mqueue_prefix = 9;
-    {::_pbi::TcParser::FastBS1,
-     {74, 7, 0,
-      PROTOBUF_FIELD_OFFSET(Config, _impl_.bucket_mqueue_prefix_)}},
-    {::_pbi::TcParser::MiniParse, {}},
-    {::_pbi::TcParser::MiniParse, {}},
-    {::_pbi::TcParser::MiniParse, {}},
-    {::_pbi::TcParser::MiniParse, {}},
-    {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
@@ -346,12 +303,6 @@ Config::_table_ = {
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.block_prefix_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
     // bytes object_store_prefix = 6;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.object_store_prefix_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
-    // bytes mqueue_prefix = 7;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.mqueue_prefix_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
-    // bytes mqueue_meta_prefix = 8;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.mqueue_meta_prefix_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
-    // bytes bucket_mqueue_prefix = 9;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.bucket_mqueue_prefix_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
   }},
   // no aux_entries
   {{
@@ -365,7 +316,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       _impl_.prefix_.ClearNonDefaultToEmpty();
     }
@@ -380,15 +331,6 @@ PROTOBUF_NOINLINE void Config::Clear() {
     }
     if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       _impl_.object_store_prefix_.ClearNonDefaultToEmpty();
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
-      _impl_.mqueue_prefix_.ClearNonDefaultToEmpty();
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
-      _impl_.mqueue_meta_prefix_.ClearNonDefaultToEmpty();
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
-      _impl_.bucket_mqueue_prefix_.ClearNonDefaultToEmpty();
     }
   }
   _impl_._has_bits_.Clear();
@@ -454,30 +396,6 @@ PROTOBUF_NOINLINE void Config::Clear() {
     }
   }
 
-  // bytes mqueue_prefix = 7;
-  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
-    if (!this_._internal_mqueue_prefix().empty()) {
-      const ::std::string& _s = this_._internal_mqueue_prefix();
-      target = stream->WriteBytesMaybeAliased(7, _s, target);
-    }
-  }
-
-  // bytes mqueue_meta_prefix = 8;
-  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
-    if (!this_._internal_mqueue_meta_prefix().empty()) {
-      const ::std::string& _s = this_._internal_mqueue_meta_prefix();
-      target = stream->WriteBytesMaybeAliased(8, _s, target);
-    }
-  }
-
-  // bytes bucket_mqueue_prefix = 9;
-  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
-    if (!this_._internal_bucket_mqueue_prefix().empty()) {
-      const ::std::string& _s = this_._internal_bucket_mqueue_prefix();
-      target = stream->WriteBytesMaybeAliased(9, _s, target);
-    }
-  }
-
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -503,7 +421,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
     // bytes prefix = 1;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_prefix().empty()) {
@@ -539,27 +457,6 @@ PROTOBUF_NOINLINE void Config::Clear() {
                                         this_._internal_object_store_prefix());
       }
     }
-    // bytes mqueue_prefix = 7;
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
-      if (!this_._internal_mqueue_prefix().empty()) {
-        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
-                                        this_._internal_mqueue_prefix());
-      }
-    }
-    // bytes mqueue_meta_prefix = 8;
-    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
-      if (!this_._internal_mqueue_meta_prefix().empty()) {
-        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
-                                        this_._internal_mqueue_meta_prefix());
-      }
-    }
-    // bytes bucket_mqueue_prefix = 9;
-    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
-      if (!this_._internal_bucket_mqueue_prefix().empty()) {
-        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
-                                        this_._internal_bucket_mqueue_prefix());
-      }
-    }
   }
   return this_.MaybeComputeUnknownFieldsSize(total_size,
                                              &this_._impl_._cached_size_);
@@ -579,7 +476,7 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!from._internal_prefix().empty()) {
         _this->_internal_set_prefix(from._internal_prefix());
@@ -625,33 +522,6 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
         }
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
-      if (!from._internal_mqueue_prefix().empty()) {
-        _this->_internal_set_mqueue_prefix(from._internal_mqueue_prefix());
-      } else {
-        if (_this->_impl_.mqueue_prefix_.IsDefault()) {
-          _this->_internal_set_mqueue_prefix("");
-        }
-      }
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
-      if (!from._internal_mqueue_meta_prefix().empty()) {
-        _this->_internal_set_mqueue_meta_prefix(from._internal_mqueue_meta_prefix());
-      } else {
-        if (_this->_impl_.mqueue_meta_prefix_.IsDefault()) {
-          _this->_internal_set_mqueue_meta_prefix("");
-        }
-      }
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
-      if (!from._internal_bucket_mqueue_prefix().empty()) {
-        _this->_internal_set_bucket_mqueue_prefix(from._internal_bucket_mqueue_prefix());
-      } else {
-        if (_this->_impl_.bucket_mqueue_prefix_.IsDefault()) {
-          _this->_internal_set_bucket_mqueue_prefix("");
-        }
-      }
-    }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
   _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
@@ -677,9 +547,6 @@ void Config::InternalSwap(Config* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.peer_priv_key_, &other->_impl_.peer_priv_key_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.block_prefix_, &other->_impl_.block_prefix_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.object_store_prefix_, &other->_impl_.object_store_prefix_, arena);
-  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.mqueue_prefix_, &other->_impl_.mqueue_prefix_, arena);
-  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.mqueue_meta_prefix_, &other->_impl_.mqueue_meta_prefix_, arena);
-  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.bucket_mqueue_prefix_, &other->_impl_.bucket_mqueue_prefix_, arena);
 }
 
 ::google::protobuf::Metadata Config::GetMetadata() const {

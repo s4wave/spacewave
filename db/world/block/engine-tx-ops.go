@@ -144,6 +144,17 @@ func (e *EngineTx) LookupGraphQuads(ctx context.Context, filter world.GraphQuad,
 	return quads, err
 }
 
+// QueryGraphPath executes a bounded graph traversal.
+func (e *EngineTx) QueryGraphPath(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
+	var result *world.GraphPathQueryResult
+	err := e.performOp(func(tx *Tx) error {
+		var berr error
+		result, berr = tx.QueryGraphPath(ctx, query)
+		return berr
+	})
+	return result, err
+}
+
 // SetGraphQuad sets a quad in the graph store.
 // Subject: must be an existing object IRI: <object-key>
 // Predicate: a predicate string, e.x. IRI: <ref>

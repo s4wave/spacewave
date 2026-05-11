@@ -58,35 +58,6 @@ struct BucketOpArgsDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 BucketOpArgsDefaultTypeInternal _BucketOpArgs_default_instance_;
 
-inline constexpr ReconcilerConfig::Impl_::Impl_(
-    ::_pbi::ConstantInitialized) noexcept
-      : _cached_size_{0},
-        id_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
-        controller_{nullptr},
-        filter_put_{false} {}
-
-template <typename>
-PROTOBUF_CONSTEXPR ReconcilerConfig::ReconcilerConfig(::_pbi::ConstantInitialized)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(ReconcilerConfig_class_data_.base()),
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(),
-#endif  // PROTOBUF_CUSTOM_VTABLE
-      _impl_(::_pbi::ConstantInitialized()) {
-}
-struct ReconcilerConfigDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR ReconcilerConfigDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~ReconcilerConfigDefaultTypeInternal() {}
-  union {
-    ReconcilerConfig _instance;
-  };
-};
-
-PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ReconcilerConfigDefaultTypeInternal _ReconcilerConfig_default_instance_;
-
 inline constexpr LookupConfig::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -146,7 +117,6 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 inline constexpr Config::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
-        reconcilers_{},
         id_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
@@ -245,31 +215,20 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bucket::Config, _impl_._has_bits_),
-        8, // hasbit index offset
+        7, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::bucket::Config, _impl_.id_),
         PROTOBUF_FIELD_OFFSET(::bucket::Config, _impl_.rev_),
-        PROTOBUF_FIELD_OFFSET(::bucket::Config, _impl_.reconcilers_),
         PROTOBUF_FIELD_OFFSET(::bucket::Config, _impl_.put_opts_),
         PROTOBUF_FIELD_OFFSET(::bucket::Config, _impl_.lookup_),
-        1,
-        4,
         0,
-        2,
         3,
+        1,
+        2,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bucket::BucketInfo, _impl_._has_bits_),
         4, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::bucket::BucketInfo, _impl_.config_),
         0,
-        0x081, // bitmap
-        PROTOBUF_FIELD_OFFSET(::bucket::ReconcilerConfig, _impl_._has_bits_),
-        6, // hasbit index offset
-        PROTOBUF_FIELD_OFFSET(::bucket::ReconcilerConfig, _impl_.id_),
-        PROTOBUF_FIELD_OFFSET(::bucket::ReconcilerConfig, _impl_.controller_),
-        PROTOBUF_FIELD_OFFSET(::bucket::ReconcilerConfig, _impl_.filter_put_),
-        0,
-        1,
-        2,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bucket::LookupConfig, _impl_._has_bits_),
         5, // hasbit index offset
@@ -317,17 +276,15 @@ const ::uint32_t
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::bucket::Config)},
-        {13, sizeof(::bucket::BucketInfo)},
-        {18, sizeof(::bucket::ReconcilerConfig)},
-        {27, sizeof(::bucket::LookupConfig)},
-        {34, sizeof(::bucket::ApplyBucketConfigResult)},
-        {51, sizeof(::bucket::ObjectRef)},
-        {62, sizeof(::bucket::BucketOpArgs)},
+        {11, sizeof(::bucket::BucketInfo)},
+        {16, sizeof(::bucket::LookupConfig)},
+        {23, sizeof(::bucket::ApplyBucketConfigResult)},
+        {40, sizeof(::bucket::ObjectRef)},
+        {51, sizeof(::bucket::BucketOpArgs)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bucket::_Config_default_instance_._instance,
     &::bucket::_BucketInfo_default_instance_._instance,
-    &::bucket::_ReconcilerConfig_default_instance_._instance,
     &::bucket::_LookupConfig_default_instance_._instance,
     &::bucket::_ApplyBucketConfigResult_default_instance_._instance,
     &::bucket::_ObjectRef_default_instance_._instance,
@@ -342,28 +299,24 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbu
     "4wave/spacewave/db/block/block.proto\032>gi"
     "thub.com/s4wave/spacewave/db/block/trans"
     "form/transform.proto\032\037google/protobuf/ti"
-    "mestamp.proto\"\230\001\n\006Config\022\n\n\002id\030\001 \001(\t\022\013\n\003"
-    "rev\030\002 \001(\r\022-\n\013reconcilers\030\003 \003(\0132\030.bucket."
-    "ReconcilerConfig\022 \n\010put_opts\030\004 \001(\0132\016.blo"
-    "ck.PutOpts\022$\n\006lookup\030\005 \001(\0132\024.bucket.Look"
-    "upConfig\",\n\nBucketInfo\022\036\n\006config\030\001 \001(\0132\016"
-    ".bucket.Config\"i\n\020ReconcilerConfig\022\n\n\002id"
-    "\030\001 \001(\t\0225\n\ncontroller\030\002 \001(\0132!.configset.p"
-    "roto.ControllerConfig\022\022\n\nfilter_put\030\003 \001("
-    "\010\"V\n\014LookupConfig\022\017\n\007disable\030\001 \001(\010\0225\n\nco"
-    "ntroller\030\002 \001(\0132!.configset.proto.Control"
-    "lerConfig\"\334\001\n\027ApplyBucketConfigResult\022\021\n"
-    "\tvolume_id\030\001 \001(\t\022\021\n\tbucket_id\030\002 \001(\t\022#\n\013b"
-    "ucket_conf\030\003 \001(\0132\016.bucket.Config\022\'\n\017old_"
-    "bucket_conf\030\004 \001(\0132\016.bucket.Config\022-\n\ttim"
-    "estamp\030\005 \001(\0132\032.google.protobuf.Timestamp"
-    "\022\017\n\007updated\030\006 \001(\010\022\r\n\005error\030\007 \001(\t\"\237\001\n\tObj"
-    "ectRef\022!\n\010root_ref\030\001 \001(\0132\017.block.BlockRe"
-    "f\022\021\n\tbucket_id\030\002 \001(\t\022+\n\022transform_conf_r"
-    "ef\030\003 \001(\0132\017.block.BlockRef\022/\n\016transform_c"
-    "onf\030\004 \001(\0132\027.block.transform.Config\"4\n\014Bu"
-    "cketOpArgs\022\021\n\tbucket_id\030\001 \001(\t\022\021\n\tvolume_"
-    "id\030\002 \001(\tb\006proto3"
+    "mestamp.proto\"i\n\006Config\022\n\n\002id\030\001 \001(\t\022\013\n\003r"
+    "ev\030\002 \001(\r\022 \n\010put_opts\030\004 \001(\0132\016.block.PutOp"
+    "ts\022$\n\006lookup\030\005 \001(\0132\024.bucket.LookupConfig"
+    "\",\n\nBucketInfo\022\036\n\006config\030\001 \001(\0132\016.bucket."
+    "Config\"V\n\014LookupConfig\022\017\n\007disable\030\001 \001(\010\022"
+    "5\n\ncontroller\030\002 \001(\0132!.configset.proto.Co"
+    "ntrollerConfig\"\334\001\n\027ApplyBucketConfigResu"
+    "lt\022\021\n\tvolume_id\030\001 \001(\t\022\021\n\tbucket_id\030\002 \001(\t"
+    "\022#\n\013bucket_conf\030\003 \001(\0132\016.bucket.Config\022\'\n"
+    "\017old_bucket_conf\030\004 \001(\0132\016.bucket.Config\022-"
+    "\n\ttimestamp\030\005 \001(\0132\032.google.protobuf.Time"
+    "stamp\022\017\n\007updated\030\006 \001(\010\022\r\n\005error\030\007 \001(\t\"\237\001"
+    "\n\tObjectRef\022!\n\010root_ref\030\001 \001(\0132\017.block.Bl"
+    "ockRef\022\021\n\tbucket_id\030\002 \001(\t\022+\n\022transform_c"
+    "onf_ref\030\003 \001(\0132\017.block.BlockRef\022/\n\016transf"
+    "orm_conf\030\004 \001(\0132\027.block.transform.Config\""
+    "4\n\014BucketOpArgs\022\021\n\tbucket_id\030\001 \001(\t\022\021\n\tvo"
+    "lume_id\030\002 \001(\tb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto_deps[4] = {
@@ -376,13 +329,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto = {
     false,
     false,
-    1136,
+    981,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto,
     "github.com/s4wave/spacewave/db/bucket/bucket.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto_deps,
     4,
-    7,
+    6,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto::offsets,
@@ -404,7 +357,7 @@ void Config::clear_put_opts() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.put_opts_ != nullptr) _impl_.put_opts_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
+                  0x00000002U);
 }
 Config::Config(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -421,7 +374,6 @@ PROTOBUF_NDEBUG_INLINE Config::Impl_::Impl_(
     [[maybe_unused]] const ::bucket::Config& from_msg)
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
-        reconcilers_{visibility, arena, from.reconcilers_},
         id_(arena, from.id_) {}
 
 Config::Config(
@@ -438,10 +390,10 @@ Config::Config(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
   ::uint32_t cached_has_bits = _impl_._has_bits_[0];
-  _impl_.put_opts_ = (CheckHasBit(cached_has_bits, 0x00000004U))
+  _impl_.put_opts_ = (CheckHasBit(cached_has_bits, 0x00000002U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.put_opts_)
                 : nullptr;
-  _impl_.lookup_ = (CheckHasBit(cached_has_bits, 0x00000008U))
+  _impl_.lookup_ = (CheckHasBit(cached_has_bits, 0x00000004U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.lookup_)
                 : nullptr;
   _impl_.rev_ = from._impl_.rev_;
@@ -452,7 +404,6 @@ PROTOBUF_NDEBUG_INLINE Config::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
-        reconcilers_{visibility, arena},
         id_(arena) {}
 
 inline void Config::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
@@ -487,20 +438,8 @@ inline void* PROTOBUF_NONNULL Config::PlacementNew_(
   return ::new (mem) Config(arena);
 }
 constexpr auto Config::InternalNewImpl_() {
-  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
-      PROTOBUF_FIELD_OFFSET(Config, _impl_.reconcilers_) +
-          decltype(Config::_impl_.reconcilers_)::
-              InternalGetArenaOffset(
-                  ::google::protobuf::Message::internal_visibility()),
-  });
-  if (arena_bits.has_value()) {
-    return ::google::protobuf::internal::MessageCreator::CopyInit(
-        sizeof(Config), alignof(Config), *arena_bits);
-  } else {
-    return ::google::protobuf::internal::MessageCreator(&Config::PlacementNew_,
-                                 sizeof(Config),
-                                 alignof(Config));
-  }
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(Config),
+                                            alignof(Config));
 }
 constexpr auto Config::InternalGenerateClassData_() {
   return ::google::protobuf::internal::ClassDataFull{
@@ -536,17 +475,17 @@ Config::GetClassData() const {
   return Config_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 5, 3, 24, 2>
+const ::_pbi::TcParseTable<3, 4, 2, 24, 2>
 Config::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(Config, _impl_._has_bits_),
     0, // no _extensions_
     5, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967264,  // skipmap
+    4294967268,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    5,  // num_field_entries
-    3,  // num_aux_entries
+    4,  // num_field_entries
+    2,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     Config_class_data_.base(),
     nullptr,  // post_loop_handler
@@ -558,23 +497,20 @@ Config::_table_ = {
     {::_pbi::TcParser::MiniParse, {}},
     // string id = 1;
     {::_pbi::TcParser::FastUS1,
-     {10, 1, 0,
+     {10, 0, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.id_)}},
     // uint32 rev = 2;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.rev_), 4>(),
-     {16, 4, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.rev_), 3>(),
+     {16, 3, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.rev_)}},
-    // repeated .bucket.ReconcilerConfig reconcilers = 3;
-    {::_pbi::TcParser::FastMtR1,
-     {26, 0, 0,
-      PROTOBUF_FIELD_OFFSET(Config, _impl_.reconcilers_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // .block.PutOpts put_opts = 4;
     {::_pbi::TcParser::FastMtS1,
-     {34, 2, 1,
+     {34, 1, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.put_opts_)}},
     // .bucket.LookupConfig lookup = 5;
     {::_pbi::TcParser::FastMtS1,
-     {42, 3, 2,
+     {42, 2, 1,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.lookup_)}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
@@ -582,18 +518,15 @@ Config::_table_ = {
     65535, 65535
   }}, {{
     // string id = 1;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // uint32 rev = 2;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.rev_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
-    // repeated .bucket.ReconcilerConfig reconcilers = 3;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.reconcilers_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.rev_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
     // .block.PutOpts put_opts = 4;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.put_opts_), _Internal::kHasBitsOffset + 2, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.put_opts_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // .bucket.LookupConfig lookup = 5;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.lookup_), _Internal::kHasBitsOffset + 3, 2, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.lookup_), _Internal::kHasBitsOffset + 2, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
-      {::_pbi::TcParser::GetTable<::bucket::ReconcilerConfig>()},
       {::_pbi::TcParser::GetTable<::block::PutOpts>()},
       {::_pbi::TcParser::GetTable<::bucket::LookupConfig>()},
   }},
@@ -611,18 +544,15 @@ PROTOBUF_NOINLINE void Config::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
-    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
-      _impl_.reconcilers_.Clear();
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       _impl_.id_.ClearNonDefaultToEmpty();
     }
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       ABSL_DCHECK(_impl_.put_opts_ != nullptr);
       _impl_.put_opts_->Clear();
     }
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       ABSL_DCHECK(_impl_.lookup_ != nullptr);
       _impl_.lookup_->Clear();
     }
@@ -652,7 +582,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // string id = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
     if (!this_._internal_id().empty()) {
       const ::std::string& _s = this_._internal_id();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
@@ -662,7 +592,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
   }
 
   // uint32 rev = 2;
-  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
     if (this_._internal_rev() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
@@ -670,28 +600,15 @@ PROTOBUF_NOINLINE void Config::Clear() {
     }
   }
 
-  // repeated .bucket.ReconcilerConfig reconcilers = 3;
-  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
-    for (unsigned i = 0, n = static_cast<unsigned>(
-                             this_._internal_reconcilers_size());
-         i < n; i++) {
-      const auto& repfield = this_._internal_reconcilers().Get(i);
-      target =
-          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
-              3, repfield, repfield.GetCachedSize(),
-              target, stream);
-    }
-  }
-
   // .block.PutOpts put_opts = 4;
-  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         4, *this_._impl_.put_opts_, this_._impl_.put_opts_->GetCachedSize(), target,
         stream);
   }
 
   // .bucket.LookupConfig lookup = 5;
-  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         5, *this_._impl_.lookup_, this_._impl_.lookup_->GetCachedSize(), target,
         stream);
@@ -722,33 +639,26 @@ PROTOBUF_NOINLINE void Config::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
-    // repeated .bucket.ReconcilerConfig reconcilers = 3;
-    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
-      total_size += 1UL * this_._internal_reconcilers_size();
-      for (const auto& msg : this_._internal_reconcilers()) {
-        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
-      }
-    }
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
     // string id = 1;
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_id().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_id());
       }
     }
     // .block.PutOpts put_opts = 4;
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.put_opts_);
     }
     // .bucket.LookupConfig lookup = 5;
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.lookup_);
     }
     // uint32 rev = 2;
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       if (this_._internal_rev() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
             this_._internal_rev());
@@ -774,13 +684,8 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
-    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
-      _this->_internal_mutable_reconcilers()->InternalMergeFromWithArena(
-          ::google::protobuf::MessageLite::internal_visibility(), arena,
-          from._internal_reconcilers());
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!from._internal_id().empty()) {
         _this->_internal_set_id(from._internal_id());
       } else {
@@ -789,7 +694,7 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
         }
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       ABSL_DCHECK(from._impl_.put_opts_ != nullptr);
       if (_this->_impl_.put_opts_ == nullptr) {
         _this->_impl_.put_opts_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.put_opts_);
@@ -797,7 +702,7 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.put_opts_->MergeFrom(*from._impl_.put_opts_);
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       ABSL_DCHECK(from._impl_.lookup_ != nullptr);
       if (_this->_impl_.lookup_ == nullptr) {
         _this->_impl_.lookup_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.lookup_);
@@ -805,7 +710,7 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.lookup_->MergeFrom(*from._impl_.lookup_);
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       if (from._internal_rev() != 0) {
         _this->_impl_.rev_ = from._impl_.rev_;
       }
@@ -830,7 +735,6 @@ void Config::InternalSwap(Config* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   ABSL_DCHECK_EQ(arena, other->GetArena());
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
-  _impl_.reconcilers_.InternalSwap(&other->_impl_.reconcilers_);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.id_, &other->_impl_.id_, arena);
   ::google::protobuf::internal::memswap<
       PROTOBUF_FIELD_OFFSET(Config, _impl_.rev_)
@@ -1112,371 +1016,6 @@ void BucketInfo::InternalSwap(BucketInfo* PROTOBUF_RESTRICT PROTOBUF_NONNULL oth
 }
 
 ::google::protobuf::Metadata BucketInfo::GetMetadata() const {
-  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
-}
-// ===================================================================
-
-class ReconcilerConfig::_Internal {
- public:
-  using HasBits =
-      decltype(::std::declval<ReconcilerConfig>()._impl_._has_bits_);
-  static constexpr ::int32_t kHasBitsOffset =
-      8 * PROTOBUF_FIELD_OFFSET(ReconcilerConfig, _impl_._has_bits_);
-};
-
-void ReconcilerConfig::clear_controller() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (_impl_.controller_ != nullptr) _impl_.controller_->Clear();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000002U);
-}
-ReconcilerConfig::ReconcilerConfig(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, ReconcilerConfig_class_data_.base()) {
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(arena) {
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  SharedCtor(arena);
-  // @@protoc_insertion_point(arena_constructor:bucket.ReconcilerConfig)
-}
-PROTOBUF_NDEBUG_INLINE ReconcilerConfig::Impl_::Impl_(
-    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
-    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-    [[maybe_unused]] const ::bucket::ReconcilerConfig& from_msg)
-      : _has_bits_{from._has_bits_},
-        _cached_size_{0},
-        id_(arena, from.id_) {}
-
-ReconcilerConfig::ReconcilerConfig(
-    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
-    const ReconcilerConfig& from)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, ReconcilerConfig_class_data_.base()) {
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(arena) {
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  ReconcilerConfig* const _this = this;
-  (void)_this;
-  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
-      from._internal_metadata_);
-  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
-  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
-  _impl_.controller_ = (CheckHasBit(cached_has_bits, 0x00000002U))
-                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.controller_)
-                : nullptr;
-  _impl_.filter_put_ = from._impl_.filter_put_;
-
-  // @@protoc_insertion_point(copy_constructor:bucket.ReconcilerConfig)
-}
-PROTOBUF_NDEBUG_INLINE ReconcilerConfig::Impl_::Impl_(
-    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
-    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
-      : _cached_size_{0},
-        id_(arena) {}
-
-inline void ReconcilerConfig::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
-  new (&_impl_) Impl_(internal_visibility(), arena);
-  ::memset(reinterpret_cast<char*>(&_impl_) +
-               offsetof(Impl_, controller_),
-           0,
-           offsetof(Impl_, filter_put_) -
-               offsetof(Impl_, controller_) +
-               sizeof(Impl_::filter_put_));
-}
-ReconcilerConfig::~ReconcilerConfig() {
-  // @@protoc_insertion_point(destructor:bucket.ReconcilerConfig)
-  SharedDtor(*this);
-}
-inline void ReconcilerConfig::SharedDtor(MessageLite& self) {
-  ReconcilerConfig& this_ = static_cast<ReconcilerConfig&>(self);
-  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
-    this_.CheckHasBitConsistency();
-  }
-  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
-  ABSL_DCHECK(this_.GetArena() == nullptr);
-  this_._impl_.id_.Destroy();
-  delete this_._impl_.controller_;
-  this_._impl_.~Impl_();
-}
-
-inline void* PROTOBUF_NONNULL ReconcilerConfig::PlacementNew_(
-    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
-  return ::new (mem) ReconcilerConfig(arena);
-}
-constexpr auto ReconcilerConfig::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(ReconcilerConfig),
-                                            alignof(ReconcilerConfig));
-}
-constexpr auto ReconcilerConfig::InternalGenerateClassData_() {
-  return ::google::protobuf::internal::ClassDataFull{
-      ::google::protobuf::internal::ClassData{
-          &_ReconcilerConfig_default_instance_._instance,
-          &_table_.header,
-          nullptr,  // OnDemandRegisterArenaDtor
-          nullptr,  // IsInitialized
-          &ReconcilerConfig::MergeImpl,
-          ::google::protobuf::Message::GetNewImpl<ReconcilerConfig>(),
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-          &ReconcilerConfig::SharedDtor,
-          ::google::protobuf::Message::GetClearImpl<ReconcilerConfig>(), &ReconcilerConfig::ByteSizeLong,
-              &ReconcilerConfig::_InternalSerialize,
-#endif  // PROTOBUF_CUSTOM_VTABLE
-          PROTOBUF_FIELD_OFFSET(ReconcilerConfig, _impl_._cached_size_),
-          false,
-      },
-      &ReconcilerConfig::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto,
-      nullptr,  // tracker
-  };
-}
-
-PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
-    ::google::protobuf::internal::ClassDataFull ReconcilerConfig_class_data_ =
-        ReconcilerConfig::InternalGenerateClassData_();
-
-PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
-ReconcilerConfig::GetClassData() const {
-  ::google::protobuf::internal::PrefetchToLocalCache(&ReconcilerConfig_class_data_);
-  ::google::protobuf::internal::PrefetchToLocalCache(ReconcilerConfig_class_data_.tc_table);
-  return ReconcilerConfig_class_data_.base();
-}
-PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<2, 3, 1, 34, 2>
-ReconcilerConfig::_table_ = {
-  {
-    PROTOBUF_FIELD_OFFSET(ReconcilerConfig, _impl_._has_bits_),
-    0, // no _extensions_
-    3, 24,  // max_field_number, fast_idx_mask
-    offsetof(decltype(_table_), field_lookup_table),
-    4294967288,  // skipmap
-    offsetof(decltype(_table_), field_entries),
-    3,  // num_field_entries
-    1,  // num_aux_entries
-    offsetof(decltype(_table_), aux_entries),
-    ReconcilerConfig_class_data_.base(),
-    nullptr,  // post_loop_handler
-    ::_pbi::TcParser::GenericFallback,  // fallback
-    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
-    ::_pbi::TcParser::GetTable<::bucket::ReconcilerConfig>(),  // to_prefetch
-    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
-  }, {{
-    {::_pbi::TcParser::MiniParse, {}},
-    // string id = 1;
-    {::_pbi::TcParser::FastUS1,
-     {10, 0, 0,
-      PROTOBUF_FIELD_OFFSET(ReconcilerConfig, _impl_.id_)}},
-    // .configset.proto.ControllerConfig controller = 2;
-    {::_pbi::TcParser::FastMtS1,
-     {18, 1, 0,
-      PROTOBUF_FIELD_OFFSET(ReconcilerConfig, _impl_.controller_)}},
-    // bool filter_put = 3;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(ReconcilerConfig, _impl_.filter_put_), 2>(),
-     {24, 2, 0,
-      PROTOBUF_FIELD_OFFSET(ReconcilerConfig, _impl_.filter_put_)}},
-  }}, {{
-    65535, 65535
-  }}, {{
-    // string id = 1;
-    {PROTOBUF_FIELD_OFFSET(ReconcilerConfig, _impl_.id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // .configset.proto.ControllerConfig controller = 2;
-    {PROTOBUF_FIELD_OFFSET(ReconcilerConfig, _impl_.controller_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
-    // bool filter_put = 3;
-    {PROTOBUF_FIELD_OFFSET(ReconcilerConfig, _impl_.filter_put_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
-  }},
-  {{
-      {::_pbi::TcParser::GetTable<::configset::proto::ControllerConfig>()},
-  }},
-  {{
-    "\27\2\0\0\0\0\0\0"
-    "bucket.ReconcilerConfig"
-    "id"
-  }},
-};
-PROTOBUF_NOINLINE void ReconcilerConfig::Clear() {
-// @@protoc_insertion_point(message_clear_start:bucket.ReconcilerConfig)
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  ::uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
-
-  cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-      _impl_.id_.ClearNonDefaultToEmpty();
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-      ABSL_DCHECK(_impl_.controller_ != nullptr);
-      _impl_.controller_->Clear();
-    }
-  }
-  _impl_.filter_put_ = false;
-  _impl_._has_bits_.Clear();
-  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
-}
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-::uint8_t* PROTOBUF_NONNULL ReconcilerConfig::_InternalSerialize(
-    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
-    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
-  const ReconcilerConfig& this_ = static_cast<const ReconcilerConfig&>(base);
-#else   // PROTOBUF_CUSTOM_VTABLE
-::uint8_t* PROTOBUF_NONNULL ReconcilerConfig::_InternalSerialize(
-    ::uint8_t* PROTOBUF_NONNULL target,
-    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-  const ReconcilerConfig& this_ = *this;
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
-    this_.CheckHasBitConsistency();
-  }
-  // @@protoc_insertion_point(serialize_to_array_start:bucket.ReconcilerConfig)
-  ::uint32_t cached_has_bits = 0;
-  (void)cached_has_bits;
-
-  cached_has_bits = this_._impl_._has_bits_[0];
-  // string id = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    if (!this_._internal_id().empty()) {
-      const ::std::string& _s = this_._internal_id();
-      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bucket.ReconcilerConfig.id");
-      target = stream->WriteStringMaybeAliased(1, _s, target);
-    }
-  }
-
-  // .configset.proto.ControllerConfig controller = 2;
-  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
-        2, *this_._impl_.controller_, this_._impl_.controller_->GetCachedSize(), target,
-        stream);
-  }
-
-  // bool filter_put = 3;
-  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
-    if (this_._internal_filter_put() != 0) {
-      target = stream->EnsureSpace(target);
-      target = ::_pbi::WireFormatLite::WriteBoolToArray(
-          3, this_._internal_filter_put(), target);
-    }
-  }
-
-  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
-    target =
-        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
-            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
-  }
-  // @@protoc_insertion_point(serialize_to_array_end:bucket.ReconcilerConfig)
-  return target;
-}
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-::size_t ReconcilerConfig::ByteSizeLong(const MessageLite& base) {
-  const ReconcilerConfig& this_ = static_cast<const ReconcilerConfig&>(base);
-#else   // PROTOBUF_CUSTOM_VTABLE
-::size_t ReconcilerConfig::ByteSizeLong() const {
-  const ReconcilerConfig& this_ = *this;
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  // @@protoc_insertion_point(message_byte_size_start:bucket.ReconcilerConfig)
-  ::size_t total_size = 0;
-
-  ::uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void)cached_has_bits;
-
-  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
-  cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
-    // string id = 1;
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-      if (!this_._internal_id().empty()) {
-        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
-                                        this_._internal_id());
-      }
-    }
-    // .configset.proto.ControllerConfig controller = 2;
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-      total_size += 1 +
-                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.controller_);
-    }
-    // bool filter_put = 3;
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
-      if (this_._internal_filter_put() != 0) {
-        total_size += 2;
-      }
-    }
-  }
-  return this_.MaybeComputeUnknownFieldsSize(total_size,
-                                             &this_._impl_._cached_size_);
-}
-
-void ReconcilerConfig::MergeImpl(::google::protobuf::MessageLite& to_msg,
-                            const ::google::protobuf::MessageLite& from_msg) {
-   auto* const _this =
-      static_cast<ReconcilerConfig*>(&to_msg);
-  auto& from = static_cast<const ReconcilerConfig&>(from_msg);
-  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
-    from.CheckHasBitConsistency();
-  }
-  ::google::protobuf::Arena* arena = _this->GetArena();
-  // @@protoc_insertion_point(class_specific_merge_from_start:bucket.ReconcilerConfig)
-  ABSL_DCHECK_NE(&from, _this);
-  ::uint32_t cached_has_bits = 0;
-  (void)cached_has_bits;
-
-  cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-      if (!from._internal_id().empty()) {
-        _this->_internal_set_id(from._internal_id());
-      } else {
-        if (_this->_impl_.id_.IsDefault()) {
-          _this->_internal_set_id("");
-        }
-      }
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-      ABSL_DCHECK(from._impl_.controller_ != nullptr);
-      if (_this->_impl_.controller_ == nullptr) {
-        _this->_impl_.controller_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.controller_);
-      } else {
-        _this->_impl_.controller_->MergeFrom(*from._impl_.controller_);
-      }
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
-      if (from._internal_filter_put() != 0) {
-        _this->_impl_.filter_put_ = from._impl_.filter_put_;
-      }
-    }
-  }
-  _this->_impl_._has_bits_[0] |= cached_has_bits;
-  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
-      from._internal_metadata_);
-}
-
-void ReconcilerConfig::CopyFrom(const ReconcilerConfig& from) {
-  // @@protoc_insertion_point(class_specific_copy_from_start:bucket.ReconcilerConfig)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
-
-
-void ReconcilerConfig::InternalSwap(ReconcilerConfig* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
-  using ::std::swap;
-  auto* arena = GetArena();
-  ABSL_DCHECK_EQ(arena, other->GetArena());
-  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
-  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.id_, &other->_impl_.id_, arena);
-  ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(ReconcilerConfig, _impl_.filter_put_)
-      + sizeof(ReconcilerConfig::_impl_.filter_put_)
-      - PROTOBUF_FIELD_OFFSET(ReconcilerConfig, _impl_.controller_)>(
-          reinterpret_cast<char*>(&_impl_.controller_),
-          reinterpret_cast<char*>(&other->_impl_.controller_));
-}
-
-::google::protobuf::Metadata ReconcilerConfig::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================

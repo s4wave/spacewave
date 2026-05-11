@@ -38,7 +38,7 @@ func TestMysqlDb(t *testing.T) {
 	bucketID := dbID
 	objStoreID := dbID
 
-	bucketConf, err := bucket.NewConfig(bucketID, 1, nil, nil)
+	bucketConf, err := bucket.NewConfig(bucketID, 1, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

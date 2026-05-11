@@ -7,6 +7,7 @@ import (
 	"github.com/s4wave/spacewave/db/block/quad"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
+	world_types "github.com/s4wave/spacewave/db/world/types"
 )
 
 // WorldState represents the full state read/write interface to the world.
@@ -241,6 +242,37 @@ func (ws *WorldState) LookupGraphQuads(ctx context.Context, filter world.GraphQu
 	return quads, nil
 }
 
+// LookupGraphQuadsBatch searches for graph quads using bounded indexed filters.
+func (ws *WorldState) LookupGraphQuadsBatch(ctx context.Context, filters []world.GraphQuad, limitPerFilter uint32) ([][]world.GraphQuad, error) {
+	protoFilters := make([]*quad.Quad, len(filters))
+	for i, filter := range filters {
+		protoFilters[i] = &quad.Quad{
+			Subject:   filter.GetSubject(),
+			Predicate: filter.GetPredicate(),
+			Obj:       filter.GetObj(),
+			Label:     filter.GetLabel(),
+		}
+	}
+
+	resp, err := ws.service.LookupGraphQuadsBatch(ctx, &LookupGraphQuadsBatchRequest{
+		Filters:        protoFilters,
+		LimitPerFilter: limitPerFilter,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([][]world.GraphQuad, len(resp.GetResults()))
+	for i, result := range resp.GetResults() {
+		quads := make([]world.GraphQuad, len(result.GetQuads()))
+		for j, q := range result.GetQuads() {
+			quads[j] = q
+		}
+		results[i] = quads
+	}
+	return results, nil
+}
+
 // ListObjectsWithType lists object keys with the given type identifier.
 func (ws *WorldState) ListObjectsWithType(ctx context.Context, typeID string) ([]string, error) {
 	resp, err := ws.service.ListObjectsWithType(ctx, &ListObjectsWithTypeRequest{
@@ -250,6 +282,62 @@ func (ws *WorldState) ListObjectsWithType(ctx context.Context, typeID string) ([
 		return nil, err
 	}
 	return resp.ObjectKeys, nil
+}
+
+// GetObjectMetadataBatch returns graph metadata for object keys.
+func (ws *WorldState) GetObjectMetadataBatch(ctx context.Context, keys []string) ([]*world_types.ObjectMetadata, error) {
+	resp, err := ws.service.GetObjectMetadataBatch(ctx, &GetObjectMetadataBatchRequest{
+		ObjectKeys: keys,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	metadata := make([]*world_types.ObjectMetadata, len(resp.GetMetadata()))
+	for i, md := range resp.GetMetadata() {
+		metadata[i] = &world_types.ObjectMetadata{
+			ObjectKey:       md.GetObjectKey(),
+			TypeID:          md.GetTypeId(),
+			ParentObjectKey: md.GetParentObjectKey(),
+		}
+	}
+	return metadata, nil
+}
+
+// QueryGraphPath executes a bounded server-side graph path query.
+func (ws *WorldState) QueryGraphPath(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
+	req, err := graphPathQueryToProto(query)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := ws.service.QueryGraphPath(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	ref := ws.client.CreateResourceReference(resp.GetResourceId())
+	defer ref.Release()
+	srpcClient, err := ref.GetClient()
+	if err != nil {
+		return nil, err
+	}
+	service := NewSRPCGraphPathQueryResourceServiceClient(srpcClient)
+	defer service.Close(ctx, &CloseGraphPathQueryRequest{})
+
+	result := &world.GraphPathQueryResult{}
+	for {
+		page, err := service.Next(ctx, &NextGraphPathQueryRequest{})
+		if err != nil {
+			return nil, err
+		}
+		result.ObjectKeys = append(result.ObjectKeys, page.GetObjectKeys()...)
+		for _, q := range page.GetQuads() {
+			result.Quads = append(result.Quads, q)
+		}
+		if page.GetDone() {
+			return result, nil
+		}
+	}
 }
 
 // DeleteGraphObject removes all graph quads that reference the specified object key.
@@ -274,4 +362,42 @@ func (ws *WorldState) ApplyWorldOp(ctx context.Context, opTypeID string, opData 
 		return 0, false, err
 	}
 	return resp.Seqno, resp.SysErr, nil
+}
+
+func graphPathQueryToProto(query *world.GraphPathQuery) (*QueryGraphPathRequest, error) {
+	if query == nil {
+		return &QueryGraphPathRequest{}, nil
+	}
+	steps := make([]*GraphPathStep, len(query.Steps))
+	for i, step := range query.Steps {
+		dir, err := graphPathDirectionToProto(step.Direction)
+		if err != nil {
+			return nil, err
+		}
+		steps[i] = &GraphPathStep{
+			Direction: dir,
+			Predicate: step.Predicate,
+			Limit:     step.Limit,
+		}
+	}
+	return &QueryGraphPathRequest{
+		StartKeys:    query.StartKeys,
+		Steps:        steps,
+		ResultLimit:  query.ResultLimit,
+		IncludeQuads: query.IncludeQuads,
+		PageSize:     query.ResultLimit,
+	}, nil
+}
+
+func graphPathDirectionToProto(dir world.GraphPathDirection) (GraphPathDirection, error) {
+	switch dir {
+	case world.GraphPathDirectionOut:
+		return GraphPathDirection_GRAPH_PATH_DIRECTION_OUT, nil
+	case world.GraphPathDirectionIn:
+		return GraphPathDirection_GRAPH_PATH_DIRECTION_IN, nil
+	case world.GraphPathDirectionBoth:
+		return GraphPathDirection_GRAPH_PATH_DIRECTION_BOTH, nil
+	default:
+		return 0, world.ErrGraphPathDirection
+	}
 }

@@ -10,7 +10,6 @@ import (
 	"github.com/s4wave/spacewave/db/core"
 	common "github.com/s4wave/spacewave/db/examples/common"
 	node_controller "github.com/s4wave/spacewave/db/node/controller"
-	reconciler_example "github.com/s4wave/spacewave/db/reconciler/example"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/sirupsen/logrus"
 )
@@ -20,8 +19,6 @@ func Run(ctx context.Context, le *logrus.Entry) error {
 	if err != nil {
 		return err
 	}
-
-	sr.AddFactory(reconciler_example.NewFactory(b))
 
 	// TODO: add storage depending on if we are in js or not.
 	verbose := false

@@ -3,7 +3,7 @@ package bucket.event;
 
 import "github.com/s4wave/spacewave/db/block/block.proto";
 
-// EventType is the type of bucket reconciler event.
+// EventType is the type of bucket operation event.
 enum EventType {
   // EventType_UNKNOWN is the unknown type.
   EventType_UNKNOWN = 0;

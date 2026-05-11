@@ -33,11 +33,9 @@ These are the types of implemented data structures:
    - hidalgo: translates hidalgo interfaces to kvtx
    - iterator: consistent sorted iteration polyfill
    - kvtest: test for all kvtx stores
-   - mqueue: FIFO message queue implemented with kvtx
    - prefixer: prepend a prefix to keys
    - txcache: buffer changes in memory before committing transaction
    - vlogger: log all actions to a logger handle
- - mqueue: message queue
  - sql: contains all SQL implementations
    - mysql: mysql-compatible protocol (based on go-mysql-server)
  - unixfs: unix filesystem using the block-graph file + blob store
@@ -117,8 +115,7 @@ any other data management approaches.
 A "Bucket" is a collection of Block with associated configuration. Block objects
 are placed into Buckets, and the Volume subsystem manages storing the Blocks
 inside the Buckets in storage space. Buckets provide a logical container for
-blocks within volumes, as well as a location to configure reconciliation
-policies for changes to the bucket.
+blocks within volumes and optional lookup behavior across volumes.
 
 ### Configuration
 
@@ -143,74 +140,38 @@ behavior and dynamic behavior loading at runtime. The Hydra node-local
 controller is responsible for servicing bucket lookup requests. A "Lookup" is
 any request that targets a bucket across multiple local or remote volumes.
 
-### Reconcilers
+### Bucket Writes
 
-As data moves through the system, Events are generated, i.e. "block written to
-Volume." Reconcilers process the event queue in order, with at-least-once
-acknowledgment assurance. A filtering policy can be specified to filter events
-from being passed to a particular reconciler as a significant optimization. When
-a matching event is received, the reconciler is started/woken by the volume
-controller. It then reads the oldest event from the front of the queue, writes
-to an internal state representation or otherwise actuates changes, and finally
-acknowledges the event.
-
-Reconcilers are not terminated when their event queue becomes empty. However, if
-a reconciler process exits cleanly while the event queue is empty, the
-reconciler will not be restarted until the event queue is filled again.
-
-This mechanism allows Hydra to avoid launching unnecessary computation for
-dormant or archived data. Bucket reconciliation controllers are launched
-on-demand and released when no longer needed. Multiple volumes with the same
-bucket will launch a single routine to manage the concern.
+Bucket writes mutate the active block, object, and GC storage state directly.
+The core volume controller does not own a generic bucket queue subsystem.
+Replication, synchronization, cleanup, and repair policies belong to the
+higher-level controller that understands the domain-specific work.
 
 #### Example: volume startup sequence
 
-This sequence is used for processing bucket reconcilers:
+This sequence is used for a normal bucket write:
 
- 1. The volume `V_1` is mounted. If any bucket reconciler queues are filled,
-    then proceed to step 4. If any reconcilers are marked as "run when idle,"
-    they are also started by proceeding to step 4.
+ 1. The volume `V_1` is mounted and publishes readiness after its active stores,
+    peer identity, optional block-store overlay, bucket handles, and GC sweep are
+    initialized.
  2. Data is requested to be written into bucket `B_1`. The bucket configuration
-    is loaded from the volume, if not already cached in memory (LRU map cache).
- 3. Data is written into bucket `B_1` in volume. Before or atomically while the
-    write is performed, an event representing the change is pushed into the
-    bucket's reconcilers' queues.
- 4. After the data is written completely, the event is fed to the running
-    instance of the reconciler. This process includes waking up / starting the
-    reconciler if it is not already running.
- 5. The reconciler peeks the event, and internally writes to its state the
-    requirement that it should push the object to the remote store.
- 6. The reconciler requests that it remain running when "idle" as it has data to
-    transfer internally.
- 7. The reconciler acks the event, removing it from the volume queue.
- 8. The reconciler finishes all queued transfers, exiting cleanly.
+    is loaded from the volume, if not already cached in memory.
+ 3. Data is written into bucket `B_1` in volume.
 
 This is provided in the common "Volume Controller" implementation.
 
 ## Replication and synchronization
 
-Replication reconcilers control how and in what order/priority a node will
-attempt to replicate (copy) data between Volumes. Replication directives specify
-where data should be stored in precise or general terms to be interpreted by
-replication reconcilers in the network. Controllers may communicate to form a
-local consensus of data placement and short-term planned data transfers to drive
-the general network equilibrium towards the desired goal state.
+Replication and synchronization policy is owned by higher-level controllers that
+understand the domain they synchronize. Replication directives specify where data
+should be stored in precise or general terms to be interpreted by those owners.
 
 ## Fault detection
 
-Fault detection is implemented by bucket reconcilers. This behavior is not
-mandated nor understood by the core volume controllers, which think in terms of
-reconcilers and events, rather than failures and data restoration.
-
-When a peer wishes to transfer data into a remote bucket, the two peers involved
-in the transaction communicate to share the reasoning behind the data placement,
-including any justification for buckets that have been found to be offline. This
-facilitates a gossip-like mechanism for propagating host failures across the
-network. If a peer becomes aware of a failed remote bucket, it will attempt to
-transfer the data to other known remote buckets to satisfy the replication
-constraints. In the process of doing this "push" or "pull" of data between
-locations, the original reasoning in the form of the knowledge that the original
-bucket has disappeared propagates in-band as justification for the transfer.
+Fault detection belongs to the transfer, provider, replication, or cloud owner
+that can interpret the failed operation and choose a recovery policy. The core
+volume layer exposes storage primitives and does not infer data restoration
+work.
 
 ## Kvtx: Key-value Transactions
 
@@ -232,12 +193,6 @@ to quickly determine which keys were affected and filter unnecessary entries.
 
 Multiple implementations are available, including a block-graph p2p DAG using
 Cayley Graph and a configurable key/value store (see: kvtx).
-
-## Concurrent Message Queue
-
-A Message Queue is a store-backed, FIFO, at-least-once delivery, concurrent
-reader and writer safe structure. An implementation is provided in the
-"kvtx/mqueue" package.
 
 ## SQL Implementation
 

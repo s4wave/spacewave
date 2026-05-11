@@ -16,7 +16,7 @@ import (
 	block "github.com/s4wave/spacewave/db/block"
 )
 
-// EventType is the type of bucket reconciler event.
+// EventType is the type of bucket operation event.
 type EventType int32
 
 const (
@@ -214,7 +214,9 @@ func (m *BlockCommon) CloneVT() *BlockCommon {
 	r.BucketId = m.BucketId
 	r.VolumeId = m.VolumeId
 	r.BucketConfRev = m.BucketConfRev
-	r.BlockRef = m.BlockRef.CloneVT()
+	if rhs := m.BlockRef; rhs != nil {
+		r.BlockRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

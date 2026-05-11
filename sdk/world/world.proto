@@ -110,7 +110,13 @@ service WorldStateResourceService {
 
   rpc LookupGraphQuads(LookupGraphQuadsRequest) returns (LookupGraphQuadsResponse);
 
+  rpc LookupGraphQuadsBatch(LookupGraphQuadsBatchRequest) returns (LookupGraphQuadsBatchResponse);
+
   rpc ListObjectsWithType(ListObjectsWithTypeRequest) returns (ListObjectsWithTypeResponse);
+
+  rpc GetObjectMetadataBatch(GetObjectMetadataBatchRequest) returns (GetObjectMetadataBatchResponse);
+
+  rpc QueryGraphPath(QueryGraphPathRequest) returns (QueryGraphPathResponse);
 
   rpc DeleteGraphObject(DeleteGraphObjectRequest) returns (DeleteGraphObjectResponse);
 
@@ -269,6 +275,29 @@ message LookupGraphQuadsResponse {
   repeated .quad.Quad quads = 1;
 }
 
+// LookupGraphQuadsBatchRequest is the request type for LookupGraphQuadsBatch.
+message LookupGraphQuadsBatchRequest {
+  // Filters is the bounded list of subject/predicate or object/predicate
+  // filters to evaluate server-side.
+  repeated .quad.Quad filters = 1;
+  // LimitPerFilter is the maximum number of quads returned for each filter.
+  // It must be non-zero.
+  uint32 limit_per_filter = 2;
+}
+
+// LookupGraphQuadsBatchResult is one filtered graph lookup result.
+message LookupGraphQuadsBatchResult {
+  // Quads is the list of graph quads matching one filter.
+  repeated .quad.Quad quads = 1;
+}
+
+// LookupGraphQuadsBatchResponse is the response type for
+// LookupGraphQuadsBatch.
+message LookupGraphQuadsBatchResponse {
+  // Results preserves the request filter order.
+  repeated LookupGraphQuadsBatchResult results = 1;
+}
+
 // ListObjectsWithTypeRequest is the request type for ListObjectsWithType.
 message ListObjectsWithTypeRequest {
   // TypeId is the type identifier to match.
@@ -279,6 +308,74 @@ message ListObjectsWithTypeRequest {
 message ListObjectsWithTypeResponse {
   // ObjectKeys is the list of object keys with the given type.
   repeated string object_keys = 1;
+}
+
+// ObjectMetadata contains graph metadata for one object key.
+message ObjectMetadata {
+  // ObjectKey is the object key.
+  string object_key = 1;
+  // TypeId is the object type identifier, if present.
+  string type_id = 2;
+  // ParentObjectKey is the parent object key, if present.
+  string parent_object_key = 3;
+}
+
+// GetObjectMetadataBatchRequest is the request type for
+// GetObjectMetadataBatch.
+message GetObjectMetadataBatchRequest {
+  // ObjectKeys is the list of object keys to inspect.
+  repeated string object_keys = 1;
+}
+
+// GetObjectMetadataBatchResponse is the response type for
+// GetObjectMetadataBatch.
+message GetObjectMetadataBatchResponse {
+  // Metadata preserves the request object key order.
+  repeated ObjectMetadata metadata = 1;
+}
+
+// GraphPathDirection indicates which side of the current object key to follow.
+enum GraphPathDirection {
+  // GRAPH_PATH_DIRECTION_UNSPECIFIED is invalid.
+  GRAPH_PATH_DIRECTION_UNSPECIFIED = 0;
+  // GRAPH_PATH_DIRECTION_OUT follows quads where the current key is the subject.
+  GRAPH_PATH_DIRECTION_OUT = 1;
+  // GRAPH_PATH_DIRECTION_IN follows quads where the current key is the object.
+  GRAPH_PATH_DIRECTION_IN = 2;
+  // GRAPH_PATH_DIRECTION_BOTH follows incoming and outgoing quads.
+  GRAPH_PATH_DIRECTION_BOTH = 3;
+}
+
+// GraphPathStep is one bounded predicate traversal step.
+message GraphPathStep {
+  // Direction is the edge direction to follow.
+  GraphPathDirection direction = 1;
+  // Predicate is the graph predicate to match.
+  string predicate = 2;
+  // Limit is the maximum number of quads to inspect for each current object key.
+  uint32 limit = 3;
+}
+
+// QueryGraphPathRequest is the request type for QueryGraphPath.
+message QueryGraphPathRequest {
+  // StartKeys is the list of object keys where traversal starts.
+  repeated string start_keys = 1;
+  // Steps is the bounded traversal to execute server-side.
+  repeated GraphPathStep steps = 2;
+  // ResultLimit is the maximum number of object keys returned.
+  // It must be non-zero.
+  uint32 result_limit = 3;
+  // IncludeQuads includes traversed quads in result pages.
+  bool include_quads = 4;
+  // PageSize is the maximum number of object keys returned by one Next call.
+  // If unset, the server uses ResultLimit.
+  uint32 page_size = 5;
+}
+
+// QueryGraphPathResponse is the response type for QueryGraphPath.
+message QueryGraphPathResponse {
+  // ResourceId is the ID of the GraphPathQuery resource.
+  uint32 resource_id = 1;
 }
 
 // DeleteGraphObjectRequest is the request type for DeleteGraphObject.
@@ -403,6 +500,31 @@ message CloseRequest {}
 
 // CloseResponse is the response type for Close.
 message CloseResponse {}
+
+service GraphPathQueryResourceService {
+  rpc Next(NextGraphPathQueryRequest) returns (NextGraphPathQueryResponse);
+
+  rpc Close(CloseGraphPathQueryRequest) returns (CloseGraphPathQueryResponse);
+}
+
+// NextGraphPathQueryRequest is the request type for GraphPathQuery Next.
+message NextGraphPathQueryRequest {}
+
+// NextGraphPathQueryResponse is one page of graph path query results.
+message NextGraphPathQueryResponse {
+  // ObjectKeys is the next page of reached object keys.
+  repeated string object_keys = 1;
+  // Quads is the traversed graph quads when requested.
+  repeated .quad.Quad quads = 2;
+  // Done indicates the resource has no more result pages.
+  bool done = 3;
+}
+
+// CloseGraphPathQueryRequest is the request type for GraphPathQuery Close.
+message CloseGraphPathQueryRequest {}
+
+// CloseGraphPathQueryResponse is the response type for GraphPathQuery Close.
+message CloseGraphPathQueryResponse {}
 
 service ObjectStateResourceService {
   rpc GetKey(GetKeyRequest) returns (GetKeyResponse);

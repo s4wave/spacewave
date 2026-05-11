@@ -21,12 +21,10 @@ type Config struct {
 	unknownFields []byte
 	// DisableEventBlockRm disables the block removed event.
 	//
-	// Optimization: skips exists() and mqueue write() on delete.
+	// Optimization: skips exists() before delete.
 	DisableEventBlockRm bool `protobuf:"varint,1,opt,name=disable_event_block_rm,json=disableEventBlockRm,proto3" json:"disableEventBlockRm,omitempty"`
 	// VolumeIdAlias matches LookupVolume and LookupBlockStore calls for the given ids.
 	VolumeIdAlias []string `protobuf:"bytes,2,rep,name=volume_id_alias,json=volumeIdAlias,proto3" json:"volumeIdAlias,omitempty"`
-	// DisableReconcilerQueues disables waking filled reconciler queues.
-	DisableReconcilerQueues bool `protobuf:"varint,3,opt,name=disable_reconciler_queues,json=disableReconcilerQueues,proto3" json:"disableReconcilerQueues,omitempty"`
 	// DisablePeer disables loading the peer controller from the volume.
 	DisablePeer bool `protobuf:"varint,4,opt,name=disable_peer,json=disablePeer,proto3" json:"disablePeer,omitempty"`
 	// DisableLookupBlockStore disables resolving LookupBlockStore when using the
@@ -70,13 +68,6 @@ func (x *Config) GetVolumeIdAlias() []string {
 		return x.VolumeIdAlias
 	}
 	return nil
-}
-
-func (x *Config) GetDisableReconcilerQueues() bool {
-	if x != nil {
-		return x.DisableReconcilerQueues
-	}
-	return false
 }
 
 func (x *Config) GetDisablePeer() bool {
@@ -134,16 +125,17 @@ func (m *Config) CloneVT() *Config {
 	}
 	r := new(Config)
 	r.DisableEventBlockRm = m.DisableEventBlockRm
-	r.DisableReconcilerQueues = m.DisableReconcilerQueues
 	r.DisablePeer = m.DisablePeer
 	r.DisableLookupBlockStore = m.DisableLookupBlockStore
 	r.BlockStoreId = m.BlockStoreId
 	r.BlockStoreOverlayMode = m.BlockStoreOverlayMode
 	r.BlockStoreWritebackTimeoutDur = m.BlockStoreWritebackTimeoutDur
-	r.BlockStoreWritebackPutOpts = m.BlockStoreWritebackPutOpts.CloneVT()
 	r.GcIntervalDur = m.GcIntervalDur
 	if rhs := m.VolumeIdAlias; rhs != nil {
 		r.VolumeIdAlias = slices.Clone(rhs)
+	}
+	if rhs := m.BlockStoreWritebackPutOpts; rhs != nil {
+		r.BlockStoreWritebackPutOpts = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -172,9 +164,6 @@ func (this *Config) EqualVT(that *Config) bool {
 		if vx != vy {
 			return false
 		}
-	}
-	if this.DisableReconcilerQueues != that.DisableReconcilerQueues {
-		return false
 	}
 	if this.DisablePeer != that.DisablePeer {
 		return false
@@ -225,11 +214,6 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("volumeIdAlias")
 		s.WriteStringArray(x.VolumeIdAlias)
-	}
-	if x.DisableReconcilerQueues || s.HasField("disableReconcilerQueues") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("disableReconcilerQueues")
-		s.WriteBool(x.DisableReconcilerQueues)
 	}
 	if x.DisablePeer || s.HasField("disablePeer") {
 		s.WriteMoreIf(&wroteField)
@@ -293,9 +277,6 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				return
 			}
 			x.VolumeIdAlias = s.ReadStringArray()
-		case "disable_reconciler_queues", "disableReconcilerQueues":
-			s.AddField("disable_reconciler_queues")
-			x.DisableReconcilerQueues = s.ReadBool()
 		case "disable_peer", "disablePeer":
 			s.AddField("disable_peer")
 			x.DisablePeer = s.ReadBool()
@@ -416,16 +397,6 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x20
 	}
-	if m.DisableReconcilerQueues {
-		i--
-		if m.DisableReconcilerQueues {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x18
-	}
 	if len(m.VolumeIdAlias) > 0 {
 		for iNdEx := len(m.VolumeIdAlias) - 1; iNdEx >= 0; iNdEx-- {
 			i -= len(m.VolumeIdAlias[iNdEx])
@@ -462,9 +433,6 @@ func (m *Config) SizeVT() (n int) {
 			l = len(s)
 			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
-	}
-	if m.DisableReconcilerQueues {
-		n += 2
 	}
 	if m.DisablePeer {
 		n += 2
@@ -517,13 +485,6 @@ func (x *Config) MarshalProtoText() string {
 			sb.WriteString(strconv.Quote(v))
 		}
 		sb.WriteString("]")
-	}
-	if x.DisableReconcilerQueues != false {
-		if sb.Len() > 8 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("disable_reconciler_queues: ")
-		sb.WriteString(strconv.FormatBool(x.DisableReconcilerQueues))
 	}
 	if x.DisablePeer != false {
 		if sb.Len() > 8 {
@@ -638,18 +599,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.VolumeIdAlias = append(m.VolumeIdAlias, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
-		case 3:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DisableReconcilerQueues", wireType)
-			}
-			var v int
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			v = int(_v)
-			if err != nil {
-				return err
-			}
-			m.DisableReconcilerQueues = bool(v != 0)
 		case 4:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field DisablePeer", wireType)

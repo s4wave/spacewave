@@ -3,13 +3,14 @@ package world_parent
 import (
 	"context"
 
-	"github.com/aperturerobotics/cayley/graph"
 	"github.com/aperturerobotics/cayley/quad"
 	"github.com/s4wave/spacewave/db/world"
 )
 
 // ParentPred is the parent predicate field.
 var ParentPred = quad.IRI("parent")
+
+const parentGraphLookupLimit uint32 = 1_000_000
 
 // GetObjectParent returns the parent of a given object.
 // Returns "" if the object has no parent.
@@ -47,43 +48,28 @@ func SetObjectParent(ctx context.Context, ws world.WorldState, key, parentKey st
 	if key == "" {
 		return world.ErrEmptyObjectKey
 	}
-	// note: nextQuad.Object will be nil if parentKey is empty
-	nextQuad := BuildParentQuad(key, parentKey)
-	var delta []graph.Delta
-	if err := ws.AccessCayleyGraph(ctx, true, func(ctx context.Context, h world.CayleyHandle) error {
-		var exists bool
-		var err error
-		if reset {
-			err = world.FilterIterateQuads(ctx, h, quad.Quad{
-				Subject:   nextQuad.Subject,
-				Predicate: nextQuad.Predicate,
-			}, func(q quad.Quad) error {
-				if nextQuad.Object != nil && q.Object == nextQuad.Object {
-					exists = true
-				} else {
-					delta = append(delta, graph.Delta{
-						Quad:   q,
-						Action: graph.Delete,
-					})
-				}
-				return nil
-			})
-			if err != nil {
+
+	nextQuad := world.NewGraphQuadWithKeys(key, ParentPred.String(), parentKey, "")
+	exists := false
+	if reset {
+		quads, err := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys(key, ParentPred.String(), "", ""), parentGraphLookupLimit)
+		if err != nil {
+			return err
+		}
+		for _, q := range quads {
+			if parentKey != "" && q.GetObj() == nextQuad.GetObj() {
+				exists = true
+				continue
+			}
+			if err := ws.DeleteGraphQuad(ctx, q); err != nil {
 				return err
 			}
 		}
-		if !exists && nextQuad.Object != nil {
-			delta = append(delta, graph.Delta{
-				Quad:   nextQuad,
-				Action: graph.Add,
-			})
-		}
-		return err
-	}); err != nil {
-		return err
 	}
-
-	return world.ApplyGraphDeltas(ctx, ws, delta)
+	if !exists && parentKey != "" {
+		return ws.SetGraphQuad(ctx, nextQuad)
+	}
+	return nil
 }
 
 // ClearObjectParent removes all <parent> quads from an object.
@@ -91,23 +77,14 @@ func ClearObjectParent(ctx context.Context, ws world.WorldState, key string) err
 	if key == "" {
 		return world.ErrEmptyObjectKey
 	}
-	lookupQuad := BuildParentQuad(key, "")
-	var delta []graph.Delta
-	if err := ws.AccessCayleyGraph(ctx, true, func(ctx context.Context, h world.CayleyHandle) error {
-		err := world.FilterIterateQuads(ctx, h, lookupQuad, func(q quad.Quad) error {
-			delta = append(delta, graph.Delta{
-				Quad:   q,
-				Action: graph.Delete,
-			})
-			return nil
-		})
-		if err != nil {
-			return err
-		}
-		return err
-	}); err != nil {
+	quads, err := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys(key, ParentPred.String(), "", ""), parentGraphLookupLimit)
+	if err != nil {
 		return err
 	}
-
-	return world.ApplyGraphDeltas(ctx, ws, delta)
+	for _, q := range quads {
+		if err := ws.DeleteGraphQuad(ctx, q); err != nil {
+			return err
+		}
+	}
+	return nil
 }

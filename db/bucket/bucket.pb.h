@@ -83,10 +83,6 @@ class ObjectRef;
 struct ObjectRefDefaultTypeInternal;
 extern ObjectRefDefaultTypeInternal _ObjectRef_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull ObjectRef_class_data_;
-class ReconcilerConfig;
-struct ReconcilerConfigDefaultTypeInternal;
-extern ReconcilerConfigDefaultTypeInternal _ReconcilerConfig_default_instance_;
-extern const ::google::protobuf::internal::ClassDataFull ReconcilerConfig_class_data_;
 }  // namespace bucket
 namespace google {
 namespace protobuf {
@@ -155,7 +151,7 @@ class BucketOpArgs final : public ::google::protobuf::Message
     return *reinterpret_cast<const BucketOpArgs*>(
         &_BucketOpArgs_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 6;
+  static constexpr int kIndexInFileMessages = 5;
   friend void swap(BucketOpArgs& a, BucketOpArgs& b) { a.Swap(&b); }
   inline void Swap(BucketOpArgs* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -312,230 +308,6 @@ class BucketOpArgs final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull BucketOpArgs_class_data_;
 // -------------------------------------------------------------------
 
-class ReconcilerConfig final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:bucket.ReconcilerConfig) */ {
- public:
-  inline ReconcilerConfig() : ReconcilerConfig(nullptr) {}
-  ~ReconcilerConfig() PROTOBUF_FINAL;
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(ReconcilerConfig* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
-    SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(ReconcilerConfig));
-  }
-#endif
-
-  template <typename = void>
-  explicit PROTOBUF_CONSTEXPR ReconcilerConfig(::google::protobuf::internal::ConstantInitialized);
-
-  inline ReconcilerConfig(const ReconcilerConfig& from) : ReconcilerConfig(nullptr, from) {}
-  inline ReconcilerConfig(ReconcilerConfig&& from) noexcept
-      : ReconcilerConfig(nullptr, ::std::move(from)) {}
-  inline ReconcilerConfig& operator=(const ReconcilerConfig& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline ReconcilerConfig& operator=(ReconcilerConfig&& from) noexcept {
-    if (this == &from) return *this;
-    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
-      InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
-  }
-  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
-  }
-
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
-    return GetDescriptor();
-  }
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
-    return default_instance().GetMetadata().descriptor;
-  }
-  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
-    return default_instance().GetMetadata().reflection;
-  }
-  static const ReconcilerConfig& default_instance() {
-    return *reinterpret_cast<const ReconcilerConfig*>(
-        &_ReconcilerConfig_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages = 2;
-  friend void swap(ReconcilerConfig& a, ReconcilerConfig& b) { a.Swap(&b); }
-  inline void Swap(ReconcilerConfig* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
-      InternalSwap(other);
-    } else {
-      ::google::protobuf::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(ReconcilerConfig* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    ABSL_DCHECK(GetArena() == other->GetArena());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  ReconcilerConfig* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::Message::DefaultConstruct<ReconcilerConfig>(arena);
-  }
-  using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const ReconcilerConfig& from);
-  using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom(const ReconcilerConfig& from) { ReconcilerConfig::MergeImpl(*this, from); }
-
-  private:
-  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
-                        const ::google::protobuf::MessageLite& from_msg);
-
-  public:
-  bool IsInitialized() const {
-    return true;
-  }
-  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
-  #if defined(PROTOBUF_CUSTOM_VTABLE)
-  private:
-  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
-  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
-
-  public:
-  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-    return _InternalSerialize(*this, target, stream);
-  }
-  #else   // PROTOBUF_CUSTOM_VTABLE
-  ::size_t ByteSizeLong() const final;
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
-  #endif  // PROTOBUF_CUSTOM_VTABLE
-  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
-
-  private:
-  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static void SharedDtor(MessageLite& self);
-  void InternalSwap(ReconcilerConfig* PROTOBUF_NONNULL other);
- private:
-  template <typename T>
-  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "bucket.ReconcilerConfig"; }
-
-  explicit ReconcilerConfig(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  ReconcilerConfig(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ReconcilerConfig& from);
-  ReconcilerConfig(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ReconcilerConfig&& from) noexcept
-      : ReconcilerConfig(arena) {
-    *this = ::std::move(from);
-  }
-  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
-  static void* PROTOBUF_NONNULL PlacementNew_(
-      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static constexpr auto InternalNewImpl_();
-
- public:
-  static constexpr auto InternalGenerateClassData_();
-
-  ::google::protobuf::Metadata GetMetadata() const;
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-  enum : int {
-    kIdFieldNumber = 1,
-    kControllerFieldNumber = 2,
-    kFilterPutFieldNumber = 3,
-  };
-  // string id = 1;
-  void clear_id() ;
-  const ::std::string& id() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_id(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_id();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_id();
-  void set_allocated_id(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_id() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_id(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_id();
-
-  public:
-  // .configset.proto.ControllerConfig controller = 2;
-  bool has_controller() const;
-  void clear_controller() ;
-  const ::configset::proto::ControllerConfig& controller() const;
-  [[nodiscard]] ::configset::proto::ControllerConfig* PROTOBUF_NULLABLE release_controller();
-  ::configset::proto::ControllerConfig* PROTOBUF_NONNULL mutable_controller();
-  void set_allocated_controller(::configset::proto::ControllerConfig* PROTOBUF_NULLABLE value);
-  void unsafe_arena_set_allocated_controller(::configset::proto::ControllerConfig* PROTOBUF_NULLABLE value);
-  ::configset::proto::ControllerConfig* PROTOBUF_NULLABLE unsafe_arena_release_controller();
-
-  private:
-  const ::configset::proto::ControllerConfig& _internal_controller() const;
-  ::configset::proto::ControllerConfig* PROTOBUF_NONNULL _internal_mutable_controller();
-
-  public:
-  // bool filter_put = 3;
-  void clear_filter_put() ;
-  bool filter_put() const;
-  void set_filter_put(bool value);
-
-  private:
-  bool _internal_filter_put() const;
-  void _internal_set_filter_put(bool value);
-
-  public:
-  // @@protoc_insertion_point(class_scope:bucket.ReconcilerConfig)
- private:
-  class _Internal;
-  friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<2, 3,
-                                   1, 34,
-                                   2>
-      _table_;
-
-  friend class ::google::protobuf::MessageLite;
-  friend class ::google::protobuf::Arena;
-  template <typename T>
-  friend class ::google::protobuf::Arena::InternalHelper;
-  using InternalArenaConstructable_ = void;
-  using DestructorSkippable_ = void;
-  struct Impl_ {
-    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-        const ReconcilerConfig& from_msg);
-    ::google::protobuf::internal::HasBits<1> _has_bits_;
-    ::google::protobuf::internal::CachedSize _cached_size_;
-    ::google::protobuf::internal::ArenaStringPtr id_;
-    ::configset::proto::ControllerConfig* PROTOBUF_NULLABLE controller_;
-    bool filter_put_;
-    PROTOBUF_TSAN_DECLARE_MEMBER
-  };
-  union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto;
-};
-
-extern const ::google::protobuf::internal::ClassDataFull ReconcilerConfig_class_data_;
-// -------------------------------------------------------------------
-
 class LookupConfig final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:bucket.LookupConfig) */ {
  public:
@@ -591,7 +363,7 @@ class LookupConfig final : public ::google::protobuf::Message
     return *reinterpret_cast<const LookupConfig*>(
         &_LookupConfig_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 3;
+  static constexpr int kIndexInFileMessages = 2;
   friend void swap(LookupConfig& a, LookupConfig& b) { a.Swap(&b); }
   inline void Swap(LookupConfig* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -798,7 +570,7 @@ class ObjectRef final : public ::google::protobuf::Message
     return *reinterpret_cast<const ObjectRef*>(
         &_ObjectRef_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 5;
+  static constexpr int kIndexInFileMessages = 4;
   friend void swap(ObjectRef& a, ObjectRef& b) { a.Swap(&b); }
   inline void Swap(ObjectRef* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1131,29 +903,11 @@ class Config final : public ::google::protobuf::Message
 
   // accessors -------------------------------------------------------
   enum : int {
-    kReconcilersFieldNumber = 3,
     kIdFieldNumber = 1,
     kPutOptsFieldNumber = 4,
     kLookupFieldNumber = 5,
     kRevFieldNumber = 2,
   };
-  // repeated .bucket.ReconcilerConfig reconcilers = 3;
-  int reconcilers_size() const;
-  private:
-  int _internal_reconcilers_size() const;
-
-  public:
-  void clear_reconcilers() ;
-  ::bucket::ReconcilerConfig* PROTOBUF_NONNULL mutable_reconcilers(int index);
-  ::google::protobuf::RepeatedPtrField<::bucket::ReconcilerConfig>* PROTOBUF_NONNULL mutable_reconcilers();
-
-  private:
-  const ::google::protobuf::RepeatedPtrField<::bucket::ReconcilerConfig>& _internal_reconcilers() const;
-  ::google::protobuf::RepeatedPtrField<::bucket::ReconcilerConfig>* PROTOBUF_NONNULL _internal_mutable_reconcilers();
-  public:
-  const ::bucket::ReconcilerConfig& reconcilers(int index) const;
-  ::bucket::ReconcilerConfig* PROTOBUF_NONNULL add_reconcilers();
-  const ::google::protobuf::RepeatedPtrField<::bucket::ReconcilerConfig>& reconcilers() const;
   // string id = 1;
   void clear_id() ;
   const ::std::string& id() const;
@@ -1213,8 +967,8 @@ class Config final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 5,
-                                   3, 24,
+  static const ::google::protobuf::internal::TcParseTable<3, 4,
+                                   2, 24,
                                    2>
       _table_;
 
@@ -1235,7 +989,6 @@ class Config final : public ::google::protobuf::Message
         const Config& from_msg);
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
-    ::google::protobuf::RepeatedPtrField< ::bucket::ReconcilerConfig > reconcilers_;
     ::google::protobuf::internal::ArenaStringPtr id_;
     ::block::PutOpts* PROTOBUF_NULLABLE put_opts_;
     ::bucket::LookupConfig* PROTOBUF_NULLABLE lookup_;
@@ -1499,7 +1252,7 @@ class ApplyBucketConfigResult final : public ::google::protobuf::Message
     return *reinterpret_cast<const ApplyBucketConfigResult*>(
         &_ApplyBucketConfigResult_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 4;
+  static constexpr int kIndexInFileMessages = 3;
   friend void swap(ApplyBucketConfigResult& a, ApplyBucketConfigResult& b) { a.Swap(&b); }
   inline void Swap(ApplyBucketConfigResult* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1756,7 +1509,7 @@ inline void Config::clear_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.id_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000002U);
+                  0x00000001U);
 }
 inline const ::std::string& Config::id() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -1766,13 +1519,13 @@ inline const ::std::string& Config::id() const
 template <typename Arg_, typename... Args_>
 PROTOBUF_ALWAYS_INLINE void Config::set_id(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
   _impl_.id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
   // @@protoc_insertion_point(field_set:bucket.Config.id)
 }
 inline ::std::string* PROTOBUF_NONNULL Config::mutable_id()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
   ::std::string* _s = _internal_mutable_id();
   // @@protoc_insertion_point(field_mutable:bucket.Config.id)
   return _s;
@@ -1792,10 +1545,10 @@ inline ::std::string* PROTOBUF_NONNULL Config::_internal_mutable_id() {
 inline ::std::string* PROTOBUF_NULLABLE Config::release_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:bucket.Config.id)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
     return nullptr;
   }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
   auto* released = _impl_.id_.Release();
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
     _impl_.id_.Set("", GetArena());
@@ -1805,9 +1558,9 @@ inline ::std::string* PROTOBUF_NULLABLE Config::release_id() {
 inline void Config::set_allocated_id(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
   }
   _impl_.id_.SetAllocated(value, GetArena());
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.id_.IsDefault()) {
@@ -1821,7 +1574,7 @@ inline void Config::clear_rev() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.rev_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000010U);
+                  0x00000008U);
 }
 inline ::uint32_t Config::rev() const {
   // @@protoc_insertion_point(field_get:bucket.Config.rev)
@@ -1829,7 +1582,7 @@ inline ::uint32_t Config::rev() const {
 }
 inline void Config::set_rev(::uint32_t value) {
   _internal_set_rev(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   // @@protoc_insertion_point(field_set:bucket.Config.rev)
 }
 inline ::uint32_t Config::_internal_rev() const {
@@ -1841,65 +1594,9 @@ inline void Config::_internal_set_rev(::uint32_t value) {
   _impl_.rev_ = value;
 }
 
-// repeated .bucket.ReconcilerConfig reconcilers = 3;
-inline int Config::_internal_reconcilers_size() const {
-  return _internal_reconcilers().size();
-}
-inline int Config::reconcilers_size() const {
-  return _internal_reconcilers_size();
-}
-inline void Config::clear_reconcilers() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.reconcilers_.Clear();
-  ClearHasBitForRepeated(_impl_._has_bits_[0],
-                  0x00000001U);
-}
-inline ::bucket::ReconcilerConfig* PROTOBUF_NONNULL Config::mutable_reconcilers(int index)
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_mutable:bucket.Config.reconcilers)
-  return _internal_mutable_reconcilers()->Mutable(index);
-}
-inline ::google::protobuf::RepeatedPtrField<::bucket::ReconcilerConfig>* PROTOBUF_NONNULL Config::mutable_reconcilers()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
-  // @@protoc_insertion_point(field_mutable_list:bucket.Config.reconcilers)
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _internal_mutable_reconcilers();
-}
-inline const ::bucket::ReconcilerConfig& Config::reconcilers(int index) const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bucket.Config.reconcilers)
-  return _internal_reconcilers().Get(index);
-}
-inline ::bucket::ReconcilerConfig* PROTOBUF_NONNULL Config::add_reconcilers()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  ::bucket::ReconcilerConfig* _add =
-      _internal_mutable_reconcilers()->InternalAddWithArena(
-          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
-  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
-  // @@protoc_insertion_point(field_add:bucket.Config.reconcilers)
-  return _add;
-}
-inline const ::google::protobuf::RepeatedPtrField<::bucket::ReconcilerConfig>& Config::reconcilers() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_list:bucket.Config.reconcilers)
-  return _internal_reconcilers();
-}
-inline const ::google::protobuf::RepeatedPtrField<::bucket::ReconcilerConfig>&
-Config::_internal_reconcilers() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.reconcilers_;
-}
-inline ::google::protobuf::RepeatedPtrField<::bucket::ReconcilerConfig>* PROTOBUF_NONNULL
-Config::_internal_mutable_reconcilers() {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return &_impl_.reconcilers_;
-}
-
 // .block.PutOpts put_opts = 4;
 inline bool Config::has_put_opts() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000004U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
   PROTOBUF_ASSUME(!value || _impl_.put_opts_ != nullptr);
   return value;
 }
@@ -1920,16 +1617,16 @@ inline void Config::unsafe_arena_set_allocated_put_opts(
   }
   _impl_.put_opts_ = reinterpret_cast<::block::PutOpts*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:bucket.Config.put_opts)
 }
 inline ::block::PutOpts* PROTOBUF_NULLABLE Config::release_put_opts() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   ::block::PutOpts* released = _impl_.put_opts_;
   _impl_.put_opts_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -1949,7 +1646,7 @@ inline ::block::PutOpts* PROTOBUF_NULLABLE Config::unsafe_arena_release_put_opts
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:bucket.Config.put_opts)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   ::block::PutOpts* temp = _impl_.put_opts_;
   _impl_.put_opts_ = nullptr;
   return temp;
@@ -1964,7 +1661,7 @@ inline ::block::PutOpts* PROTOBUF_NONNULL Config::_internal_mutable_put_opts() {
 }
 inline ::block::PutOpts* PROTOBUF_NONNULL Config::mutable_put_opts()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   ::block::PutOpts* _msg = _internal_mutable_put_opts();
   // @@protoc_insertion_point(field_mutable:bucket.Config.put_opts)
   return _msg;
@@ -1981,9 +1678,9 @@ inline void Config::set_allocated_put_opts(::block::PutOpts* PROTOBUF_NULLABLE v
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   }
 
   _impl_.put_opts_ = reinterpret_cast<::block::PutOpts*>(value);
@@ -1992,7 +1689,7 @@ inline void Config::set_allocated_put_opts(::block::PutOpts* PROTOBUF_NULLABLE v
 
 // .bucket.LookupConfig lookup = 5;
 inline bool Config::has_lookup() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000008U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000004U);
   PROTOBUF_ASSUME(!value || _impl_.lookup_ != nullptr);
   return value;
 }
@@ -2000,7 +1697,7 @@ inline void Config::clear_lookup() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.lookup_ != nullptr) _impl_.lookup_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000008U);
+                  0x00000004U);
 }
 inline const ::bucket::LookupConfig& Config::_internal_lookup() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -2019,16 +1716,16 @@ inline void Config::unsafe_arena_set_allocated_lookup(
   }
   _impl_.lookup_ = reinterpret_cast<::bucket::LookupConfig*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:bucket.Config.lookup)
 }
 inline ::bucket::LookupConfig* PROTOBUF_NULLABLE Config::release_lookup() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::bucket::LookupConfig* released = _impl_.lookup_;
   _impl_.lookup_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -2048,7 +1745,7 @@ inline ::bucket::LookupConfig* PROTOBUF_NULLABLE Config::unsafe_arena_release_lo
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:bucket.Config.lookup)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::bucket::LookupConfig* temp = _impl_.lookup_;
   _impl_.lookup_ = nullptr;
   return temp;
@@ -2063,7 +1760,7 @@ inline ::bucket::LookupConfig* PROTOBUF_NONNULL Config::_internal_mutable_lookup
 }
 inline ::bucket::LookupConfig* PROTOBUF_NONNULL Config::mutable_lookup()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::bucket::LookupConfig* _msg = _internal_mutable_lookup();
   // @@protoc_insertion_point(field_mutable:bucket.Config.lookup)
   return _msg;
@@ -2080,9 +1777,9 @@ inline void Config::set_allocated_lookup(::bucket::LookupConfig* PROTOBUF_NULLAB
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   }
 
   _impl_.lookup_ = reinterpret_cast<::bucket::LookupConfig*>(value);
@@ -2190,193 +1887,6 @@ inline void BucketInfo::set_allocated_config(::bucket::Config* PROTOBUF_NULLABLE
 
   _impl_.config_ = reinterpret_cast<::bucket::Config*>(value);
   // @@protoc_insertion_point(field_set_allocated:bucket.BucketInfo.config)
-}
-
-// -------------------------------------------------------------------
-
-// ReconcilerConfig
-
-// string id = 1;
-inline void ReconcilerConfig::clear_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.id_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000001U);
-}
-inline const ::std::string& ReconcilerConfig::id() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bucket.ReconcilerConfig.id)
-  return _internal_id();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void ReconcilerConfig::set_id(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  _impl_.id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bucket.ReconcilerConfig.id)
-}
-inline ::std::string* PROTOBUF_NONNULL ReconcilerConfig::mutable_id()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  ::std::string* _s = _internal_mutable_id();
-  // @@protoc_insertion_point(field_mutable:bucket.ReconcilerConfig.id)
-  return _s;
-}
-inline const ::std::string& ReconcilerConfig::_internal_id() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.id_.Get();
-}
-inline void ReconcilerConfig::_internal_set_id(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.id_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL ReconcilerConfig::_internal_mutable_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.id_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE ReconcilerConfig::release_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bucket.ReconcilerConfig.id)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  auto* released = _impl_.id_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.id_.Set("", GetArena());
-  }
-  return released;
-}
-inline void ReconcilerConfig::set_allocated_id(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  }
-  _impl_.id_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.id_.IsDefault()) {
-    _impl_.id_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:bucket.ReconcilerConfig.id)
-}
-
-// .configset.proto.ControllerConfig controller = 2;
-inline bool ReconcilerConfig::has_controller() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
-  PROTOBUF_ASSUME(!value || _impl_.controller_ != nullptr);
-  return value;
-}
-inline const ::configset::proto::ControllerConfig& ReconcilerConfig::_internal_controller() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  const ::configset::proto::ControllerConfig* p = _impl_.controller_;
-  return p != nullptr ? *p : reinterpret_cast<const ::configset::proto::ControllerConfig&>(::configset::proto::_ControllerConfig_default_instance_);
-}
-inline const ::configset::proto::ControllerConfig& ReconcilerConfig::controller() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bucket.ReconcilerConfig.controller)
-  return _internal_controller();
-}
-inline void ReconcilerConfig::unsafe_arena_set_allocated_controller(
-    ::configset::proto::ControllerConfig* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (GetArena() == nullptr) {
-    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.controller_);
-  }
-  _impl_.controller_ = reinterpret_cast<::configset::proto::ControllerConfig*>(value);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:bucket.ReconcilerConfig.controller)
-}
-inline ::configset::proto::ControllerConfig* PROTOBUF_NULLABLE ReconcilerConfig::release_controller() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  ::configset::proto::ControllerConfig* released = _impl_.controller_;
-  _impl_.controller_ = nullptr;
-  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
-    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
-    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
-    if (GetArena() == nullptr) {
-      delete old;
-    }
-  } else {
-    if (GetArena() != nullptr) {
-      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
-    }
-  }
-  return released;
-}
-inline ::configset::proto::ControllerConfig* PROTOBUF_NULLABLE ReconcilerConfig::unsafe_arena_release_controller() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bucket.ReconcilerConfig.controller)
-
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  ::configset::proto::ControllerConfig* temp = _impl_.controller_;
-  _impl_.controller_ = nullptr;
-  return temp;
-}
-inline ::configset::proto::ControllerConfig* PROTOBUF_NONNULL ReconcilerConfig::_internal_mutable_controller() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (_impl_.controller_ == nullptr) {
-    auto* p = ::google::protobuf::Message::DefaultConstruct<::configset::proto::ControllerConfig>(GetArena());
-    _impl_.controller_ = reinterpret_cast<::configset::proto::ControllerConfig*>(p);
-  }
-  return _impl_.controller_;
-}
-inline ::configset::proto::ControllerConfig* PROTOBUF_NONNULL ReconcilerConfig::mutable_controller()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  ::configset::proto::ControllerConfig* _msg = _internal_mutable_controller();
-  // @@protoc_insertion_point(field_mutable:bucket.ReconcilerConfig.controller)
-  return _msg;
-}
-inline void ReconcilerConfig::set_allocated_controller(::configset::proto::ControllerConfig* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::Arena* message_arena = GetArena();
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (message_arena == nullptr) {
-    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.controller_);
-  }
-
-  if (value != nullptr) {
-    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
-    if (message_arena != submessage_arena) {
-      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
-    }
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  }
-
-  _impl_.controller_ = reinterpret_cast<::configset::proto::ControllerConfig*>(value);
-  // @@protoc_insertion_point(field_set_allocated:bucket.ReconcilerConfig.controller)
-}
-
-// bool filter_put = 3;
-inline void ReconcilerConfig::clear_filter_put() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.filter_put_ = false;
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
-}
-inline bool ReconcilerConfig::filter_put() const {
-  // @@protoc_insertion_point(field_get:bucket.ReconcilerConfig.filter_put)
-  return _internal_filter_put();
-}
-inline void ReconcilerConfig::set_filter_put(bool value) {
-  _internal_set_filter_put(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
-  // @@protoc_insertion_point(field_set:bucket.ReconcilerConfig.filter_put)
-}
-inline bool ReconcilerConfig::_internal_filter_put() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.filter_put_;
-}
-inline void ReconcilerConfig::_internal_set_filter_put(bool value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.filter_put_ = value;
 }
 
 // -------------------------------------------------------------------

@@ -76,7 +76,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 	// Use an ID as an alias so we can access it via rpc.
 	hostVolumeConf.VolumeIdAlias = []string{hostVolumeID}
 	hostVolumeConf.DisablePeer = true
-	hostVolumeConf.DisableReconcilerQueues = true
 	hostVolumeConf.DisableEventBlockRm = true
 
 	// Host storage ID defaults

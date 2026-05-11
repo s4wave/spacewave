@@ -44,7 +44,6 @@ inline constexpr Config::Impl_::Impl_(
             ::_pbi::ConstantInitialized()),
         block_store_writeback_put_opts_{nullptr},
         disable_event_block_rm_{false},
-        disable_reconciler_queues_{false},
         disable_peer_{false},
         disable_lookup_block_store_{false},
         block_store_overlay_mode_{static_cast< ::block::OverlayMode >(0)} {}
@@ -79,10 +78,9 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::volume::controller::Config, _impl_._has_bits_),
-        13, // hasbit index offset
+        12, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::volume::controller::Config, _impl_.disable_event_block_rm_),
         PROTOBUF_FIELD_OFFSET(::volume::controller::Config, _impl_.volume_id_alias_),
-        PROTOBUF_FIELD_OFFSET(::volume::controller::Config, _impl_.disable_reconciler_queues_),
         PROTOBUF_FIELD_OFFSET(::volume::controller::Config, _impl_.disable_peer_),
         PROTOBUF_FIELD_OFFSET(::volume::controller::Config, _impl_.disable_lookup_block_store_),
         PROTOBUF_FIELD_OFFSET(::volume::controller::Config, _impl_.block_store_id_),
@@ -94,9 +92,8 @@ const ::uint32_t
         0,
         6,
         7,
-        8,
         1,
-        9,
+        8,
         2,
         4,
         3,
@@ -114,16 +111,15 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvo
     "\nAgithub.com/s4wave/spacewave/db/volume/"
     "controller/controller.proto\022\021volume.cont"
     "roller\0320github.com/s4wave/spacewave/db/b"
-    "lock/block.proto\"\350\002\n\006Config\022\036\n\026disable_e"
+    "lock/block.proto\"\305\002\n\006Config\022\036\n\026disable_e"
     "vent_block_rm\030\001 \001(\010\022\027\n\017volume_id_alias\030\002"
-    " \003(\t\022!\n\031disable_reconciler_queues\030\003 \001(\010\022"
-    "\024\n\014disable_peer\030\004 \001(\010\022\"\n\032disable_lookup_"
-    "block_store\030\007 \001(\010\022\026\n\016block_store_id\030\005 \001("
-    "\t\0224\n\030block_store_overlay_mode\030\006 \001(\0162\022.bl"
-    "ock.OverlayMode\022)\n!block_store_writeback"
-    "_timeout_dur\030\010 \001(\t\0226\n\036block_store_writeb"
-    "ack_put_opts\030\t \001(\0132\016.block.PutOpts\022\027\n\017gc"
-    "_interval_dur\030\n \001(\tb\006proto3"
+    " \003(\t\022\024\n\014disable_peer\030\004 \001(\010\022\"\n\032disable_lo"
+    "okup_block_store\030\007 \001(\010\022\026\n\016block_store_id"
+    "\030\005 \001(\t\0224\n\030block_store_overlay_mode\030\006 \001(\016"
+    "2\022.block.OverlayMode\022)\n!block_store_writ"
+    "eback_timeout_dur\030\010 \001(\t\0226\n\036block_store_w"
+    "riteback_put_opts\030\t \001(\0132\016.block.PutOpts\022"
+    "\027\n\017gc_interval_dur\030\n \001(\tb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fcontroller_2fcontroller_2eproto_deps[1] = {
@@ -133,7 +129,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fcontroller_2fcontroller_2eproto = {
     false,
     false,
-    507,
+    472,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fcontroller_2fcontroller_2eproto,
     "github.com/s4wave/spacewave/db/volume/controller/controller.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fcontroller_2fcontroller_2eproto_once,
@@ -302,16 +298,16 @@ Config::GetClassData() const {
   return Config_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<4, 10, 1, 118, 2>
+const ::_pbi::TcParseTable<4, 9, 1, 118, 2>
 Config::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(Config, _impl_._has_bits_),
     0, // no _extensions_
     10, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294966272,  // skipmap
+    4294966276,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    10,  // num_field_entries
+    9,  // num_field_entries
     1,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     Config_class_data_.base(),
@@ -330,25 +326,22 @@ Config::_table_ = {
     {::_pbi::TcParser::FastUR1,
      {18, 0, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.volume_id_alias_)}},
-    // bool disable_reconciler_queues = 3;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.disable_reconciler_queues_), 6>(),
-     {24, 6, 0,
-      PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_reconciler_queues_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // bool disable_peer = 4;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.disable_peer_), 7>(),
-     {32, 7, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.disable_peer_), 6>(),
+     {32, 6, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_peer_)}},
     // string block_store_id = 5;
     {::_pbi::TcParser::FastUS1,
      {42, 1, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.block_store_id_)}},
     // .block.OverlayMode block_store_overlay_mode = 6;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.block_store_overlay_mode_), 9>(),
-     {48, 9, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.block_store_overlay_mode_), 8>(),
+     {48, 8, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.block_store_overlay_mode_)}},
     // bool disable_lookup_block_store = 7;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.disable_lookup_block_store_), 8>(),
-     {56, 8, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.disable_lookup_block_store_), 7>(),
+     {56, 7, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_lookup_block_store_)}},
     // string block_store_writeback_timeout_dur = 8;
     {::_pbi::TcParser::FastUS1,
@@ -374,16 +367,14 @@ Config::_table_ = {
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_event_block_rm_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // repeated string volume_id_alias = 2;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.volume_id_alias_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
-    // bool disable_reconciler_queues = 3;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_reconciler_queues_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // bool disable_peer = 4;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_peer_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_peer_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // string block_store_id = 5;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.block_store_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // .block.OverlayMode block_store_overlay_mode = 6;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.block_store_overlay_mode_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.block_store_overlay_mode_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
     // bool disable_lookup_block_store = 7;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_lookup_block_store_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_lookup_block_store_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // string block_store_writeback_timeout_dur = 8;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.block_store_writeback_timeout_dur_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // .block.PutOpts block_store_writeback_put_opts = 9;
@@ -395,7 +386,7 @@ Config::_table_ = {
       {::_pbi::TcParser::GetTable<::block::PutOpts>()},
   }},
   {{
-    "\30\0\17\0\0\16\0\0\41\0\17\0\0\0\0\0"
+    "\30\0\17\0\16\0\0\41\0\17\0\0\0\0\0\0"
     "volume.controller.Config"
     "volume_id_alias"
     "block_store_id"
@@ -431,14 +422,10 @@ PROTOBUF_NOINLINE void Config::Clear() {
   }
   if (BatchCheckHasBit(cached_has_bits, 0x000000e0U)) {
     ::memset(&_impl_.disable_event_block_rm_, 0, static_cast<::size_t>(
-        reinterpret_cast<char*>(&_impl_.disable_peer_) -
-        reinterpret_cast<char*>(&_impl_.disable_event_block_rm_)) + sizeof(_impl_.disable_peer_));
+        reinterpret_cast<char*>(&_impl_.disable_lookup_block_store_) -
+        reinterpret_cast<char*>(&_impl_.disable_event_block_rm_)) + sizeof(_impl_.disable_lookup_block_store_));
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
-    ::memset(&_impl_.disable_lookup_block_store_, 0, static_cast<::size_t>(
-        reinterpret_cast<char*>(&_impl_.block_store_overlay_mode_) -
-        reinterpret_cast<char*>(&_impl_.disable_lookup_block_store_)) + sizeof(_impl_.block_store_overlay_mode_));
-  }
+  _impl_.block_store_overlay_mode_ = 0;
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -481,17 +468,8 @@ PROTOBUF_NOINLINE void Config::Clear() {
     }
   }
 
-  // bool disable_reconciler_queues = 3;
-  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
-    if (this_._internal_disable_reconciler_queues() != 0) {
-      target = stream->EnsureSpace(target);
-      target = ::_pbi::WireFormatLite::WriteBoolToArray(
-          3, this_._internal_disable_reconciler_queues(), target);
-    }
-  }
-
   // bool disable_peer = 4;
-  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
     if (this_._internal_disable_peer() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
@@ -510,7 +488,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
   }
 
   // .block.OverlayMode block_store_overlay_mode = 6;
-  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
     if (this_._internal_block_store_overlay_mode() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteEnumToArray(
@@ -519,7 +497,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
   }
 
   // bool disable_lookup_block_store = 7;
-  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
     if (this_._internal_disable_lookup_block_store() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
@@ -621,28 +599,22 @@ PROTOBUF_NOINLINE void Config::Clear() {
         total_size += 2;
       }
     }
-    // bool disable_reconciler_queues = 3;
-    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
-      if (this_._internal_disable_reconciler_queues() != 0) {
-        total_size += 2;
-      }
-    }
     // bool disable_peer = 4;
-    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       if (this_._internal_disable_peer() != 0) {
         total_size += 2;
       }
     }
-  }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
     // bool disable_lookup_block_store = 7;
-    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
       if (this_._internal_disable_lookup_block_store() != 0) {
         total_size += 2;
       }
     }
+  }
+   {
     // .block.OverlayMode block_store_overlay_mode = 6;
-    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (this_._internal_block_store_overlay_mode() != 0) {
         total_size += 1 +
                       ::_pbi::WireFormatLite::EnumSize(this_._internal_block_store_overlay_mode());
@@ -715,26 +687,19 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000040U)) {
-      if (from._internal_disable_reconciler_queues() != 0) {
-        _this->_impl_.disable_reconciler_queues_ = from._impl_.disable_reconciler_queues_;
-      }
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
       if (from._internal_disable_peer() != 0) {
         _this->_impl_.disable_peer_ = from._impl_.disable_peer_;
       }
     }
-  }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
-    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
       if (from._internal_disable_lookup_block_store() != 0) {
         _this->_impl_.disable_lookup_block_store_ = from._impl_.disable_lookup_block_store_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
-      if (from._internal_block_store_overlay_mode() != 0) {
-        _this->_impl_.block_store_overlay_mode_ = from._impl_.block_store_overlay_mode_;
-      }
+  }
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (from._internal_block_store_overlay_mode() != 0) {
+      _this->_impl_.block_store_overlay_mode_ = from._impl_.block_store_overlay_mode_;
     }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;

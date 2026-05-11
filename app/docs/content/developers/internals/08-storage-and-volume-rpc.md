@@ -36,7 +36,6 @@ The proxy channel also exposes several block-level services:
 
 - **BlockStore** - `PutBlock`, `GetBlock`, `GetBlockExists`, `StatBlock`, `RmBlock` for content-addressed block operations.
 - **BucketStore** - Key-value operations scoped to a named bucket within the volume.
-- **MqueueStore** - Message queue operations for ordered event streams.
 - **ObjectStore** - High-level object CRUD backed by the block store.
 
 ## Volume Identity

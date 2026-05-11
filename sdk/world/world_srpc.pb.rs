@@ -248,8 +248,14 @@ pub trait WorldStateResourceServiceClient: Send + Sync {
     async fn delete_graph_quad(&self, request: &DeleteGraphQuadRequest) -> starpc::Result<DeleteGraphQuadResponse>;
     /// LookupGraphQuads.
     async fn lookup_graph_quads(&self, request: &LookupGraphQuadsRequest) -> starpc::Result<LookupGraphQuadsResponse>;
+    /// LookupGraphQuadsBatch.
+    async fn lookup_graph_quads_batch(&self, request: &LookupGraphQuadsBatchRequest) -> starpc::Result<LookupGraphQuadsBatchResponse>;
     /// ListObjectsWithType.
     async fn list_objects_with_type(&self, request: &ListObjectsWithTypeRequest) -> starpc::Result<ListObjectsWithTypeResponse>;
+    /// GetObjectMetadataBatch.
+    async fn get_object_metadata_batch(&self, request: &GetObjectMetadataBatchRequest) -> starpc::Result<GetObjectMetadataBatchResponse>;
+    /// QueryGraphPath.
+    async fn query_graph_path(&self, request: &QueryGraphPathRequest) -> starpc::Result<QueryGraphPathResponse>;
     /// DeleteGraphObject.
     async fn delete_graph_object(&self, request: &DeleteGraphObjectRequest) -> starpc::Result<DeleteGraphObjectResponse>;
     /// ApplyWorldOp.
@@ -309,8 +315,17 @@ impl<C: starpc::Client + 'static> WorldStateResourceServiceClient for WorldState
     async fn lookup_graph_quads(&self, request: &LookupGraphQuadsRequest) -> starpc::Result<LookupGraphQuadsResponse> {
         self.client.exec_call("s4wave.world.WorldStateResourceService", "LookupGraphQuads", request).await
     }
+    async fn lookup_graph_quads_batch(&self, request: &LookupGraphQuadsBatchRequest) -> starpc::Result<LookupGraphQuadsBatchResponse> {
+        self.client.exec_call("s4wave.world.WorldStateResourceService", "LookupGraphQuadsBatch", request).await
+    }
     async fn list_objects_with_type(&self, request: &ListObjectsWithTypeRequest) -> starpc::Result<ListObjectsWithTypeResponse> {
         self.client.exec_call("s4wave.world.WorldStateResourceService", "ListObjectsWithType", request).await
+    }
+    async fn get_object_metadata_batch(&self, request: &GetObjectMetadataBatchRequest) -> starpc::Result<GetObjectMetadataBatchResponse> {
+        self.client.exec_call("s4wave.world.WorldStateResourceService", "GetObjectMetadataBatch", request).await
+    }
+    async fn query_graph_path(&self, request: &QueryGraphPathRequest) -> starpc::Result<QueryGraphPathResponse> {
+        self.client.exec_call("s4wave.world.WorldStateResourceService", "QueryGraphPath", request).await
     }
     async fn delete_graph_object(&self, request: &DeleteGraphObjectRequest) -> starpc::Result<DeleteGraphObjectResponse> {
         self.client.exec_call("s4wave.world.WorldStateResourceService", "DeleteGraphObject", request).await
@@ -349,8 +364,14 @@ pub trait WorldStateResourceServiceServer: Send + Sync {
     async fn delete_graph_quad(&self, request: DeleteGraphQuadRequest) -> starpc::Result<DeleteGraphQuadResponse>;
     /// LookupGraphQuads.
     async fn lookup_graph_quads(&self, request: LookupGraphQuadsRequest) -> starpc::Result<LookupGraphQuadsResponse>;
+    /// LookupGraphQuadsBatch.
+    async fn lookup_graph_quads_batch(&self, request: LookupGraphQuadsBatchRequest) -> starpc::Result<LookupGraphQuadsBatchResponse>;
     /// ListObjectsWithType.
     async fn list_objects_with_type(&self, request: ListObjectsWithTypeRequest) -> starpc::Result<ListObjectsWithTypeResponse>;
+    /// GetObjectMetadataBatch.
+    async fn get_object_metadata_batch(&self, request: GetObjectMetadataBatchRequest) -> starpc::Result<GetObjectMetadataBatchResponse>;
+    /// QueryGraphPath.
+    async fn query_graph_path(&self, request: QueryGraphPathRequest) -> starpc::Result<QueryGraphPathResponse>;
     /// DeleteGraphObject.
     async fn delete_graph_object(&self, request: DeleteGraphObjectRequest) -> starpc::Result<DeleteGraphObjectResponse>;
     /// ApplyWorldOp.
@@ -371,7 +392,10 @@ const WORLD_STATE_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
     "SetGraphQuad",
     "DeleteGraphQuad",
     "LookupGraphQuads",
+    "LookupGraphQuadsBatch",
     "ListObjectsWithType",
+    "GetObjectMetadataBatch",
+    "QueryGraphPath",
     "DeleteGraphObject",
     "ApplyWorldOp",
 ];
@@ -597,12 +621,57 @@ impl<S: WorldStateResourceServiceServer + 'static> starpc::Invoker for WorldStat
                     Err(e) => (true, Err(e)),
                 }
             }
+            "LookupGraphQuadsBatch" => {
+                let request: LookupGraphQuadsBatchRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.lookup_graph_quads_batch(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
             "ListObjectsWithType" => {
                 let request: ListObjectsWithTypeRequest = match stream.msg_recv().await {
                     Ok(r) => r,
                     Err(e) => return (true, Err(e)),
                 };
                 match self.server.list_objects_with_type(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "GetObjectMetadataBatch" => {
+                let request: GetObjectMetadataBatchRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.get_object_metadata_batch(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "QueryGraphPath" => {
+                let request: QueryGraphPathRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.query_graph_path(request).await {
                     Ok(response) => {
                         if let Err(e) = stream.msg_send(&response).await {
                             return (true, Err(e));
@@ -1104,6 +1173,125 @@ impl<S: ObjectIteratorResourceServiceServer + 'static> starpc::Handler for Objec
 
     fn method_ids(&self) -> &'static [&'static str] {
         OBJECT_ITERATOR_RESOURCE_SERVICE_METHOD_IDS
+    }
+}
+
+/// Service ID for GraphPathQueryResourceService.
+pub const GRAPH_PATH_QUERY_RESOURCE_SERVICE_SERVICE_ID: &str = "s4wave.world.GraphPathQueryResourceService";
+
+/// Client trait for GraphPathQueryResourceService.
+#[starpc::async_trait]
+pub trait GraphPathQueryResourceServiceClient: Send + Sync {
+    /// Next.
+    async fn next(&self, request: &NextGraphPathQueryRequest) -> starpc::Result<NextGraphPathQueryResponse>;
+    /// Close.
+    async fn close(&self, request: &CloseGraphPathQueryRequest) -> starpc::Result<CloseGraphPathQueryResponse>;
+}
+
+/// Client implementation for GraphPathQueryResourceService.
+pub struct GraphPathQueryResourceServiceClientImpl<C> {
+    client: C,
+}
+
+impl<C: starpc::Client> GraphPathQueryResourceServiceClientImpl<C> {
+    /// Creates a new client.
+    pub fn new(client: C) -> Self {
+        Self { client }
+    }
+}
+
+#[starpc::async_trait]
+impl<C: starpc::Client + 'static> GraphPathQueryResourceServiceClient for GraphPathQueryResourceServiceClientImpl<C> {
+    async fn next(&self, request: &NextGraphPathQueryRequest) -> starpc::Result<NextGraphPathQueryResponse> {
+        self.client.exec_call("s4wave.world.GraphPathQueryResourceService", "Next", request).await
+    }
+    async fn close(&self, request: &CloseGraphPathQueryRequest) -> starpc::Result<CloseGraphPathQueryResponse> {
+        self.client.exec_call("s4wave.world.GraphPathQueryResourceService", "Close", request).await
+    }
+}
+
+/// Server trait for GraphPathQueryResourceService.
+#[starpc::async_trait]
+pub trait GraphPathQueryResourceServiceServer: Send + Sync {
+    /// Next.
+    async fn next(&self, request: NextGraphPathQueryRequest) -> starpc::Result<NextGraphPathQueryResponse>;
+    /// Close.
+    async fn close(&self, request: CloseGraphPathQueryRequest) -> starpc::Result<CloseGraphPathQueryResponse>;
+}
+
+const GRAPH_PATH_QUERY_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
+    "Next",
+    "Close",
+];
+
+/// Handler for GraphPathQueryResourceService.
+pub struct GraphPathQueryResourceServiceHandler<S: GraphPathQueryResourceServiceServer> {
+    server: std::sync::Arc<S>,
+}
+
+impl<S: GraphPathQueryResourceServiceServer + 'static> GraphPathQueryResourceServiceHandler<S> {
+    /// Creates a new handler wrapping the server implementation.
+    pub fn new(server: S) -> Self {
+        Self { server: std::sync::Arc::new(server) }
+    }
+
+    /// Creates a new handler with a shared server.
+    pub fn with_arc(server: std::sync::Arc<S>) -> Self {
+        Self { server }
+    }
+}
+
+#[starpc::async_trait]
+impl<S: GraphPathQueryResourceServiceServer + 'static> starpc::Invoker for GraphPathQueryResourceServiceHandler<S> {
+    async fn invoke_method(
+        &self,
+        _service_id: &str,
+        method_id: &str,
+        stream: Box<dyn starpc::Stream>,
+    ) -> (bool, starpc::Result<()>) {
+        match method_id {
+            "Next" => {
+                let request: NextGraphPathQueryRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.next(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "Close" => {
+                let request: CloseGraphPathQueryRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.close(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            _ => (false, Err(starpc::Error::Unimplemented)),
+        }
+    }
+}
+
+impl<S: GraphPathQueryResourceServiceServer + 'static> starpc::Handler for GraphPathQueryResourceServiceHandler<S> {
+    fn service_id(&self) -> &'static str {
+        "s4wave.world.GraphPathQueryResourceService"
+    }
+
+    fn method_ids(&self) -> &'static [&'static str] {
+        GRAPH_PATH_QUERY_RESOURCE_SERVICE_METHOD_IDS
     }
 }
 

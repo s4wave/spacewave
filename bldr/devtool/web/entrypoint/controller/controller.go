@@ -224,7 +224,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	engineVolumeID := devtoolVolumeID
 
 	// create state bucket if it doesn't exist
-	engineBucketConf, err := bucket.NewConfig(engineBucketID, 1, nil, nil)
+	engineBucketConf, err := bucket.NewConfig(engineBucketID, 1, nil)
 	if err != nil {
 		return err
 	}

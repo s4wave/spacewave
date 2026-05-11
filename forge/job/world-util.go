@@ -3,7 +3,6 @@ package forge_job
 import (
 	"context"
 
-	"github.com/aperturerobotics/cayley"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -17,6 +16,8 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
+
+const jobGraphPathLimit uint32 = 1_000_000
 
 // LookupJob looks up a Job in the world.
 func LookupJob(ctx context.Context, ws world.WorldState, objKey string) (*Job, world.ObjectState, error) {
@@ -159,13 +160,13 @@ func WaitJobComplete(
 
 // ListJobTasks lists all Execution object keys that are linked to by the Job.
 func ListJobTasks(ctx context.Context, w world.WorldState, jobKeys ...string) ([]string, error) {
-	return world.CollectPathWithKeys(
+	return world.CollectGraphPathStepWithKeys(
 		ctx,
 		w,
 		jobKeys,
-		func(p *cayley.Path) (*cayley.Path, error) {
-			return p.Out(PredJobToTask), nil
-		},
+		world.GraphPathDirectionOut,
+		PredJobToTask.String(),
+		jobGraphPathLimit,
 	)
 }
 

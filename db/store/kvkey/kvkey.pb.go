@@ -33,15 +33,6 @@ type Config struct {
 	// ObjectStorePrefix is the prefix applied to object stores.
 	// Default: objs/
 	ObjectStorePrefix []byte `protobuf:"bytes,6,opt,name=object_store_prefix,json=objectStorePrefix,proto3" json:"objectStorePrefix,omitempty"`
-	// MqueuePrefix contains the key to use for the message queues.
-	// Default: mq/q/
-	MqueuePrefix []byte `protobuf:"bytes,7,opt,name=mqueue_prefix,json=mqueuePrefix,proto3" json:"mqueuePrefix,omitempty"`
-	// MqueueMetaPrefix contains the key to use for the message queue metas.
-	// Default: mq/m/
-	MqueueMetaPrefix []byte `protobuf:"bytes,8,opt,name=mqueue_meta_prefix,json=mqueueMetaPrefix,proto3" json:"mqueueMetaPrefix,omitempty"`
-	// BucketMqueuePrefix contains the mqueue id prefix to use for bucket reconcilers.
-	// Default: bkt/
-	BucketMqueuePrefix []byte `protobuf:"bytes,9,opt,name=bucket_mqueue_prefix,json=bucketMqueuePrefix,proto3" json:"bucketMqueuePrefix,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -85,27 +76,6 @@ func (x *Config) GetObjectStorePrefix() []byte {
 	return nil
 }
 
-func (x *Config) GetMqueuePrefix() []byte {
-	if x != nil {
-		return x.MqueuePrefix
-	}
-	return nil
-}
-
-func (x *Config) GetMqueueMetaPrefix() []byte {
-	if x != nil {
-		return x.MqueueMetaPrefix
-	}
-	return nil
-}
-
-func (x *Config) GetBucketMqueuePrefix() []byte {
-	if x != nil {
-		return x.BucketMqueuePrefix
-	}
-	return nil
-}
-
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -125,15 +95,6 @@ func (m *Config) CloneVT() *Config {
 	}
 	if rhs := m.ObjectStorePrefix; rhs != nil {
 		r.ObjectStorePrefix = slices.Clone(rhs)
-	}
-	if rhs := m.MqueuePrefix; rhs != nil {
-		r.MqueuePrefix = slices.Clone(rhs)
-	}
-	if rhs := m.MqueueMetaPrefix; rhs != nil {
-		r.MqueueMetaPrefix = slices.Clone(rhs)
-	}
-	if rhs := m.BucketMqueuePrefix; rhs != nil {
-		r.BucketMqueuePrefix = slices.Clone(rhs)
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -164,15 +125,6 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if string(this.ObjectStorePrefix) != string(that.ObjectStorePrefix) {
-		return false
-	}
-	if string(this.MqueuePrefix) != string(that.MqueuePrefix) {
-		return false
-	}
-	if string(this.MqueueMetaPrefix) != string(that.MqueueMetaPrefix) {
-		return false
-	}
-	if string(this.BucketMqueuePrefix) != string(that.BucketMqueuePrefix) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -219,21 +171,6 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("objectStorePrefix")
 		s.WriteBytes(x.ObjectStorePrefix)
 	}
-	if len(x.MqueuePrefix) > 0 || s.HasField("mqueuePrefix") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("mqueuePrefix")
-		s.WriteBytes(x.MqueuePrefix)
-	}
-	if len(x.MqueueMetaPrefix) > 0 || s.HasField("mqueueMetaPrefix") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("mqueueMetaPrefix")
-		s.WriteBytes(x.MqueueMetaPrefix)
-	}
-	if len(x.BucketMqueuePrefix) > 0 || s.HasField("bucketMqueuePrefix") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("bucketMqueuePrefix")
-		s.WriteBytes(x.BucketMqueuePrefix)
-	}
 	s.WriteObjectEnd()
 }
 
@@ -266,15 +203,6 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "object_store_prefix", "objectStorePrefix":
 			s.AddField("object_store_prefix")
 			x.ObjectStorePrefix = s.ReadBytes()
-		case "mqueue_prefix", "mqueuePrefix":
-			s.AddField("mqueue_prefix")
-			x.MqueuePrefix = s.ReadBytes()
-		case "mqueue_meta_prefix", "mqueueMetaPrefix":
-			s.AddField("mqueue_meta_prefix")
-			x.MqueueMetaPrefix = s.ReadBytes()
-		case "bucket_mqueue_prefix", "bucketMqueuePrefix":
-			s.AddField("bucket_mqueue_prefix")
-			x.BucketMqueuePrefix = s.ReadBytes()
 		}
 	})
 }
@@ -313,27 +241,6 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
-	}
-	if len(m.BucketMqueuePrefix) > 0 {
-		i -= len(m.BucketMqueuePrefix)
-		copy(dAtA[i:], m.BucketMqueuePrefix)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.BucketMqueuePrefix)))
-		i--
-		dAtA[i] = 0x4a
-	}
-	if len(m.MqueueMetaPrefix) > 0 {
-		i -= len(m.MqueueMetaPrefix)
-		copy(dAtA[i:], m.MqueueMetaPrefix)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.MqueueMetaPrefix)))
-		i--
-		dAtA[i] = 0x42
-	}
-	if len(m.MqueuePrefix) > 0 {
-		i -= len(m.MqueuePrefix)
-		copy(dAtA[i:], m.MqueuePrefix)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.MqueuePrefix)))
-		i--
-		dAtA[i] = 0x3a
 	}
 	if len(m.ObjectStorePrefix) > 0 {
 		i -= len(m.ObjectStorePrefix)
@@ -399,18 +306,6 @@ func (m *Config) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
-	l = len(m.MqueuePrefix)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	l = len(m.MqueueMetaPrefix)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	l = len(m.BucketMqueuePrefix)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -461,33 +356,6 @@ func (x *Config) MarshalProtoText() string {
 		sb.WriteString("object_store_prefix: ")
 		sb.WriteString("\"")
 		sb.WriteString(base64.StdEncoding.EncodeToString(x.ObjectStorePrefix))
-		sb.WriteString("\"")
-	}
-	if x.MqueuePrefix != nil {
-		if sb.Len() > 8 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("mqueue_prefix: ")
-		sb.WriteString("\"")
-		sb.WriteString(base64.StdEncoding.EncodeToString(x.MqueuePrefix))
-		sb.WriteString("\"")
-	}
-	if x.MqueueMetaPrefix != nil {
-		if sb.Len() > 8 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("mqueue_meta_prefix: ")
-		sb.WriteString("\"")
-		sb.WriteString(base64.StdEncoding.EncodeToString(x.MqueueMetaPrefix))
-		sb.WriteString("\"")
-	}
-	if x.BucketMqueuePrefix != nil {
-		if sb.Len() > 8 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("bucket_mqueue_prefix: ")
-		sb.WriteString("\"")
-		sb.WriteString(base64.StdEncoding.EncodeToString(x.BucketMqueuePrefix))
 		sb.WriteString("\"")
 	}
 	sb.WriteString("}")
@@ -646,84 +514,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			m.ObjectStorePrefix = append(m.ObjectStorePrefix[:0], dAtA[iNdEx:postIndex]...)
 			if m.ObjectStorePrefix == nil {
 				m.ObjectStorePrefix = []byte{}
-			}
-			iNdEx = postIndex
-		case 7:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field MqueuePrefix", wireType)
-			}
-			var byteLen int
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			byteLen = int(_v)
-			if err != nil {
-				return err
-			}
-			if byteLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.MqueuePrefix = append(m.MqueuePrefix[:0], dAtA[iNdEx:postIndex]...)
-			if m.MqueuePrefix == nil {
-				m.MqueuePrefix = []byte{}
-			}
-			iNdEx = postIndex
-		case 8:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field MqueueMetaPrefix", wireType)
-			}
-			var byteLen int
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			byteLen = int(_v)
-			if err != nil {
-				return err
-			}
-			if byteLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.MqueueMetaPrefix = append(m.MqueueMetaPrefix[:0], dAtA[iNdEx:postIndex]...)
-			if m.MqueueMetaPrefix == nil {
-				m.MqueueMetaPrefix = []byte{}
-			}
-			iNdEx = postIndex
-		case 9:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field BucketMqueuePrefix", wireType)
-			}
-			var byteLen int
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			byteLen = int(_v)
-			if err != nil {
-				return err
-			}
-			if byteLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.BucketMqueuePrefix = append(m.BucketMqueuePrefix[:0], dAtA[iNdEx:postIndex]...)
-			if m.BucketMqueuePrefix == nil {
-				m.BucketMqueuePrefix = []byte{}
 			}
 			iNdEx = postIndex
 		default:

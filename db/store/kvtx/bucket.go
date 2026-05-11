@@ -1,43 +1,13 @@
 package store_kvtx
 
 import (
-	"bytes"
 	"context"
 	"regexp"
 
-	b58 "github.com/mr-tron/base58/base58"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_store "github.com/s4wave/spacewave/db/bucket/store"
 	"github.com/s4wave/spacewave/db/kvtx"
-	"github.com/s4wave/spacewave/db/mqueue"
 )
-
-// MarshalBucketReconcilerMqueueId encodes an id.
-func MarshalBucketReconcilerMqueueId(pair bucket_store.BucketReconcilerPair) []byte {
-	d, _ := (&BucketReconcilerMqueueId{
-		BucketId:     pair.BucketID,
-		ReconcilerId: pair.ReconcilerID,
-	}).MarshalVT()
-	return []byte(b58.FastBase58Encoding(d))
-}
-
-// UnmarshalBucketReconcilerMqueueId decodes an id.
-//
-// If parse error returns empty values.
-func UnmarshalBucketReconcilerMqueueId(dat []byte) bucket_store.BucketReconcilerPair {
-	b := bucket_store.BucketReconcilerPair{}
-	p, err := b58.Decode(string(dat))
-	if err != nil {
-		return b
-	}
-	brmi := &BucketReconcilerMqueueId{}
-	if err = brmi.UnmarshalVT(p); err != nil {
-		return b
-	}
-	b.BucketID = brmi.GetBucketId()
-	b.ReconcilerID = brmi.GetReconcilerId()
-	return b
-}
 
 // loadBucketConfig loads a bucket config at a key.
 func (k *KVTx) loadBucketConfig(ctx context.Context, tx kvtx.Tx, key []byte) (*bucket.Config, error) {
@@ -177,42 +147,6 @@ func (k *KVTx) GetBucketConfig(ctx context.Context, id string) (*bucket.Config, 
 	defer tx.Discard()
 
 	return k.loadBucketConfig(ctx, tx, key)
-}
-
-// GetReconcilerEventQueue returns a reference to the event queue for a
-// reconciler ID. Should not return nil without an error.
-func (k *KVTx) GetReconcilerEventQueue(ctx context.Context, pair bucket_store.BucketReconcilerPair) (mqueue.Queue, error) {
-	prefix := k.kvkey.GetBucketMQueuePrefix()
-	id := MarshalBucketReconcilerMqueueId(pair)
-	prefixedID := bytes.Join([][]byte{prefix, id}, nil)
-	return k.OpenMqueue(ctx, prefixedID)
-}
-
-// DeleteReconcilerEventQueue purges a reconciler event queue.
-func (k *KVTx) DeleteReconcilerEventQueue(ctx context.Context, pair bucket_store.BucketReconcilerPair) error {
-	prefix := k.kvkey.GetBucketMQueuePrefix()
-	id := MarshalBucketReconcilerMqueueId(pair)
-	prefixedID := bytes.Join([][]byte{prefix, id}, nil)
-	return k.DelMqueue(ctx, prefixedID)
-}
-
-// ListFilledReconcilerEventQueues lists reconciler event queues that have
-// at least one event, by reconciler ID.
-func (k *KVTx) ListFilledReconcilerEventQueues(ctx context.Context) ([]bucket_store.BucketReconcilerPair, error) {
-	prefix := k.kvkey.GetBucketMQueuePrefix()
-	ids, err := k.ListMessageQueues(ctx, prefix, true)
-	if err != nil {
-		return nil, err
-	}
-	res := make([]bucket_store.BucketReconcilerPair, 0, len(ids))
-	for _, id := range ids {
-		bp := UnmarshalBucketReconcilerMqueueId(id[len(prefix):])
-		if bp.BucketID == "" || bp.ReconcilerID == "" {
-			continue
-		}
-		res = append(res, bp)
-	}
-	return res, nil
 }
 
 // _ is a type assertion

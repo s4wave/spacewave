@@ -2,6 +2,7 @@ package plugin_host_configset
 
 import (
 	"context"
+	"strings"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -70,17 +71,27 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 		ConfigSet: &configset_proto.ConfigSet{Configs: configSet},
 	})
 	if err != nil {
+		if isWebRuntimeClientClosed(err) {
+			return nil
+		}
 		return err
 	}
 	for {
 		resp, err := status.Recv()
 		if err != nil {
+			if isWebRuntimeClientClosed(err) {
+				return nil
+			}
 			return err
 		}
 		if logStr := resp.FormatLogString(); logStr != "" {
 			le.Debug(logStr)
 		}
 	}
+}
+
+func isWebRuntimeClientClosed(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "WebRuntimeClientInstance closed:")
 }
 
 // _ is a type assertion

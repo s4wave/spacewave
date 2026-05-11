@@ -7,7 +7,6 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_store "github.com/s4wave/spacewave/db/bucket/store"
 	bucket_store_rpc "github.com/s4wave/spacewave/db/bucket/store/rpc"
-	"github.com/s4wave/spacewave/db/mqueue"
 )
 
 // BucketStore implements a BucketStore backed by a BucketStore service.
@@ -80,23 +79,6 @@ func (v *BucketStore) ListBucketInfo(ctx context.Context, idRegex *regexp.Regexp
 		return nil, err
 	}
 	return resp.GetBucketInfo(), nil
-}
-
-// GetReconcilerEventQueue returns a reference to the event queue for a
-// reconciler ID. Should not return nil without an error.
-func (v *BucketStore) GetReconcilerEventQueue(ctx context.Context, p bucket_store.BucketReconcilerPair) (mqueue.Queue, error) {
-	return nil, bucket_store_rpc.ErrReconcilerUnavailable
-}
-
-// DeleteReconcilerEventQueue purges a reconciler event queue.
-func (v *BucketStore) DeleteReconcilerEventQueue(ctx context.Context, p bucket_store.BucketReconcilerPair) error {
-	return bucket_store_rpc.ErrReconcilerUnavailable
-}
-
-// ListFilledReconcilerEventQueues lists reconciler event queues that have
-// at least one event, by reconciler ID.
-func (v *BucketStore) ListFilledReconcilerEventQueues(ctx context.Context) ([]bucket_store.BucketReconcilerPair, error) {
-	return nil, bucket_store_rpc.ErrReconcilerUnavailable
 }
 
 // _ is a type assertion

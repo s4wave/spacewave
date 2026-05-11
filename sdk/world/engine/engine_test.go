@@ -2,11 +2,13 @@ package sdk_world_engine_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	resource_testbed "github.com/s4wave/spacewave/core/resource/testbed"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
+	world_parent "github.com/s4wave/spacewave/db/world/parent"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	s4wave_testbed "github.com/s4wave/spacewave/sdk/testbed"
 	sdk_world_engine "github.com/s4wave/spacewave/sdk/world/engine"
@@ -284,6 +286,300 @@ func TestSDKEngine_ListObjectsWithType(t *testing.T) {
 	}
 	if objKeys[0] != "typed/a" || objKeys[1] != "typed/c" {
 		t.Fatalf("unexpected typed object keys: %v", objKeys)
+	}
+
+	genericKeys, err := world_types.ListObjectsWithType(ctx, readTx, "sdk/type")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(genericKeys) != 2 {
+		t.Fatalf("expected 2 generic typed objects, got %d", len(genericKeys))
+	}
+	if genericKeys[0] != "typed/a" || genericKeys[1] != "typed/c" {
+		t.Fatalf("unexpected generic typed object keys: %v", genericKeys)
+	}
+}
+
+// TestSDKEngine_AccessCayleyGraphUnsupported verifies SDK-backed worlds never
+// synthesize a local Cayley handle by fetching every remote graph quad.
+func TestSDKEngine_AccessCayleyGraphUnsupported(t *testing.T) {
+	ctx := context.Background()
+
+	empty := &sdk_world_engine.SDKWorldState{}
+	var called bool
+	err := empty.AccessCayleyGraph(ctx, false, func(ctx context.Context, h world.CayleyHandle) error {
+		called = true
+		return nil
+	})
+	if !errors.Is(err, sdk_world_engine.ErrRemoteCayleyGraphUnsupported) {
+		t.Fatalf("expected ErrRemoteCayleyGraphUnsupported from zero-value state, got %v", err)
+	}
+	if called {
+		t.Fatal("unexpected Cayley callback call from zero-value state")
+	}
+
+	engine, cleanup := setupSDKEngine(ctx, t)
+	defer cleanup()
+
+	tx, err := engine.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tx.Discard()
+
+	called = false
+	err = tx.AccessCayleyGraph(ctx, false, func(ctx context.Context, h world.CayleyHandle) error {
+		called = true
+		return nil
+	})
+	if !errors.Is(err, sdk_world_engine.ErrRemoteCayleyGraphUnsupported) {
+		t.Fatalf("expected ErrRemoteCayleyGraphUnsupported, got %v", err)
+	}
+	if called {
+		t.Fatal("unexpected Cayley callback call")
+	}
+}
+
+// TestSDKEngine_LookupGraphQuadsBatch tests bounded batch graph lookup RPCs.
+func TestSDKEngine_LookupGraphQuadsBatch(t *testing.T) {
+	ctx := context.Background()
+	engine, cleanup := setupSDKEngine(ctx, t)
+	defer cleanup()
+
+	tx, err := engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	for _, key := range []string{"batch/subj-a", "batch/subj-b", "batch/obj"} {
+		if _, err := tx.CreateObject(ctx, key, nil); err != nil {
+			tx.Discard()
+			t.Fatal(err.Error())
+		}
+	}
+	if err := tx.SetGraphQuad(ctx, world.NewGraphQuadWithKeys("batch/subj-a", "<batch-rel>", "batch/obj", "")); err != nil {
+		tx.Discard()
+		t.Fatal(err.Error())
+	}
+	if err := tx.SetGraphQuad(ctx, world.NewGraphQuadWithKeys("batch/subj-b", "<batch-rel>", "batch/obj", "")); err != nil {
+		tx.Discard()
+		t.Fatal(err.Error())
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	readTx, err := engine.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer readTx.Discard()
+
+	sdkReadTx, ok := readTx.(*sdk_world_engine.SDKTx)
+	if !ok {
+		t.Fatal("expected SDKTx")
+	}
+
+	results, err := sdkReadTx.LookupGraphQuadsBatch(ctx, []world.GraphQuad{
+		world.NewGraphQuadWithKeys("batch/subj-a", "<batch-rel>", "", ""),
+		world.NewGraphQuadWithKeys("", "<batch-rel>", "batch/obj", ""),
+	}, 10)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(results) != 2 {
+		t.Fatalf("expected 2 result sets, got %d", len(results))
+	}
+	if len(results[0]) != 1 {
+		t.Fatalf("expected 1 subject result, got %d", len(results[0]))
+	}
+	if len(results[1]) != 2 {
+		t.Fatalf("expected 2 object results, got %d", len(results[1]))
+	}
+
+	if _, err := sdkReadTx.LookupGraphQuadsBatch(ctx, []world.GraphQuad{
+		world.NewGraphQuadWithKeys("batch/subj-a", "<batch-rel>", "", ""),
+	}, 0); err == nil {
+		t.Fatal("expected zero limit to fail")
+	}
+	if _, err := sdkReadTx.LookupGraphQuadsBatch(ctx, []world.GraphQuad{
+		world.NewGraphQuadWithKeys("batch/subj-a", "", "", ""),
+	}, 10); err == nil {
+		t.Fatal("expected missing predicate to fail")
+	}
+}
+
+// TestSDKEngine_GetObjectMetadataBatch tests remote-safe metadata fanout.
+func TestSDKEngine_GetObjectMetadataBatch(t *testing.T) {
+	ctx := context.Background()
+	engine, cleanup := setupSDKEngine(ctx, t)
+	defer cleanup()
+
+	tx, err := engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	for _, key := range []string{"metadata/parent", "metadata/child"} {
+		if _, err := tx.CreateObject(ctx, key, nil); err != nil {
+			tx.Discard()
+			t.Fatal(err.Error())
+		}
+	}
+	typeObjKey := world_types.BuildTypeObjectKey("sdk/metadata")
+	if _, err := tx.CreateObject(ctx, typeObjKey, nil); err != nil {
+		tx.Discard()
+		t.Fatal(err.Error())
+	}
+	if err := tx.SetGraphQuad(ctx, world.NewGraphQuadWithKeys("metadata/child", world_types.TypePred.String(), typeObjKey, "")); err != nil {
+		tx.Discard()
+		t.Fatal(err.Error())
+	}
+	if err := world_parent.SetObjectParent(ctx, tx, "metadata/child", "metadata/parent", true); err != nil {
+		tx.Discard()
+		t.Fatal(err.Error())
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	readTx, err := engine.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer readTx.Discard()
+
+	metadata, err := world_types.GetObjectMetadataBatch(ctx, readTx, []string{"metadata/child", "metadata/parent"})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(metadata) != 2 {
+		t.Fatalf("expected 2 metadata entries, got %d", len(metadata))
+	}
+	if metadata[0].ObjectKey != "metadata/child" {
+		t.Fatalf("unexpected child metadata key %q", metadata[0].ObjectKey)
+	}
+	if metadata[0].TypeID != "sdk/metadata" {
+		t.Fatalf("expected child type sdk/metadata, got %q", metadata[0].TypeID)
+	}
+	if metadata[0].ParentObjectKey != "metadata/parent" {
+		t.Fatalf("expected child parent metadata/parent, got %q", metadata[0].ParentObjectKey)
+	}
+	if metadata[1].ObjectKey != "metadata/parent" {
+		t.Fatalf("unexpected parent metadata key %q", metadata[1].ObjectKey)
+	}
+	if metadata[1].TypeID != "" || metadata[1].ParentObjectKey != "" {
+		t.Fatalf("unexpected parent metadata: %+v", metadata[1])
+	}
+
+	typeID, err := world_types.GetObjectType(ctx, readTx, "metadata/child")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if typeID != "sdk/metadata" {
+		t.Fatalf("expected GetObjectType sdk/metadata, got %q", typeID)
+	}
+}
+
+// TestSDKEngine_QueryGraphPath tests bounded remote graph path traversal.
+func TestSDKEngine_QueryGraphPath(t *testing.T) {
+	ctx := context.Background()
+	engine, cleanup := setupSDKEngine(ctx, t)
+	defer cleanup()
+
+	tx, err := engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	for _, key := range []string{"path/a", "path/b", "path/c", "path/d"} {
+		if _, err := tx.CreateObject(ctx, key, nil); err != nil {
+			tx.Discard()
+			t.Fatal(err.Error())
+		}
+	}
+	for _, edge := range [][2]string{
+		{"path/a", "path/b"},
+		{"path/a", "path/d"},
+		{"path/b", "path/c"},
+	} {
+		if err := tx.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(edge[0], "<path-rel>", edge[1], "")); err != nil {
+			tx.Discard()
+			t.Fatal(err.Error())
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	readTx, err := engine.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer readTx.Discard()
+
+	keys, err := world.CollectGraphPathWithKeys(ctx, readTx, &world.GraphPathQuery{
+		StartKeys: []string{"path/a"},
+		Steps: []world.GraphPathStep{
+			{
+				Direction: world.GraphPathDirectionOut,
+				Predicate: "<path-rel>",
+				Limit:     10,
+			},
+			{
+				Direction: world.GraphPathDirectionOut,
+				Predicate: "<path-rel>",
+				Limit:     10,
+			},
+		},
+		ResultLimit: 10,
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(keys) != 1 || keys[0] != "path/c" {
+		t.Fatalf("expected path/c, got %#v", keys)
+	}
+
+	result, err := readTx.QueryGraphPath(ctx, &world.GraphPathQuery{
+		StartKeys: []string{"path/c"},
+		Steps: []world.GraphPathStep{
+			{
+				Direction: world.GraphPathDirectionIn,
+				Predicate: "<path-rel>",
+				Limit:     10,
+			},
+		},
+		ResultLimit:  10,
+		IncludeQuads: true,
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(result.ObjectKeys) != 1 || result.ObjectKeys[0] != "path/b" {
+		t.Fatalf("expected reverse path/b, got %#v", result.ObjectKeys)
+	}
+	if len(result.Quads) != 1 {
+		t.Fatalf("expected 1 traversed quad, got %d", len(result.Quads))
+	}
+
+	if _, err := readTx.QueryGraphPath(ctx, &world.GraphPathQuery{
+		StartKeys:   []string{"path/a"},
+		ResultLimit: 0,
+	}); err == nil {
+		t.Fatal("expected zero result limit to fail")
+	}
+	if _, err := readTx.QueryGraphPath(ctx, &world.GraphPathQuery{
+		StartKeys: []string{"path/a"},
+		Steps: []world.GraphPathStep{
+			{
+				Direction: world.GraphPathDirectionOut,
+				Predicate: "<path-rel>",
+			},
+		},
+		ResultLimit: 10,
+	}); err == nil {
+		t.Fatal("expected zero step limit to fail")
 	}
 }
 

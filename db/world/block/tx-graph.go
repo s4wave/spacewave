@@ -31,6 +31,17 @@ func (t *Tx) LookupGraphQuads(ctx context.Context, filter world.GraphQuad, limit
 	return t.state.LookupGraphQuads(ctx, filter, limit)
 }
 
+// QueryGraphPath executes a bounded graph traversal.
+func (t *Tx) QueryGraphPath(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
+	unlock, err := t.rmtx.Lock(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	defer unlock()
+
+	return t.state.QueryGraphPath(ctx, query)
+}
+
 // SetGraphQuad sets a quad in the graph store.
 // Subject: must be an existing object IRI: <object-key>
 // Predicate: a predicate string, e.x. IRI: <ref>

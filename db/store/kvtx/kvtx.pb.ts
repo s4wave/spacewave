@@ -2,7 +2,6 @@
 // @generated from file github.com/s4wave/spacewave/db/store/kvtx/kvtx.proto (package store.kvtx, syntax proto3)
 /* eslint-disable */
 
-import { Config as Config$1 } from '../../kvtx/mqueue/mqueue.pb.js'
 import type { HashType } from '@go/github.com/s4wave/spacewave/net/hash/hash.pb.js'
 import { HashType_Enum } from '@go/github.com/s4wave/spacewave/net/hash/hash.pb.js'
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
@@ -16,13 +15,6 @@ export const protobufPackage = 'store.kvtx'
  * @generated from message store.kvtx.Config
  */
 export interface Config {
-  /**
-   * MqueueConfig is the kvtx mqueue configuration.
-   * Note: some stores override the mqueue implementation.
-   *
-   * @generated from field: kvtx.mqueue.Config mqueue_config = 1;
-   */
-  mqueueConfig?: Config$1
   /**
    * HashType is the hash type to use for block refs.
    * If unset (0 value) will use default for Hydra (BLAKE3).
@@ -46,61 +38,8 @@ export interface Config {
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'store.kvtx.Config',
   fields: [
-    { no: 1, name: 'mqueue_config', kind: 'message', T: () => Config$1 },
     { no: 2, name: 'hash_type', kind: 'enum', T: HashType_Enum },
     { no: 3, name: 'disable_hash_get', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
-
-/**
- * MqueueMeta contains message queue metadata.
- *
- * @generated from message store.kvtx.MqueueMeta
- */
-export interface MqueueMeta {
-  /**
-   * Id is the message queue id.
-   *
-   * @generated from field: bytes id = 1;
-   */
-  id?: Uint8Array
-}
-
-// MqueueMeta contains the message type declaration for MqueueMeta.
-export const MqueueMeta: MessageType<MqueueMeta> = createMessageType({
-  typeName: 'store.kvtx.MqueueMeta',
-  fields: [
-    { no: 1, name: 'id', kind: 'scalar', T: ScalarType.BYTES },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
-
-/**
- * BucketReconcilerMqueueId is the message queue identifier.
- *
- * Encoded -> b58.
- *
- * @generated from message store.kvtx.BucketReconcilerMqueueId
- */
-export interface BucketReconcilerMqueueId {
-  /**
-   * @generated from field: string bucket_id = 1;
-   */
-  bucketId?: string
-  /**
-   * @generated from field: string reconciler_id = 2;
-   */
-  reconcilerId?: string
-}
-
-// BucketReconcilerMqueueId contains the message type declaration for BucketReconcilerMqueueId.
-export const BucketReconcilerMqueueId: MessageType<BucketReconcilerMqueueId> =
-  createMessageType({
-    typeName: 'store.kvtx.BucketReconcilerMqueueId',
-    fields: [
-      { no: 1, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'reconciler_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })

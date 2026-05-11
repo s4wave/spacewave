@@ -13,7 +13,7 @@ import { BlockRef } from '../../block/block.pb.js'
 export const protobufPackage = 'bucket.event'
 
 /**
- * EventType is the type of bucket reconciler event.
+ * EventType is the type of bucket operation event.
  *
  * @generated from enum bucket.event.EventType
  */

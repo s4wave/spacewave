@@ -324,7 +324,13 @@ type SRPCWorldStateResourceServiceClient interface {
 
 	LookupGraphQuads(ctx context.Context, in *LookupGraphQuadsRequest) (*LookupGraphQuadsResponse, error)
 
+	LookupGraphQuadsBatch(ctx context.Context, in *LookupGraphQuadsBatchRequest) (*LookupGraphQuadsBatchResponse, error)
+
 	ListObjectsWithType(ctx context.Context, in *ListObjectsWithTypeRequest) (*ListObjectsWithTypeResponse, error)
+
+	GetObjectMetadataBatch(ctx context.Context, in *GetObjectMetadataBatchRequest) (*GetObjectMetadataBatchResponse, error)
+
+	QueryGraphPath(ctx context.Context, in *QueryGraphPathRequest) (*QueryGraphPathResponse, error)
 
 	DeleteGraphObject(ctx context.Context, in *DeleteGraphObjectRequest) (*DeleteGraphObjectResponse, error)
 
@@ -466,9 +472,36 @@ func (c *srpcWorldStateResourceServiceClient) LookupGraphQuads(ctx context.Conte
 	return out, nil
 }
 
+func (c *srpcWorldStateResourceServiceClient) LookupGraphQuadsBatch(ctx context.Context, in *LookupGraphQuadsBatchRequest) (*LookupGraphQuadsBatchResponse, error) {
+	out := new(LookupGraphQuadsBatchResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "LookupGraphQuadsBatch", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcWorldStateResourceServiceClient) ListObjectsWithType(ctx context.Context, in *ListObjectsWithTypeRequest) (*ListObjectsWithTypeResponse, error) {
 	out := new(ListObjectsWithTypeResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "ListObjectsWithType", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcWorldStateResourceServiceClient) GetObjectMetadataBatch(ctx context.Context, in *GetObjectMetadataBatchRequest) (*GetObjectMetadataBatchResponse, error) {
+	out := new(GetObjectMetadataBatchResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "GetObjectMetadataBatch", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcWorldStateResourceServiceClient) QueryGraphPath(ctx context.Context, in *QueryGraphPathRequest) (*QueryGraphPathResponse, error) {
+	out := new(QueryGraphPathResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "QueryGraphPath", in, out)
 	if err != nil {
 		return nil, err
 	}
@@ -520,7 +553,13 @@ type SRPCWorldStateResourceServiceServer interface {
 
 	LookupGraphQuads(context.Context, *LookupGraphQuadsRequest) (*LookupGraphQuadsResponse, error)
 
+	LookupGraphQuadsBatch(context.Context, *LookupGraphQuadsBatchRequest) (*LookupGraphQuadsBatchResponse, error)
+
 	ListObjectsWithType(context.Context, *ListObjectsWithTypeRequest) (*ListObjectsWithTypeResponse, error)
+
+	GetObjectMetadataBatch(context.Context, *GetObjectMetadataBatchRequest) (*GetObjectMetadataBatchResponse, error)
+
+	QueryGraphPath(context.Context, *QueryGraphPathRequest) (*QueryGraphPathResponse, error)
 
 	DeleteGraphObject(context.Context, *DeleteGraphObjectRequest) (*DeleteGraphObjectResponse, error)
 
@@ -566,7 +605,10 @@ func (SRPCWorldStateResourceServiceHandler) GetMethodIDs() []string {
 		"SetGraphQuad",
 		"DeleteGraphQuad",
 		"LookupGraphQuads",
+		"LookupGraphQuadsBatch",
 		"ListObjectsWithType",
+		"GetObjectMetadataBatch",
+		"QueryGraphPath",
 		"DeleteGraphObject",
 		"ApplyWorldOp",
 	}
@@ -607,8 +649,14 @@ func (d *SRPCWorldStateResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_DeleteGraphQuad(d.impl, strm)
 	case "LookupGraphQuads":
 		return true, d.InvokeMethod_LookupGraphQuads(d.impl, strm)
+	case "LookupGraphQuadsBatch":
+		return true, d.InvokeMethod_LookupGraphQuadsBatch(d.impl, strm)
 	case "ListObjectsWithType":
 		return true, d.InvokeMethod_ListObjectsWithType(d.impl, strm)
+	case "GetObjectMetadataBatch":
+		return true, d.InvokeMethod_GetObjectMetadataBatch(d.impl, strm)
+	case "QueryGraphPath":
+		return true, d.InvokeMethod_QueryGraphPath(d.impl, strm)
 	case "DeleteGraphObject":
 		return true, d.InvokeMethod_DeleteGraphObject(d.impl, strm)
 	case "ApplyWorldOp":
@@ -774,12 +822,48 @@ func (SRPCWorldStateResourceServiceHandler) InvokeMethod_LookupGraphQuads(impl S
 	return strm.MsgSend(out)
 }
 
+func (SRPCWorldStateResourceServiceHandler) InvokeMethod_LookupGraphQuadsBatch(impl SRPCWorldStateResourceServiceServer, strm srpc.Stream) error {
+	req := new(LookupGraphQuadsBatchRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.LookupGraphQuadsBatch(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
 func (SRPCWorldStateResourceServiceHandler) InvokeMethod_ListObjectsWithType(impl SRPCWorldStateResourceServiceServer, strm srpc.Stream) error {
 	req := new(ListObjectsWithTypeRequest)
 	if err := strm.MsgRecv(req); err != nil {
 		return err
 	}
 	out, err := impl.ListObjectsWithType(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCWorldStateResourceServiceHandler) InvokeMethod_GetObjectMetadataBatch(impl SRPCWorldStateResourceServiceServer, strm srpc.Stream) error {
+	req := new(GetObjectMetadataBatchRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.GetObjectMetadataBatch(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCWorldStateResourceServiceHandler) InvokeMethod_QueryGraphPath(impl SRPCWorldStateResourceServiceServer, strm srpc.Stream) error {
+	req := new(QueryGraphPathRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.QueryGraphPath(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -914,11 +998,35 @@ type srpcWorldStateResourceService_LookupGraphQuadsStream struct {
 	srpc.Stream
 }
 
+type SRPCWorldStateResourceService_LookupGraphQuadsBatchStream interface {
+	srpc.Stream
+}
+
+type srpcWorldStateResourceService_LookupGraphQuadsBatchStream struct {
+	srpc.Stream
+}
+
 type SRPCWorldStateResourceService_ListObjectsWithTypeStream interface {
 	srpc.Stream
 }
 
 type srpcWorldStateResourceService_ListObjectsWithTypeStream struct {
+	srpc.Stream
+}
+
+type SRPCWorldStateResourceService_GetObjectMetadataBatchStream interface {
+	srpc.Stream
+}
+
+type srpcWorldStateResourceService_GetObjectMetadataBatchStream struct {
+	srpc.Stream
+}
+
+type SRPCWorldStateResourceService_QueryGraphPathStream interface {
+	srpc.Stream
+}
+
+type srpcWorldStateResourceService_QueryGraphPathStream struct {
 	srpc.Stream
 }
 
@@ -1500,6 +1608,146 @@ type SRPCObjectIteratorResourceService_CloseStream interface {
 }
 
 type srpcObjectIteratorResourceService_CloseStream struct {
+	srpc.Stream
+}
+
+type SRPCGraphPathQueryResourceServiceClient interface {
+	// SRPCClient returns the underlying SRPC client.
+	SRPCClient() srpc.Client
+
+	Next(ctx context.Context, in *NextGraphPathQueryRequest) (*NextGraphPathQueryResponse, error)
+
+	Close(ctx context.Context, in *CloseGraphPathQueryRequest) (*CloseGraphPathQueryResponse, error)
+}
+
+type srpcGraphPathQueryResourceServiceClient struct {
+	cc        srpc.Client
+	serviceID string
+}
+
+func NewSRPCGraphPathQueryResourceServiceClient(cc srpc.Client) SRPCGraphPathQueryResourceServiceClient {
+	return &srpcGraphPathQueryResourceServiceClient{cc: cc, serviceID: SRPCGraphPathQueryResourceServiceServiceID}
+}
+
+func NewSRPCGraphPathQueryResourceServiceClientWithServiceID(cc srpc.Client, serviceID string) SRPCGraphPathQueryResourceServiceClient {
+	if serviceID == "" {
+		serviceID = SRPCGraphPathQueryResourceServiceServiceID
+	}
+	return &srpcGraphPathQueryResourceServiceClient{cc: cc, serviceID: serviceID}
+}
+
+func (c *srpcGraphPathQueryResourceServiceClient) SRPCClient() srpc.Client { return c.cc }
+
+func (c *srpcGraphPathQueryResourceServiceClient) Next(ctx context.Context, in *NextGraphPathQueryRequest) (*NextGraphPathQueryResponse, error) {
+	out := new(NextGraphPathQueryResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "Next", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcGraphPathQueryResourceServiceClient) Close(ctx context.Context, in *CloseGraphPathQueryRequest) (*CloseGraphPathQueryResponse, error) {
+	out := new(CloseGraphPathQueryResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "Close", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+type SRPCGraphPathQueryResourceServiceServer interface {
+	Next(context.Context, *NextGraphPathQueryRequest) (*NextGraphPathQueryResponse, error)
+
+	Close(context.Context, *CloseGraphPathQueryRequest) (*CloseGraphPathQueryResponse, error)
+}
+
+const SRPCGraphPathQueryResourceServiceServiceID = "s4wave.world.GraphPathQueryResourceService"
+
+type SRPCGraphPathQueryResourceServiceHandler struct {
+	serviceID string
+	impl      SRPCGraphPathQueryResourceServiceServer
+}
+
+// NewSRPCGraphPathQueryResourceServiceHandler constructs a new RPC handler.
+// serviceID: if empty, uses default: s4wave.world.GraphPathQueryResourceService
+func NewSRPCGraphPathQueryResourceServiceHandler(impl SRPCGraphPathQueryResourceServiceServer, serviceID string) srpc.Handler {
+	if serviceID == "" {
+		serviceID = SRPCGraphPathQueryResourceServiceServiceID
+	}
+	return &SRPCGraphPathQueryResourceServiceHandler{impl: impl, serviceID: serviceID}
+}
+
+// SRPCRegisterGraphPathQueryResourceService registers the implementation with the mux.
+// Uses the default serviceID: s4wave.world.GraphPathQueryResourceService
+func SRPCRegisterGraphPathQueryResourceService(mux srpc.Mux, impl SRPCGraphPathQueryResourceServiceServer) error {
+	return mux.Register(NewSRPCGraphPathQueryResourceServiceHandler(impl, ""))
+}
+
+func (d *SRPCGraphPathQueryResourceServiceHandler) GetServiceID() string { return d.serviceID }
+
+func (SRPCGraphPathQueryResourceServiceHandler) GetMethodIDs() []string {
+	return []string{
+		"Next",
+		"Close",
+	}
+}
+
+func (d *SRPCGraphPathQueryResourceServiceHandler) InvokeMethod(
+	serviceID, methodID string,
+	strm srpc.Stream,
+) (bool, error) {
+	if serviceID != "" && serviceID != d.GetServiceID() {
+		return false, nil
+	}
+
+	switch methodID {
+	case "Next":
+		return true, d.InvokeMethod_Next(d.impl, strm)
+	case "Close":
+		return true, d.InvokeMethod_Close(d.impl, strm)
+	default:
+		return false, nil
+	}
+}
+
+func (SRPCGraphPathQueryResourceServiceHandler) InvokeMethod_Next(impl SRPCGraphPathQueryResourceServiceServer, strm srpc.Stream) error {
+	req := new(NextGraphPathQueryRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.Next(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCGraphPathQueryResourceServiceHandler) InvokeMethod_Close(impl SRPCGraphPathQueryResourceServiceServer, strm srpc.Stream) error {
+	req := new(CloseGraphPathQueryRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.Close(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+type SRPCGraphPathQueryResourceService_NextStream interface {
+	srpc.Stream
+}
+
+type srpcGraphPathQueryResourceService_NextStream struct {
+	srpc.Stream
+}
+
+type SRPCGraphPathQueryResourceService_CloseStream interface {
+	srpc.Stream
+}
+
+type srpcGraphPathQueryResourceService_CloseStream struct {
 	srpc.Stream
 }
 

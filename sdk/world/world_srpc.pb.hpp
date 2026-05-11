@@ -165,8 +165,14 @@ class SRPCWorldStateResourceServiceClient {
   virtual starpc::Error DeleteGraphQuad(const s4wave::world::DeleteGraphQuadRequest& in, s4wave::world::DeleteGraphQuadResponse* out) = 0;
   // LookupGraphQuads
   virtual starpc::Error LookupGraphQuads(const s4wave::world::LookupGraphQuadsRequest& in, s4wave::world::LookupGraphQuadsResponse* out) = 0;
+  // LookupGraphQuadsBatch
+  virtual starpc::Error LookupGraphQuadsBatch(const s4wave::world::LookupGraphQuadsBatchRequest& in, s4wave::world::LookupGraphQuadsBatchResponse* out) = 0;
   // ListObjectsWithType
   virtual starpc::Error ListObjectsWithType(const s4wave::world::ListObjectsWithTypeRequest& in, s4wave::world::ListObjectsWithTypeResponse* out) = 0;
+  // GetObjectMetadataBatch
+  virtual starpc::Error GetObjectMetadataBatch(const s4wave::world::GetObjectMetadataBatchRequest& in, s4wave::world::GetObjectMetadataBatchResponse* out) = 0;
+  // QueryGraphPath
+  virtual starpc::Error QueryGraphPath(const s4wave::world::QueryGraphPathRequest& in, s4wave::world::QueryGraphPathResponse* out) = 0;
   // DeleteGraphObject
   virtual starpc::Error DeleteGraphObject(const s4wave::world::DeleteGraphObjectRequest& in, s4wave::world::DeleteGraphObjectResponse* out) = 0;
   // ApplyWorldOp
@@ -207,8 +213,14 @@ class SRPCWorldStateResourceServiceClientImpl : public SRPCWorldStateResourceSer
   virtual starpc::Error DeleteGraphQuad(const s4wave::world::DeleteGraphQuadRequest& in, s4wave::world::DeleteGraphQuadResponse* out) override;
   // LookupGraphQuads
   virtual starpc::Error LookupGraphQuads(const s4wave::world::LookupGraphQuadsRequest& in, s4wave::world::LookupGraphQuadsResponse* out) override;
+  // LookupGraphQuadsBatch
+  virtual starpc::Error LookupGraphQuadsBatch(const s4wave::world::LookupGraphQuadsBatchRequest& in, s4wave::world::LookupGraphQuadsBatchResponse* out) override;
   // ListObjectsWithType
   virtual starpc::Error ListObjectsWithType(const s4wave::world::ListObjectsWithTypeRequest& in, s4wave::world::ListObjectsWithTypeResponse* out) override;
+  // GetObjectMetadataBatch
+  virtual starpc::Error GetObjectMetadataBatch(const s4wave::world::GetObjectMetadataBatchRequest& in, s4wave::world::GetObjectMetadataBatchResponse* out) override;
+  // QueryGraphPath
+  virtual starpc::Error QueryGraphPath(const s4wave::world::QueryGraphPathRequest& in, s4wave::world::QueryGraphPathResponse* out) override;
   // DeleteGraphObject
   virtual starpc::Error DeleteGraphObject(const s4wave::world::DeleteGraphObjectRequest& in, s4wave::world::DeleteGraphObjectResponse* out) override;
   // ApplyWorldOp
@@ -255,8 +267,14 @@ class SRPCWorldStateResourceServiceServer {
   virtual starpc::Error DeleteGraphQuad(const s4wave::world::DeleteGraphQuadRequest& req, s4wave::world::DeleteGraphQuadResponse* resp) = 0;
   // LookupGraphQuads
   virtual starpc::Error LookupGraphQuads(const s4wave::world::LookupGraphQuadsRequest& req, s4wave::world::LookupGraphQuadsResponse* resp) = 0;
+  // LookupGraphQuadsBatch
+  virtual starpc::Error LookupGraphQuadsBatch(const s4wave::world::LookupGraphQuadsBatchRequest& req, s4wave::world::LookupGraphQuadsBatchResponse* resp) = 0;
   // ListObjectsWithType
   virtual starpc::Error ListObjectsWithType(const s4wave::world::ListObjectsWithTypeRequest& req, s4wave::world::ListObjectsWithTypeResponse* resp) = 0;
+  // GetObjectMetadataBatch
+  virtual starpc::Error GetObjectMetadataBatch(const s4wave::world::GetObjectMetadataBatchRequest& req, s4wave::world::GetObjectMetadataBatchResponse* resp) = 0;
+  // QueryGraphPath
+  virtual starpc::Error QueryGraphPath(const s4wave::world::QueryGraphPathRequest& req, s4wave::world::QueryGraphPathResponse* resp) = 0;
   // DeleteGraphObject
   virtual starpc::Error DeleteGraphObject(const s4wave::world::DeleteGraphObjectRequest& req, s4wave::world::DeleteGraphObjectResponse* resp) = 0;
   // ApplyWorldOp
@@ -603,6 +621,92 @@ inline std::unique_ptr<SRPCObjectIteratorResourceServiceHandler> NewSRPCObjectIt
 // The returned handler must outlive the mux registration.
 inline std::pair<std::unique_ptr<SRPCObjectIteratorResourceServiceHandler>, starpc::Error> SRPCRegisterObjectIteratorResourceService(starpc::Mux* mux, SRPCObjectIteratorResourceServiceServer* impl) {
   auto handler = NewSRPCObjectIteratorResourceServiceHandler(impl);
+  starpc::Error err = mux->Register(handler.get());
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  return {std::move(handler), starpc::Error::OK};
+}
+
+// Service ID for GraphPathQueryResourceService
+constexpr const char* kSRPCGraphPathQueryResourceServiceServiceID = "s4wave.world.GraphPathQueryResourceService";
+
+
+// SRPCGraphPathQueryResourceServiceClient is the client API for GraphPathQueryResourceService service.
+class SRPCGraphPathQueryResourceServiceClient {
+ public:
+  virtual ~SRPCGraphPathQueryResourceServiceClient() = default;
+
+  // SRPCClient returns the underlying SRPC client.
+  virtual starpc::Client* SRPCClient() = 0;
+
+  // Next
+  virtual starpc::Error Next(const s4wave::world::NextGraphPathQueryRequest& in, s4wave::world::NextGraphPathQueryResponse* out) = 0;
+  // Close
+  virtual starpc::Error Close(const s4wave::world::CloseGraphPathQueryRequest& in, s4wave::world::CloseGraphPathQueryResponse* out) = 0;
+};
+
+// SRPCGraphPathQueryResourceServiceClientImpl implements SRPCGraphPathQueryResourceServiceClient.
+class SRPCGraphPathQueryResourceServiceClientImpl : public SRPCGraphPathQueryResourceServiceClient {
+ public:
+  explicit SRPCGraphPathQueryResourceServiceClientImpl(starpc::Client* cc, const std::string& service_id = "")
+      : cc_(cc), service_id_(service_id.empty() ? kSRPCGraphPathQueryResourceServiceServiceID : service_id) {}
+
+  starpc::Client* SRPCClient() override { return cc_; }
+
+  // Next
+  virtual starpc::Error Next(const s4wave::world::NextGraphPathQueryRequest& in, s4wave::world::NextGraphPathQueryResponse* out) override;
+  // Close
+  virtual starpc::Error Close(const s4wave::world::CloseGraphPathQueryRequest& in, s4wave::world::CloseGraphPathQueryResponse* out) override;
+
+ private:
+  starpc::Client* cc_;
+  std::string service_id_;
+};
+
+// NewSRPCGraphPathQueryResourceServiceClient creates a new client.
+inline std::unique_ptr<SRPCGraphPathQueryResourceServiceClient> NewSRPCGraphPathQueryResourceServiceClient(starpc::Client* cc) {
+  return std::make_unique<SRPCGraphPathQueryResourceServiceClientImpl>(cc);
+}
+
+// SRPCGraphPathQueryResourceServiceServer is the server API for GraphPathQueryResourceService service.
+class SRPCGraphPathQueryResourceServiceServer {
+ public:
+  virtual ~SRPCGraphPathQueryResourceServiceServer() = default;
+
+  // Next
+  virtual starpc::Error Next(const s4wave::world::NextGraphPathQueryRequest& req, s4wave::world::NextGraphPathQueryResponse* resp) = 0;
+  // Close
+  virtual starpc::Error Close(const s4wave::world::CloseGraphPathQueryRequest& req, s4wave::world::CloseGraphPathQueryResponse* resp) = 0;
+};
+
+// SRPCGraphPathQueryResourceServiceHandler implements starpc::Handler for GraphPathQueryResourceService.
+class SRPCGraphPathQueryResourceServiceHandler : public starpc::Handler {
+ public:
+  SRPCGraphPathQueryResourceServiceHandler(SRPCGraphPathQueryResourceServiceServer* impl, const std::string& service_id = "")
+      : impl_(impl), service_id_(service_id.empty() ? kSRPCGraphPathQueryResourceServiceServiceID : service_id) {}
+
+  const std::string& GetServiceID() const override { return service_id_; }
+  std::vector<std::string> GetMethodIDs() const override;
+  std::pair<bool, starpc::Error> InvokeMethod(
+      const std::string& service_id,
+      const std::string& method_id,
+      starpc::Stream* strm) override;
+
+ private:
+  SRPCGraphPathQueryResourceServiceServer* impl_;
+  std::string service_id_;
+};
+
+// NewSRPCGraphPathQueryResourceServiceHandler creates a new handler for the given implementation.
+inline std::unique_ptr<SRPCGraphPathQueryResourceServiceHandler> NewSRPCGraphPathQueryResourceServiceHandler(SRPCGraphPathQueryResourceServiceServer* impl) {
+  return std::make_unique<SRPCGraphPathQueryResourceServiceHandler>(impl);
+}
+
+// SRPCRegisterGraphPathQueryResourceService registers the server implementation with the mux.
+// The returned handler must outlive the mux registration.
+inline std::pair<std::unique_ptr<SRPCGraphPathQueryResourceServiceHandler>, starpc::Error> SRPCRegisterGraphPathQueryResourceService(starpc::Mux* mux, SRPCGraphPathQueryResourceServiceServer* impl) {
+  auto handler = NewSRPCGraphPathQueryResourceServiceHandler(impl);
   starpc::Error err = mux->Register(handler.get());
   if (err != starpc::Error::OK) {
     return {nullptr, err};

@@ -156,8 +156,20 @@ starpc::Error SRPCWorldStateResourceServiceClientImpl::LookupGraphQuads(const s4
   return cc_->ExecCall(service_id_, "LookupGraphQuads", in, out);
 }
 
+starpc::Error SRPCWorldStateResourceServiceClientImpl::LookupGraphQuadsBatch(const s4wave::world::LookupGraphQuadsBatchRequest& in, s4wave::world::LookupGraphQuadsBatchResponse* out) {
+  return cc_->ExecCall(service_id_, "LookupGraphQuadsBatch", in, out);
+}
+
 starpc::Error SRPCWorldStateResourceServiceClientImpl::ListObjectsWithType(const s4wave::world::ListObjectsWithTypeRequest& in, s4wave::world::ListObjectsWithTypeResponse* out) {
   return cc_->ExecCall(service_id_, "ListObjectsWithType", in, out);
+}
+
+starpc::Error SRPCWorldStateResourceServiceClientImpl::GetObjectMetadataBatch(const s4wave::world::GetObjectMetadataBatchRequest& in, s4wave::world::GetObjectMetadataBatchResponse* out) {
+  return cc_->ExecCall(service_id_, "GetObjectMetadataBatch", in, out);
+}
+
+starpc::Error SRPCWorldStateResourceServiceClientImpl::QueryGraphPath(const s4wave::world::QueryGraphPathRequest& in, s4wave::world::QueryGraphPathResponse* out) {
+  return cc_->ExecCall(service_id_, "QueryGraphPath", in, out);
 }
 
 starpc::Error SRPCWorldStateResourceServiceClientImpl::DeleteGraphObject(const s4wave::world::DeleteGraphObjectRequest& in, s4wave::world::DeleteGraphObjectResponse* out) {
@@ -183,7 +195,10 @@ std::vector<std::string> SRPCWorldStateResourceServiceHandler::GetMethodIDs() co
     "SetGraphQuad",
     "DeleteGraphQuad",
     "LookupGraphQuads",
+    "LookupGraphQuadsBatch",
     "ListObjectsWithType",
+    "GetObjectMetadataBatch",
+    "QueryGraphPath",
     "DeleteGraphObject",
     "ApplyWorldOp",
   };
@@ -301,12 +316,36 @@ std::pair<bool, starpc::Error> SRPCWorldStateResourceServiceHandler::InvokeMetho
     err = impl_->LookupGraphQuads(req, &resp);
     if (err != starpc::Error::OK) return {true, err};
     return {true, strm->MsgSend(resp)};
+  } else if (method_id == "LookupGraphQuadsBatch") {
+    s4wave::world::LookupGraphQuadsBatchRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::world::LookupGraphQuadsBatchResponse resp;
+    err = impl_->LookupGraphQuadsBatch(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
   } else if (method_id == "ListObjectsWithType") {
     s4wave::world::ListObjectsWithTypeRequest req;
     starpc::Error err = strm->MsgRecv(&req);
     if (err != starpc::Error::OK) return {true, err};
     s4wave::world::ListObjectsWithTypeResponse resp;
     err = impl_->ListObjectsWithType(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "GetObjectMetadataBatch") {
+    s4wave::world::GetObjectMetadataBatchRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::world::GetObjectMetadataBatchResponse resp;
+    err = impl_->GetObjectMetadataBatch(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "QueryGraphPath") {
+    s4wave::world::QueryGraphPathRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::world::QueryGraphPathResponse resp;
+    err = impl_->QueryGraphPath(req, &resp);
     if (err != starpc::Error::OK) return {true, err};
     return {true, strm->MsgSend(resp)};
   } else if (method_id == "DeleteGraphObject") {
@@ -499,6 +538,50 @@ std::pair<bool, starpc::Error> SRPCObjectIteratorResourceServiceHandler::InvokeM
     starpc::Error err = strm->MsgRecv(&req);
     if (err != starpc::Error::OK) return {true, err};
     s4wave::world::CloseResponse resp;
+    err = impl_->Close(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  }
+
+  return {false, starpc::Error::OK};
+}
+
+starpc::Error SRPCGraphPathQueryResourceServiceClientImpl::Next(const s4wave::world::NextGraphPathQueryRequest& in, s4wave::world::NextGraphPathQueryResponse* out) {
+  return cc_->ExecCall(service_id_, "Next", in, out);
+}
+
+starpc::Error SRPCGraphPathQueryResourceServiceClientImpl::Close(const s4wave::world::CloseGraphPathQueryRequest& in, s4wave::world::CloseGraphPathQueryResponse* out) {
+  return cc_->ExecCall(service_id_, "Close", in, out);
+}
+
+std::vector<std::string> SRPCGraphPathQueryResourceServiceHandler::GetMethodIDs() const {
+  return {
+    "Next",
+    "Close",
+  };
+}
+
+std::pair<bool, starpc::Error> SRPCGraphPathQueryResourceServiceHandler::InvokeMethod(
+    const std::string& service_id,
+    const std::string& method_id,
+    starpc::Stream* strm) {
+  if (!service_id.empty() && service_id != service_id_) {
+    return {false, starpc::Error::OK};
+  }
+
+  if (method_id == "Next") {
+    s4wave::world::NextGraphPathQueryRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::world::NextGraphPathQueryResponse resp;
+    err = impl_->Next(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "Close") {
+    s4wave::world::CloseGraphPathQueryRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::world::CloseGraphPathQueryResponse resp;
     err = impl_->Close(req, &resp);
     if (err != starpc::Error::OK) return {true, err};
     return {true, strm->MsgSend(resp)};

@@ -145,11 +145,6 @@ func (d *Demo) RunDemo(ctx context.Context) error {
 		return err
 	}
 
-	le.Info("testing message queue api")
-	if err := store_test.TestMqueueAPI(ctx, vol); err != nil {
-		return err
-	}
-
 	le.Info("volume tests passed")
 	return nil
 }

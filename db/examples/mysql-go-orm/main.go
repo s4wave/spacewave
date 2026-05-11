@@ -12,7 +12,6 @@ import (
 	"github.com/s4wave/spacewave/db/core"
 	common "github.com/s4wave/spacewave/db/examples/common"
 	node_controller "github.com/s4wave/spacewave/db/node/controller"
-	reconciler_example "github.com/s4wave/spacewave/db/reconciler/example"
 	"github.com/s4wave/spacewave/db/sql/mysql"
 	"github.com/s4wave/spacewave/db/volume"
 	volume_kvtxinmem "github.com/s4wave/spacewave/db/volume/kvtxinmem"
@@ -26,12 +25,10 @@ func main() {
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	b, sr, err := core.NewCoreBus(ctx, le)
+	b, _, err := core.NewCoreBus(ctx, le)
 	if err != nil {
 		panic(err)
 	}
-
-	sr.AddFactory(reconciler_example.NewFactory(b))
 
 	verbose := true
 	/*

@@ -16,7 +16,6 @@ import (
 	"github.com/s4wave/spacewave/db/daemon"
 	api_controller "github.com/s4wave/spacewave/db/daemon/api/controller"
 	"github.com/s4wave/spacewave/db/daemon/prof"
-	reconciler_example "github.com/s4wave/spacewave/db/reconciler/example"
 	bcli "github.com/s4wave/spacewave/net/cli"
 	"github.com/s4wave/spacewave/net/keypem/keyfile"
 	floodsub_controller "github.com/s4wave/spacewave/net/pubsub/floodsub/controller"
@@ -107,8 +106,6 @@ func runDaemon(c *cli.Context) error {
 	}
 
 	b := d.GetControllerBus()
-	sr := d.GetStaticResolver()
-	sr.AddFactory(reconciler_example.NewFactory(b))
 
 	// ConfigSet controller
 	_, csRef, err := b.AddDirective(

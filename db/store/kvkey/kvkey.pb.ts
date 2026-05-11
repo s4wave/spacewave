@@ -48,27 +48,6 @@ export interface Config {
    * @generated from field: bytes object_store_prefix = 6;
    */
   objectStorePrefix?: Uint8Array
-  /**
-   * MqueuePrefix contains the key to use for the message queues.
-   * Default: mq/q/
-   *
-   * @generated from field: bytes mqueue_prefix = 7;
-   */
-  mqueuePrefix?: Uint8Array
-  /**
-   * MqueueMetaPrefix contains the key to use for the message queue metas.
-   * Default: mq/m/
-   *
-   * @generated from field: bytes mqueue_meta_prefix = 8;
-   */
-  mqueueMetaPrefix?: Uint8Array
-  /**
-   * BucketMqueuePrefix contains the mqueue id prefix to use for bucket reconcilers.
-   * Default: bkt/
-   *
-   * @generated from field: bytes bucket_mqueue_prefix = 9;
-   */
-  bucketMqueuePrefix?: Uint8Array
 }
 
 // Config contains the message type declaration for Config.
@@ -85,14 +64,6 @@ export const Config: MessageType<Config> = createMessageType({
     { no: 3, name: 'peer_priv_key', kind: 'scalar', T: ScalarType.BYTES },
     { no: 5, name: 'block_prefix', kind: 'scalar', T: ScalarType.BYTES },
     { no: 6, name: 'object_store_prefix', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 7, name: 'mqueue_prefix', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 8, name: 'mqueue_meta_prefix', kind: 'scalar', T: ScalarType.BYTES },
-    {
-      no: 9,
-      name: 'bucket_mqueue_prefix',
-      kind: 'scalar',
-      T: ScalarType.BYTES,
-    },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

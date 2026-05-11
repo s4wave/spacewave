@@ -3,7 +3,6 @@ package forge_task
 import (
 	"context"
 
-	"github.com/aperturerobotics/cayley"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/world"
 	world_parent "github.com/s4wave/spacewave/db/world/parent"
@@ -11,6 +10,8 @@ import (
 	forge_pass "github.com/s4wave/spacewave/forge/pass"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 )
+
+const taskGraphPathLimit uint32 = 1_000_000
 
 // CheckTaskType checks the type graph quad for a Task.
 func CheckTaskType(ctx context.Context, ws world.WorldState, objKey string) error {
@@ -24,13 +25,13 @@ func LookupTask(ctx context.Context, ws world.WorldState, objKey string) (*Task,
 
 // ListTaskPasses lists all Pass object keys that are linked to by the Task.
 func ListTaskPasses(ctx context.Context, w world.WorldState, taskKeys ...string) ([]string, error) {
-	return world.CollectPathWithKeys(
+	return world.CollectGraphPathStepWithKeys(
 		ctx,
 		w,
 		taskKeys,
-		func(p *cayley.Path) (*cayley.Path, error) {
-			return p.Out(PredTaskToPass), nil
-		},
+		world.GraphPathDirectionOut,
+		PredTaskToPass.String(),
+		taskGraphPathLimit,
 	)
 }
 
@@ -119,13 +120,13 @@ func EnsureTaskHasPass(ctx context.Context, w world.WorldState, taskKey, passKey
 // ListTaskTargets lists all Target object keys that are linked to by the Tasks.
 // note: we only expect 1 target to be linked to each at any given time.
 func ListTaskTargets(ctx context.Context, w world.WorldState, taskKeys ...string) ([]string, error) {
-	return world.CollectPathWithKeys(
+	return world.CollectGraphPathStepWithKeys(
 		ctx,
 		w,
 		taskKeys,
-		func(p *cayley.Path) (*cayley.Path, error) {
-			return p.Out(PredTaskToTarget), nil
-		},
+		world.GraphPathDirectionOut,
+		PredTaskToTarget.String(),
+		taskGraphPathLimit,
 	)
 }
 
@@ -189,13 +190,13 @@ func FindPassWithNonce(passNonce uint64, passes []*forge_pass.Pass) (*forge_pass
 
 // ListTaskSubtasks lists all subtask object keys for a parent Task.
 func ListTaskSubtasks(ctx context.Context, w world.WorldState, taskKeys ...string) ([]string, error) {
-	return world.CollectPathWithKeys(
+	return world.CollectGraphPathStepWithKeys(
 		ctx,
 		w,
 		taskKeys,
-		func(p *cayley.Path) (*cayley.Path, error) {
-			return p.Out(PredTaskToSubtask), nil
-		},
+		world.GraphPathDirectionOut,
+		PredTaskToSubtask.String(),
+		taskGraphPathLimit,
 	)
 }
 

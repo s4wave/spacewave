@@ -36,7 +36,6 @@ func NewDistBucketConfig(projectID string) (*bucket.Config, error) {
 	return bucket.NewConfig(
 		GetDistBucketID(projectID),
 		1, // rev
-		nil,
 		&bucket.LookupConfig{Controller: cc},
 	)
 }

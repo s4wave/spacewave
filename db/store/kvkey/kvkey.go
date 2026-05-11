@@ -64,32 +64,6 @@ func (k *KVKey) GetBucketConfigKey(id string) []byte {
 	}, nil)
 }
 
-// GetMqueuePrefix returns the prefix for the mqueue with id.
-func (k *KVKey) GetMQueuePrefix(id []byte) []byte {
-	return bytes.Join([][]byte{
-		k.conf.GetPrefix(),
-		k.conf.GetMqueuePrefix(),
-		id,
-		[]byte("/"),
-	}, nil)
-}
-
-// GetMQueueMetaPrefix returns the bucket reconciler message queue metadata prefix.
-func (k *KVKey) GetMQueueMetaPrefix() []byte {
-	return bytes.Join([][]byte{
-		k.conf.GetPrefix(),
-		k.conf.GetMqueueMetaPrefix(),
-	}, nil)
-}
-
-// GetBucketReconcilerMQueueMetaKey returns the bucket reconciler message queue metadata key.
-func (k *KVKey) GetBucketReconcilerMQueueMetaKey(id []byte) []byte {
-	return bytes.Join([][]byte{
-		k.GetMQueueMetaPrefix(),
-		id,
-	}, nil)
-}
-
 // GetPeerPrivKey returns the key to use for the peer private key.
 func (k *KVKey) GetPeerPrivKey() []byte {
 	return bytes.Join([][]byte{
@@ -106,9 +80,4 @@ func (k *KVKey) GetObjectStorePrefixByID(objStoreID string) []byte {
 		[]byte(objStoreID),
 		[]byte("/"),
 	}, nil)
-}
-
-// GetBucketMQueuePrefix returns the bucket reconciler message queue id prefix.
-func (k *KVKey) GetBucketMQueuePrefix() []byte {
-	return k.conf.GetBucketMqueuePrefix()
 }

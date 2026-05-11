@@ -36,7 +36,6 @@ The core storage system is implemented as:
  - **Volume**: common storage volume interface for persistence of data.
  - **Block**: a chunk of data hashed and identified by content-ID (see: IPFS).
  - **Bucket**: collection of blocks with attached data management policies.
- - **Reconciler**: bucket changes mqueue with a lazy-loaded controller.
  - **Object**: a pointer to a Block DAG located in a Bucket with transforms.
  
 The block provides a `Cursor` for reading and modifying block DAGs. Most data
@@ -47,7 +46,6 @@ structures have block-DAG / block-cursor implementations:
 - **Bloom**: bloom filter for efficient presence checking.
 - **Fibheap**: efficient min() queries on a k/v heap.
 - **Kvtx**: transactional key/value store (i.e. AVL tree).
-- **MQueue**: FIFO message queue.
 - **Msgpack**: blob encoded with the Msgpack protocol.
  
 The following high-level data structures are implemented:
@@ -192,7 +190,11 @@ COMMANDS:
 This is an example of configuring a bucket and storing a block:
 
 ```sh
-  ./hydra client bucket config -f ../../examples/bucket-configs/basic-1.json  --volume-regex ".*"
+  cat > /tmp/basic-bucket.json <<'JSON'
+  {"id":"bucket-basic-1","version":1}
+  JSON
+
+  ./hydra client bucket config -f /tmp/basic-bucket.json --volume-regex ".*"
 
   echo "hello world" | ./hydra client block \
     --bucket-id bucket-basic-1 \

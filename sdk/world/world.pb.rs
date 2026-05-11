@@ -252,6 +252,33 @@ pub struct LookupGraphQuadsResponse {
     #[prost(message, repeated, tag="1")]
     pub quads: ::prost::alloc::vec::Vec<super::super::quad::Quad>,
 }
+/// LookupGraphQuadsBatchRequest is the request type for LookupGraphQuadsBatch.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LookupGraphQuadsBatchRequest {
+    /// Filters is the bounded list of subject/predicate or object/predicate
+    /// filters to evaluate server-side.
+    #[prost(message, repeated, tag="1")]
+    pub filters: ::prost::alloc::vec::Vec<super::super::quad::Quad>,
+    /// LimitPerFilter is the maximum number of quads returned for each filter.
+    /// It must be non-zero.
+    #[prost(uint32, tag="2")]
+    pub limit_per_filter: u32,
+}
+/// LookupGraphQuadsBatchResult is one filtered graph lookup result.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LookupGraphQuadsBatchResult {
+    /// Quads is the list of graph quads matching one filter.
+    #[prost(message, repeated, tag="1")]
+    pub quads: ::prost::alloc::vec::Vec<super::super::quad::Quad>,
+}
+/// LookupGraphQuadsBatchResponse is the response type for
+/// LookupGraphQuadsBatch.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LookupGraphQuadsBatchResponse {
+    /// Results preserves the request filter order.
+    #[prost(message, repeated, tag="1")]
+    pub results: ::prost::alloc::vec::Vec<LookupGraphQuadsBatchResult>,
+}
 /// ListObjectsWithTypeRequest is the request type for ListObjectsWithType.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListObjectsWithTypeRequest {
@@ -265,6 +292,76 @@ pub struct ListObjectsWithTypeResponse {
     /// ObjectKeys is the list of object keys with the given type.
     #[prost(string, repeated, tag="1")]
     pub object_keys: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+/// ObjectMetadata contains graph metadata for one object key.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ObjectMetadata {
+    /// ObjectKey is the object key.
+    #[prost(string, tag="1")]
+    pub object_key: ::prost::alloc::string::String,
+    /// TypeId is the object type identifier, if present.
+    #[prost(string, tag="2")]
+    pub type_id: ::prost::alloc::string::String,
+    /// ParentObjectKey is the parent object key, if present.
+    #[prost(string, tag="3")]
+    pub parent_object_key: ::prost::alloc::string::String,
+}
+/// GetObjectMetadataBatchRequest is the request type for
+/// GetObjectMetadataBatch.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetObjectMetadataBatchRequest {
+    /// ObjectKeys is the list of object keys to inspect.
+    #[prost(string, repeated, tag="1")]
+    pub object_keys: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+/// GetObjectMetadataBatchResponse is the response type for
+/// GetObjectMetadataBatch.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetObjectMetadataBatchResponse {
+    /// Metadata preserves the request object key order.
+    #[prost(message, repeated, tag="1")]
+    pub metadata: ::prost::alloc::vec::Vec<ObjectMetadata>,
+}
+/// GraphPathStep is one bounded predicate traversal step.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GraphPathStep {
+    /// Direction is the edge direction to follow.
+    #[prost(enumeration="GraphPathDirection", tag="1")]
+    pub direction: i32,
+    /// Predicate is the graph predicate to match.
+    #[prost(string, tag="2")]
+    pub predicate: ::prost::alloc::string::String,
+    /// Limit is the maximum number of quads to inspect for each current object key.
+    #[prost(uint32, tag="3")]
+    pub limit: u32,
+}
+/// QueryGraphPathRequest is the request type for QueryGraphPath.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QueryGraphPathRequest {
+    /// StartKeys is the list of object keys where traversal starts.
+    #[prost(string, repeated, tag="1")]
+    pub start_keys: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// Steps is the bounded traversal to execute server-side.
+    #[prost(message, repeated, tag="2")]
+    pub steps: ::prost::alloc::vec::Vec<GraphPathStep>,
+    /// ResultLimit is the maximum number of object keys returned.
+    /// It must be non-zero.
+    #[prost(uint32, tag="3")]
+    pub result_limit: u32,
+    /// IncludeQuads includes traversed quads in result pages.
+    #[prost(bool, tag="4")]
+    pub include_quads: bool,
+    /// PageSize is the maximum number of object keys returned by one Next call.
+    /// If unset, the server uses ResultLimit.
+    #[prost(uint32, tag="5")]
+    pub page_size: u32,
+}
+/// QueryGraphPathResponse is the response type for QueryGraphPath.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct QueryGraphPathResponse {
+    /// ResourceId is the ID of the GraphPathQuery resource.
+    #[prost(uint32, tag="1")]
+    pub resource_id: u32,
 }
 /// DeleteGraphObjectRequest is the request type for DeleteGraphObject.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -402,6 +499,31 @@ pub struct CloseRequest {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CloseResponse {
 }
+/// NextGraphPathQueryRequest is the request type for GraphPathQuery Next.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct NextGraphPathQueryRequest {
+}
+/// NextGraphPathQueryResponse is one page of graph path query results.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct NextGraphPathQueryResponse {
+    /// ObjectKeys is the next page of reached object keys.
+    #[prost(string, repeated, tag="1")]
+    pub object_keys: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// Quads is the traversed graph quads when requested.
+    #[prost(message, repeated, tag="2")]
+    pub quads: ::prost::alloc::vec::Vec<super::super::quad::Quad>,
+    /// Done indicates the resource has no more result pages.
+    #[prost(bool, tag="3")]
+    pub done: bool,
+}
+/// CloseGraphPathQueryRequest is the request type for GraphPathQuery Close.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CloseGraphPathQueryRequest {
+}
+/// CloseGraphPathQueryResponse is the response type for GraphPathQuery Close.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CloseGraphPathQueryResponse {
+}
 /// GetKeyRequest is the request type for GetKey.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetKeyRequest {
@@ -509,5 +631,42 @@ pub struct AccessTypedObjectResponse {
     /// TypeId is the type identifier of the object.
     #[prost(string, tag="2")]
     pub type_id: ::prost::alloc::string::String,
+}
+/// GraphPathDirection indicates which side of the current object key to follow.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum GraphPathDirection {
+    /// GRAPH_PATH_DIRECTION_UNSPECIFIED is invalid.
+    Unspecified = 0,
+    /// GRAPH_PATH_DIRECTION_OUT follows quads where the current key is the subject.
+    Out = 1,
+    /// GRAPH_PATH_DIRECTION_IN follows quads where the current key is the object.
+    In = 2,
+    /// GRAPH_PATH_DIRECTION_BOTH follows incoming and outgoing quads.
+    Both = 3,
+}
+impl GraphPathDirection {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "GRAPH_PATH_DIRECTION_UNSPECIFIED",
+            Self::Out => "GRAPH_PATH_DIRECTION_OUT",
+            Self::In => "GRAPH_PATH_DIRECTION_IN",
+            Self::Both => "GRAPH_PATH_DIRECTION_BOTH",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "GRAPH_PATH_DIRECTION_UNSPECIFIED" => Some(Self::Unspecified),
+            "GRAPH_PATH_DIRECTION_OUT" => Some(Self::Out),
+            "GRAPH_PATH_DIRECTION_IN" => Some(Self::In),
+            "GRAPH_PATH_DIRECTION_BOTH" => Some(Self::Both),
+            _ => None,
+        }
+    }
 }
 // @@protoc_insertion_point(module)

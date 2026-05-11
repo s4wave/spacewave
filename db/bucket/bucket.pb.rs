@@ -10,9 +10,6 @@ pub struct Config {
     /// increment by 1 on modification
     #[prost(uint32, tag="2")]
     pub rev: u32,
-    /// Reconcilers contains the list of bucket reconcilers.
-    #[prost(message, repeated, tag="3")]
-    pub reconcilers: ::prost::alloc::vec::Vec<ReconcilerConfig>,
     /// PutOpts are the default put options for the bucket.
     #[prost(message, optional, tag="4")]
     pub put_opts: ::core::option::Option<super::block::PutOpts>,
@@ -28,19 +25,6 @@ pub struct BucketInfo {
     /// Config contains the current latest bucket configuration.
     #[prost(message, optional, tag="1")]
     pub config: ::core::option::Option<Config>,
-}
-/// ReconcilerConfig configures a reconciler.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ReconcilerConfig {
-    /// Id contains the reconciler id.
-    #[prost(string, tag="1")]
-    pub id: ::prost::alloc::string::String,
-    /// Controller contains the controller configuration.
-    #[prost(message, optional, tag="2")]
-    pub controller: ::core::option::Option<super::configset::proto::ControllerConfig>,
-    /// FilterPut disables receiving put events.
-    #[prost(bool, tag="3")]
-    pub filter_put: bool,
 }
 /// LookupConfig configures the bucket behavior across multiple volumes.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

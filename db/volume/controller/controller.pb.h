@@ -224,7 +224,6 @@ class Config final : public ::google::protobuf::Message
     kGcIntervalDurFieldNumber = 10,
     kBlockStoreWritebackPutOptsFieldNumber = 9,
     kDisableEventBlockRmFieldNumber = 1,
-    kDisableReconcilerQueuesFieldNumber = 3,
     kDisablePeerFieldNumber = 4,
     kDisableLookupBlockStoreFieldNumber = 7,
     kBlockStoreOverlayModeFieldNumber = 6,
@@ -321,16 +320,6 @@ class Config final : public ::google::protobuf::Message
   void _internal_set_disable_event_block_rm(bool value);
 
   public:
-  // bool disable_reconciler_queues = 3;
-  void clear_disable_reconciler_queues() ;
-  bool disable_reconciler_queues() const;
-  void set_disable_reconciler_queues(bool value);
-
-  private:
-  bool _internal_disable_reconciler_queues() const;
-  void _internal_set_disable_reconciler_queues(bool value);
-
-  public:
   // bool disable_peer = 4;
   void clear_disable_peer() ;
   bool disable_peer() const;
@@ -365,7 +354,7 @@ class Config final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<4, 10,
+  static const ::google::protobuf::internal::TcParseTable<4, 9,
                                    1, 118,
                                    2>
       _table_;
@@ -393,7 +382,6 @@ class Config final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr gc_interval_dur_;
     ::block::PutOpts* PROTOBUF_NULLABLE block_store_writeback_put_opts_;
     bool disable_event_block_rm_;
-    bool disable_reconciler_queues_;
     bool disable_peer_;
     bool disable_lookup_block_store_;
     int block_store_overlay_mode_;
@@ -518,37 +506,12 @@ Config::_internal_mutable_volume_id_alias() {
   return &_impl_.volume_id_alias_;
 }
 
-// bool disable_reconciler_queues = 3;
-inline void Config::clear_disable_reconciler_queues() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.disable_reconciler_queues_ = false;
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000040U);
-}
-inline bool Config::disable_reconciler_queues() const {
-  // @@protoc_insertion_point(field_get:volume.controller.Config.disable_reconciler_queues)
-  return _internal_disable_reconciler_queues();
-}
-inline void Config::set_disable_reconciler_queues(bool value) {
-  _internal_set_disable_reconciler_queues(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
-  // @@protoc_insertion_point(field_set:volume.controller.Config.disable_reconciler_queues)
-}
-inline bool Config::_internal_disable_reconciler_queues() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.disable_reconciler_queues_;
-}
-inline void Config::_internal_set_disable_reconciler_queues(bool value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.disable_reconciler_queues_ = value;
-}
-
 // bool disable_peer = 4;
 inline void Config::clear_disable_peer() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.disable_peer_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000080U);
+                  0x00000040U);
 }
 inline bool Config::disable_peer() const {
   // @@protoc_insertion_point(field_get:volume.controller.Config.disable_peer)
@@ -556,7 +519,7 @@ inline bool Config::disable_peer() const {
 }
 inline void Config::set_disable_peer(bool value) {
   _internal_set_disable_peer(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   // @@protoc_insertion_point(field_set:volume.controller.Config.disable_peer)
 }
 inline bool Config::_internal_disable_peer() const {
@@ -573,7 +536,7 @@ inline void Config::clear_disable_lookup_block_store() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.disable_lookup_block_store_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000100U);
+                  0x00000080U);
 }
 inline bool Config::disable_lookup_block_store() const {
   // @@protoc_insertion_point(field_get:volume.controller.Config.disable_lookup_block_store)
@@ -581,7 +544,7 @@ inline bool Config::disable_lookup_block_store() const {
 }
 inline void Config::set_disable_lookup_block_store(bool value) {
   _internal_set_disable_lookup_block_store(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
   // @@protoc_insertion_point(field_set:volume.controller.Config.disable_lookup_block_store)
 }
 inline bool Config::_internal_disable_lookup_block_store() const {
@@ -663,7 +626,7 @@ inline void Config::clear_block_store_overlay_mode() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.block_store_overlay_mode_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000200U);
+                  0x00000100U);
 }
 inline ::block::OverlayMode Config::block_store_overlay_mode() const {
   // @@protoc_insertion_point(field_get:volume.controller.Config.block_store_overlay_mode)
@@ -671,7 +634,7 @@ inline ::block::OverlayMode Config::block_store_overlay_mode() const {
 }
 inline void Config::set_block_store_overlay_mode(::block::OverlayMode value) {
   _internal_set_block_store_overlay_mode(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
   // @@protoc_insertion_point(field_set:volume.controller.Config.block_store_overlay_mode)
 }
 inline ::block::OverlayMode Config::_internal_block_store_overlay_mode() const {

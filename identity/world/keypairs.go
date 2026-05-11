@@ -27,6 +27,8 @@ const (
 	PredObjectToKeypair = quad.IRI(KeypairTypeID + "-link")
 )
 
+const keypairGraphPathLimit uint32 = 1_000_000
+
 // NewKeypairKey builds a key from a peer id.
 func NewKeypairKey(peerIDString string) string {
 	return KeypairPrefix + peerIDString
@@ -171,25 +173,25 @@ func CollectKeypairEntities(ctx context.Context, w world.WorldState, keypairKeys
 // ListKeypairLinks collects all Object linking directly to the Keypair.
 // returns list of object keys
 func ListKeypairLinks(ctx context.Context, w world.WorldState, keypairKeys ...string) ([]string, error) {
-	return world.CollectPathWithKeys(
+	return world.CollectGraphPathStepWithKeys(
 		ctx,
 		w,
 		keypairKeys,
-		func(p *cayley.Path) (*cayley.Path, error) {
-			return p.In(PredObjectToKeypair), nil
-		},
+		world.GraphPathDirectionIn,
+		PredObjectToKeypair.String(),
+		keypairGraphPathLimit,
 	)
 }
 
 // ListObjectKeypairs lists all Keypair linked to directly by the Objects.
 func ListObjectKeypairs(ctx context.Context, w world.WorldState, objectKeys ...string) ([]string, error) {
-	return world.CollectPathWithKeys(
+	return world.CollectGraphPathStepWithKeys(
 		ctx,
 		w,
 		objectKeys,
-		func(p *cayley.Path) (*cayley.Path, error) {
-			return p.Out(PredObjectToKeypair), nil
-		},
+		world.GraphPathDirectionOut,
+		PredObjectToKeypair.String(),
+		keypairGraphPathLimit,
 	)
 }
 

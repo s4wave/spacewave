@@ -39,6 +39,14 @@ var (
 	ErrUnexpectedChangeType = errors.New("change type was unexpected")
 	// ErrUnexpectedRev is returned if the revision field was unexpected.
 	ErrUnexpectedRev = errors.New("object rev unexpected")
+	// ErrGraphPathResultLimit is returned if a graph path query has no result limit.
+	ErrGraphPathResultLimit = errors.New("graph path result limit must be non-zero")
+	// ErrGraphPathStepLimit is returned if a graph path step has no per-key limit.
+	ErrGraphPathStepLimit = errors.New("graph path step limit must be non-zero")
+	// ErrGraphPathPredicate is returned if a graph path step has no predicate.
+	ErrGraphPathPredicate = errors.New("graph path step predicate cannot be empty")
+	// ErrGraphPathDirection is returned if a graph path step has no valid direction.
+	ErrGraphPathDirection = errors.New("graph path step direction is invalid")
 
 	// ErrNilQuad is returned if the quad is nil and cannot be.
 	ErrNilQuad = errors.New("quad cannot be nil")

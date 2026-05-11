@@ -32,7 +32,6 @@
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
 #include "google/protobuf/unknown_field_set.h"
 #include "../../../net/hash/hash.pb.h"
-#include "../../kvtx/mqueue/mqueue.pb.h"
 // @@protoc_insertion_point(includes)
 
 // Must be included last.
@@ -58,18 +57,10 @@ extern const ::google::protobuf::internal::DescriptorTable descriptor_table_gith
 }  // extern "C"
 namespace store {
 namespace kvtx {
-class BucketReconcilerMqueueId;
-struct BucketReconcilerMqueueIdDefaultTypeInternal;
-extern BucketReconcilerMqueueIdDefaultTypeInternal _BucketReconcilerMqueueId_default_instance_;
-extern const ::google::protobuf::internal::ClassDataFull BucketReconcilerMqueueId_class_data_;
 class Config;
 struct ConfigDefaultTypeInternal;
 extern ConfigDefaultTypeInternal _Config_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull Config_class_data_;
-class MqueueMeta;
-struct MqueueMetaDefaultTypeInternal;
-extern MqueueMetaDefaultTypeInternal _MqueueMeta_default_instance_;
-extern const ::google::protobuf::internal::ClassDataFull MqueueMeta_class_data_;
 }  // namespace kvtx
 }  // namespace store
 namespace google {
@@ -83,413 +74,6 @@ namespace kvtx {
 // ===================================================================
 
 
-// -------------------------------------------------------------------
-
-class MqueueMeta final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:store.kvtx.MqueueMeta) */ {
- public:
-  inline MqueueMeta() : MqueueMeta(nullptr) {}
-  ~MqueueMeta() PROTOBUF_FINAL;
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(MqueueMeta* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
-    SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(MqueueMeta));
-  }
-#endif
-
-  template <typename = void>
-  explicit PROTOBUF_CONSTEXPR MqueueMeta(::google::protobuf::internal::ConstantInitialized);
-
-  inline MqueueMeta(const MqueueMeta& from) : MqueueMeta(nullptr, from) {}
-  inline MqueueMeta(MqueueMeta&& from) noexcept
-      : MqueueMeta(nullptr, ::std::move(from)) {}
-  inline MqueueMeta& operator=(const MqueueMeta& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline MqueueMeta& operator=(MqueueMeta&& from) noexcept {
-    if (this == &from) return *this;
-    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
-      InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
-  }
-  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
-  }
-
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
-    return GetDescriptor();
-  }
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
-    return default_instance().GetMetadata().descriptor;
-  }
-  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
-    return default_instance().GetMetadata().reflection;
-  }
-  static const MqueueMeta& default_instance() {
-    return *reinterpret_cast<const MqueueMeta*>(
-        &_MqueueMeta_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages = 1;
-  friend void swap(MqueueMeta& a, MqueueMeta& b) { a.Swap(&b); }
-  inline void Swap(MqueueMeta* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
-      InternalSwap(other);
-    } else {
-      ::google::protobuf::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(MqueueMeta* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    ABSL_DCHECK(GetArena() == other->GetArena());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  MqueueMeta* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::Message::DefaultConstruct<MqueueMeta>(arena);
-  }
-  using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const MqueueMeta& from);
-  using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom(const MqueueMeta& from) { MqueueMeta::MergeImpl(*this, from); }
-
-  private:
-  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
-                        const ::google::protobuf::MessageLite& from_msg);
-
-  public:
-  bool IsInitialized() const {
-    return true;
-  }
-  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
-  #if defined(PROTOBUF_CUSTOM_VTABLE)
-  private:
-  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
-  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
-
-  public:
-  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-    return _InternalSerialize(*this, target, stream);
-  }
-  #else   // PROTOBUF_CUSTOM_VTABLE
-  ::size_t ByteSizeLong() const final;
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
-  #endif  // PROTOBUF_CUSTOM_VTABLE
-  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
-
-  private:
-  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static void SharedDtor(MessageLite& self);
-  void InternalSwap(MqueueMeta* PROTOBUF_NONNULL other);
- private:
-  template <typename T>
-  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "store.kvtx.MqueueMeta"; }
-
-  explicit MqueueMeta(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  MqueueMeta(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const MqueueMeta& from);
-  MqueueMeta(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, MqueueMeta&& from) noexcept
-      : MqueueMeta(arena) {
-    *this = ::std::move(from);
-  }
-  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
-  static void* PROTOBUF_NONNULL PlacementNew_(
-      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static constexpr auto InternalNewImpl_();
-
- public:
-  static constexpr auto InternalGenerateClassData_();
-
-  ::google::protobuf::Metadata GetMetadata() const;
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-  enum : int {
-    kIdFieldNumber = 1,
-  };
-  // bytes id = 1;
-  void clear_id() ;
-  const ::std::string& id() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_id(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_id();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_id();
-  void set_allocated_id(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_id() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_id(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_id();
-
-  public:
-  // @@protoc_insertion_point(class_scope:store.kvtx.MqueueMeta)
- private:
-  class _Internal;
-  friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<0, 1,
-                                   0, 0,
-                                   2>
-      _table_;
-
-  friend class ::google::protobuf::MessageLite;
-  friend class ::google::protobuf::Arena;
-  template <typename T>
-  friend class ::google::protobuf::Arena::InternalHelper;
-  using InternalArenaConstructable_ = void;
-  using DestructorSkippable_ = void;
-  struct Impl_ {
-    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-        const MqueueMeta& from_msg);
-    ::google::protobuf::internal::HasBits<1> _has_bits_;
-    ::google::protobuf::internal::CachedSize _cached_size_;
-    ::google::protobuf::internal::ArenaStringPtr id_;
-    PROTOBUF_TSAN_DECLARE_MEMBER
-  };
-  union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fstore_2fkvtx_2fkvtx_2eproto;
-};
-
-extern const ::google::protobuf::internal::ClassDataFull MqueueMeta_class_data_;
-// -------------------------------------------------------------------
-
-class BucketReconcilerMqueueId final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:store.kvtx.BucketReconcilerMqueueId) */ {
- public:
-  inline BucketReconcilerMqueueId() : BucketReconcilerMqueueId(nullptr) {}
-  ~BucketReconcilerMqueueId() PROTOBUF_FINAL;
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(BucketReconcilerMqueueId* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
-    SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(BucketReconcilerMqueueId));
-  }
-#endif
-
-  template <typename = void>
-  explicit PROTOBUF_CONSTEXPR BucketReconcilerMqueueId(::google::protobuf::internal::ConstantInitialized);
-
-  inline BucketReconcilerMqueueId(const BucketReconcilerMqueueId& from) : BucketReconcilerMqueueId(nullptr, from) {}
-  inline BucketReconcilerMqueueId(BucketReconcilerMqueueId&& from) noexcept
-      : BucketReconcilerMqueueId(nullptr, ::std::move(from)) {}
-  inline BucketReconcilerMqueueId& operator=(const BucketReconcilerMqueueId& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline BucketReconcilerMqueueId& operator=(BucketReconcilerMqueueId&& from) noexcept {
-    if (this == &from) return *this;
-    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
-      InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
-  }
-  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
-  }
-
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
-    return GetDescriptor();
-  }
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
-    return default_instance().GetMetadata().descriptor;
-  }
-  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
-    return default_instance().GetMetadata().reflection;
-  }
-  static const BucketReconcilerMqueueId& default_instance() {
-    return *reinterpret_cast<const BucketReconcilerMqueueId*>(
-        &_BucketReconcilerMqueueId_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages = 2;
-  friend void swap(BucketReconcilerMqueueId& a, BucketReconcilerMqueueId& b) { a.Swap(&b); }
-  inline void Swap(BucketReconcilerMqueueId* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
-      InternalSwap(other);
-    } else {
-      ::google::protobuf::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(BucketReconcilerMqueueId* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    ABSL_DCHECK(GetArena() == other->GetArena());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  BucketReconcilerMqueueId* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::Message::DefaultConstruct<BucketReconcilerMqueueId>(arena);
-  }
-  using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const BucketReconcilerMqueueId& from);
-  using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom(const BucketReconcilerMqueueId& from) { BucketReconcilerMqueueId::MergeImpl(*this, from); }
-
-  private:
-  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
-                        const ::google::protobuf::MessageLite& from_msg);
-
-  public:
-  bool IsInitialized() const {
-    return true;
-  }
-  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
-  #if defined(PROTOBUF_CUSTOM_VTABLE)
-  private:
-  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
-  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
-
-  public:
-  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-    return _InternalSerialize(*this, target, stream);
-  }
-  #else   // PROTOBUF_CUSTOM_VTABLE
-  ::size_t ByteSizeLong() const final;
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
-  #endif  // PROTOBUF_CUSTOM_VTABLE
-  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
-
-  private:
-  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static void SharedDtor(MessageLite& self);
-  void InternalSwap(BucketReconcilerMqueueId* PROTOBUF_NONNULL other);
- private:
-  template <typename T>
-  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "store.kvtx.BucketReconcilerMqueueId"; }
-
-  explicit BucketReconcilerMqueueId(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  BucketReconcilerMqueueId(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const BucketReconcilerMqueueId& from);
-  BucketReconcilerMqueueId(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, BucketReconcilerMqueueId&& from) noexcept
-      : BucketReconcilerMqueueId(arena) {
-    *this = ::std::move(from);
-  }
-  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
-  static void* PROTOBUF_NONNULL PlacementNew_(
-      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static constexpr auto InternalNewImpl_();
-
- public:
-  static constexpr auto InternalGenerateClassData_();
-
-  ::google::protobuf::Metadata GetMetadata() const;
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-  enum : int {
-    kBucketIdFieldNumber = 1,
-    kReconcilerIdFieldNumber = 2,
-  };
-  // string bucket_id = 1;
-  void clear_bucket_id() ;
-  const ::std::string& bucket_id() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_bucket_id(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_bucket_id();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_bucket_id();
-  void set_allocated_bucket_id(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_bucket_id() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_bucket_id(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_bucket_id();
-
-  public:
-  // string reconciler_id = 2;
-  void clear_reconciler_id() ;
-  const ::std::string& reconciler_id() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_reconciler_id(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_reconciler_id();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_reconciler_id();
-  void set_allocated_reconciler_id(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_reconciler_id() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_reconciler_id(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_reconciler_id();
-
-  public:
-  // @@protoc_insertion_point(class_scope:store.kvtx.BucketReconcilerMqueueId)
- private:
-  class _Internal;
-  friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 2,
-                                   0, 66,
-                                   2>
-      _table_;
-
-  friend class ::google::protobuf::MessageLite;
-  friend class ::google::protobuf::Arena;
-  template <typename T>
-  friend class ::google::protobuf::Arena::InternalHelper;
-  using InternalArenaConstructable_ = void;
-  using DestructorSkippable_ = void;
-  struct Impl_ {
-    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-        const BucketReconcilerMqueueId& from_msg);
-    ::google::protobuf::internal::HasBits<1> _has_bits_;
-    ::google::protobuf::internal::CachedSize _cached_size_;
-    ::google::protobuf::internal::ArenaStringPtr bucket_id_;
-    ::google::protobuf::internal::ArenaStringPtr reconciler_id_;
-    PROTOBUF_TSAN_DECLARE_MEMBER
-  };
-  union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fstore_2fkvtx_2fkvtx_2eproto;
-};
-
-extern const ::google::protobuf::internal::ClassDataFull BucketReconcilerMqueueId_class_data_;
 // -------------------------------------------------------------------
 
 class Config final : public ::google::protobuf::Message
@@ -634,25 +218,9 @@ class Config final : public ::google::protobuf::Message
 
   // accessors -------------------------------------------------------
   enum : int {
-    kMqueueConfigFieldNumber = 1,
     kHashTypeFieldNumber = 2,
     kDisableHashGetFieldNumber = 3,
   };
-  // .kvtx.mqueue.Config mqueue_config = 1;
-  bool has_mqueue_config() const;
-  void clear_mqueue_config() ;
-  const ::kvtx::mqueue::Config& mqueue_config() const;
-  [[nodiscard]] ::kvtx::mqueue::Config* PROTOBUF_NULLABLE release_mqueue_config();
-  ::kvtx::mqueue::Config* PROTOBUF_NONNULL mutable_mqueue_config();
-  void set_allocated_mqueue_config(::kvtx::mqueue::Config* PROTOBUF_NULLABLE value);
-  void unsafe_arena_set_allocated_mqueue_config(::kvtx::mqueue::Config* PROTOBUF_NULLABLE value);
-  ::kvtx::mqueue::Config* PROTOBUF_NULLABLE unsafe_arena_release_mqueue_config();
-
-  private:
-  const ::kvtx::mqueue::Config& _internal_mqueue_config() const;
-  ::kvtx::mqueue::Config* PROTOBUF_NONNULL _internal_mutable_mqueue_config();
-
-  public:
   // .hash.HashType hash_type = 2;
   void clear_hash_type() ;
   ::hash::HashType hash_type() const;
@@ -677,8 +245,8 @@ class Config final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<2, 3,
-                                   1, 0,
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   0, 0,
                                    2>
       _table_;
 
@@ -699,7 +267,6 @@ class Config final : public ::google::protobuf::Message
         const Config& from_msg);
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
-    ::kvtx::mqueue::Config* PROTOBUF_NULLABLE mqueue_config_;
     int hash_type_;
     bool disable_hash_get_;
     PROTOBUF_TSAN_DECLARE_MEMBER
@@ -726,105 +293,12 @@ extern const ::google::protobuf::internal::ClassDataFull Config_class_data_;
 
 // Config
 
-// .kvtx.mqueue.Config mqueue_config = 1;
-inline bool Config::has_mqueue_config() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
-  PROTOBUF_ASSUME(!value || _impl_.mqueue_config_ != nullptr);
-  return value;
-}
-inline const ::kvtx::mqueue::Config& Config::_internal_mqueue_config() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  const ::kvtx::mqueue::Config* p = _impl_.mqueue_config_;
-  return p != nullptr ? *p : reinterpret_cast<const ::kvtx::mqueue::Config&>(::kvtx::mqueue::_Config_default_instance_);
-}
-inline const ::kvtx::mqueue::Config& Config::mqueue_config() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:store.kvtx.Config.mqueue_config)
-  return _internal_mqueue_config();
-}
-inline void Config::unsafe_arena_set_allocated_mqueue_config(
-    ::kvtx::mqueue::Config* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (GetArena() == nullptr) {
-    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.mqueue_config_);
-  }
-  _impl_.mqueue_config_ = reinterpret_cast<::kvtx::mqueue::Config*>(value);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:store.kvtx.Config.mqueue_config)
-}
-inline ::kvtx::mqueue::Config* PROTOBUF_NULLABLE Config::release_mqueue_config() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  ::kvtx::mqueue::Config* released = _impl_.mqueue_config_;
-  _impl_.mqueue_config_ = nullptr;
-  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
-    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
-    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
-    if (GetArena() == nullptr) {
-      delete old;
-    }
-  } else {
-    if (GetArena() != nullptr) {
-      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
-    }
-  }
-  return released;
-}
-inline ::kvtx::mqueue::Config* PROTOBUF_NULLABLE Config::unsafe_arena_release_mqueue_config() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:store.kvtx.Config.mqueue_config)
-
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  ::kvtx::mqueue::Config* temp = _impl_.mqueue_config_;
-  _impl_.mqueue_config_ = nullptr;
-  return temp;
-}
-inline ::kvtx::mqueue::Config* PROTOBUF_NONNULL Config::_internal_mutable_mqueue_config() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (_impl_.mqueue_config_ == nullptr) {
-    auto* p = ::google::protobuf::Message::DefaultConstruct<::kvtx::mqueue::Config>(GetArena());
-    _impl_.mqueue_config_ = reinterpret_cast<::kvtx::mqueue::Config*>(p);
-  }
-  return _impl_.mqueue_config_;
-}
-inline ::kvtx::mqueue::Config* PROTOBUF_NONNULL Config::mutable_mqueue_config()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  ::kvtx::mqueue::Config* _msg = _internal_mutable_mqueue_config();
-  // @@protoc_insertion_point(field_mutable:store.kvtx.Config.mqueue_config)
-  return _msg;
-}
-inline void Config::set_allocated_mqueue_config(::kvtx::mqueue::Config* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::Arena* message_arena = GetArena();
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (message_arena == nullptr) {
-    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.mqueue_config_);
-  }
-
-  if (value != nullptr) {
-    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
-    if (message_arena != submessage_arena) {
-      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
-    }
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  }
-
-  _impl_.mqueue_config_ = reinterpret_cast<::kvtx::mqueue::Config*>(value);
-  // @@protoc_insertion_point(field_set_allocated:store.kvtx.Config.mqueue_config)
-}
-
 // .hash.HashType hash_type = 2;
 inline void Config::clear_hash_type() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.hash_type_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000002U);
+                  0x00000001U);
 }
 inline ::hash::HashType Config::hash_type() const {
   // @@protoc_insertion_point(field_get:store.kvtx.Config.hash_type)
@@ -832,7 +306,7 @@ inline ::hash::HashType Config::hash_type() const {
 }
 inline void Config::set_hash_type(::hash::HashType value) {
   _internal_set_hash_type(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
   // @@protoc_insertion_point(field_set:store.kvtx.Config.hash_type)
 }
 inline ::hash::HashType Config::_internal_hash_type() const {
@@ -849,7 +323,7 @@ inline void Config::clear_disable_hash_get() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.disable_hash_get_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
+                  0x00000002U);
 }
 inline bool Config::disable_hash_get() const {
   // @@protoc_insertion_point(field_get:store.kvtx.Config.disable_hash_get)
@@ -857,7 +331,7 @@ inline bool Config::disable_hash_get() const {
 }
 inline void Config::set_disable_hash_get(bool value) {
   _internal_set_disable_hash_get(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   // @@protoc_insertion_point(field_set:store.kvtx.Config.disable_hash_get)
 }
 inline bool Config::_internal_disable_hash_get() const {
@@ -867,209 +341,6 @@ inline bool Config::_internal_disable_hash_get() const {
 inline void Config::_internal_set_disable_hash_get(bool value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.disable_hash_get_ = value;
-}
-
-// -------------------------------------------------------------------
-
-// MqueueMeta
-
-// bytes id = 1;
-inline void MqueueMeta::clear_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.id_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000001U);
-}
-inline const ::std::string& MqueueMeta::id() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:store.kvtx.MqueueMeta.id)
-  return _internal_id();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void MqueueMeta::set_id(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  _impl_.id_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:store.kvtx.MqueueMeta.id)
-}
-inline ::std::string* PROTOBUF_NONNULL MqueueMeta::mutable_id()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  ::std::string* _s = _internal_mutable_id();
-  // @@protoc_insertion_point(field_mutable:store.kvtx.MqueueMeta.id)
-  return _s;
-}
-inline const ::std::string& MqueueMeta::_internal_id() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.id_.Get();
-}
-inline void MqueueMeta::_internal_set_id(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.id_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL MqueueMeta::_internal_mutable_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.id_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE MqueueMeta::release_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:store.kvtx.MqueueMeta.id)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  auto* released = _impl_.id_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.id_.Set("", GetArena());
-  }
-  return released;
-}
-inline void MqueueMeta::set_allocated_id(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  }
-  _impl_.id_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.id_.IsDefault()) {
-    _impl_.id_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:store.kvtx.MqueueMeta.id)
-}
-
-// -------------------------------------------------------------------
-
-// BucketReconcilerMqueueId
-
-// string bucket_id = 1;
-inline void BucketReconcilerMqueueId::clear_bucket_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.bucket_id_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000001U);
-}
-inline const ::std::string& BucketReconcilerMqueueId::bucket_id() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:store.kvtx.BucketReconcilerMqueueId.bucket_id)
-  return _internal_bucket_id();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void BucketReconcilerMqueueId::set_bucket_id(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  _impl_.bucket_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:store.kvtx.BucketReconcilerMqueueId.bucket_id)
-}
-inline ::std::string* PROTOBUF_NONNULL BucketReconcilerMqueueId::mutable_bucket_id()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  ::std::string* _s = _internal_mutable_bucket_id();
-  // @@protoc_insertion_point(field_mutable:store.kvtx.BucketReconcilerMqueueId.bucket_id)
-  return _s;
-}
-inline const ::std::string& BucketReconcilerMqueueId::_internal_bucket_id() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.bucket_id_.Get();
-}
-inline void BucketReconcilerMqueueId::_internal_set_bucket_id(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.bucket_id_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL BucketReconcilerMqueueId::_internal_mutable_bucket_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.bucket_id_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE BucketReconcilerMqueueId::release_bucket_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:store.kvtx.BucketReconcilerMqueueId.bucket_id)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  auto* released = _impl_.bucket_id_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.bucket_id_.Set("", GetArena());
-  }
-  return released;
-}
-inline void BucketReconcilerMqueueId::set_allocated_bucket_id(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  }
-  _impl_.bucket_id_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.bucket_id_.IsDefault()) {
-    _impl_.bucket_id_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:store.kvtx.BucketReconcilerMqueueId.bucket_id)
-}
-
-// string reconciler_id = 2;
-inline void BucketReconcilerMqueueId::clear_reconciler_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.reconciler_id_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000002U);
-}
-inline const ::std::string& BucketReconcilerMqueueId::reconciler_id() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:store.kvtx.BucketReconcilerMqueueId.reconciler_id)
-  return _internal_reconciler_id();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void BucketReconcilerMqueueId::set_reconciler_id(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  _impl_.reconciler_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:store.kvtx.BucketReconcilerMqueueId.reconciler_id)
-}
-inline ::std::string* PROTOBUF_NONNULL BucketReconcilerMqueueId::mutable_reconciler_id()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  ::std::string* _s = _internal_mutable_reconciler_id();
-  // @@protoc_insertion_point(field_mutable:store.kvtx.BucketReconcilerMqueueId.reconciler_id)
-  return _s;
-}
-inline const ::std::string& BucketReconcilerMqueueId::_internal_reconciler_id() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.reconciler_id_.Get();
-}
-inline void BucketReconcilerMqueueId::_internal_set_reconciler_id(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.reconciler_id_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL BucketReconcilerMqueueId::_internal_mutable_reconciler_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.reconciler_id_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE BucketReconcilerMqueueId::release_reconciler_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:store.kvtx.BucketReconcilerMqueueId.reconciler_id)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  auto* released = _impl_.reconciler_id_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.reconciler_id_.Set("", GetArena());
-  }
-  return released;
-}
-inline void BucketReconcilerMqueueId::set_allocated_reconciler_id(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  }
-  _impl_.reconciler_id_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.reconciler_id_.IsDefault()) {
-    _impl_.reconciler_id_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:store.kvtx.BucketReconcilerMqueueId.reconciler_id)
 }
 
 #ifdef __GNUC__

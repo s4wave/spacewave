@@ -222,9 +222,6 @@ class Config final : public ::google::protobuf::Message
     kPeerPrivKeyFieldNumber = 3,
     kBlockPrefixFieldNumber = 5,
     kObjectStorePrefixFieldNumber = 6,
-    kMqueuePrefixFieldNumber = 7,
-    kMqueueMetaPrefixFieldNumber = 8,
-    kBucketMqueuePrefixFieldNumber = 9,
   };
   // bytes prefix = 1;
   void clear_prefix() ;
@@ -301,56 +298,11 @@ class Config final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_object_store_prefix();
 
   public:
-  // bytes mqueue_prefix = 7;
-  void clear_mqueue_prefix() ;
-  const ::std::string& mqueue_prefix() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_mqueue_prefix(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_mqueue_prefix();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_mqueue_prefix();
-  void set_allocated_mqueue_prefix(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_mqueue_prefix() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_mqueue_prefix(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_mqueue_prefix();
-
-  public:
-  // bytes mqueue_meta_prefix = 8;
-  void clear_mqueue_meta_prefix() ;
-  const ::std::string& mqueue_meta_prefix() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_mqueue_meta_prefix(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_mqueue_meta_prefix();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_mqueue_meta_prefix();
-  void set_allocated_mqueue_meta_prefix(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_mqueue_meta_prefix() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_mqueue_meta_prefix(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_mqueue_meta_prefix();
-
-  public:
-  // bytes bucket_mqueue_prefix = 9;
-  void clear_bucket_mqueue_prefix() ;
-  const ::std::string& bucket_mqueue_prefix() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_bucket_mqueue_prefix(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_bucket_mqueue_prefix();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_bucket_mqueue_prefix();
-  void set_allocated_bucket_mqueue_prefix(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_bucket_mqueue_prefix() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_bucket_mqueue_prefix(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_bucket_mqueue_prefix();
-
-  public:
   // @@protoc_insertion_point(class_scope:store.kvkey.Config)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<4, 8,
+  static const ::google::protobuf::internal::TcParseTable<3, 5,
                                    0, 0,
                                    2>
       _table_;
@@ -377,9 +329,6 @@ class Config final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr peer_priv_key_;
     ::google::protobuf::internal::ArenaStringPtr block_prefix_;
     ::google::protobuf::internal::ArenaStringPtr object_store_prefix_;
-    ::google::protobuf::internal::ArenaStringPtr mqueue_prefix_;
-    ::google::protobuf::internal::ArenaStringPtr mqueue_meta_prefix_;
-    ::google::protobuf::internal::ArenaStringPtr bucket_mqueue_prefix_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -727,201 +676,6 @@ inline void Config::set_allocated_object_store_prefix(::std::string* PROTOBUF_NU
     _impl_.object_store_prefix_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:store.kvkey.Config.object_store_prefix)
-}
-
-// bytes mqueue_prefix = 7;
-inline void Config::clear_mqueue_prefix() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.mqueue_prefix_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000020U);
-}
-inline const ::std::string& Config::mqueue_prefix() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:store.kvkey.Config.mqueue_prefix)
-  return _internal_mqueue_prefix();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void Config::set_mqueue_prefix(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
-  _impl_.mqueue_prefix_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:store.kvkey.Config.mqueue_prefix)
-}
-inline ::std::string* PROTOBUF_NONNULL Config::mutable_mqueue_prefix()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
-  ::std::string* _s = _internal_mutable_mqueue_prefix();
-  // @@protoc_insertion_point(field_mutable:store.kvkey.Config.mqueue_prefix)
-  return _s;
-}
-inline const ::std::string& Config::_internal_mqueue_prefix() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.mqueue_prefix_.Get();
-}
-inline void Config::_internal_set_mqueue_prefix(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.mqueue_prefix_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL Config::_internal_mutable_mqueue_prefix() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.mqueue_prefix_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE Config::release_mqueue_prefix() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:store.kvkey.Config.mqueue_prefix)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000020U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
-  auto* released = _impl_.mqueue_prefix_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.mqueue_prefix_.Set("", GetArena());
-  }
-  return released;
-}
-inline void Config::set_allocated_mqueue_prefix(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
-  }
-  _impl_.mqueue_prefix_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.mqueue_prefix_.IsDefault()) {
-    _impl_.mqueue_prefix_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:store.kvkey.Config.mqueue_prefix)
-}
-
-// bytes mqueue_meta_prefix = 8;
-inline void Config::clear_mqueue_meta_prefix() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.mqueue_meta_prefix_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000040U);
-}
-inline const ::std::string& Config::mqueue_meta_prefix() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:store.kvkey.Config.mqueue_meta_prefix)
-  return _internal_mqueue_meta_prefix();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void Config::set_mqueue_meta_prefix(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
-  _impl_.mqueue_meta_prefix_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:store.kvkey.Config.mqueue_meta_prefix)
-}
-inline ::std::string* PROTOBUF_NONNULL Config::mutable_mqueue_meta_prefix()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
-  ::std::string* _s = _internal_mutable_mqueue_meta_prefix();
-  // @@protoc_insertion_point(field_mutable:store.kvkey.Config.mqueue_meta_prefix)
-  return _s;
-}
-inline const ::std::string& Config::_internal_mqueue_meta_prefix() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.mqueue_meta_prefix_.Get();
-}
-inline void Config::_internal_set_mqueue_meta_prefix(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.mqueue_meta_prefix_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL Config::_internal_mutable_mqueue_meta_prefix() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.mqueue_meta_prefix_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE Config::release_mqueue_meta_prefix() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:store.kvkey.Config.mqueue_meta_prefix)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000040U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
-  auto* released = _impl_.mqueue_meta_prefix_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.mqueue_meta_prefix_.Set("", GetArena());
-  }
-  return released;
-}
-inline void Config::set_allocated_mqueue_meta_prefix(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
-  }
-  _impl_.mqueue_meta_prefix_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.mqueue_meta_prefix_.IsDefault()) {
-    _impl_.mqueue_meta_prefix_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:store.kvkey.Config.mqueue_meta_prefix)
-}
-
-// bytes bucket_mqueue_prefix = 9;
-inline void Config::clear_bucket_mqueue_prefix() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.bucket_mqueue_prefix_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000080U);
-}
-inline const ::std::string& Config::bucket_mqueue_prefix() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:store.kvkey.Config.bucket_mqueue_prefix)
-  return _internal_bucket_mqueue_prefix();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void Config::set_bucket_mqueue_prefix(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
-  _impl_.bucket_mqueue_prefix_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:store.kvkey.Config.bucket_mqueue_prefix)
-}
-inline ::std::string* PROTOBUF_NONNULL Config::mutable_bucket_mqueue_prefix()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
-  ::std::string* _s = _internal_mutable_bucket_mqueue_prefix();
-  // @@protoc_insertion_point(field_mutable:store.kvkey.Config.bucket_mqueue_prefix)
-  return _s;
-}
-inline const ::std::string& Config::_internal_bucket_mqueue_prefix() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.bucket_mqueue_prefix_.Get();
-}
-inline void Config::_internal_set_bucket_mqueue_prefix(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.bucket_mqueue_prefix_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL Config::_internal_mutable_bucket_mqueue_prefix() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.bucket_mqueue_prefix_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE Config::release_bucket_mqueue_prefix() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:store.kvkey.Config.bucket_mqueue_prefix)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000080U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
-  auto* released = _impl_.bucket_mqueue_prefix_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.bucket_mqueue_prefix_.Set("", GetArena());
-  }
-  return released;
-}
-inline void Config::set_allocated_bucket_mqueue_prefix(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000080U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
-  }
-  _impl_.bucket_mqueue_prefix_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.bucket_mqueue_prefix_.IsDefault()) {
-    _impl_.bucket_mqueue_prefix_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:store.kvkey.Config.bucket_mqueue_prefix)
 }
 
 #ifdef __GNUC__

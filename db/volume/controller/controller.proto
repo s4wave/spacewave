@@ -7,12 +7,10 @@ import "github.com/s4wave/spacewave/db/block/block.proto";
 message Config {
   // DisableEventBlockRm disables the block removed event.
   //
-  // Optimization: skips exists() and mqueue write() on delete.
+  // Optimization: skips exists() before delete.
   bool disable_event_block_rm = 1;
   // VolumeIdAlias matches LookupVolume and LookupBlockStore calls for the given ids.
   repeated string volume_id_alias = 2;
-  // DisableReconcilerQueues disables waking filled reconciler queues.
-  bool disable_reconciler_queues = 3;
   // DisablePeer disables loading the peer controller from the volume.
   bool disable_peer = 4;
   // DisableLookupBlockStore disables resolving LookupBlockStore when using the
@@ -37,4 +35,6 @@ message Config {
   // Default: 1m. Set to 0s to disable periodic GC.
   // Example: 1m
   string gc_interval_dur = 10;
+
+  // reserved: 3 disable_reconciler_queues
 }

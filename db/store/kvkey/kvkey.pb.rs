@@ -23,17 +23,5 @@ pub struct Config {
     /// Default: objs/
     #[prost(bytes="vec", tag="6")]
     pub object_store_prefix: ::prost::alloc::vec::Vec<u8>,
-    /// MqueuePrefix contains the key to use for the message queues.
-    /// Default: mq/q/
-    #[prost(bytes="vec", tag="7")]
-    pub mqueue_prefix: ::prost::alloc::vec::Vec<u8>,
-    /// MqueueMetaPrefix contains the key to use for the message queue metas.
-    /// Default: mq/m/
-    #[prost(bytes="vec", tag="8")]
-    pub mqueue_meta_prefix: ::prost::alloc::vec::Vec<u8>,
-    /// BucketMqueuePrefix contains the mqueue id prefix to use for bucket reconcilers.
-    /// Default: bkt/
-    #[prost(bytes="vec", tag="9")]
-    pub bucket_mqueue_prefix: ::prost::alloc::vec::Vec<u8>,
 }
 // @@protoc_insertion_point(module)

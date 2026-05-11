@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/aperturerobotics/cayley"
-	"github.com/aperturerobotics/cayley/graph"
 	"github.com/aperturerobotics/cayley/quad"
 	"github.com/aperturerobotics/cayley/query/path"
 	"github.com/pkg/errors"
@@ -18,6 +17,14 @@ const TypesPrefix = "types/"
 
 // TypePred is the predicate linking a object to its type.
 var TypePred quad.Value = quad.IRI("type")
+
+const typeGraphLookupLimit uint32 = 1_000_000
+
+// ObjectTypeLister lists objects by type without requiring a Cayley handle.
+type ObjectTypeLister interface {
+	// ListObjectsWithType lists object keys with the given type identifier.
+	ListObjectsWithType(ctx context.Context, typeID string) ([]string, error)
+}
 
 // BuildTypeObjectKey returns the object key referring to the type.
 func BuildTypeObjectKey(typeID string) string {
@@ -58,6 +65,14 @@ func LimitNodesToTypes(path *cayley.Path, typeIDs ...string) *cayley.Path {
 // GetObjectType returns the type of a given object.
 // Returns "" if the object has no type.
 func GetObjectType(ctx context.Context, ws world.WorldState, key string) (string, error) {
+	if batcher, ok := ws.(ObjectMetadataBatcher); ok {
+		metadata, err := batcher.GetObjectMetadataBatch(ctx, []string{key})
+		if err != nil || len(metadata) == 0 {
+			return "", err
+		}
+		return metadata[0].TypeID, nil
+	}
+
 	// AccessCayleyGraph calls a callback with a temporary Cayley graph handle.
 	// All accesses of the handle should complete before returning cb.
 	// Try to make access (queries) as short as possible.
@@ -115,44 +130,31 @@ func SetObjectType(ctx context.Context, ws world.WorldState, key, typeID string)
 	if key == "" || typeID == "" {
 		return world.ErrEmptyObjectKey
 	}
-	nextQuad := BuildTypeQuad(key, typeID)
-	var delta []graph.Delta
-	if err := ws.AccessCayleyGraph(ctx, true, func(ctx context.Context, h world.CayleyHandle) error {
-		var exists bool
-		err := world.FilterIterateQuads(ctx, h, quad.Quad{
-			Subject:   nextQuad.Subject,
-			Predicate: nextQuad.Predicate,
-		}, func(q quad.Quad) error {
-			if nextQuad.Object != nil && q.Object == nextQuad.Object {
-				exists = true
-			} else {
-				delta = append(delta, graph.Delta{
-					Quad:   q,
-					Action: graph.Delete,
-				})
-			}
-			return nil
-		})
-		if err != nil {
-			return err
-		}
-		if !exists && nextQuad.Object != nil {
-			delta = append(delta, graph.Delta{
-				Quad:   nextQuad,
-				Action: graph.Add,
-			})
-		}
-		return err
-	}); err != nil {
-		return err
-	}
 
 	// check that the object representing the type exists and create it if not
 	if _, err := EnsureTypeExists(ctx, ws, typeID); err != nil {
 		return err
 	}
 
-	return world.ApplyGraphDeltas(ctx, ws, delta)
+	nextQuad := world.NewGraphQuadWithKeys(key, TypePred.String(), BuildTypeObjectKey(typeID), "")
+	quads, err := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys(key, TypePred.String(), "", ""), typeGraphLookupLimit)
+	if err != nil {
+		return err
+	}
+	exists := false
+	for _, q := range quads {
+		if q.GetObj() == nextQuad.GetObj() {
+			exists = true
+			continue
+		}
+		if err := ws.DeleteGraphQuad(ctx, q); err != nil {
+			return err
+		}
+	}
+	if exists {
+		return nil
+	}
+	return ws.SetGraphQuad(ctx, nextQuad)
 }
 
 // EnsureTypeExists creates the object representing the type ID if it doesn't exist.
@@ -182,6 +184,20 @@ func IterateObjectsWithType(
 		return ErrTypeIDEmpty
 	}
 	if cb == nil {
+		return nil
+	}
+
+	if lister, ok := ws.(ObjectTypeLister); ok {
+		objKeys, err := lister.ListObjectsWithType(rctx, typeID)
+		if err != nil {
+			return err
+		}
+		for _, objKey := range objKeys {
+			ctnu, err := cb(objKey)
+			if err != nil || !ctnu {
+				return err
+			}
+		}
 		return nil
 	}
 
@@ -219,6 +235,13 @@ func IterateObjectsWithType(
 
 // ListObjectsWithType returns the list of object keys with the given type id.
 func ListObjectsWithType(ctx context.Context, ws world.WorldState, typeID string) ([]string, error) {
+	if typeID == "" {
+		return nil, ErrTypeIDEmpty
+	}
+	if lister, ok := ws.(ObjectTypeLister); ok {
+		return lister.ListObjectsWithType(ctx, typeID)
+	}
+
 	var objKeys []string
 	err := IterateObjectsWithType(ctx, ws, typeID, func(objKey string) (bool, error) {
 		objKeys = append(objKeys, objKey)

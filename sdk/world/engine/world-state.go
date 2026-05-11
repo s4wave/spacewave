@@ -3,13 +3,12 @@ package sdk_world_engine
 import (
 	"context"
 
-	"github.com/aperturerobotics/cayley/graph/memstore"
-	cayley_quad "github.com/aperturerobotics/cayley/quad"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	"github.com/s4wave/spacewave/db/block/quad"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
+	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/s4wave/spacewave/net/peer"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 )
@@ -184,21 +183,9 @@ func (ws *SDKWorldState) DeleteObject(ctx context.Context, key string) (bool, er
 	return resp.Deleted, nil
 }
 
-// AccessCayleyGraph calls a callback with a temporary Cayley graph handle.
+// AccessCayleyGraph rejects local Cayley handle access for remote worlds.
 func (ws *SDKWorldState) AccessCayleyGraph(ctx context.Context, write bool, cb func(ctx context.Context, h world.CayleyHandle) error) error {
-	quads, err := ws.LookupGraphQuads(ctx, world.NewGraphQuad("", "", "", ""), 0)
-	if err != nil {
-		return err
-	}
-	cquads := make([]cayley_quad.Quad, 0, len(quads))
-	for _, q := range quads {
-		cq, err := world.GraphQuadToCayleyQuad(q, false)
-		if err != nil {
-			return err
-		}
-		cquads = append(cquads, cq)
-	}
-	return cb(ctx, memstore.New(cquads...))
+	return ErrRemoteCayleyGraphUnsupported
 }
 
 // SetGraphQuad sets a quad in the graph store.
@@ -248,6 +235,37 @@ func (ws *SDKWorldState) LookupGraphQuads(ctx context.Context, filter world.Grap
 	return quads, nil
 }
 
+// LookupGraphQuadsBatch searches for graph quads using bounded indexed filters.
+func (ws *SDKWorldState) LookupGraphQuadsBatch(ctx context.Context, filters []world.GraphQuad, limitPerFilter uint32) ([][]world.GraphQuad, error) {
+	protoFilters := make([]*quad.Quad, len(filters))
+	for i, filter := range filters {
+		protoFilters[i] = &quad.Quad{
+			Subject:   filter.GetSubject(),
+			Predicate: filter.GetPredicate(),
+			Obj:       filter.GetObj(),
+			Label:     filter.GetLabel(),
+		}
+	}
+
+	resp, err := ws.service.LookupGraphQuadsBatch(ctx, &s4wave_world.LookupGraphQuadsBatchRequest{
+		Filters:        protoFilters,
+		LimitPerFilter: limitPerFilter,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([][]world.GraphQuad, len(resp.GetResults()))
+	for i, result := range resp.GetResults() {
+		quads := make([]world.GraphQuad, len(result.GetQuads()))
+		for j, q := range result.GetQuads() {
+			quads[j] = q
+		}
+		results[i] = quads
+	}
+	return results, nil
+}
+
 // ListObjectsWithType lists object keys with the given type identifier.
 func (ws *SDKWorldState) ListObjectsWithType(ctx context.Context, typeID string) ([]string, error) {
 	resp, err := ws.service.ListObjectsWithType(ctx, &s4wave_world.ListObjectsWithTypeRequest{
@@ -257,6 +275,62 @@ func (ws *SDKWorldState) ListObjectsWithType(ctx context.Context, typeID string)
 		return nil, err
 	}
 	return resp.ObjectKeys, nil
+}
+
+// GetObjectMetadataBatch returns graph metadata for object keys.
+func (ws *SDKWorldState) GetObjectMetadataBatch(ctx context.Context, keys []string) ([]*world_types.ObjectMetadata, error) {
+	resp, err := ws.service.GetObjectMetadataBatch(ctx, &s4wave_world.GetObjectMetadataBatchRequest{
+		ObjectKeys: keys,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	metadata := make([]*world_types.ObjectMetadata, len(resp.GetMetadata()))
+	for i, md := range resp.GetMetadata() {
+		metadata[i] = &world_types.ObjectMetadata{
+			ObjectKey:       md.GetObjectKey(),
+			TypeID:          md.GetTypeId(),
+			ParentObjectKey: md.GetParentObjectKey(),
+		}
+	}
+	return metadata, nil
+}
+
+// QueryGraphPath executes a bounded server-side graph path query.
+func (ws *SDKWorldState) QueryGraphPath(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
+	req, err := graphPathQueryToProto(query)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := ws.service.QueryGraphPath(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	ref := ws.client.CreateResourceReference(resp.GetResourceId())
+	defer ref.Release()
+	srpcClient, err := ref.GetClient()
+	if err != nil {
+		return nil, err
+	}
+	service := s4wave_world.NewSRPCGraphPathQueryResourceServiceClient(srpcClient)
+	defer service.Close(ctx, &s4wave_world.CloseGraphPathQueryRequest{})
+
+	result := &world.GraphPathQueryResult{}
+	for {
+		page, err := service.Next(ctx, &s4wave_world.NextGraphPathQueryRequest{})
+		if err != nil {
+			return nil, err
+		}
+		result.ObjectKeys = append(result.ObjectKeys, page.GetObjectKeys()...)
+		for _, q := range page.GetQuads() {
+			result.Quads = append(result.Quads, q)
+		}
+		if page.GetDone() {
+			return result, nil
+		}
+	}
 }
 
 // DeleteGraphObject deletes all quads with Subject or Object set to value.
@@ -287,3 +361,41 @@ func (ws *SDKWorldState) ApplyWorldOp(ctx context.Context, op world.Operation, s
 
 // _ is a type assertion
 var _ world.WorldState = (*SDKWorldState)(nil)
+
+func graphPathQueryToProto(query *world.GraphPathQuery) (*s4wave_world.QueryGraphPathRequest, error) {
+	if query == nil {
+		return &s4wave_world.QueryGraphPathRequest{}, nil
+	}
+	steps := make([]*s4wave_world.GraphPathStep, len(query.Steps))
+	for i, step := range query.Steps {
+		dir, err := graphPathDirectionToProto(step.Direction)
+		if err != nil {
+			return nil, err
+		}
+		steps[i] = &s4wave_world.GraphPathStep{
+			Direction: dir,
+			Predicate: step.Predicate,
+			Limit:     step.Limit,
+		}
+	}
+	return &s4wave_world.QueryGraphPathRequest{
+		StartKeys:    query.StartKeys,
+		Steps:        steps,
+		ResultLimit:  query.ResultLimit,
+		IncludeQuads: query.IncludeQuads,
+		PageSize:     query.ResultLimit,
+	}, nil
+}
+
+func graphPathDirectionToProto(dir world.GraphPathDirection) (s4wave_world.GraphPathDirection, error) {
+	switch dir {
+	case world.GraphPathDirectionOut:
+		return s4wave_world.GraphPathDirection_GRAPH_PATH_DIRECTION_OUT, nil
+	case world.GraphPathDirectionIn:
+		return s4wave_world.GraphPathDirection_GRAPH_PATH_DIRECTION_IN, nil
+	case world.GraphPathDirectionBoth:
+		return s4wave_world.GraphPathDirection_GRAPH_PATH_DIRECTION_BOTH, nil
+	default:
+		return 0, world.ErrGraphPathDirection
+	}
+}

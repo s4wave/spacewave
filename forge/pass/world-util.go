@@ -3,7 +3,6 @@ package forge_pass
 import (
 	"context"
 
-	"github.com/aperturerobotics/cayley"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
@@ -13,6 +12,8 @@ import (
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	"github.com/sirupsen/logrus"
 )
+
+const passGraphPathLimit uint32 = 1_000_000
 
 // CheckPassType checks the type graph quad for a Pass.
 func CheckPassType(ctx context.Context, ws world.WorldState, objKey string) error {
@@ -84,13 +85,13 @@ func WaitPassComplete(
 
 // ListPassExecutions lists all Execution object keys that are linked to by the Pass.
 func ListPassExecutions(ctx context.Context, w world.WorldState, passKeys ...string) ([]string, error) {
-	return world.CollectPathWithKeys(
+	return world.CollectGraphPathStepWithKeys(
 		ctx,
 		w,
 		passKeys,
-		func(p *cayley.Path) (*cayley.Path, error) {
-			return p.Out(PredPassToExecution), nil
-		},
+		world.GraphPathDirectionOut,
+		PredPassToExecution.String(),
+		passGraphPathLimit,
 	)
 }
 

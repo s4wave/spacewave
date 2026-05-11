@@ -5,15 +5,12 @@
 pub struct Config {
     /// DisableEventBlockRm disables the block removed event.
     ///
-    /// Optimization: skips exists() and mqueue write() on delete.
+    /// Optimization: skips exists() before delete.
     #[prost(bool, tag="1")]
     pub disable_event_block_rm: bool,
     /// VolumeIdAlias matches LookupVolume and LookupBlockStore calls for the given ids.
     #[prost(string, repeated, tag="2")]
     pub volume_id_alias: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    /// DisableReconcilerQueues disables waking filled reconciler queues.
-    #[prost(bool, tag="3")]
-    pub disable_reconciler_queues: bool,
     /// DisablePeer disables loading the peer controller from the volume.
     #[prost(bool, tag="4")]
     pub disable_peer: bool,

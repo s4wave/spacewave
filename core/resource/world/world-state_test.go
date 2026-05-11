@@ -2,13 +2,16 @@ package resource_world_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"testing"
 
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	resource_testbed "github.com/s4wave/spacewave/core/resource/testbed"
+	resource_world "github.com/s4wave/spacewave/core/resource/world"
 	"github.com/s4wave/spacewave/db/bucket"
+	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	s4wave_testbed "github.com/s4wave/spacewave/sdk/testbed"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
@@ -64,6 +67,104 @@ func setupWorldResourceClient(ctx context.Context, t *testing.T, tb *world_testb
 	}
 
 	return resClient, engine, cleanup
+}
+
+// TestGraphPathQueryResourceClose tests path query resource paging and close behavior.
+func TestGraphPathQueryResourceClose(t *testing.T) {
+	ctx := context.Background()
+
+	tb, tbCleanup := setupWorldTestbed(ctx, t)
+	defer tbCleanup()
+
+	resClient, engine, cleanup := setupWorldResourceClient(ctx, t, tb)
+	defer cleanup()
+
+	tx, err := engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tx.Release()
+
+	for _, key := range []string{"query/a", "query/b", "query/c"} {
+		if _, err := tx.CreateObject(ctx, key, nil); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+	for _, edge := range [][2]string{
+		{"query/a", "query/b"},
+		{"query/a", "query/c"},
+	} {
+		if err := tx.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(edge[0], "<query-rel>", edge[1], "")); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	readTx, err := engine.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer readTx.Release()
+
+	srpcClient, err := readTx.GetResourceRef().GetClient()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	worldService := s4wave_world.NewSRPCWorldStateResourceServiceClient(srpcClient)
+	resp, err := worldService.QueryGraphPath(ctx, &s4wave_world.QueryGraphPathRequest{
+		StartKeys: []string{"query/a"},
+		Steps: []*s4wave_world.GraphPathStep{
+			{
+				Direction: s4wave_world.GraphPathDirection_GRAPH_PATH_DIRECTION_OUT,
+				Predicate: "<query-rel>",
+				Limit:     10,
+			},
+		},
+		ResultLimit: 10,
+		PageSize:    1,
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	queryRef := resClient.CreateResourceReference(resp.GetResourceId())
+	defer queryRef.Release()
+	queryClient, err := queryRef.GetClient()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	queryService := s4wave_world.NewSRPCGraphPathQueryResourceServiceClient(queryClient)
+	page, err := queryService.Next(ctx, &s4wave_world.NextGraphPathQueryRequest{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(page.GetObjectKeys()) != 1 || page.GetDone() {
+		t.Fatalf("expected one non-terminal page, got keys=%#v done=%v", page.GetObjectKeys(), page.GetDone())
+	}
+	if _, err := queryService.Close(ctx, &s4wave_world.CloseGraphPathQueryRequest{}); err != nil {
+		t.Fatal(err.Error())
+	}
+	page, err = queryService.Next(ctx, &s4wave_world.NextGraphPathQueryRequest{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !page.GetDone() || len(page.GetObjectKeys()) != 0 {
+		t.Fatalf("expected closed query to return done, got keys=%#v done=%v", page.GetObjectKeys(), page.GetDone())
+	}
+
+	resource := resource_world.NewGraphPathQueryResource(nil, nil, &world.GraphPathQueryResult{
+		ObjectKeys: []string{"query/direct"},
+	}, 1)
+	cancelCtx, cancel := context.WithCancel(ctx)
+	cancel()
+	if _, err := resource.Next(cancelCtx, &s4wave_world.NextGraphPathQueryRequest{}); !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected canceled Next to return context.Canceled, got %v", err)
+	}
+	if _, err := resource.Close(ctx, &s4wave_world.CloseGraphPathQueryRequest{}); err != nil {
+		t.Fatal(err.Error())
+	}
 }
 
 // TestWorldStateBasicOperations tests basic WorldState operations using the SDK.

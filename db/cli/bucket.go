@@ -9,7 +9,6 @@ import (
 	"github.com/aperturerobotics/cli"
 	bucket_json "github.com/s4wave/spacewave/db/bucket/json"
 	"github.com/s4wave/spacewave/db/core"
-	reconciler_example "github.com/s4wave/spacewave/db/reconciler/example"
 )
 
 // RunApplyBucketConf runs applying a bucket configuration.
@@ -23,11 +22,10 @@ func (a *ClientArgs) RunApplyBucketConf(_ *cli.Context) error {
 		return err
 	}
 
-	b, sr, err := core.NewCoreBus(ctx, le)
+	b, _, err := core.NewCoreBus(ctx, le)
 	if err != nil {
 		return err
 	}
-	sr.AddFactory(reconciler_example.NewFactory(b))
 
 	jconf, err := bucket_json.ParseConfig(dat)
 	if err != nil {

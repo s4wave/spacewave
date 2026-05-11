@@ -391,6 +391,64 @@ struct RenameObjectRequestDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RenameObjectRequestDefaultTypeInternal _RenameObjectRequest_default_instance_;
 
+inline constexpr QueryGraphPathResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        resource_id_{0u} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR QueryGraphPathResponse::QueryGraphPathResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(QueryGraphPathResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct QueryGraphPathResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR QueryGraphPathResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~QueryGraphPathResponseDefaultTypeInternal() {}
+  union {
+    QueryGraphPathResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 QueryGraphPathResponseDefaultTypeInternal _QueryGraphPathResponse_default_instance_;
+
+inline constexpr ObjectMetadata::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        object_key_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        type_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        parent_object_key_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR ObjectMetadata::ObjectMetadata(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(ObjectMetadata_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct ObjectMetadataDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ObjectMetadataDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ObjectMetadataDefaultTypeInternal() {}
+  union {
+    ObjectMetadata _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ObjectMetadataDefaultTypeInternal _ObjectMetadata_default_instance_;
+
 inline constexpr NextResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -433,6 +491,24 @@ struct NextRequestDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 NextRequestDefaultTypeInternal _NextRequest_default_instance_;
+template <typename>
+PROTOBUF_CONSTEXPR NextGraphPathQueryRequest::NextGraphPathQueryRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(NextGraphPathQueryRequest_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct NextGraphPathQueryRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR NextGraphPathQueryRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~NextGraphPathQueryRequestDefaultTypeInternal() {}
+  union {
+    NextGraphPathQueryRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 NextGraphPathQueryRequestDefaultTypeInternal _NextGraphPathQueryRequest_default_instance_;
 
 inline constexpr NewTransactionResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -678,6 +754,35 @@ struct IncrementRevRequestDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 IncrementRevRequestDefaultTypeInternal _IncrementRevRequest_default_instance_;
 
+inline constexpr GraphPathStep::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        predicate_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        direction_{static_cast< ::s4wave::world::GraphPathDirection >(0)},
+        limit_{0u} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR GraphPathStep::GraphPathStep(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(GraphPathStep_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct GraphPathStepDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR GraphPathStepDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~GraphPathStepDefaultTypeInternal() {}
+  union {
+    GraphPathStep _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GraphPathStepDefaultTypeInternal _GraphPathStep_default_instance_;
+
 inline constexpr GetSeqnoResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -837,6 +942,31 @@ struct GetObjectRequestDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GetObjectRequestDefaultTypeInternal _GetObjectRequest_default_instance_;
+
+inline constexpr GetObjectMetadataBatchRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        object_keys_{} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR GetObjectMetadataBatchRequest::GetObjectMetadataBatchRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(GetObjectMetadataBatchRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct GetObjectMetadataBatchRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR GetObjectMetadataBatchRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~GetObjectMetadataBatchRequestDefaultTypeInternal() {}
+  union {
+    GetObjectMetadataBatchRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GetObjectMetadataBatchRequestDefaultTypeInternal _GetObjectMetadataBatchRequest_default_instance_;
 
 inline constexpr GetKeyResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -1226,6 +1356,42 @@ struct CloseRequestDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CloseRequestDefaultTypeInternal _CloseRequest_default_instance_;
+template <typename>
+PROTOBUF_CONSTEXPR CloseGraphPathQueryResponse::CloseGraphPathQueryResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(CloseGraphPathQueryResponse_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct CloseGraphPathQueryResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR CloseGraphPathQueryResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~CloseGraphPathQueryResponseDefaultTypeInternal() {}
+  union {
+    CloseGraphPathQueryResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CloseGraphPathQueryResponseDefaultTypeInternal _CloseGraphPathQueryResponse_default_instance_;
+template <typename>
+PROTOBUF_CONSTEXPR CloseGraphPathQueryRequest::CloseGraphPathQueryRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(CloseGraphPathQueryRequest_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct CloseGraphPathQueryRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR CloseGraphPathQueryRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~CloseGraphPathQueryRequestDefaultTypeInternal() {}
+  union {
+    CloseGraphPathQueryRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CloseGraphPathQueryRequestDefaultTypeInternal _CloseGraphPathQueryRequest_default_instance_;
 
 inline constexpr BuildStorageCursorResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -1520,6 +1686,62 @@ struct SetGraphQuadRequestDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SetGraphQuadRequestDefaultTypeInternal _SetGraphQuadRequest_default_instance_;
 
+inline constexpr QueryGraphPathRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        start_keys_{},
+        steps_{},
+        result_limit_{0u},
+        include_quads_{false},
+        page_size_{0u} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR QueryGraphPathRequest::QueryGraphPathRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(QueryGraphPathRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct QueryGraphPathRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR QueryGraphPathRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~QueryGraphPathRequestDefaultTypeInternal() {}
+  union {
+    QueryGraphPathRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 QueryGraphPathRequestDefaultTypeInternal _QueryGraphPathRequest_default_instance_;
+
+inline constexpr NextGraphPathQueryResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        object_keys_{},
+        quads_{},
+        done_{false} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR NextGraphPathQueryResponse::NextGraphPathQueryResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(NextGraphPathQueryResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct NextGraphPathQueryResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR NextGraphPathQueryResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~NextGraphPathQueryResponseDefaultTypeInternal() {}
+  union {
+    NextGraphPathQueryResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 NextGraphPathQueryResponseDefaultTypeInternal _NextGraphPathQueryResponse_default_instance_;
+
 inline constexpr LookupGraphQuadsResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -1571,6 +1793,82 @@ struct LookupGraphQuadsRequestDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 LookupGraphQuadsRequestDefaultTypeInternal _LookupGraphQuadsRequest_default_instance_;
 
+inline constexpr LookupGraphQuadsBatchResult::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        quads_{} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR LookupGraphQuadsBatchResult::LookupGraphQuadsBatchResult(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(LookupGraphQuadsBatchResult_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct LookupGraphQuadsBatchResultDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR LookupGraphQuadsBatchResultDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~LookupGraphQuadsBatchResultDefaultTypeInternal() {}
+  union {
+    LookupGraphQuadsBatchResult _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 LookupGraphQuadsBatchResultDefaultTypeInternal _LookupGraphQuadsBatchResult_default_instance_;
+
+inline constexpr LookupGraphQuadsBatchRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        filters_{},
+        limit_per_filter_{0u} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR LookupGraphQuadsBatchRequest::LookupGraphQuadsBatchRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(LookupGraphQuadsBatchRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct LookupGraphQuadsBatchRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR LookupGraphQuadsBatchRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~LookupGraphQuadsBatchRequestDefaultTypeInternal() {}
+  union {
+    LookupGraphQuadsBatchRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 LookupGraphQuadsBatchRequestDefaultTypeInternal _LookupGraphQuadsBatchRequest_default_instance_;
+
+inline constexpr GetObjectMetadataBatchResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        metadata_{} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR GetObjectMetadataBatchResponse::GetObjectMetadataBatchResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(GetObjectMetadataBatchResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct GetObjectMetadataBatchResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR GetObjectMetadataBatchResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~GetObjectMetadataBatchResponseDefaultTypeInternal() {}
+  union {
+    GetObjectMetadataBatchResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GetObjectMetadataBatchResponseDefaultTypeInternal _GetObjectMetadataBatchResponse_default_instance_;
+
 inline constexpr GetEngineInfoResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -1620,6 +1918,31 @@ struct DeleteGraphQuadRequestDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DeleteGraphQuadRequestDefaultTypeInternal _DeleteGraphQuadRequest_default_instance_;
+
+inline constexpr LookupGraphQuadsBatchResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        results_{} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR LookupGraphQuadsBatchResponse::LookupGraphQuadsBatchResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(LookupGraphQuadsBatchResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct LookupGraphQuadsBatchResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR LookupGraphQuadsBatchResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~LookupGraphQuadsBatchResponseDefaultTypeInternal() {}
+  union {
+    LookupGraphQuadsBatchResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 LookupGraphQuadsBatchResponseDefaultTypeInternal _LookupGraphQuadsBatchResponse_default_instance_;
 
 inline constexpr SetRootRefRequest::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -1726,8 +2049,8 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 AccessWorldStateRequestDefaultTypeInternal _AccessWorldStateRequest_default_instance_;
 }  // namespace world
 }  // namespace s4wave
-static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto = nullptr;
+static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto[1];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
     file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto = nullptr;
 const ::uint32_t
@@ -1891,6 +2214,23 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::s4wave::world::LookupGraphQuadsResponse, _impl_.quads_),
         0,
         0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::LookupGraphQuadsBatchRequest, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::LookupGraphQuadsBatchRequest, _impl_.filters_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::LookupGraphQuadsBatchRequest, _impl_.limit_per_filter_),
+        0,
+        1,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::LookupGraphQuadsBatchResult, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::LookupGraphQuadsBatchResult, _impl_.quads_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::LookupGraphQuadsBatchResponse, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::LookupGraphQuadsBatchResponse, _impl_.results_),
+        0,
+        0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::world::ListObjectsWithTypeRequest, _impl_._has_bits_),
         4, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::world::ListObjectsWithTypeRequest, _impl_.type_id_),
@@ -1899,6 +2239,52 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::s4wave::world::ListObjectsWithTypeResponse, _impl_._has_bits_),
         4, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::world::ListObjectsWithTypeResponse, _impl_.object_keys_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::ObjectMetadata, _impl_._has_bits_),
+        6, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::ObjectMetadata, _impl_.object_key_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::ObjectMetadata, _impl_.type_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::ObjectMetadata, _impl_.parent_object_key_),
+        0,
+        1,
+        2,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::GetObjectMetadataBatchRequest, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::GetObjectMetadataBatchRequest, _impl_.object_keys_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::GetObjectMetadataBatchResponse, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::GetObjectMetadataBatchResponse, _impl_.metadata_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::GraphPathStep, _impl_._has_bits_),
+        6, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::GraphPathStep, _impl_.direction_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::GraphPathStep, _impl_.predicate_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::GraphPathStep, _impl_.limit_),
+        1,
+        0,
+        2,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::QueryGraphPathRequest, _impl_._has_bits_),
+        8, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::QueryGraphPathRequest, _impl_.start_keys_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::QueryGraphPathRequest, _impl_.steps_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::QueryGraphPathRequest, _impl_.result_limit_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::QueryGraphPathRequest, _impl_.include_quads_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::QueryGraphPathRequest, _impl_.page_size_),
+        0,
+        1,
+        2,
+        3,
+        4,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::QueryGraphPathResponse, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::QueryGraphPathResponse, _impl_.resource_id_),
         0,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::world::DeleteGraphObjectRequest, _impl_._has_bits_),
@@ -1974,6 +2360,18 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::s4wave::world::SeekRequest, _impl_.object_key_),
         0,
         0x000, // bitmap
+        0x000, // bitmap
+        0x000, // bitmap
+        0x000, // bitmap
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::NextGraphPathQueryResponse, _impl_._has_bits_),
+        6, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::NextGraphPathQueryResponse, _impl_.object_keys_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::NextGraphPathQueryResponse, _impl_.quads_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::NextGraphPathQueryResponse, _impl_.done_),
+        0,
+        1,
+        2,
         0x000, // bitmap
         0x000, // bitmap
         0x000, // bitmap
@@ -2085,42 +2483,55 @@ static const ::_pbi::MigrationSchema
         {144, sizeof(::s4wave::world::DeleteGraphQuadResponse)},
         {145, sizeof(::s4wave::world::LookupGraphQuadsRequest)},
         {152, sizeof(::s4wave::world::LookupGraphQuadsResponse)},
-        {157, sizeof(::s4wave::world::ListObjectsWithTypeRequest)},
-        {162, sizeof(::s4wave::world::ListObjectsWithTypeResponse)},
-        {167, sizeof(::s4wave::world::DeleteGraphObjectRequest)},
-        {172, sizeof(::s4wave::world::DeleteGraphObjectResponse)},
-        {173, sizeof(::s4wave::world::ApplyWorldOpRequest)},
-        {182, sizeof(::s4wave::world::ApplyWorldOpResponse)},
-        {189, sizeof(::s4wave::world::WatchWorldStateRequest)},
-        {190, sizeof(::s4wave::world::WatchWorldStateResponse)},
-        {195, sizeof(::s4wave::world::TrackedWorldStateSnapshot_ObjectAccess)},
-        {202, sizeof(::s4wave::world::TrackedWorldStateSnapshot)},
-        {211, sizeof(::s4wave::world::ErrRequest)},
-        {212, sizeof(::s4wave::world::ErrResponse)},
-        {217, sizeof(::s4wave::world::ValidRequest)},
-        {218, sizeof(::s4wave::world::ValidResponse)},
-        {223, sizeof(::s4wave::world::KeyRequest)},
-        {224, sizeof(::s4wave::world::KeyResponse)},
-        {229, sizeof(::s4wave::world::NextRequest)},
-        {230, sizeof(::s4wave::world::NextResponse)},
-        {235, sizeof(::s4wave::world::SeekRequest)},
-        {240, sizeof(::s4wave::world::SeekResponse)},
-        {241, sizeof(::s4wave::world::CloseRequest)},
-        {242, sizeof(::s4wave::world::CloseResponse)},
-        {243, sizeof(::s4wave::world::GetKeyRequest)},
-        {244, sizeof(::s4wave::world::GetKeyResponse)},
-        {249, sizeof(::s4wave::world::GetRootRefRequest)},
-        {250, sizeof(::s4wave::world::GetRootRefResponse)},
-        {257, sizeof(::s4wave::world::SetRootRefRequest)},
-        {262, sizeof(::s4wave::world::SetRootRefResponse)},
-        {267, sizeof(::s4wave::world::ApplyObjectOpRequest)},
-        {276, sizeof(::s4wave::world::ApplyObjectOpResponse)},
-        {283, sizeof(::s4wave::world::IncrementRevRequest)},
-        {284, sizeof(::s4wave::world::IncrementRevResponse)},
-        {289, sizeof(::s4wave::world::WaitRevRequest)},
-        {296, sizeof(::s4wave::world::WaitRevResponse)},
-        {301, sizeof(::s4wave::world::AccessTypedObjectRequest)},
-        {306, sizeof(::s4wave::world::AccessTypedObjectResponse)},
+        {157, sizeof(::s4wave::world::LookupGraphQuadsBatchRequest)},
+        {164, sizeof(::s4wave::world::LookupGraphQuadsBatchResult)},
+        {169, sizeof(::s4wave::world::LookupGraphQuadsBatchResponse)},
+        {174, sizeof(::s4wave::world::ListObjectsWithTypeRequest)},
+        {179, sizeof(::s4wave::world::ListObjectsWithTypeResponse)},
+        {184, sizeof(::s4wave::world::ObjectMetadata)},
+        {193, sizeof(::s4wave::world::GetObjectMetadataBatchRequest)},
+        {198, sizeof(::s4wave::world::GetObjectMetadataBatchResponse)},
+        {203, sizeof(::s4wave::world::GraphPathStep)},
+        {212, sizeof(::s4wave::world::QueryGraphPathRequest)},
+        {225, sizeof(::s4wave::world::QueryGraphPathResponse)},
+        {230, sizeof(::s4wave::world::DeleteGraphObjectRequest)},
+        {235, sizeof(::s4wave::world::DeleteGraphObjectResponse)},
+        {236, sizeof(::s4wave::world::ApplyWorldOpRequest)},
+        {245, sizeof(::s4wave::world::ApplyWorldOpResponse)},
+        {252, sizeof(::s4wave::world::WatchWorldStateRequest)},
+        {253, sizeof(::s4wave::world::WatchWorldStateResponse)},
+        {258, sizeof(::s4wave::world::TrackedWorldStateSnapshot_ObjectAccess)},
+        {265, sizeof(::s4wave::world::TrackedWorldStateSnapshot)},
+        {274, sizeof(::s4wave::world::ErrRequest)},
+        {275, sizeof(::s4wave::world::ErrResponse)},
+        {280, sizeof(::s4wave::world::ValidRequest)},
+        {281, sizeof(::s4wave::world::ValidResponse)},
+        {286, sizeof(::s4wave::world::KeyRequest)},
+        {287, sizeof(::s4wave::world::KeyResponse)},
+        {292, sizeof(::s4wave::world::NextRequest)},
+        {293, sizeof(::s4wave::world::NextResponse)},
+        {298, sizeof(::s4wave::world::SeekRequest)},
+        {303, sizeof(::s4wave::world::SeekResponse)},
+        {304, sizeof(::s4wave::world::CloseRequest)},
+        {305, sizeof(::s4wave::world::CloseResponse)},
+        {306, sizeof(::s4wave::world::NextGraphPathQueryRequest)},
+        {307, sizeof(::s4wave::world::NextGraphPathQueryResponse)},
+        {316, sizeof(::s4wave::world::CloseGraphPathQueryRequest)},
+        {317, sizeof(::s4wave::world::CloseGraphPathQueryResponse)},
+        {318, sizeof(::s4wave::world::GetKeyRequest)},
+        {319, sizeof(::s4wave::world::GetKeyResponse)},
+        {324, sizeof(::s4wave::world::GetRootRefRequest)},
+        {325, sizeof(::s4wave::world::GetRootRefResponse)},
+        {332, sizeof(::s4wave::world::SetRootRefRequest)},
+        {337, sizeof(::s4wave::world::SetRootRefResponse)},
+        {342, sizeof(::s4wave::world::ApplyObjectOpRequest)},
+        {351, sizeof(::s4wave::world::ApplyObjectOpResponse)},
+        {358, sizeof(::s4wave::world::IncrementRevRequest)},
+        {359, sizeof(::s4wave::world::IncrementRevResponse)},
+        {364, sizeof(::s4wave::world::WaitRevRequest)},
+        {371, sizeof(::s4wave::world::WaitRevResponse)},
+        {376, sizeof(::s4wave::world::AccessTypedObjectRequest)},
+        {381, sizeof(::s4wave::world::AccessTypedObjectResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::world::_EngineInfo_default_instance_._instance,
@@ -2158,8 +2569,17 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::world::_DeleteGraphQuadResponse_default_instance_._instance,
     &::s4wave::world::_LookupGraphQuadsRequest_default_instance_._instance,
     &::s4wave::world::_LookupGraphQuadsResponse_default_instance_._instance,
+    &::s4wave::world::_LookupGraphQuadsBatchRequest_default_instance_._instance,
+    &::s4wave::world::_LookupGraphQuadsBatchResult_default_instance_._instance,
+    &::s4wave::world::_LookupGraphQuadsBatchResponse_default_instance_._instance,
     &::s4wave::world::_ListObjectsWithTypeRequest_default_instance_._instance,
     &::s4wave::world::_ListObjectsWithTypeResponse_default_instance_._instance,
+    &::s4wave::world::_ObjectMetadata_default_instance_._instance,
+    &::s4wave::world::_GetObjectMetadataBatchRequest_default_instance_._instance,
+    &::s4wave::world::_GetObjectMetadataBatchResponse_default_instance_._instance,
+    &::s4wave::world::_GraphPathStep_default_instance_._instance,
+    &::s4wave::world::_QueryGraphPathRequest_default_instance_._instance,
+    &::s4wave::world::_QueryGraphPathResponse_default_instance_._instance,
     &::s4wave::world::_DeleteGraphObjectRequest_default_instance_._instance,
     &::s4wave::world::_DeleteGraphObjectResponse_default_instance_._instance,
     &::s4wave::world::_ApplyWorldOpRequest_default_instance_._instance,
@@ -2180,6 +2600,10 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::world::_SeekResponse_default_instance_._instance,
     &::s4wave::world::_CloseRequest_default_instance_._instance,
     &::s4wave::world::_CloseResponse_default_instance_._instance,
+    &::s4wave::world::_NextGraphPathQueryRequest_default_instance_._instance,
+    &::s4wave::world::_NextGraphPathQueryResponse_default_instance_._instance,
+    &::s4wave::world::_CloseGraphPathQueryRequest_default_instance_._instance,
+    &::s4wave::world::_CloseGraphPathQueryResponse_default_instance_._instance,
     &::s4wave::world::_GetKeyRequest_default_instance_._instance,
     &::s4wave::world::_GetKeyResponse_default_instance_._instance,
     &::s4wave::world::_GetRootRefRequest_default_instance_._instance,
@@ -2241,132 +2665,172 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fw
     "ookupGraphQuadsRequest\022\032\n\006filter\030\001 \001(\0132\n"
     ".quad.Quad\022\r\n\005limit\030\002 \001(\r\"5\n\030LookupGraph"
     "QuadsResponse\022\031\n\005quads\030\001 \003(\0132\n.quad.Quad"
-    "\"-\n\032ListObjectsWithTypeRequest\022\017\n\007type_i"
-    "d\030\001 \001(\t\"2\n\033ListObjectsWithTypeResponse\022\023"
-    "\n\013object_keys\030\001 \003(\t\".\n\030DeleteGraphObject"
-    "Request\022\022\n\nobject_key\030\001 \001(\t\"\033\n\031DeleteGra"
-    "phObjectResponse\"M\n\023ApplyWorldOpRequest\022"
-    "\022\n\nop_type_id\030\001 \001(\t\022\017\n\007op_data\030\002 \001(\014\022\021\n\t"
-    "op_sender\030\003 \001(\t\"6\n\024ApplyWorldOpResponse\022"
-    "\r\n\005seqno\030\001 \001(\004\022\017\n\007sys_err\030\002 \001(\010\"\030\n\026Watch"
-    "WorldStateRequest\".\n\027WatchWorldStateResp"
-    "onse\022\023\n\013resource_id\030\001 \001(\r\"\304\001\n\031TrackedWor"
-    "ldStateSnapshot\022M\n\017object_accesses\030\001 \003(\013"
-    "24.s4wave.world.TrackedWorldStateSnapsho"
-    "t.ObjectAccess\022\027\n\017has_quad_access\030\002 \001(\010\022"
-    "\025\n\rinitial_seqno\030\003 \001(\004\032(\n\014ObjectAccess\022\013"
-    "\n\003key\030\001 \001(\t\022\013\n\003rev\030\002 \001(\004\"\014\n\nErrRequest\"\034"
-    "\n\013ErrResponse\022\r\n\005error\030\001 \001(\t\"\016\n\014ValidReq"
-    "uest\"\036\n\rValidResponse\022\r\n\005valid\030\001 \001(\010\"\014\n\n"
-    "KeyRequest\"!\n\013KeyResponse\022\022\n\nobject_key\030"
-    "\001 \001(\t\"\r\n\013NextRequest\"\035\n\014NextResponse\022\r\n\005"
-    "valid\030\001 \001(\010\"!\n\013SeekRequest\022\022\n\nobject_key"
-    "\030\001 \001(\t\"\016\n\014SeekResponse\"\016\n\014CloseRequest\"\017"
-    "\n\rCloseResponse\"\017\n\rGetKeyRequest\"$\n\016GetK"
-    "eyResponse\022\022\n\nobject_key\030\001 \001(\t\"\023\n\021GetRoo"
-    "tRefRequest\"F\n\022GetRootRefResponse\022#\n\010roo"
-    "t_ref\030\001 \001(\0132\021.bucket.ObjectRef\022\013\n\003rev\030\002 "
-    "\001(\004\"8\n\021SetRootRefRequest\022#\n\010root_ref\030\001 \001"
-    "(\0132\021.bucket.ObjectRef\"!\n\022SetRootRefRespo"
-    "nse\022\013\n\003rev\030\001 \001(\004\"N\n\024ApplyObjectOpRequest"
+    "\"U\n\034LookupGraphQuadsBatchRequest\022\033\n\007filt"
+    "ers\030\001 \003(\0132\n.quad.Quad\022\030\n\020limit_per_filte"
+    "r\030\002 \001(\r\"8\n\033LookupGraphQuadsBatchResult\022\031"
+    "\n\005quads\030\001 \003(\0132\n.quad.Quad\"[\n\035LookupGraph"
+    "QuadsBatchResponse\022:\n\007results\030\001 \003(\0132).s4"
+    "wave.world.LookupGraphQuadsBatchResult\"-"
+    "\n\032ListObjectsWithTypeRequest\022\017\n\007type_id\030"
+    "\001 \001(\t\"2\n\033ListObjectsWithTypeResponse\022\023\n\013"
+    "object_keys\030\001 \003(\t\"P\n\016ObjectMetadata\022\022\n\no"
+    "bject_key\030\001 \001(\t\022\017\n\007type_id\030\002 \001(\t\022\031\n\021pare"
+    "nt_object_key\030\003 \001(\t\"4\n\035GetObjectMetadata"
+    "BatchRequest\022\023\n\013object_keys\030\001 \003(\t\"P\n\036Get"
+    "ObjectMetadataBatchResponse\022.\n\010metadata\030"
+    "\001 \003(\0132\034.s4wave.world.ObjectMetadata\"f\n\rG"
+    "raphPathStep\0223\n\tdirection\030\001 \001(\0162 .s4wave"
+    ".world.GraphPathDirection\022\021\n\tpredicate\030\002"
+    " \001(\t\022\r\n\005limit\030\003 \001(\r\"\227\001\n\025QueryGraphPathRe"
+    "quest\022\022\n\nstart_keys\030\001 \003(\t\022*\n\005steps\030\002 \003(\013"
+    "2\033.s4wave.world.GraphPathStep\022\024\n\014result_"
+    "limit\030\003 \001(\r\022\025\n\rinclude_quads\030\004 \001(\010\022\021\n\tpa"
+    "ge_size\030\005 \001(\r\"-\n\026QueryGraphPathResponse\022"
+    "\023\n\013resource_id\030\001 \001(\r\".\n\030DeleteGraphObjec"
+    "tRequest\022\022\n\nobject_key\030\001 \001(\t\"\033\n\031DeleteGr"
+    "aphObjectResponse\"M\n\023ApplyWorldOpRequest"
     "\022\022\n\nop_type_id\030\001 \001(\t\022\017\n\007op_data\030\002 \001(\014\022\021\n"
-    "\top_sender\030\003 \001(\t\"5\n\025ApplyObjectOpRespons"
-    "e\022\013\n\003rev\030\001 \001(\004\022\017\n\007sys_err\030\002 \001(\010\"\025\n\023Incre"
-    "mentRevRequest\"#\n\024IncrementRevResponse\022\013"
-    "\n\003rev\030\001 \001(\004\"7\n\016WaitRevRequest\022\013\n\003rev\030\001 \001"
-    "(\004\022\030\n\020ignore_not_found\030\002 \001(\010\"\036\n\017WaitRevR"
-    "esponse\022\013\n\003rev\030\001 \001(\004\".\n\030AccessTypedObjec"
-    "tRequest\022\022\n\nobject_key\030\001 \001(\t\"A\n\031AccessTy"
-    "pedObjectResponse\022\023\n\013resource_id\030\001 \001(\r\022\017"
-    "\n\007type_id\030\002 \001(\t2\263\004\n\025EngineResourceServic"
-    "e\022X\n\rGetEngineInfo\022\".s4wave.world.GetEng"
-    "ineInfoRequest\032#.s4wave.world.GetEngineI"
-    "nfoResponse\022[\n\016NewTransaction\022#.s4wave.w"
-    "orld.NewTransactionRequest\032$.s4wave.worl"
-    "d.NewTransactionResponse\022I\n\010GetSeqno\022\035.s"
-    "4wave.world.GetSeqnoRequest\032\036.s4wave.wor"
-    "ld.GetSeqnoResponse\022L\n\tWaitSeqno\022\036.s4wav"
-    "e.world.WaitSeqnoRequest\032\037.s4wave.world."
-    "WaitSeqnoResponse\022g\n\022BuildStorageCursor\022"
-    "\'.s4wave.world.BuildStorageCursorRequest"
-    "\032(.s4wave.world.BuildStorageCursorRespon"
-    "se\022a\n\020AccessWorldState\022%.s4wave.world.Ac"
-    "cessWorldStateRequest\032&.s4wave.world.Acc"
-    "essWorldStateResponse2\307\013\n\031WorldStateReso"
-    "urceService\022R\n\013GetReadOnly\022 .s4wave.worl"
-    "d.GetReadOnlyRequest\032!.s4wave.world.GetR"
-    "eadOnlyResponse\022I\n\010GetSeqno\022\035.s4wave.wor"
-    "ld.GetSeqnoRequest\032\036.s4wave.world.GetSeq"
-    "noResponse\022L\n\tWaitSeqno\022\036.s4wave.world.W"
-    "aitSeqnoRequest\032\037.s4wave.world.WaitSeqno"
-    "Response\022g\n\022BuildStorageCursor\022\'.s4wave."
-    "world.BuildStorageCursorRequest\032(.s4wave"
-    ".world.BuildStorageCursorResponse\022a\n\020Acc"
-    "essWorldState\022%.s4wave.world.AccessWorld"
-    "StateRequest\032&.s4wave.world.AccessWorldS"
-    "tateResponse\022U\n\014CreateObject\022!.s4wave.wo"
-    "rld.CreateObjectRequest\032\".s4wave.world.C"
-    "reateObjectResponse\022L\n\tGetObject\022\036.s4wav"
-    "e.world.GetObjectRequest\032\037.s4wave.world."
-    "GetObjectResponse\022[\n\016IterateObjects\022#.s4"
-    "wave.world.IterateObjectsRequest\032$.s4wav"
-    "e.world.IterateObjectsResponse\022U\n\014Rename"
-    "Object\022!.s4wave.world.RenameObjectReques"
-    "t\032\".s4wave.world.RenameObjectResponse\022U\n"
-    "\014DeleteObject\022!.s4wave.world.DeleteObjec"
-    "tRequest\032\".s4wave.world.DeleteObjectResp"
-    "onse\022U\n\014SetGraphQuad\022!.s4wave.world.SetG"
-    "raphQuadRequest\032\".s4wave.world.SetGraphQ"
-    "uadResponse\022^\n\017DeleteGraphQuad\022$.s4wave."
-    "world.DeleteGraphQuadRequest\032%.s4wave.wo"
-    "rld.DeleteGraphQuadResponse\022a\n\020LookupGra"
-    "phQuads\022%.s4wave.world.LookupGraphQuadsR"
-    "equest\032&.s4wave.world.LookupGraphQuadsRe"
-    "sponse\022j\n\023ListObjectsWithType\022(.s4wave.w"
-    "orld.ListObjectsWithTypeRequest\032).s4wave"
-    ".world.ListObjectsWithTypeResponse\022d\n\021De"
-    "leteGraphObject\022&.s4wave.world.DeleteGra"
-    "phObjectRequest\032\'.s4wave.world.DeleteGra"
-    "phObjectResponse\022U\n\014ApplyWorldOp\022!.s4wav"
-    "e.world.ApplyWorldOpRequest\032\".s4wave.wor"
-    "ld.ApplyWorldOpResponse2\202\001\n\036WatchWorldSt"
-    "ateResourceService\022`\n\017WatchWorldState\022$."
-    "s4wave.world.WatchWorldStateRequest\032%.s4"
-    "wave.world.WatchWorldStateResponse0\0012\240\001\n"
-    "\021TxResourceService\022C\n\006Commit\022\033.s4wave.wo"
-    "rld.CommitRequest\032\034.s4wave.world.CommitR"
-    "esponse\022F\n\007Discard\022\034.s4wave.world.Discar"
-    "dRequest\032\035.s4wave.world.DiscardResponse2"
-    "\231\003\n\035ObjectIteratorResourceService\022:\n\003Err"
-    "\022\030.s4wave.world.ErrRequest\032\031.s4wave.worl"
-    "d.ErrResponse\022@\n\005Valid\022\032.s4wave.world.Va"
-    "lidRequest\032\033.s4wave.world.ValidResponse\022"
-    ":\n\003Key\022\030.s4wave.world.KeyRequest\032\031.s4wav"
-    "e.world.KeyResponse\022=\n\004Next\022\031.s4wave.wor"
-    "ld.NextRequest\032\032.s4wave.world.NextRespon"
-    "se\022=\n\004Seek\022\031.s4wave.world.SeekRequest\032\032."
-    "s4wave.world.SeekResponse\022@\n\005Close\022\032.s4w"
-    "ave.world.CloseRequest\032\033.s4wave.world.Cl"
-    "oseResponse2\337\004\n\032ObjectStateResourceServi"
-    "ce\022C\n\006GetKey\022\033.s4wave.world.GetKeyReques"
-    "t\032\034.s4wave.world.GetKeyResponse\022O\n\nGetRo"
-    "otRef\022\037.s4wave.world.GetRootRefRequest\032 "
-    ".s4wave.world.GetRootRefResponse\022O\n\nSetR"
-    "ootRef\022\037.s4wave.world.SetRootRefRequest\032"
-    " .s4wave.world.SetRootRefResponse\022a\n\020Acc"
-    "essWorldState\022%.s4wave.world.AccessWorld"
-    "StateRequest\032&.s4wave.world.AccessWorldS"
-    "tateResponse\022X\n\rApplyObjectOp\022\".s4wave.w"
-    "orld.ApplyObjectOpRequest\032#.s4wave.world"
-    ".ApplyObjectOpResponse\022U\n\014IncrementRev\022!"
-    ".s4wave.world.IncrementRevRequest\032\".s4wa"
-    "ve.world.IncrementRevResponse\022F\n\007WaitRev"
-    "\022\034.s4wave.world.WaitRevRequest\032\035.s4wave."
-    "world.WaitRevResponse2\202\001\n\032TypedObjectRes"
-    "ourceService\022d\n\021AccessTypedObject\022&.s4wa"
-    "ve.world.AccessTypedObjectRequest\032\'.s4wa"
-    "ve.world.AccessTypedObjectResponseb\006prot"
-    "o3"
+    "\top_sender\030\003 \001(\t\"6\n\024ApplyWorldOpResponse"
+    "\022\r\n\005seqno\030\001 \001(\004\022\017\n\007sys_err\030\002 \001(\010\"\030\n\026Watc"
+    "hWorldStateRequest\".\n\027WatchWorldStateRes"
+    "ponse\022\023\n\013resource_id\030\001 \001(\r\"\304\001\n\031TrackedWo"
+    "rldStateSnapshot\022M\n\017object_accesses\030\001 \003("
+    "\01324.s4wave.world.TrackedWorldStateSnapsh"
+    "ot.ObjectAccess\022\027\n\017has_quad_access\030\002 \001(\010"
+    "\022\025\n\rinitial_seqno\030\003 \001(\004\032(\n\014ObjectAccess\022"
+    "\013\n\003key\030\001 \001(\t\022\013\n\003rev\030\002 \001(\004\"\014\n\nErrRequest\""
+    "\034\n\013ErrResponse\022\r\n\005error\030\001 \001(\t\"\016\n\014ValidRe"
+    "quest\"\036\n\rValidResponse\022\r\n\005valid\030\001 \001(\010\"\014\n"
+    "\nKeyRequest\"!\n\013KeyResponse\022\022\n\nobject_key"
+    "\030\001 \001(\t\"\r\n\013NextRequest\"\035\n\014NextResponse\022\r\n"
+    "\005valid\030\001 \001(\010\"!\n\013SeekRequest\022\022\n\nobject_ke"
+    "y\030\001 \001(\t\"\016\n\014SeekResponse\"\016\n\014CloseRequest\""
+    "\017\n\rCloseResponse\"\033\n\031NextGraphPathQueryRe"
+    "quest\"Z\n\032NextGraphPathQueryResponse\022\023\n\013o"
+    "bject_keys\030\001 \003(\t\022\031\n\005quads\030\002 \003(\0132\n.quad.Q"
+    "uad\022\014\n\004done\030\003 \001(\010\"\034\n\032CloseGraphPathQuery"
+    "Request\"\035\n\033CloseGraphPathQueryResponse\"\017"
+    "\n\rGetKeyRequest\"$\n\016GetKeyResponse\022\022\n\nobj"
+    "ect_key\030\001 \001(\t\"\023\n\021GetRootRefRequest\"F\n\022Ge"
+    "tRootRefResponse\022#\n\010root_ref\030\001 \001(\0132\021.buc"
+    "ket.ObjectRef\022\013\n\003rev\030\002 \001(\004\"8\n\021SetRootRef"
+    "Request\022#\n\010root_ref\030\001 \001(\0132\021.bucket.Objec"
+    "tRef\"!\n\022SetRootRefResponse\022\013\n\003rev\030\001 \001(\004\""
+    "N\n\024ApplyObjectOpRequest\022\022\n\nop_type_id\030\001 "
+    "\001(\t\022\017\n\007op_data\030\002 \001(\014\022\021\n\top_sender\030\003 \001(\t\""
+    "5\n\025ApplyObjectOpResponse\022\013\n\003rev\030\001 \001(\004\022\017\n"
+    "\007sys_err\030\002 \001(\010\"\025\n\023IncrementRevRequest\"#\n"
+    "\024IncrementRevResponse\022\013\n\003rev\030\001 \001(\004\"7\n\016Wa"
+    "itRevRequest\022\013\n\003rev\030\001 \001(\004\022\030\n\020ignore_not_"
+    "found\030\002 \001(\010\"\036\n\017WaitRevResponse\022\013\n\003rev\030\001 "
+    "\001(\004\".\n\030AccessTypedObjectRequest\022\022\n\nobjec"
+    "t_key\030\001 \001(\t\"A\n\031AccessTypedObjectResponse"
+    "\022\023\n\013resource_id\030\001 \001(\r\022\017\n\007type_id\030\002 \001(\t*\224"
+    "\001\n\022GraphPathDirection\022$\n GRAPH_PATH_DIRE"
+    "CTION_UNSPECIFIED\020\000\022\034\n\030GRAPH_PATH_DIRECT"
+    "ION_OUT\020\001\022\033\n\027GRAPH_PATH_DIRECTION_IN\020\002\022\035"
+    "\n\031GRAPH_PATH_DIRECTION_BOTH\020\0032\263\004\n\025Engine"
+    "ResourceService\022X\n\rGetEngineInfo\022\".s4wav"
+    "e.world.GetEngineInfoRequest\032#.s4wave.wo"
+    "rld.GetEngineInfoResponse\022[\n\016NewTransact"
+    "ion\022#.s4wave.world.NewTransactionRequest"
+    "\032$.s4wave.world.NewTransactionResponse\022I"
+    "\n\010GetSeqno\022\035.s4wave.world.GetSeqnoReques"
+    "t\032\036.s4wave.world.GetSeqnoResponse\022L\n\tWai"
+    "tSeqno\022\036.s4wave.world.WaitSeqnoRequest\032\037"
+    ".s4wave.world.WaitSeqnoResponse\022g\n\022Build"
+    "StorageCursor\022\'.s4wave.world.BuildStorag"
+    "eCursorRequest\032(.s4wave.world.BuildStora"
+    "geCursorResponse\022a\n\020AccessWorldState\022%.s"
+    "4wave.world.AccessWorldStateRequest\032&.s4"
+    "wave.world.AccessWorldStateResponse2\213\016\n\031"
+    "WorldStateResourceService\022R\n\013GetReadOnly"
+    "\022 .s4wave.world.GetReadOnlyRequest\032!.s4w"
+    "ave.world.GetReadOnlyResponse\022I\n\010GetSeqn"
+    "o\022\035.s4wave.world.GetSeqnoRequest\032\036.s4wav"
+    "e.world.GetSeqnoResponse\022L\n\tWaitSeqno\022\036."
+    "s4wave.world.WaitSeqnoRequest\032\037.s4wave.w"
+    "orld.WaitSeqnoResponse\022g\n\022BuildStorageCu"
+    "rsor\022\'.s4wave.world.BuildStorageCursorRe"
+    "quest\032(.s4wave.world.BuildStorageCursorR"
+    "esponse\022a\n\020AccessWorldState\022%.s4wave.wor"
+    "ld.AccessWorldStateRequest\032&.s4wave.worl"
+    "d.AccessWorldStateResponse\022U\n\014CreateObje"
+    "ct\022!.s4wave.world.CreateObjectRequest\032\"."
+    "s4wave.world.CreateObjectResponse\022L\n\tGet"
+    "Object\022\036.s4wave.world.GetObjectRequest\032\037"
+    ".s4wave.world.GetObjectResponse\022[\n\016Itera"
+    "teObjects\022#.s4wave.world.IterateObjectsR"
+    "equest\032$.s4wave.world.IterateObjectsResp"
+    "onse\022U\n\014RenameObject\022!.s4wave.world.Rena"
+    "meObjectRequest\032\".s4wave.world.RenameObj"
+    "ectResponse\022U\n\014DeleteObject\022!.s4wave.wor"
+    "ld.DeleteObjectRequest\032\".s4wave.world.De"
+    "leteObjectResponse\022U\n\014SetGraphQuad\022!.s4w"
+    "ave.world.SetGraphQuadRequest\032\".s4wave.w"
+    "orld.SetGraphQuadResponse\022^\n\017DeleteGraph"
+    "Quad\022$.s4wave.world.DeleteGraphQuadReque"
+    "st\032%.s4wave.world.DeleteGraphQuadRespons"
+    "e\022a\n\020LookupGraphQuads\022%.s4wave.world.Loo"
+    "kupGraphQuadsRequest\032&.s4wave.world.Look"
+    "upGraphQuadsResponse\022p\n\025LookupGraphQuads"
+    "Batch\022*.s4wave.world.LookupGraphQuadsBat"
+    "chRequest\032+.s4wave.world.LookupGraphQuad"
+    "sBatchResponse\022j\n\023ListObjectsWithType\022(."
+    "s4wave.world.ListObjectsWithTypeRequest\032"
+    ").s4wave.world.ListObjectsWithTypeRespon"
+    "se\022s\n\026GetObjectMetadataBatch\022+.s4wave.wo"
+    "rld.GetObjectMetadataBatchRequest\032,.s4wa"
+    "ve.world.GetObjectMetadataBatchResponse\022"
+    "[\n\016QueryGraphPath\022#.s4wave.world.QueryGr"
+    "aphPathRequest\032$.s4wave.world.QueryGraph"
+    "PathResponse\022d\n\021DeleteGraphObject\022&.s4wa"
+    "ve.world.DeleteGraphObjectRequest\032\'.s4wa"
+    "ve.world.DeleteGraphObjectResponse\022U\n\014Ap"
+    "plyWorldOp\022!.s4wave.world.ApplyWorldOpRe"
+    "quest\032\".s4wave.world.ApplyWorldOpRespons"
+    "e2\202\001\n\036WatchWorldStateResourceService\022`\n\017"
+    "WatchWorldState\022$.s4wave.world.WatchWorl"
+    "dStateRequest\032%.s4wave.world.WatchWorldS"
+    "tateResponse0\0012\240\001\n\021TxResourceService\022C\n\006"
+    "Commit\022\033.s4wave.world.CommitRequest\032\034.s4"
+    "wave.world.CommitResponse\022F\n\007Discard\022\034.s"
+    "4wave.world.DiscardRequest\032\035.s4wave.worl"
+    "d.DiscardResponse2\231\003\n\035ObjectIteratorReso"
+    "urceService\022:\n\003Err\022\030.s4wave.world.ErrReq"
+    "uest\032\031.s4wave.world.ErrResponse\022@\n\005Valid"
+    "\022\032.s4wave.world.ValidRequest\032\033.s4wave.wo"
+    "rld.ValidResponse\022:\n\003Key\022\030.s4wave.world."
+    "KeyRequest\032\031.s4wave.world.KeyResponse\022=\n"
+    "\004Next\022\031.s4wave.world.NextRequest\032\032.s4wav"
+    "e.world.NextResponse\022=\n\004Seek\022\031.s4wave.wo"
+    "rld.SeekRequest\032\032.s4wave.world.SeekRespo"
+    "nse\022@\n\005Close\022\032.s4wave.world.CloseRequest"
+    "\032\033.s4wave.world.CloseResponse2\330\001\n\035GraphP"
+    "athQueryResourceService\022Y\n\004Next\022\'.s4wave"
+    ".world.NextGraphPathQueryRequest\032(.s4wav"
+    "e.world.NextGraphPathQueryResponse\022\\\n\005Cl"
+    "ose\022(.s4wave.world.CloseGraphPathQueryRe"
+    "quest\032).s4wave.world.CloseGraphPathQuery"
+    "Response2\337\004\n\032ObjectStateResourceService\022"
+    "C\n\006GetKey\022\033.s4wave.world.GetKeyRequest\032\034"
+    ".s4wave.world.GetKeyResponse\022O\n\nGetRootR"
+    "ef\022\037.s4wave.world.GetRootRefRequest\032 .s4"
+    "wave.world.GetRootRefResponse\022O\n\nSetRoot"
+    "Ref\022\037.s4wave.world.SetRootRefRequest\032 .s"
+    "4wave.world.SetRootRefResponse\022a\n\020Access"
+    "WorldState\022%.s4wave.world.AccessWorldSta"
+    "teRequest\032&.s4wave.world.AccessWorldStat"
+    "eResponse\022X\n\rApplyObjectOp\022\".s4wave.worl"
+    "d.ApplyObjectOpRequest\032#.s4wave.world.Ap"
+    "plyObjectOpResponse\022U\n\014IncrementRev\022!.s4"
+    "wave.world.IncrementRevRequest\032\".s4wave."
+    "world.IncrementRevResponse\022F\n\007WaitRev\022\034."
+    "s4wave.world.WaitRevRequest\032\035.s4wave.wor"
+    "ld.WaitRevResponse2\202\001\n\032TypedObjectResour"
+    "ceService\022d\n\021AccessTypedObject\022&.s4wave."
+    "world.AccessTypedObjectRequest\032\'.s4wave."
+    "world.AccessTypedObjectResponseb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto_deps[2] = {
@@ -2377,13 +2841,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto = {
     false,
     false,
-    6762,
+    8399,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto,
     "github.com/s4wave/spacewave/sdk/world/world.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto_deps,
     2,
-    71,
+    84,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto::offsets,
@@ -2392,6 +2856,12 @@ PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2
 };
 namespace s4wave {
 namespace world {
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL GraphPathDirection_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto[0];
+}
+PROTOBUF_CONSTINIT const uint32_t GraphPathDirection_internal_data_[] = {
+    262144u, 0u, };
 // ===================================================================
 
 class EngineInfo::_Internal {
@@ -10545,6 +11015,903 @@ void LookupGraphQuadsResponse::InternalSwap(LookupGraphQuadsResponse* PROTOBUF_R
 }
 // ===================================================================
 
+class LookupGraphQuadsBatchRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<LookupGraphQuadsBatchRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(LookupGraphQuadsBatchRequest, _impl_._has_bits_);
+};
+
+void LookupGraphQuadsBatchRequest::clear_filters() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.filters_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+LookupGraphQuadsBatchRequest::LookupGraphQuadsBatchRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, LookupGraphQuadsBatchRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.world.LookupGraphQuadsBatchRequest)
+}
+PROTOBUF_NDEBUG_INLINE LookupGraphQuadsBatchRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::world::LookupGraphQuadsBatchRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        filters_{visibility, arena, from.filters_} {}
+
+LookupGraphQuadsBatchRequest::LookupGraphQuadsBatchRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const LookupGraphQuadsBatchRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, LookupGraphQuadsBatchRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  LookupGraphQuadsBatchRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.limit_per_filter_ = from._impl_.limit_per_filter_;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.world.LookupGraphQuadsBatchRequest)
+}
+PROTOBUF_NDEBUG_INLINE LookupGraphQuadsBatchRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        filters_{visibility, arena} {}
+
+inline void LookupGraphQuadsBatchRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.limit_per_filter_ = {};
+}
+LookupGraphQuadsBatchRequest::~LookupGraphQuadsBatchRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.world.LookupGraphQuadsBatchRequest)
+  SharedDtor(*this);
+}
+inline void LookupGraphQuadsBatchRequest::SharedDtor(MessageLite& self) {
+  LookupGraphQuadsBatchRequest& this_ = static_cast<LookupGraphQuadsBatchRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL LookupGraphQuadsBatchRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) LookupGraphQuadsBatchRequest(arena);
+}
+constexpr auto LookupGraphQuadsBatchRequest::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(LookupGraphQuadsBatchRequest, _impl_.filters_) +
+          decltype(LookupGraphQuadsBatchRequest::_impl_.filters_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::ZeroInit(
+        sizeof(LookupGraphQuadsBatchRequest), alignof(LookupGraphQuadsBatchRequest), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&LookupGraphQuadsBatchRequest::PlacementNew_,
+                                 sizeof(LookupGraphQuadsBatchRequest),
+                                 alignof(LookupGraphQuadsBatchRequest));
+  }
+}
+constexpr auto LookupGraphQuadsBatchRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_LookupGraphQuadsBatchRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &LookupGraphQuadsBatchRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<LookupGraphQuadsBatchRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &LookupGraphQuadsBatchRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<LookupGraphQuadsBatchRequest>(), &LookupGraphQuadsBatchRequest::ByteSizeLong,
+              &LookupGraphQuadsBatchRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(LookupGraphQuadsBatchRequest, _impl_._cached_size_),
+          false,
+      },
+      &LookupGraphQuadsBatchRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull LookupGraphQuadsBatchRequest_class_data_ =
+        LookupGraphQuadsBatchRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+LookupGraphQuadsBatchRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&LookupGraphQuadsBatchRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(LookupGraphQuadsBatchRequest_class_data_.tc_table);
+  return LookupGraphQuadsBatchRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 1, 0, 2>
+LookupGraphQuadsBatchRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(LookupGraphQuadsBatchRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    LookupGraphQuadsBatchRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::world::LookupGraphQuadsBatchRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // uint32 limit_per_filter = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(LookupGraphQuadsBatchRequest, _impl_.limit_per_filter_), 1>(),
+     {16, 1, 0,
+      PROTOBUF_FIELD_OFFSET(LookupGraphQuadsBatchRequest, _impl_.limit_per_filter_)}},
+    // repeated .quad.Quad filters = 1;
+    {::_pbi::TcParser::FastMtR1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(LookupGraphQuadsBatchRequest, _impl_.filters_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // repeated .quad.Quad filters = 1;
+    {PROTOBUF_FIELD_OFFSET(LookupGraphQuadsBatchRequest, _impl_.filters_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    // uint32 limit_per_filter = 2;
+    {PROTOBUF_FIELD_OFFSET(LookupGraphQuadsBatchRequest, _impl_.limit_per_filter_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::quad::Quad>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void LookupGraphQuadsBatchRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.world.LookupGraphQuadsBatchRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    _impl_.filters_.Clear();
+  }
+  _impl_.limit_per_filter_ = 0u;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL LookupGraphQuadsBatchRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const LookupGraphQuadsBatchRequest& this_ = static_cast<const LookupGraphQuadsBatchRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL LookupGraphQuadsBatchRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const LookupGraphQuadsBatchRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.world.LookupGraphQuadsBatchRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // repeated .quad.Quad filters = 1;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_filters_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_filters().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              1, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  // uint32 limit_per_filter = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (this_._internal_limit_per_filter() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          2, this_._internal_limit_per_filter(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.world.LookupGraphQuadsBatchRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t LookupGraphQuadsBatchRequest::ByteSizeLong(const MessageLite& base) {
+  const LookupGraphQuadsBatchRequest& this_ = static_cast<const LookupGraphQuadsBatchRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t LookupGraphQuadsBatchRequest::ByteSizeLong() const {
+  const LookupGraphQuadsBatchRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.world.LookupGraphQuadsBatchRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    // repeated .quad.Quad filters = 1;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size += 1UL * this_._internal_filters_size();
+      for (const auto& msg : this_._internal_filters()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+    // uint32 limit_per_filter = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (this_._internal_limit_per_filter() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_limit_per_filter());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void LookupGraphQuadsBatchRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<LookupGraphQuadsBatchRequest*>(&to_msg);
+  auto& from = static_cast<const LookupGraphQuadsBatchRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.world.LookupGraphQuadsBatchRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_filters()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_filters());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (from._internal_limit_per_filter() != 0) {
+        _this->_impl_.limit_per_filter_ = from._impl_.limit_per_filter_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void LookupGraphQuadsBatchRequest::CopyFrom(const LookupGraphQuadsBatchRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.world.LookupGraphQuadsBatchRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void LookupGraphQuadsBatchRequest::InternalSwap(LookupGraphQuadsBatchRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.filters_.InternalSwap(&other->_impl_.filters_);
+  swap(_impl_.limit_per_filter_, other->_impl_.limit_per_filter_);
+}
+
+::google::protobuf::Metadata LookupGraphQuadsBatchRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class LookupGraphQuadsBatchResult::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<LookupGraphQuadsBatchResult>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(LookupGraphQuadsBatchResult, _impl_._has_bits_);
+};
+
+void LookupGraphQuadsBatchResult::clear_quads() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.quads_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+LookupGraphQuadsBatchResult::LookupGraphQuadsBatchResult(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, LookupGraphQuadsBatchResult_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.world.LookupGraphQuadsBatchResult)
+}
+PROTOBUF_NDEBUG_INLINE LookupGraphQuadsBatchResult::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::world::LookupGraphQuadsBatchResult& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        quads_{visibility, arena, from.quads_} {}
+
+LookupGraphQuadsBatchResult::LookupGraphQuadsBatchResult(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const LookupGraphQuadsBatchResult& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, LookupGraphQuadsBatchResult_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  LookupGraphQuadsBatchResult* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.world.LookupGraphQuadsBatchResult)
+}
+PROTOBUF_NDEBUG_INLINE LookupGraphQuadsBatchResult::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        quads_{visibility, arena} {}
+
+inline void LookupGraphQuadsBatchResult::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+LookupGraphQuadsBatchResult::~LookupGraphQuadsBatchResult() {
+  // @@protoc_insertion_point(destructor:s4wave.world.LookupGraphQuadsBatchResult)
+  SharedDtor(*this);
+}
+inline void LookupGraphQuadsBatchResult::SharedDtor(MessageLite& self) {
+  LookupGraphQuadsBatchResult& this_ = static_cast<LookupGraphQuadsBatchResult&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL LookupGraphQuadsBatchResult::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) LookupGraphQuadsBatchResult(arena);
+}
+constexpr auto LookupGraphQuadsBatchResult::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(LookupGraphQuadsBatchResult, _impl_.quads_) +
+          decltype(LookupGraphQuadsBatchResult::_impl_.quads_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::ZeroInit(
+        sizeof(LookupGraphQuadsBatchResult), alignof(LookupGraphQuadsBatchResult), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&LookupGraphQuadsBatchResult::PlacementNew_,
+                                 sizeof(LookupGraphQuadsBatchResult),
+                                 alignof(LookupGraphQuadsBatchResult));
+  }
+}
+constexpr auto LookupGraphQuadsBatchResult::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_LookupGraphQuadsBatchResult_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &LookupGraphQuadsBatchResult::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<LookupGraphQuadsBatchResult>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &LookupGraphQuadsBatchResult::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<LookupGraphQuadsBatchResult>(), &LookupGraphQuadsBatchResult::ByteSizeLong,
+              &LookupGraphQuadsBatchResult::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(LookupGraphQuadsBatchResult, _impl_._cached_size_),
+          false,
+      },
+      &LookupGraphQuadsBatchResult::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull LookupGraphQuadsBatchResult_class_data_ =
+        LookupGraphQuadsBatchResult::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+LookupGraphQuadsBatchResult::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&LookupGraphQuadsBatchResult_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(LookupGraphQuadsBatchResult_class_data_.tc_table);
+  return LookupGraphQuadsBatchResult_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 1, 0, 2>
+LookupGraphQuadsBatchResult::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(LookupGraphQuadsBatchResult, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    LookupGraphQuadsBatchResult_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::world::LookupGraphQuadsBatchResult>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // repeated .quad.Quad quads = 1;
+    {::_pbi::TcParser::FastMtR1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(LookupGraphQuadsBatchResult, _impl_.quads_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // repeated .quad.Quad quads = 1;
+    {PROTOBUF_FIELD_OFFSET(LookupGraphQuadsBatchResult, _impl_.quads_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::quad::Quad>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void LookupGraphQuadsBatchResult::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.world.LookupGraphQuadsBatchResult)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    _impl_.quads_.Clear();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL LookupGraphQuadsBatchResult::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const LookupGraphQuadsBatchResult& this_ = static_cast<const LookupGraphQuadsBatchResult&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL LookupGraphQuadsBatchResult::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const LookupGraphQuadsBatchResult& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.world.LookupGraphQuadsBatchResult)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // repeated .quad.Quad quads = 1;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_quads_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_quads().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              1, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.world.LookupGraphQuadsBatchResult)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t LookupGraphQuadsBatchResult::ByteSizeLong(const MessageLite& base) {
+  const LookupGraphQuadsBatchResult& this_ = static_cast<const LookupGraphQuadsBatchResult&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t LookupGraphQuadsBatchResult::ByteSizeLong() const {
+  const LookupGraphQuadsBatchResult& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.world.LookupGraphQuadsBatchResult)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+   {
+    // repeated .quad.Quad quads = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size += 1UL * this_._internal_quads_size();
+      for (const auto& msg : this_._internal_quads()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void LookupGraphQuadsBatchResult::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<LookupGraphQuadsBatchResult*>(&to_msg);
+  auto& from = static_cast<const LookupGraphQuadsBatchResult&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.world.LookupGraphQuadsBatchResult)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    _this->_internal_mutable_quads()->InternalMergeFromWithArena(
+        ::google::protobuf::MessageLite::internal_visibility(), arena,
+        from._internal_quads());
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void LookupGraphQuadsBatchResult::CopyFrom(const LookupGraphQuadsBatchResult& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.world.LookupGraphQuadsBatchResult)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void LookupGraphQuadsBatchResult::InternalSwap(LookupGraphQuadsBatchResult* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.quads_.InternalSwap(&other->_impl_.quads_);
+}
+
+::google::protobuf::Metadata LookupGraphQuadsBatchResult::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class LookupGraphQuadsBatchResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<LookupGraphQuadsBatchResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(LookupGraphQuadsBatchResponse, _impl_._has_bits_);
+};
+
+LookupGraphQuadsBatchResponse::LookupGraphQuadsBatchResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, LookupGraphQuadsBatchResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.world.LookupGraphQuadsBatchResponse)
+}
+PROTOBUF_NDEBUG_INLINE LookupGraphQuadsBatchResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::world::LookupGraphQuadsBatchResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        results_{visibility, arena, from.results_} {}
+
+LookupGraphQuadsBatchResponse::LookupGraphQuadsBatchResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const LookupGraphQuadsBatchResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, LookupGraphQuadsBatchResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  LookupGraphQuadsBatchResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.world.LookupGraphQuadsBatchResponse)
+}
+PROTOBUF_NDEBUG_INLINE LookupGraphQuadsBatchResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        results_{visibility, arena} {}
+
+inline void LookupGraphQuadsBatchResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+LookupGraphQuadsBatchResponse::~LookupGraphQuadsBatchResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.world.LookupGraphQuadsBatchResponse)
+  SharedDtor(*this);
+}
+inline void LookupGraphQuadsBatchResponse::SharedDtor(MessageLite& self) {
+  LookupGraphQuadsBatchResponse& this_ = static_cast<LookupGraphQuadsBatchResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL LookupGraphQuadsBatchResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) LookupGraphQuadsBatchResponse(arena);
+}
+constexpr auto LookupGraphQuadsBatchResponse::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(LookupGraphQuadsBatchResponse, _impl_.results_) +
+          decltype(LookupGraphQuadsBatchResponse::_impl_.results_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::ZeroInit(
+        sizeof(LookupGraphQuadsBatchResponse), alignof(LookupGraphQuadsBatchResponse), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&LookupGraphQuadsBatchResponse::PlacementNew_,
+                                 sizeof(LookupGraphQuadsBatchResponse),
+                                 alignof(LookupGraphQuadsBatchResponse));
+  }
+}
+constexpr auto LookupGraphQuadsBatchResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_LookupGraphQuadsBatchResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &LookupGraphQuadsBatchResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<LookupGraphQuadsBatchResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &LookupGraphQuadsBatchResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<LookupGraphQuadsBatchResponse>(), &LookupGraphQuadsBatchResponse::ByteSizeLong,
+              &LookupGraphQuadsBatchResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(LookupGraphQuadsBatchResponse, _impl_._cached_size_),
+          false,
+      },
+      &LookupGraphQuadsBatchResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull LookupGraphQuadsBatchResponse_class_data_ =
+        LookupGraphQuadsBatchResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+LookupGraphQuadsBatchResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&LookupGraphQuadsBatchResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(LookupGraphQuadsBatchResponse_class_data_.tc_table);
+  return LookupGraphQuadsBatchResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 1, 0, 2>
+LookupGraphQuadsBatchResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(LookupGraphQuadsBatchResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    LookupGraphQuadsBatchResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::world::LookupGraphQuadsBatchResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // repeated .s4wave.world.LookupGraphQuadsBatchResult results = 1;
+    {::_pbi::TcParser::FastMtR1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(LookupGraphQuadsBatchResponse, _impl_.results_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // repeated .s4wave.world.LookupGraphQuadsBatchResult results = 1;
+    {PROTOBUF_FIELD_OFFSET(LookupGraphQuadsBatchResponse, _impl_.results_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::world::LookupGraphQuadsBatchResult>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void LookupGraphQuadsBatchResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.world.LookupGraphQuadsBatchResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    _impl_.results_.Clear();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL LookupGraphQuadsBatchResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const LookupGraphQuadsBatchResponse& this_ = static_cast<const LookupGraphQuadsBatchResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL LookupGraphQuadsBatchResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const LookupGraphQuadsBatchResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.world.LookupGraphQuadsBatchResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // repeated .s4wave.world.LookupGraphQuadsBatchResult results = 1;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_results_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_results().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              1, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.world.LookupGraphQuadsBatchResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t LookupGraphQuadsBatchResponse::ByteSizeLong(const MessageLite& base) {
+  const LookupGraphQuadsBatchResponse& this_ = static_cast<const LookupGraphQuadsBatchResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t LookupGraphQuadsBatchResponse::ByteSizeLong() const {
+  const LookupGraphQuadsBatchResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.world.LookupGraphQuadsBatchResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+   {
+    // repeated .s4wave.world.LookupGraphQuadsBatchResult results = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size += 1UL * this_._internal_results_size();
+      for (const auto& msg : this_._internal_results()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void LookupGraphQuadsBatchResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<LookupGraphQuadsBatchResponse*>(&to_msg);
+  auto& from = static_cast<const LookupGraphQuadsBatchResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.world.LookupGraphQuadsBatchResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    _this->_internal_mutable_results()->InternalMergeFromWithArena(
+        ::google::protobuf::MessageLite::internal_visibility(), arena,
+        from._internal_results());
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void LookupGraphQuadsBatchResponse::CopyFrom(const LookupGraphQuadsBatchResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.world.LookupGraphQuadsBatchResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void LookupGraphQuadsBatchResponse::InternalSwap(LookupGraphQuadsBatchResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.results_.InternalSwap(&other->_impl_.results_);
+}
+
+::google::protobuf::Metadata LookupGraphQuadsBatchResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
 class ListObjectsWithTypeRequest::_Internal {
  public:
   using HasBits =
@@ -11100,6 +12467,1978 @@ void ListObjectsWithTypeResponse::InternalSwap(ListObjectsWithTypeResponse* PROT
 }
 
 ::google::protobuf::Metadata ListObjectsWithTypeResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class ObjectMetadata::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<ObjectMetadata>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(ObjectMetadata, _impl_._has_bits_);
+};
+
+ObjectMetadata::ObjectMetadata(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ObjectMetadata_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.world.ObjectMetadata)
+}
+PROTOBUF_NDEBUG_INLINE ObjectMetadata::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::world::ObjectMetadata& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        object_key_(arena, from.object_key_),
+        type_id_(arena, from.type_id_),
+        parent_object_key_(arena, from.parent_object_key_) {}
+
+ObjectMetadata::ObjectMetadata(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const ObjectMetadata& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ObjectMetadata_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  ObjectMetadata* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.world.ObjectMetadata)
+}
+PROTOBUF_NDEBUG_INLINE ObjectMetadata::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        object_key_(arena),
+        type_id_(arena),
+        parent_object_key_(arena) {}
+
+inline void ObjectMetadata::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+ObjectMetadata::~ObjectMetadata() {
+  // @@protoc_insertion_point(destructor:s4wave.world.ObjectMetadata)
+  SharedDtor(*this);
+}
+inline void ObjectMetadata::SharedDtor(MessageLite& self) {
+  ObjectMetadata& this_ = static_cast<ObjectMetadata&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.object_key_.Destroy();
+  this_._impl_.type_id_.Destroy();
+  this_._impl_.parent_object_key_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL ObjectMetadata::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) ObjectMetadata(arena);
+}
+constexpr auto ObjectMetadata::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(ObjectMetadata),
+                                            alignof(ObjectMetadata));
+}
+constexpr auto ObjectMetadata::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_ObjectMetadata_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &ObjectMetadata::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<ObjectMetadata>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &ObjectMetadata::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<ObjectMetadata>(), &ObjectMetadata::ByteSizeLong,
+              &ObjectMetadata::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(ObjectMetadata, _impl_._cached_size_),
+          false,
+      },
+      &ObjectMetadata::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull ObjectMetadata_class_data_ =
+        ObjectMetadata::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+ObjectMetadata::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&ObjectMetadata_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(ObjectMetadata_class_data_.tc_table);
+  return ObjectMetadata_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 3, 0, 70, 2>
+ObjectMetadata::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(ObjectMetadata, _impl_._has_bits_),
+    0, // no _extensions_
+    3, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967288,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    3,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    ObjectMetadata_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::world::ObjectMetadata>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // string object_key = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(ObjectMetadata, _impl_.object_key_)}},
+    // string type_id = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(ObjectMetadata, _impl_.type_id_)}},
+    // string parent_object_key = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 2, 0,
+      PROTOBUF_FIELD_OFFSET(ObjectMetadata, _impl_.parent_object_key_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string object_key = 1;
+    {PROTOBUF_FIELD_OFFSET(ObjectMetadata, _impl_.object_key_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string type_id = 2;
+    {PROTOBUF_FIELD_OFFSET(ObjectMetadata, _impl_.type_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string parent_object_key = 3;
+    {PROTOBUF_FIELD_OFFSET(ObjectMetadata, _impl_.parent_object_key_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\33\12\7\21\0\0\0\0"
+    "s4wave.world.ObjectMetadata"
+    "object_key"
+    "type_id"
+    "parent_object_key"
+  }},
+};
+PROTOBUF_NOINLINE void ObjectMetadata::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.world.ObjectMetadata)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.object_key_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.type_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.parent_object_key_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL ObjectMetadata::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const ObjectMetadata& this_ = static_cast<const ObjectMetadata&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL ObjectMetadata::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const ObjectMetadata& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.world.ObjectMetadata)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string object_key = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_object_key().empty()) {
+      const ::std::string& _s = this_._internal_object_key();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.world.ObjectMetadata.object_key");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string type_id = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_type_id().empty()) {
+      const ::std::string& _s = this_._internal_type_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.world.ObjectMetadata.type_id");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // string parent_object_key = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_parent_object_key().empty()) {
+      const ::std::string& _s = this_._internal_parent_object_key();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.world.ObjectMetadata.parent_object_key");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.world.ObjectMetadata)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t ObjectMetadata::ByteSizeLong(const MessageLite& base) {
+  const ObjectMetadata& this_ = static_cast<const ObjectMetadata&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t ObjectMetadata::ByteSizeLong() const {
+  const ObjectMetadata& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.world.ObjectMetadata)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    // string object_key = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_object_key().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_object_key());
+      }
+    }
+    // string type_id = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_type_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_type_id());
+      }
+    }
+    // string parent_object_key = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_parent_object_key().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_parent_object_key());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void ObjectMetadata::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<ObjectMetadata*>(&to_msg);
+  auto& from = static_cast<const ObjectMetadata&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.world.ObjectMetadata)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_object_key().empty()) {
+        _this->_internal_set_object_key(from._internal_object_key());
+      } else {
+        if (_this->_impl_.object_key_.IsDefault()) {
+          _this->_internal_set_object_key("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_type_id().empty()) {
+        _this->_internal_set_type_id(from._internal_type_id());
+      } else {
+        if (_this->_impl_.type_id_.IsDefault()) {
+          _this->_internal_set_type_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_parent_object_key().empty()) {
+        _this->_internal_set_parent_object_key(from._internal_parent_object_key());
+      } else {
+        if (_this->_impl_.parent_object_key_.IsDefault()) {
+          _this->_internal_set_parent_object_key("");
+        }
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void ObjectMetadata::CopyFrom(const ObjectMetadata& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.world.ObjectMetadata)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void ObjectMetadata::InternalSwap(ObjectMetadata* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.object_key_, &other->_impl_.object_key_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.type_id_, &other->_impl_.type_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.parent_object_key_, &other->_impl_.parent_object_key_, arena);
+}
+
+::google::protobuf::Metadata ObjectMetadata::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class GetObjectMetadataBatchRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<GetObjectMetadataBatchRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(GetObjectMetadataBatchRequest, _impl_._has_bits_);
+};
+
+GetObjectMetadataBatchRequest::GetObjectMetadataBatchRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, GetObjectMetadataBatchRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.world.GetObjectMetadataBatchRequest)
+}
+PROTOBUF_NDEBUG_INLINE GetObjectMetadataBatchRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::world::GetObjectMetadataBatchRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        object_keys_{visibility, arena, from.object_keys_} {}
+
+GetObjectMetadataBatchRequest::GetObjectMetadataBatchRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const GetObjectMetadataBatchRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, GetObjectMetadataBatchRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  GetObjectMetadataBatchRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.world.GetObjectMetadataBatchRequest)
+}
+PROTOBUF_NDEBUG_INLINE GetObjectMetadataBatchRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        object_keys_{visibility, arena} {}
+
+inline void GetObjectMetadataBatchRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+GetObjectMetadataBatchRequest::~GetObjectMetadataBatchRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.world.GetObjectMetadataBatchRequest)
+  SharedDtor(*this);
+}
+inline void GetObjectMetadataBatchRequest::SharedDtor(MessageLite& self) {
+  GetObjectMetadataBatchRequest& this_ = static_cast<GetObjectMetadataBatchRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL GetObjectMetadataBatchRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) GetObjectMetadataBatchRequest(arena);
+}
+constexpr auto GetObjectMetadataBatchRequest::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(GetObjectMetadataBatchRequest, _impl_.object_keys_) +
+          decltype(GetObjectMetadataBatchRequest::_impl_.object_keys_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::ZeroInit(
+        sizeof(GetObjectMetadataBatchRequest), alignof(GetObjectMetadataBatchRequest), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&GetObjectMetadataBatchRequest::PlacementNew_,
+                                 sizeof(GetObjectMetadataBatchRequest),
+                                 alignof(GetObjectMetadataBatchRequest));
+  }
+}
+constexpr auto GetObjectMetadataBatchRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_GetObjectMetadataBatchRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &GetObjectMetadataBatchRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<GetObjectMetadataBatchRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &GetObjectMetadataBatchRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<GetObjectMetadataBatchRequest>(), &GetObjectMetadataBatchRequest::ByteSizeLong,
+              &GetObjectMetadataBatchRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(GetObjectMetadataBatchRequest, _impl_._cached_size_),
+          false,
+      },
+      &GetObjectMetadataBatchRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull GetObjectMetadataBatchRequest_class_data_ =
+        GetObjectMetadataBatchRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+GetObjectMetadataBatchRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&GetObjectMetadataBatchRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(GetObjectMetadataBatchRequest_class_data_.tc_table);
+  return GetObjectMetadataBatchRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 0, 62, 2>
+GetObjectMetadataBatchRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(GetObjectMetadataBatchRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    GetObjectMetadataBatchRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::world::GetObjectMetadataBatchRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // repeated string object_keys = 1;
+    {::_pbi::TcParser::FastUR1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(GetObjectMetadataBatchRequest, _impl_.object_keys_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // repeated string object_keys = 1;
+    {PROTOBUF_FIELD_OFFSET(GetObjectMetadataBatchRequest, _impl_.object_keys_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+  }},
+  // no aux_entries
+  {{
+    "\52\13\0\0\0\0\0\0"
+    "s4wave.world.GetObjectMetadataBatchRequest"
+    "object_keys"
+  }},
+};
+PROTOBUF_NOINLINE void GetObjectMetadataBatchRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.world.GetObjectMetadataBatchRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    _impl_.object_keys_.Clear();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL GetObjectMetadataBatchRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const GetObjectMetadataBatchRequest& this_ = static_cast<const GetObjectMetadataBatchRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL GetObjectMetadataBatchRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const GetObjectMetadataBatchRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.world.GetObjectMetadataBatchRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // repeated string object_keys = 1;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (int i = 0, n = this_._internal_object_keys_size(); i < n; ++i) {
+      const auto& s = this_._internal_object_keys().Get(i);
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.world.GetObjectMetadataBatchRequest.object_keys");
+      target = stream->WriteString(1, s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.world.GetObjectMetadataBatchRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t GetObjectMetadataBatchRequest::ByteSizeLong(const MessageLite& base) {
+  const GetObjectMetadataBatchRequest& this_ = static_cast<const GetObjectMetadataBatchRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t GetObjectMetadataBatchRequest::ByteSizeLong() const {
+  const GetObjectMetadataBatchRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.world.GetObjectMetadataBatchRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+   {
+    // repeated string object_keys = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_object_keys().size());
+      for (int i = 0, n = this_._internal_object_keys().size(); i < n; ++i) {
+        total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+            this_._internal_object_keys().Get(i));
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void GetObjectMetadataBatchRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<GetObjectMetadataBatchRequest*>(&to_msg);
+  auto& from = static_cast<const GetObjectMetadataBatchRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.world.GetObjectMetadataBatchRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    _this->_internal_mutable_object_keys()->InternalMergeFromWithArena(
+        ::google::protobuf::MessageLite::internal_visibility(), arena,
+        from._internal_object_keys());
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void GetObjectMetadataBatchRequest::CopyFrom(const GetObjectMetadataBatchRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.world.GetObjectMetadataBatchRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void GetObjectMetadataBatchRequest::InternalSwap(GetObjectMetadataBatchRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.object_keys_.InternalSwap(&other->_impl_.object_keys_);
+}
+
+::google::protobuf::Metadata GetObjectMetadataBatchRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class GetObjectMetadataBatchResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<GetObjectMetadataBatchResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(GetObjectMetadataBatchResponse, _impl_._has_bits_);
+};
+
+GetObjectMetadataBatchResponse::GetObjectMetadataBatchResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, GetObjectMetadataBatchResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.world.GetObjectMetadataBatchResponse)
+}
+PROTOBUF_NDEBUG_INLINE GetObjectMetadataBatchResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::world::GetObjectMetadataBatchResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        metadata_{visibility, arena, from.metadata_} {}
+
+GetObjectMetadataBatchResponse::GetObjectMetadataBatchResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const GetObjectMetadataBatchResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, GetObjectMetadataBatchResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  GetObjectMetadataBatchResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.world.GetObjectMetadataBatchResponse)
+}
+PROTOBUF_NDEBUG_INLINE GetObjectMetadataBatchResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        metadata_{visibility, arena} {}
+
+inline void GetObjectMetadataBatchResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+GetObjectMetadataBatchResponse::~GetObjectMetadataBatchResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.world.GetObjectMetadataBatchResponse)
+  SharedDtor(*this);
+}
+inline void GetObjectMetadataBatchResponse::SharedDtor(MessageLite& self) {
+  GetObjectMetadataBatchResponse& this_ = static_cast<GetObjectMetadataBatchResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL GetObjectMetadataBatchResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) GetObjectMetadataBatchResponse(arena);
+}
+constexpr auto GetObjectMetadataBatchResponse::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(GetObjectMetadataBatchResponse, _impl_.metadata_) +
+          decltype(GetObjectMetadataBatchResponse::_impl_.metadata_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::ZeroInit(
+        sizeof(GetObjectMetadataBatchResponse), alignof(GetObjectMetadataBatchResponse), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&GetObjectMetadataBatchResponse::PlacementNew_,
+                                 sizeof(GetObjectMetadataBatchResponse),
+                                 alignof(GetObjectMetadataBatchResponse));
+  }
+}
+constexpr auto GetObjectMetadataBatchResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_GetObjectMetadataBatchResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &GetObjectMetadataBatchResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<GetObjectMetadataBatchResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &GetObjectMetadataBatchResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<GetObjectMetadataBatchResponse>(), &GetObjectMetadataBatchResponse::ByteSizeLong,
+              &GetObjectMetadataBatchResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(GetObjectMetadataBatchResponse, _impl_._cached_size_),
+          false,
+      },
+      &GetObjectMetadataBatchResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull GetObjectMetadataBatchResponse_class_data_ =
+        GetObjectMetadataBatchResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+GetObjectMetadataBatchResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&GetObjectMetadataBatchResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(GetObjectMetadataBatchResponse_class_data_.tc_table);
+  return GetObjectMetadataBatchResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 1, 0, 2>
+GetObjectMetadataBatchResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(GetObjectMetadataBatchResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    GetObjectMetadataBatchResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::world::GetObjectMetadataBatchResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // repeated .s4wave.world.ObjectMetadata metadata = 1;
+    {::_pbi::TcParser::FastMtR1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(GetObjectMetadataBatchResponse, _impl_.metadata_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // repeated .s4wave.world.ObjectMetadata metadata = 1;
+    {PROTOBUF_FIELD_OFFSET(GetObjectMetadataBatchResponse, _impl_.metadata_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::world::ObjectMetadata>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void GetObjectMetadataBatchResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.world.GetObjectMetadataBatchResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    _impl_.metadata_.Clear();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL GetObjectMetadataBatchResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const GetObjectMetadataBatchResponse& this_ = static_cast<const GetObjectMetadataBatchResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL GetObjectMetadataBatchResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const GetObjectMetadataBatchResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.world.GetObjectMetadataBatchResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // repeated .s4wave.world.ObjectMetadata metadata = 1;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_metadata_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_metadata().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              1, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.world.GetObjectMetadataBatchResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t GetObjectMetadataBatchResponse::ByteSizeLong(const MessageLite& base) {
+  const GetObjectMetadataBatchResponse& this_ = static_cast<const GetObjectMetadataBatchResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t GetObjectMetadataBatchResponse::ByteSizeLong() const {
+  const GetObjectMetadataBatchResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.world.GetObjectMetadataBatchResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+   {
+    // repeated .s4wave.world.ObjectMetadata metadata = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size += 1UL * this_._internal_metadata_size();
+      for (const auto& msg : this_._internal_metadata()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void GetObjectMetadataBatchResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<GetObjectMetadataBatchResponse*>(&to_msg);
+  auto& from = static_cast<const GetObjectMetadataBatchResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.world.GetObjectMetadataBatchResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    _this->_internal_mutable_metadata()->InternalMergeFromWithArena(
+        ::google::protobuf::MessageLite::internal_visibility(), arena,
+        from._internal_metadata());
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void GetObjectMetadataBatchResponse::CopyFrom(const GetObjectMetadataBatchResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.world.GetObjectMetadataBatchResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void GetObjectMetadataBatchResponse::InternalSwap(GetObjectMetadataBatchResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.metadata_.InternalSwap(&other->_impl_.metadata_);
+}
+
+::google::protobuf::Metadata GetObjectMetadataBatchResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class GraphPathStep::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<GraphPathStep>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(GraphPathStep, _impl_._has_bits_);
+};
+
+GraphPathStep::GraphPathStep(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, GraphPathStep_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.world.GraphPathStep)
+}
+PROTOBUF_NDEBUG_INLINE GraphPathStep::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::world::GraphPathStep& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        predicate_(arena, from.predicate_) {}
+
+GraphPathStep::GraphPathStep(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const GraphPathStep& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, GraphPathStep_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  GraphPathStep* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, direction_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, direction_),
+           offsetof(Impl_, limit_) -
+               offsetof(Impl_, direction_) +
+               sizeof(Impl_::limit_));
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.world.GraphPathStep)
+}
+PROTOBUF_NDEBUG_INLINE GraphPathStep::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        predicate_(arena) {}
+
+inline void GraphPathStep::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, direction_),
+           0,
+           offsetof(Impl_, limit_) -
+               offsetof(Impl_, direction_) +
+               sizeof(Impl_::limit_));
+}
+GraphPathStep::~GraphPathStep() {
+  // @@protoc_insertion_point(destructor:s4wave.world.GraphPathStep)
+  SharedDtor(*this);
+}
+inline void GraphPathStep::SharedDtor(MessageLite& self) {
+  GraphPathStep& this_ = static_cast<GraphPathStep&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.predicate_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL GraphPathStep::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) GraphPathStep(arena);
+}
+constexpr auto GraphPathStep::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(GraphPathStep),
+                                            alignof(GraphPathStep));
+}
+constexpr auto GraphPathStep::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_GraphPathStep_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &GraphPathStep::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<GraphPathStep>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &GraphPathStep::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<GraphPathStep>(), &GraphPathStep::ByteSizeLong,
+              &GraphPathStep::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(GraphPathStep, _impl_._cached_size_),
+          false,
+      },
+      &GraphPathStep::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull GraphPathStep_class_data_ =
+        GraphPathStep::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+GraphPathStep::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&GraphPathStep_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(GraphPathStep_class_data_.tc_table);
+  return GraphPathStep_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 3, 0, 44, 2>
+GraphPathStep::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(GraphPathStep, _impl_._has_bits_),
+    0, // no _extensions_
+    3, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967288,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    3,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    GraphPathStep_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::world::GraphPathStep>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // .s4wave.world.GraphPathDirection direction = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(GraphPathStep, _impl_.direction_), 1>(),
+     {8, 1, 0,
+      PROTOBUF_FIELD_OFFSET(GraphPathStep, _impl_.direction_)}},
+    // string predicate = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 0, 0,
+      PROTOBUF_FIELD_OFFSET(GraphPathStep, _impl_.predicate_)}},
+    // uint32 limit = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(GraphPathStep, _impl_.limit_), 2>(),
+     {24, 2, 0,
+      PROTOBUF_FIELD_OFFSET(GraphPathStep, _impl_.limit_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .s4wave.world.GraphPathDirection direction = 1;
+    {PROTOBUF_FIELD_OFFSET(GraphPathStep, _impl_.direction_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // string predicate = 2;
+    {PROTOBUF_FIELD_OFFSET(GraphPathStep, _impl_.predicate_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // uint32 limit = 3;
+    {PROTOBUF_FIELD_OFFSET(GraphPathStep, _impl_.limit_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+  }},
+  // no aux_entries
+  {{
+    "\32\0\11\0\0\0\0\0"
+    "s4wave.world.GraphPathStep"
+    "predicate"
+  }},
+};
+PROTOBUF_NOINLINE void GraphPathStep::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.world.GraphPathStep)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    _impl_.predicate_.ClearNonDefaultToEmpty();
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000006U)) {
+    ::memset(&_impl_.direction_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.limit_) -
+        reinterpret_cast<char*>(&_impl_.direction_)) + sizeof(_impl_.limit_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL GraphPathStep::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const GraphPathStep& this_ = static_cast<const GraphPathStep&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL GraphPathStep::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const GraphPathStep& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.world.GraphPathStep)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .s4wave.world.GraphPathDirection direction = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (this_._internal_direction() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          1, this_._internal_direction(), target);
+    }
+  }
+
+  // string predicate = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_predicate().empty()) {
+      const ::std::string& _s = this_._internal_predicate();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.world.GraphPathStep.predicate");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // uint32 limit = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (this_._internal_limit() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          3, this_._internal_limit(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.world.GraphPathStep)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t GraphPathStep::ByteSizeLong(const MessageLite& base) {
+  const GraphPathStep& this_ = static_cast<const GraphPathStep&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t GraphPathStep::ByteSizeLong() const {
+  const GraphPathStep& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.world.GraphPathStep)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    // string predicate = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_predicate().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_predicate());
+      }
+    }
+    // .s4wave.world.GraphPathDirection direction = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (this_._internal_direction() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_direction());
+      }
+    }
+    // uint32 limit = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (this_._internal_limit() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_limit());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void GraphPathStep::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<GraphPathStep*>(&to_msg);
+  auto& from = static_cast<const GraphPathStep&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.world.GraphPathStep)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_predicate().empty()) {
+        _this->_internal_set_predicate(from._internal_predicate());
+      } else {
+        if (_this->_impl_.predicate_.IsDefault()) {
+          _this->_internal_set_predicate("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (from._internal_direction() != 0) {
+        _this->_impl_.direction_ = from._impl_.direction_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (from._internal_limit() != 0) {
+        _this->_impl_.limit_ = from._impl_.limit_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void GraphPathStep::CopyFrom(const GraphPathStep& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.world.GraphPathStep)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void GraphPathStep::InternalSwap(GraphPathStep* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.predicate_, &other->_impl_.predicate_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(GraphPathStep, _impl_.limit_)
+      + sizeof(GraphPathStep::_impl_.limit_)
+      - PROTOBUF_FIELD_OFFSET(GraphPathStep, _impl_.direction_)>(
+          reinterpret_cast<char*>(&_impl_.direction_),
+          reinterpret_cast<char*>(&other->_impl_.direction_));
+}
+
+::google::protobuf::Metadata GraphPathStep::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class QueryGraphPathRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<QueryGraphPathRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(QueryGraphPathRequest, _impl_._has_bits_);
+};
+
+QueryGraphPathRequest::QueryGraphPathRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, QueryGraphPathRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.world.QueryGraphPathRequest)
+}
+PROTOBUF_NDEBUG_INLINE QueryGraphPathRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::world::QueryGraphPathRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        start_keys_{visibility, arena, from.start_keys_},
+        steps_{visibility, arena, from.steps_} {}
+
+QueryGraphPathRequest::QueryGraphPathRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const QueryGraphPathRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, QueryGraphPathRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  QueryGraphPathRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, result_limit_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, result_limit_),
+           offsetof(Impl_, page_size_) -
+               offsetof(Impl_, result_limit_) +
+               sizeof(Impl_::page_size_));
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.world.QueryGraphPathRequest)
+}
+PROTOBUF_NDEBUG_INLINE QueryGraphPathRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        start_keys_{visibility, arena},
+        steps_{visibility, arena} {}
+
+inline void QueryGraphPathRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, result_limit_),
+           0,
+           offsetof(Impl_, page_size_) -
+               offsetof(Impl_, result_limit_) +
+               sizeof(Impl_::page_size_));
+}
+QueryGraphPathRequest::~QueryGraphPathRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.world.QueryGraphPathRequest)
+  SharedDtor(*this);
+}
+inline void QueryGraphPathRequest::SharedDtor(MessageLite& self) {
+  QueryGraphPathRequest& this_ = static_cast<QueryGraphPathRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL QueryGraphPathRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) QueryGraphPathRequest(arena);
+}
+constexpr auto QueryGraphPathRequest::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(QueryGraphPathRequest, _impl_.start_keys_) +
+          decltype(QueryGraphPathRequest::_impl_.start_keys_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(QueryGraphPathRequest, _impl_.steps_) +
+          decltype(QueryGraphPathRequest::_impl_.steps_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::ZeroInit(
+        sizeof(QueryGraphPathRequest), alignof(QueryGraphPathRequest), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&QueryGraphPathRequest::PlacementNew_,
+                                 sizeof(QueryGraphPathRequest),
+                                 alignof(QueryGraphPathRequest));
+  }
+}
+constexpr auto QueryGraphPathRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_QueryGraphPathRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &QueryGraphPathRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<QueryGraphPathRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &QueryGraphPathRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<QueryGraphPathRequest>(), &QueryGraphPathRequest::ByteSizeLong,
+              &QueryGraphPathRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(QueryGraphPathRequest, _impl_._cached_size_),
+          false,
+      },
+      &QueryGraphPathRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull QueryGraphPathRequest_class_data_ =
+        QueryGraphPathRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+QueryGraphPathRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&QueryGraphPathRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(QueryGraphPathRequest_class_data_.tc_table);
+  return QueryGraphPathRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 5, 1, 53, 2>
+QueryGraphPathRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(QueryGraphPathRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    5, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967264,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    5,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    QueryGraphPathRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::world::QueryGraphPathRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // repeated string start_keys = 1;
+    {::_pbi::TcParser::FastUR1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(QueryGraphPathRequest, _impl_.start_keys_)}},
+    // repeated .s4wave.world.GraphPathStep steps = 2;
+    {::_pbi::TcParser::FastMtR1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(QueryGraphPathRequest, _impl_.steps_)}},
+    // uint32 result_limit = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(QueryGraphPathRequest, _impl_.result_limit_), 2>(),
+     {24, 2, 0,
+      PROTOBUF_FIELD_OFFSET(QueryGraphPathRequest, _impl_.result_limit_)}},
+    // bool include_quads = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(QueryGraphPathRequest, _impl_.include_quads_), 3>(),
+     {32, 3, 0,
+      PROTOBUF_FIELD_OFFSET(QueryGraphPathRequest, _impl_.include_quads_)}},
+    // uint32 page_size = 5;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(QueryGraphPathRequest, _impl_.page_size_), 4>(),
+     {40, 4, 0,
+      PROTOBUF_FIELD_OFFSET(QueryGraphPathRequest, _impl_.page_size_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // repeated string start_keys = 1;
+    {PROTOBUF_FIELD_OFFSET(QueryGraphPathRequest, _impl_.start_keys_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+    // repeated .s4wave.world.GraphPathStep steps = 2;
+    {PROTOBUF_FIELD_OFFSET(QueryGraphPathRequest, _impl_.steps_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    // uint32 result_limit = 3;
+    {PROTOBUF_FIELD_OFFSET(QueryGraphPathRequest, _impl_.result_limit_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // bool include_quads = 4;
+    {PROTOBUF_FIELD_OFFSET(QueryGraphPathRequest, _impl_.include_quads_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // uint32 page_size = 5;
+    {PROTOBUF_FIELD_OFFSET(QueryGraphPathRequest, _impl_.page_size_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::world::GraphPathStep>()},
+  }},
+  {{
+    "\42\12\0\0\0\0\0\0"
+    "s4wave.world.QueryGraphPathRequest"
+    "start_keys"
+  }},
+};
+PROTOBUF_NOINLINE void QueryGraphPathRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.world.QueryGraphPathRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.start_keys_.Clear();
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      _impl_.steps_.Clear();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001cU)) {
+    ::memset(&_impl_.result_limit_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.page_size_) -
+        reinterpret_cast<char*>(&_impl_.result_limit_)) + sizeof(_impl_.page_size_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL QueryGraphPathRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const QueryGraphPathRequest& this_ = static_cast<const QueryGraphPathRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL QueryGraphPathRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const QueryGraphPathRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.world.QueryGraphPathRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // repeated string start_keys = 1;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (int i = 0, n = this_._internal_start_keys_size(); i < n; ++i) {
+      const auto& s = this_._internal_start_keys().Get(i);
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.world.QueryGraphPathRequest.start_keys");
+      target = stream->WriteString(1, s, target);
+    }
+  }
+
+  // repeated .s4wave.world.GraphPathStep steps = 2;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_steps_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_steps().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              2, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  // uint32 result_limit = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (this_._internal_result_limit() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          3, this_._internal_result_limit(), target);
+    }
+  }
+
+  // bool include_quads = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (this_._internal_include_quads() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          4, this_._internal_include_quads(), target);
+    }
+  }
+
+  // uint32 page_size = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (this_._internal_page_size() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          5, this_._internal_page_size(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.world.QueryGraphPathRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t QueryGraphPathRequest::ByteSizeLong(const MessageLite& base) {
+  const QueryGraphPathRequest& this_ = static_cast<const QueryGraphPathRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t QueryGraphPathRequest::ByteSizeLong() const {
+  const QueryGraphPathRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.world.QueryGraphPathRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    // repeated string start_keys = 1;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_start_keys().size());
+      for (int i = 0, n = this_._internal_start_keys().size(); i < n; ++i) {
+        total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+            this_._internal_start_keys().Get(i));
+      }
+    }
+    // repeated .s4wave.world.GraphPathStep steps = 2;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      total_size += 1UL * this_._internal_steps_size();
+      for (const auto& msg : this_._internal_steps()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+    // uint32 result_limit = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (this_._internal_result_limit() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_result_limit());
+      }
+    }
+    // bool include_quads = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (this_._internal_include_quads() != 0) {
+        total_size += 2;
+      }
+    }
+    // uint32 page_size = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (this_._internal_page_size() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_page_size());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void QueryGraphPathRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<QueryGraphPathRequest*>(&to_msg);
+  auto& from = static_cast<const QueryGraphPathRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.world.QueryGraphPathRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_start_keys()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_start_keys());
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      _this->_internal_mutable_steps()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_steps());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (from._internal_result_limit() != 0) {
+        _this->_impl_.result_limit_ = from._impl_.result_limit_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (from._internal_include_quads() != 0) {
+        _this->_impl_.include_quads_ = from._impl_.include_quads_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (from._internal_page_size() != 0) {
+        _this->_impl_.page_size_ = from._impl_.page_size_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void QueryGraphPathRequest::CopyFrom(const QueryGraphPathRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.world.QueryGraphPathRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void QueryGraphPathRequest::InternalSwap(QueryGraphPathRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.start_keys_.InternalSwap(&other->_impl_.start_keys_);
+  _impl_.steps_.InternalSwap(&other->_impl_.steps_);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(QueryGraphPathRequest, _impl_.page_size_)
+      + sizeof(QueryGraphPathRequest::_impl_.page_size_)
+      - PROTOBUF_FIELD_OFFSET(QueryGraphPathRequest, _impl_.result_limit_)>(
+          reinterpret_cast<char*>(&_impl_.result_limit_),
+          reinterpret_cast<char*>(&other->_impl_.result_limit_));
+}
+
+::google::protobuf::Metadata QueryGraphPathRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class QueryGraphPathResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<QueryGraphPathResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(QueryGraphPathResponse, _impl_._has_bits_);
+};
+
+QueryGraphPathResponse::QueryGraphPathResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, QueryGraphPathResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.world.QueryGraphPathResponse)
+}
+QueryGraphPathResponse::QueryGraphPathResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const QueryGraphPathResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, QueryGraphPathResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(from._impl_) {
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+PROTOBUF_NDEBUG_INLINE QueryGraphPathResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void QueryGraphPathResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.resource_id_ = {};
+}
+QueryGraphPathResponse::~QueryGraphPathResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.world.QueryGraphPathResponse)
+  SharedDtor(*this);
+}
+inline void QueryGraphPathResponse::SharedDtor(MessageLite& self) {
+  QueryGraphPathResponse& this_ = static_cast<QueryGraphPathResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL QueryGraphPathResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) QueryGraphPathResponse(arena);
+}
+constexpr auto QueryGraphPathResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(QueryGraphPathResponse),
+                                            alignof(QueryGraphPathResponse));
+}
+constexpr auto QueryGraphPathResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_QueryGraphPathResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &QueryGraphPathResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<QueryGraphPathResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &QueryGraphPathResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<QueryGraphPathResponse>(), &QueryGraphPathResponse::ByteSizeLong,
+              &QueryGraphPathResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(QueryGraphPathResponse, _impl_._cached_size_),
+          false,
+      },
+      &QueryGraphPathResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull QueryGraphPathResponse_class_data_ =
+        QueryGraphPathResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+QueryGraphPathResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&QueryGraphPathResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(QueryGraphPathResponse_class_data_.tc_table);
+  return QueryGraphPathResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 0, 0, 2>
+QueryGraphPathResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(QueryGraphPathResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    QueryGraphPathResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::world::QueryGraphPathResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // uint32 resource_id = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(QueryGraphPathResponse, _impl_.resource_id_), 0>(),
+     {8, 0, 0,
+      PROTOBUF_FIELD_OFFSET(QueryGraphPathResponse, _impl_.resource_id_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // uint32 resource_id = 1;
+    {PROTOBUF_FIELD_OFFSET(QueryGraphPathResponse, _impl_.resource_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+  }},
+  // no aux_entries
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void QueryGraphPathResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.world.QueryGraphPathResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.resource_id_ = 0u;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL QueryGraphPathResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const QueryGraphPathResponse& this_ = static_cast<const QueryGraphPathResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL QueryGraphPathResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const QueryGraphPathResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.world.QueryGraphPathResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // uint32 resource_id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (this_._internal_resource_id() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          1, this_._internal_resource_id(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.world.QueryGraphPathResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t QueryGraphPathResponse::ByteSizeLong(const MessageLite& base) {
+  const QueryGraphPathResponse& this_ = static_cast<const QueryGraphPathResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t QueryGraphPathResponse::ByteSizeLong() const {
+  const QueryGraphPathResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.world.QueryGraphPathResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // uint32 resource_id = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (this_._internal_resource_id() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_resource_id());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void QueryGraphPathResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<QueryGraphPathResponse*>(&to_msg);
+  auto& from = static_cast<const QueryGraphPathResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.world.QueryGraphPathResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (from._internal_resource_id() != 0) {
+      _this->_impl_.resource_id_ = from._impl_.resource_id_;
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void QueryGraphPathResponse::CopyFrom(const QueryGraphPathResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.world.QueryGraphPathResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void QueryGraphPathResponse::InternalSwap(QueryGraphPathResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.resource_id_, other->_impl_.resource_id_);
+}
+
+::google::protobuf::Metadata QueryGraphPathResponse::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================
@@ -15246,6 +18585,701 @@ CloseResponse::_table_ = {
 
 
 ::google::protobuf::Metadata CloseResponse::GetMetadata() const {
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class NextGraphPathQueryRequest::_Internal {
+ public:
+};
+
+NextGraphPathQueryRequest::NextGraphPathQueryRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, NextGraphPathQueryRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(arena_constructor:s4wave.world.NextGraphPathQueryRequest)
+}
+NextGraphPathQueryRequest::NextGraphPathQueryRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const NextGraphPathQueryRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, NextGraphPathQueryRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  NextGraphPathQueryRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.world.NextGraphPathQueryRequest)
+}
+
+inline void* PROTOBUF_NONNULL NextGraphPathQueryRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) NextGraphPathQueryRequest(arena);
+}
+constexpr auto NextGraphPathQueryRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(NextGraphPathQueryRequest),
+                                            alignof(NextGraphPathQueryRequest));
+}
+constexpr auto NextGraphPathQueryRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_NextGraphPathQueryRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &NextGraphPathQueryRequest::MergeImpl,
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<NextGraphPathQueryRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &NextGraphPathQueryRequest::SharedDtor,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<NextGraphPathQueryRequest>(), &NextGraphPathQueryRequest::ByteSizeLong,
+              &NextGraphPathQueryRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(NextGraphPathQueryRequest, _impl_._cached_size_),
+          false,
+      },
+      &NextGraphPathQueryRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull NextGraphPathQueryRequest_class_data_ =
+        NextGraphPathQueryRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+NextGraphPathQueryRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&NextGraphPathQueryRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(NextGraphPathQueryRequest_class_data_.tc_table);
+  return NextGraphPathQueryRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+NextGraphPathQueryRequest::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    0, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    NextGraphPathQueryRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::world::NextGraphPathQueryRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, // no field_entries, or aux_entries
+  {{
+  }},
+};
+
+
+
+
+
+
+
+::google::protobuf::Metadata NextGraphPathQueryRequest::GetMetadata() const {
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class NextGraphPathQueryResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<NextGraphPathQueryResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(NextGraphPathQueryResponse, _impl_._has_bits_);
+};
+
+void NextGraphPathQueryResponse::clear_quads() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.quads_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+NextGraphPathQueryResponse::NextGraphPathQueryResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, NextGraphPathQueryResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.world.NextGraphPathQueryResponse)
+}
+PROTOBUF_NDEBUG_INLINE NextGraphPathQueryResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::world::NextGraphPathQueryResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        object_keys_{visibility, arena, from.object_keys_},
+        quads_{visibility, arena, from.quads_} {}
+
+NextGraphPathQueryResponse::NextGraphPathQueryResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const NextGraphPathQueryResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, NextGraphPathQueryResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  NextGraphPathQueryResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.done_ = from._impl_.done_;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.world.NextGraphPathQueryResponse)
+}
+PROTOBUF_NDEBUG_INLINE NextGraphPathQueryResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        object_keys_{visibility, arena},
+        quads_{visibility, arena} {}
+
+inline void NextGraphPathQueryResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.done_ = {};
+}
+NextGraphPathQueryResponse::~NextGraphPathQueryResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.world.NextGraphPathQueryResponse)
+  SharedDtor(*this);
+}
+inline void NextGraphPathQueryResponse::SharedDtor(MessageLite& self) {
+  NextGraphPathQueryResponse& this_ = static_cast<NextGraphPathQueryResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL NextGraphPathQueryResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) NextGraphPathQueryResponse(arena);
+}
+constexpr auto NextGraphPathQueryResponse::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(NextGraphPathQueryResponse, _impl_.object_keys_) +
+          decltype(NextGraphPathQueryResponse::_impl_.object_keys_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(NextGraphPathQueryResponse, _impl_.quads_) +
+          decltype(NextGraphPathQueryResponse::_impl_.quads_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::ZeroInit(
+        sizeof(NextGraphPathQueryResponse), alignof(NextGraphPathQueryResponse), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&NextGraphPathQueryResponse::PlacementNew_,
+                                 sizeof(NextGraphPathQueryResponse),
+                                 alignof(NextGraphPathQueryResponse));
+  }
+}
+constexpr auto NextGraphPathQueryResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_NextGraphPathQueryResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &NextGraphPathQueryResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<NextGraphPathQueryResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &NextGraphPathQueryResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<NextGraphPathQueryResponse>(), &NextGraphPathQueryResponse::ByteSizeLong,
+              &NextGraphPathQueryResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(NextGraphPathQueryResponse, _impl_._cached_size_),
+          false,
+      },
+      &NextGraphPathQueryResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull NextGraphPathQueryResponse_class_data_ =
+        NextGraphPathQueryResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+NextGraphPathQueryResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&NextGraphPathQueryResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(NextGraphPathQueryResponse_class_data_.tc_table);
+  return NextGraphPathQueryResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 3, 1, 59, 2>
+NextGraphPathQueryResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(NextGraphPathQueryResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    3, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967288,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    3,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    NextGraphPathQueryResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::world::NextGraphPathQueryResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // repeated string object_keys = 1;
+    {::_pbi::TcParser::FastUR1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(NextGraphPathQueryResponse, _impl_.object_keys_)}},
+    // repeated .quad.Quad quads = 2;
+    {::_pbi::TcParser::FastMtR1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(NextGraphPathQueryResponse, _impl_.quads_)}},
+    // bool done = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(NextGraphPathQueryResponse, _impl_.done_), 2>(),
+     {24, 2, 0,
+      PROTOBUF_FIELD_OFFSET(NextGraphPathQueryResponse, _impl_.done_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // repeated string object_keys = 1;
+    {PROTOBUF_FIELD_OFFSET(NextGraphPathQueryResponse, _impl_.object_keys_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+    // repeated .quad.Quad quads = 2;
+    {PROTOBUF_FIELD_OFFSET(NextGraphPathQueryResponse, _impl_.quads_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    // bool done = 3;
+    {PROTOBUF_FIELD_OFFSET(NextGraphPathQueryResponse, _impl_.done_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::quad::Quad>()},
+  }},
+  {{
+    "\47\13\0\0\0\0\0\0"
+    "s4wave.world.NextGraphPathQueryResponse"
+    "object_keys"
+  }},
+};
+PROTOBUF_NOINLINE void NextGraphPathQueryResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.world.NextGraphPathQueryResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.object_keys_.Clear();
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      _impl_.quads_.Clear();
+    }
+  }
+  _impl_.done_ = false;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL NextGraphPathQueryResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const NextGraphPathQueryResponse& this_ = static_cast<const NextGraphPathQueryResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL NextGraphPathQueryResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const NextGraphPathQueryResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.world.NextGraphPathQueryResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // repeated string object_keys = 1;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (int i = 0, n = this_._internal_object_keys_size(); i < n; ++i) {
+      const auto& s = this_._internal_object_keys().Get(i);
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.world.NextGraphPathQueryResponse.object_keys");
+      target = stream->WriteString(1, s, target);
+    }
+  }
+
+  // repeated .quad.Quad quads = 2;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_quads_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_quads().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              2, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  // bool done = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (this_._internal_done() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          3, this_._internal_done(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.world.NextGraphPathQueryResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t NextGraphPathQueryResponse::ByteSizeLong(const MessageLite& base) {
+  const NextGraphPathQueryResponse& this_ = static_cast<const NextGraphPathQueryResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t NextGraphPathQueryResponse::ByteSizeLong() const {
+  const NextGraphPathQueryResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.world.NextGraphPathQueryResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    // repeated string object_keys = 1;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_object_keys().size());
+      for (int i = 0, n = this_._internal_object_keys().size(); i < n; ++i) {
+        total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+            this_._internal_object_keys().Get(i));
+      }
+    }
+    // repeated .quad.Quad quads = 2;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      total_size += 1UL * this_._internal_quads_size();
+      for (const auto& msg : this_._internal_quads()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+    // bool done = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (this_._internal_done() != 0) {
+        total_size += 2;
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void NextGraphPathQueryResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<NextGraphPathQueryResponse*>(&to_msg);
+  auto& from = static_cast<const NextGraphPathQueryResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.world.NextGraphPathQueryResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_object_keys()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_object_keys());
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      _this->_internal_mutable_quads()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_quads());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (from._internal_done() != 0) {
+        _this->_impl_.done_ = from._impl_.done_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void NextGraphPathQueryResponse::CopyFrom(const NextGraphPathQueryResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.world.NextGraphPathQueryResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void NextGraphPathQueryResponse::InternalSwap(NextGraphPathQueryResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.object_keys_.InternalSwap(&other->_impl_.object_keys_);
+  _impl_.quads_.InternalSwap(&other->_impl_.quads_);
+  swap(_impl_.done_, other->_impl_.done_);
+}
+
+::google::protobuf::Metadata NextGraphPathQueryResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class CloseGraphPathQueryRequest::_Internal {
+ public:
+};
+
+CloseGraphPathQueryRequest::CloseGraphPathQueryRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, CloseGraphPathQueryRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(arena_constructor:s4wave.world.CloseGraphPathQueryRequest)
+}
+CloseGraphPathQueryRequest::CloseGraphPathQueryRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const CloseGraphPathQueryRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, CloseGraphPathQueryRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  CloseGraphPathQueryRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.world.CloseGraphPathQueryRequest)
+}
+
+inline void* PROTOBUF_NONNULL CloseGraphPathQueryRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) CloseGraphPathQueryRequest(arena);
+}
+constexpr auto CloseGraphPathQueryRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(CloseGraphPathQueryRequest),
+                                            alignof(CloseGraphPathQueryRequest));
+}
+constexpr auto CloseGraphPathQueryRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_CloseGraphPathQueryRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &CloseGraphPathQueryRequest::MergeImpl,
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<CloseGraphPathQueryRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &CloseGraphPathQueryRequest::SharedDtor,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<CloseGraphPathQueryRequest>(), &CloseGraphPathQueryRequest::ByteSizeLong,
+              &CloseGraphPathQueryRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(CloseGraphPathQueryRequest, _impl_._cached_size_),
+          false,
+      },
+      &CloseGraphPathQueryRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull CloseGraphPathQueryRequest_class_data_ =
+        CloseGraphPathQueryRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+CloseGraphPathQueryRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&CloseGraphPathQueryRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(CloseGraphPathQueryRequest_class_data_.tc_table);
+  return CloseGraphPathQueryRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+CloseGraphPathQueryRequest::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    0, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    CloseGraphPathQueryRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::world::CloseGraphPathQueryRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, // no field_entries, or aux_entries
+  {{
+  }},
+};
+
+
+
+
+
+
+
+::google::protobuf::Metadata CloseGraphPathQueryRequest::GetMetadata() const {
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class CloseGraphPathQueryResponse::_Internal {
+ public:
+};
+
+CloseGraphPathQueryResponse::CloseGraphPathQueryResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, CloseGraphPathQueryResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(arena_constructor:s4wave.world.CloseGraphPathQueryResponse)
+}
+CloseGraphPathQueryResponse::CloseGraphPathQueryResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const CloseGraphPathQueryResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, CloseGraphPathQueryResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  CloseGraphPathQueryResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.world.CloseGraphPathQueryResponse)
+}
+
+inline void* PROTOBUF_NONNULL CloseGraphPathQueryResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) CloseGraphPathQueryResponse(arena);
+}
+constexpr auto CloseGraphPathQueryResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(CloseGraphPathQueryResponse),
+                                            alignof(CloseGraphPathQueryResponse));
+}
+constexpr auto CloseGraphPathQueryResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_CloseGraphPathQueryResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &CloseGraphPathQueryResponse::MergeImpl,
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<CloseGraphPathQueryResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &CloseGraphPathQueryResponse::SharedDtor,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<CloseGraphPathQueryResponse>(), &CloseGraphPathQueryResponse::ByteSizeLong,
+              &CloseGraphPathQueryResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(CloseGraphPathQueryResponse, _impl_._cached_size_),
+          false,
+      },
+      &CloseGraphPathQueryResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull CloseGraphPathQueryResponse_class_data_ =
+        CloseGraphPathQueryResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+CloseGraphPathQueryResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&CloseGraphPathQueryResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(CloseGraphPathQueryResponse_class_data_.tc_table);
+  return CloseGraphPathQueryResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+CloseGraphPathQueryResponse::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    0, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    CloseGraphPathQueryResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::world::CloseGraphPathQueryResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, // no field_entries, or aux_entries
+  {{
+  }},
+};
+
+
+
+
+
+
+
+::google::protobuf::Metadata CloseGraphPathQueryResponse::GetMetadata() const {
   return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================

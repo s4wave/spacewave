@@ -19,8 +19,6 @@ type Config struct {
 	Id string `json:"id"`
 	// Rev is the configuration version.
 	Rev uint32 `json:"version"`
-	// Reconcilers contains the list of bucket reconcilers.
-	Reconcilers []ReconcilerConfig `json:"reconcilers,omitempty"`
 	// PutOpts contains the put options.
 	PutOpts *block.PutOpts `json:"putOpts,omitempty"`
 	// Lookup controls the lookup confiuration.
@@ -47,14 +45,6 @@ func NewConfig(ctx context.Context, b bus.Bus, c *bucket.Config) (*Config, error
 		Id:  c.GetId(),
 		Rev: c.GetRev(),
 	}
-	n.Reconcilers = make([]ReconcilerConfig, len(c.GetReconcilers()))
-	for i, r := range c.GetReconcilers() {
-		cc, err := r.GetController().Resolve(ctx, b)
-		if err != nil {
-			return nil, err
-		}
-		n.Reconcilers[i] = *NewReconcilerConfig(r.GetId(), cc)
-	}
 	return n, nil
 }
 
@@ -69,17 +59,6 @@ func (c *Config) MarshalJSON() ([]byte, error) {
 	obj.Set("id", a.NewString(c.Id))
 	obj.Set("version", a.NewNumberString(strconv.FormatUint(uint64(c.Rev), 10)))
 
-	if len(c.Reconcilers) != 0 {
-		arr := a.NewArray()
-		for i := range c.Reconcilers {
-			rv, err := c.Reconcilers[i].marshalJSONValue(&a)
-			if err != nil {
-				return nil, errors.Wrapf(err, "marshal reconciler %d", i)
-			}
-			arr.SetArrayItem(i, rv)
-		}
-		obj.Set("reconcilers", arr)
-	}
 	if c.PutOpts != nil {
 		dat, err := c.PutOpts.MarshalJSON()
 		if err != nil {
@@ -109,10 +88,9 @@ func (c *Config) GetRev() uint32 {
 // ResolveToProto resolves the config to a proto object.
 func (c *Config) ResolveToProto(ctx context.Context, b bus.Bus) (*bucket.Config, error) {
 	bc := &bucket.Config{
-		Id:          c.Id,
-		Rev:         c.Rev,
-		PutOpts:     c.PutOpts,
-		Reconcilers: make([]*bucket.ReconcilerConfig, len(c.Reconcilers)),
+		Id:      c.Id,
+		Rev:     c.Rev,
+		PutOpts: c.PutOpts,
 	}
 	if c.Lookup != nil {
 		bc.Lookup = &bucket.LookupConfig{
@@ -136,21 +114,6 @@ func (c *Config) ResolveToProto(ctx context.Context, b bus.Bus) (*bucket.Config,
 			}
 		}
 	}
-	for i := range c.Reconcilers {
-		v := &c.Reconcilers[i]
-		c, err := v.Controller.Resolve(ctx, b)
-		if err != nil {
-			return nil, errors.Wrap(err, "reconciler controller config resolve")
-		}
-		pcc, err := configset_proto.NewControllerConfig(c, false)
-		if err != nil {
-			return nil, errors.Wrap(err, "reconciler controller config marshal")
-		}
-		bc.Reconcilers[i] = &bucket.ReconcilerConfig{
-			Id:         v.Id,
-			Controller: pcc,
-		}
-	}
 	return bc, nil
 }
 
@@ -166,16 +129,6 @@ func parseConfigValue(v *fastjson.Value) (*Config, error) {
 	c := &Config{
 		Id:  string(v.GetStringBytes("id")),
 		Rev: uint32(rev),
-	}
-	if reconcilers := v.GetArray("reconcilers"); len(reconcilers) != 0 {
-		c.Reconcilers = make([]ReconcilerConfig, len(reconcilers))
-		for i, rv := range reconcilers {
-			reconciler, err := parseReconcilerConfigValue(rv)
-			if err != nil {
-				return nil, errors.Wrapf(err, "parse reconciler %d", i)
-			}
-			c.Reconcilers[i] = reconciler
-		}
 	}
 	if putOpts := v.Get("putOpts"); putOpts != nil && putOpts.Type() != fastjson.TypeNull {
 		po := &block.PutOpts{}

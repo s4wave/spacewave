@@ -147,7 +147,6 @@ export class AccessVolumesClient implements AccessVolumes {
  * Other available services:
  *  - rpc.block.BlockStore
  *  - rpc.bucket.BucketStore
- *  - rpc.mqueue.MqueueStore
  *  - rpc.object.ObjectStore
  *
  * @generated from service volume.rpc.ProxyVolume
@@ -198,7 +197,6 @@ export const ProxyVolumeDefinition = {
  * Other available services:
  *  - rpc.block.BlockStore
  *  - rpc.bucket.BucketStore
- *  - rpc.mqueue.MqueueStore
  *  - rpc.object.ObjectStore
  *
  * @generated from service volume.rpc.ProxyVolume

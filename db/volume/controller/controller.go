@@ -3,7 +3,6 @@ package volume_controller
 import (
 	"context"
 	"errors"
-	"sync"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -14,7 +13,6 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_store "github.com/s4wave/spacewave/db/bucket/store"
 	volume "github.com/s4wave/spacewave/db/volume"
 	peer_controller "github.com/s4wave/spacewave/net/peer/controller"
 	"github.com/sirupsen/logrus"
@@ -40,12 +38,6 @@ type Controller struct {
 	// controllerInfo contains the controller info
 	controllerInfo *controller.Info
 
-	// reconcilerMtx guards the desired reconciler key set.
-	reconcilerMtx sync.Mutex
-	// reconcilerKeys contains the desired running reconciler keys.
-	reconcilerKeys map[bucket_store.BucketReconcilerPair]struct{}
-	// reconcilers contains running reconciler routines keyed by bucket/reconciler pair.
-	reconcilers *keyed.Keyed[bucket_store.BucketReconcilerPair, *runningReconciler]
 	// bucketHandles contains open bucket handles
 	// key: bucket id
 	bucketHandles *keyed.KeyedRefCount[string, *bucketHandleTracker]
@@ -76,10 +68,8 @@ func NewController(
 		controllerInfo: info,
 		ctor:           ctor,
 
-		volume:         ccontainer.NewCContainer[*volumeCtxPair](nil),
-		reconcilerKeys: make(map[bucket_store.BucketReconcilerPair]struct{}),
+		volume: ccontainer.NewCContainer[*volumeCtxPair](nil),
 	}
-	ctrl.reconcilers = keyed.NewKeyed(ctrl.newRunningReconciler)
 	ctrl.bucketHandles = keyed.NewKeyedRefCount(ctrl.newBucketHandleTracker)
 	return ctrl
 }
@@ -115,13 +105,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 			pushErr(err)
 		}
 	}()
-
-	// load active bucket reconcilers
-	if !c.config.GetDisableReconcilerQueues() {
-		if err := c.wakeFilledReconcilerQueues(ctx, v); err != nil {
-			le.WithError(err).Warn("unable to list filled bucket reconciler queues")
-		}
-	}
 
 	// check the cache mode & wrap the volume if necessary
 	if blockStoreID := c.config.GetBlockStoreId(); blockStoreID != "" {
@@ -183,7 +166,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 		ctx: volCtx,
 		vol: v,
 	})
-	c.reconcilers.SetContext(ctx, true)
 	c.bucketHandles.SetContext(ctx, true)
 
 	// Start GC sweep goroutine.
@@ -199,11 +181,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 	case err = <-errCh:
 	}
 
-	c.reconcilerMtx.Lock()
-	c.reconcilerKeys = make(map[bucket_store.BucketReconcilerPair]struct{})
-	c.reconcilerMtx.Unlock()
-	c.reconcilers.SetContext(nil, false)
-	c.reconcilers.SyncKeys(nil, false)
 	c.bucketHandles.SetContext(nil, false)
 	return err
 }

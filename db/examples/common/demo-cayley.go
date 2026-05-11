@@ -16,7 +16,6 @@ import (
 	lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	lc "github.com/s4wave/spacewave/db/bucket/lookup/concurrent"
 	hydra_kvtx_cayley "github.com/s4wave/spacewave/db/kvtx/cayley"
-	reconciler_example "github.com/s4wave/spacewave/db/reconciler/example"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/sirupsen/logrus"
 )
@@ -32,13 +31,6 @@ func RunDemoCayley(
 	if err != nil {
 		return err
 	}
-	recConf, err := bucket.NewReconcilerConfig(
-		"example-reconciler-1",
-		configset.NewControllerConfig(2, &reconciler_example.Config{}),
-	)
-	if err != nil {
-		return err
-	}
 
 	lookupConf := &lc.Config{
 		// NotFoundBehavior: lc.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE,
@@ -49,9 +41,7 @@ func RunDemoCayley(
 	if err != nil {
 		return err
 	}
-	bucketConf, err := bucket.NewConfig("example-bucket-1", 1, []*bucket.ReconcilerConfig{
-		recConf,
-	}, &bucket.LookupConfig{
+	bucketConf, err := bucket.NewConfig("example-bucket-1", 1, &bucket.LookupConfig{
 		Controller: cc,
 	})
 	if err != nil {

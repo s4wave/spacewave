@@ -350,7 +350,7 @@ func newCloudOverlay(ctx context.Context, lower, upper block.StoreOps) block.Sto
 // buildBucketConf builds the bucket config for the block store cache.
 func (t *bstoreTracker) buildBucketConf() (*bucket.Config, error) {
 	bucketID := BlockStoreBucketID(t.a.accountID, t.id)
-	return bucket.NewConfig(bucketID, 1, nil, &bucket.LookupConfig{})
+	return bucket.NewConfig(bucketID, 1, &bucket.LookupConfig{})
 }
 
 // dirtyTrackingStore wraps block.StoreOps and calls markDirty on new PutBlock.

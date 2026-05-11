@@ -27,8 +27,6 @@ type Config struct {
 	// Rev is the configuration rev.
 	// increment by 1 on modification
 	Rev uint32 `protobuf:"varint,2,opt,name=rev,proto3" json:"rev,omitempty"`
-	// Reconcilers contains the list of bucket reconcilers.
-	Reconcilers []*ReconcilerConfig `protobuf:"bytes,3,rep,name=reconcilers,proto3" json:"reconcilers,omitempty"`
 	// PutOpts are the default put options for the bucket.
 	PutOpts *block.PutOpts `protobuf:"bytes,4,opt,name=put_opts,json=putOpts,proto3" json:"putOpts,omitempty"`
 	// Lookup controls the lookup confiuration.
@@ -53,13 +51,6 @@ func (x *Config) GetRev() uint32 {
 		return x.Rev
 	}
 	return 0
-}
-
-func (x *Config) GetReconcilers() []*ReconcilerConfig {
-	if x != nil {
-		return x.Reconcilers
-	}
-	return nil
 }
 
 func (x *Config) GetPutOpts() *block.PutOpts {
@@ -94,44 +85,6 @@ func (x *BucketInfo) GetConfig() *Config {
 		return x.Config
 	}
 	return nil
-}
-
-// ReconcilerConfig configures a reconciler.
-type ReconcilerConfig struct {
-	unknownFields []byte
-	// Id contains the reconciler id.
-	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	// Controller contains the controller configuration.
-	Controller *proto.ControllerConfig `protobuf:"bytes,2,opt,name=controller,proto3" json:"controller,omitempty"`
-	// FilterPut disables receiving put events.
-	FilterPut bool `protobuf:"varint,3,opt,name=filter_put,json=filterPut,proto3" json:"filterPut,omitempty"`
-}
-
-func (x *ReconcilerConfig) Reset() {
-	*x = ReconcilerConfig{}
-}
-
-func (*ReconcilerConfig) ProtoMessage() {}
-
-func (x *ReconcilerConfig) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-func (x *ReconcilerConfig) GetController() *proto.ControllerConfig {
-	if x != nil {
-		return x.Controller
-	}
-	return nil
-}
-
-func (x *ReconcilerConfig) GetFilterPut() bool {
-	if x != nil {
-		return x.FilterPut
-	}
-	return false
 }
 
 // LookupConfig configures the bucket behavior across multiple volumes.
@@ -331,13 +284,9 @@ func (m *Config) CloneVT() *Config {
 	r := new(Config)
 	r.Id = m.Id
 	r.Rev = m.Rev
-	r.PutOpts = m.PutOpts.CloneVT()
 	r.Lookup = m.Lookup.CloneVT()
-	if rhs := m.Reconcilers; rhs != nil {
-		r.Reconcilers = make([]*ReconcilerConfig, len(rhs))
-		for k, v := range rhs {
-			r.Reconcilers[k] = v.CloneVT()
-		}
+	if rhs := m.PutOpts; rhs != nil {
+		r.PutOpts = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -362,26 +311,6 @@ func (m *BucketInfo) CloneVT() *BucketInfo {
 }
 
 func (m *BucketInfo) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
-func (m *ReconcilerConfig) CloneVT() *ReconcilerConfig {
-	if m == nil {
-		return (*ReconcilerConfig)(nil)
-	}
-	r := new(ReconcilerConfig)
-	r.Id = m.Id
-	r.FilterPut = m.FilterPut
-	if rhs := m.Controller; rhs != nil {
-		r.Controller = rhs.CloneVT()
-	}
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *ReconcilerConfig) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -433,10 +362,16 @@ func (m *ObjectRef) CloneVT() *ObjectRef {
 		return (*ObjectRef)(nil)
 	}
 	r := new(ObjectRef)
-	r.RootRef = m.RootRef.CloneVT()
 	r.BucketId = m.BucketId
-	r.TransformConfRef = m.TransformConfRef.CloneVT()
-	r.TransformConf = m.TransformConf.CloneVT()
+	if rhs := m.RootRef; rhs != nil {
+		r.RootRef = rhs.CloneVT()
+	}
+	if rhs := m.TransformConfRef; rhs != nil {
+		r.TransformConfRef = rhs.CloneVT()
+	}
+	if rhs := m.TransformConf; rhs != nil {
+		r.TransformConf = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -476,23 +411,6 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.Rev != that.Rev {
 		return false
 	}
-	if len(this.Reconcilers) != len(that.Reconcilers) {
-		return false
-	}
-	for i, vx := range this.Reconcilers {
-		vy := that.Reconcilers[i]
-		if p, q := vx, vy; p != q {
-			if p == nil {
-				p = &ReconcilerConfig{}
-			}
-			if q == nil {
-				q = &ReconcilerConfig{}
-			}
-			if !p.EqualVT(q) {
-				return false
-			}
-		}
-	}
 	if !this.PutOpts.EqualVT(that.PutOpts) {
 		return false
 	}
@@ -524,32 +442,6 @@ func (this *BucketInfo) EqualVT(that *BucketInfo) bool {
 
 func (this *BucketInfo) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*BucketInfo)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
-func (this *ReconcilerConfig) EqualVT(that *ReconcilerConfig) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if this.Id != that.Id {
-		return false
-	}
-	if !this.Controller.EqualVT(that.Controller) {
-		return false
-	}
-	if this.FilterPut != that.FilterPut {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *ReconcilerConfig) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*ReconcilerConfig)
 	if !ok {
 		return false
 	}
@@ -687,17 +579,6 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("rev")
 		s.WriteUint32(x.Rev)
 	}
-	if len(x.Reconcilers) > 0 || s.HasField("reconcilers") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("reconcilers")
-		s.WriteArrayStart()
-		var wroteElement bool
-		for _, element := range x.Reconcilers {
-			s.WriteMoreIf(&wroteElement)
-			element.MarshalProtoJSON(s.WithField("reconcilers"))
-		}
-		s.WriteArrayEnd()
-	}
 	if x.PutOpts != nil || s.HasField("putOpts") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("putOpts")
@@ -731,24 +612,6 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "rev":
 			s.AddField("rev")
 			x.Rev = s.ReadUint32()
-		case "reconcilers":
-			s.AddField("reconcilers")
-			if s.ReadNil() {
-				x.Reconcilers = nil
-				return
-			}
-			s.ReadArray(func() {
-				if s.ReadNil() {
-					x.Reconcilers = append(x.Reconcilers, nil)
-					return
-				}
-				v := &ReconcilerConfig{}
-				v.UnmarshalProtoJSON(s.WithField("reconcilers", false))
-				if s.Err() != nil {
-					return
-				}
-				x.Reconcilers = append(x.Reconcilers, v)
-			})
 		case "put_opts", "putOpts":
 			if s.ReadNil() {
 				x.PutOpts = nil
@@ -815,68 +678,6 @@ func (x *BucketInfo) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the BucketInfo from JSON.
 func (x *BucketInfo) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the ReconcilerConfig message to JSON.
-func (x *ReconcilerConfig) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.Id != "" || s.HasField("id") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("id")
-		s.WriteString(x.Id)
-	}
-	if x.Controller != nil || s.HasField("controller") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("controller")
-		x.Controller.MarshalProtoJSON(s.WithField("controller"))
-	}
-	if x.FilterPut || s.HasField("filterPut") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("filterPut")
-		s.WriteBool(x.FilterPut)
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the ReconcilerConfig to JSON.
-func (x *ReconcilerConfig) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the ReconcilerConfig message from JSON.
-func (x *ReconcilerConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "id":
-			s.AddField("id")
-			x.Id = s.ReadString()
-		case "controller":
-			if s.ReadNil() {
-				x.Controller = nil
-				return
-			}
-			x.Controller = &proto.ControllerConfig{}
-			x.Controller.UnmarshalProtoJSON(s.WithField("controller", true))
-		case "filter_put", "filterPut":
-			s.AddField("filter_put")
-			x.FilterPut = s.ReadBool()
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the ReconcilerConfig from JSON.
-func (x *ReconcilerConfig) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1136,18 +937,6 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x22
 	}
-	if len(m.Reconcilers) > 0 {
-		for iNdEx := len(m.Reconcilers) - 1; iNdEx >= 0; iNdEx-- {
-			size, err := m.Reconcilers[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x1a
-		}
-	}
 	if m.Rev != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Rev))
 		i--
@@ -1200,66 +989,6 @@ func (m *BucketInfo) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		}
 		i -= size
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *ReconcilerConfig) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *ReconcilerConfig) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *ReconcilerConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i -= len(m.unknownFields)
-		copy(dAtA[i:], m.unknownFields)
-	}
-	if m.FilterPut {
-		i--
-		if m.FilterPut {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x18
-	}
-	if m.Controller != nil {
-		size, err := m.Controller.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0x12
-	}
-	if len(m.Id) > 0 {
-		i -= len(m.Id)
-		copy(dAtA[i:], m.Id)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Id)))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -1543,12 +1272,6 @@ func (m *Config) SizeVT() (n int) {
 	if m.Rev != 0 {
 		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Rev))
 	}
-	if len(m.Reconcilers) > 0 {
-		for _, e := range m.Reconcilers {
-			l = e.SizeVT()
-			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-		}
-	}
 	if m.PutOpts != nil {
 		l = m.PutOpts.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
@@ -1570,27 +1293,6 @@ func (m *BucketInfo) SizeVT() (n int) {
 	if m.Config != nil {
 		l = m.Config.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *ReconcilerConfig) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.Id)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	if m.Controller != nil {
-		l = m.Controller.SizeVT()
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	if m.FilterPut {
-		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -1711,19 +1413,6 @@ func (x *Config) MarshalProtoText() string {
 		sb.WriteString("rev: ")
 		sb.WriteString(strconv.FormatUint(uint64(x.Rev), 10))
 	}
-	if len(x.Reconcilers) > 0 {
-		if sb.Len() > 8 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("reconcilers: [")
-		for i, v := range x.Reconcilers {
-			if i > 0 {
-				sb.WriteString(", ")
-			}
-			sb.WriteString(v.MarshalProtoText())
-		}
-		sb.WriteString("]")
-	}
 	if x.PutOpts != nil {
 		if sb.Len() > 8 {
 			sb.WriteString(" ")
@@ -1761,38 +1450,6 @@ func (x *BucketInfo) MarshalProtoText() string {
 }
 
 func (x *BucketInfo) String() string {
-	return x.MarshalProtoText()
-}
-
-func (x *ReconcilerConfig) MarshalProtoText() string {
-	var sb strings.Builder
-	sb.WriteString("ReconcilerConfig {")
-	if x.Id != "" {
-		if sb.Len() > 18 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("id: ")
-		sb.WriteString(strconv.Quote(x.Id))
-	}
-	if x.Controller != nil {
-		if sb.Len() > 18 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("controller: ")
-		sb.WriteString(x.Controller.MarshalProtoText())
-	}
-	if x.FilterPut != false {
-		if sb.Len() > 18 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("filter_put: ")
-		sb.WriteString(strconv.FormatBool(x.FilterPut))
-	}
-	sb.WriteString("}")
-	return sb.String()
-}
-
-func (x *ReconcilerConfig) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1996,32 +1653,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Reconcilers", wireType)
-			}
-			var msglen int
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			msglen = int(_v)
-			if err != nil {
-				return err
-			}
-			if msglen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Reconcilers = append(m.Reconcilers, &ReconcilerConfig{})
-			if err := m.Reconcilers[len(m.Reconcilers)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PutOpts", wireType)
@@ -2149,111 +1780,6 @@ func (m *BucketInfo) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-func (m *ReconcilerConfig) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: ReconcilerConfig: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ReconcilerConfig: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
-			}
-			var stringLen uint64
-			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Id = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Controller", wireType)
-			}
-			var msglen int
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			msglen = int(_v)
-			if err != nil {
-				return err
-			}
-			if msglen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.Controller == nil {
-				m.Controller = &proto.ControllerConfig{}
-			}
-			if err := m.Controller.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 3:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field FilterPut", wireType)
-			}
-			var v int
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			v = int(_v)
-			if err != nil {
-				return err
-			}
-			m.FilterPut = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

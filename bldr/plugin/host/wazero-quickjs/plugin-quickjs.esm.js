@@ -8848,6 +8848,7 @@ var Client2 = class {
 		return msg.includes("timeout waiting for runtime connected ack") || msg.includes("timeout opening stream with host") || msg.includes("unable to open stream with host") || msg.includes("timed out waiting for ack from WebDocument") || msg.includes("timed out waiting for next WebDocument to proxy conn") || msg.includes("WebRuntimeClientInstance is closed");
 	}
 	shouldRetryResourceClientStreamSilently(error) {
+		if (String(error) === "StreamResetError: stream reset") return true;
 		if (typeof error !== "object" || error === null) return false;
 		const errName = Reflect.get(error, "name");
 		const errMessage = Reflect.get(error, "message");

@@ -169,10 +169,9 @@ func BuildDistBundle(
 		// fallback store. During build, before assets.kvfile exists, point that
 		// lookup at the temporary working volume so embedded-world bootstrap can
 		// read blocks from the same backing store it is populating.
-		VolumeIdAlias:           []string{workingDbVolID, bldr_dist.StaticBlockStoreID},
-		DisablePeer:             true,
-		DisableEventBlockRm:     true,
-		DisableReconcilerQueues: true,
+		VolumeIdAlias:       []string{workingDbVolID, bldr_dist.StaticBlockStoreID},
+		DisablePeer:         true,
+		DisableEventBlockRm: true,
 	})
 	if err != nil {
 		return err

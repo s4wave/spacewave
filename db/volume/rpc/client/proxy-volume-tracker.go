@@ -13,7 +13,6 @@ import (
 	rpc_gc "github.com/s4wave/spacewave/db/block/gc/rpc"
 	rpc_block "github.com/s4wave/spacewave/db/block/rpc"
 	rpc_bucket "github.com/s4wave/spacewave/db/bucket/store/rpc"
-	rpc_mqueue "github.com/s4wave/spacewave/db/mqueue/rpc"
 	rpc_object "github.com/s4wave/spacewave/db/object/rpc"
 	"github.com/s4wave/spacewave/db/volume"
 	volume_rpc "github.com/s4wave/spacewave/db/volume/rpc"
@@ -207,7 +206,6 @@ func (t *proxyVolumeTracker) execProxyVolumeController(
 		rpc_block.NewSRPCBlockStoreClient(volClient),
 		rpc_bucket.NewSRPCBucketStoreClient(volClient),
 		rpc_object.NewSRPCObjectStoreClient(volClient),
-		rpc_mqueue.NewSRPCMqueueStoreClient(volClient),
 		rpc_gc.NewSRPCRefGraphClient(volClient),
 	)
 

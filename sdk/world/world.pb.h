@@ -31,6 +31,7 @@
 #include "google/protobuf/message_lite.h"
 #include "google/protobuf/repeated_field.h"  // IWYU pragma: export
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
+#include "google/protobuf/generated_enum_reflection.h"
 #include "google/protobuf/unknown_field_set.h"
 #include "../../db/bucket/bucket.pb.h"
 #include "../../db/block/quad/quad.pb.h"
@@ -59,6 +60,8 @@ extern const ::google::protobuf::internal::DescriptorTable descriptor_table_gith
 }  // extern "C"
 namespace s4wave {
 namespace world {
+enum GraphPathDirection : int;
+extern const uint32_t GraphPathDirection_internal_data_[];
 class AccessTypedObjectRequest;
 struct AccessTypedObjectRequestDefaultTypeInternal;
 extern AccessTypedObjectRequestDefaultTypeInternal _AccessTypedObjectRequest_default_instance_;
@@ -99,6 +102,14 @@ class BuildStorageCursorResponse;
 struct BuildStorageCursorResponseDefaultTypeInternal;
 extern BuildStorageCursorResponseDefaultTypeInternal _BuildStorageCursorResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull BuildStorageCursorResponse_class_data_;
+class CloseGraphPathQueryRequest;
+struct CloseGraphPathQueryRequestDefaultTypeInternal;
+extern CloseGraphPathQueryRequestDefaultTypeInternal _CloseGraphPathQueryRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull CloseGraphPathQueryRequest_class_data_;
+class CloseGraphPathQueryResponse;
+struct CloseGraphPathQueryResponseDefaultTypeInternal;
+extern CloseGraphPathQueryResponseDefaultTypeInternal _CloseGraphPathQueryResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull CloseGraphPathQueryResponse_class_data_;
 class CloseRequest;
 struct CloseRequestDefaultTypeInternal;
 extern CloseRequestDefaultTypeInternal _CloseRequest_default_instance_;
@@ -183,6 +194,14 @@ class GetKeyResponse;
 struct GetKeyResponseDefaultTypeInternal;
 extern GetKeyResponseDefaultTypeInternal _GetKeyResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull GetKeyResponse_class_data_;
+class GetObjectMetadataBatchRequest;
+struct GetObjectMetadataBatchRequestDefaultTypeInternal;
+extern GetObjectMetadataBatchRequestDefaultTypeInternal _GetObjectMetadataBatchRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull GetObjectMetadataBatchRequest_class_data_;
+class GetObjectMetadataBatchResponse;
+struct GetObjectMetadataBatchResponseDefaultTypeInternal;
+extern GetObjectMetadataBatchResponseDefaultTypeInternal _GetObjectMetadataBatchResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull GetObjectMetadataBatchResponse_class_data_;
 class GetObjectRequest;
 struct GetObjectRequestDefaultTypeInternal;
 extern GetObjectRequestDefaultTypeInternal _GetObjectRequest_default_instance_;
@@ -215,6 +234,10 @@ class GetSeqnoResponse;
 struct GetSeqnoResponseDefaultTypeInternal;
 extern GetSeqnoResponseDefaultTypeInternal _GetSeqnoResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull GetSeqnoResponse_class_data_;
+class GraphPathStep;
+struct GraphPathStepDefaultTypeInternal;
+extern GraphPathStepDefaultTypeInternal _GraphPathStep_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull GraphPathStep_class_data_;
 class IncrementRevRequest;
 struct IncrementRevRequestDefaultTypeInternal;
 extern IncrementRevRequestDefaultTypeInternal _IncrementRevRequest_default_instance_;
@@ -247,6 +270,18 @@ class ListObjectsWithTypeResponse;
 struct ListObjectsWithTypeResponseDefaultTypeInternal;
 extern ListObjectsWithTypeResponseDefaultTypeInternal _ListObjectsWithTypeResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull ListObjectsWithTypeResponse_class_data_;
+class LookupGraphQuadsBatchRequest;
+struct LookupGraphQuadsBatchRequestDefaultTypeInternal;
+extern LookupGraphQuadsBatchRequestDefaultTypeInternal _LookupGraphQuadsBatchRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull LookupGraphQuadsBatchRequest_class_data_;
+class LookupGraphQuadsBatchResponse;
+struct LookupGraphQuadsBatchResponseDefaultTypeInternal;
+extern LookupGraphQuadsBatchResponseDefaultTypeInternal _LookupGraphQuadsBatchResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull LookupGraphQuadsBatchResponse_class_data_;
+class LookupGraphQuadsBatchResult;
+struct LookupGraphQuadsBatchResultDefaultTypeInternal;
+extern LookupGraphQuadsBatchResultDefaultTypeInternal _LookupGraphQuadsBatchResult_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull LookupGraphQuadsBatchResult_class_data_;
 class LookupGraphQuadsRequest;
 struct LookupGraphQuadsRequestDefaultTypeInternal;
 extern LookupGraphQuadsRequestDefaultTypeInternal _LookupGraphQuadsRequest_default_instance_;
@@ -263,6 +298,14 @@ class NewTransactionResponse;
 struct NewTransactionResponseDefaultTypeInternal;
 extern NewTransactionResponseDefaultTypeInternal _NewTransactionResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull NewTransactionResponse_class_data_;
+class NextGraphPathQueryRequest;
+struct NextGraphPathQueryRequestDefaultTypeInternal;
+extern NextGraphPathQueryRequestDefaultTypeInternal _NextGraphPathQueryRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull NextGraphPathQueryRequest_class_data_;
+class NextGraphPathQueryResponse;
+struct NextGraphPathQueryResponseDefaultTypeInternal;
+extern NextGraphPathQueryResponseDefaultTypeInternal _NextGraphPathQueryResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull NextGraphPathQueryResponse_class_data_;
 class NextRequest;
 struct NextRequestDefaultTypeInternal;
 extern NextRequestDefaultTypeInternal _NextRequest_default_instance_;
@@ -271,6 +314,18 @@ class NextResponse;
 struct NextResponseDefaultTypeInternal;
 extern NextResponseDefaultTypeInternal _NextResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull NextResponse_class_data_;
+class ObjectMetadata;
+struct ObjectMetadataDefaultTypeInternal;
+extern ObjectMetadataDefaultTypeInternal _ObjectMetadata_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull ObjectMetadata_class_data_;
+class QueryGraphPathRequest;
+struct QueryGraphPathRequestDefaultTypeInternal;
+extern QueryGraphPathRequestDefaultTypeInternal _QueryGraphPathRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull QueryGraphPathRequest_class_data_;
+class QueryGraphPathResponse;
+struct QueryGraphPathResponseDefaultTypeInternal;
+extern QueryGraphPathResponseDefaultTypeInternal _QueryGraphPathResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull QueryGraphPathResponse_class_data_;
 class RenameObjectRequest;
 struct RenameObjectRequestDefaultTypeInternal;
 extern RenameObjectRequestDefaultTypeInternal _RenameObjectRequest_default_instance_;
@@ -347,11 +402,52 @@ extern const ::google::protobuf::internal::ClassDataFull WatchWorldStateResponse
 }  // namespace s4wave
 namespace google {
 namespace protobuf {
+template <>
+internal::EnumTraitsT<::s4wave::world::GraphPathDirection_internal_data_>
+    internal::EnumTraitsImpl::value<::s4wave::world::GraphPathDirection>;
 }  // namespace protobuf
 }  // namespace google
 
 namespace s4wave {
 namespace world {
+enum GraphPathDirection : int {
+  GRAPH_PATH_DIRECTION_UNSPECIFIED = 0,
+  GRAPH_PATH_DIRECTION_OUT = 1,
+  GRAPH_PATH_DIRECTION_IN = 2,
+  GRAPH_PATH_DIRECTION_BOTH = 3,
+  GraphPathDirection_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  GraphPathDirection_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t GraphPathDirection_internal_data_[];
+inline constexpr GraphPathDirection GraphPathDirection_MIN =
+    static_cast<GraphPathDirection>(0);
+inline constexpr GraphPathDirection GraphPathDirection_MAX =
+    static_cast<GraphPathDirection>(3);
+inline bool GraphPathDirection_IsValid(int value) {
+  return 0 <= value && value <= 3;
+}
+inline constexpr int GraphPathDirection_ARRAYSIZE = 3 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL GraphPathDirection_descriptor();
+template <typename T>
+const ::std::string& GraphPathDirection_Name(T value) {
+  static_assert(::std::is_same<T, GraphPathDirection>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to GraphPathDirection_Name().");
+  return GraphPathDirection_Name(static_cast<GraphPathDirection>(value));
+}
+template <>
+inline const ::std::string& GraphPathDirection_Name(GraphPathDirection value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<GraphPathDirection_descriptor, 0, 3>(
+      static_cast<int>(value));
+}
+inline bool GraphPathDirection_Parse(
+    ::absl::string_view name, GraphPathDirection* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<GraphPathDirection>(GraphPathDirection_descriptor(), name,
+                                           value);
+}
 
 // ===================================================================
 
@@ -413,7 +509,7 @@ class WatchWorldStateResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchWorldStateResponse*>(
         &_WatchWorldStateResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 42;
+  static constexpr int kIndexInFileMessages = 51;
   friend void swap(WatchWorldStateResponse& a, WatchWorldStateResponse& b) { a.Swap(&b); }
   inline void Swap(WatchWorldStateResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -602,7 +698,7 @@ class WatchWorldStateRequest final : public ::google::protobuf::internal::ZeroFi
     return *reinterpret_cast<const WatchWorldStateRequest*>(
         &_WatchWorldStateRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 41;
+  static constexpr int kIndexInFileMessages = 50;
   friend void swap(WatchWorldStateRequest& a, WatchWorldStateRequest& b) { a.Swap(&b); }
   inline void Swap(WatchWorldStateRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1117,7 +1213,7 @@ class WaitRevResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WaitRevResponse*>(
         &_WaitRevResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 68;
+  static constexpr int kIndexInFileMessages = 81;
   friend void swap(WaitRevResponse& a, WaitRevResponse& b) { a.Swap(&b); }
   inline void Swap(WaitRevResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1307,7 +1403,7 @@ class WaitRevRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const WaitRevRequest*>(
         &_WaitRevRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 67;
+  static constexpr int kIndexInFileMessages = 80;
   friend void swap(WaitRevRequest& a, WaitRevRequest& b) { a.Swap(&b); }
   inline void Swap(WaitRevRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1509,7 +1605,7 @@ class ValidResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ValidResponse*>(
         &_ValidResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 48;
+  static constexpr int kIndexInFileMessages = 57;
   friend void swap(ValidResponse& a, ValidResponse& b) { a.Swap(&b); }
   inline void Swap(ValidResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1698,7 +1794,7 @@ class ValidRequest final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const ValidRequest*>(
         &_ValidRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 47;
+  static constexpr int kIndexInFileMessages = 56;
   friend void swap(ValidRequest& a, ValidRequest& b) { a.Swap(&b); }
   inline void Swap(ValidRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1833,7 +1929,7 @@ class TrackedWorldStateSnapshot_ObjectAccess final : public ::google::protobuf::
     return *reinterpret_cast<const TrackedWorldStateSnapshot_ObjectAccess*>(
         &_TrackedWorldStateSnapshot_ObjectAccess_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 43;
+  static constexpr int kIndexInFileMessages = 52;
   friend void swap(TrackedWorldStateSnapshot_ObjectAccess& a, TrackedWorldStateSnapshot_ObjectAccess& b) { a.Swap(&b); }
   inline void Swap(TrackedWorldStateSnapshot_ObjectAccess* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2040,7 +2136,7 @@ class SetRootRefResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const SetRootRefResponse*>(
         &_SetRootRefResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 62;
+  static constexpr int kIndexInFileMessages = 75;
   friend void swap(SetRootRefResponse& a, SetRootRefResponse& b) { a.Swap(&b); }
   inline void Swap(SetRootRefResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2363,7 +2459,7 @@ class SeekResponse final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const SeekResponse*>(
         &_SeekResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 54;
+  static constexpr int kIndexInFileMessages = 63;
   friend void swap(SeekResponse& a, SeekResponse& b) { a.Swap(&b); }
   inline void Swap(SeekResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2498,7 +2594,7 @@ class SeekRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const SeekRequest*>(
         &_SeekRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 53;
+  static constexpr int kIndexInFileMessages = 62;
   friend void swap(SeekRequest& a, SeekRequest& b) { a.Swap(&b); }
   inline void Swap(SeekRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3069,6 +3165,425 @@ class RenameObjectRequest final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull RenameObjectRequest_class_data_;
 // -------------------------------------------------------------------
 
+class QueryGraphPathResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.world.QueryGraphPathResponse) */ {
+ public:
+  inline QueryGraphPathResponse() : QueryGraphPathResponse(nullptr) {}
+  ~QueryGraphPathResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(QueryGraphPathResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(QueryGraphPathResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR QueryGraphPathResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline QueryGraphPathResponse(const QueryGraphPathResponse& from) : QueryGraphPathResponse(nullptr, from) {}
+  inline QueryGraphPathResponse(QueryGraphPathResponse&& from) noexcept
+      : QueryGraphPathResponse(nullptr, ::std::move(from)) {}
+  inline QueryGraphPathResponse& operator=(const QueryGraphPathResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline QueryGraphPathResponse& operator=(QueryGraphPathResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const QueryGraphPathResponse& default_instance() {
+    return *reinterpret_cast<const QueryGraphPathResponse*>(
+        &_QueryGraphPathResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 45;
+  friend void swap(QueryGraphPathResponse& a, QueryGraphPathResponse& b) { a.Swap(&b); }
+  inline void Swap(QueryGraphPathResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(QueryGraphPathResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  QueryGraphPathResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<QueryGraphPathResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const QueryGraphPathResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const QueryGraphPathResponse& from) { QueryGraphPathResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(QueryGraphPathResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.world.QueryGraphPathResponse"; }
+
+  explicit QueryGraphPathResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  QueryGraphPathResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const QueryGraphPathResponse& from);
+  QueryGraphPathResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, QueryGraphPathResponse&& from) noexcept
+      : QueryGraphPathResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kResourceIdFieldNumber = 1,
+  };
+  // uint32 resource_id = 1;
+  void clear_resource_id() ;
+  ::uint32_t resource_id() const;
+  void set_resource_id(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_resource_id() const;
+  void _internal_set_resource_id(::uint32_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.world.QueryGraphPathResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const QueryGraphPathResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::uint32_t resource_id_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull QueryGraphPathResponse_class_data_;
+// -------------------------------------------------------------------
+
+class ObjectMetadata final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.world.ObjectMetadata) */ {
+ public:
+  inline ObjectMetadata() : ObjectMetadata(nullptr) {}
+  ~ObjectMetadata() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ObjectMetadata* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ObjectMetadata));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ObjectMetadata(::google::protobuf::internal::ConstantInitialized);
+
+  inline ObjectMetadata(const ObjectMetadata& from) : ObjectMetadata(nullptr, from) {}
+  inline ObjectMetadata(ObjectMetadata&& from) noexcept
+      : ObjectMetadata(nullptr, ::std::move(from)) {}
+  inline ObjectMetadata& operator=(const ObjectMetadata& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ObjectMetadata& operator=(ObjectMetadata&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ObjectMetadata& default_instance() {
+    return *reinterpret_cast<const ObjectMetadata*>(
+        &_ObjectMetadata_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 40;
+  friend void swap(ObjectMetadata& a, ObjectMetadata& b) { a.Swap(&b); }
+  inline void Swap(ObjectMetadata* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ObjectMetadata* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ObjectMetadata* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<ObjectMetadata>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ObjectMetadata& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const ObjectMetadata& from) { ObjectMetadata::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(ObjectMetadata* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.world.ObjectMetadata"; }
+
+  explicit ObjectMetadata(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  ObjectMetadata(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ObjectMetadata& from);
+  ObjectMetadata(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ObjectMetadata&& from) noexcept
+      : ObjectMetadata(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kObjectKeyFieldNumber = 1,
+    kTypeIdFieldNumber = 2,
+    kParentObjectKeyFieldNumber = 3,
+  };
+  // string object_key = 1;
+  void clear_object_key() ;
+  const ::std::string& object_key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_object_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_object_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_object_key();
+  void set_allocated_object_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_object_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_object_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_object_key();
+
+  public:
+  // string type_id = 2;
+  void clear_type_id() ;
+  const ::std::string& type_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_type_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_type_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_type_id();
+  void set_allocated_type_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_type_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_type_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_type_id();
+
+  public:
+  // string parent_object_key = 3;
+  void clear_parent_object_key() ;
+  const ::std::string& parent_object_key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_parent_object_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_parent_object_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_parent_object_key();
+  void set_allocated_parent_object_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_parent_object_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_parent_object_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_parent_object_key();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.world.ObjectMetadata)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   0, 70,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const ObjectMetadata& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr object_key_;
+    ::google::protobuf::internal::ArenaStringPtr type_id_;
+    ::google::protobuf::internal::ArenaStringPtr parent_object_key_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull ObjectMetadata_class_data_;
+// -------------------------------------------------------------------
+
 class NextResponse final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.world.NextResponse) */ {
  public:
@@ -3124,7 +3639,7 @@ class NextResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const NextResponse*>(
         &_NextResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 52;
+  static constexpr int kIndexInFileMessages = 61;
   friend void swap(NextResponse& a, NextResponse& b) { a.Swap(&b); }
   inline void Swap(NextResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3313,7 +3828,7 @@ class NextRequest final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const NextRequest*>(
         &_NextRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 51;
+  static constexpr int kIndexInFileMessages = 60;
   friend void swap(NextRequest& a, NextRequest& b) { a.Swap(&b); }
   inline void Swap(NextRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3391,6 +3906,140 @@ class NextRequest final : public ::google::protobuf::internal::ZeroFieldsBase
 };
 
 extern const ::google::protobuf::internal::ClassDataFull NextRequest_class_data_;
+// -------------------------------------------------------------------
+
+class NextGraphPathQueryRequest final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:s4wave.world.NextGraphPathQueryRequest) */ {
+ public:
+  inline NextGraphPathQueryRequest() : NextGraphPathQueryRequest(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(NextGraphPathQueryRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(NextGraphPathQueryRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR NextGraphPathQueryRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline NextGraphPathQueryRequest(const NextGraphPathQueryRequest& from) : NextGraphPathQueryRequest(nullptr, from) {}
+  inline NextGraphPathQueryRequest(NextGraphPathQueryRequest&& from) noexcept
+      : NextGraphPathQueryRequest(nullptr, ::std::move(from)) {}
+  inline NextGraphPathQueryRequest& operator=(const NextGraphPathQueryRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline NextGraphPathQueryRequest& operator=(NextGraphPathQueryRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const NextGraphPathQueryRequest& default_instance() {
+    return *reinterpret_cast<const NextGraphPathQueryRequest*>(
+        &_NextGraphPathQueryRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 66;
+  friend void swap(NextGraphPathQueryRequest& a, NextGraphPathQueryRequest& b) { a.Swap(&b); }
+  inline void Swap(NextGraphPathQueryRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(NextGraphPathQueryRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  NextGraphPathQueryRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<NextGraphPathQueryRequest>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const NextGraphPathQueryRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const NextGraphPathQueryRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.world.NextGraphPathQueryRequest"; }
+
+  explicit NextGraphPathQueryRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  NextGraphPathQueryRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const NextGraphPathQueryRequest& from);
+  NextGraphPathQueryRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, NextGraphPathQueryRequest&& from) noexcept
+      : NextGraphPathQueryRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:s4wave.world.NextGraphPathQueryRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull NextGraphPathQueryRequest_class_data_;
 // -------------------------------------------------------------------
 
 class NewTransactionResponse final : public ::google::protobuf::Message
@@ -3840,7 +4489,7 @@ class ListObjectsWithTypeResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ListObjectsWithTypeResponse*>(
         &_ListObjectsWithTypeResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 36;
+  static constexpr int kIndexInFileMessages = 39;
   friend void swap(ListObjectsWithTypeResponse& a, ListObjectsWithTypeResponse& b) { a.Swap(&b); }
   inline void Swap(ListObjectsWithTypeResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4042,7 +4691,7 @@ class ListObjectsWithTypeRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ListObjectsWithTypeRequest*>(
         &_ListObjectsWithTypeRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 35;
+  static constexpr int kIndexInFileMessages = 38;
   friend void swap(ListObjectsWithTypeRequest& a, ListObjectsWithTypeRequest& b) { a.Swap(&b); }
   inline void Swap(ListObjectsWithTypeRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4237,7 +4886,7 @@ class KeyResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const KeyResponse*>(
         &_KeyResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 50;
+  static constexpr int kIndexInFileMessages = 59;
   friend void swap(KeyResponse& a, KeyResponse& b) { a.Swap(&b); }
   inline void Swap(KeyResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4431,7 +5080,7 @@ class KeyRequest final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const KeyRequest*>(
         &_KeyRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 49;
+  static constexpr int kIndexInFileMessages = 58;
   friend void swap(KeyRequest& a, KeyRequest& b) { a.Swap(&b); }
   inline void Swap(KeyRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4963,7 +5612,7 @@ class IncrementRevResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const IncrementRevResponse*>(
         &_IncrementRevResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 66;
+  static constexpr int kIndexInFileMessages = 79;
   friend void swap(IncrementRevResponse& a, IncrementRevResponse& b) { a.Swap(&b); }
   inline void Swap(IncrementRevResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5152,7 +5801,7 @@ class IncrementRevRequest final : public ::google::protobuf::internal::ZeroField
     return *reinterpret_cast<const IncrementRevRequest*>(
         &_IncrementRevRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 65;
+  static constexpr int kIndexInFileMessages = 78;
   friend void swap(IncrementRevRequest& a, IncrementRevRequest& b) { a.Swap(&b); }
   inline void Swap(IncrementRevRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5230,6 +5879,225 @@ class IncrementRevRequest final : public ::google::protobuf::internal::ZeroField
 };
 
 extern const ::google::protobuf::internal::ClassDataFull IncrementRevRequest_class_data_;
+// -------------------------------------------------------------------
+
+class GraphPathStep final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.world.GraphPathStep) */ {
+ public:
+  inline GraphPathStep() : GraphPathStep(nullptr) {}
+  ~GraphPathStep() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(GraphPathStep* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(GraphPathStep));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR GraphPathStep(::google::protobuf::internal::ConstantInitialized);
+
+  inline GraphPathStep(const GraphPathStep& from) : GraphPathStep(nullptr, from) {}
+  inline GraphPathStep(GraphPathStep&& from) noexcept
+      : GraphPathStep(nullptr, ::std::move(from)) {}
+  inline GraphPathStep& operator=(const GraphPathStep& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline GraphPathStep& operator=(GraphPathStep&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const GraphPathStep& default_instance() {
+    return *reinterpret_cast<const GraphPathStep*>(
+        &_GraphPathStep_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 43;
+  friend void swap(GraphPathStep& a, GraphPathStep& b) { a.Swap(&b); }
+  inline void Swap(GraphPathStep* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(GraphPathStep* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  GraphPathStep* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<GraphPathStep>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const GraphPathStep& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const GraphPathStep& from) { GraphPathStep::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(GraphPathStep* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.world.GraphPathStep"; }
+
+  explicit GraphPathStep(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  GraphPathStep(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const GraphPathStep& from);
+  GraphPathStep(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, GraphPathStep&& from) noexcept
+      : GraphPathStep(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kPredicateFieldNumber = 2,
+    kDirectionFieldNumber = 1,
+    kLimitFieldNumber = 3,
+  };
+  // string predicate = 2;
+  void clear_predicate() ;
+  const ::std::string& predicate() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_predicate(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_predicate();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_predicate();
+  void set_allocated_predicate(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_predicate() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_predicate(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_predicate();
+
+  public:
+  // .s4wave.world.GraphPathDirection direction = 1;
+  void clear_direction() ;
+  ::s4wave::world::GraphPathDirection direction() const;
+  void set_direction(::s4wave::world::GraphPathDirection value);
+
+  private:
+  ::s4wave::world::GraphPathDirection _internal_direction() const;
+  void _internal_set_direction(::s4wave::world::GraphPathDirection value);
+
+  public:
+  // uint32 limit = 3;
+  void clear_limit() ;
+  ::uint32_t limit() const;
+  void set_limit(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_limit() const;
+  void _internal_set_limit(::uint32_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.world.GraphPathStep)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   0, 44,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const GraphPathStep& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr predicate_;
+    int direction_;
+    ::uint32_t limit_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull GraphPathStep_class_data_;
 // -------------------------------------------------------------------
 
 class GetSeqnoResponse final : public ::google::protobuf::Message
@@ -5610,7 +6478,7 @@ class GetRootRefRequest final : public ::google::protobuf::internal::ZeroFieldsB
     return *reinterpret_cast<const GetRootRefRequest*>(
         &_GetRootRefRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 59;
+  static constexpr int kIndexInFileMessages = 72;
   friend void swap(GetRootRefRequest& a, GetRootRefRequest& b) { a.Swap(&b); }
   inline void Swap(GetRootRefRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6428,6 +7296,208 @@ class GetObjectRequest final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull GetObjectRequest_class_data_;
 // -------------------------------------------------------------------
 
+class GetObjectMetadataBatchRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.world.GetObjectMetadataBatchRequest) */ {
+ public:
+  inline GetObjectMetadataBatchRequest() : GetObjectMetadataBatchRequest(nullptr) {}
+  ~GetObjectMetadataBatchRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(GetObjectMetadataBatchRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(GetObjectMetadataBatchRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR GetObjectMetadataBatchRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline GetObjectMetadataBatchRequest(const GetObjectMetadataBatchRequest& from) : GetObjectMetadataBatchRequest(nullptr, from) {}
+  inline GetObjectMetadataBatchRequest(GetObjectMetadataBatchRequest&& from) noexcept
+      : GetObjectMetadataBatchRequest(nullptr, ::std::move(from)) {}
+  inline GetObjectMetadataBatchRequest& operator=(const GetObjectMetadataBatchRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline GetObjectMetadataBatchRequest& operator=(GetObjectMetadataBatchRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const GetObjectMetadataBatchRequest& default_instance() {
+    return *reinterpret_cast<const GetObjectMetadataBatchRequest*>(
+        &_GetObjectMetadataBatchRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 41;
+  friend void swap(GetObjectMetadataBatchRequest& a, GetObjectMetadataBatchRequest& b) { a.Swap(&b); }
+  inline void Swap(GetObjectMetadataBatchRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(GetObjectMetadataBatchRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  GetObjectMetadataBatchRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<GetObjectMetadataBatchRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const GetObjectMetadataBatchRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const GetObjectMetadataBatchRequest& from) { GetObjectMetadataBatchRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(GetObjectMetadataBatchRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.world.GetObjectMetadataBatchRequest"; }
+
+  explicit GetObjectMetadataBatchRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  GetObjectMetadataBatchRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const GetObjectMetadataBatchRequest& from);
+  GetObjectMetadataBatchRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, GetObjectMetadataBatchRequest&& from) noexcept
+      : GetObjectMetadataBatchRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kObjectKeysFieldNumber = 1,
+  };
+  // repeated string object_keys = 1;
+  int object_keys_size() const;
+  private:
+  int _internal_object_keys_size() const;
+
+  public:
+  void clear_object_keys() ;
+  const ::std::string& object_keys(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_object_keys(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_object_keys(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_object_keys();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_object_keys(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& object_keys() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_object_keys();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_object_keys() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_object_keys();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.world.GetObjectMetadataBatchRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   0, 62,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const GetObjectMetadataBatchRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField<::std::string> object_keys_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull GetObjectMetadataBatchRequest_class_data_;
+// -------------------------------------------------------------------
+
 class GetKeyResponse final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.world.GetKeyResponse) */ {
  public:
@@ -6483,7 +7553,7 @@ class GetKeyResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetKeyResponse*>(
         &_GetKeyResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 58;
+  static constexpr int kIndexInFileMessages = 71;
   friend void swap(GetKeyResponse& a, GetKeyResponse& b) { a.Swap(&b); }
   inline void Swap(GetKeyResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6677,7 +7747,7 @@ class GetKeyRequest final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const GetKeyRequest*>(
         &_GetKeyRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 57;
+  static constexpr int kIndexInFileMessages = 70;
   friend void swap(GetKeyRequest& a, GetKeyRequest& b) { a.Swap(&b); }
   inline void Swap(GetKeyRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6946,7 +8016,7 @@ class ErrResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ErrResponse*>(
         &_ErrResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 46;
+  static constexpr int kIndexInFileMessages = 55;
   friend void swap(ErrResponse& a, ErrResponse& b) { a.Swap(&b); }
   inline void Swap(ErrResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7140,7 +8210,7 @@ class ErrRequest final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const ErrRequest*>(
         &_ErrRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 45;
+  static constexpr int kIndexInFileMessages = 54;
   friend void swap(ErrRequest& a, ErrRequest& b) { a.Swap(&b); }
   inline void Swap(ErrRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -8273,7 +9343,7 @@ class DeleteGraphObjectResponse final : public ::google::protobuf::internal::Zer
     return *reinterpret_cast<const DeleteGraphObjectResponse*>(
         &_DeleteGraphObjectResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 38;
+  static constexpr int kIndexInFileMessages = 47;
   friend void swap(DeleteGraphObjectResponse& a, DeleteGraphObjectResponse& b) { a.Swap(&b); }
   inline void Swap(DeleteGraphObjectResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -8408,7 +9478,7 @@ class DeleteGraphObjectRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const DeleteGraphObjectRequest*>(
         &_DeleteGraphObjectRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 37;
+  static constexpr int kIndexInFileMessages = 46;
   friend void swap(DeleteGraphObjectRequest& a, DeleteGraphObjectRequest& b) { a.Swap(&b); }
   inline void Swap(DeleteGraphObjectRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9077,7 +10147,7 @@ class CloseResponse final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const CloseResponse*>(
         &_CloseResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 56;
+  static constexpr int kIndexInFileMessages = 65;
   friend void swap(CloseResponse& a, CloseResponse& b) { a.Swap(&b); }
   inline void Swap(CloseResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9211,7 +10281,7 @@ class CloseRequest final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const CloseRequest*>(
         &_CloseRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 55;
+  static constexpr int kIndexInFileMessages = 64;
   friend void swap(CloseRequest& a, CloseRequest& b) { a.Swap(&b); }
   inline void Swap(CloseRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9289,6 +10359,274 @@ class CloseRequest final : public ::google::protobuf::internal::ZeroFieldsBase
 };
 
 extern const ::google::protobuf::internal::ClassDataFull CloseRequest_class_data_;
+// -------------------------------------------------------------------
+
+class CloseGraphPathQueryResponse final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:s4wave.world.CloseGraphPathQueryResponse) */ {
+ public:
+  inline CloseGraphPathQueryResponse() : CloseGraphPathQueryResponse(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(CloseGraphPathQueryResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(CloseGraphPathQueryResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR CloseGraphPathQueryResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline CloseGraphPathQueryResponse(const CloseGraphPathQueryResponse& from) : CloseGraphPathQueryResponse(nullptr, from) {}
+  inline CloseGraphPathQueryResponse(CloseGraphPathQueryResponse&& from) noexcept
+      : CloseGraphPathQueryResponse(nullptr, ::std::move(from)) {}
+  inline CloseGraphPathQueryResponse& operator=(const CloseGraphPathQueryResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline CloseGraphPathQueryResponse& operator=(CloseGraphPathQueryResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const CloseGraphPathQueryResponse& default_instance() {
+    return *reinterpret_cast<const CloseGraphPathQueryResponse*>(
+        &_CloseGraphPathQueryResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 69;
+  friend void swap(CloseGraphPathQueryResponse& a, CloseGraphPathQueryResponse& b) { a.Swap(&b); }
+  inline void Swap(CloseGraphPathQueryResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(CloseGraphPathQueryResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  CloseGraphPathQueryResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<CloseGraphPathQueryResponse>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const CloseGraphPathQueryResponse& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const CloseGraphPathQueryResponse& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.world.CloseGraphPathQueryResponse"; }
+
+  explicit CloseGraphPathQueryResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  CloseGraphPathQueryResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const CloseGraphPathQueryResponse& from);
+  CloseGraphPathQueryResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, CloseGraphPathQueryResponse&& from) noexcept
+      : CloseGraphPathQueryResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:s4wave.world.CloseGraphPathQueryResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull CloseGraphPathQueryResponse_class_data_;
+// -------------------------------------------------------------------
+
+class CloseGraphPathQueryRequest final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:s4wave.world.CloseGraphPathQueryRequest) */ {
+ public:
+  inline CloseGraphPathQueryRequest() : CloseGraphPathQueryRequest(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(CloseGraphPathQueryRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(CloseGraphPathQueryRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR CloseGraphPathQueryRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline CloseGraphPathQueryRequest(const CloseGraphPathQueryRequest& from) : CloseGraphPathQueryRequest(nullptr, from) {}
+  inline CloseGraphPathQueryRequest(CloseGraphPathQueryRequest&& from) noexcept
+      : CloseGraphPathQueryRequest(nullptr, ::std::move(from)) {}
+  inline CloseGraphPathQueryRequest& operator=(const CloseGraphPathQueryRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline CloseGraphPathQueryRequest& operator=(CloseGraphPathQueryRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const CloseGraphPathQueryRequest& default_instance() {
+    return *reinterpret_cast<const CloseGraphPathQueryRequest*>(
+        &_CloseGraphPathQueryRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 68;
+  friend void swap(CloseGraphPathQueryRequest& a, CloseGraphPathQueryRequest& b) { a.Swap(&b); }
+  inline void Swap(CloseGraphPathQueryRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(CloseGraphPathQueryRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  CloseGraphPathQueryRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<CloseGraphPathQueryRequest>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const CloseGraphPathQueryRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const CloseGraphPathQueryRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.world.CloseGraphPathQueryRequest"; }
+
+  explicit CloseGraphPathQueryRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  CloseGraphPathQueryRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const CloseGraphPathQueryRequest& from);
+  CloseGraphPathQueryRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, CloseGraphPathQueryRequest&& from) noexcept
+      : CloseGraphPathQueryRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:s4wave.world.CloseGraphPathQueryRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull CloseGraphPathQueryRequest_class_data_;
 // -------------------------------------------------------------------
 
 class BuildStorageCursorResponse final : public ::google::protobuf::Message
@@ -9670,7 +11008,7 @@ class ApplyWorldOpResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ApplyWorldOpResponse*>(
         &_ApplyWorldOpResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 40;
+  static constexpr int kIndexInFileMessages = 49;
   friend void swap(ApplyWorldOpResponse& a, ApplyWorldOpResponse& b) { a.Swap(&b); }
   inline void Swap(ApplyWorldOpResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9872,7 +11210,7 @@ class ApplyWorldOpRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ApplyWorldOpRequest*>(
         &_ApplyWorldOpRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 39;
+  static constexpr int kIndexInFileMessages = 48;
   friend void swap(ApplyWorldOpRequest& a, ApplyWorldOpRequest& b) { a.Swap(&b); }
   inline void Swap(ApplyWorldOpRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -10101,7 +11439,7 @@ class ApplyObjectOpResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ApplyObjectOpResponse*>(
         &_ApplyObjectOpResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 64;
+  static constexpr int kIndexInFileMessages = 77;
   friend void swap(ApplyObjectOpResponse& a, ApplyObjectOpResponse& b) { a.Swap(&b); }
   inline void Swap(ApplyObjectOpResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -10303,7 +11641,7 @@ class ApplyObjectOpRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ApplyObjectOpRequest*>(
         &_ApplyObjectOpRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 63;
+  static constexpr int kIndexInFileMessages = 76;
   friend void swap(ApplyObjectOpRequest& a, ApplyObjectOpRequest& b) { a.Swap(&b); }
   inline void Swap(ApplyObjectOpRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -10722,7 +12060,7 @@ class AccessTypedObjectResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccessTypedObjectResponse*>(
         &_AccessTypedObjectResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 70;
+  static constexpr int kIndexInFileMessages = 83;
   friend void swap(AccessTypedObjectResponse& a, AccessTypedObjectResponse& b) { a.Swap(&b); }
   inline void Swap(AccessTypedObjectResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -10929,7 +12267,7 @@ class AccessTypedObjectRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccessTypedObjectRequest*>(
         &_AccessTypedObjectRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 69;
+  static constexpr int kIndexInFileMessages = 82;
   friend void swap(AccessTypedObjectRequest& a, AccessTypedObjectRequest& b) { a.Swap(&b); }
   inline void Swap(AccessTypedObjectRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11124,7 +12462,7 @@ class TrackedWorldStateSnapshot final : public ::google::protobuf::Message
     return *reinterpret_cast<const TrackedWorldStateSnapshot*>(
         &_TrackedWorldStateSnapshot_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 44;
+  static constexpr int kIndexInFileMessages = 53;
   friend void swap(TrackedWorldStateSnapshot& a, TrackedWorldStateSnapshot& b) { a.Swap(&b); }
   inline void Swap(TrackedWorldStateSnapshot* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11484,6 +12822,496 @@ class SetGraphQuadRequest final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull SetGraphQuadRequest_class_data_;
+// -------------------------------------------------------------------
+
+class QueryGraphPathRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.world.QueryGraphPathRequest) */ {
+ public:
+  inline QueryGraphPathRequest() : QueryGraphPathRequest(nullptr) {}
+  ~QueryGraphPathRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(QueryGraphPathRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(QueryGraphPathRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR QueryGraphPathRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline QueryGraphPathRequest(const QueryGraphPathRequest& from) : QueryGraphPathRequest(nullptr, from) {}
+  inline QueryGraphPathRequest(QueryGraphPathRequest&& from) noexcept
+      : QueryGraphPathRequest(nullptr, ::std::move(from)) {}
+  inline QueryGraphPathRequest& operator=(const QueryGraphPathRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline QueryGraphPathRequest& operator=(QueryGraphPathRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const QueryGraphPathRequest& default_instance() {
+    return *reinterpret_cast<const QueryGraphPathRequest*>(
+        &_QueryGraphPathRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 44;
+  friend void swap(QueryGraphPathRequest& a, QueryGraphPathRequest& b) { a.Swap(&b); }
+  inline void Swap(QueryGraphPathRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(QueryGraphPathRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  QueryGraphPathRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<QueryGraphPathRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const QueryGraphPathRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const QueryGraphPathRequest& from) { QueryGraphPathRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(QueryGraphPathRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.world.QueryGraphPathRequest"; }
+
+  explicit QueryGraphPathRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  QueryGraphPathRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const QueryGraphPathRequest& from);
+  QueryGraphPathRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, QueryGraphPathRequest&& from) noexcept
+      : QueryGraphPathRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kStartKeysFieldNumber = 1,
+    kStepsFieldNumber = 2,
+    kResultLimitFieldNumber = 3,
+    kIncludeQuadsFieldNumber = 4,
+    kPageSizeFieldNumber = 5,
+  };
+  // repeated string start_keys = 1;
+  int start_keys_size() const;
+  private:
+  int _internal_start_keys_size() const;
+
+  public:
+  void clear_start_keys() ;
+  const ::std::string& start_keys(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_start_keys(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_start_keys(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_start_keys();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_start_keys(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& start_keys() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_start_keys();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_start_keys() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_start_keys();
+
+  public:
+  // repeated .s4wave.world.GraphPathStep steps = 2;
+  int steps_size() const;
+  private:
+  int _internal_steps_size() const;
+
+  public:
+  void clear_steps() ;
+  ::s4wave::world::GraphPathStep* PROTOBUF_NONNULL mutable_steps(int index);
+  ::google::protobuf::RepeatedPtrField<::s4wave::world::GraphPathStep>* PROTOBUF_NONNULL mutable_steps();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::s4wave::world::GraphPathStep>& _internal_steps() const;
+  ::google::protobuf::RepeatedPtrField<::s4wave::world::GraphPathStep>* PROTOBUF_NONNULL _internal_mutable_steps();
+  public:
+  const ::s4wave::world::GraphPathStep& steps(int index) const;
+  ::s4wave::world::GraphPathStep* PROTOBUF_NONNULL add_steps();
+  const ::google::protobuf::RepeatedPtrField<::s4wave::world::GraphPathStep>& steps() const;
+  // uint32 result_limit = 3;
+  void clear_result_limit() ;
+  ::uint32_t result_limit() const;
+  void set_result_limit(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_result_limit() const;
+  void _internal_set_result_limit(::uint32_t value);
+
+  public:
+  // bool include_quads = 4;
+  void clear_include_quads() ;
+  bool include_quads() const;
+  void set_include_quads(bool value);
+
+  private:
+  bool _internal_include_quads() const;
+  void _internal_set_include_quads(bool value);
+
+  public:
+  // uint32 page_size = 5;
+  void clear_page_size() ;
+  ::uint32_t page_size() const;
+  void set_page_size(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_page_size() const;
+  void _internal_set_page_size(::uint32_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.world.QueryGraphPathRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 5,
+                                   1, 53,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const QueryGraphPathRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField<::std::string> start_keys_;
+    ::google::protobuf::RepeatedPtrField< ::s4wave::world::GraphPathStep > steps_;
+    ::uint32_t result_limit_;
+    bool include_quads_;
+    ::uint32_t page_size_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull QueryGraphPathRequest_class_data_;
+// -------------------------------------------------------------------
+
+class NextGraphPathQueryResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.world.NextGraphPathQueryResponse) */ {
+ public:
+  inline NextGraphPathQueryResponse() : NextGraphPathQueryResponse(nullptr) {}
+  ~NextGraphPathQueryResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(NextGraphPathQueryResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(NextGraphPathQueryResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR NextGraphPathQueryResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline NextGraphPathQueryResponse(const NextGraphPathQueryResponse& from) : NextGraphPathQueryResponse(nullptr, from) {}
+  inline NextGraphPathQueryResponse(NextGraphPathQueryResponse&& from) noexcept
+      : NextGraphPathQueryResponse(nullptr, ::std::move(from)) {}
+  inline NextGraphPathQueryResponse& operator=(const NextGraphPathQueryResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline NextGraphPathQueryResponse& operator=(NextGraphPathQueryResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const NextGraphPathQueryResponse& default_instance() {
+    return *reinterpret_cast<const NextGraphPathQueryResponse*>(
+        &_NextGraphPathQueryResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 67;
+  friend void swap(NextGraphPathQueryResponse& a, NextGraphPathQueryResponse& b) { a.Swap(&b); }
+  inline void Swap(NextGraphPathQueryResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(NextGraphPathQueryResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  NextGraphPathQueryResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<NextGraphPathQueryResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const NextGraphPathQueryResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const NextGraphPathQueryResponse& from) { NextGraphPathQueryResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(NextGraphPathQueryResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.world.NextGraphPathQueryResponse"; }
+
+  explicit NextGraphPathQueryResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  NextGraphPathQueryResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const NextGraphPathQueryResponse& from);
+  NextGraphPathQueryResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, NextGraphPathQueryResponse&& from) noexcept
+      : NextGraphPathQueryResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kObjectKeysFieldNumber = 1,
+    kQuadsFieldNumber = 2,
+    kDoneFieldNumber = 3,
+  };
+  // repeated string object_keys = 1;
+  int object_keys_size() const;
+  private:
+  int _internal_object_keys_size() const;
+
+  public:
+  void clear_object_keys() ;
+  const ::std::string& object_keys(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_object_keys(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_object_keys(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_object_keys();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_object_keys(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& object_keys() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_object_keys();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_object_keys() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_object_keys();
+
+  public:
+  // repeated .quad.Quad quads = 2;
+  int quads_size() const;
+  private:
+  int _internal_quads_size() const;
+
+  public:
+  void clear_quads() ;
+  ::quad::Quad* PROTOBUF_NONNULL mutable_quads(int index);
+  ::google::protobuf::RepeatedPtrField<::quad::Quad>* PROTOBUF_NONNULL mutable_quads();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::quad::Quad>& _internal_quads() const;
+  ::google::protobuf::RepeatedPtrField<::quad::Quad>* PROTOBUF_NONNULL _internal_mutable_quads();
+  public:
+  const ::quad::Quad& quads(int index) const;
+  ::quad::Quad* PROTOBUF_NONNULL add_quads();
+  const ::google::protobuf::RepeatedPtrField<::quad::Quad>& quads() const;
+  // bool done = 3;
+  void clear_done() ;
+  bool done() const;
+  void set_done(bool value);
+
+  private:
+  bool _internal_done() const;
+  void _internal_set_done(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.world.NextGraphPathQueryResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   1, 59,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const NextGraphPathQueryResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField<::std::string> object_keys_;
+    ::google::protobuf::RepeatedPtrField< ::quad::Quad > quads_;
+    bool done_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull NextGraphPathQueryResponse_class_data_;
 // -------------------------------------------------------------------
 
 class LookupGraphQuadsResponse final : public ::google::protobuf::Message
@@ -11890,6 +13718,609 @@ class LookupGraphQuadsRequest final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull LookupGraphQuadsRequest_class_data_;
 // -------------------------------------------------------------------
 
+class LookupGraphQuadsBatchResult final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.world.LookupGraphQuadsBatchResult) */ {
+ public:
+  inline LookupGraphQuadsBatchResult() : LookupGraphQuadsBatchResult(nullptr) {}
+  ~LookupGraphQuadsBatchResult() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(LookupGraphQuadsBatchResult* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(LookupGraphQuadsBatchResult));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR LookupGraphQuadsBatchResult(::google::protobuf::internal::ConstantInitialized);
+
+  inline LookupGraphQuadsBatchResult(const LookupGraphQuadsBatchResult& from) : LookupGraphQuadsBatchResult(nullptr, from) {}
+  inline LookupGraphQuadsBatchResult(LookupGraphQuadsBatchResult&& from) noexcept
+      : LookupGraphQuadsBatchResult(nullptr, ::std::move(from)) {}
+  inline LookupGraphQuadsBatchResult& operator=(const LookupGraphQuadsBatchResult& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline LookupGraphQuadsBatchResult& operator=(LookupGraphQuadsBatchResult&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const LookupGraphQuadsBatchResult& default_instance() {
+    return *reinterpret_cast<const LookupGraphQuadsBatchResult*>(
+        &_LookupGraphQuadsBatchResult_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 36;
+  friend void swap(LookupGraphQuadsBatchResult& a, LookupGraphQuadsBatchResult& b) { a.Swap(&b); }
+  inline void Swap(LookupGraphQuadsBatchResult* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(LookupGraphQuadsBatchResult* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  LookupGraphQuadsBatchResult* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<LookupGraphQuadsBatchResult>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const LookupGraphQuadsBatchResult& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const LookupGraphQuadsBatchResult& from) { LookupGraphQuadsBatchResult::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(LookupGraphQuadsBatchResult* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.world.LookupGraphQuadsBatchResult"; }
+
+  explicit LookupGraphQuadsBatchResult(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  LookupGraphQuadsBatchResult(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const LookupGraphQuadsBatchResult& from);
+  LookupGraphQuadsBatchResult(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, LookupGraphQuadsBatchResult&& from) noexcept
+      : LookupGraphQuadsBatchResult(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kQuadsFieldNumber = 1,
+  };
+  // repeated .quad.Quad quads = 1;
+  int quads_size() const;
+  private:
+  int _internal_quads_size() const;
+
+  public:
+  void clear_quads() ;
+  ::quad::Quad* PROTOBUF_NONNULL mutable_quads(int index);
+  ::google::protobuf::RepeatedPtrField<::quad::Quad>* PROTOBUF_NONNULL mutable_quads();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::quad::Quad>& _internal_quads() const;
+  ::google::protobuf::RepeatedPtrField<::quad::Quad>* PROTOBUF_NONNULL _internal_mutable_quads();
+  public:
+  const ::quad::Quad& quads(int index) const;
+  ::quad::Quad* PROTOBUF_NONNULL add_quads();
+  const ::google::protobuf::RepeatedPtrField<::quad::Quad>& quads() const;
+  // @@protoc_insertion_point(class_scope:s4wave.world.LookupGraphQuadsBatchResult)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const LookupGraphQuadsBatchResult& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField< ::quad::Quad > quads_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull LookupGraphQuadsBatchResult_class_data_;
+// -------------------------------------------------------------------
+
+class LookupGraphQuadsBatchRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.world.LookupGraphQuadsBatchRequest) */ {
+ public:
+  inline LookupGraphQuadsBatchRequest() : LookupGraphQuadsBatchRequest(nullptr) {}
+  ~LookupGraphQuadsBatchRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(LookupGraphQuadsBatchRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(LookupGraphQuadsBatchRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR LookupGraphQuadsBatchRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline LookupGraphQuadsBatchRequest(const LookupGraphQuadsBatchRequest& from) : LookupGraphQuadsBatchRequest(nullptr, from) {}
+  inline LookupGraphQuadsBatchRequest(LookupGraphQuadsBatchRequest&& from) noexcept
+      : LookupGraphQuadsBatchRequest(nullptr, ::std::move(from)) {}
+  inline LookupGraphQuadsBatchRequest& operator=(const LookupGraphQuadsBatchRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline LookupGraphQuadsBatchRequest& operator=(LookupGraphQuadsBatchRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const LookupGraphQuadsBatchRequest& default_instance() {
+    return *reinterpret_cast<const LookupGraphQuadsBatchRequest*>(
+        &_LookupGraphQuadsBatchRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 35;
+  friend void swap(LookupGraphQuadsBatchRequest& a, LookupGraphQuadsBatchRequest& b) { a.Swap(&b); }
+  inline void Swap(LookupGraphQuadsBatchRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(LookupGraphQuadsBatchRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  LookupGraphQuadsBatchRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<LookupGraphQuadsBatchRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const LookupGraphQuadsBatchRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const LookupGraphQuadsBatchRequest& from) { LookupGraphQuadsBatchRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(LookupGraphQuadsBatchRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.world.LookupGraphQuadsBatchRequest"; }
+
+  explicit LookupGraphQuadsBatchRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  LookupGraphQuadsBatchRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const LookupGraphQuadsBatchRequest& from);
+  LookupGraphQuadsBatchRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, LookupGraphQuadsBatchRequest&& from) noexcept
+      : LookupGraphQuadsBatchRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kFiltersFieldNumber = 1,
+    kLimitPerFilterFieldNumber = 2,
+  };
+  // repeated .quad.Quad filters = 1;
+  int filters_size() const;
+  private:
+  int _internal_filters_size() const;
+
+  public:
+  void clear_filters() ;
+  ::quad::Quad* PROTOBUF_NONNULL mutable_filters(int index);
+  ::google::protobuf::RepeatedPtrField<::quad::Quad>* PROTOBUF_NONNULL mutable_filters();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::quad::Quad>& _internal_filters() const;
+  ::google::protobuf::RepeatedPtrField<::quad::Quad>* PROTOBUF_NONNULL _internal_mutable_filters();
+  public:
+  const ::quad::Quad& filters(int index) const;
+  ::quad::Quad* PROTOBUF_NONNULL add_filters();
+  const ::google::protobuf::RepeatedPtrField<::quad::Quad>& filters() const;
+  // uint32 limit_per_filter = 2;
+  void clear_limit_per_filter() ;
+  ::uint32_t limit_per_filter() const;
+  void set_limit_per_filter(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_limit_per_filter() const;
+  void _internal_set_limit_per_filter(::uint32_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.world.LookupGraphQuadsBatchRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const LookupGraphQuadsBatchRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField< ::quad::Quad > filters_;
+    ::uint32_t limit_per_filter_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull LookupGraphQuadsBatchRequest_class_data_;
+// -------------------------------------------------------------------
+
+class GetObjectMetadataBatchResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.world.GetObjectMetadataBatchResponse) */ {
+ public:
+  inline GetObjectMetadataBatchResponse() : GetObjectMetadataBatchResponse(nullptr) {}
+  ~GetObjectMetadataBatchResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(GetObjectMetadataBatchResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(GetObjectMetadataBatchResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR GetObjectMetadataBatchResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline GetObjectMetadataBatchResponse(const GetObjectMetadataBatchResponse& from) : GetObjectMetadataBatchResponse(nullptr, from) {}
+  inline GetObjectMetadataBatchResponse(GetObjectMetadataBatchResponse&& from) noexcept
+      : GetObjectMetadataBatchResponse(nullptr, ::std::move(from)) {}
+  inline GetObjectMetadataBatchResponse& operator=(const GetObjectMetadataBatchResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline GetObjectMetadataBatchResponse& operator=(GetObjectMetadataBatchResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const GetObjectMetadataBatchResponse& default_instance() {
+    return *reinterpret_cast<const GetObjectMetadataBatchResponse*>(
+        &_GetObjectMetadataBatchResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 42;
+  friend void swap(GetObjectMetadataBatchResponse& a, GetObjectMetadataBatchResponse& b) { a.Swap(&b); }
+  inline void Swap(GetObjectMetadataBatchResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(GetObjectMetadataBatchResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  GetObjectMetadataBatchResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<GetObjectMetadataBatchResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const GetObjectMetadataBatchResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const GetObjectMetadataBatchResponse& from) { GetObjectMetadataBatchResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(GetObjectMetadataBatchResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.world.GetObjectMetadataBatchResponse"; }
+
+  explicit GetObjectMetadataBatchResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  GetObjectMetadataBatchResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const GetObjectMetadataBatchResponse& from);
+  GetObjectMetadataBatchResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, GetObjectMetadataBatchResponse&& from) noexcept
+      : GetObjectMetadataBatchResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kMetadataFieldNumber = 1,
+  };
+  // repeated .s4wave.world.ObjectMetadata metadata = 1;
+  int metadata_size() const;
+  private:
+  int _internal_metadata_size() const;
+
+  public:
+  void clear_metadata() ;
+  ::s4wave::world::ObjectMetadata* PROTOBUF_NONNULL mutable_metadata(int index);
+  ::google::protobuf::RepeatedPtrField<::s4wave::world::ObjectMetadata>* PROTOBUF_NONNULL mutable_metadata();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::s4wave::world::ObjectMetadata>& _internal_metadata() const;
+  ::google::protobuf::RepeatedPtrField<::s4wave::world::ObjectMetadata>* PROTOBUF_NONNULL _internal_mutable_metadata();
+  public:
+  const ::s4wave::world::ObjectMetadata& metadata(int index) const;
+  ::s4wave::world::ObjectMetadata* PROTOBUF_NONNULL add_metadata();
+  const ::google::protobuf::RepeatedPtrField<::s4wave::world::ObjectMetadata>& metadata() const;
+  // @@protoc_insertion_point(class_scope:s4wave.world.GetObjectMetadataBatchResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const GetObjectMetadataBatchResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField< ::s4wave::world::ObjectMetadata > metadata_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull GetObjectMetadataBatchResponse_class_data_;
+// -------------------------------------------------------------------
+
 class GetEngineInfoResponse final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.world.GetEngineInfoResponse) */ {
  public:
@@ -12280,6 +14711,203 @@ class DeleteGraphQuadRequest final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull DeleteGraphQuadRequest_class_data_;
 // -------------------------------------------------------------------
 
+class LookupGraphQuadsBatchResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.world.LookupGraphQuadsBatchResponse) */ {
+ public:
+  inline LookupGraphQuadsBatchResponse() : LookupGraphQuadsBatchResponse(nullptr) {}
+  ~LookupGraphQuadsBatchResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(LookupGraphQuadsBatchResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(LookupGraphQuadsBatchResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR LookupGraphQuadsBatchResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline LookupGraphQuadsBatchResponse(const LookupGraphQuadsBatchResponse& from) : LookupGraphQuadsBatchResponse(nullptr, from) {}
+  inline LookupGraphQuadsBatchResponse(LookupGraphQuadsBatchResponse&& from) noexcept
+      : LookupGraphQuadsBatchResponse(nullptr, ::std::move(from)) {}
+  inline LookupGraphQuadsBatchResponse& operator=(const LookupGraphQuadsBatchResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline LookupGraphQuadsBatchResponse& operator=(LookupGraphQuadsBatchResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const LookupGraphQuadsBatchResponse& default_instance() {
+    return *reinterpret_cast<const LookupGraphQuadsBatchResponse*>(
+        &_LookupGraphQuadsBatchResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 37;
+  friend void swap(LookupGraphQuadsBatchResponse& a, LookupGraphQuadsBatchResponse& b) { a.Swap(&b); }
+  inline void Swap(LookupGraphQuadsBatchResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(LookupGraphQuadsBatchResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  LookupGraphQuadsBatchResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<LookupGraphQuadsBatchResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const LookupGraphQuadsBatchResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const LookupGraphQuadsBatchResponse& from) { LookupGraphQuadsBatchResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(LookupGraphQuadsBatchResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.world.LookupGraphQuadsBatchResponse"; }
+
+  explicit LookupGraphQuadsBatchResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  LookupGraphQuadsBatchResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const LookupGraphQuadsBatchResponse& from);
+  LookupGraphQuadsBatchResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, LookupGraphQuadsBatchResponse&& from) noexcept
+      : LookupGraphQuadsBatchResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kResultsFieldNumber = 1,
+  };
+  // repeated .s4wave.world.LookupGraphQuadsBatchResult results = 1;
+  int results_size() const;
+  private:
+  int _internal_results_size() const;
+
+  public:
+  void clear_results() ;
+  ::s4wave::world::LookupGraphQuadsBatchResult* PROTOBUF_NONNULL mutable_results(int index);
+  ::google::protobuf::RepeatedPtrField<::s4wave::world::LookupGraphQuadsBatchResult>* PROTOBUF_NONNULL mutable_results();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::s4wave::world::LookupGraphQuadsBatchResult>& _internal_results() const;
+  ::google::protobuf::RepeatedPtrField<::s4wave::world::LookupGraphQuadsBatchResult>* PROTOBUF_NONNULL _internal_mutable_results();
+  public:
+  const ::s4wave::world::LookupGraphQuadsBatchResult& results(int index) const;
+  ::s4wave::world::LookupGraphQuadsBatchResult* PROTOBUF_NONNULL add_results();
+  const ::google::protobuf::RepeatedPtrField<::s4wave::world::LookupGraphQuadsBatchResult>& results() const;
+  // @@protoc_insertion_point(class_scope:s4wave.world.LookupGraphQuadsBatchResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const LookupGraphQuadsBatchResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField< ::s4wave::world::LookupGraphQuadsBatchResult > results_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull LookupGraphQuadsBatchResponse_class_data_;
+// -------------------------------------------------------------------
+
 class SetRootRefRequest final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.world.SetRootRefRequest) */ {
  public:
@@ -12335,7 +14963,7 @@ class SetRootRefRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const SetRootRefRequest*>(
         &_SetRootRefRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 61;
+  static constexpr int kIndexInFileMessages = 74;
   friend void swap(SetRootRefRequest& a, SetRootRefRequest& b) { a.Swap(&b); }
   inline void Swap(SetRootRefRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -12530,7 +15158,7 @@ class GetRootRefResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetRootRefResponse*>(
         &_GetRootRefResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 60;
+  static constexpr int kIndexInFileMessages = 73;
   friend void swap(GetRootRefResponse& a, GetRootRefResponse& b) { a.Swap(&b); }
   inline void Swap(GetRootRefResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -15021,6 +17649,199 @@ LookupGraphQuadsResponse::_internal_mutable_quads() {
 
 // -------------------------------------------------------------------
 
+// LookupGraphQuadsBatchRequest
+
+// repeated .quad.Quad filters = 1;
+inline int LookupGraphQuadsBatchRequest::_internal_filters_size() const {
+  return _internal_filters().size();
+}
+inline int LookupGraphQuadsBatchRequest::filters_size() const {
+  return _internal_filters_size();
+}
+inline ::quad::Quad* PROTOBUF_NONNULL LookupGraphQuadsBatchRequest::mutable_filters(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.world.LookupGraphQuadsBatchRequest.filters)
+  return _internal_mutable_filters()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::quad::Quad>* PROTOBUF_NONNULL LookupGraphQuadsBatchRequest::mutable_filters()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.world.LookupGraphQuadsBatchRequest.filters)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_filters();
+}
+inline const ::quad::Quad& LookupGraphQuadsBatchRequest::filters(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.world.LookupGraphQuadsBatchRequest.filters)
+  return _internal_filters().Get(index);
+}
+inline ::quad::Quad* PROTOBUF_NONNULL LookupGraphQuadsBatchRequest::add_filters()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::quad::Quad* _add =
+      _internal_mutable_filters()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:s4wave.world.LookupGraphQuadsBatchRequest.filters)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::quad::Quad>& LookupGraphQuadsBatchRequest::filters() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.world.LookupGraphQuadsBatchRequest.filters)
+  return _internal_filters();
+}
+inline const ::google::protobuf::RepeatedPtrField<::quad::Quad>&
+LookupGraphQuadsBatchRequest::_internal_filters() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.filters_;
+}
+inline ::google::protobuf::RepeatedPtrField<::quad::Quad>* PROTOBUF_NONNULL
+LookupGraphQuadsBatchRequest::_internal_mutable_filters() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.filters_;
+}
+
+// uint32 limit_per_filter = 2;
+inline void LookupGraphQuadsBatchRequest::clear_limit_per_filter() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.limit_per_filter_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::uint32_t LookupGraphQuadsBatchRequest::limit_per_filter() const {
+  // @@protoc_insertion_point(field_get:s4wave.world.LookupGraphQuadsBatchRequest.limit_per_filter)
+  return _internal_limit_per_filter();
+}
+inline void LookupGraphQuadsBatchRequest::set_limit_per_filter(::uint32_t value) {
+  _internal_set_limit_per_filter(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_set:s4wave.world.LookupGraphQuadsBatchRequest.limit_per_filter)
+}
+inline ::uint32_t LookupGraphQuadsBatchRequest::_internal_limit_per_filter() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.limit_per_filter_;
+}
+inline void LookupGraphQuadsBatchRequest::_internal_set_limit_per_filter(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.limit_per_filter_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// LookupGraphQuadsBatchResult
+
+// repeated .quad.Quad quads = 1;
+inline int LookupGraphQuadsBatchResult::_internal_quads_size() const {
+  return _internal_quads().size();
+}
+inline int LookupGraphQuadsBatchResult::quads_size() const {
+  return _internal_quads_size();
+}
+inline ::quad::Quad* PROTOBUF_NONNULL LookupGraphQuadsBatchResult::mutable_quads(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.world.LookupGraphQuadsBatchResult.quads)
+  return _internal_mutable_quads()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::quad::Quad>* PROTOBUF_NONNULL LookupGraphQuadsBatchResult::mutable_quads()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.world.LookupGraphQuadsBatchResult.quads)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_quads();
+}
+inline const ::quad::Quad& LookupGraphQuadsBatchResult::quads(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.world.LookupGraphQuadsBatchResult.quads)
+  return _internal_quads().Get(index);
+}
+inline ::quad::Quad* PROTOBUF_NONNULL LookupGraphQuadsBatchResult::add_quads()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::quad::Quad* _add =
+      _internal_mutable_quads()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:s4wave.world.LookupGraphQuadsBatchResult.quads)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::quad::Quad>& LookupGraphQuadsBatchResult::quads() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.world.LookupGraphQuadsBatchResult.quads)
+  return _internal_quads();
+}
+inline const ::google::protobuf::RepeatedPtrField<::quad::Quad>&
+LookupGraphQuadsBatchResult::_internal_quads() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.quads_;
+}
+inline ::google::protobuf::RepeatedPtrField<::quad::Quad>* PROTOBUF_NONNULL
+LookupGraphQuadsBatchResult::_internal_mutable_quads() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.quads_;
+}
+
+// -------------------------------------------------------------------
+
+// LookupGraphQuadsBatchResponse
+
+// repeated .s4wave.world.LookupGraphQuadsBatchResult results = 1;
+inline int LookupGraphQuadsBatchResponse::_internal_results_size() const {
+  return _internal_results().size();
+}
+inline int LookupGraphQuadsBatchResponse::results_size() const {
+  return _internal_results_size();
+}
+inline void LookupGraphQuadsBatchResponse::clear_results() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.results_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::s4wave::world::LookupGraphQuadsBatchResult* PROTOBUF_NONNULL LookupGraphQuadsBatchResponse::mutable_results(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.world.LookupGraphQuadsBatchResponse.results)
+  return _internal_mutable_results()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::s4wave::world::LookupGraphQuadsBatchResult>* PROTOBUF_NONNULL LookupGraphQuadsBatchResponse::mutable_results()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.world.LookupGraphQuadsBatchResponse.results)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_results();
+}
+inline const ::s4wave::world::LookupGraphQuadsBatchResult& LookupGraphQuadsBatchResponse::results(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.world.LookupGraphQuadsBatchResponse.results)
+  return _internal_results().Get(index);
+}
+inline ::s4wave::world::LookupGraphQuadsBatchResult* PROTOBUF_NONNULL LookupGraphQuadsBatchResponse::add_results()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::s4wave::world::LookupGraphQuadsBatchResult* _add =
+      _internal_mutable_results()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:s4wave.world.LookupGraphQuadsBatchResponse.results)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::s4wave::world::LookupGraphQuadsBatchResult>& LookupGraphQuadsBatchResponse::results() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.world.LookupGraphQuadsBatchResponse.results)
+  return _internal_results();
+}
+inline const ::google::protobuf::RepeatedPtrField<::s4wave::world::LookupGraphQuadsBatchResult>&
+LookupGraphQuadsBatchResponse::_internal_results() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.results_;
+}
+inline ::google::protobuf::RepeatedPtrField<::s4wave::world::LookupGraphQuadsBatchResult>* PROTOBUF_NONNULL
+LookupGraphQuadsBatchResponse::_internal_mutable_results() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.results_;
+}
+
+// -------------------------------------------------------------------
+
 // ListObjectsWithTypeRequest
 
 // string type_id = 1;
@@ -15162,6 +17983,696 @@ inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
 ListObjectsWithTypeResponse::_internal_mutable_object_keys() {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return &_impl_.object_keys_;
+}
+
+// -------------------------------------------------------------------
+
+// ObjectMetadata
+
+// string object_key = 1;
+inline void ObjectMetadata::clear_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.object_key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& ObjectMetadata::object_key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.world.ObjectMetadata.object_key)
+  return _internal_object_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ObjectMetadata::set_object_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.object_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.world.ObjectMetadata.object_key)
+}
+inline ::std::string* PROTOBUF_NONNULL ObjectMetadata::mutable_object_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_object_key();
+  // @@protoc_insertion_point(field_mutable:s4wave.world.ObjectMetadata.object_key)
+  return _s;
+}
+inline const ::std::string& ObjectMetadata::_internal_object_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.object_key_.Get();
+}
+inline void ObjectMetadata::_internal_set_object_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.object_key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ObjectMetadata::_internal_mutable_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.object_key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ObjectMetadata::release_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.world.ObjectMetadata.object_key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.object_key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.object_key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ObjectMetadata::set_allocated_object_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.object_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.object_key_.IsDefault()) {
+    _impl_.object_key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.world.ObjectMetadata.object_key)
+}
+
+// string type_id = 2;
+inline void ObjectMetadata::clear_type_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.type_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& ObjectMetadata::type_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.world.ObjectMetadata.type_id)
+  return _internal_type_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ObjectMetadata::set_type_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.type_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.world.ObjectMetadata.type_id)
+}
+inline ::std::string* PROTOBUF_NONNULL ObjectMetadata::mutable_type_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_type_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.world.ObjectMetadata.type_id)
+  return _s;
+}
+inline const ::std::string& ObjectMetadata::_internal_type_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.type_id_.Get();
+}
+inline void ObjectMetadata::_internal_set_type_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.type_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ObjectMetadata::_internal_mutable_type_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.type_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ObjectMetadata::release_type_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.world.ObjectMetadata.type_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.type_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.type_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ObjectMetadata::set_allocated_type_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.type_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.type_id_.IsDefault()) {
+    _impl_.type_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.world.ObjectMetadata.type_id)
+}
+
+// string parent_object_key = 3;
+inline void ObjectMetadata::clear_parent_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.parent_object_key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& ObjectMetadata::parent_object_key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.world.ObjectMetadata.parent_object_key)
+  return _internal_parent_object_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ObjectMetadata::set_parent_object_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.parent_object_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.world.ObjectMetadata.parent_object_key)
+}
+inline ::std::string* PROTOBUF_NONNULL ObjectMetadata::mutable_parent_object_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_parent_object_key();
+  // @@protoc_insertion_point(field_mutable:s4wave.world.ObjectMetadata.parent_object_key)
+  return _s;
+}
+inline const ::std::string& ObjectMetadata::_internal_parent_object_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.parent_object_key_.Get();
+}
+inline void ObjectMetadata::_internal_set_parent_object_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.parent_object_key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ObjectMetadata::_internal_mutable_parent_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.parent_object_key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ObjectMetadata::release_parent_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.world.ObjectMetadata.parent_object_key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.parent_object_key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.parent_object_key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ObjectMetadata::set_allocated_parent_object_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.parent_object_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.parent_object_key_.IsDefault()) {
+    _impl_.parent_object_key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.world.ObjectMetadata.parent_object_key)
+}
+
+// -------------------------------------------------------------------
+
+// GetObjectMetadataBatchRequest
+
+// repeated string object_keys = 1;
+inline int GetObjectMetadataBatchRequest::_internal_object_keys_size() const {
+  return _internal_object_keys().size();
+}
+inline int GetObjectMetadataBatchRequest::object_keys_size() const {
+  return _internal_object_keys_size();
+}
+inline void GetObjectMetadataBatchRequest::clear_object_keys() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.object_keys_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::std::string* PROTOBUF_NONNULL GetObjectMetadataBatchRequest::add_object_keys()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_object_keys()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add_mutable:s4wave.world.GetObjectMetadataBatchRequest.object_keys)
+  return _s;
+}
+inline const ::std::string& GetObjectMetadataBatchRequest::object_keys(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.world.GetObjectMetadataBatchRequest.object_keys)
+  return _internal_object_keys().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL GetObjectMetadataBatchRequest::mutable_object_keys(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.world.GetObjectMetadataBatchRequest.object_keys)
+  return _internal_mutable_object_keys()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void GetObjectMetadataBatchRequest::set_object_keys(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_object_keys()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:s4wave.world.GetObjectMetadataBatchRequest.object_keys)
+}
+template <typename Arg_, typename... Args_>
+inline void GetObjectMetadataBatchRequest::add_object_keys(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_object_keys(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:s4wave.world.GetObjectMetadataBatchRequest.object_keys)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& GetObjectMetadataBatchRequest::object_keys()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.world.GetObjectMetadataBatchRequest.object_keys)
+  return _internal_object_keys();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+GetObjectMetadataBatchRequest::mutable_object_keys() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.world.GetObjectMetadataBatchRequest.object_keys)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_object_keys();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+GetObjectMetadataBatchRequest::_internal_object_keys() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.object_keys_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+GetObjectMetadataBatchRequest::_internal_mutable_object_keys() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.object_keys_;
+}
+
+// -------------------------------------------------------------------
+
+// GetObjectMetadataBatchResponse
+
+// repeated .s4wave.world.ObjectMetadata metadata = 1;
+inline int GetObjectMetadataBatchResponse::_internal_metadata_size() const {
+  return _internal_metadata().size();
+}
+inline int GetObjectMetadataBatchResponse::metadata_size() const {
+  return _internal_metadata_size();
+}
+inline void GetObjectMetadataBatchResponse::clear_metadata() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.metadata_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::s4wave::world::ObjectMetadata* PROTOBUF_NONNULL GetObjectMetadataBatchResponse::mutable_metadata(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.world.GetObjectMetadataBatchResponse.metadata)
+  return _internal_mutable_metadata()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::s4wave::world::ObjectMetadata>* PROTOBUF_NONNULL GetObjectMetadataBatchResponse::mutable_metadata()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.world.GetObjectMetadataBatchResponse.metadata)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_metadata();
+}
+inline const ::s4wave::world::ObjectMetadata& GetObjectMetadataBatchResponse::metadata(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.world.GetObjectMetadataBatchResponse.metadata)
+  return _internal_metadata().Get(index);
+}
+inline ::s4wave::world::ObjectMetadata* PROTOBUF_NONNULL GetObjectMetadataBatchResponse::add_metadata()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::s4wave::world::ObjectMetadata* _add =
+      _internal_mutable_metadata()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:s4wave.world.GetObjectMetadataBatchResponse.metadata)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::s4wave::world::ObjectMetadata>& GetObjectMetadataBatchResponse::metadata() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.world.GetObjectMetadataBatchResponse.metadata)
+  return _internal_metadata();
+}
+inline const ::google::protobuf::RepeatedPtrField<::s4wave::world::ObjectMetadata>&
+GetObjectMetadataBatchResponse::_internal_metadata() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.metadata_;
+}
+inline ::google::protobuf::RepeatedPtrField<::s4wave::world::ObjectMetadata>* PROTOBUF_NONNULL
+GetObjectMetadataBatchResponse::_internal_mutable_metadata() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.metadata_;
+}
+
+// -------------------------------------------------------------------
+
+// GraphPathStep
+
+// .s4wave.world.GraphPathDirection direction = 1;
+inline void GraphPathStep::clear_direction() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.direction_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::s4wave::world::GraphPathDirection GraphPathStep::direction() const {
+  // @@protoc_insertion_point(field_get:s4wave.world.GraphPathStep.direction)
+  return _internal_direction();
+}
+inline void GraphPathStep::set_direction(::s4wave::world::GraphPathDirection value) {
+  _internal_set_direction(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_set:s4wave.world.GraphPathStep.direction)
+}
+inline ::s4wave::world::GraphPathDirection GraphPathStep::_internal_direction() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::s4wave::world::GraphPathDirection>(_impl_.direction_);
+}
+inline void GraphPathStep::_internal_set_direction(::s4wave::world::GraphPathDirection value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.direction_ = value;
+}
+
+// string predicate = 2;
+inline void GraphPathStep::clear_predicate() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.predicate_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& GraphPathStep::predicate() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.world.GraphPathStep.predicate)
+  return _internal_predicate();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void GraphPathStep::set_predicate(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.predicate_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.world.GraphPathStep.predicate)
+}
+inline ::std::string* PROTOBUF_NONNULL GraphPathStep::mutable_predicate()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_predicate();
+  // @@protoc_insertion_point(field_mutable:s4wave.world.GraphPathStep.predicate)
+  return _s;
+}
+inline const ::std::string& GraphPathStep::_internal_predicate() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.predicate_.Get();
+}
+inline void GraphPathStep::_internal_set_predicate(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.predicate_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL GraphPathStep::_internal_mutable_predicate() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.predicate_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE GraphPathStep::release_predicate() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.world.GraphPathStep.predicate)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.predicate_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.predicate_.Set("", GetArena());
+  }
+  return released;
+}
+inline void GraphPathStep::set_allocated_predicate(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.predicate_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.predicate_.IsDefault()) {
+    _impl_.predicate_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.world.GraphPathStep.predicate)
+}
+
+// uint32 limit = 3;
+inline void GraphPathStep::clear_limit() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.limit_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::uint32_t GraphPathStep::limit() const {
+  // @@protoc_insertion_point(field_get:s4wave.world.GraphPathStep.limit)
+  return _internal_limit();
+}
+inline void GraphPathStep::set_limit(::uint32_t value) {
+  _internal_set_limit(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:s4wave.world.GraphPathStep.limit)
+}
+inline ::uint32_t GraphPathStep::_internal_limit() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.limit_;
+}
+inline void GraphPathStep::_internal_set_limit(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.limit_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// QueryGraphPathRequest
+
+// repeated string start_keys = 1;
+inline int QueryGraphPathRequest::_internal_start_keys_size() const {
+  return _internal_start_keys().size();
+}
+inline int QueryGraphPathRequest::start_keys_size() const {
+  return _internal_start_keys_size();
+}
+inline void QueryGraphPathRequest::clear_start_keys() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.start_keys_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::std::string* PROTOBUF_NONNULL QueryGraphPathRequest::add_start_keys()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_start_keys()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add_mutable:s4wave.world.QueryGraphPathRequest.start_keys)
+  return _s;
+}
+inline const ::std::string& QueryGraphPathRequest::start_keys(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.world.QueryGraphPathRequest.start_keys)
+  return _internal_start_keys().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL QueryGraphPathRequest::mutable_start_keys(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.world.QueryGraphPathRequest.start_keys)
+  return _internal_mutable_start_keys()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void QueryGraphPathRequest::set_start_keys(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_start_keys()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:s4wave.world.QueryGraphPathRequest.start_keys)
+}
+template <typename Arg_, typename... Args_>
+inline void QueryGraphPathRequest::add_start_keys(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_start_keys(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:s4wave.world.QueryGraphPathRequest.start_keys)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& QueryGraphPathRequest::start_keys()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.world.QueryGraphPathRequest.start_keys)
+  return _internal_start_keys();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+QueryGraphPathRequest::mutable_start_keys() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.world.QueryGraphPathRequest.start_keys)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_start_keys();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+QueryGraphPathRequest::_internal_start_keys() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.start_keys_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+QueryGraphPathRequest::_internal_mutable_start_keys() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.start_keys_;
+}
+
+// repeated .s4wave.world.GraphPathStep steps = 2;
+inline int QueryGraphPathRequest::_internal_steps_size() const {
+  return _internal_steps().size();
+}
+inline int QueryGraphPathRequest::steps_size() const {
+  return _internal_steps_size();
+}
+inline void QueryGraphPathRequest::clear_steps() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.steps_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::s4wave::world::GraphPathStep* PROTOBUF_NONNULL QueryGraphPathRequest::mutable_steps(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.world.QueryGraphPathRequest.steps)
+  return _internal_mutable_steps()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::s4wave::world::GraphPathStep>* PROTOBUF_NONNULL QueryGraphPathRequest::mutable_steps()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.world.QueryGraphPathRequest.steps)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_steps();
+}
+inline const ::s4wave::world::GraphPathStep& QueryGraphPathRequest::steps(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.world.QueryGraphPathRequest.steps)
+  return _internal_steps().Get(index);
+}
+inline ::s4wave::world::GraphPathStep* PROTOBUF_NONNULL QueryGraphPathRequest::add_steps()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::s4wave::world::GraphPathStep* _add =
+      _internal_mutable_steps()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_add:s4wave.world.QueryGraphPathRequest.steps)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::s4wave::world::GraphPathStep>& QueryGraphPathRequest::steps() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.world.QueryGraphPathRequest.steps)
+  return _internal_steps();
+}
+inline const ::google::protobuf::RepeatedPtrField<::s4wave::world::GraphPathStep>&
+QueryGraphPathRequest::_internal_steps() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.steps_;
+}
+inline ::google::protobuf::RepeatedPtrField<::s4wave::world::GraphPathStep>* PROTOBUF_NONNULL
+QueryGraphPathRequest::_internal_mutable_steps() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.steps_;
+}
+
+// uint32 result_limit = 3;
+inline void QueryGraphPathRequest::clear_result_limit() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.result_limit_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::uint32_t QueryGraphPathRequest::result_limit() const {
+  // @@protoc_insertion_point(field_get:s4wave.world.QueryGraphPathRequest.result_limit)
+  return _internal_result_limit();
+}
+inline void QueryGraphPathRequest::set_result_limit(::uint32_t value) {
+  _internal_set_result_limit(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:s4wave.world.QueryGraphPathRequest.result_limit)
+}
+inline ::uint32_t QueryGraphPathRequest::_internal_result_limit() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.result_limit_;
+}
+inline void QueryGraphPathRequest::_internal_set_result_limit(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.result_limit_ = value;
+}
+
+// bool include_quads = 4;
+inline void QueryGraphPathRequest::clear_include_quads() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.include_quads_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline bool QueryGraphPathRequest::include_quads() const {
+  // @@protoc_insertion_point(field_get:s4wave.world.QueryGraphPathRequest.include_quads)
+  return _internal_include_quads();
+}
+inline void QueryGraphPathRequest::set_include_quads(bool value) {
+  _internal_set_include_quads(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:s4wave.world.QueryGraphPathRequest.include_quads)
+}
+inline bool QueryGraphPathRequest::_internal_include_quads() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.include_quads_;
+}
+inline void QueryGraphPathRequest::_internal_set_include_quads(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.include_quads_ = value;
+}
+
+// uint32 page_size = 5;
+inline void QueryGraphPathRequest::clear_page_size() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.page_size_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline ::uint32_t QueryGraphPathRequest::page_size() const {
+  // @@protoc_insertion_point(field_get:s4wave.world.QueryGraphPathRequest.page_size)
+  return _internal_page_size();
+}
+inline void QueryGraphPathRequest::set_page_size(::uint32_t value) {
+  _internal_set_page_size(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  // @@protoc_insertion_point(field_set:s4wave.world.QueryGraphPathRequest.page_size)
+}
+inline ::uint32_t QueryGraphPathRequest::_internal_page_size() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.page_size_;
+}
+inline void QueryGraphPathRequest::_internal_set_page_size(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.page_size_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// QueryGraphPathResponse
+
+// uint32 resource_id = 1;
+inline void QueryGraphPathResponse::clear_resource_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.resource_id_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::uint32_t QueryGraphPathResponse::resource_id() const {
+  // @@protoc_insertion_point(field_get:s4wave.world.QueryGraphPathResponse.resource_id)
+  return _internal_resource_id();
+}
+inline void QueryGraphPathResponse::set_resource_id(::uint32_t value) {
+  _internal_set_resource_id(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_set:s4wave.world.QueryGraphPathResponse.resource_id)
+}
+inline ::uint32_t QueryGraphPathResponse::_internal_resource_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.resource_id_;
+}
+inline void QueryGraphPathResponse::_internal_set_resource_id(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.resource_id_ = value;
 }
 
 // -------------------------------------------------------------------
@@ -16019,6 +19530,169 @@ inline void SeekRequest::set_allocated_object_key(::std::string* PROTOBUF_NULLAB
 // -------------------------------------------------------------------
 
 // CloseResponse
+
+// -------------------------------------------------------------------
+
+// NextGraphPathQueryRequest
+
+// -------------------------------------------------------------------
+
+// NextGraphPathQueryResponse
+
+// repeated string object_keys = 1;
+inline int NextGraphPathQueryResponse::_internal_object_keys_size() const {
+  return _internal_object_keys().size();
+}
+inline int NextGraphPathQueryResponse::object_keys_size() const {
+  return _internal_object_keys_size();
+}
+inline void NextGraphPathQueryResponse::clear_object_keys() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.object_keys_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::std::string* PROTOBUF_NONNULL NextGraphPathQueryResponse::add_object_keys()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_object_keys()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add_mutable:s4wave.world.NextGraphPathQueryResponse.object_keys)
+  return _s;
+}
+inline const ::std::string& NextGraphPathQueryResponse::object_keys(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.world.NextGraphPathQueryResponse.object_keys)
+  return _internal_object_keys().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL NextGraphPathQueryResponse::mutable_object_keys(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.world.NextGraphPathQueryResponse.object_keys)
+  return _internal_mutable_object_keys()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void NextGraphPathQueryResponse::set_object_keys(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_object_keys()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:s4wave.world.NextGraphPathQueryResponse.object_keys)
+}
+template <typename Arg_, typename... Args_>
+inline void NextGraphPathQueryResponse::add_object_keys(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_object_keys(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:s4wave.world.NextGraphPathQueryResponse.object_keys)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& NextGraphPathQueryResponse::object_keys()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.world.NextGraphPathQueryResponse.object_keys)
+  return _internal_object_keys();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+NextGraphPathQueryResponse::mutable_object_keys() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.world.NextGraphPathQueryResponse.object_keys)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_object_keys();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+NextGraphPathQueryResponse::_internal_object_keys() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.object_keys_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+NextGraphPathQueryResponse::_internal_mutable_object_keys() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.object_keys_;
+}
+
+// repeated .quad.Quad quads = 2;
+inline int NextGraphPathQueryResponse::_internal_quads_size() const {
+  return _internal_quads().size();
+}
+inline int NextGraphPathQueryResponse::quads_size() const {
+  return _internal_quads_size();
+}
+inline ::quad::Quad* PROTOBUF_NONNULL NextGraphPathQueryResponse::mutable_quads(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.world.NextGraphPathQueryResponse.quads)
+  return _internal_mutable_quads()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::quad::Quad>* PROTOBUF_NONNULL NextGraphPathQueryResponse::mutable_quads()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.world.NextGraphPathQueryResponse.quads)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_quads();
+}
+inline const ::quad::Quad& NextGraphPathQueryResponse::quads(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.world.NextGraphPathQueryResponse.quads)
+  return _internal_quads().Get(index);
+}
+inline ::quad::Quad* PROTOBUF_NONNULL NextGraphPathQueryResponse::add_quads()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::quad::Quad* _add =
+      _internal_mutable_quads()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_add:s4wave.world.NextGraphPathQueryResponse.quads)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::quad::Quad>& NextGraphPathQueryResponse::quads() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.world.NextGraphPathQueryResponse.quads)
+  return _internal_quads();
+}
+inline const ::google::protobuf::RepeatedPtrField<::quad::Quad>&
+NextGraphPathQueryResponse::_internal_quads() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.quads_;
+}
+inline ::google::protobuf::RepeatedPtrField<::quad::Quad>* PROTOBUF_NONNULL
+NextGraphPathQueryResponse::_internal_mutable_quads() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.quads_;
+}
+
+// bool done = 3;
+inline void NextGraphPathQueryResponse::clear_done() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.done_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline bool NextGraphPathQueryResponse::done() const {
+  // @@protoc_insertion_point(field_get:s4wave.world.NextGraphPathQueryResponse.done)
+  return _internal_done();
+}
+inline void NextGraphPathQueryResponse::set_done(bool value) {
+  _internal_set_done(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:s4wave.world.NextGraphPathQueryResponse.done)
+}
+inline bool NextGraphPathQueryResponse::_internal_done() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.done_;
+}
+inline void NextGraphPathQueryResponse::_internal_set_done(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.done_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// CloseGraphPathQueryRequest
+
+// -------------------------------------------------------------------
+
+// CloseGraphPathQueryResponse
 
 // -------------------------------------------------------------------
 
@@ -16885,6 +20559,19 @@ inline void AccessTypedObjectResponse::set_allocated_type_id(::std::string* PROT
 }  // namespace world
 }  // namespace s4wave
 
+
+namespace google {
+namespace protobuf {
+
+template <>
+struct is_proto_enum<::s4wave::world::GraphPathDirection> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::s4wave::world::GraphPathDirection>() {
+  return ::s4wave::world::GraphPathDirection_descriptor();
+}
+
+}  // namespace protobuf
+}  // namespace google
 
 // @@protoc_insertion_point(global_scope)
 

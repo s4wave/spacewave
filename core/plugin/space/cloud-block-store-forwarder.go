@@ -93,7 +93,7 @@ func (c *CloudBlockStoreForwarder) Execute(ctx context.Context) error {
 	}
 	defer serverRef.Release()
 
-	bucketConf, err := bucket.NewConfig(c.bucketID, 1, nil, nil)
+	bucketConf, err := bucket.NewConfig(c.bucketID, 1, nil)
 	if err != nil {
 		return err
 	}

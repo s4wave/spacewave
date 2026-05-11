@@ -11,8 +11,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// TestKVTxMQueue tests a key/value transaction message queue on top of inmem.
-func TestKVTxMQueue(t *testing.T) {
+// TestKVTxStore tests a key/value transaction store on top of inmem.
+func TestKVTxStore(t *testing.T) {
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)

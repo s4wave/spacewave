@@ -229,9 +229,8 @@ func BuildDistBus(
 			VolumeConfig: &volume_controller.Config{
 				VolumeIdAlias: []string{"dist"},
 
-				DisableEventBlockRm:     true,
-				DisableReconcilerQueues: true,
-				DisablePeer:             true,
+				DisableEventBlockRm: true,
+				DisablePeer:         true,
 			},
 		}),
 		ctxCancel,
@@ -319,7 +318,7 @@ func BuildDistBus(
 	engineObjStoreID := engineBucketID
 
 	// create bucket if it doesn't exist
-	bucketConf, err := bucket.NewConfig(engineBucketID, 1, nil, nil)
+	bucketConf, err := bucket.NewConfig(engineBucketID, 1, nil)
 	if err != nil {
 		rel()
 		return nil, err

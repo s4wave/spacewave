@@ -9,7 +9,6 @@ import (
 	rpc_gc "github.com/s4wave/spacewave/db/block/gc/rpc"
 	rpc_block "github.com/s4wave/spacewave/db/block/rpc"
 	rpc_bucket "github.com/s4wave/spacewave/db/bucket/store/rpc"
-	rpc_mqueue "github.com/s4wave/spacewave/db/mqueue/rpc"
 	rpc_object "github.com/s4wave/spacewave/db/object/rpc"
 	"github.com/s4wave/spacewave/db/volume"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
@@ -31,8 +30,6 @@ type ProxyVolumeController struct {
 	bucketStoreClient rpc_bucket.SRPCBucketStoreClient
 	// objectStoreClient is the client for the ObjectStore.
 	objectStoreClient rpc_object.SRPCObjectStoreClient
-	// mqueueStoreClient is the client for the MqueueStore
-	mqueueStoreClient rpc_mqueue.SRPCMqueueStoreClient
 	// refGraphClient is the client for the RefGraph
 	refGraphClient rpc_gc.SRPCRefGraphClient
 }
@@ -47,7 +44,6 @@ func NewProxyVolumeController(
 	blockStoreClient rpc_block.SRPCBlockStoreClient,
 	bucketStoreClient rpc_bucket.SRPCBucketStoreClient,
 	objectStoreClient rpc_object.SRPCObjectStoreClient,
-	mqueueStoreClient rpc_mqueue.SRPCMqueueStoreClient,
 	refGraphClient rpc_gc.SRPCRefGraphClient,
 ) *ProxyVolumeController {
 	return &ProxyVolumeController{
@@ -56,9 +52,8 @@ func NewProxyVolumeController(
 			&volume_controller.Config{
 				VolumeIdAlias: volumeIDAlias,
 
-				DisableEventBlockRm:     true,
-				DisableReconcilerQueues: true,
-				DisablePeer:             true,
+				DisableEventBlockRm: true,
+				DisablePeer:         true,
 			},
 			b,
 			controller.NewInfo(
@@ -76,7 +71,6 @@ func NewProxyVolumeController(
 					blockStoreClient,
 					bucketStoreClient,
 					objectStoreClient,
-					mqueueStoreClient,
 					refGraphClient,
 				)
 			},
@@ -87,7 +81,6 @@ func NewProxyVolumeController(
 		blockStoreClient:  blockStoreClient,
 		bucketStoreClient: bucketStoreClient,
 		objectStoreClient: objectStoreClient,
-		mqueueStoreClient: mqueueStoreClient,
 		refGraphClient:    refGraphClient,
 	}
 }
@@ -122,10 +115,6 @@ func NewProxyVolumeControllerWithClient(
 			cc,
 			serviceIDPrefix+rpc_object.SRPCObjectStoreServiceID,
 		),
-		rpc_mqueue.NewSRPCMqueueStoreClientWithServiceID(
-			cc,
-			serviceIDPrefix+rpc_mqueue.SRPCMqueueStoreServiceID,
-		),
 		rpc_gc.NewSRPCRefGraphClientWithServiceID(
 			cc,
 			serviceIDPrefix+rpc_gc.SRPCRefGraphServiceID,
@@ -156,11 +145,6 @@ func (v *ProxyVolumeController) GetBucketStoreClient() rpc_bucket.SRPCBucketStor
 // GetObjectStoreClient returns the object store client.
 func (v *ProxyVolumeController) GetObjectStoreClient() rpc_object.SRPCObjectStoreClient {
 	return v.objectStoreClient
-}
-
-// GetMqueueStoreClient returns the store for the message queue.
-func (v *ProxyVolumeController) GetMqueueStoreClient() rpc_mqueue.SRPCMqueueStoreClient {
-	return v.mqueueStoreClient
 }
 
 // _ is a type assertion

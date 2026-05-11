@@ -8,7 +8,6 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_event "github.com/s4wave/spacewave/db/bucket/event"
 	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/net/hash"
@@ -233,48 +232,13 @@ func (b *bucketHandle) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 		return nil, false, err
 	}
 
-	var eventData []byte
-	ev := &bucket_event.PutBlock{
-		BlockCommon: &bucket_event.BlockCommon{
-			VolumeId:      b.v.GetID(),
-			BucketId:      b.bucketConf.GetId(),
-			BucketConfRev: b.bucketConf.GetRev(),
-			BlockRef:      br,
-		},
-	}
-
-	// wake reconcilers
-	if !existed {
-		err := b.t.c.pushEventToReconcilers(ctx, b.v, b.bucketConf, true, func() ([]byte, error) {
-			if eventData != nil {
-				return eventData, nil
-			}
-			ed, err := (&bucket_event.Event{
-				EventType: bucket_event.EventType_EventType_PUT_BLOCK,
-				PutBlock:  ev,
-			}).MarshalVT()
-			if err != nil {
-				return nil, err
-			}
-			eventData = ed
-			return ed, nil
-		})
-		if err != nil {
-			b.t.c.le.
-				WithError(err).
-				WithField("bucket-id", b.bucketConf.GetId()).
-				Warn("unable to push put event to reconcilers")
-		}
-	}
-
 	return br, existed, nil
 }
 
 // PutBlockBatch writes a batch of blocks through the bucket in a single
 // lower-layer operation. Routes through GCStoreOps.PutBlockBatch when GC
 // tracking is enabled, otherwise falls back to per-entry volume PutBlock.
-// FlushPending is called once for the entire batch. Reconciler events are
-// published for all new (non-existed) blocks.
+// FlushPending is called once for the entire batch.
 func (b *bucketHandle) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
 	ctx, task := trace.NewTask(ctx, "hydra/volume/bucket-handle/put-block-batch")
 	defer task.End()
@@ -303,36 +267,6 @@ func (b *bucketHandle) PutBlockBatch(ctx context.Context, entries []*block.PutBa
 		if err := b.v.PutBlockBatch(ctx, entries); err != nil {
 			return err
 		}
-	}
-
-	// Publish reconciler events for all non-tombstone entries.
-	for _, entry := range entries {
-		if entry.Tombstone || entry.Ref == nil || entry.Ref.GetEmpty() {
-			continue
-		}
-		var eventData []byte
-		ev := &bucket_event.PutBlock{
-			BlockCommon: &bucket_event.BlockCommon{
-				VolumeId:      b.v.GetID(),
-				BucketId:      b.bucketConf.GetId(),
-				BucketConfRev: b.bucketConf.GetRev(),
-				BlockRef:      entry.Ref,
-			},
-		}
-		_ = b.t.c.pushEventToReconcilers(ctx, b.v, b.bucketConf, true, func() ([]byte, error) {
-			if eventData != nil {
-				return eventData, nil
-			}
-			ed, err := (&bucket_event.Event{
-				EventType: bucket_event.EventType_EventType_PUT_BLOCK,
-				PutBlock:  ev,
-			}).MarshalVT()
-			if err != nil {
-				return nil, err
-			}
-			eventData = ed
-			return ed, nil
-		})
 	}
 
 	return nil
@@ -431,32 +365,6 @@ func (b *bucketHandle) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 		return rmErr
 	}
 
-	var eventData []byte
-	ev := &bucket_event.RmBlock{
-		BlockCommon: &bucket_event.BlockCommon{
-			VolumeId:      b.v.GetID(),
-			BucketId:      b.bucketConf.GetId(),
-			BucketConfRev: b.bucketConf.GetRev(),
-			BlockRef:      ref,
-		},
-	}
-	getEventData := func() ([]byte, error) {
-		if eventData != nil {
-			return eventData, nil
-		}
-		ed, err := (&bucket_event.Event{
-			EventType: bucket_event.EventType_EventType_RM_BLOCK,
-			RmBlock:   ev,
-		}).MarshalVT()
-		if err != nil {
-			return nil, err
-		}
-		eventData = ed
-		return ed, nil
-	}
-
-	// wake reconcilers
-	_ = b.t.c.pushEventToReconcilers(ctx, b.v, b.bucketConf, true, getEventData)
 	return nil
 }
 

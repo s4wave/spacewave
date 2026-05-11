@@ -5,7 +5,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/aperturerobotics/cayley"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -14,6 +13,8 @@ import (
 	"github.com/s4wave/spacewave/identity"
 	identity_domain "github.com/s4wave/spacewave/identity/domain"
 )
+
+const domainInfoGraphPathLimit uint32 = 1_000_000
 
 const (
 	// DomainInfoPrefix is the prefix applied to the domain info.
@@ -124,13 +125,13 @@ func CollectAllDomainInfos(ctx context.Context, w world.WorldState) ([]*identity
 // ListDomainInfoEntities lists all Entity that link to the given domain object keys.
 // returns list of object keys
 func ListDomainInfoEntities(ctx context.Context, w world.WorldState, domainKeys ...string) ([]string, error) {
-	return world.CollectPathWithKeys(
+	return world.CollectGraphPathStepWithKeys(
 		ctx,
 		w,
 		domainKeys,
-		func(p *cayley.Path) (*cayley.Path, error) {
-			return p.In(PredEntityToDomainInfo), nil
-		},
+		world.GraphPathDirectionIn,
+		PredEntityToDomainInfo.String(),
+		domainInfoGraphPathLimit,
 	)
 }
 

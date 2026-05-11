@@ -1049,6 +1049,8 @@ export class Client {
   }
 
   private shouldRetryResourceClientStreamSilently(error: unknown): boolean {
+    const errText = String(error)
+    if (errText === 'StreamResetError: stream reset') return true
     if (typeof error !== 'object' || error === null) return false
     const errName = Reflect.get(error, 'name')
     const errMessage = Reflect.get(error, 'message')

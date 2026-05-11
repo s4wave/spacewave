@@ -18,6 +18,50 @@ import (
 	bucket "github.com/s4wave/spacewave/db/bucket"
 )
 
+// GraphPathDirection indicates which side of the current object key to follow.
+type GraphPathDirection int32
+
+const (
+	// GRAPH_PATH_DIRECTION_UNSPECIFIED is invalid.
+	GraphPathDirection_GRAPH_PATH_DIRECTION_UNSPECIFIED GraphPathDirection = 0
+	// GRAPH_PATH_DIRECTION_OUT follows quads where the current key is the subject.
+	GraphPathDirection_GRAPH_PATH_DIRECTION_OUT GraphPathDirection = 1
+	// GRAPH_PATH_DIRECTION_IN follows quads where the current key is the object.
+	GraphPathDirection_GRAPH_PATH_DIRECTION_IN GraphPathDirection = 2
+	// GRAPH_PATH_DIRECTION_BOTH follows incoming and outgoing quads.
+	GraphPathDirection_GRAPH_PATH_DIRECTION_BOTH GraphPathDirection = 3
+)
+
+// Enum value maps for GraphPathDirection.
+var (
+	GraphPathDirection_name = map[int32]string{
+		0: "GRAPH_PATH_DIRECTION_UNSPECIFIED",
+		1: "GRAPH_PATH_DIRECTION_OUT",
+		2: "GRAPH_PATH_DIRECTION_IN",
+		3: "GRAPH_PATH_DIRECTION_BOTH",
+	}
+	GraphPathDirection_value = map[string]int32{
+		"GRAPH_PATH_DIRECTION_UNSPECIFIED": 0,
+		"GRAPH_PATH_DIRECTION_OUT":         1,
+		"GRAPH_PATH_DIRECTION_IN":          2,
+		"GRAPH_PATH_DIRECTION_BOTH":        3,
+	}
+)
+
+func (x GraphPathDirection) Enum() *GraphPathDirection {
+	p := new(GraphPathDirection)
+	*p = x
+	return p
+}
+
+func (x GraphPathDirection) String() string {
+	name, valid := GraphPathDirection_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // EngineInfo contains metadata about a world engine.
 type EngineInfo struct {
 	unknownFields []byte
@@ -731,6 +775,78 @@ func (x *LookupGraphQuadsResponse) GetQuads() []*quad.Quad {
 	return nil
 }
 
+// LookupGraphQuadsBatchRequest is the request type for LookupGraphQuadsBatch.
+type LookupGraphQuadsBatchRequest struct {
+	unknownFields []byte
+	// Filters is the bounded list of subject/predicate or object/predicate
+	// filters to evaluate server-side.
+	Filters []*quad.Quad `protobuf:"bytes,1,rep,name=filters,proto3" json:"filters,omitempty"`
+	// LimitPerFilter is the maximum number of quads returned for each filter.
+	// It must be non-zero.
+	LimitPerFilter uint32 `protobuf:"varint,2,opt,name=limit_per_filter,json=limitPerFilter,proto3" json:"limitPerFilter,omitempty"`
+}
+
+func (x *LookupGraphQuadsBatchRequest) Reset() {
+	*x = LookupGraphQuadsBatchRequest{}
+}
+
+func (*LookupGraphQuadsBatchRequest) ProtoMessage() {}
+
+func (x *LookupGraphQuadsBatchRequest) GetFilters() []*quad.Quad {
+	if x != nil {
+		return x.Filters
+	}
+	return nil
+}
+
+func (x *LookupGraphQuadsBatchRequest) GetLimitPerFilter() uint32 {
+	if x != nil {
+		return x.LimitPerFilter
+	}
+	return 0
+}
+
+// LookupGraphQuadsBatchResult is one filtered graph lookup result.
+type LookupGraphQuadsBatchResult struct {
+	unknownFields []byte
+	// Quads is the list of graph quads matching one filter.
+	Quads []*quad.Quad `protobuf:"bytes,1,rep,name=quads,proto3" json:"quads,omitempty"`
+}
+
+func (x *LookupGraphQuadsBatchResult) Reset() {
+	*x = LookupGraphQuadsBatchResult{}
+}
+
+func (*LookupGraphQuadsBatchResult) ProtoMessage() {}
+
+func (x *LookupGraphQuadsBatchResult) GetQuads() []*quad.Quad {
+	if x != nil {
+		return x.Quads
+	}
+	return nil
+}
+
+// LookupGraphQuadsBatchResponse is the response type for
+// LookupGraphQuadsBatch.
+type LookupGraphQuadsBatchResponse struct {
+	unknownFields []byte
+	// Results preserves the request filter order.
+	Results []*LookupGraphQuadsBatchResult `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty"`
+}
+
+func (x *LookupGraphQuadsBatchResponse) Reset() {
+	*x = LookupGraphQuadsBatchResponse{}
+}
+
+func (*LookupGraphQuadsBatchResponse) ProtoMessage() {}
+
+func (x *LookupGraphQuadsBatchResponse) GetResults() []*LookupGraphQuadsBatchResult {
+	if x != nil {
+		return x.Results
+	}
+	return nil
+}
+
 // ListObjectsWithTypeRequest is the request type for ListObjectsWithType.
 type ListObjectsWithTypeRequest struct {
 	unknownFields []byte
@@ -769,6 +885,202 @@ func (x *ListObjectsWithTypeResponse) GetObjectKeys() []string {
 		return x.ObjectKeys
 	}
 	return nil
+}
+
+// ObjectMetadata contains graph metadata for one object key.
+type ObjectMetadata struct {
+	unknownFields []byte
+	// ObjectKey is the object key.
+	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+	// TypeId is the object type identifier, if present.
+	TypeId string `protobuf:"bytes,2,opt,name=type_id,json=typeId,proto3" json:"typeId,omitempty"`
+	// ParentObjectKey is the parent object key, if present.
+	ParentObjectKey string `protobuf:"bytes,3,opt,name=parent_object_key,json=parentObjectKey,proto3" json:"parentObjectKey,omitempty"`
+}
+
+func (x *ObjectMetadata) Reset() {
+	*x = ObjectMetadata{}
+}
+
+func (*ObjectMetadata) ProtoMessage() {}
+
+func (x *ObjectMetadata) GetObjectKey() string {
+	if x != nil {
+		return x.ObjectKey
+	}
+	return ""
+}
+
+func (x *ObjectMetadata) GetTypeId() string {
+	if x != nil {
+		return x.TypeId
+	}
+	return ""
+}
+
+func (x *ObjectMetadata) GetParentObjectKey() string {
+	if x != nil {
+		return x.ParentObjectKey
+	}
+	return ""
+}
+
+// GetObjectMetadataBatchRequest is the request type for
+// GetObjectMetadataBatch.
+type GetObjectMetadataBatchRequest struct {
+	unknownFields []byte
+	// ObjectKeys is the list of object keys to inspect.
+	ObjectKeys []string `protobuf:"bytes,1,rep,name=object_keys,json=objectKeys,proto3" json:"objectKeys,omitempty"`
+}
+
+func (x *GetObjectMetadataBatchRequest) Reset() {
+	*x = GetObjectMetadataBatchRequest{}
+}
+
+func (*GetObjectMetadataBatchRequest) ProtoMessage() {}
+
+func (x *GetObjectMetadataBatchRequest) GetObjectKeys() []string {
+	if x != nil {
+		return x.ObjectKeys
+	}
+	return nil
+}
+
+// GetObjectMetadataBatchResponse is the response type for
+// GetObjectMetadataBatch.
+type GetObjectMetadataBatchResponse struct {
+	unknownFields []byte
+	// Metadata preserves the request object key order.
+	Metadata []*ObjectMetadata `protobuf:"bytes,1,rep,name=metadata,proto3" json:"metadata,omitempty"`
+}
+
+func (x *GetObjectMetadataBatchResponse) Reset() {
+	*x = GetObjectMetadataBatchResponse{}
+}
+
+func (*GetObjectMetadataBatchResponse) ProtoMessage() {}
+
+func (x *GetObjectMetadataBatchResponse) GetMetadata() []*ObjectMetadata {
+	if x != nil {
+		return x.Metadata
+	}
+	return nil
+}
+
+// GraphPathStep is one bounded predicate traversal step.
+type GraphPathStep struct {
+	unknownFields []byte
+	// Direction is the edge direction to follow.
+	Direction GraphPathDirection `protobuf:"varint,1,opt,name=direction,proto3" json:"direction,omitempty"`
+	// Predicate is the graph predicate to match.
+	Predicate string `protobuf:"bytes,2,opt,name=predicate,proto3" json:"predicate,omitempty"`
+	// Limit is the maximum number of quads to inspect for each current object key.
+	Limit uint32 `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
+}
+
+func (x *GraphPathStep) Reset() {
+	*x = GraphPathStep{}
+}
+
+func (*GraphPathStep) ProtoMessage() {}
+
+func (x *GraphPathStep) GetDirection() GraphPathDirection {
+	if x != nil {
+		return x.Direction
+	}
+	return GraphPathDirection_GRAPH_PATH_DIRECTION_UNSPECIFIED
+}
+
+func (x *GraphPathStep) GetPredicate() string {
+	if x != nil {
+		return x.Predicate
+	}
+	return ""
+}
+
+func (x *GraphPathStep) GetLimit() uint32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+// QueryGraphPathRequest is the request type for QueryGraphPath.
+type QueryGraphPathRequest struct {
+	unknownFields []byte
+	// StartKeys is the list of object keys where traversal starts.
+	StartKeys []string `protobuf:"bytes,1,rep,name=start_keys,json=startKeys,proto3" json:"startKeys,omitempty"`
+	// Steps is the bounded traversal to execute server-side.
+	Steps []*GraphPathStep `protobuf:"bytes,2,rep,name=steps,proto3" json:"steps,omitempty"`
+	// ResultLimit is the maximum number of object keys returned.
+	// It must be non-zero.
+	ResultLimit uint32 `protobuf:"varint,3,opt,name=result_limit,json=resultLimit,proto3" json:"resultLimit,omitempty"`
+	// IncludeQuads includes traversed quads in result pages.
+	IncludeQuads bool `protobuf:"varint,4,opt,name=include_quads,json=includeQuads,proto3" json:"includeQuads,omitempty"`
+	// PageSize is the maximum number of object keys returned by one Next call.
+	// If unset, the server uses ResultLimit.
+	PageSize uint32 `protobuf:"varint,5,opt,name=page_size,json=pageSize,proto3" json:"pageSize,omitempty"`
+}
+
+func (x *QueryGraphPathRequest) Reset() {
+	*x = QueryGraphPathRequest{}
+}
+
+func (*QueryGraphPathRequest) ProtoMessage() {}
+
+func (x *QueryGraphPathRequest) GetStartKeys() []string {
+	if x != nil {
+		return x.StartKeys
+	}
+	return nil
+}
+
+func (x *QueryGraphPathRequest) GetSteps() []*GraphPathStep {
+	if x != nil {
+		return x.Steps
+	}
+	return nil
+}
+
+func (x *QueryGraphPathRequest) GetResultLimit() uint32 {
+	if x != nil {
+		return x.ResultLimit
+	}
+	return 0
+}
+
+func (x *QueryGraphPathRequest) GetIncludeQuads() bool {
+	if x != nil {
+		return x.IncludeQuads
+	}
+	return false
+}
+
+func (x *QueryGraphPathRequest) GetPageSize() uint32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+// QueryGraphPathResponse is the response type for QueryGraphPath.
+type QueryGraphPathResponse struct {
+	unknownFields []byte
+	// ResourceId is the ID of the GraphPathQuery resource.
+	ResourceId uint32 `protobuf:"varint,1,opt,name=resource_id,json=resourceId,proto3" json:"resourceId,omitempty"`
+}
+
+func (x *QueryGraphPathResponse) Reset() {
+	*x = QueryGraphPathResponse{}
+}
+
+func (*QueryGraphPathResponse) ProtoMessage() {}
+
+func (x *QueryGraphPathResponse) GetResourceId() uint32 {
+	if x != nil {
+		return x.ResourceId
+	}
+	return 0
 }
 
 // DeleteGraphObjectRequest is the request type for DeleteGraphObject.
@@ -1116,6 +1428,77 @@ func (x *CloseResponse) Reset() {
 }
 
 func (*CloseResponse) ProtoMessage() {}
+
+// NextGraphPathQueryRequest is the request type for GraphPathQuery Next.
+type NextGraphPathQueryRequest struct {
+	unknownFields []byte
+}
+
+func (x *NextGraphPathQueryRequest) Reset() {
+	*x = NextGraphPathQueryRequest{}
+}
+
+func (*NextGraphPathQueryRequest) ProtoMessage() {}
+
+// NextGraphPathQueryResponse is one page of graph path query results.
+type NextGraphPathQueryResponse struct {
+	unknownFields []byte
+	// ObjectKeys is the next page of reached object keys.
+	ObjectKeys []string `protobuf:"bytes,1,rep,name=object_keys,json=objectKeys,proto3" json:"objectKeys,omitempty"`
+	// Quads is the traversed graph quads when requested.
+	Quads []*quad.Quad `protobuf:"bytes,2,rep,name=quads,proto3" json:"quads,omitempty"`
+	// Done indicates the resource has no more result pages.
+	Done bool `protobuf:"varint,3,opt,name=done,proto3" json:"done,omitempty"`
+}
+
+func (x *NextGraphPathQueryResponse) Reset() {
+	*x = NextGraphPathQueryResponse{}
+}
+
+func (*NextGraphPathQueryResponse) ProtoMessage() {}
+
+func (x *NextGraphPathQueryResponse) GetObjectKeys() []string {
+	if x != nil {
+		return x.ObjectKeys
+	}
+	return nil
+}
+
+func (x *NextGraphPathQueryResponse) GetQuads() []*quad.Quad {
+	if x != nil {
+		return x.Quads
+	}
+	return nil
+}
+
+func (x *NextGraphPathQueryResponse) GetDone() bool {
+	if x != nil {
+		return x.Done
+	}
+	return false
+}
+
+// CloseGraphPathQueryRequest is the request type for GraphPathQuery Close.
+type CloseGraphPathQueryRequest struct {
+	unknownFields []byte
+}
+
+func (x *CloseGraphPathQueryRequest) Reset() {
+	*x = CloseGraphPathQueryRequest{}
+}
+
+func (*CloseGraphPathQueryRequest) ProtoMessage() {}
+
+// CloseGraphPathQueryResponse is the response type for GraphPathQuery Close.
+type CloseGraphPathQueryResponse struct {
+	unknownFields []byte
+}
+
+func (x *CloseGraphPathQueryResponse) Reset() {
+	*x = CloseGraphPathQueryResponse{}
+}
+
+func (*CloseGraphPathQueryResponse) ProtoMessage() {}
 
 // GetKeyRequest is the request type for GetKey.
 type GetKeyRequest struct {
@@ -1603,7 +1986,9 @@ func (m *AccessWorldStateRequest) CloneVT() *AccessWorldStateRequest {
 		return (*AccessWorldStateRequest)(nil)
 	}
 	r := new(AccessWorldStateRequest)
-	r.Ref = m.Ref.CloneVT()
+	if rhs := m.Ref; rhs != nil {
+		r.Ref = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1758,7 +2143,9 @@ func (m *CreateObjectRequest) CloneVT() *CreateObjectRequest {
 	}
 	r := new(CreateObjectRequest)
 	r.ObjectKey = m.ObjectKey
-	r.RootRef = m.RootRef.CloneVT()
+	if rhs := m.RootRef; rhs != nil {
+		r.RootRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1925,7 +2312,9 @@ func (m *SetGraphQuadRequest) CloneVT() *SetGraphQuadRequest {
 		return (*SetGraphQuadRequest)(nil)
 	}
 	r := new(SetGraphQuadRequest)
-	r.Quad = m.Quad.CloneVT()
+	if rhs := m.Quad; rhs != nil {
+		r.Quad = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1956,7 +2345,9 @@ func (m *DeleteGraphQuadRequest) CloneVT() *DeleteGraphQuadRequest {
 		return (*DeleteGraphQuadRequest)(nil)
 	}
 	r := new(DeleteGraphQuadRequest)
-	r.Quad = m.Quad.CloneVT()
+	if rhs := m.Quad; rhs != nil {
+		r.Quad = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1987,8 +2378,10 @@ func (m *LookupGraphQuadsRequest) CloneVT() *LookupGraphQuadsRequest {
 		return (*LookupGraphQuadsRequest)(nil)
 	}
 	r := new(LookupGraphQuadsRequest)
-	r.Filter = m.Filter.CloneVT()
 	r.Limit = m.Limit
+	if rhs := m.Filter; rhs != nil {
+		r.Filter = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2017,6 +2410,70 @@ func (m *LookupGraphQuadsResponse) CloneVT() *LookupGraphQuadsResponse {
 }
 
 func (m *LookupGraphQuadsResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *LookupGraphQuadsBatchRequest) CloneVT() *LookupGraphQuadsBatchRequest {
+	if m == nil {
+		return (*LookupGraphQuadsBatchRequest)(nil)
+	}
+	r := new(LookupGraphQuadsBatchRequest)
+	r.LimitPerFilter = m.LimitPerFilter
+	if rhs := m.Filters; rhs != nil {
+		r.Filters = make([]*quad.Quad, len(rhs))
+		for k, v := range rhs {
+			r.Filters[k] = v.CloneVT()
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *LookupGraphQuadsBatchRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *LookupGraphQuadsBatchResult) CloneVT() *LookupGraphQuadsBatchResult {
+	if m == nil {
+		return (*LookupGraphQuadsBatchResult)(nil)
+	}
+	r := new(LookupGraphQuadsBatchResult)
+	if rhs := m.Quads; rhs != nil {
+		r.Quads = make([]*quad.Quad, len(rhs))
+		for k, v := range rhs {
+			r.Quads[k] = v.CloneVT()
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *LookupGraphQuadsBatchResult) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *LookupGraphQuadsBatchResponse) CloneVT() *LookupGraphQuadsBatchResponse {
+	if m == nil {
+		return (*LookupGraphQuadsBatchResponse)(nil)
+	}
+	r := new(LookupGraphQuadsBatchResponse)
+	if rhs := m.Results; rhs != nil {
+		r.Results = make([]*LookupGraphQuadsBatchResult, len(rhs))
+		for k, v := range rhs {
+			r.Results[k] = v.CloneVT()
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *LookupGraphQuadsBatchResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -2051,6 +2508,124 @@ func (m *ListObjectsWithTypeResponse) CloneVT() *ListObjectsWithTypeResponse {
 }
 
 func (m *ListObjectsWithTypeResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ObjectMetadata) CloneVT() *ObjectMetadata {
+	if m == nil {
+		return (*ObjectMetadata)(nil)
+	}
+	r := new(ObjectMetadata)
+	r.ObjectKey = m.ObjectKey
+	r.TypeId = m.TypeId
+	r.ParentObjectKey = m.ParentObjectKey
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ObjectMetadata) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *GetObjectMetadataBatchRequest) CloneVT() *GetObjectMetadataBatchRequest {
+	if m == nil {
+		return (*GetObjectMetadataBatchRequest)(nil)
+	}
+	r := new(GetObjectMetadataBatchRequest)
+	if rhs := m.ObjectKeys; rhs != nil {
+		r.ObjectKeys = slices.Clone(rhs)
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GetObjectMetadataBatchRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *GetObjectMetadataBatchResponse) CloneVT() *GetObjectMetadataBatchResponse {
+	if m == nil {
+		return (*GetObjectMetadataBatchResponse)(nil)
+	}
+	r := new(GetObjectMetadataBatchResponse)
+	if rhs := m.Metadata; rhs != nil {
+		r.Metadata = make([]*ObjectMetadata, len(rhs))
+		for k, v := range rhs {
+			r.Metadata[k] = v.CloneVT()
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GetObjectMetadataBatchResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *GraphPathStep) CloneVT() *GraphPathStep {
+	if m == nil {
+		return (*GraphPathStep)(nil)
+	}
+	r := new(GraphPathStep)
+	r.Direction = m.Direction
+	r.Predicate = m.Predicate
+	r.Limit = m.Limit
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GraphPathStep) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *QueryGraphPathRequest) CloneVT() *QueryGraphPathRequest {
+	if m == nil {
+		return (*QueryGraphPathRequest)(nil)
+	}
+	r := new(QueryGraphPathRequest)
+	r.ResultLimit = m.ResultLimit
+	r.IncludeQuads = m.IncludeQuads
+	r.PageSize = m.PageSize
+	if rhs := m.StartKeys; rhs != nil {
+		r.StartKeys = slices.Clone(rhs)
+	}
+	if rhs := m.Steps; rhs != nil {
+		r.Steps = make([]*GraphPathStep, len(rhs))
+		for k, v := range rhs {
+			r.Steps[k] = v.CloneVT()
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *QueryGraphPathRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *QueryGraphPathResponse) CloneVT() *QueryGraphPathResponse {
+	if m == nil {
+		return (*QueryGraphPathResponse)(nil)
+	}
+	r := new(QueryGraphPathResponse)
+	r.ResourceId = m.ResourceId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *QueryGraphPathResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -2378,6 +2953,76 @@ func (m *CloseResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *NextGraphPathQueryRequest) CloneVT() *NextGraphPathQueryRequest {
+	if m == nil {
+		return (*NextGraphPathQueryRequest)(nil)
+	}
+	r := new(NextGraphPathQueryRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *NextGraphPathQueryRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *NextGraphPathQueryResponse) CloneVT() *NextGraphPathQueryResponse {
+	if m == nil {
+		return (*NextGraphPathQueryResponse)(nil)
+	}
+	r := new(NextGraphPathQueryResponse)
+	r.Done = m.Done
+	if rhs := m.ObjectKeys; rhs != nil {
+		r.ObjectKeys = slices.Clone(rhs)
+	}
+	if rhs := m.Quads; rhs != nil {
+		r.Quads = make([]*quad.Quad, len(rhs))
+		for k, v := range rhs {
+			r.Quads[k] = v.CloneVT()
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *NextGraphPathQueryResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CloseGraphPathQueryRequest) CloneVT() *CloseGraphPathQueryRequest {
+	if m == nil {
+		return (*CloseGraphPathQueryRequest)(nil)
+	}
+	r := new(CloseGraphPathQueryRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CloseGraphPathQueryRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CloseGraphPathQueryResponse) CloneVT() *CloseGraphPathQueryResponse {
+	if m == nil {
+		return (*CloseGraphPathQueryResponse)(nil)
+	}
+	r := new(CloseGraphPathQueryResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CloseGraphPathQueryResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *GetKeyRequest) CloneVT() *GetKeyRequest {
 	if m == nil {
 		return (*GetKeyRequest)(nil)
@@ -2429,8 +3074,10 @@ func (m *GetRootRefResponse) CloneVT() *GetRootRefResponse {
 		return (*GetRootRefResponse)(nil)
 	}
 	r := new(GetRootRefResponse)
-	r.RootRef = m.RootRef.CloneVT()
 	r.Rev = m.Rev
+	if rhs := m.RootRef; rhs != nil {
+		r.RootRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2446,7 +3093,9 @@ func (m *SetRootRefRequest) CloneVT() *SetRootRefRequest {
 		return (*SetRootRefRequest)(nil)
 	}
 	r := new(SetRootRefRequest)
-	r.RootRef = m.RootRef.CloneVT()
+	if rhs := m.RootRef; rhs != nil {
+		r.RootRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3324,6 +3973,111 @@ func (this *LookupGraphQuadsResponse) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *LookupGraphQuadsBatchRequest) EqualVT(that *LookupGraphQuadsBatchRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if len(this.Filters) != len(that.Filters) {
+		return false
+	}
+	for i, vx := range this.Filters {
+		vy := that.Filters[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &quad.Quad{}
+			}
+			if q == nil {
+				q = &quad.Quad{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	if this.LimitPerFilter != that.LimitPerFilter {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *LookupGraphQuadsBatchRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*LookupGraphQuadsBatchRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *LookupGraphQuadsBatchResult) EqualVT(that *LookupGraphQuadsBatchResult) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if len(this.Quads) != len(that.Quads) {
+		return false
+	}
+	for i, vx := range this.Quads {
+		vy := that.Quads[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &quad.Quad{}
+			}
+			if q == nil {
+				q = &quad.Quad{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *LookupGraphQuadsBatchResult) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*LookupGraphQuadsBatchResult)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *LookupGraphQuadsBatchResponse) EqualVT(that *LookupGraphQuadsBatchResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if len(this.Results) != len(that.Results) {
+		return false
+	}
+	for i, vx := range this.Results {
+		vy := that.Results[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &LookupGraphQuadsBatchResult{}
+			}
+			if q == nil {
+				q = &LookupGraphQuadsBatchResult{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *LookupGraphQuadsBatchResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*LookupGraphQuadsBatchResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 func (this *ListObjectsWithTypeRequest) EqualVT(that *ListObjectsWithTypeRequest) bool {
 	if this == that {
 		return true
@@ -3364,6 +4118,190 @@ func (this *ListObjectsWithTypeResponse) EqualVT(that *ListObjectsWithTypeRespon
 
 func (this *ListObjectsWithTypeResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*ListObjectsWithTypeResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ObjectMetadata) EqualVT(that *ObjectMetadata) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ObjectKey != that.ObjectKey {
+		return false
+	}
+	if this.TypeId != that.TypeId {
+		return false
+	}
+	if this.ParentObjectKey != that.ParentObjectKey {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ObjectMetadata) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ObjectMetadata)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *GetObjectMetadataBatchRequest) EqualVT(that *GetObjectMetadataBatchRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if len(this.ObjectKeys) != len(that.ObjectKeys) {
+		return false
+	}
+	for i, vx := range this.ObjectKeys {
+		vy := that.ObjectKeys[i]
+		if vx != vy {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GetObjectMetadataBatchRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GetObjectMetadataBatchRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *GetObjectMetadataBatchResponse) EqualVT(that *GetObjectMetadataBatchResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if len(this.Metadata) != len(that.Metadata) {
+		return false
+	}
+	for i, vx := range this.Metadata {
+		vy := that.Metadata[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &ObjectMetadata{}
+			}
+			if q == nil {
+				q = &ObjectMetadata{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GetObjectMetadataBatchResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GetObjectMetadataBatchResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *GraphPathStep) EqualVT(that *GraphPathStep) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Direction != that.Direction {
+		return false
+	}
+	if this.Predicate != that.Predicate {
+		return false
+	}
+	if this.Limit != that.Limit {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GraphPathStep) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GraphPathStep)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *QueryGraphPathRequest) EqualVT(that *QueryGraphPathRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if len(this.StartKeys) != len(that.StartKeys) {
+		return false
+	}
+	for i, vx := range this.StartKeys {
+		vy := that.StartKeys[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if len(this.Steps) != len(that.Steps) {
+		return false
+	}
+	for i, vx := range this.Steps {
+		vy := that.Steps[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &GraphPathStep{}
+			}
+			if q == nil {
+				q = &GraphPathStep{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	if this.ResultLimit != that.ResultLimit {
+		return false
+	}
+	if this.IncludeQuads != that.IncludeQuads {
+		return false
+	}
+	if this.PageSize != that.PageSize {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *QueryGraphPathRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*QueryGraphPathRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *QueryGraphPathResponse) EqualVT(that *QueryGraphPathResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ResourceId != that.ResourceId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *QueryGraphPathResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*QueryGraphPathResponse)
 	if !ok {
 		return false
 	}
@@ -3775,6 +4713,103 @@ func (this *CloseResponse) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *NextGraphPathQueryRequest) EqualVT(that *NextGraphPathQueryRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *NextGraphPathQueryRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*NextGraphPathQueryRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *NextGraphPathQueryResponse) EqualVT(that *NextGraphPathQueryResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if len(this.ObjectKeys) != len(that.ObjectKeys) {
+		return false
+	}
+	for i, vx := range this.ObjectKeys {
+		vy := that.ObjectKeys[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if len(this.Quads) != len(that.Quads) {
+		return false
+	}
+	for i, vx := range this.Quads {
+		vy := that.Quads[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &quad.Quad{}
+			}
+			if q == nil {
+				q = &quad.Quad{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	if this.Done != that.Done {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *NextGraphPathQueryResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*NextGraphPathQueryResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *CloseGraphPathQueryRequest) EqualVT(that *CloseGraphPathQueryRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CloseGraphPathQueryRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CloseGraphPathQueryRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *CloseGraphPathQueryResponse) EqualVT(that *CloseGraphPathQueryResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CloseGraphPathQueryResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CloseGraphPathQueryResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 func (this *GetKeyRequest) EqualVT(that *GetKeyRequest) bool {
 	if this == that {
 		return true
@@ -4062,6 +5097,46 @@ func (this *AccessTypedObjectResponse) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+// MarshalProtoJSON marshals the GraphPathDirection to JSON.
+func (x GraphPathDirection) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), GraphPathDirection_name)
+}
+
+// MarshalText marshals the GraphPathDirection to text.
+func (x GraphPathDirection) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), GraphPathDirection_name)), nil
+}
+
+// MarshalJSON marshals the GraphPathDirection to JSON.
+func (x GraphPathDirection) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GraphPathDirection from JSON.
+func (x *GraphPathDirection) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(GraphPathDirection_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read GraphPathDirection enum: %v", err)
+		return
+	}
+	*x = GraphPathDirection(v)
+}
+
+// UnmarshalText unmarshals the GraphPathDirection from text.
+func (x *GraphPathDirection) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), GraphPathDirection_value)
+	if err != nil {
+		return err
+	}
+	*x = GraphPathDirection(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the GraphPathDirection from JSON.
+func (x *GraphPathDirection) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the EngineInfo message to JSON.
@@ -5547,6 +6622,203 @@ func (x *LookupGraphQuadsResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the LookupGraphQuadsBatchRequest message to JSON.
+func (x *LookupGraphQuadsBatchRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Filters) > 0 || s.HasField("filters") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("filters")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Filters {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("filters"))
+		}
+		s.WriteArrayEnd()
+	}
+	if x.LimitPerFilter != 0 || s.HasField("limitPerFilter") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("limitPerFilter")
+		s.WriteUint32(x.LimitPerFilter)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the LookupGraphQuadsBatchRequest to JSON.
+func (x *LookupGraphQuadsBatchRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the LookupGraphQuadsBatchRequest message from JSON.
+func (x *LookupGraphQuadsBatchRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "filters":
+			s.AddField("filters")
+			if s.ReadNil() {
+				x.Filters = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Filters = append(x.Filters, nil)
+					return
+				}
+				v := &quad.Quad{}
+				v.UnmarshalProtoJSON(s.WithField("filters", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Filters = append(x.Filters, v)
+			})
+		case "limit_per_filter", "limitPerFilter":
+			s.AddField("limit_per_filter")
+			x.LimitPerFilter = s.ReadUint32()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the LookupGraphQuadsBatchRequest from JSON.
+func (x *LookupGraphQuadsBatchRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the LookupGraphQuadsBatchResult message to JSON.
+func (x *LookupGraphQuadsBatchResult) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Quads) > 0 || s.HasField("quads") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("quads")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Quads {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("quads"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the LookupGraphQuadsBatchResult to JSON.
+func (x *LookupGraphQuadsBatchResult) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the LookupGraphQuadsBatchResult message from JSON.
+func (x *LookupGraphQuadsBatchResult) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "quads":
+			s.AddField("quads")
+			if s.ReadNil() {
+				x.Quads = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Quads = append(x.Quads, nil)
+					return
+				}
+				v := &quad.Quad{}
+				v.UnmarshalProtoJSON(s.WithField("quads", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Quads = append(x.Quads, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the LookupGraphQuadsBatchResult from JSON.
+func (x *LookupGraphQuadsBatchResult) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the LookupGraphQuadsBatchResponse message to JSON.
+func (x *LookupGraphQuadsBatchResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Results) > 0 || s.HasField("results") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("results")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Results {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("results"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the LookupGraphQuadsBatchResponse to JSON.
+func (x *LookupGraphQuadsBatchResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the LookupGraphQuadsBatchResponse message from JSON.
+func (x *LookupGraphQuadsBatchResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "results":
+			s.AddField("results")
+			if s.ReadNil() {
+				x.Results = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Results = append(x.Results, nil)
+					return
+				}
+				v := &LookupGraphQuadsBatchResult{}
+				v.UnmarshalProtoJSON(s.WithField("results", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Results = append(x.Results, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the LookupGraphQuadsBatchResponse from JSON.
+func (x *LookupGraphQuadsBatchResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the ListObjectsWithTypeRequest message to JSON.
 func (x *ListObjectsWithTypeRequest) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -5632,6 +6904,372 @@ func (x *ListObjectsWithTypeResponse) UnmarshalProtoJSON(s *json.UnmarshalState)
 
 // UnmarshalJSON unmarshals the ListObjectsWithTypeResponse from JSON.
 func (x *ListObjectsWithTypeResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ObjectMetadata message to JSON.
+func (x *ObjectMetadata) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ObjectKey != "" || s.HasField("objectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectKey")
+		s.WriteString(x.ObjectKey)
+	}
+	if x.TypeId != "" || s.HasField("typeId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("typeId")
+		s.WriteString(x.TypeId)
+	}
+	if x.ParentObjectKey != "" || s.HasField("parentObjectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("parentObjectKey")
+		s.WriteString(x.ParentObjectKey)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ObjectMetadata to JSON.
+func (x *ObjectMetadata) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ObjectMetadata message from JSON.
+func (x *ObjectMetadata) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "object_key", "objectKey":
+			s.AddField("object_key")
+			x.ObjectKey = s.ReadString()
+		case "type_id", "typeId":
+			s.AddField("type_id")
+			x.TypeId = s.ReadString()
+		case "parent_object_key", "parentObjectKey":
+			s.AddField("parent_object_key")
+			x.ParentObjectKey = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ObjectMetadata from JSON.
+func (x *ObjectMetadata) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the GetObjectMetadataBatchRequest message to JSON.
+func (x *GetObjectMetadataBatchRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.ObjectKeys) > 0 || s.HasField("objectKeys") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectKeys")
+		s.WriteStringArray(x.ObjectKeys)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GetObjectMetadataBatchRequest to JSON.
+func (x *GetObjectMetadataBatchRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GetObjectMetadataBatchRequest message from JSON.
+func (x *GetObjectMetadataBatchRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "object_keys", "objectKeys":
+			s.AddField("object_keys")
+			if s.ReadNil() {
+				x.ObjectKeys = nil
+				return
+			}
+			x.ObjectKeys = s.ReadStringArray()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the GetObjectMetadataBatchRequest from JSON.
+func (x *GetObjectMetadataBatchRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the GetObjectMetadataBatchResponse message to JSON.
+func (x *GetObjectMetadataBatchResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Metadata) > 0 || s.HasField("metadata") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("metadata")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Metadata {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("metadata"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GetObjectMetadataBatchResponse to JSON.
+func (x *GetObjectMetadataBatchResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GetObjectMetadataBatchResponse message from JSON.
+func (x *GetObjectMetadataBatchResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "metadata":
+			s.AddField("metadata")
+			if s.ReadNil() {
+				x.Metadata = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Metadata = append(x.Metadata, nil)
+					return
+				}
+				v := &ObjectMetadata{}
+				v.UnmarshalProtoJSON(s.WithField("metadata", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Metadata = append(x.Metadata, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the GetObjectMetadataBatchResponse from JSON.
+func (x *GetObjectMetadataBatchResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the GraphPathStep message to JSON.
+func (x *GraphPathStep) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Direction != 0 || s.HasField("direction") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("direction")
+		x.Direction.MarshalProtoJSON(s)
+	}
+	if x.Predicate != "" || s.HasField("predicate") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("predicate")
+		s.WriteString(x.Predicate)
+	}
+	if x.Limit != 0 || s.HasField("limit") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("limit")
+		s.WriteUint32(x.Limit)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GraphPathStep to JSON.
+func (x *GraphPathStep) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GraphPathStep message from JSON.
+func (x *GraphPathStep) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "direction":
+			s.AddField("direction")
+			x.Direction.UnmarshalProtoJSON(s)
+		case "predicate":
+			s.AddField("predicate")
+			x.Predicate = s.ReadString()
+		case "limit":
+			s.AddField("limit")
+			x.Limit = s.ReadUint32()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the GraphPathStep from JSON.
+func (x *GraphPathStep) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the QueryGraphPathRequest message to JSON.
+func (x *QueryGraphPathRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.StartKeys) > 0 || s.HasField("startKeys") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("startKeys")
+		s.WriteStringArray(x.StartKeys)
+	}
+	if len(x.Steps) > 0 || s.HasField("steps") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("steps")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Steps {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("steps"))
+		}
+		s.WriteArrayEnd()
+	}
+	if x.ResultLimit != 0 || s.HasField("resultLimit") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("resultLimit")
+		s.WriteUint32(x.ResultLimit)
+	}
+	if x.IncludeQuads || s.HasField("includeQuads") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("includeQuads")
+		s.WriteBool(x.IncludeQuads)
+	}
+	if x.PageSize != 0 || s.HasField("pageSize") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pageSize")
+		s.WriteUint32(x.PageSize)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the QueryGraphPathRequest to JSON.
+func (x *QueryGraphPathRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the QueryGraphPathRequest message from JSON.
+func (x *QueryGraphPathRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "start_keys", "startKeys":
+			s.AddField("start_keys")
+			if s.ReadNil() {
+				x.StartKeys = nil
+				return
+			}
+			x.StartKeys = s.ReadStringArray()
+		case "steps":
+			s.AddField("steps")
+			if s.ReadNil() {
+				x.Steps = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Steps = append(x.Steps, nil)
+					return
+				}
+				v := &GraphPathStep{}
+				v.UnmarshalProtoJSON(s.WithField("steps", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Steps = append(x.Steps, v)
+			})
+		case "result_limit", "resultLimit":
+			s.AddField("result_limit")
+			x.ResultLimit = s.ReadUint32()
+		case "include_quads", "includeQuads":
+			s.AddField("include_quads")
+			x.IncludeQuads = s.ReadBool()
+		case "page_size", "pageSize":
+			s.AddField("page_size")
+			x.PageSize = s.ReadUint32()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the QueryGraphPathRequest from JSON.
+func (x *QueryGraphPathRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the QueryGraphPathResponse message to JSON.
+func (x *QueryGraphPathResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ResourceId != 0 || s.HasField("resourceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("resourceId")
+		s.WriteUint32(x.ResourceId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the QueryGraphPathResponse to JSON.
+func (x *QueryGraphPathResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the QueryGraphPathResponse message from JSON.
+func (x *QueryGraphPathResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "resource_id", "resourceId":
+			s.AddField("resource_id")
+			x.ResourceId = s.ReadUint32()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the QueryGraphPathResponse from JSON.
+func (x *QueryGraphPathResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -6433,6 +8071,179 @@ func (x *CloseResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the CloseResponse from JSON.
 func (x *CloseResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the NextGraphPathQueryRequest message to JSON.
+func (x *NextGraphPathQueryRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the NextGraphPathQueryRequest to JSON.
+func (x *NextGraphPathQueryRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the NextGraphPathQueryRequest message from JSON.
+func (x *NextGraphPathQueryRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the NextGraphPathQueryRequest from JSON.
+func (x *NextGraphPathQueryRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the NextGraphPathQueryResponse message to JSON.
+func (x *NextGraphPathQueryResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.ObjectKeys) > 0 || s.HasField("objectKeys") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectKeys")
+		s.WriteStringArray(x.ObjectKeys)
+	}
+	if len(x.Quads) > 0 || s.HasField("quads") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("quads")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Quads {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("quads"))
+		}
+		s.WriteArrayEnd()
+	}
+	if x.Done || s.HasField("done") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("done")
+		s.WriteBool(x.Done)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the NextGraphPathQueryResponse to JSON.
+func (x *NextGraphPathQueryResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the NextGraphPathQueryResponse message from JSON.
+func (x *NextGraphPathQueryResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "object_keys", "objectKeys":
+			s.AddField("object_keys")
+			if s.ReadNil() {
+				x.ObjectKeys = nil
+				return
+			}
+			x.ObjectKeys = s.ReadStringArray()
+		case "quads":
+			s.AddField("quads")
+			if s.ReadNil() {
+				x.Quads = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Quads = append(x.Quads, nil)
+					return
+				}
+				v := &quad.Quad{}
+				v.UnmarshalProtoJSON(s.WithField("quads", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Quads = append(x.Quads, v)
+			})
+		case "done":
+			s.AddField("done")
+			x.Done = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the NextGraphPathQueryResponse from JSON.
+func (x *NextGraphPathQueryResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the CloseGraphPathQueryRequest message to JSON.
+func (x *CloseGraphPathQueryRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CloseGraphPathQueryRequest to JSON.
+func (x *CloseGraphPathQueryRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CloseGraphPathQueryRequest message from JSON.
+func (x *CloseGraphPathQueryRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the CloseGraphPathQueryRequest from JSON.
+func (x *CloseGraphPathQueryRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the CloseGraphPathQueryResponse message to JSON.
+func (x *CloseGraphPathQueryResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CloseGraphPathQueryResponse to JSON.
+func (x *CloseGraphPathQueryResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CloseGraphPathQueryResponse message from JSON.
+func (x *CloseGraphPathQueryResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the CloseGraphPathQueryResponse from JSON.
+func (x *CloseGraphPathQueryResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -8473,6 +10284,146 @@ func (m *LookupGraphQuadsResponse) MarshalToSizedBufferVT(dAtA []byte) (int, err
 	return len(dAtA) - i, nil
 }
 
+func (m *LookupGraphQuadsBatchRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *LookupGraphQuadsBatchRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *LookupGraphQuadsBatchRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.LimitPerFilter != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.LimitPerFilter))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Filters) > 0 {
+		for iNdEx := len(m.Filters) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Filters[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *LookupGraphQuadsBatchResult) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *LookupGraphQuadsBatchResult) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *LookupGraphQuadsBatchResult) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Quads) > 0 {
+		for iNdEx := len(m.Quads) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Quads[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *LookupGraphQuadsBatchResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *LookupGraphQuadsBatchResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *LookupGraphQuadsBatchResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Results) > 0 {
+		for iNdEx := len(m.Results) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Results[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *ListObjectsWithTypeRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -8551,6 +10502,309 @@ func (m *ListObjectsWithTypeResponse) MarshalToSizedBufferVT(dAtA []byte) (int, 
 			i--
 			dAtA[i] = 0xa
 		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ObjectMetadata) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ObjectMetadata) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ObjectMetadata) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.ParentObjectKey) > 0 {
+		i -= len(m.ParentObjectKey)
+		copy(dAtA[i:], m.ParentObjectKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ParentObjectKey)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.TypeId) > 0 {
+		i -= len(m.TypeId)
+		copy(dAtA[i:], m.TypeId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.TypeId)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ObjectKey) > 0 {
+		i -= len(m.ObjectKey)
+		copy(dAtA[i:], m.ObjectKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ObjectKey)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *GetObjectMetadataBatchRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetObjectMetadataBatchRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GetObjectMetadataBatchRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.ObjectKeys) > 0 {
+		for iNdEx := len(m.ObjectKeys) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.ObjectKeys[iNdEx])
+			copy(dAtA[i:], m.ObjectKeys[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ObjectKeys[iNdEx])))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *GetObjectMetadataBatchResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetObjectMetadataBatchResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GetObjectMetadataBatchResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Metadata) > 0 {
+		for iNdEx := len(m.Metadata) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Metadata[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *GraphPathStep) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GraphPathStep) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GraphPathStep) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Limit != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Limit))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.Predicate) > 0 {
+		i -= len(m.Predicate)
+		copy(dAtA[i:], m.Predicate)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Predicate)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Direction != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Direction))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryGraphPathRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryGraphPathRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *QueryGraphPathRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.PageSize != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PageSize))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.IncludeQuads {
+		i--
+		if m.IncludeQuads {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.ResultLimit != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ResultLimit))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.Steps) > 0 {
+		for iNdEx := len(m.Steps) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Steps[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.StartKeys) > 0 {
+		for iNdEx := len(m.StartKeys) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.StartKeys[iNdEx])
+			copy(dAtA[i:], m.StartKeys[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.StartKeys[iNdEx])))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryGraphPathResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryGraphPathResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *QueryGraphPathResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.ResourceId != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ResourceId))
+		i--
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -9329,6 +11583,169 @@ func (m *CloseResponse) MarshalToVT(dAtA []byte) (int, error) {
 }
 
 func (m *CloseResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *NextGraphPathQueryRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *NextGraphPathQueryRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *NextGraphPathQueryRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *NextGraphPathQueryResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *NextGraphPathQueryResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *NextGraphPathQueryResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Done {
+		i--
+		if m.Done {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.Quads) > 0 {
+		for iNdEx := len(m.Quads) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Quads[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.ObjectKeys) > 0 {
+		for iNdEx := len(m.ObjectKeys) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.ObjectKeys[iNdEx])
+			copy(dAtA[i:], m.ObjectKeys[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ObjectKeys[iNdEx])))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CloseGraphPathQueryRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CloseGraphPathQueryRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CloseGraphPathQueryRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CloseGraphPathQueryResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CloseGraphPathQueryResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CloseGraphPathQueryResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -10400,6 +12817,57 @@ func (m *LookupGraphQuadsResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *LookupGraphQuadsBatchRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Filters) > 0 {
+		for _, e := range m.Filters {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if m.LimitPerFilter != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.LimitPerFilter))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *LookupGraphQuadsBatchResult) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Quads) > 0 {
+		for _, e := range m.Quads {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *LookupGraphQuadsBatchResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Results) > 0 {
+		for _, e := range m.Results {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *ListObjectsWithTypeRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -10425,6 +12893,124 @@ func (m *ListObjectsWithTypeResponse) SizeVT() (n int) {
 			l = len(s)
 			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ObjectMetadata) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.ObjectKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.TypeId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ParentObjectKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GetObjectMetadataBatchRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.ObjectKeys) > 0 {
+		for _, s := range m.ObjectKeys {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GetObjectMetadataBatchResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Metadata) > 0 {
+		for _, e := range m.Metadata {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GraphPathStep) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Direction != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Direction))
+	}
+	l = len(m.Predicate)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Limit != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Limit))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *QueryGraphPathRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.StartKeys) > 0 {
+		for _, s := range m.StartKeys {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.Steps) > 0 {
+		for _, e := range m.Steps {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if m.ResultLimit != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.ResultLimit))
+	}
+	if m.IncludeQuads {
+		n += 2
+	}
+	if m.PageSize != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.PageSize))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *QueryGraphPathResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.ResourceId != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.ResourceId))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -10692,6 +13278,61 @@ func (m *CloseResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *NextGraphPathQueryRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *NextGraphPathQueryResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.ObjectKeys) > 0 {
+		for _, s := range m.ObjectKeys {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.Quads) > 0 {
+		for _, e := range m.Quads {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if m.Done {
+		n += 2
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CloseGraphPathQueryRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CloseGraphPathQueryResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *GetKeyRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -10889,6 +13530,10 @@ func (m *AccessTypedObjectResponse) SizeVT() (n int) {
 	}
 	n += len(m.unknownFields)
 	return n
+}
+
+func (x GraphPathDirection) MarshalProtoText() string {
+	return x.String()
 }
 
 func (x *EngineInfo) MarshalProtoText() string {
@@ -11534,6 +14179,85 @@ func (x *LookupGraphQuadsResponse) String() string {
 	return x.MarshalProtoText()
 }
 
+func (x *LookupGraphQuadsBatchRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("LookupGraphQuadsBatchRequest {")
+	if len(x.Filters) > 0 {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("filters: [")
+		for i, v := range x.Filters {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
+	if x.LimitPerFilter != 0 {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("limit_per_filter: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.LimitPerFilter), 10))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *LookupGraphQuadsBatchRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *LookupGraphQuadsBatchResult) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("LookupGraphQuadsBatchResult {")
+	if len(x.Quads) > 0 {
+		if sb.Len() > 29 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("quads: [")
+		for i, v := range x.Quads {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *LookupGraphQuadsBatchResult) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *LookupGraphQuadsBatchResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("LookupGraphQuadsBatchResponse {")
+	if len(x.Results) > 0 {
+		if sb.Len() > 31 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("results: [")
+		for i, v := range x.Results {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *LookupGraphQuadsBatchResponse) String() string {
+	return x.MarshalProtoText()
+}
+
 func (x *ListObjectsWithTypeRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ListObjectsWithTypeRequest {")
@@ -11573,6 +14297,196 @@ func (x *ListObjectsWithTypeResponse) MarshalProtoText() string {
 }
 
 func (x *ListObjectsWithTypeResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ObjectMetadata) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("ObjectMetadata {")
+	if x.ObjectKey != "" {
+		if sb.Len() > 16 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("object_key: ")
+		sb.WriteString(strconv.Quote(x.ObjectKey))
+	}
+	if x.TypeId != "" {
+		if sb.Len() > 16 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("type_id: ")
+		sb.WriteString(strconv.Quote(x.TypeId))
+	}
+	if x.ParentObjectKey != "" {
+		if sb.Len() > 16 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("parent_object_key: ")
+		sb.WriteString(strconv.Quote(x.ParentObjectKey))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *ObjectMetadata) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *GetObjectMetadataBatchRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("GetObjectMetadataBatchRequest {")
+	if len(x.ObjectKeys) > 0 {
+		if sb.Len() > 31 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("object_keys: [")
+		for i, v := range x.ObjectKeys {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *GetObjectMetadataBatchRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *GetObjectMetadataBatchResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("GetObjectMetadataBatchResponse {")
+	if len(x.Metadata) > 0 {
+		if sb.Len() > 32 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("metadata: [")
+		for i, v := range x.Metadata {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *GetObjectMetadataBatchResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *GraphPathStep) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("GraphPathStep {")
+	if x.Direction != 0 {
+		if sb.Len() > 15 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("direction: ")
+		sb.WriteString("\"")
+		sb.WriteString(GraphPathDirection(x.Direction).String())
+		sb.WriteString("\"")
+	}
+	if x.Predicate != "" {
+		if sb.Len() > 15 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("predicate: ")
+		sb.WriteString(strconv.Quote(x.Predicate))
+	}
+	if x.Limit != 0 {
+		if sb.Len() > 15 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("limit: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.Limit), 10))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *GraphPathStep) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *QueryGraphPathRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("QueryGraphPathRequest {")
+	if len(x.StartKeys) > 0 {
+		if sb.Len() > 23 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("start_keys: [")
+		for i, v := range x.StartKeys {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	if len(x.Steps) > 0 {
+		if sb.Len() > 23 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("steps: [")
+		for i, v := range x.Steps {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
+	if x.ResultLimit != 0 {
+		if sb.Len() > 23 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("result_limit: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.ResultLimit), 10))
+	}
+	if x.IncludeQuads != false {
+		if sb.Len() > 23 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("include_quads: ")
+		sb.WriteString(strconv.FormatBool(x.IncludeQuads))
+	}
+	if x.PageSize != 0 {
+		if sb.Len() > 23 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("page_size: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.PageSize), 10))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *QueryGraphPathRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *QueryGraphPathResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("QueryGraphPathResponse {")
+	if x.ResourceId != 0 {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("resource_id: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.ResourceId), 10))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *QueryGraphPathResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -11920,6 +14834,83 @@ func (x *CloseResponse) MarshalProtoText() string {
 }
 
 func (x *CloseResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *NextGraphPathQueryRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("NextGraphPathQueryRequest {")
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *NextGraphPathQueryRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *NextGraphPathQueryResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("NextGraphPathQueryResponse {")
+	if len(x.ObjectKeys) > 0 {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("object_keys: [")
+		for i, v := range x.ObjectKeys {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	if len(x.Quads) > 0 {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("quads: [")
+		for i, v := range x.Quads {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
+	if x.Done != false {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("done: ")
+		sb.WriteString(strconv.FormatBool(x.Done))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *NextGraphPathQueryResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CloseGraphPathQueryRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("CloseGraphPathQueryRequest {")
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *CloseGraphPathQueryRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CloseGraphPathQueryResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("CloseGraphPathQueryResponse {")
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *CloseGraphPathQueryResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -14322,6 +17313,222 @@ func (m *LookupGraphQuadsResponse) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
+func (m *LookupGraphQuadsBatchRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: LookupGraphQuadsBatchRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: LookupGraphQuadsBatchRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Filters", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Filters = append(m.Filters, &quad.Quad{})
+			if err := m.Filters[len(m.Filters)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LimitPerFilter", wireType)
+			}
+			m.LimitPerFilter = 0
+			m.LimitPerFilter, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *LookupGraphQuadsBatchResult) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: LookupGraphQuadsBatchResult: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: LookupGraphQuadsBatchResult: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Quads", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Quads = append(m.Quads, &quad.Quad{})
+			if err := m.Quads[len(m.Quads)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *LookupGraphQuadsBatchResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: LookupGraphQuadsBatchResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: LookupGraphQuadsBatchResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Results", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Results = append(m.Results, &LookupGraphQuadsBatchResult{})
+			if err := m.Results[len(m.Results)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
 func (m *ListObjectsWithTypeRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -14429,6 +17636,507 @@ func (m *ListObjectsWithTypeResponse) UnmarshalVT(dAtA []byte) error {
 			}
 			m.ObjectKeys = append(m.ObjectKeys, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ObjectMetadata) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ObjectMetadata: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ObjectMetadata: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ObjectKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TypeId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.TypeId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ParentObjectKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ParentObjectKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *GetObjectMetadataBatchRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetObjectMetadataBatchRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetObjectMetadataBatchRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKeys", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ObjectKeys = append(m.ObjectKeys, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *GetObjectMetadataBatchResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetObjectMetadataBatchResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetObjectMetadataBatchResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Metadata", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Metadata = append(m.Metadata, &ObjectMetadata{})
+			if err := m.Metadata[len(m.Metadata)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *GraphPathStep) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GraphPathStep: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GraphPathStep: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Direction", wireType)
+			}
+			m.Direction = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Direction = GraphPathDirection(_v)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Predicate", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Predicate = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Limit", wireType)
+			}
+			m.Limit = 0
+			m.Limit, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *QueryGraphPathRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryGraphPathRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryGraphPathRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StartKeys", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.StartKeys = append(m.StartKeys, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Steps", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Steps = append(m.Steps, &GraphPathStep{})
+			if err := m.Steps[len(m.Steps)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ResultLimit", wireType)
+			}
+			m.ResultLimit = 0
+			m.ResultLimit, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IncludeQuads", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.IncludeQuads = bool(v != 0)
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PageSize", wireType)
+			}
+			m.PageSize = 0
+			m.PageSize, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *QueryGraphPathResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryGraphPathResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryGraphPathResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ResourceId", wireType)
+			}
+			m.ResourceId = 0
+			m.ResourceId, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -15577,6 +19285,238 @@ func (m *CloseResponse) UnmarshalVT(dAtA []byte) error {
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: CloseResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *NextGraphPathQueryRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: NextGraphPathQueryRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: NextGraphPathQueryRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *NextGraphPathQueryResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: NextGraphPathQueryResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: NextGraphPathQueryResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKeys", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ObjectKeys = append(m.ObjectKeys, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Quads", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Quads = append(m.Quads, &quad.Quad{})
+			if err := m.Quads[len(m.Quads)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Done", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.Done = bool(v != 0)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CloseGraphPathQueryRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CloseGraphPathQueryRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CloseGraphPathQueryRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CloseGraphPathQueryResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CloseGraphPathQueryResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CloseGraphPathQueryResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		default:

@@ -210,7 +210,7 @@ func (t *bstoreTracker) buildBucketConf() (*bucket.Config, error) {
 		t.a.t.accountInfo.GetProviderAccountId(),
 		t.id,
 	)
-	return bucket.NewConfig(bucketID, 1, nil, &bucket.LookupConfig{})
+	return bucket.NewConfig(bucketID, 1, &bucket.LookupConfig{})
 }
 
 // createBlockStoreLocked creates a new bstore with the given details.

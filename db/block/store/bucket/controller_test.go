@@ -38,7 +38,7 @@ func TestBlockStoreBucketController(t *testing.T) {
 	defer relStore()
 
 	bucketID := "test-block-store-bucket"
-	bucketConf, err := bucket.NewConfig(bucketID, 1, nil, nil)
+	bucketConf, err := bucket.NewConfig(bucketID, 1, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

@@ -19,6 +19,13 @@ type ObjectMetadata struct {
 	ParentObjectKey string
 }
 
+// ObjectMetadataBatcher returns metadata for object keys without requiring a
+// Cayley handle.
+type ObjectMetadataBatcher interface {
+	// GetObjectMetadataBatch returns graph metadata for object keys.
+	GetObjectMetadataBatch(ctx context.Context, keys []string) ([]*ObjectMetadata, error)
+}
+
 // GetObjectMetadataBatch returns the type and parent metadata for a list of
 // object keys using indexed graph passes within a single Cayley transaction
 // rather than 2N individual lookups.
@@ -27,6 +34,9 @@ type ObjectMetadata struct {
 func GetObjectMetadataBatch(ctx context.Context, ws world.WorldState, keys []string) ([]*ObjectMetadata, error) {
 	if len(keys) == 0 {
 		return nil, nil
+	}
+	if batcher, ok := ws.(ObjectMetadataBatcher); ok {
+		return batcher.GetObjectMetadataBatch(ctx, keys)
 	}
 
 	result := make([]*ObjectMetadata, len(keys))

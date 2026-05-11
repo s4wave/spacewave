@@ -11,8 +11,6 @@ import (
 	rpc_block_client "github.com/s4wave/spacewave/db/block/rpc/client"
 	rpc_bucket "github.com/s4wave/spacewave/db/bucket/store/rpc"
 	rpc_bucket_client "github.com/s4wave/spacewave/db/bucket/store/rpc/client"
-	rpc_mqueue "github.com/s4wave/spacewave/db/mqueue/rpc"
-	rpc_mqueue_client "github.com/s4wave/spacewave/db/mqueue/rpc/client"
 	rpc_object "github.com/s4wave/spacewave/db/object/rpc"
 	rpc_object_client "github.com/s4wave/spacewave/db/object/rpc/client"
 	"github.com/s4wave/spacewave/db/volume"
@@ -27,7 +25,6 @@ type ProxyVolume struct {
 	*rpc_block_client.BlockStore
 	*rpc_bucket_client.BucketStore
 	*rpc_object_client.ObjectStore
-	*rpc_mqueue_client.MqueueStore
 
 	// client is the client to use
 	client volume_rpc.SRPCProxyVolumeClient
@@ -46,7 +43,6 @@ func NewProxyVolume(
 	blockStoreClient rpc_block.SRPCBlockStoreClient,
 	bucketStoreClient rpc_bucket.SRPCBucketStoreClient,
 	objectStoreClient rpc_object.SRPCObjectStoreClient,
-	mqueueStoreClient rpc_mqueue.SRPCMqueueStoreClient,
 	refGraphClient rpc_gc.SRPCRefGraphClient,
 ) (*ProxyVolume, error) {
 	volPeer, err := volInfo.ParseToPeer()
@@ -63,7 +59,6 @@ func NewProxyVolume(
 		BlockStore:  rpc_block_client.NewBlockStore(blockStoreClient, volInfo.GetHashType(), false),
 		BucketStore: rpc_bucket_client.NewBucketStore(bucketStoreClient),
 		ObjectStore: rpc_object_client.NewObjectStore(objectStoreClient),
-		MqueueStore: rpc_mqueue_client.NewMqueueStore(mqueueStoreClient),
 
 		client:   proxyVolumeClient,
 		refGraph: refGraph,

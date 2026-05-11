@@ -42,7 +42,6 @@ func RunDemoGit(
 	bucketConf, err := bucket.NewConfig(
 		"example-bucket-1",
 		1,
-		nil,
 		&bucket.LookupConfig{Controller: cc},
 	)
 	if err != nil {

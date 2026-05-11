@@ -12,44 +12,6 @@ import { Config as Config$1 } from '../block/transform/transform.pb.js'
 export const protobufPackage = 'bucket'
 
 /**
- * ReconcilerConfig configures a reconciler.
- *
- * @generated from message bucket.ReconcilerConfig
- */
-export interface ReconcilerConfig {
-  /**
-   * Id contains the reconciler id.
-   *
-   * @generated from field: string id = 1;
-   */
-  id?: string
-  /**
-   * Controller contains the controller configuration.
-   *
-   * @generated from field: configset.proto.ControllerConfig controller = 2;
-   */
-  controller?: ControllerConfig
-  /**
-   * FilterPut disables receiving put events.
-   *
-   * @generated from field: bool filter_put = 3;
-   */
-  filterPut?: boolean
-}
-
-// ReconcilerConfig contains the message type declaration for ReconcilerConfig.
-export const ReconcilerConfig: MessageType<ReconcilerConfig> =
-  createMessageType({
-    typeName: 'bucket.ReconcilerConfig',
-    fields: [
-      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'controller', kind: 'message', T: () => ControllerConfig },
-      { no: 3, name: 'filter_put', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
-
-/**
  * LookupConfig configures the bucket behavior across multiple volumes.
  *
  * @generated from message bucket.LookupConfig
@@ -102,12 +64,6 @@ export interface Config {
    */
   rev?: number
   /**
-   * Reconcilers contains the list of bucket reconcilers.
-   *
-   * @generated from field: repeated bucket.ReconcilerConfig reconcilers = 3;
-   */
-  reconcilers?: ReconcilerConfig[]
-  /**
    * PutOpts are the default put options for the bucket.
    *
    * @generated from field: block.PutOpts put_opts = 4;
@@ -129,13 +85,6 @@ export const Config: MessageType<Config> = createMessageType({
   fields: [
     { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'rev', kind: 'scalar', T: ScalarType.UINT32 },
-    {
-      no: 3,
-      name: 'reconcilers',
-      kind: 'message',
-      T: () => ReconcilerConfig,
-      repeated: true,
-    },
     { no: 4, name: 'put_opts', kind: 'message', T: () => PutOpts },
     { no: 5, name: 'lookup', kind: 'message', T: () => LookupConfig },
   ] as readonly PartialFieldInfo[],

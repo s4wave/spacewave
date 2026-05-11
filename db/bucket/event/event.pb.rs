@@ -50,7 +50,7 @@ pub struct RmBlock {
     #[prost(message, optional, tag="1")]
     pub block_common: ::core::option::Option<BlockCommon>,
 }
-/// EventType is the type of bucket reconciler event.
+/// EventType is the type of bucket operation event.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum EventType {

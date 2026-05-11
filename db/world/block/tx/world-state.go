@@ -311,6 +311,18 @@ func (w *WorldState) LookupGraphQuads(ctx context.Context, filter world.GraphQua
 	return w.world.LookupGraphQuads(ctx, filter, limit)
 }
 
+// QueryGraphPath executes a bounded graph traversal.
+func (w *WorldState) QueryGraphPath(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
+
+	if w.discarded {
+		return nil, tx.ErrDiscarded
+	}
+
+	return w.world.QueryGraphPath(ctx, query)
+}
+
 // SetGraphQuad sets a quad in the graph store.
 func (w *WorldState) SetGraphQuad(ctx context.Context, q world.GraphQuad) error {
 	if !w.write {

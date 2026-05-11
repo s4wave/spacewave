@@ -3,11 +3,61 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import {
+  createEnumType,
+  createMessageType,
+  ScalarType,
+} from '@aptre/protobuf-es-lite'
 import { ObjectRef } from '../../db/bucket/bucket.pb.js'
 import { Quad } from '../../db/block/quad/quad.pb.js'
 
 export const protobufPackage = 's4wave.world'
+
+/**
+ * GraphPathDirection indicates which side of the current object key to follow.
+ *
+ * @generated from enum s4wave.world.GraphPathDirection
+ */
+export enum GraphPathDirection {
+  /**
+   * GRAPH_PATH_DIRECTION_UNSPECIFIED is invalid.
+   *
+   * @generated from enum value: GRAPH_PATH_DIRECTION_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * GRAPH_PATH_DIRECTION_OUT follows quads where the current key is the subject.
+   *
+   * @generated from enum value: GRAPH_PATH_DIRECTION_OUT = 1;
+   */
+  OUT = 1,
+
+  /**
+   * GRAPH_PATH_DIRECTION_IN follows quads where the current key is the object.
+   *
+   * @generated from enum value: GRAPH_PATH_DIRECTION_IN = 2;
+   */
+  IN = 2,
+
+  /**
+   * GRAPH_PATH_DIRECTION_BOTH follows incoming and outgoing quads.
+   *
+   * @generated from enum value: GRAPH_PATH_DIRECTION_BOTH = 3;
+   */
+  BOTH = 3,
+}
+
+// GraphPathDirection_Enum is the enum type for GraphPathDirection.
+export const GraphPathDirection_Enum = createEnumType(
+  's4wave.world.GraphPathDirection',
+  [
+    { no: 0, name: 'GRAPH_PATH_DIRECTION_UNSPECIFIED' },
+    { no: 1, name: 'GRAPH_PATH_DIRECTION_OUT' },
+    { no: 2, name: 'GRAPH_PATH_DIRECTION_IN' },
+    { no: 3, name: 'GRAPH_PATH_DIRECTION_BOTH' },
+  ],
+)
 
 /**
  * EngineInfo contains metadata about a world engine.
@@ -835,6 +885,100 @@ export const LookupGraphQuadsResponse: MessageType<LookupGraphQuadsResponse> =
   })
 
 /**
+ * LookupGraphQuadsBatchRequest is the request type for LookupGraphQuadsBatch.
+ *
+ * @generated from message s4wave.world.LookupGraphQuadsBatchRequest
+ */
+export interface LookupGraphQuadsBatchRequest {
+  /**
+   * Filters is the bounded list of subject/predicate or object/predicate
+   * filters to evaluate server-side.
+   *
+   * @generated from field: repeated quad.Quad filters = 1;
+   */
+  filters?: Quad[]
+  /**
+   * LimitPerFilter is the maximum number of quads returned for each filter.
+   * It must be non-zero.
+   *
+   * @generated from field: uint32 limit_per_filter = 2;
+   */
+  limitPerFilter?: number
+}
+
+// LookupGraphQuadsBatchRequest contains the message type declaration for LookupGraphQuadsBatchRequest.
+export const LookupGraphQuadsBatchRequest: MessageType<LookupGraphQuadsBatchRequest> =
+  createMessageType({
+    typeName: 's4wave.world.LookupGraphQuadsBatchRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'filters',
+        kind: 'message',
+        T: () => Quad,
+        repeated: true,
+      },
+      { no: 2, name: 'limit_per_filter', kind: 'scalar', T: ScalarType.UINT32 },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * LookupGraphQuadsBatchResult is one filtered graph lookup result.
+ *
+ * @generated from message s4wave.world.LookupGraphQuadsBatchResult
+ */
+export interface LookupGraphQuadsBatchResult {
+  /**
+   * Quads is the list of graph quads matching one filter.
+   *
+   * @generated from field: repeated quad.Quad quads = 1;
+   */
+  quads?: Quad[]
+}
+
+// LookupGraphQuadsBatchResult contains the message type declaration for LookupGraphQuadsBatchResult.
+export const LookupGraphQuadsBatchResult: MessageType<LookupGraphQuadsBatchResult> =
+  createMessageType({
+    typeName: 's4wave.world.LookupGraphQuadsBatchResult',
+    fields: [
+      { no: 1, name: 'quads', kind: 'message', T: () => Quad, repeated: true },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * LookupGraphQuadsBatchResponse is the response type for
+ * LookupGraphQuadsBatch.
+ *
+ * @generated from message s4wave.world.LookupGraphQuadsBatchResponse
+ */
+export interface LookupGraphQuadsBatchResponse {
+  /**
+   * Results preserves the request filter order.
+   *
+   * @generated from field: repeated s4wave.world.LookupGraphQuadsBatchResult results = 1;
+   */
+  results?: LookupGraphQuadsBatchResult[]
+}
+
+// LookupGraphQuadsBatchResponse contains the message type declaration for LookupGraphQuadsBatchResponse.
+export const LookupGraphQuadsBatchResponse: MessageType<LookupGraphQuadsBatchResponse> =
+  createMessageType({
+    typeName: 's4wave.world.LookupGraphQuadsBatchResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'results',
+        kind: 'message',
+        T: () => LookupGraphQuadsBatchResult,
+        repeated: true,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * ListObjectsWithTypeRequest is the request type for ListObjectsWithType.
  *
  * @generated from message s4wave.world.ListObjectsWithTypeRequest
@@ -884,6 +1028,232 @@ export const ListObjectsWithTypeResponse: MessageType<ListObjectsWithTypeRespons
         T: ScalarType.STRING,
         repeated: true,
       },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ObjectMetadata contains graph metadata for one object key.
+ *
+ * @generated from message s4wave.world.ObjectMetadata
+ */
+export interface ObjectMetadata {
+  /**
+   * ObjectKey is the object key.
+   *
+   * @generated from field: string object_key = 1;
+   */
+  objectKey?: string
+  /**
+   * TypeId is the object type identifier, if present.
+   *
+   * @generated from field: string type_id = 2;
+   */
+  typeId?: string
+  /**
+   * ParentObjectKey is the parent object key, if present.
+   *
+   * @generated from field: string parent_object_key = 3;
+   */
+  parentObjectKey?: string
+}
+
+// ObjectMetadata contains the message type declaration for ObjectMetadata.
+export const ObjectMetadata: MessageType<ObjectMetadata> = createMessageType({
+  typeName: 's4wave.world.ObjectMetadata',
+  fields: [
+    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'parent_object_key', kind: 'scalar', T: ScalarType.STRING },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
+
+/**
+ * GetObjectMetadataBatchRequest is the request type for
+ * GetObjectMetadataBatch.
+ *
+ * @generated from message s4wave.world.GetObjectMetadataBatchRequest
+ */
+export interface GetObjectMetadataBatchRequest {
+  /**
+   * ObjectKeys is the list of object keys to inspect.
+   *
+   * @generated from field: repeated string object_keys = 1;
+   */
+  objectKeys?: string[]
+}
+
+// GetObjectMetadataBatchRequest contains the message type declaration for GetObjectMetadataBatchRequest.
+export const GetObjectMetadataBatchRequest: MessageType<GetObjectMetadataBatchRequest> =
+  createMessageType({
+    typeName: 's4wave.world.GetObjectMetadataBatchRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'object_keys',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * GetObjectMetadataBatchResponse is the response type for
+ * GetObjectMetadataBatch.
+ *
+ * @generated from message s4wave.world.GetObjectMetadataBatchResponse
+ */
+export interface GetObjectMetadataBatchResponse {
+  /**
+   * Metadata preserves the request object key order.
+   *
+   * @generated from field: repeated s4wave.world.ObjectMetadata metadata = 1;
+   */
+  metadata?: ObjectMetadata[]
+}
+
+// GetObjectMetadataBatchResponse contains the message type declaration for GetObjectMetadataBatchResponse.
+export const GetObjectMetadataBatchResponse: MessageType<GetObjectMetadataBatchResponse> =
+  createMessageType({
+    typeName: 's4wave.world.GetObjectMetadataBatchResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'metadata',
+        kind: 'message',
+        T: () => ObjectMetadata,
+        repeated: true,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * GraphPathStep is one bounded predicate traversal step.
+ *
+ * @generated from message s4wave.world.GraphPathStep
+ */
+export interface GraphPathStep {
+  /**
+   * Direction is the edge direction to follow.
+   *
+   * @generated from field: s4wave.world.GraphPathDirection direction = 1;
+   */
+  direction?: GraphPathDirection
+  /**
+   * Predicate is the graph predicate to match.
+   *
+   * @generated from field: string predicate = 2;
+   */
+  predicate?: string
+  /**
+   * Limit is the maximum number of quads to inspect for each current object key.
+   *
+   * @generated from field: uint32 limit = 3;
+   */
+  limit?: number
+}
+
+// GraphPathStep contains the message type declaration for GraphPathStep.
+export const GraphPathStep: MessageType<GraphPathStep> = createMessageType({
+  typeName: 's4wave.world.GraphPathStep',
+  fields: [
+    { no: 1, name: 'direction', kind: 'enum', T: GraphPathDirection_Enum },
+    { no: 2, name: 'predicate', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'limit', kind: 'scalar', T: ScalarType.UINT32 },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
+
+/**
+ * QueryGraphPathRequest is the request type for QueryGraphPath.
+ *
+ * @generated from message s4wave.world.QueryGraphPathRequest
+ */
+export interface QueryGraphPathRequest {
+  /**
+   * StartKeys is the list of object keys where traversal starts.
+   *
+   * @generated from field: repeated string start_keys = 1;
+   */
+  startKeys?: string[]
+  /**
+   * Steps is the bounded traversal to execute server-side.
+   *
+   * @generated from field: repeated s4wave.world.GraphPathStep steps = 2;
+   */
+  steps?: GraphPathStep[]
+  /**
+   * ResultLimit is the maximum number of object keys returned.
+   * It must be non-zero.
+   *
+   * @generated from field: uint32 result_limit = 3;
+   */
+  resultLimit?: number
+  /**
+   * IncludeQuads includes traversed quads in result pages.
+   *
+   * @generated from field: bool include_quads = 4;
+   */
+  includeQuads?: boolean
+  /**
+   * PageSize is the maximum number of object keys returned by one Next call.
+   * If unset, the server uses ResultLimit.
+   *
+   * @generated from field: uint32 page_size = 5;
+   */
+  pageSize?: number
+}
+
+// QueryGraphPathRequest contains the message type declaration for QueryGraphPathRequest.
+export const QueryGraphPathRequest: MessageType<QueryGraphPathRequest> =
+  createMessageType({
+    typeName: 's4wave.world.QueryGraphPathRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'start_keys',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 2,
+        name: 'steps',
+        kind: 'message',
+        T: () => GraphPathStep,
+        repeated: true,
+      },
+      { no: 3, name: 'result_limit', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 4, name: 'include_quads', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 5, name: 'page_size', kind: 'scalar', T: ScalarType.UINT32 },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * QueryGraphPathResponse is the response type for QueryGraphPath.
+ *
+ * @generated from message s4wave.world.QueryGraphPathResponse
+ */
+export interface QueryGraphPathResponse {
+  /**
+   * ResourceId is the ID of the GraphPathQuery resource.
+   *
+   * @generated from field: uint32 resource_id = 1;
+   */
+  resourceId?: number
+}
+
+// QueryGraphPathResponse contains the message type declaration for QueryGraphPathResponse.
+export const QueryGraphPathResponse: MessageType<QueryGraphPathResponse> =
+  createMessageType({
+    typeName: 's4wave.world.QueryGraphPathResponse',
+    fields: [
+      { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -1324,6 +1694,95 @@ export const CloseResponse: MessageType<CloseResponse> = createMessageType({
   fields: [] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
+
+/**
+ * NextGraphPathQueryRequest is the request type for GraphPathQuery Next.
+ *
+ * @generated from message s4wave.world.NextGraphPathQueryRequest
+ */
+export interface NextGraphPathQueryRequest {}
+
+// NextGraphPathQueryRequest contains the message type declaration for NextGraphPathQueryRequest.
+export const NextGraphPathQueryRequest: MessageType<NextGraphPathQueryRequest> =
+  createMessageType({
+    typeName: 's4wave.world.NextGraphPathQueryRequest',
+    fields: [] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * NextGraphPathQueryResponse is one page of graph path query results.
+ *
+ * @generated from message s4wave.world.NextGraphPathQueryResponse
+ */
+export interface NextGraphPathQueryResponse {
+  /**
+   * ObjectKeys is the next page of reached object keys.
+   *
+   * @generated from field: repeated string object_keys = 1;
+   */
+  objectKeys?: string[]
+  /**
+   * Quads is the traversed graph quads when requested.
+   *
+   * @generated from field: repeated quad.Quad quads = 2;
+   */
+  quads?: Quad[]
+  /**
+   * Done indicates the resource has no more result pages.
+   *
+   * @generated from field: bool done = 3;
+   */
+  done?: boolean
+}
+
+// NextGraphPathQueryResponse contains the message type declaration for NextGraphPathQueryResponse.
+export const NextGraphPathQueryResponse: MessageType<NextGraphPathQueryResponse> =
+  createMessageType({
+    typeName: 's4wave.world.NextGraphPathQueryResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'object_keys',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      { no: 2, name: 'quads', kind: 'message', T: () => Quad, repeated: true },
+      { no: 3, name: 'done', kind: 'scalar', T: ScalarType.BOOL },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * CloseGraphPathQueryRequest is the request type for GraphPathQuery Close.
+ *
+ * @generated from message s4wave.world.CloseGraphPathQueryRequest
+ */
+export interface CloseGraphPathQueryRequest {}
+
+// CloseGraphPathQueryRequest contains the message type declaration for CloseGraphPathQueryRequest.
+export const CloseGraphPathQueryRequest: MessageType<CloseGraphPathQueryRequest> =
+  createMessageType({
+    typeName: 's4wave.world.CloseGraphPathQueryRequest',
+    fields: [] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * CloseGraphPathQueryResponse is the response type for GraphPathQuery Close.
+ *
+ * @generated from message s4wave.world.CloseGraphPathQueryResponse
+ */
+export interface CloseGraphPathQueryResponse {}
+
+// CloseGraphPathQueryResponse contains the message type declaration for CloseGraphPathQueryResponse.
+export const CloseGraphPathQueryResponse: MessageType<CloseGraphPathQueryResponse> =
+  createMessageType({
+    typeName: 's4wave.world.CloseGraphPathQueryResponse',
+    fields: [] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * GetKeyRequest is the request type for GetKey.

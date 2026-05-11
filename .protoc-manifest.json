@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "protocFlagsHash": "2ee429137165dfaddb88b31e6dc72fd5f3e73be73da9231075d5d5cc633fbe2f",
+  "protocFlagsHash": "1c28c09115aa511ff35b1be26994db5c0c847fc8e5879acca1694ab90f3ae614",
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.13.0,starpc=v0.49.7,protobuf-es-lite=1.0.2",
   "packages": {
     "github.com/s4wave/spacewave/auth/derive": {
@@ -201,7 +201,7 @@
       "protoFiles": ["bldr/manifest/world/world.proto"]
     },
     "github.com/s4wave/spacewave/bldr/plugin": {
-      "hash": "54bc82f24d7db9a34e7bf993f486fed2752f671e9fcdfbed0819bbe63ac7afb9",
+      "hash": "0d8c46e08af376ce9592dee7e6810298a640cf5d1c7b0052160542eede9f4264",
       "generatedFiles": [
         "bldr/plugin/plugin.pb.cc",
         "bldr/plugin/plugin.pb.go",
@@ -1945,7 +1945,7 @@
       "protoFiles": ["db/blocktype/controller-factory/controller.proto"]
     },
     "github.com/s4wave/spacewave/db/bucket": {
-      "hash": "8492e121650ee74b1a4bbe23ab078805a1413065d98999c93a2705650600b14e",
+      "hash": "ae7306e4efaf7d01b2f88d93b71ffa18440ea926fb04cfa3cb3d9eee4c62fa6f",
       "generatedFiles": [
         "db/bucket/bucket.pb.cc",
         "db/bucket/bucket.pb.go",
@@ -1956,7 +1956,7 @@
       "protoFiles": ["db/bucket/bucket.proto"]
     },
     "github.com/s4wave/spacewave/db/bucket/event": {
-      "hash": "9345094c8915002cf0c8e157a9d145773dbb0ae2063cfbc69e35b70a9ff4fc55",
+      "hash": "a28c5f6204de10b6049e48874141df70813f1423dd4195b39b512b4d1442c2dc",
       "generatedFiles": [
         "db/bucket/event/event.pb.cc",
         "db/bucket/event/event.pb.go",
@@ -2184,17 +2184,6 @@
       ],
       "protoFiles": ["db/kvtx/fibheap/fibheap.proto"]
     },
-    "github.com/s4wave/spacewave/db/kvtx/mqueue": {
-      "hash": "52fea7ff0e64079ca219dd77a1a68ffad938b7e8d11655d9ffd5f5a7281d5732",
-      "generatedFiles": [
-        "db/kvtx/mqueue/mqueue.pb.cc",
-        "db/kvtx/mqueue/mqueue.pb.go",
-        "db/kvtx/mqueue/mqueue.pb.h",
-        "db/kvtx/mqueue/mqueue.pb.rs",
-        "db/kvtx/mqueue/mqueue.pb.ts"
-      ],
-      "protoFiles": ["db/kvtx/mqueue/mqueue.proto"]
-    },
     "github.com/s4wave/spacewave/db/kvtx/rpc": {
       "hash": "c46e72138c839444bc6825e2d84ac1827d05a10e3edcd172fba85ef52ccd2a27",
       "generatedFiles": [
@@ -2210,22 +2199,6 @@
         "db/kvtx/rpc/kvtx_srpc.pb.ts"
       ],
       "protoFiles": ["db/kvtx/rpc/kvtx.proto"]
-    },
-    "github.com/s4wave/spacewave/db/mqueue/rpc": {
-      "hash": "6773d378edea53a1f9772214ddd69d446e1df34daaa75a3820ec47c9d491e8cb",
-      "generatedFiles": [
-        "db/mqueue/rpc/mqueue.pb.cc",
-        "db/mqueue/rpc/mqueue.pb.go",
-        "db/mqueue/rpc/mqueue.pb.h",
-        "db/mqueue/rpc/mqueue.pb.rs",
-        "db/mqueue/rpc/mqueue.pb.ts",
-        "db/mqueue/rpc/mqueue_srpc.pb.cpp",
-        "db/mqueue/rpc/mqueue_srpc.pb.go",
-        "db/mqueue/rpc/mqueue_srpc.pb.hpp",
-        "db/mqueue/rpc/mqueue_srpc.pb.rs",
-        "db/mqueue/rpc/mqueue_srpc.pb.ts"
-      ],
-      "protoFiles": ["db/mqueue/rpc/mqueue.proto"]
     },
     "github.com/s4wave/spacewave/db/node/controller": {
       "hash": "a4f650fbd8196b2a269bc75038120b2d161709bacd3e136ab7878373960987e9",
@@ -2264,17 +2237,6 @@
         "db/object/rpc/object_srpc.pb.ts"
       ],
       "protoFiles": ["db/object/rpc/object.proto"]
-    },
-    "github.com/s4wave/spacewave/db/reconciler/example": {
-      "hash": "c081accbfef7e1b611aeae23832a60be8de22be6b0ebaf6515b13b2993122aaa",
-      "generatedFiles": [
-        "db/reconciler/example/example.pb.cc",
-        "db/reconciler/example/example.pb.go",
-        "db/reconciler/example/example.pb.h",
-        "db/reconciler/example/example.pb.rs",
-        "db/reconciler/example/example.pb.ts"
-      ],
-      "protoFiles": ["db/reconciler/example/example.proto"]
     },
     "github.com/s4wave/spacewave/db/sql/mysql": {
       "hash": "a425d3e5b27462d929dc550182de5fec2e0cdb021d7e9e06c8b1aa83919609e4",
@@ -2315,7 +2277,7 @@
       "protoFiles": ["db/sql/sqlite-wasm/rpc/sqlite-bridge.proto"]
     },
     "github.com/s4wave/spacewave/db/store/kvkey": {
-      "hash": "cb4121229c8491b6fd07bb672ba3d5dbe22dd360fdba6b620fb996b7301a9e60",
+      "hash": "82600508c21b871a3600e379842e2df39ae83b6b691a7b39ae33371df138cbd8",
       "generatedFiles": [
         "db/store/kvkey/kvkey.pb.cc",
         "db/store/kvkey/kvkey.pb.go",
@@ -2326,7 +2288,7 @@
       "protoFiles": ["db/store/kvkey/kvkey.proto"]
     },
     "github.com/s4wave/spacewave/db/store/kvtx": {
-      "hash": "2066c7e190484f96d01d8639b41a4e89891e64b95a6ebac7986fe6bbb091930e",
+      "hash": "aa9c44f20ac34b1cb7dc3aab7cd2bc1908802d6f761cd2140afa301dbb310a3f",
       "generatedFiles": [
         "db/store/kvtx/kvtx.pb.cc",
         "db/store/kvtx/kvtx.pb.go",
@@ -2545,7 +2507,7 @@
       "protoFiles": ["db/volume/bolt/bolt.proto"]
     },
     "github.com/s4wave/spacewave/db/volume/controller": {
-      "hash": "94df6033c7bd7cf22649189ab2cf6302b9d025d21be3e1aab7a3547c24b45829",
+      "hash": "9d5210effc74524d7c9ad499ac32d5544117bce9a5537b19a0dabee2ea384e67",
       "generatedFiles": [
         "db/volume/controller/controller.pb.cc",
         "db/volume/controller/controller.pb.go",
@@ -2611,7 +2573,7 @@
       "protoFiles": ["db/volume/redis/redis.proto"]
     },
     "github.com/s4wave/spacewave/db/volume/rpc": {
-      "hash": "1752eae31f3fd5f2a8b2c170de55e99b74e331ee6121eccbf83002a111bbcdec",
+      "hash": "507d3762f9f12b6bf01d370849cac426900047e1393002553fe1432e557a8cf0",
       "generatedFiles": [
         "db/volume/rpc/volume.pb.cc",
         "db/volume/rpc/volume.pb.go",
@@ -4289,7 +4251,7 @@
       "protoFiles": ["sdk/vm/v86-wizard.proto", "sdk/vm/v86.proto"]
     },
     "github.com/s4wave/spacewave/sdk/world": {
-      "hash": "abc83281d616b504776a74412f8b1d21d4b568a9699d83a6fa20b90ad847acd0",
+      "hash": "516ee8ab6224faef7f589955f80c2680e58ddf638118ed3accdb06e031158e9f",
       "generatedFiles": [
         "sdk/world/world.pb.cc",
         "sdk/world/world.pb.go",

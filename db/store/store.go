@@ -5,7 +5,6 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	bucket_store "github.com/s4wave/spacewave/db/bucket/store"
-	mqueue_store "github.com/s4wave/spacewave/db/mqueue/store"
 	object_store "github.com/s4wave/spacewave/db/object/store"
 	volume_store "github.com/s4wave/spacewave/db/volume/store"
 )
@@ -22,9 +21,6 @@ type VolumeStore = volume_store.Store
 // ObjectStore is the object store.
 type ObjectStore = object_store.Store
 
-// MqueueStore is the message queue store.
-type MqueueStore = mqueue_store.Store
-
 // Store contains all of the Hydra stores.
 type Store interface {
 	// Execute executes the given store.
@@ -39,6 +35,4 @@ type Store interface {
 	VolumeStore
 	// ObjectStore is the object store.
 	ObjectStore
-	// MqueueStore is the message queue store.
-	MqueueStore
 }

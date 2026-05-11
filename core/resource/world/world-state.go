@@ -5,6 +5,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/pkg/errors"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_bucket_lookup "github.com/s4wave/spacewave/core/resource/bucket/lookup"
 	"github.com/s4wave/spacewave/db/block/quad"
@@ -269,17 +270,31 @@ func (r *WorldStateResource) LookupGraphQuads(ctx context.Context, req *s4wave_w
 		return nil, err
 	}
 
-	protoQuads := make([]*quad.Quad, len(quads))
-	for i, q := range quads {
-		protoQuads[i] = &quad.Quad{
-			Subject:   q.GetSubject(),
-			Predicate: q.GetPredicate(),
-			Obj:       q.GetObj(),
-			Label:     q.GetLabel(),
+	return &s4wave_world.LookupGraphQuadsResponse{Quads: graphQuadsToProto(quads)}, nil
+}
+
+// LookupGraphQuadsBatch searches for graph quads using bounded indexed filters.
+func (r *WorldStateResource) LookupGraphQuadsBatch(ctx context.Context, req *s4wave_world.LookupGraphQuadsBatchRequest) (*s4wave_world.LookupGraphQuadsBatchResponse, error) {
+	if req.GetLimitPerFilter() == 0 {
+		return nil, errors.New("limit_per_filter must be non-zero")
+	}
+
+	results := make([]*s4wave_world.LookupGraphQuadsBatchResult, len(req.GetFilters()))
+	for i, f := range req.GetFilters() {
+		if err := validateBatchGraphFilter(f); err != nil {
+			return nil, err
+		}
+		filter := world.NewGraphQuad(f.GetSubject(), f.GetPredicate(), f.GetObj(), f.GetLabel())
+		quads, err := r.ws.LookupGraphQuads(ctx, filter, req.GetLimitPerFilter())
+		if err != nil {
+			return nil, err
+		}
+		results[i] = &s4wave_world.LookupGraphQuadsBatchResult{
+			Quads: graphQuadsToProto(quads),
 		}
 	}
 
-	return &s4wave_world.LookupGraphQuadsResponse{Quads: protoQuads}, nil
+	return &s4wave_world.LookupGraphQuadsBatchResponse{Results: results}, nil
 }
 
 // ListObjectsWithType lists object keys with the given type identifier.
@@ -289,6 +304,54 @@ func (r *WorldStateResource) ListObjectsWithType(ctx context.Context, req *s4wav
 		return nil, err
 	}
 	return &s4wave_world.ListObjectsWithTypeResponse{ObjectKeys: objKeys}, nil
+}
+
+// GetObjectMetadataBatch returns graph metadata for object keys.
+func (r *WorldStateResource) GetObjectMetadataBatch(ctx context.Context, req *s4wave_world.GetObjectMetadataBatchRequest) (*s4wave_world.GetObjectMetadataBatchResponse, error) {
+	metadata, err := world_types.GetObjectMetadataBatch(ctx, r.ws, req.GetObjectKeys())
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]*s4wave_world.ObjectMetadata, len(metadata))
+	for i, md := range metadata {
+		out[i] = &s4wave_world.ObjectMetadata{
+			ObjectKey:       md.ObjectKey,
+			TypeId:          md.TypeID,
+			ParentObjectKey: md.ParentObjectKey,
+		}
+	}
+
+	return &s4wave_world.GetObjectMetadataBatchResponse{Metadata: out}, nil
+}
+
+// QueryGraphPath creates a resource for a bounded graph path query.
+func (r *WorldStateResource) QueryGraphPath(ctx context.Context, req *s4wave_world.QueryGraphPathRequest) (*s4wave_world.QueryGraphPathResponse, error) {
+	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	query, err := graphPathQueryFromProto(req)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := r.ws.QueryGraphPath(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+
+	queryResource := NewGraphPathQueryResource(r.le, r.b, result, req.GetPageSize())
+	id, err := resourceCtx.AddResource(queryResource.GetMux(), func() {
+		_, _ = queryResource.Close(context.Background(), &s4wave_world.CloseGraphPathQueryRequest{})
+	})
+	if err != nil {
+		_, _ = queryResource.Close(ctx, &s4wave_world.CloseGraphPathQueryRequest{})
+		return nil, err
+	}
+
+	return &s4wave_world.QueryGraphPathResponse{ResourceId: id}, nil
 }
 
 // DeleteGraphObject deletes all quads with Subject or Object set to value.
@@ -330,6 +393,65 @@ func (r *WorldStateResource) ApplyWorldOp(ctx context.Context, req *s4wave_world
 	}
 
 	return &s4wave_world.ApplyWorldOpResponse{Seqno: seqno, SysErr: sysErr}, nil
+}
+
+// graphQuadsToProto converts graph quads to protobuf quads.
+func graphQuadsToProto(quads []world.GraphQuad) []*quad.Quad {
+	protoQuads := make([]*quad.Quad, len(quads))
+	for i, q := range quads {
+		protoQuads[i] = &quad.Quad{
+			Subject:   q.GetSubject(),
+			Predicate: q.GetPredicate(),
+			Obj:       q.GetObj(),
+			Label:     q.GetLabel(),
+		}
+	}
+	return protoQuads
+}
+
+// validateBatchGraphFilter rejects broad remote graph scans.
+func validateBatchGraphFilter(f *quad.Quad) error {
+	if f.GetPredicate() == "" {
+		return errors.New("batch graph filter predicate must be set")
+	}
+	if f.GetSubject() == "" && f.GetObj() == "" {
+		return errors.New("batch graph filter subject or object must be set")
+	}
+	return nil
+}
+
+func graphPathQueryFromProto(req *s4wave_world.QueryGraphPathRequest) (*world.GraphPathQuery, error) {
+	query := &world.GraphPathQuery{
+		StartKeys:    req.GetStartKeys(),
+		ResultLimit:  req.GetResultLimit(),
+		IncludeQuads: req.GetIncludeQuads(),
+	}
+	query.Steps = make([]world.GraphPathStep, len(req.GetSteps()))
+	for i, step := range req.GetSteps() {
+		dir, err := graphPathDirectionFromProto(step.GetDirection())
+		if err != nil {
+			return nil, err
+		}
+		query.Steps[i] = world.GraphPathStep{
+			Direction: dir,
+			Predicate: step.GetPredicate(),
+			Limit:     step.GetLimit(),
+		}
+	}
+	return query, nil
+}
+
+func graphPathDirectionFromProto(dir s4wave_world.GraphPathDirection) (world.GraphPathDirection, error) {
+	switch dir {
+	case s4wave_world.GraphPathDirection_GRAPH_PATH_DIRECTION_OUT:
+		return world.GraphPathDirectionOut, nil
+	case s4wave_world.GraphPathDirection_GRAPH_PATH_DIRECTION_IN:
+		return world.GraphPathDirectionIn, nil
+	case s4wave_world.GraphPathDirection_GRAPH_PATH_DIRECTION_BOTH:
+		return world.GraphPathDirectionBoth, nil
+	default:
+		return 0, world.ErrGraphPathDirection
+	}
 }
 
 // _ is a type assertion

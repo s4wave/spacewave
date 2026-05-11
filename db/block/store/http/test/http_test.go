@@ -74,7 +74,7 @@ func TestBlockStoreHTTPLookup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	bucketConf, err := bucket.NewConfig(bucketID, 2, nil, bucketLkConfig)
+	bucketConf, err := bucket.NewConfig(bucketID, 2, bucketLkConfig)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

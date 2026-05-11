@@ -347,7 +347,7 @@ func TestCollectStartupManifestsSkipsUnavailableLookupBucketBlockWithoutNetworkW
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	bucketConf, err := bucket.NewConfig(lookupBucketID, 1, nil, bucketLkConfig)
+	bucketConf, err := bucket.NewConfig(lookupBucketID, 1, bucketLkConfig)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

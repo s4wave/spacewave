@@ -163,6 +163,8 @@ type WorldStateGraph interface {
 	// All accesses of the handle should complete before returning cb.
 	// Try to make access (queries) as short as possible.
 	// Write operations will fail if the store is read-only.
+	// Remote WorldState implementations may reject this local-only Cayley handle
+	// access; use QueryGraphPath or exact graph lookup for remote traversal.
 	AccessCayleyGraph(ctx context.Context, write bool, cb func(ctx context.Context, h CayleyHandle) error) error
 
 	// LookupGraphQuads searches for graph quads in the store.
@@ -170,6 +172,9 @@ type WorldStateGraph interface {
 	// If not found, returns nil, nil
 	// If limit is set, stops after finding that number of matching quads.
 	LookupGraphQuads(ctx context.Context, filter GraphQuad, limit uint32) ([]GraphQuad, error)
+
+	// QueryGraphPath executes a bounded graph traversal without exposing a Cayley handle.
+	QueryGraphPath(ctx context.Context, query *GraphPathQuery) (*GraphPathQueryResult, error)
 
 	// SetGraphQuad sets a quad in the graph store.
 	// Subject: must be an existing object IRI: <object-key>

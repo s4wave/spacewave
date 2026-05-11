@@ -13,29 +13,19 @@ message Config {
   // Rev is the configuration rev.
   // increment by 1 on modification
   uint32 rev = 2;
-  // Reconcilers contains the list of bucket reconcilers.
-  repeated ReconcilerConfig reconcilers = 3;
   // PutOpts are the default put options for the bucket.
   .block.PutOpts put_opts = 4;
   // Lookup controls the lookup confiuration.
   LookupConfig lookup = 5;
   // TODO: block size limit?
+
+  // reserved: 3 reconcilers
 }
 
 // BucketInfo is general information about a bucket.
 message BucketInfo {
   // Config contains the current latest bucket configuration.
   Config config = 1;
-}
-
-// ReconcilerConfig configures a reconciler.
-message ReconcilerConfig {
-  // Id contains the reconciler id.
-  string id = 1;
-  // Controller contains the controller configuration.
-  .configset.proto.ControllerConfig controller = 2;
-  // FilterPut disables receiving put events.
-  bool filter_put = 3;
 }
 
 // LookupConfig configures the bucket behavior across multiple volumes.

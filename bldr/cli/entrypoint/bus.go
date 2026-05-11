@@ -141,7 +141,7 @@ func BuildCliBus(rctx context.Context, le *logrus.Entry, stateRoot string) (*Cli
 	engineObjStoreID := engineBucketID
 	engineID := "bldr/cli"
 
-	bucketConf, err := bucket.NewConfig(engineBucketID, 1, nil, nil)
+	bucketConf, err := bucket.NewConfig(engineBucketID, 1, nil)
 	if err != nil {
 		rel()
 		return nil, err

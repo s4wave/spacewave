@@ -78,7 +78,7 @@ func (s *TestbedResourceServer) CreateWorld(ctx context.Context, req *s4wave_tes
 	objectStoreID := engineID + "-store"
 
 	// Create bucket if it doesn't exist
-	bucketConf, err := bucket.NewConfig(bucketID, 1, nil, nil)
+	bucketConf, err := bucket.NewConfig(bucketID, 1, nil)
 	if err != nil {
 		return nil, err
 	}

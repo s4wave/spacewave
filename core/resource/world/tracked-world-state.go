@@ -224,6 +224,14 @@ func (t *TrackedWorldState) LookupGraphQuads(ctx context.Context, filter world.G
 	return quads, err
 }
 
+func (t *TrackedWorldState) QueryGraphPath(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
+	result, err := t.ws.QueryGraphPath(ctx, query)
+	if err == nil {
+		t.trackQuadQuery()
+	}
+	return result, err
+}
+
 func (t *TrackedWorldState) DeleteGraphObject(ctx context.Context, objKey string) error {
 	t.trackQuadQuery()
 	return t.ws.DeleteGraphObject(ctx, objKey)

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
+import type { ResourceClientResponse } from './resource.pb.js'
 import type { ResourceService } from './resource_srpc.pb.js'
 import { Client } from './client.js'
 
@@ -252,20 +253,15 @@ describe('ResourceClient', () => {
     vi.useFakeTimers()
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const service = buildUnusedService()
-    let calls = 0
+    const calls = { count: 0 }
     service.ResourceClient = vi.fn(async function* (_request, signal) {
-      calls++
-      yield {
-        body: {
-          case: 'init' as const,
-          value: { clientHandleId: calls, rootResourceId: calls },
-        },
-      }
+      calls.count++
+      yield buildResourceClientInit(calls.count)
       await new Promise<void>((resolve) => {
         setTimeout(resolve, 1)
         signal?.addEventListener('abort', resolve, { once: true })
       })
-      if (!signal?.aborted && calls === 1) {
+      if (!signal?.aborted && calls.count === 1) {
         throw { name: 'StreamResetError', message: 'stream reset' }
       }
       await new Promise<void>((resolve) => {
@@ -284,7 +280,48 @@ describe('ResourceClient', () => {
       const second = await client.accessRootResource()
 
       expect(second.resourceId).toBe(2)
-      expect(calls).toBe(2)
+      expect(calls.count).toBe(2)
+      expect(warn).not.toHaveBeenCalled()
+
+      client.dispose()
+    } finally {
+      warn.mockRestore()
+      vi.useRealTimers()
+    }
+  })
+
+  it('retries stringified ResourceClient stream resets without warning spam', async () => {
+    vi.useFakeTimers()
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const service = buildUnusedService()
+    const calls = { count: 0 }
+    service.ResourceClient = vi.fn(async function* (_request, signal) {
+      calls.count++
+      yield buildResourceClientInit(calls.count)
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 1)
+        signal?.addEventListener('abort', resolve, { once: true })
+      })
+      if (!signal?.aborted && calls.count === 1) {
+        throw { toString: () => 'StreamResetError: stream reset' }
+      }
+      await new Promise<void>((resolve) => {
+        signal?.addEventListener('abort', resolve, { once: true })
+      })
+    })
+
+    try {
+      const client = new Client(service, new AbortController().signal)
+      const first = await client.accessRootResource()
+
+      expect(first.resourceId).toBe(1)
+
+      await vi.advanceTimersByTimeAsync(501)
+
+      const second = await client.accessRootResource()
+
+      expect(second.resourceId).toBe(2)
+      expect(calls.count).toBe(2)
       expect(warn).not.toHaveBeenCalled()
 
       client.dispose()
@@ -421,6 +458,15 @@ function buildUnusedService(): ResourceService {
     },
     ResourceAttach() {
       throw new Error('unused')
+    },
+  }
+}
+
+function buildResourceClientInit(resourceId: number): ResourceClientResponse {
+  return {
+    body: {
+      case: 'init',
+      value: { clientHandleId: resourceId, rootResourceId: resourceId },
     },
   }
 }

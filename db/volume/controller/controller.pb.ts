@@ -18,7 +18,7 @@ export interface Config {
   /**
    * DisableEventBlockRm disables the block removed event.
    *
-   * Optimization: skips exists() and mqueue write() on delete.
+   * Optimization: skips exists() before delete.
    *
    * @generated from field: bool disable_event_block_rm = 1;
    */
@@ -29,12 +29,6 @@ export interface Config {
    * @generated from field: repeated string volume_id_alias = 2;
    */
   volumeIdAlias?: string[]
-  /**
-   * DisableReconcilerQueues disables waking filled reconciler queues.
-   *
-   * @generated from field: bool disable_reconciler_queues = 3;
-   */
-  disableReconcilerQueues?: boolean
   /**
    * DisablePeer disables loading the peer controller from the volume.
    *
@@ -104,12 +98,6 @@ export const Config: MessageType<Config> = createMessageType({
       kind: 'scalar',
       T: ScalarType.STRING,
       repeated: true,
-    },
-    {
-      no: 3,
-      name: 'disable_reconciler_queues',
-      kind: 'scalar',
-      T: ScalarType.BOOL,
     },
     { no: 4, name: 'disable_peer', kind: 'scalar', T: ScalarType.BOOL },
     {

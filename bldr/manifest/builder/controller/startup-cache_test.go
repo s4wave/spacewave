@@ -544,7 +544,7 @@ func TestValidateStartupManifestAvailabilitySkipsUnavailableLookupBucketBlock(t 
 	if err != nil {
 		t.Fatal(err)
 	}
-	bucketConf, err := bucket.NewConfig(cachedBucketID, 2, nil, bucketLkConfig)
+	bucketConf, err := bucket.NewConfig(cachedBucketID, 2, bucketLkConfig)
 	if err != nil {
 		t.Fatal(err)
 	}

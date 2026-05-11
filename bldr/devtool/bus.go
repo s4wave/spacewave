@@ -227,7 +227,7 @@ func BuildDevtoolBus(
 	engineID := "bldr"
 
 	// create bucket if it doesn't exist
-	bucketConf, err := bucket.NewConfig(engineBucketID, 1, nil, nil)
+	bucketConf, err := bucket.NewConfig(engineBucketID, 1, nil)
 	if err != nil {
 		rel()
 		return nil, err
