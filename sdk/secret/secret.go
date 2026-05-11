@@ -15,7 +15,6 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/s4wave/spacewave/net/crypto"
-	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 
@@ -150,7 +149,6 @@ func CreateSecret(
 	b bus.Bus,
 	soProvider sobject.SharedObjectProvider,
 	engine world.Engine,
-	sender peer.ID,
 	opts CreateSecretOptions,
 ) (*Secret, error) {
 	if opts.ObjectKey == "" {
@@ -208,7 +206,6 @@ func CreateSecret(
 	if err := wtx.Commit(ctx); err != nil {
 		return nil, err
 	}
-	_ = sender
 	return secret, nil
 }
 
@@ -231,17 +228,34 @@ func StoreSecretPayload(ctx context.Context, b bus.Bus, ref *sobject.SharedObjec
 	}
 	defer soRef.Release()
 
-	opID, err := so.QueueOperation(ctx, data)
+	processCtx, cancelProcess := context.WithCancel(ctx)
+	processErr := make(chan error, 1)
+	go func() {
+		err := so.ProcessOperations(processCtx, true, replaceSecretPayload)
+		if errors.Is(err, context.Canceled) {
+			err = nil
+		}
+		processErr <- err
+	}()
+	defer cancelProcess()
+
+	stateCtr, relStateCtr, err := so.AccessSharedObjectState(ctx, nil)
 	if err != nil {
 		return err
 	}
-	if err := so.ProcessOperations(ctx, false, replaceSecretPayload); err != nil {
+	defer relStateCtr()
+
+	if _, err := so.QueueOperation(ctx, data); err != nil {
 		return err
 	}
-	if _, rejected, err := so.WaitOperation(ctx, opID); err != nil {
-		if rejected {
-			_ = so.ClearOperationResult(ctx, opID)
-		}
+
+	err = waitSecretPayload(ctx, stateCtr, payload)
+	cancelProcess()
+	perr := <-processErr
+	if err == nil {
+		err = perr
+	}
+	if err != nil {
 		return err
 	}
 	return nil
@@ -439,7 +453,7 @@ func replaceSecretPayload(
 		if err := payload.UnmarshalVT(op.GetOpData()); err != nil {
 			return nil, nil, err
 		}
-		nextStateData = append(nextStateData[:0], op.GetOpData()...)
+		nextStateData = append([]byte(nil), op.GetOpData()...)
 		opResults = append(opResults, sobject.BuildSOOperationResult(
 			op.GetPeerId(),
 			op.GetNonce(),
@@ -448,6 +462,25 @@ func replaceSecretPayload(
 		))
 	}
 	return &nextStateData, opResults, nil
+}
+
+func waitSecretPayload(
+	ctx context.Context,
+	stateCtr ccontainer.Watchable[sobject.SharedObjectStateSnapshot],
+	expected *SecretPayload,
+) error {
+	var current sobject.SharedObjectStateSnapshot
+	for {
+		next, err := stateCtr.WaitValueChange(ctx, current, nil)
+		if err != nil {
+			return err
+		}
+		current = next
+		payload, err := ReadSecretPayloadFromSnapshot(ctx, next)
+		if err == nil && payload.EqualVT(expected) {
+			return nil
+		}
+	}
 }
 
 func mountSecretInviteHost(
