@@ -1,8 +1,16 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockNavigate = vi.hoisted(() => vi.fn())
 const mockUseSessionInfo = vi.hoisted(() => vi.fn())
+const mockUsePromise = vi.hoisted(() => vi.fn())
+const mockUseResourceValue = vi.hoisted(() => vi.fn())
 
 vi.mock('@aptre/bldr', () => ({
   isDesktop: true,
@@ -19,15 +27,11 @@ vi.mock('@s4wave/web/contexts/contexts.js', () => ({
 }))
 
 vi.mock('@aptre/bldr-sdk/hooks/useResource.js', () => ({
-  useResourceValue: vi.fn(() => null),
+  useResourceValue: mockUseResourceValue,
 }))
 
 vi.mock('@s4wave/web/hooks/usePromise.js', () => ({
-  usePromise: vi.fn(() => ({
-    data: null,
-    loading: false,
-    error: null,
-  })),
+  usePromise: mockUsePromise,
 }))
 
 vi.mock('@s4wave/web/hooks/useSessionInfo.js', () => ({
@@ -61,11 +65,19 @@ describe('LinkDeviceWizard', () => {
   beforeEach(() => {
     mockNavigate.mockClear()
     mockUseSessionInfo.mockReset()
+    mockUsePromise.mockReset()
+    mockUseResourceValue.mockReset()
     mockUseSessionInfo.mockReturnValue({
       error: null,
       loading: false,
       providerId: 'local',
     })
+    mockUsePromise.mockReturnValue({
+      data: null,
+      loading: false,
+      error: null,
+    })
+    mockUseResourceValue.mockReturnValue(null)
   })
 
   afterEach(() => {
@@ -85,5 +97,32 @@ describe('LinkDeviceWizard', () => {
     expect(screen.getByText('Enter a code from another device')).toBeDefined()
     expect(screen.queryByText('Direct connection (show QR)')).toBeNull()
     expect(screen.queryByText('Direct connection (scan QR)')).toBeNull()
+  })
+
+  it('starts watching pairing status after the generated code resolves', async () => {
+    const watchPairingStatus = vi.fn(async function* () {})
+    const session = {
+      generatePairingCode: vi.fn(),
+      watchPairingStatus,
+    }
+    let code: string | null = null
+    mockUseResourceValue.mockReturnValue(session)
+    mockUsePromise.mockImplementation(() => ({
+      data: code,
+      loading: false,
+      error: null,
+    }))
+
+    const { rerender } = render(<LinkDeviceWizard />)
+    fireEvent.click(screen.getByText('Generate code for another device'))
+    expect(watchPairingStatus).not.toHaveBeenCalled()
+
+    code = 'ABCD1234'
+    rerender(<LinkDeviceWizard />)
+
+    await waitFor(() => {
+      expect(watchPairingStatus).toHaveBeenCalledTimes(1)
+    })
+    expect(screen.queryByText('Continue')).toBeNull()
   })
 })

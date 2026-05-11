@@ -193,7 +193,6 @@ export function LinkDeviceWizard({ exitPath, topLeft }: LinkDeviceWizardProps) {
                 generation={codeGeneration}
                 onRegenerateCode={handleRegenerateCode}
                 onRemotePeerResolved={handleRemotePeerResolved}
-                onContinue={() => setStep(remotePeerId ? 'verify' : 'done')}
                 onBack={() => handleBack('choose')}
               />
             )}
@@ -510,7 +509,6 @@ interface PairingStepProps {
   generation: number
   onRegenerateCode: () => void
   onRemotePeerResolved: (peerId: string) => void
-  onContinue: () => void
   onBack: () => void
 }
 
@@ -522,7 +520,6 @@ function PairingStep({
   generation,
   onRegenerateCode,
   onRemotePeerResolved,
-  onContinue,
   onBack,
 }: PairingStepProps) {
   const formatted = code ? `${code.slice(0, 4)} ${code.slice(4)}` : null
@@ -565,7 +562,7 @@ function PairingStep({
       )
     })
     return () => controller.abort()
-  }, [session, onRemotePeerResolved]) // eslint-disable-line react-hooks/exhaustive-deps -- code not used in effect, avoids spurious stream restarts
+  }, [session, code, onRemotePeerResolved])
 
   const [elapsed, setElapsed] = useState(0)
 
@@ -688,20 +685,6 @@ function PairingStep({
           <span className="text-foreground text-sm">Generate new code</span>
         </button>
       </div>
-
-      {code && (
-        <button
-          onClick={onContinue}
-          className={cn(
-            'group w-full rounded-md border transition-all duration-300',
-            'border-brand/30 bg-brand/10 hover:bg-brand/20',
-            'flex h-10 items-center justify-center gap-2',
-          )}
-        >
-          <span className="text-foreground text-sm">Continue</span>
-          <LuArrowRight className="text-foreground-alt size-4" />
-        </button>
-      )}
     </div>
   )
 }
