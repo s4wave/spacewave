@@ -99,7 +99,7 @@ func ProcessExecution(
 	ctrlConf := tgtExec.GetController()
 	if tgtExec.GetDisable() || ctrlConf.GetId() == "" {
 		le.Debug("execution disabled or empty config ID")
-		return nil
+		return markComplete(ctx, ws, objectKey, peerID, forge_value.NewResultWithSuccess())
 	}
 
 	configID := ctrlConf.GetId()
@@ -116,8 +116,12 @@ func ProcessExecution(
 		return errors.Wrap(err, "build inputs value map")
 	}
 
-	// Build a minimal InputMap with the world input.
+	// Build an InputMap from the execution values and add the reserved world
+	// input expected by space exec handlers.
 	inputsMap := make(forge_target.InputMap, len(inputsValMap)+1)
+	for name, val := range inputsValMap {
+		inputsMap[name] = forge_target.NewInputValueInline(val)
+	}
 	inputsMap["world"] = forge_target.NewInputValueWorld(nil, ws)
 
 	// Construct the handle.

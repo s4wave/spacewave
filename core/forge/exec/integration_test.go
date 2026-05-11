@@ -118,6 +118,54 @@ func createTestExecution(
 	}
 }
 
+func createTestExecutionWithValueSet(
+	t *testing.T,
+	ctx context.Context,
+	ws world.WorldState,
+	sender peer.ID,
+	execKey, configID string,
+	configData []byte,
+	valueSet *forge_target.ValueSet,
+) {
+	t.Helper()
+	tgt := &forge_target.Target{
+		Exec: &forge_target.Exec{
+			Controller: &configset_proto.ControllerConfig{
+				Id:     configID,
+				Rev:    1,
+				Config: configData,
+			},
+		},
+	}
+	_, err := forge_execution.CreateExecutionWithTarget(
+		ctx, ws, sender, execKey, sender, valueSet, tgt, timestamp.Now(),
+	)
+	if err != nil {
+		t.Fatalf("CreateExecutionWithTarget: %v", err)
+	}
+}
+
+func createDisabledTestExecution(
+	t *testing.T,
+	ctx context.Context,
+	ws world.WorldState,
+	sender peer.ID,
+	execKey string,
+) {
+	t.Helper()
+	tgt := &forge_target.Target{
+		Exec: &forge_target.Exec{
+			Disable: true,
+		},
+	}
+	_, err := forge_execution.CreateExecutionWithTarget(
+		ctx, ws, sender, execKey, sender, nil, tgt, timestamp.Now(),
+	)
+	if err != nil {
+		t.Fatalf("CreateExecutionWithTarget: %v", err)
+	}
+}
+
 // mustReadExecution reads back an execution from world state.
 func mustReadExecution(
 	t *testing.T,
@@ -181,6 +229,67 @@ func TestIntegration_Noop(t *testing.T) {
 	if entry := findLogContaining(ex, "noop execution complete"); entry == nil {
 		t.Fatal("expected noop execution log entry")
 	}
+}
+
+type handlerFunc func(context.Context) error
+
+func (f handlerFunc) Execute(ctx context.Context) error {
+	return f(ctx)
+}
+
+func TestIntegration_ForwardsExecutionInputs(t *testing.T) {
+	ctx, ws, pid, _, le := setupIntegrationTest(t)
+
+	var captured forge_target.InputMap
+	registry := NewRegistry()
+	registry.Register("test/capture-inputs", func(
+		ctx context.Context,
+		le *logrus.Entry,
+		ws world.WorldState,
+		handle forge_target.ExecControllerHandle,
+		inputs forge_target.InputMap,
+		configData []byte,
+	) (Handler, error) {
+		captured = inputs
+		return handlerFunc(func(context.Context) error { return nil }), nil
+	})
+
+	execKey := "exec/capture-inputs"
+	createTestExecutionWithValueSet(
+		t, ctx, ws, pid, execKey, "test/capture-inputs", nil,
+		&forge_target.ValueSet{
+			Inputs: []*forge_value.Value{
+				forge_value.NewValue("artifact"),
+			},
+		},
+	)
+
+	if err := ProcessExecution(ctx, le, ws, registry, execKey, pid); err != nil {
+		t.Fatalf("ProcessExecution: %v", err)
+	}
+
+	ex := mustReadExecution(t, ctx, ws, execKey)
+	assertComplete(t, ex)
+	if captured["artifact"] == nil {
+		t.Fatal("expected artifact input to be forwarded to handler")
+	}
+	if captured["world"] == nil {
+		t.Fatal("expected world input to be injected")
+	}
+}
+
+func TestIntegration_DisabledExecutionCompletes(t *testing.T) {
+	ctx, ws, pid, registry, le := setupIntegrationTest(t)
+
+	execKey := "exec/disabled"
+	createDisabledTestExecution(t, ctx, ws, pid, execKey)
+
+	if err := ProcessExecution(ctx, le, ws, registry, execKey, pid); err != nil {
+		t.Fatalf("ProcessExecution: %v", err)
+	}
+
+	ex := mustReadExecution(t, ctx, ws, execKey)
+	assertComplete(t, ex)
 }
 
 // TestIntegration_UnixfsRead creates a unixfs object with a test file,
