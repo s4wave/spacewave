@@ -52,26 +52,14 @@ function describeResult(result?: {
   return 'Failed'
 }
 
-function formatDuration(timestamp: Date, now: number): string {
-  const elapsedMs = Math.max(0, now - timestamp.getTime())
-  const totalSeconds = Math.floor(elapsedMs / 1000)
-  const hours = Math.floor(totalSeconds / 3600)
-  const minutes = Math.floor((totalSeconds % 3600) / 60)
-  const seconds = totalSeconds % 60
-
-  if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`
-  if (minutes > 0) return `${minutes}m ${seconds}s`
-  return `${seconds}s`
-}
-
-function ExecutionDuration({ timestamp }: { timestamp?: Date }) {
+function ExecutionTimestamp({ timestamp }: { timestamp?: Date }) {
   if (!timestamp) {
     return <span className="text-foreground-alt/50 text-xs">Not started</span>
   }
 
   return (
     <span className="text-foreground text-sm font-medium">
-      {formatDuration(timestamp, Date.now())}
+      {timestamp.toISOString()}
     </span>
   )
 }
@@ -127,9 +115,6 @@ export function ForgeExecutionViewer({
 }: ObjectViewerComponentProps) {
   const objectKey = getObjectKey(objectInfo)
   const execution = useForgeBlockData(objectState, Execution)
-  const isRunning =
-    (execution?.executionState ?? State.ExecutionState_UNKNOWN) ===
-    State.ExecutionState_RUNNING
 
   const tabs: ForgeViewerTab[] = useMemo(
     () => [
@@ -188,8 +173,8 @@ export function ForgeExecutionViewer({
             </InfoCard>
             <InfoCard title="Runtime">
               <div className="flex items-center justify-between gap-3">
-                <div className="text-foreground-alt/50 text-xs">Duration</div>
-                <ExecutionDuration timestamp={execution?.timestamp} />
+                <div className="text-foreground-alt/50 text-xs">Started</div>
+                <ExecutionTimestamp timestamp={execution?.timestamp} />
               </div>
               <div className="text-foreground-alt/50 mt-3 flex flex-wrap gap-3 text-xs">
                 <span>{execution?.logEntries?.length ?? 0} log entries</span>
@@ -206,7 +191,7 @@ export function ForgeExecutionViewer({
         ),
       },
     ],
-    [execution, isRunning, objectKey],
+    [execution, objectKey],
   )
 
   return (
