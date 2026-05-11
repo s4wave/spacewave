@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { LuActivity } from 'react-icons/lu'
 
 import {
@@ -64,33 +64,14 @@ function formatDuration(timestamp: Date, now: number): string {
   return `${seconds}s`
 }
 
-function ExecutionDuration({
-  timestamp,
-  running,
-}: {
-  timestamp?: Date
-  running: boolean
-}) {
-  const [now, setNow] = useState(() => Date.now())
-
-  useEffect(() => {
-    if (!timestamp || !running) return
-
-    const interval = window.setInterval(() => {
-      setNow(Date.now())
-    }, 1000)
-    return () => {
-      window.clearInterval(interval)
-    }
-  }, [running, timestamp])
-
+function ExecutionDuration({ timestamp }: { timestamp?: Date }) {
   if (!timestamp) {
     return <span className="text-foreground-alt/50 text-xs">Not started</span>
   }
 
   return (
     <span className="text-foreground text-sm font-medium">
-      {formatDuration(timestamp, now)}
+      {formatDuration(timestamp, Date.now())}
     </span>
   )
 }
@@ -207,13 +188,8 @@ export function ForgeExecutionViewer({
             </InfoCard>
             <InfoCard title="Runtime">
               <div className="flex items-center justify-between gap-3">
-                <div className="text-foreground-alt/50 text-xs">
-                  Live duration
-                </div>
-                <ExecutionDuration
-                  timestamp={execution?.timestamp}
-                  running={isRunning}
-                />
+                <div className="text-foreground-alt/50 text-xs">Duration</div>
+                <ExecutionDuration timestamp={execution?.timestamp} />
               </div>
               <div className="text-foreground-alt/50 mt-3 flex flex-wrap gap-3 text-xs">
                 <span>{execution?.logEntries?.length ?? 0} log entries</span>

@@ -49,7 +49,7 @@ describe('ForgeExecutionViewer', () => {
     vi.useRealTimers()
   })
 
-  it('renders inputs, outputs, logs, and a live duration', () => {
+  it('renders inputs, outputs, logs, and duration', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-04-17T12:01:05Z'))
 
@@ -77,7 +77,7 @@ describe('ForgeExecutionViewer', () => {
     expect(screen.getByText('started noop execution')).toBeTruthy()
     expect(screen.getByText('source')).toBeTruthy()
     expect(screen.getByText('artifact')).toBeTruthy()
-    expect(screen.getByText('Live duration')).toBeTruthy()
+    expect(screen.getByText('Duration')).toBeTruthy()
     expect(screen.getByText('1m 5s')).toBeTruthy()
     expect(screen.getByText('12D3KooWExec')).toBeTruthy()
   })
