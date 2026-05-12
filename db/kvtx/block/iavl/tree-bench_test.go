@@ -39,6 +39,8 @@ type benchBlockStore struct {
 	putBlocks atomic.Int64
 	// putBytes counts bytes passed to PutBlock.
 	putBytes atomic.Int64
+	// putRefs counts outgoing refs passed to PutBlock and PutBlockBatch.
+	putRefs atomic.Int64
 	// putBatchCalls counts PutBlockBatch calls.
 	putBatchCalls atomic.Int64
 	// putBatchEntries counts entries passed to PutBlockBatch.
@@ -97,6 +99,9 @@ func (s *benchBlockStore) PutBlock(ctx context.Context, data []byte, opts *block
 	if err == nil {
 		s.putBlocks.Add(1)
 		s.putBytes.Add(int64(len(data)))
+		if opts != nil {
+			s.putRefs.Add(int64(len(opts.Refs)))
+		}
 	}
 	return ref, found, err
 }
@@ -115,6 +120,7 @@ func (s *benchBlockStore) PutBlockBatch(ctx context.Context, entries []*block.Pu
 		}
 		s.putBlocks.Add(1)
 		s.putBytes.Add(int64(len(entry.Data)))
+		s.putRefs.Add(int64(len(entry.Refs)))
 	}
 	return nil
 }
@@ -124,6 +130,9 @@ func (s *benchBlockStore) PutBlockBackground(ctx context.Context, data []byte, o
 	if err == nil {
 		s.putBlocks.Add(1)
 		s.putBytes.Add(int64(len(data)))
+		if opts != nil {
+			s.putRefs.Add(int64(len(opts.Refs)))
+		}
 	}
 	return ref, found, err
 }
@@ -196,6 +205,7 @@ func (s *benchBlockStore) resetCounts() {
 	s.existsBatchRefs.Store(0)
 	s.putBlocks.Store(0)
 	s.putBytes.Store(0)
+	s.putRefs.Store(0)
 	s.putBatchCalls.Store(0)
 	s.putBatchEntries.Store(0)
 	s.putBatchMaxEntries.Store(0)
@@ -216,6 +226,7 @@ func (s *benchBlockStore) reportMetrics(b *testing.B, ops int64) {
 	b.ReportMetric(float64(s.existsBatchRefs.Load())/denom, "exists-batch-refs/op")
 	b.ReportMetric(float64(s.putBlocks.Load())/denom, "put-blocks/op")
 	b.ReportMetric(float64(s.putBytes.Load())/denom, "put-bytes/op")
+	b.ReportMetric(float64(s.putRefs.Load())/denom, "put-refs/op")
 	b.ReportMetric(float64(s.putBatchCalls.Load())/denom, "put-batches/op")
 	b.ReportMetric(float64(s.putBatchEntries.Load())/denom, "put-batch-entries/op")
 	b.ReportMetric(float64(s.putBatchMaxEntries.Load()), "put-batch-max")
