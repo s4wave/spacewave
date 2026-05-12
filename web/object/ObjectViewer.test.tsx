@@ -331,14 +331,14 @@ describe('ObjectViewer', () => {
   it('wraps primary viewer content in the explicit state namespace', () => {
     mockUseObjectViewer.mockReturnValue(
       buildViewerResult({
-        typeID: 'spacewave/drive',
+        typeID: 'unixfs/fs-node',
         selectedComponent: {
-          typeID: 'spacewave/drive',
-          name: 'Drive',
+          typeID: 'unixfs/fs-node',
+          name: 'UnixFS Viewer',
           component: () => null,
         },
         objectState: {
-          value: { id: 'drive-object' },
+          value: { id: 'files-object' },
           loading: false,
           error: null,
           retry: vi.fn(),
@@ -350,12 +350,12 @@ describe('ObjectViewer', () => {
       info: {
         case: 'worldObjectInfo',
         value: {
-          objectKey: 'drive',
-          objectType: 'spacewave/drive',
+          objectKey: 'files',
+          objectType: 'unixfs/fs-node',
         },
       },
     }
-    const stateNamespace = ['objectViewer', 'drive']
+    const stateNamespace = ['objectViewer', 'files']
 
     render(
       <ObjectViewer
@@ -369,7 +369,7 @@ describe('ObjectViewer', () => {
       expect.objectContaining({ stateNamespace }),
     )
     expect(screen.getByTestId('state-namespace').dataset.namespace).toBe(
-      'objectViewer/drive',
+      'objectViewer/files',
     )
     expect(screen.queryByTestId('bottom-bar-root')).toBeNull()
   })

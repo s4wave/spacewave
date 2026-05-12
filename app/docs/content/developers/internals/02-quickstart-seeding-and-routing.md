@@ -33,7 +33,7 @@ The creation logic in `app/quickstart/create.ts` follows this sequence:
 
 Each seed function creates the appropriate objects via `applyWorldOp`:
 
-Every quickstart also creates a `SpaceSettings` object that sets the space's default view to the newly created content. The Drive quickstart applies three durable world operations in order: it initializes the UnixFS backing object, initializes the Drive object that points at that UnixFS root, and then writes the space settings object that selects the Drive as the default view. These operations are recorded separately because they create distinct durable world state.
+Every quickstart also creates a `SpaceSettings` object that sets the space's default view to the newly created content. The Drive quickstart initializes a UnixFS object and then writes the space settings object that selects that UnixFS object as the default view.
 
 The post-load SharedObject throughput probe measures accepted latency for repeated `space/world/set-settings` operations. Each accepted operation is a separate settings mutation with its own sequence number, not one combined user action. Use that probe to measure sequential SharedObject operation cost, not as justification for semantic consolidation of the Quickstart seed operations.
 

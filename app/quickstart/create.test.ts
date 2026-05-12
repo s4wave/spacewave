@@ -28,12 +28,6 @@ import {
 import { InitForgeQuickstartOp } from '@s4wave/core/forge/dashboard/dashboard.pb.js'
 import { INIT_FORGE_QUICKSTART_OP_ID } from '@s4wave/sdk/forge/dashboard/init-forge-quickstart.js'
 import { BLOG_OBJECT_KEY } from '../../plugin/notes/proto/create-blog.js'
-import { InitDriveOp } from '@s4wave/sdk/space/drive/drive.pb.js'
-import {
-  DRIVE_OBJECT_KEY,
-  INIT_DRIVE_OP_ID,
-} from '@s4wave/sdk/space/drive/drive.js'
-import { UnixFSTypeID } from '@s4wave/web/hooks/useUnixFSHandle.js'
 import type { RegisterCleanup } from '@aptre/bldr-sdk/hooks/useResource.js'
 
 import type { QuickstartSpaceCreateId } from './options.js'
@@ -496,7 +490,7 @@ describe('quickstart create', () => {
     expect(globalThis.__s4wave_debug?.quickstartTiming?.state).toBe('cancelled')
   })
 
-  it('creates Drive storage before pointing the index at the Drive object', async () => {
+  it('creates Drive storage before pointing the index at the UnixFS object', async () => {
     const putBlock = vi.fn((_arg: { data: Uint8Array }) =>
       Promise.resolve({ ref: {} }),
     )
@@ -524,20 +518,10 @@ describe('quickstart create', () => {
 
     await createDrive(spaceWorld as never)
 
-    expect(applyWorldOp).toHaveBeenCalledTimes(3)
+    expect(applyWorldOp).toHaveBeenCalledTimes(2)
     expect(applyWorldOp.mock.calls[0]?.[0]).toBe(INIT_UNIXFS_OP_ID)
-    expect(applyWorldOp.mock.calls[1]?.[0]).toBe(INIT_DRIVE_OP_ID)
 
-    const drive = InitDriveOp.fromBinary(applyWorldOp.mock.calls[1]?.[1])
-    expect(drive.objectKey).toBe(DRIVE_OBJECT_KEY)
-    expect(drive.roots?.[0]).toMatchObject({
-      rootId: 'default',
-      name: 'My Files',
-      rootObjectKey: UNIXFS_OBJECT_KEY,
-      rootType: UnixFSTypeID,
-    })
-
-    const settingsCall = applyWorldOp.mock.calls[2]
+    const settingsCall = applyWorldOp.mock.calls[1]
     if (!settingsCall) {
       throw new Error('expected settings op call')
     }
@@ -546,7 +530,7 @@ describe('quickstart create', () => {
     if (!settings) {
       throw new Error('expected settings')
     }
-    expect(settings.indexPath).toBe(DRIVE_OBJECT_KEY)
+    expect(settings.indexPath).toBe(UNIXFS_OBJECT_KEY)
   })
 
   it('indexes every quickstart to the object it creates or seeds', async () => {
@@ -558,27 +542,21 @@ describe('quickstart create', () => {
     {
       const { world, applyWorldOp } = buildQuickstartWorld()
       await populateSpace('drive', { spaceWorld: world } as never)
-      expect(getSettingsIndexPath(applyWorldOp)).toBe(DRIVE_OBJECT_KEY)
+      expect(getSettingsIndexPath(applyWorldOp)).toBe(UNIXFS_OBJECT_KEY)
       const unixfsCall = applyWorldOp.mock.calls.find(
         (call) => call[0] === INIT_UNIXFS_OP_ID,
       )
       expect(InitUnixFSOp.fromBinary(unixfsCall?.[1]).objectKey).toBe(
         UNIXFS_OBJECT_KEY,
       )
-      const driveCall = applyWorldOp.mock.calls.find(
-        (call) => call[0] === INIT_DRIVE_OP_ID,
-      )
-      const drive = InitDriveOp.fromBinary(driveCall?.[1])
-      expect(drive.objectKey).toBe(DRIVE_OBJECT_KEY)
-      expect(drive.roots?.[0]?.rootObjectKey).toBe(UNIXFS_OBJECT_KEY)
       const settingsIndex = applyWorldOp.mock.calls.findIndex(
         (call) => call[0] === SET_SPACE_SETTINGS_OP_ID,
       )
-      const driveIndex = applyWorldOp.mock.calls.findIndex(
-        (call) => call[0] === INIT_DRIVE_OP_ID,
+      const unixfsIndex = applyWorldOp.mock.calls.findIndex(
+        (call) => call[0] === INIT_UNIXFS_OP_ID,
       )
-      expect(driveIndex).toBeGreaterThanOrEqual(0)
-      expect(settingsIndex).toBeGreaterThan(driveIndex)
+      expect(unixfsIndex).toBeGreaterThanOrEqual(0)
+      expect(settingsIndex).toBeGreaterThan(unixfsIndex)
     }
     {
       seedMocks.createNotebookClientSide.mockClear()

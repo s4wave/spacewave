@@ -4,7 +4,6 @@ import {
   LayoutObjectViewer,
   ObjectLayoutTypeID,
 } from '@s4wave/web/object/LayoutObjectViewer.js'
-import { DriveViewer, DriveTypeID } from '@s4wave/app/drive/DriveViewer.js'
 import { UnixFSViewer, UnixFSTypeID } from '@s4wave/app/unixfs/UnixFSViewer.js'
 import { UnixFSGalleryViewer } from '@s4wave/app/unixfs/UnixFSGalleryViewer.js'
 import { GitRepoViewer, GitRepoTypeID } from '@s4wave/app/git/GitRepoViewer.js'
@@ -92,12 +91,6 @@ const staticViewers: ObjectViewerComponent[] = [
     name: 'Layout Viewer',
     category: 'Layout',
     component: LayoutObjectViewer,
-  },
-  {
-    typeID: DriveTypeID,
-    name: 'Drive',
-    category: 'Files',
-    component: DriveViewer,
   },
   {
     typeID: UnixFSTypeID,

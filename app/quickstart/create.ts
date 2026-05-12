@@ -39,18 +39,12 @@ import {
   INIT_CHAT_DEMO_OP_ID,
   CHAT_DEMO_CHANNEL_KEY,
 } from '@s4wave/sdk/chat/init-chat-demo.js'
-import { InitDriveOp } from '@s4wave/sdk/space/drive/drive.pb.js'
-import {
-  DRIVE_OBJECT_KEY,
-  INIT_DRIVE_OP_ID,
-} from '@s4wave/sdk/space/drive/drive.js'
 import { createBlogClientSide } from '../../plugin/notes/blog-seed.js'
 import {
   createDocsClientSide,
   createNotebookClientSide,
 } from '../../plugin/notes/content-seed.js'
 import { BLOG_OBJECT_KEY } from '../../plugin/notes/proto/create-blog.js'
-import { UnixFSTypeID } from '@s4wave/web/hooks/useUnixFSHandle.js'
 import { V86WizardConfig } from '@s4wave/sdk/vm/v86-wizard.pb.js'
 import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { CREATE_WIZARD_OBJECT_OP_ID } from '@s4wave/sdk/world/wizard/create-wizard.js'
@@ -777,28 +771,6 @@ export async function initCanvasDemo(
   await spaceWorld.applyWorldOp(INIT_CANVAS_DEMO_OP_ID, opData, '', abortSignal)
 }
 
-// initDrive initializes a Drive object backed by the starter UnixFS root.
-export async function initDrive(
-  spaceWorld: EngineWorldState,
-  abortSignal?: AbortSignal,
-): Promise<void> {
-  const op: InitDriveOp = {
-    objectKey: DRIVE_OBJECT_KEY,
-    displayName: 'Drive',
-    roots: [
-      {
-        rootId: 'default',
-        name: 'My Files',
-        rootObjectKey: UNIXFS_OBJECT_KEY,
-        rootType: UnixFSTypeID,
-      },
-    ],
-    timestamp: new Date(),
-  }
-  const opData = InitDriveOp.toBinary(op)
-  await spaceWorld.applyWorldOp(INIT_DRIVE_OP_ID, opData, '', abortSignal)
-}
-
 // populateSpace populates the space based on the quickstart type.
 export async function populateSpace(
   quickstartId: QuickstartSpaceCreateId,
@@ -873,15 +845,11 @@ export async function createDrive(
   abortSignal?: AbortSignal,
   timing?: QuickstartSetupTiming,
 ): Promise<void> {
-  // eslint-disable-next-line react-doctor/async-parallel
   await timeQuickstartPhase(timing, 'init-drive-unixfs', () =>
     initUnixFS(spaceWorld, abortSignal),
   )
-  await timeQuickstartPhase(timing, 'init-drive-object', () =>
-    initDrive(spaceWorld, abortSignal),
-  )
   await timeQuickstartPhase(timing, 'create-drive-settings', () =>
-    createSpaceSettingsObject(spaceWorld, abortSignal, DRIVE_OBJECT_KEY),
+    createSpaceSettingsObject(spaceWorld, abortSignal, UNIXFS_OBJECT_KEY),
   )
 }
 
