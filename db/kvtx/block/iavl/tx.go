@@ -559,13 +559,14 @@ func (t *Tx) setFromNode(
 		bcs.SetRef(6, setCs)
 	}
 
-	// Recalculate the node's height and size.
-	if err := t.calcNodeHeightAndSize(ctx, nod, bcs); err != nil {
+	leftNod, leftCs, rightNod, rightCs, err := t.loadNodeChildren(ctx, nod, bcs)
+	if err != nil {
 		return nil, nil, changed, err
 	}
+	updateNodeHeightAndSize(nod, bcs, leftNod, rightNod)
 
 	// Balance the tree from this node.
-	nroot, nrootCs, err := t.balanceFromNode(ctx, nod, bcs)
+	nroot, nrootCs, err := t.balanceFromLoadedChildren(ctx, nod, bcs, leftNod, leftCs, rightNod, rightCs)
 	return nroot, nrootCs, true, err
 }
 
@@ -629,18 +630,34 @@ func (t *Tx) removeFromNode(
 
 // calcNodeHeightAndSize calcluates a node's height and size.
 func (t *Tx) calcNodeHeightAndSize(ctx context.Context, nod *Node, bcs *block.Cursor) error {
-	leftNod, _, err := nod.FollowLeft(ctx, bcs)
+	leftNod, _, rightNod, _, err := t.loadNodeChildren(ctx, nod, bcs)
 	if err != nil {
 		return err
 	}
-	rightNod, _, err := nod.FollowRight(ctx, bcs)
+	updateNodeHeightAndSize(nod, bcs, leftNod, rightNod)
+	return nil
+}
+
+func (t *Tx) loadNodeChildren(
+	ctx context.Context,
+	nod *Node,
+	bcs *block.Cursor,
+) (*Node, *block.Cursor, *Node, *block.Cursor, error) {
+	leftNod, leftCs, err := nod.FollowLeft(ctx, bcs)
 	if err != nil {
-		return err
+		return nil, nil, nil, nil, err
 	}
+	rightNod, rightCs, err := nod.FollowRight(ctx, bcs)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	return leftNod, leftCs, rightNod, rightCs, nil
+}
+
+func updateNodeHeightAndSize(nod *Node, bcs *block.Cursor, leftNod, rightNod *Node) {
 	nod.Height = maxUint32(leftNod.GetHeight(), rightNod.GetHeight()) + 1
 	nod.Size = leftNod.GetSize() + rightNod.GetSize()
 	bcs.SetBlock(nod, true)
-	return nil
 }
 
 // calcNodeBalance calcluates a node's balance
@@ -737,16 +754,24 @@ func maxUint32(i1, i2 uint32) uint32 {
 
 // balanceFromNode balances the tree from a node.
 func (t *Tx) balanceFromNode(ctx context.Context, nod *Node, bcs *block.Cursor) (*Node, *block.Cursor, error) {
-	// compute the tree balance
-	balance, err := t.calcNodeBalance(ctx, nod, bcs)
+	leftNod, leftNodCs, rightNod, rightNodCs, err := t.loadNodeChildren(ctx, nod, bcs)
 	if err != nil {
 		return nil, nil, err
 	}
+	return t.balanceFromLoadedChildren(ctx, nod, bcs, leftNod, leftNodCs, rightNod, rightNodCs)
+}
+
+func (t *Tx) balanceFromLoadedChildren(
+	ctx context.Context,
+	nod *Node,
+	bcs *block.Cursor,
+	leftNod *Node,
+	leftNodCs *block.Cursor,
+	rightNod *Node,
+	rightNodCs *block.Cursor,
+) (*Node, *block.Cursor, error) {
+	balance := int(leftNod.GetHeight()) - int(rightNod.GetHeight())
 	if balance > 1 {
-		leftNod, leftNodCs, err := nod.FollowLeft(ctx, bcs)
-		if err != nil {
-			return nil, nil, err
-		}
 		leftNodBalance, err := t.calcNodeBalance(ctx, leftNod, leftNodCs)
 		if err != nil {
 			return nil, nil, err
@@ -768,10 +793,6 @@ func (t *Tx) balanceFromNode(ctx context.Context, nod *Node, bcs *block.Cursor) 
 		return t.rotateNodeRight(ctx, nod, bcs)
 	}
 	if balance < -1 {
-		rightNod, rightNodCs, err := nod.FollowRight(ctx, bcs)
-		if err != nil {
-			return nil, nil, err
-		}
 		rightNodBalance, err := t.calcNodeBalance(ctx, rightNod, rightNodCs)
 		if err != nil {
 			return nil, nil, err
