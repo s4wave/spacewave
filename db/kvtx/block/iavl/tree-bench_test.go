@@ -13,6 +13,7 @@ import (
 
 	badger "github.com/dgraph-io/badger/v4"
 	"github.com/s4wave/spacewave/db/block"
+	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	block_store_kvtx "github.com/s4wave/spacewave/db/block/store/kvtx"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
@@ -250,10 +251,91 @@ func recordMaxInt64(target *atomic.Int64, next int64) {
 type benchTree struct {
 	// store is the counted block store.
 	store *benchBlockStore
+	// ops is the store used by IAVL transactions.
+	ops block.StoreOps
 	// rootRef is the persisted IAVL root block ref.
 	rootRef *block.BlockRef
 	// keys is the sorted key fixture.
 	keys [][]byte
+}
+
+type benchRefGraph struct {
+	addRefs      atomic.Int64
+	removeRefs   atomic.Int64
+	applyBatches atomic.Int64
+}
+
+func (g *benchRefGraph) AddRef(context.Context, string, string) error {
+	g.addRefs.Add(1)
+	return nil
+}
+
+func (g *benchRefGraph) RemoveRef(context.Context, string, string) error {
+	g.removeRefs.Add(1)
+	return nil
+}
+
+func (g *benchRefGraph) ApplyRefBatch(_ context.Context, adds, removes []block_gc.RefEdge) error {
+	g.applyBatches.Add(1)
+	g.addRefs.Add(int64(len(adds)))
+	g.removeRefs.Add(int64(len(removes)))
+	return nil
+}
+
+func (g *benchRefGraph) RemoveNodeRefs(context.Context, string, bool) ([]string, error) {
+	return nil, nil
+}
+
+func (g *benchRefGraph) HasIncomingRefs(context.Context, string) (bool, error) {
+	return false, nil
+}
+
+func (g *benchRefGraph) HasIncomingRefsExcluding(context.Context, string, ...string) (bool, error) {
+	return false, nil
+}
+
+func (g *benchRefGraph) GetOutgoingRefs(context.Context, string) ([]string, error) {
+	return nil, nil
+}
+
+func (g *benchRefGraph) GetIncomingRefs(context.Context, string) ([]string, error) {
+	return nil, nil
+}
+
+func (g *benchRefGraph) GetUnreferencedNodes(context.Context) ([]string, error) {
+	return nil, nil
+}
+
+func (g *benchRefGraph) AddBlockRef(ctx context.Context, source, target *block.BlockRef) error {
+	return g.AddRef(ctx, block_gc.BlockIRI(source), block_gc.BlockIRI(target))
+}
+
+func (g *benchRefGraph) AddObjectRoot(ctx context.Context, objectKey string, ref *block.BlockRef) error {
+	return g.AddRef(ctx, objectKey, block_gc.BlockIRI(ref))
+}
+
+func (g *benchRefGraph) RemoveObjectRoot(ctx context.Context, objectKey string, ref *block.BlockRef) error {
+	return g.RemoveRef(ctx, objectKey, block_gc.BlockIRI(ref))
+}
+
+func (g *benchRefGraph) Close() error {
+	return nil
+}
+
+func (g *benchRefGraph) resetCounts() {
+	g.addRefs.Store(0)
+	g.removeRefs.Store(0)
+	g.applyBatches.Store(0)
+}
+
+func (g *benchRefGraph) reportMetrics(b *testing.B, ops int64) {
+	if ops == 0 {
+		return
+	}
+	denom := float64(ops)
+	b.ReportMetric(float64(g.addRefs.Load())/denom, "gc-add-refs/op")
+	b.ReportMetric(float64(g.removeRefs.Load())/denom, "gc-remove-refs/op")
+	b.ReportMetric(float64(g.applyBatches.Load())/denom, "gc-apply-batches/op")
 }
 
 func buildBenchTree(tb testing.TB, size int) *benchTree {
@@ -271,18 +353,41 @@ func buildBenchTreeWithKeys(tb testing.TB, keys [][]byte) *benchTree {
 func buildBenchTreeWithStore(tb testing.TB, keys [][]byte, store *benchBlockStore) *benchTree {
 	tb.Helper()
 
+	return buildBenchTreeWithOps(tb, keys, store, store, nil)
+}
+
+func buildBenchTreeWithGC(tb testing.TB, keys [][]byte) (*benchTree, *benchRefGraph) {
+	tb.Helper()
+
+	store := newBenchBlockStore()
+	refGraph := &benchRefGraph{}
+	gcStore := block_gc.NewGCStoreOps(store, refGraph)
+	tree := buildBenchTreeWithOps(tb, keys, store, gcStore, gcStore.FlushPending)
+	refGraph.resetCounts()
+	return tree, refGraph
+}
+
+func buildBenchTreeWithOps(
+	tb testing.TB,
+	keys [][]byte,
+	countStore *benchBlockStore,
+	ops block.StoreOps,
+	afterBuild func(context.Context) error,
+) *benchTree {
+	tb.Helper()
+
 	ctx := context.Background()
 	size := len(keys)
 	refs := make([]*block.BlockRef, size)
 	for i := range size {
-		ref, _, err := store.PutBlock(ctx, benchValue(i), nil)
+		ref, _, err := ops.PutBlock(ctx, benchValue(i), nil)
 		if err != nil {
 			tb.Fatal(err)
 		}
 		refs[i] = ref
 	}
 
-	tx, _, err := BuildTree(store, nil, nil, benchEntries(keys, refs))
+	tx, _, err := BuildTree(ops, nil, nil, benchEntries(keys, refs))
 	if err != nil {
 		tb.Fatal(err)
 	}
@@ -290,19 +395,32 @@ func buildBenchTreeWithStore(tb testing.TB, keys [][]byte, store *benchBlockStor
 	if err != nil {
 		tb.Fatal(err)
 	}
-	store.resetCounts()
+	if afterBuild != nil {
+		if err := afterBuild(ctx); err != nil {
+			tb.Fatal(err)
+		}
+	}
+	countStore.resetCounts()
 
 	return &benchTree{
-		store:   store,
+		store:   countStore,
+		ops:     ops,
 		rootRef: rootRef,
 		keys:    keys,
 	}
 }
 
+func (t *benchTree) storeOps() block.StoreOps {
+	if t.ops != nil {
+		return t.ops
+	}
+	return t.store
+}
+
 func newBenchReadTx(tb testing.TB, ctx context.Context, tree *benchTree) *Tx {
 	tb.Helper()
 
-	_, rootCursor := block.NewTransaction(tree.store, nil, tree.rootRef, nil)
+	_, rootCursor := block.NewTransaction(tree.storeOps(), nil, tree.rootRef, nil)
 	tx, err := NewTx(ctx, rootCursor, nil, false, nil)
 	if err != nil {
 		tb.Fatal(err)
@@ -471,6 +589,97 @@ func TestIAVLBenchBadgerBlockStoreCounts(t *testing.T) {
 	}
 }
 
+func TestIAVLBenchGCStoreCounts(t *testing.T) {
+	ctx := context.Background()
+	tree, refGraph := buildBenchTreeWithGC(t, makeBenchKeys(128, benchKeySequential))
+
+	btx, rootCursor := block.NewTransaction(tree.storeOps(), nil, tree.rootRef, nil)
+	tx, err := NewTx(ctx, rootCursor, nil, true, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Set(ctx, tree.keys[17], benchValue(1000)); err != nil {
+		tx.Discard()
+		t.Fatal(err)
+	}
+	tx.Discard()
+	if _, _, err := btx.Write(ctx, true); err != nil {
+		t.Fatal(err)
+	}
+
+	if tree.store.existsBatchCalls.Load() == 0 {
+		t.Fatal("expected GC commit to check existing blocks in a batch")
+	}
+	if refGraph.addRefs.Load() == 0 {
+		t.Fatal("expected GC commit to flush ref graph additions")
+	}
+}
+
+func TestIAVLSetRotationSequences(t *testing.T) {
+	ctx := context.Background()
+	for _, tc := range []struct {
+		name string
+		keys []int
+	}{
+		{name: "left_left", keys: []int{3, 2, 1}},
+		{name: "right_right", keys: []int{1, 2, 3}},
+		{name: "left_right", keys: []int{3, 1, 2}},
+		{name: "right_left", keys: []int{1, 3, 2}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			store := newBenchBlockStore()
+			_, rootCursor := block.NewTransaction(store, nil, nil, nil)
+			rootCursor.SetBlock(&Node{}, true)
+			tx, err := NewTx(ctx, rootCursor, nil, true, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer tx.Discard()
+
+			for _, key := range tc.keys {
+				if err := tx.Set(ctx, makeSequentialBenchKey(key), benchValue(key)); err != nil {
+					t.Fatal(err)
+				}
+			}
+			size, err := tx.Size(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if size != 3 {
+				t.Fatalf("expected size 3, got %d", size)
+			}
+			if height := tx.Height(); height > 2 {
+				t.Fatalf("expected height <= 2, got %d", height)
+			}
+			for key := 1; key <= 3; key++ {
+				_, found, err := tx.Get(ctx, makeSequentialBenchKey(key))
+				if err != nil {
+					t.Fatal(err)
+				}
+				if !found {
+					t.Fatalf("key %d not found", key)
+				}
+			}
+
+			var prev []byte
+			var count int
+			if err := tx.ScanPrefixKeys(ctx, nil, func(key []byte) error {
+				if prev != nil && string(prev) >= string(key) {
+					t.Fatalf("keys out of order: %x >= %x", prev, key)
+				}
+				prev = append(prev[:0], key...)
+				count++
+				return nil
+			}); err != nil {
+				t.Fatal(err)
+			}
+			if count != 3 {
+				t.Fatalf("expected 3 scanned keys, got %d", count)
+			}
+		})
+	}
+}
+
 func runIAVLTrace(
 	t *testing.T,
 	name string,
@@ -598,7 +807,7 @@ func TestIAVLTraceUpdateCommit(t *testing.T) {
 	runIAVLTrace(t, "update-commit", nil, func(ctx context.Context, tree *benchTree) {
 		tree.store.resetCounts()
 		for i := range 10 {
-			btx, rootCursor := block.NewTransaction(tree.store, nil, tree.rootRef, nil)
+			btx, rootCursor := block.NewTransaction(tree.storeOps(), nil, tree.rootRef, nil)
 			tx, err := NewTx(ctx, rootCursor, nil, true, nil)
 			if err != nil {
 				t.Fatal(err)
@@ -758,7 +967,7 @@ func BenchmarkIAVLUpdateCommit(b *testing.B) {
 			tree.store.resetCounts()
 			b.ResetTimer()
 			for i := range b.N {
-				btx, rootCursor := block.NewTransaction(tree.store, nil, tree.rootRef, nil)
+				btx, rootCursor := block.NewTransaction(tree.storeOps(), nil, tree.rootRef, nil)
 				tx, err := NewTx(ctx, rootCursor, nil, true, nil)
 				if err != nil {
 					b.Fatal(err)
@@ -780,6 +989,39 @@ func BenchmarkIAVLUpdateCommit(b *testing.B) {
 	}
 }
 
+func BenchmarkIAVLUpdateCommitGC(b *testing.B) {
+	for _, size := range []int{1024, 16384} {
+		b.Run("updates_100/"+benchSizeName(size), func(b *testing.B) {
+			ctx := context.Background()
+			tree, refGraph := buildBenchTreeWithGC(b, makeBenchKeys(size, benchKeySequential))
+			tree.store.resetCounts()
+			refGraph.resetCounts()
+			b.ResetTimer()
+			for i := range b.N {
+				btx, rootCursor := block.NewTransaction(tree.storeOps(), nil, tree.rootRef, nil)
+				tx, err := NewTx(ctx, rootCursor, nil, true, nil)
+				if err != nil {
+					b.Fatal(err)
+				}
+				for updateIndex := range 100 {
+					key := tree.keys[benchLookupIndex(i+updateIndex, size)]
+					if err := tx.Set(ctx, key, benchValue(i+updateIndex+size)); err != nil {
+						tx.Discard()
+						b.Fatal(err)
+					}
+				}
+				tx.Discard()
+				if _, _, err := btx.Write(ctx, true); err != nil {
+					b.Fatal(err)
+				}
+			}
+			b.StopTimer()
+			tree.store.reportMetrics(b, int64(b.N))
+			refGraph.reportMetrics(b, int64(b.N))
+		})
+	}
+}
+
 func BenchmarkIAVLDeleteCommit(b *testing.B) {
 	for _, size := range []int{1024, 16384} {
 		b.Run("deletes_100/"+benchSizeName(size), func(b *testing.B) {
@@ -788,7 +1030,7 @@ func BenchmarkIAVLDeleteCommit(b *testing.B) {
 			tree.store.resetCounts()
 			b.ResetTimer()
 			for i := range b.N {
-				btx, rootCursor := block.NewTransaction(tree.store, nil, tree.rootRef, nil)
+				btx, rootCursor := block.NewTransaction(tree.storeOps(), nil, tree.rootRef, nil)
 				tx, err := NewTx(ctx, rootCursor, nil, true, nil)
 				if err != nil {
 					b.Fatal(err)
@@ -819,7 +1061,7 @@ func BenchmarkIAVLDeleteCursorCommit(b *testing.B) {
 			tree.store.resetCounts()
 			b.ResetTimer()
 			for i := range b.N {
-				btx, rootCursor := block.NewTransaction(tree.store, nil, tree.rootRef, nil)
+				btx, rootCursor := block.NewTransaction(tree.storeOps(), nil, tree.rootRef, nil)
 				tx, err := NewTx(ctx, rootCursor, nil, true, nil)
 				if err != nil {
 					b.Fatal(err)
@@ -888,7 +1130,7 @@ func BenchmarkIAVLBadgerBlockStore(b *testing.B) {
 		tree.store.resetCounts()
 		b.ResetTimer()
 		for i := range b.N {
-			btx, rootCursor := block.NewTransaction(tree.store, nil, tree.rootRef, nil)
+			btx, rootCursor := block.NewTransaction(tree.storeOps(), nil, tree.rootRef, nil)
 			tx, err := NewTx(ctx, rootCursor, nil, true, nil)
 			if err != nil {
 				b.Fatal(err)
@@ -912,3 +1154,6 @@ func BenchmarkIAVLBadgerBlockStore(b *testing.B) {
 
 // _ is a type assertion
 var _ block.StoreOps = ((*benchBlockStore)(nil))
+
+// _ is a type assertion
+var _ block_gc.RefGraphOps = ((*benchRefGraph)(nil))
