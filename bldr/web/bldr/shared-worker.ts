@@ -69,7 +69,7 @@ if (isPlugin) {
 
     // Use the detection result from the WebDocument init message (authoritative).
     // Falls back to local detection for standalone test fixtures.
-    const detect = opts.workerCommsDetect ?? await detectWorkerCommsConfig()
+    const detect = opts.workerCommsDetect ?? (await detectWorkerCommsConfig())
     const transport = createTransportFactory(detect, {
       openStream: pluginWorker.webRuntimeClient.openStream.bind(
         pluginWorker.webRuntimeClient,
@@ -97,7 +97,40 @@ if (isPlugin) {
       console.log('shared-worker: starting QuickJS plugin:', scriptPath)
       const quickjsRunner =
         await import('../runtime/quickjs/plugin-host-quickjs.js')
-      await quickjsRunner.default(backendAPI, abortSignal, scriptPath)
+      let ready = false
+      let resolveReady!: () => void
+      let rejectReady!: (err: unknown) => void
+      const readyPromise = new Promise<void>((resolve, reject) => {
+        resolveReady = resolve
+        rejectReady = reject
+      })
+      const runnerPromise = quickjsRunner.default(
+        backendAPI,
+        abortSignal,
+        scriptPath,
+        {
+          onReady: () => {
+            ready = true
+            resolveReady()
+          },
+        },
+      )
+      void runnerPromise.then(
+        () => {
+          if (!ready) {
+            resolveReady()
+          }
+        },
+        (err: unknown) => {
+          if (!ready) {
+            rejectReady(err)
+            return
+          }
+          console.warn('shared-worker: QuickJS plugin exited:', err)
+          self.close()
+        },
+      )
+      await readyPromise
     } else {
       console.log('shared-worker: starting native plugin:', scriptPath)
 
@@ -141,7 +174,9 @@ if (isPlugin) {
       if (checkSharedWorker(self)) {
         self.removeEventListener('connect', bufferHandler as EventListener)
         for (const ev of buffered) {
-          self.dispatchEvent(new MessageEvent('connect', { ports: [...ev.ports] }))
+          self.dispatchEvent(
+            new MessageEvent('connect', { ports: [...ev.ports] }),
+          )
         }
       } else {
         self.removeEventListener('message', bufferHandler)

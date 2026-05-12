@@ -43,6 +43,7 @@ type ViteManifestEntry = {
 }
 
 const backendAssetsRoot = 'v/b/be/'
+const quickJSPluginReadyMarker = '__BLDR_QUICKJS_PLUGIN_READY__'
 
 // Cached compiled QuickJS WASM module (shared across plugin restarts)
 let cachedWasmModule: WebAssembly.Module | null = null
@@ -196,6 +197,10 @@ export type BackendAssetCacheEntry =
   | { ok: false; status: number; url: string }
 
 export type BackendAssetLoadingMode = 'lazy-http' | 'bounded-preload'
+
+export type QuickJSRunnerOptions = {
+  onReady?: () => void
+}
 
 type BackendAssetAPI = {
   startInfo: Pick<BackendAPI['startInfo'], 'pluginId'>
@@ -390,6 +395,7 @@ export default async function main(
   api: BackendAPI,
   signal: AbortSignal,
   scriptPath: string,
+  opts: QuickJSRunnerOptions = {},
 ): Promise<void> {
   console.log('quickjs-runner: loading QuickJS and boot harness...')
 
@@ -457,6 +463,15 @@ export default async function main(
   console.log('quickjs-runner: instantiating QuickJS reactor...')
 
   // Create QuickJS instance
+  let ready = false
+  const notifyReady = () => {
+    if (ready) {
+      return
+    }
+    ready = true
+    opts.onReady?.()
+  }
+
   const qjs = new QuickJS(wasmModule, {
     args: ['qjs'],
     env: [
@@ -466,7 +481,13 @@ export default async function main(
     fs,
     preopens,
     stdin,
-    stdout: (line) => console.log('[QuickJS stdout]', line),
+    stdout: (line) => {
+      if (line === quickJSPluginReadyMarker) {
+        notifyReady()
+        return
+      }
+      console.log('[QuickJS stdout]', line)
+    },
     stderr: (line) => console.error('[QuickJS stderr]', line),
     onDevOut: (data) => devOutStream.push(new Uint8Array(data)),
   })

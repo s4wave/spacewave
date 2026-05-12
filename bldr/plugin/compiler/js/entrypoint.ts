@@ -459,4 +459,7 @@ export default async function main(
   await loadBackendEntrypoints(backendAPI, abortSignal)
 
   console.info('Bldr JS plugin entrypoint finished initialization.')
+  if (isQuickJSRuntime()) {
+    console.info('__BLDR_QUICKJS_PLUGIN_READY__')
+  }
 }
