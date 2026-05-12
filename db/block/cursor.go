@@ -3,8 +3,6 @@ package block
 import (
 	"context"
 	"errors"
-
-	trace "github.com/s4wave/spacewave/db/traceutil"
 )
 
 // Cursor tracks traversal of a block reference DAG structure with an associated
@@ -585,43 +583,30 @@ func (c *Cursor) ClearAllRefs() {
 // Returns nil, false, nil if the reference is empty.
 // Returns nil, false, ErrNotFound if not found (block unavailable).
 func (c *Cursor) Fetch(ctx context.Context) ([]byte, bool, error) {
-	ctx, task := trace.NewTask(ctx, "hydra/block/cursor/fetch")
-	defer task.End()
-
 	if c == nil {
-		trace.Log(ctx, "result", "nil-cursor")
 		return nil, false, nil
 	}
 	if c.pos.ref.GetEmpty() {
-		trace.Log(ctx, "result", "empty-ref")
 		return nil, false, nil
 	}
 
 	bkt, _ := c.GetBlockStore()
 	if bkt == nil {
-		trace.Log(ctx, "result", "store-unavailable")
 		return nil, false, ErrBlockStoreUnavailable
 	}
-	taskCtx, subtask := trace.NewTask(ctx, "hydra/block/cursor/fetch/store-get")
-	data, found, err := bkt.GetBlock(taskCtx, c.pos.ref)
-	subtask.End()
+	data, found, err := bkt.GetBlock(ctx, c.pos.ref)
 	if err != nil || !found {
 		if err == nil {
 			err = ErrNotFound
 		}
-		trace.Log(ctx, "result", "not-found")
 		return nil, false, err
 	}
 	if c.t.xfrm != nil {
-		_, subtask = trace.NewTask(ctx, "hydra/block/cursor/fetch/decode")
 		data, err = c.t.xfrm.DecodeBlock(data)
-		subtask.End()
 		if err != nil {
-			trace.Log(ctx, "result", "decode-error")
 			return nil, false, err
 		}
 	}
-	trace.Log(ctx, "result", "fetched")
 	return data, true, nil
 }
 
