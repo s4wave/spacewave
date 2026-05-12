@@ -288,28 +288,24 @@ func watchTrackedChanges(ctx context.Context, snapshot *s4wave_world.TrackedWorl
 // checkTrackedChanges checks if any tracked resources have changed.
 // Returns true if any change detected, false if all unchanged.
 func checkTrackedChanges(ctx context.Context, snapshot *s4wave_world.TrackedWorldStateSnapshot, ws world.WorldState) (bool, error) {
-	// Check each tracked object
-	for _, objAccess := range snapshot.ObjectAccesses {
-		obj, found, err := ws.GetObject(ctx, objAccess.Key)
-		if err != nil {
-			return false, err
-		}
-
-		trackedRev := objAccess.Rev
+	keys := make([]string, len(snapshot.ObjectAccesses))
+	for i, objAccess := range snapshot.ObjectAccesses {
+		keys[i] = objAccess.Key
+	}
+	refs, err := world.GetObjectRootRefsBatch(ctx, ws, keys)
+	if err != nil {
+		return false, err
+	}
+	for i, objAccess := range snapshot.ObjectAccesses {
 		currentRev := uint64(0)
-
-		if found {
-			_, currentRev, err = obj.GetRootRef(ctx)
-			if err != nil {
-				return false, err
-			}
+		if refs[i].Exists {
+			currentRev = refs[i].Rev
 		}
-
 		// Detect changes:
 		// - Tracked as non-existent (rev=0) but now exists (currentRev>0)
 		// - Tracked as existing (rev>0) but now deleted (currentRev=0)
 		// - Revision increased (currentRev>trackedRev)
-		if currentRev != trackedRev {
+		if currentRev != objAccess.Rev {
 			return true, nil
 		}
 	}

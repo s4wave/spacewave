@@ -339,6 +339,38 @@ pub struct ListObjectsWithTypeResponse {
     #[prost(string, repeated, tag="1")]
     pub object_keys: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
+/// ObjectRootRef contains root reference metadata for one object key.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ObjectRootRef {
+    /// ObjectKey is the object key.
+    #[prost(string, tag="1")]
+    pub object_key: ::prost::alloc::string::String,
+    /// RootRef is the current object root reference, if the object exists.
+    #[prost(message, optional, tag="2")]
+    pub root_ref: ::core::option::Option<super::super::bucket::ObjectRef>,
+    /// Rev is the object revision.
+    #[prost(uint64, tag="3")]
+    pub rev: u64,
+    /// Exists indicates whether the object key exists.
+    #[prost(bool, tag="4")]
+    pub exists: bool,
+}
+/// GetObjectRootRefsBatchRequest is the request type for
+/// GetObjectRootRefsBatch.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetObjectRootRefsBatchRequest {
+    /// ObjectKeys is the list of object keys to inspect.
+    #[prost(string, repeated, tag="1")]
+    pub object_keys: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+/// GetObjectRootRefsBatchResponse is the response type for
+/// GetObjectRootRefsBatch.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetObjectRootRefsBatchResponse {
+    /// RootRefs preserves the request object key order.
+    #[prost(message, repeated, tag="1")]
+    pub root_refs: ::prost::alloc::vec::Vec<ObjectRootRef>,
+}
 /// ObjectMetadata contains graph metadata for one object key.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ObjectMetadata {

@@ -373,6 +373,41 @@ func (r *WorldStateResource) ListObjectsWithType(ctx context.Context, req *s4wav
 	return &s4wave_world.ListObjectsWithTypeResponse{ObjectKeys: objKeys}, nil
 }
 
+// GetObjectRootRefsBatch returns root references for object keys.
+func (r *WorldStateResource) GetObjectRootRefsBatch(ctx context.Context, req *s4wave_world.GetObjectRootRefsBatchRequest) (*s4wave_world.GetObjectRootRefsBatchResponse, error) {
+	started := time.Now()
+	record := WorldStateOperationRecord{
+		Name:              "GetObjectRootRefsBatch",
+		StartKeyCount:     len(req.GetObjectKeys()),
+		ResultObjectCount: 0,
+	}
+	var retErr error
+	defer func() {
+		r.observeOperation(record, started, retErr)
+	}()
+
+	refs, err := world.GetObjectRootRefsBatch(ctx, r.ws, req.GetObjectKeys())
+	if err != nil {
+		retErr = err
+		return nil, err
+	}
+
+	out := make([]*s4wave_world.ObjectRootRef, len(refs))
+	for i, ref := range refs {
+		if ref.Exists {
+			record.ResultObjectCount++
+		}
+		out[i] = &s4wave_world.ObjectRootRef{
+			ObjectKey: ref.ObjectKey,
+			RootRef:   ref.RootRef,
+			Rev:       ref.Rev,
+			Exists:    ref.Exists,
+		}
+	}
+
+	return &s4wave_world.GetObjectRootRefsBatchResponse{RootRefs: out}, nil
+}
+
 // GetObjectMetadataBatch returns graph metadata for object keys.
 func (r *WorldStateResource) GetObjectMetadataBatch(ctx context.Context, req *s4wave_world.GetObjectMetadataBatchRequest) (*s4wave_world.GetObjectMetadataBatchResponse, error) {
 	metadata, err := world_types.GetObjectMetadataBatch(ctx, r.ws, req.GetObjectKeys())

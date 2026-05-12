@@ -357,6 +357,70 @@ func TestWorldStateResourceOperationObserverLookupGraphQuadsBatch(t *testing.T) 
 	}
 }
 
+func TestWorldStateResourceGetObjectRootRefsBatch(t *testing.T) {
+	ctx := context.Background()
+
+	tb, tbCleanup := setupWorldTestbed(ctx, t)
+	defer tbCleanup()
+
+	alphaRef := &bucket.ObjectRef{BucketId: "alpha-bucket"}
+	betaRef := &bucket.ObjectRef{BucketId: "beta-bucket"}
+	if _, err := tb.WorldState.CreateObject(ctx, "root-ref/alpha", alphaRef); err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := tb.WorldState.CreateObject(ctx, "root-ref/beta", betaRef); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	var records []resource_world.WorldStateOperationRecord
+	resource := resource_world.NewWorldStateResource(nil, nil, tb.WorldState, nil, resource_world.WithWorldStateOperationObserver(func(record resource_world.WorldStateOperationRecord) {
+		records = append(records, record)
+	}))
+	resp, err := resource.GetObjectRootRefsBatch(ctx, &s4wave_world.GetObjectRootRefsBatchRequest{
+		ObjectKeys: []string{"root-ref/beta", "missing", "root-ref/alpha", "root-ref/alpha"},
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	refs := resp.GetRootRefs()
+	if len(refs) != 4 {
+		t.Fatalf("expected 4 root refs, got %d", len(refs))
+	}
+	checkRootRef := func(ref *s4wave_world.ObjectRootRef, key string, exists bool, bucketID string) {
+		if ref.GetObjectKey() != key || ref.GetExists() != exists {
+			t.Fatalf("unexpected root ref for %s: %+v", key, ref)
+		}
+		if !exists {
+			if ref.GetRootRef() != nil || ref.GetRev() != 0 {
+				t.Fatalf("expected missing root ref for %s to be empty: %+v", key, ref)
+			}
+			return
+		}
+		if ref.GetRootRef().GetBucketId() != bucketID || ref.GetRev() != 1 {
+			t.Fatalf("unexpected root ref for %s: %+v", key, ref)
+		}
+	}
+	checkRootRef(refs[0], "root-ref/beta", true, "beta-bucket")
+	checkRootRef(refs[1], "missing", false, "")
+	checkRootRef(refs[2], "root-ref/alpha", true, "alpha-bucket")
+	checkRootRef(refs[3], "root-ref/alpha", true, "alpha-bucket")
+
+	if len(records) != 1 {
+		t.Fatalf("expected one operation record, got %d", len(records))
+	}
+	record := records[0]
+	if record.Name != "GetObjectRootRefsBatch" {
+		t.Fatalf("record name = %q", record.Name)
+	}
+	if record.StartKeyCount != 4 || record.ResultObjectCount != 3 {
+		t.Fatalf("unexpected object counts: %+v", record)
+	}
+	if record.Duration <= 0 {
+		t.Fatalf("expected positive duration, got %s", record.Duration)
+	}
+}
+
 func TestWorldStateResourceLookupGraphQuadsBatchUsesOwnerOperation(t *testing.T) {
 	ctx := context.Background()
 

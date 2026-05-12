@@ -171,6 +171,8 @@ class SRPCWorldStateResourceServiceClient {
   virtual starpc::Error ListGraphEdgeBuckets(const s4wave::world::ListGraphEdgeBucketsRequest& in, s4wave::world::ListGraphEdgeBucketsResponse* out) = 0;
   // ListObjectsWithType
   virtual starpc::Error ListObjectsWithType(const s4wave::world::ListObjectsWithTypeRequest& in, s4wave::world::ListObjectsWithTypeResponse* out) = 0;
+  // GetObjectRootRefsBatch
+  virtual starpc::Error GetObjectRootRefsBatch(const s4wave::world::GetObjectRootRefsBatchRequest& in, s4wave::world::GetObjectRootRefsBatchResponse* out) = 0;
   // GetObjectMetadataBatch
   virtual starpc::Error GetObjectMetadataBatch(const s4wave::world::GetObjectMetadataBatchRequest& in, s4wave::world::GetObjectMetadataBatchResponse* out) = 0;
   // QueryGraphPath
@@ -221,6 +223,8 @@ class SRPCWorldStateResourceServiceClientImpl : public SRPCWorldStateResourceSer
   virtual starpc::Error ListGraphEdgeBuckets(const s4wave::world::ListGraphEdgeBucketsRequest& in, s4wave::world::ListGraphEdgeBucketsResponse* out) override;
   // ListObjectsWithType
   virtual starpc::Error ListObjectsWithType(const s4wave::world::ListObjectsWithTypeRequest& in, s4wave::world::ListObjectsWithTypeResponse* out) override;
+  // GetObjectRootRefsBatch
+  virtual starpc::Error GetObjectRootRefsBatch(const s4wave::world::GetObjectRootRefsBatchRequest& in, s4wave::world::GetObjectRootRefsBatchResponse* out) override;
   // GetObjectMetadataBatch
   virtual starpc::Error GetObjectMetadataBatch(const s4wave::world::GetObjectMetadataBatchRequest& in, s4wave::world::GetObjectMetadataBatchResponse* out) override;
   // QueryGraphPath
@@ -277,6 +281,8 @@ class SRPCWorldStateResourceServiceServer {
   virtual starpc::Error ListGraphEdgeBuckets(const s4wave::world::ListGraphEdgeBucketsRequest& req, s4wave::world::ListGraphEdgeBucketsResponse* resp) = 0;
   // ListObjectsWithType
   virtual starpc::Error ListObjectsWithType(const s4wave::world::ListObjectsWithTypeRequest& req, s4wave::world::ListObjectsWithTypeResponse* resp) = 0;
+  // GetObjectRootRefsBatch
+  virtual starpc::Error GetObjectRootRefsBatch(const s4wave::world::GetObjectRootRefsBatchRequest& req, s4wave::world::GetObjectRootRefsBatchResponse* resp) = 0;
   // GetObjectMetadataBatch
   virtual starpc::Error GetObjectMetadataBatch(const s4wave::world::GetObjectMetadataBatchRequest& req, s4wave::world::GetObjectMetadataBatchResponse* resp) = 0;
   // QueryGraphPath

@@ -254,6 +254,8 @@ pub trait WorldStateResourceServiceClient: Send + Sync {
     async fn list_graph_edge_buckets(&self, request: &ListGraphEdgeBucketsRequest) -> starpc::Result<ListGraphEdgeBucketsResponse>;
     /// ListObjectsWithType.
     async fn list_objects_with_type(&self, request: &ListObjectsWithTypeRequest) -> starpc::Result<ListObjectsWithTypeResponse>;
+    /// GetObjectRootRefsBatch.
+    async fn get_object_root_refs_batch(&self, request: &GetObjectRootRefsBatchRequest) -> starpc::Result<GetObjectRootRefsBatchResponse>;
     /// GetObjectMetadataBatch.
     async fn get_object_metadata_batch(&self, request: &GetObjectMetadataBatchRequest) -> starpc::Result<GetObjectMetadataBatchResponse>;
     /// QueryGraphPath.
@@ -326,6 +328,9 @@ impl<C: starpc::Client + 'static> WorldStateResourceServiceClient for WorldState
     async fn list_objects_with_type(&self, request: &ListObjectsWithTypeRequest) -> starpc::Result<ListObjectsWithTypeResponse> {
         self.client.exec_call("s4wave.world.WorldStateResourceService", "ListObjectsWithType", request).await
     }
+    async fn get_object_root_refs_batch(&self, request: &GetObjectRootRefsBatchRequest) -> starpc::Result<GetObjectRootRefsBatchResponse> {
+        self.client.exec_call("s4wave.world.WorldStateResourceService", "GetObjectRootRefsBatch", request).await
+    }
     async fn get_object_metadata_batch(&self, request: &GetObjectMetadataBatchRequest) -> starpc::Result<GetObjectMetadataBatchResponse> {
         self.client.exec_call("s4wave.world.WorldStateResourceService", "GetObjectMetadataBatch", request).await
     }
@@ -375,6 +380,8 @@ pub trait WorldStateResourceServiceServer: Send + Sync {
     async fn list_graph_edge_buckets(&self, request: ListGraphEdgeBucketsRequest) -> starpc::Result<ListGraphEdgeBucketsResponse>;
     /// ListObjectsWithType.
     async fn list_objects_with_type(&self, request: ListObjectsWithTypeRequest) -> starpc::Result<ListObjectsWithTypeResponse>;
+    /// GetObjectRootRefsBatch.
+    async fn get_object_root_refs_batch(&self, request: GetObjectRootRefsBatchRequest) -> starpc::Result<GetObjectRootRefsBatchResponse>;
     /// GetObjectMetadataBatch.
     async fn get_object_metadata_batch(&self, request: GetObjectMetadataBatchRequest) -> starpc::Result<GetObjectMetadataBatchResponse>;
     /// QueryGraphPath.
@@ -402,6 +409,7 @@ const WORLD_STATE_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
     "LookupGraphQuadsBatch",
     "ListGraphEdgeBuckets",
     "ListObjectsWithType",
+    "GetObjectRootRefsBatch",
     "GetObjectMetadataBatch",
     "QueryGraphPath",
     "DeleteGraphObject",
@@ -665,6 +673,21 @@ impl<S: WorldStateResourceServiceServer + 'static> starpc::Invoker for WorldStat
                     Err(e) => return (true, Err(e)),
                 };
                 match self.server.list_objects_with_type(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "GetObjectRootRefsBatch" => {
+                let request: GetObjectRootRefsBatchRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.get_object_root_refs_batch(request).await {
                     Ok(response) => {
                         if let Err(e) = stream.msg_send(&response).await {
                             return (true, Err(e));

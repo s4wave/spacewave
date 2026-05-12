@@ -39,6 +39,8 @@ import {
   GetObjectMetadataBatchResponse,
   GetObjectRequest,
   GetObjectResponse,
+  GetObjectRootRefsBatchRequest,
+  GetObjectRootRefsBatchResponse,
   GetReadOnlyRequest,
   GetReadOnlyResponse,
   GetRootRefRequest,
@@ -472,6 +474,15 @@ export const WorldStateResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * @generated from rpc s4wave.world.WorldStateResourceService.GetObjectRootRefsBatch
+     */
+    GetObjectRootRefsBatch: {
+      name: 'GetObjectRootRefsBatch',
+      I: GetObjectRootRefsBatchRequest,
+      O: GetObjectRootRefsBatchResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
      * @generated from rpc s4wave.world.WorldStateResourceService.GetObjectMetadataBatch
      */
     GetObjectMetadataBatch: {
@@ -643,6 +654,14 @@ export interface WorldStateResourceService {
   ): Promise<ListObjectsWithTypeResponse>
 
   /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.GetObjectRootRefsBatch
+   */
+  GetObjectRootRefsBatch(
+    request: GetObjectRootRefsBatchRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetObjectRootRefsBatchResponse>
+
+  /**
    * @generated from rpc s4wave.world.WorldStateResourceService.GetObjectMetadataBatch
    */
   GetObjectMetadataBatch(
@@ -700,6 +719,7 @@ export class WorldStateResourceServiceClient implements WorldStateResourceServic
     this.LookupGraphQuadsBatch = this.LookupGraphQuadsBatch.bind(this)
     this.ListGraphEdgeBuckets = this.ListGraphEdgeBuckets.bind(this)
     this.ListObjectsWithType = this.ListObjectsWithType.bind(this)
+    this.GetObjectRootRefsBatch = this.GetObjectRootRefsBatch.bind(this)
     this.GetObjectMetadataBatch = this.GetObjectMetadataBatch.bind(this)
     this.QueryGraphPath = this.QueryGraphPath.bind(this)
     this.DeleteGraphObject = this.DeleteGraphObject.bind(this)
@@ -975,6 +995,23 @@ export class WorldStateResourceServiceClient implements WorldStateResourceServic
       abortSignal || undefined,
     )
     return ListObjectsWithTypeResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.GetObjectRootRefsBatch
+   */
+  async GetObjectRootRefsBatch(
+    request: GetObjectRootRefsBatchRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetObjectRootRefsBatchResponse> {
+    const requestMsg = GetObjectRootRefsBatchRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      WorldStateResourceServiceDefinition.methods.GetObjectRootRefsBatch.name,
+      GetObjectRootRefsBatchRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return GetObjectRootRefsBatchResponse.fromBinary(result)
   }
 
   /**

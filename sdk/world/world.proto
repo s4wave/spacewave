@@ -116,6 +116,8 @@ service WorldStateResourceService {
 
   rpc ListObjectsWithType(ListObjectsWithTypeRequest) returns (ListObjectsWithTypeResponse);
 
+  rpc GetObjectRootRefsBatch(GetObjectRootRefsBatchRequest) returns (GetObjectRootRefsBatchResponse);
+
   rpc GetObjectMetadataBatch(GetObjectMetadataBatchRequest) returns (GetObjectMetadataBatchResponse);
 
   rpc QueryGraphPath(QueryGraphPathRequest) returns (QueryGraphPathResponse);
@@ -358,6 +360,32 @@ message ListObjectsWithTypeRequest {
 message ListObjectsWithTypeResponse {
   // ObjectKeys is the list of object keys with the given type.
   repeated string object_keys = 1;
+}
+
+// ObjectRootRef contains root reference metadata for one object key.
+message ObjectRootRef {
+  // ObjectKey is the object key.
+  string object_key = 1;
+  // RootRef is the current object root reference, if the object exists.
+  .bucket.ObjectRef root_ref = 2;
+  // Rev is the object revision.
+  uint64 rev = 3;
+  // Exists indicates whether the object key exists.
+  bool exists = 4;
+}
+
+// GetObjectRootRefsBatchRequest is the request type for
+// GetObjectRootRefsBatch.
+message GetObjectRootRefsBatchRequest {
+  // ObjectKeys is the list of object keys to inspect.
+  repeated string object_keys = 1;
+}
+
+// GetObjectRootRefsBatchResponse is the response type for
+// GetObjectRootRefsBatch.
+message GetObjectRootRefsBatchResponse {
+  // RootRefs preserves the request object key order.
+  repeated ObjectRootRef root_refs = 1;
 }
 
 // ObjectMetadata contains graph metadata for one object key.

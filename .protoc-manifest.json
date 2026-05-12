@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "protocFlagsHash": "1c28c09115aa511ff35b1be26994db5c0c847fc8e5879acca1694ab90f3ae614",
+  "protocFlagsHash": "c62c11288d7b77f4f3b9da8f3fc9a7a95539dd8812733f5ea824ff0f57a5364a",
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.13.0,starpc=v0.49.7,protobuf-es-lite=1.0.2",
   "packages": {
     "github.com/s4wave/spacewave/auth/derive": {
@@ -4267,7 +4267,7 @@
       "protoFiles": ["sdk/vm/v86-wizard.proto", "sdk/vm/v86.proto"]
     },
     "github.com/s4wave/spacewave/sdk/world": {
-      "hash": "8882237d5eb2dc9427f1a1164e9c0cb6e9db58d8dc7491fd41cc36a515060625",
+      "hash": "fb479cdb80bfe63d9d7d8dc1925827e2d81b4f817ca07f4b23173fc595ed35b9",
       "generatedFiles": [
         "sdk/world/world.pb.cc",
         "sdk/world/world.pb.go",

@@ -7,6 +7,7 @@ import (
 
 	resource_testbed "github.com/s4wave/spacewave/core/resource/testbed"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
 	world_parent "github.com/s4wave/spacewave/db/world/parent"
 	world_types "github.com/s4wave/spacewave/db/world/types"
@@ -526,6 +527,61 @@ func TestSDKEngine_GetObjectMetadataBatch(t *testing.T) {
 	if typeID != "sdk/metadata" {
 		t.Fatalf("expected GetObjectType sdk/metadata, got %q", typeID)
 	}
+}
+
+func TestSDKEngine_GetObjectRootRefsBatch(t *testing.T) {
+	ctx := context.Background()
+	engine, cleanup := setupSDKEngine(ctx, t)
+	defer cleanup()
+
+	tx, err := engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	if _, err := tx.CreateObject(ctx, "root-ref/alpha", &bucket.ObjectRef{BucketId: "alpha-bucket"}); err != nil {
+		tx.Discard()
+		t.Fatal(err.Error())
+	}
+	if _, err := tx.CreateObject(ctx, "root-ref/beta", &bucket.ObjectRef{BucketId: "beta-bucket"}); err != nil {
+		tx.Discard()
+		t.Fatal(err.Error())
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	readTx, err := engine.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer readTx.Discard()
+
+	refs, err := world.GetObjectRootRefsBatch(ctx, readTx, []string{"root-ref/beta", "missing", "root-ref/alpha", "root-ref/alpha"})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(refs) != 4 {
+		t.Fatalf("expected 4 root refs, got %d", len(refs))
+	}
+	checkRootRef := func(ref *world.ObjectRootRef, key string, exists bool, bucketID string) {
+		if ref.ObjectKey != key || ref.Exists != exists {
+			t.Fatalf("unexpected root ref for %s: %+v", key, ref)
+		}
+		if !exists {
+			if ref.RootRef != nil || ref.Rev != 0 {
+				t.Fatalf("expected missing root ref for %s to be empty: %+v", key, ref)
+			}
+			return
+		}
+		if ref.RootRef.GetBucketId() != bucketID || ref.Rev != 1 {
+			t.Fatalf("unexpected root ref for %s: %+v", key, ref)
+		}
+	}
+	checkRootRef(refs[0], "root-ref/beta", true, "beta-bucket")
+	checkRootRef(refs[1], "missing", false, "")
+	checkRootRef(refs[2], "root-ref/alpha", true, "alpha-bucket")
+	checkRootRef(refs[3], "root-ref/alpha", true, "alpha-bucket")
 }
 
 // TestSDKEngine_QueryGraphPath tests bounded remote graph path traversal.

@@ -24,7 +24,7 @@ func (t *WorldState) GetObjectRootRefsBatch(ctx context.Context, keys []string) 
 		if !exists {
 			continue
 		}
-		ref.RootRef = obj.GetRootRef().Clone()
+		ref.RootRef = obj.GetRootRef()
 		ref.Rev = obj.GetRev()
 	}
 	return out, nil

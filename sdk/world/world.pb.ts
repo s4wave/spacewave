@@ -1220,6 +1220,112 @@ export const ListObjectsWithTypeResponse: MessageType<ListObjectsWithTypeRespons
   })
 
 /**
+ * ObjectRootRef contains root reference metadata for one object key.
+ *
+ * @generated from message s4wave.world.ObjectRootRef
+ */
+export interface ObjectRootRef {
+  /**
+   * ObjectKey is the object key.
+   *
+   * @generated from field: string object_key = 1;
+   */
+  objectKey?: string
+  /**
+   * RootRef is the current object root reference, if the object exists.
+   *
+   * @generated from field: bucket.ObjectRef root_ref = 2;
+   */
+  rootRef?: ObjectRef
+  /**
+   * Rev is the object revision.
+   *
+   * @generated from field: uint64 rev = 3;
+   */
+  rev?: bigint
+  /**
+   * Exists indicates whether the object key exists.
+   *
+   * @generated from field: bool exists = 4;
+   */
+  exists?: boolean
+}
+
+// ObjectRootRef contains the message type declaration for ObjectRootRef.
+export const ObjectRootRef: MessageType<ObjectRootRef> = createMessageType({
+  typeName: 's4wave.world.ObjectRootRef',
+  fields: [
+    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'root_ref', kind: 'message', T: () => ObjectRef },
+    { no: 3, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
+    { no: 4, name: 'exists', kind: 'scalar', T: ScalarType.BOOL },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
+
+/**
+ * GetObjectRootRefsBatchRequest is the request type for
+ * GetObjectRootRefsBatch.
+ *
+ * @generated from message s4wave.world.GetObjectRootRefsBatchRequest
+ */
+export interface GetObjectRootRefsBatchRequest {
+  /**
+   * ObjectKeys is the list of object keys to inspect.
+   *
+   * @generated from field: repeated string object_keys = 1;
+   */
+  objectKeys?: string[]
+}
+
+// GetObjectRootRefsBatchRequest contains the message type declaration for GetObjectRootRefsBatchRequest.
+export const GetObjectRootRefsBatchRequest: MessageType<GetObjectRootRefsBatchRequest> =
+  createMessageType({
+    typeName: 's4wave.world.GetObjectRootRefsBatchRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'object_keys',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * GetObjectRootRefsBatchResponse is the response type for
+ * GetObjectRootRefsBatch.
+ *
+ * @generated from message s4wave.world.GetObjectRootRefsBatchResponse
+ */
+export interface GetObjectRootRefsBatchResponse {
+  /**
+   * RootRefs preserves the request object key order.
+   *
+   * @generated from field: repeated s4wave.world.ObjectRootRef root_refs = 1;
+   */
+  rootRefs?: ObjectRootRef[]
+}
+
+// GetObjectRootRefsBatchResponse contains the message type declaration for GetObjectRootRefsBatchResponse.
+export const GetObjectRootRefsBatchResponse: MessageType<GetObjectRootRefsBatchResponse> =
+  createMessageType({
+    typeName: 's4wave.world.GetObjectRootRefsBatchResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'root_refs',
+        kind: 'message',
+        T: () => ObjectRootRef,
+        repeated: true,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * ObjectMetadata contains graph metadata for one object key.
  *
  * @generated from message s4wave.world.ObjectMetadata

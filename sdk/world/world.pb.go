@@ -1058,6 +1058,95 @@ func (x *ListObjectsWithTypeResponse) GetObjectKeys() []string {
 	return nil
 }
 
+// ObjectRootRef contains root reference metadata for one object key.
+type ObjectRootRef struct {
+	unknownFields []byte
+	// ObjectKey is the object key.
+	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+	// RootRef is the current object root reference, if the object exists.
+	RootRef *bucket.ObjectRef `protobuf:"bytes,2,opt,name=root_ref,json=rootRef,proto3" json:"rootRef,omitempty"`
+	// Rev is the object revision.
+	Rev uint64 `protobuf:"varint,3,opt,name=rev,proto3" json:"rev,omitempty"`
+	// Exists indicates whether the object key exists.
+	Exists bool `protobuf:"varint,4,opt,name=exists,proto3" json:"exists,omitempty"`
+}
+
+func (x *ObjectRootRef) Reset() {
+	*x = ObjectRootRef{}
+}
+
+func (*ObjectRootRef) ProtoMessage() {}
+
+func (x *ObjectRootRef) GetObjectKey() string {
+	if x != nil {
+		return x.ObjectKey
+	}
+	return ""
+}
+
+func (x *ObjectRootRef) GetRootRef() *bucket.ObjectRef {
+	if x != nil {
+		return x.RootRef
+	}
+	return nil
+}
+
+func (x *ObjectRootRef) GetRev() uint64 {
+	if x != nil {
+		return x.Rev
+	}
+	return 0
+}
+
+func (x *ObjectRootRef) GetExists() bool {
+	if x != nil {
+		return x.Exists
+	}
+	return false
+}
+
+// GetObjectRootRefsBatchRequest is the request type for
+// GetObjectRootRefsBatch.
+type GetObjectRootRefsBatchRequest struct {
+	unknownFields []byte
+	// ObjectKeys is the list of object keys to inspect.
+	ObjectKeys []string `protobuf:"bytes,1,rep,name=object_keys,json=objectKeys,proto3" json:"objectKeys,omitempty"`
+}
+
+func (x *GetObjectRootRefsBatchRequest) Reset() {
+	*x = GetObjectRootRefsBatchRequest{}
+}
+
+func (*GetObjectRootRefsBatchRequest) ProtoMessage() {}
+
+func (x *GetObjectRootRefsBatchRequest) GetObjectKeys() []string {
+	if x != nil {
+		return x.ObjectKeys
+	}
+	return nil
+}
+
+// GetObjectRootRefsBatchResponse is the response type for
+// GetObjectRootRefsBatch.
+type GetObjectRootRefsBatchResponse struct {
+	unknownFields []byte
+	// RootRefs preserves the request object key order.
+	RootRefs []*ObjectRootRef `protobuf:"bytes,1,rep,name=root_refs,json=rootRefs,proto3" json:"rootRefs,omitempty"`
+}
+
+func (x *GetObjectRootRefsBatchResponse) Reset() {
+	*x = GetObjectRootRefsBatchResponse{}
+}
+
+func (*GetObjectRootRefsBatchResponse) ProtoMessage() {}
+
+func (x *GetObjectRootRefsBatchResponse) GetRootRefs() []*ObjectRootRef {
+	if x != nil {
+		return x.RootRefs
+	}
+	return nil
+}
+
 // ObjectMetadata contains graph metadata for one object key.
 type ObjectMetadata struct {
 	unknownFields []byte
@@ -2157,7 +2246,9 @@ func (m *AccessWorldStateRequest) CloneVT() *AccessWorldStateRequest {
 		return (*AccessWorldStateRequest)(nil)
 	}
 	r := new(AccessWorldStateRequest)
-	r.Ref = m.Ref.CloneVT()
+	if rhs := m.Ref; rhs != nil {
+		r.Ref = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2312,7 +2403,9 @@ func (m *CreateObjectRequest) CloneVT() *CreateObjectRequest {
 	}
 	r := new(CreateObjectRequest)
 	r.ObjectKey = m.ObjectKey
-	r.RootRef = m.RootRef.CloneVT()
+	if rhs := m.RootRef; rhs != nil {
+		r.RootRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2479,7 +2572,9 @@ func (m *SetGraphQuadRequest) CloneVT() *SetGraphQuadRequest {
 		return (*SetGraphQuadRequest)(nil)
 	}
 	r := new(SetGraphQuadRequest)
-	r.Quad = m.Quad.CloneVT()
+	if rhs := m.Quad; rhs != nil {
+		r.Quad = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2510,7 +2605,9 @@ func (m *DeleteGraphQuadRequest) CloneVT() *DeleteGraphQuadRequest {
 		return (*DeleteGraphQuadRequest)(nil)
 	}
 	r := new(DeleteGraphQuadRequest)
-	r.Quad = m.Quad.CloneVT()
+	if rhs := m.Quad; rhs != nil {
+		r.Quad = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2541,8 +2638,10 @@ func (m *LookupGraphQuadsRequest) CloneVT() *LookupGraphQuadsRequest {
 		return (*LookupGraphQuadsRequest)(nil)
 	}
 	r := new(LookupGraphQuadsRequest)
-	r.Filter = m.Filter.CloneVT()
 	r.Limit = m.Limit
+	if rhs := m.Filter; rhs != nil {
+		r.Filter = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2741,6 +2840,66 @@ func (m *ListObjectsWithTypeResponse) CloneVT() *ListObjectsWithTypeResponse {
 }
 
 func (m *ListObjectsWithTypeResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ObjectRootRef) CloneVT() *ObjectRootRef {
+	if m == nil {
+		return (*ObjectRootRef)(nil)
+	}
+	r := new(ObjectRootRef)
+	r.ObjectKey = m.ObjectKey
+	r.Rev = m.Rev
+	r.Exists = m.Exists
+	if rhs := m.RootRef; rhs != nil {
+		r.RootRef = rhs.CloneVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ObjectRootRef) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *GetObjectRootRefsBatchRequest) CloneVT() *GetObjectRootRefsBatchRequest {
+	if m == nil {
+		return (*GetObjectRootRefsBatchRequest)(nil)
+	}
+	r := new(GetObjectRootRefsBatchRequest)
+	if rhs := m.ObjectKeys; rhs != nil {
+		r.ObjectKeys = slices.Clone(rhs)
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GetObjectRootRefsBatchRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *GetObjectRootRefsBatchResponse) CloneVT() *GetObjectRootRefsBatchResponse {
+	if m == nil {
+		return (*GetObjectRootRefsBatchResponse)(nil)
+	}
+	r := new(GetObjectRootRefsBatchResponse)
+	if rhs := m.RootRefs; rhs != nil {
+		r.RootRefs = make([]*ObjectRootRef, len(rhs))
+		for k, v := range rhs {
+			r.RootRefs[k] = v.CloneVT()
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GetObjectRootRefsBatchResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -3307,8 +3466,10 @@ func (m *GetRootRefResponse) CloneVT() *GetRootRefResponse {
 		return (*GetRootRefResponse)(nil)
 	}
 	r := new(GetRootRefResponse)
-	r.RootRef = m.RootRef.CloneVT()
 	r.Rev = m.Rev
+	if rhs := m.RootRef; rhs != nil {
+		r.RootRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3324,7 +3485,9 @@ func (m *SetRootRefRequest) CloneVT() *SetRootRefRequest {
 		return (*SetRootRefRequest)(nil)
 	}
 	r := new(SetRootRefRequest)
-	r.RootRef = m.RootRef.CloneVT()
+	if rhs := m.RootRef; rhs != nil {
+		r.RootRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -4476,6 +4639,95 @@ func (this *ListObjectsWithTypeResponse) EqualVT(that *ListObjectsWithTypeRespon
 
 func (this *ListObjectsWithTypeResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*ListObjectsWithTypeResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ObjectRootRef) EqualVT(that *ObjectRootRef) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ObjectKey != that.ObjectKey {
+		return false
+	}
+	if !this.RootRef.EqualVT(that.RootRef) {
+		return false
+	}
+	if this.Rev != that.Rev {
+		return false
+	}
+	if this.Exists != that.Exists {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ObjectRootRef) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ObjectRootRef)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *GetObjectRootRefsBatchRequest) EqualVT(that *GetObjectRootRefsBatchRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if len(this.ObjectKeys) != len(that.ObjectKeys) {
+		return false
+	}
+	for i, vx := range this.ObjectKeys {
+		vy := that.ObjectKeys[i]
+		if vx != vy {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GetObjectRootRefsBatchRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GetObjectRootRefsBatchRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *GetObjectRootRefsBatchResponse) EqualVT(that *GetObjectRootRefsBatchResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if len(this.RootRefs) != len(that.RootRefs) {
+		return false
+	}
+	for i, vx := range this.RootRefs {
+		vy := that.RootRefs[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &ObjectRootRef{}
+			}
+			if q == nil {
+				q = &ObjectRootRef{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GetObjectRootRefsBatchResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GetObjectRootRefsBatchResponse)
 	if !ok {
 		return false
 	}
@@ -7551,6 +7803,185 @@ func (x *ListObjectsWithTypeResponse) UnmarshalProtoJSON(s *json.UnmarshalState)
 
 // UnmarshalJSON unmarshals the ListObjectsWithTypeResponse from JSON.
 func (x *ListObjectsWithTypeResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ObjectRootRef message to JSON.
+func (x *ObjectRootRef) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ObjectKey != "" || s.HasField("objectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectKey")
+		s.WriteString(x.ObjectKey)
+	}
+	if x.RootRef != nil || s.HasField("rootRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rootRef")
+		x.RootRef.MarshalProtoJSON(s.WithField("rootRef"))
+	}
+	if x.Rev != 0 || s.HasField("rev") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rev")
+		s.WriteUint64(x.Rev)
+	}
+	if x.Exists || s.HasField("exists") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("exists")
+		s.WriteBool(x.Exists)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ObjectRootRef to JSON.
+func (x *ObjectRootRef) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ObjectRootRef message from JSON.
+func (x *ObjectRootRef) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "object_key", "objectKey":
+			s.AddField("object_key")
+			x.ObjectKey = s.ReadString()
+		case "root_ref", "rootRef":
+			if s.ReadNil() {
+				x.RootRef = nil
+				return
+			}
+			x.RootRef = &bucket.ObjectRef{}
+			x.RootRef.UnmarshalProtoJSON(s.WithField("root_ref", true))
+		case "rev":
+			s.AddField("rev")
+			x.Rev = s.ReadUint64()
+		case "exists":
+			s.AddField("exists")
+			x.Exists = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ObjectRootRef from JSON.
+func (x *ObjectRootRef) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the GetObjectRootRefsBatchRequest message to JSON.
+func (x *GetObjectRootRefsBatchRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.ObjectKeys) > 0 || s.HasField("objectKeys") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectKeys")
+		s.WriteStringArray(x.ObjectKeys)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GetObjectRootRefsBatchRequest to JSON.
+func (x *GetObjectRootRefsBatchRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GetObjectRootRefsBatchRequest message from JSON.
+func (x *GetObjectRootRefsBatchRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "object_keys", "objectKeys":
+			s.AddField("object_keys")
+			if s.ReadNil() {
+				x.ObjectKeys = nil
+				return
+			}
+			x.ObjectKeys = s.ReadStringArray()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the GetObjectRootRefsBatchRequest from JSON.
+func (x *GetObjectRootRefsBatchRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the GetObjectRootRefsBatchResponse message to JSON.
+func (x *GetObjectRootRefsBatchResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.RootRefs) > 0 || s.HasField("rootRefs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rootRefs")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.RootRefs {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("rootRefs"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GetObjectRootRefsBatchResponse to JSON.
+func (x *GetObjectRootRefsBatchResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GetObjectRootRefsBatchResponse message from JSON.
+func (x *GetObjectRootRefsBatchResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "root_refs", "rootRefs":
+			s.AddField("root_refs")
+			if s.ReadNil() {
+				x.RootRefs = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.RootRefs = append(x.RootRefs, nil)
+					return
+				}
+				v := &ObjectRootRef{}
+				v.UnmarshalProtoJSON(s.WithField("root_refs", false))
+				if s.Err() != nil {
+					return
+				}
+				x.RootRefs = append(x.RootRefs, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the GetObjectRootRefsBatchResponse from JSON.
+func (x *GetObjectRootRefsBatchResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -11341,6 +11772,158 @@ func (m *ListObjectsWithTypeResponse) MarshalToSizedBufferVT(dAtA []byte) (int, 
 	return len(dAtA) - i, nil
 }
 
+func (m *ObjectRootRef) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ObjectRootRef) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ObjectRootRef) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Exists {
+		i--
+		if m.Exists {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.Rev != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Rev))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.RootRef != nil {
+		size, err := m.RootRef.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ObjectKey) > 0 {
+		i -= len(m.ObjectKey)
+		copy(dAtA[i:], m.ObjectKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ObjectKey)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *GetObjectRootRefsBatchRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetObjectRootRefsBatchRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GetObjectRootRefsBatchRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.ObjectKeys) > 0 {
+		for iNdEx := len(m.ObjectKeys) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.ObjectKeys[iNdEx])
+			copy(dAtA[i:], m.ObjectKeys[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ObjectKeys[iNdEx])))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *GetObjectRootRefsBatchResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetObjectRootRefsBatchResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GetObjectRootRefsBatchResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.RootRefs) > 0 {
+		for iNdEx := len(m.RootRefs) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.RootRefs[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *ObjectMetadata) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -13807,6 +14390,62 @@ func (m *ListObjectsWithTypeResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *ObjectRootRef) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.ObjectKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.RootRef != nil {
+		l = m.RootRef.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Rev != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Rev))
+	}
+	if m.Exists {
+		n += 2
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GetObjectRootRefsBatchRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.ObjectKeys) > 0 {
+		for _, s := range m.ObjectKeys {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GetObjectRootRefsBatchResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.RootRefs) > 0 {
+		for _, e := range m.RootRefs {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *ObjectMetadata) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -15339,6 +15978,93 @@ func (x *ListObjectsWithTypeResponse) MarshalProtoText() string {
 }
 
 func (x *ListObjectsWithTypeResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ObjectRootRef) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("ObjectRootRef {")
+	if x.ObjectKey != "" {
+		if sb.Len() > 15 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("object_key: ")
+		sb.WriteString(strconv.Quote(x.ObjectKey))
+	}
+	if x.RootRef != nil {
+		if sb.Len() > 15 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("root_ref: ")
+		sb.WriteString(x.RootRef.MarshalProtoText())
+	}
+	if x.Rev != 0 {
+		if sb.Len() > 15 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("rev: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.Rev), 10))
+	}
+	if x.Exists != false {
+		if sb.Len() > 15 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("exists: ")
+		sb.WriteString(strconv.FormatBool(x.Exists))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *ObjectRootRef) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *GetObjectRootRefsBatchRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("GetObjectRootRefsBatchRequest {")
+	if len(x.ObjectKeys) > 0 {
+		if sb.Len() > 31 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("object_keys: [")
+		for i, v := range x.ObjectKeys {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *GetObjectRootRefsBatchRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *GetObjectRootRefsBatchResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("GetObjectRootRefsBatchResponse {")
+	if len(x.RootRefs) > 0 {
+		if sb.Len() > 32 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("root_refs: [")
+		for i, v := range x.RootRefs {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *GetObjectRootRefsBatchResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -18994,6 +19720,254 @@ func (m *ListObjectsWithTypeResponse) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.ObjectKeys = append(m.ObjectKeys, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ObjectRootRef) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ObjectRootRef: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ObjectRootRef: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ObjectKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RootRef", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.RootRef == nil {
+				m.RootRef = &bucket.ObjectRef{}
+			}
+			if err := m.RootRef.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Rev", wireType)
+			}
+			m.Rev = 0
+			m.Rev, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Exists", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.Exists = bool(v != 0)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *GetObjectRootRefsBatchRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetObjectRootRefsBatchRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetObjectRootRefsBatchRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKeys", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ObjectKeys = append(m.ObjectKeys, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *GetObjectRootRefsBatchResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetObjectRootRefsBatchResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetObjectRootRefsBatchResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RootRefs", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RootRefs = append(m.RootRefs, &ObjectRootRef{})
+			if err := m.RootRefs[len(m.RootRefs)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

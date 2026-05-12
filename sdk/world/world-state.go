@@ -313,6 +313,27 @@ func (ws *WorldState) ListObjectsWithType(ctx context.Context, typeID string) ([
 	return resp.ObjectKeys, nil
 }
 
+// GetObjectRootRefsBatch returns root references for object keys.
+func (ws *WorldState) GetObjectRootRefsBatch(ctx context.Context, keys []string) ([]*world.ObjectRootRef, error) {
+	resp, err := ws.service.GetObjectRootRefsBatch(ctx, &GetObjectRootRefsBatchRequest{
+		ObjectKeys: keys,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	refs := make([]*world.ObjectRootRef, len(resp.GetRootRefs()))
+	for i, ref := range resp.GetRootRefs() {
+		refs[i] = &world.ObjectRootRef{
+			ObjectKey: ref.GetObjectKey(),
+			RootRef:   ref.GetRootRef().Clone(),
+			Rev:       ref.GetRev(),
+			Exists:    ref.GetExists(),
+		}
+	}
+	return refs, nil
+}
+
 // GetObjectMetadataBatch returns graph metadata for object keys.
 func (ws *WorldState) GetObjectMetadataBatch(ctx context.Context, keys []string) ([]*world_types.ObjectMetadata, error) {
 	resp, err := ws.service.GetObjectMetadataBatch(ctx, &GetObjectMetadataBatchRequest{
